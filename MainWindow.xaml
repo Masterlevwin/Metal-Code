@@ -1,0 +1,49 @@
+﻿<Window
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Metal_Code"
+        xmlns:Specialized="clr-namespace:System.Collections.Specialized;assembly=System.Collections.Specialized" x:Class="Metal_Code.MainWindow"
+        mc:Ignorable="d"
+        Title="Провэлд" Height="768" Width="1024" WindowStartupLocation="CenterScreen" FontFamily="Century" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" VerticalContentAlignment="Stretch" AutomationProperties.Name="" MinWidth="1024" MinHeight="768">
+    <Grid x:Name="MenuGrid">
+        <Menu VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" FontSize="10" FontFamily="Forte" RenderTransformOrigin="0.499,-1.337">
+            <MenuItem Header="Файл" FontFamily="Forte">
+                <MenuItem Header="Создать"/>
+                <MenuItem Header="Открыть"/>
+                <MenuItem Header="Сохранить"/>
+                <Separator/>
+                <MenuItem Header="Выход"/>
+            </MenuItem>
+            <MenuItem Header="Настройки"/>
+            <MenuItem Header="О программе"/>
+        </Menu>
+        <Grid x:Name="WindowGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=Product}" ToolTip="" MinWidth="500" Margin="20,20,20,20">
+                <Grid x:Name="ProductGrid" AllowDrop="True">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="Product" Text="Изделие" AutoWordSelection="True" AcceptsReturn="True" TextWrapping="Wrap" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="400" HorizontalContentAlignment="Center" MaxLines="3" MaxLength="58" VerticalContentAlignment="Center"/>
+                    <TextBox x:Name="Count" TextWrapping="Wrap" AutoWordSelection="True" AcceptsReturn="True" ToolTip="Введите количество требуемых изделий" AllowDrop="False" Grid.Column="1" MaxLines="1" MaxLength="5" Text="шт" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="30,0,0,0" VerticalAlignment="Top"/>
+                    <Grid x:Name="DetailGrid">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="DetailDrop" Grid.Column="1" VerticalAlignment="Top" Margin="0,20,0,0" MinHeight="20" MinWidth="200" SelectedIndex="0" Height="20" HorizontalAlignment="Left" Width="200" ToolTip="Выберите заготовку"/>
+                        <Button x:Name="AddDetail" Content="+" Margin="0,40,0,0" MinWidth="20" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Height="20" Width="20" ToolTip="Добавить деталь"/>
+                        <TextBox x:Name="DetailName" TextWrapping="Wrap" Text="Деталь" VerticalAlignment="Top" Margin="0,20,0,0" MinWidth="150" MinHeight="20" MaxLength="20" HorizontalAlignment="Left" Height="20" Width="150" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" ToolTip="Введите название детали"/>
+                        <Button x:Name="AddWork" Content="+" Margin="0,40,0,0" MinWidth="20" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Grid.Column="1" Height="20" Width="20" ToolTip="Добавить заготовку"/>
+                    </Grid>
+                </Grid>
+            </GroupBox>
+        </Grid>
+    </Grid>
+</Window>
