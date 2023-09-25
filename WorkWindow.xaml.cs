@@ -4,36 +4,36 @@ using System.Windows;
 namespace Metal_Code
 {
     /// <summary>
-    /// Логика взаимодействия для TypeDetailSettings.xaml
+    /// Логика взаимодействия для WorkWindow.xaml
     /// </summary>
-    public partial class TypeDetailWindow : Window
+    public partial class WorkWindow : Window
     {
-        TypeDetailContext db = new();
-        public TypeDetailWindow()
+        WorkContext db = new();
+        public WorkWindow()
         {
             InitializeComponent();
-            Loaded += TypeDetailWindow_Loaded;
+            Loaded += WorkWindow_Loaded;
         }
 
         // при загрузке окна
-        private void TypeDetailWindow_Loaded(object sender, RoutedEventArgs e)
+        private void WorkWindow_Loaded(object sender, RoutedEventArgs e)
         {
             // гарантируем, что база данных создана
             db.Database.EnsureCreated();
             // загружаем данные из БД
-            db.TypeDetails.Load();
+            db.Works.Load();
             // и устанавливаем данные в качестве контекста
-            DataContext = db.TypeDetails.Local.ToObservableCollection();
+            DataContext = db.Works.Local.ToObservableCollection();
         }
 
         // добавление
         private void Add_Click(object sender, RoutedEventArgs e)
         {
-            TypeDetailSettings TypeDetailSettings = new TypeDetailSettings(new TypeDetail());
-            if (TypeDetailSettings.ShowDialog() == true)
+            WorkSettings WorkSettings = new WorkSettings(new Work());
+            if (WorkSettings.ShowDialog() == true)
             {
-                TypeDetail TypeDetail = TypeDetailSettings.TypeDetail;
-                db.TypeDetails.Add(TypeDetail);
+                Work Work = WorkSettings.Work;
+                db.Works.Add(Work);
                 db.SaveChanges();
             }
         }
@@ -41,23 +41,23 @@ namespace Metal_Code
         private void Edit_Click(object sender, RoutedEventArgs e)
         {
             // получаем выделенный объект
-            TypeDetail? type = typesList.SelectedItem as TypeDetail;
+            Work? work = typesList.SelectedItem as Work;
             // если ни одного объекта не выделено, выходим
-            if (type is null) return;
+            if (work is null) return;
 
-            TypeDetailSettings TypeDetailSettings = new TypeDetailSettings(new TypeDetail
+            WorkSettings WorkSettings = new WorkSettings(new Work
             {
-                Id = type.Id,
-                Name = type.Name
+                Id = work.Id,
+                Name = work.Name
             });
 
-            if (TypeDetailSettings.ShowDialog() == true)
+            if (WorkSettings.ShowDialog() == true)
             {
                 // получаем измененный объект
-                type = db.TypeDetails.Find(TypeDetailSettings.TypeDetail.Id);
-                if (type != null)
+                work = db.Works.Find(WorkSettings.Work.Id);
+                if (work != null)
                 {
-                    type.Name = TypeDetailSettings.TypeDetail.Name;
+                    work.Name = WorkSettings.Work.Name;
                     db.SaveChanges();
                     typesList.Items.Refresh();
                 }
@@ -67,10 +67,10 @@ namespace Metal_Code
         private void Delete_Click(object sender, RoutedEventArgs e)
         {
             // получаем выделенный объект
-            TypeDetail? type = typesList.SelectedItem as TypeDetail;
+            Work? work = typesList.SelectedItem as Work;
             // если ни одного объекта не выделено, выходим
-            if (type is null) return;
-            db.TypeDetails.Remove(type);
+            if (work is null) return;
+            db.Works.Remove(work);
             db.SaveChanges();
         }
 

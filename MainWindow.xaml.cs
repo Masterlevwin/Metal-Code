@@ -11,30 +11,43 @@ namespace Metal_Code
     {
         public static MainWindow M = new();
 
-        ApplicationContext db = new();
+        TypeDetailContext dbTypeDetails = new();
+        WorkContext dbWorks = new();
         public MainWindow()
         {
             InitializeComponent();
             M = this;
-            Loaded += UpdateDetailDropItems;
+            Loaded += UpdateDrops;
         }
 
         // при загрузке окна
-        private void UpdateDetailDropItems(object sender, RoutedEventArgs e)
+        private void UpdateDrops(object sender, RoutedEventArgs e)
         {
             // гарантируем, что база данных создана
-            db.Database.EnsureCreated();
+            dbWorks.Database.EnsureCreated();
             // загружаем данные из БД
-            db.TypeDetails.Load();
+            dbWorks.Works.Load();
             // и устанавливаем данные в качестве контекста
-            DetailDrop.ItemsSource = db.TypeDetails.Local.ToObservableCollection();
+            WorkDrop.ItemsSource = dbWorks.Works.Local.ToObservableCollection();
+
+            dbTypeDetails.Database.EnsureCreated();
+            dbTypeDetails.TypeDetails.Load();
+            DetailDrop.ItemsSource = dbTypeDetails.TypeDetails.Local.ToObservableCollection();
         }
 
         private void OpenSettings(object sender, RoutedEventArgs e)
         {
             IsEnabled = false;
-            TypeDetailWindow typeDetailWindow = new();
-            typeDetailWindow.Show();
+            if (sender == Settings.Items[0])
+            {
+                TypeDetailWindow typeDetailWindow = new();
+                typeDetailWindow.Show();
+            }
+            else if (sender == Settings.Items[1])
+            {
+                WorkWindow workWindow = new();
+                workWindow.Show();
+            }
         }
 
         private void AddDetail(object sender, RoutedEventArgs e)
@@ -46,9 +59,9 @@ namespace Metal_Code
                 MaxLength = 20,
                 HorizontalContentAlignment = HorizontalAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
-                Width = 150,
+                Width = 120,
                 Height = 20,
-                MinWidth = 150,
+                MinWidth = 120,
                 MinHeight = 20,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top,
@@ -68,13 +81,13 @@ namespace Metal_Code
         {
             ComboBox typeDetail = new()
             {
-                ItemsSource = db.TypeDetails.Local.ToObservableCollection(),
+                ItemsSource = dbTypeDetails.TypeDetails.Local.ToObservableCollection(),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top,
                 Height = 20,
-                Width = 200,
+                Width = 150,
                 MinHeight = 20,
-                MinWidth = 200,
+                MinWidth = 150,
                 DisplayMemberPath = "Name",
                 SelectedIndex = 0,
                 ToolTip = "Выберите заготовку",
@@ -86,8 +99,35 @@ namespace Metal_Code
             DetailGrid.Children.Add(typeDetail);
             typeDetail.Focus();
             AddTypeBtn.Margin = new Thickness(0, AddTypeBtn.Margin.Top + AddTypeBtn.Height + 5, 0, 0);
-
             AddDetailBtn.Margin = AddTypeBtn.Margin;    // перемещаем обе кнопки одновременно
+
+            AddWork(sender, e);   // при добавлении дропа типовой детали добавляем дроп работ
+        }
+
+        private void AddWork(object sender, RoutedEventArgs e)
+        {
+            ComboBox work = new()
+            {
+                ItemsSource = dbWorks.Works.Local.ToObservableCollection(),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Height = 20,
+                Width = 150,
+                MinHeight = 20,
+                MinWidth = 150,
+                DisplayMemberPath = "Name",
+                SelectedIndex = 0,
+                ToolTip = "Выберите работу",
+                IsEditable = true
+            };
+
+            work.Margin = AddWorkBtn.Margin;
+            Grid.SetColumn(work, 1);
+            ProductGrid.Children.Add(work);
+            work.Focus();
+            AddWorkBtn.Margin = new Thickness(0, AddWorkBtn.Margin.Top + AddWorkBtn.Height + 5, 0, 0);
+
+            AddDetailBtn.Margin = AddTypeBtn.Margin = AddWorkBtn.Margin;    // перемещаем все кнопки одновременно
         }
     }
 }
