@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -21,7 +22,8 @@ namespace Metal_Code
         }
 
         // при загрузке окна
-        private void UpdateDrops(object sender, RoutedEventArgs e)
+        private void UpdateDrops(object sender, RoutedEventArgs e)  // данный метод также вызывает событие GotFocus
+                                                                    // это временная мера!
         {
             // гарантируем, что база данных создана
             dbWorks.Database.EnsureCreated();
@@ -29,6 +31,7 @@ namespace Metal_Code
             dbWorks.Works.Load();
             // и устанавливаем данные в качестве контекста
             WorkDrop.ItemsSource = dbWorks.Works.Local.ToObservableCollection();
+            PriceView();                                            // временно
 
             dbTypeDetails.Database.EnsureCreated();
             dbTypeDetails.TypeDetails.Load();
@@ -128,6 +131,12 @@ namespace Metal_Code
             AddWorkBtn.Margin = new Thickness(0, AddWorkBtn.Margin.Top + AddWorkBtn.Height + 5, 0, 0);
 
             AddDetailBtn.Margin = AddTypeBtn.Margin = AddWorkBtn.Margin;    // перемещаем все кнопки одновременно
+        }
+
+        private void PriceView()
+        {
+            if (WorkDrop.SelectedItem is not Work work) return;
+            PriceWork.Text = work.Price.ToString();
         }
     }
 }

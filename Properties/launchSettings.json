@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Metal-Code": {
+      "commandName": "Project",
+      "hotReloadEnabled": false
+    }
+  }
+}
