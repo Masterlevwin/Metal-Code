@@ -33,5 +33,7 @@
             <Button IsDefault="True" Click="Accept_Click" >OK</Button>
             <Button IsCancel="True" >Отмена</Button>
         </StackPanel>
+        <TextBlock Margin="8,8,8,8" Grid.Row="1" Text="Цена" />
+        <TextBox Text="{Binding Price}" Grid.Column="1" SpellCheck.IsEnabled="True" Language="ru-ru" Margin="8,8,8,8" Grid.Row="1" />
     </Grid>
 </Window>

@@ -28,7 +28,7 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=Product}" ToolTip="" MinWidth="500" Margin="20,20,20,20">
-                <Grid x:Name="ProductGrid" AllowDrop="True">
+                <Grid x:Name="ProductGrid" AllowDrop="True" Margin="0,0,5,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" MinWidth="340"/>
                         <ColumnDefinition Width="Auto" MinWidth="150"/>
@@ -45,9 +45,10 @@
                         <TextBox x:Name="DetailName" TextWrapping="Wrap" Text="Деталь" VerticalAlignment="Top" Margin="0,30,0,0" MinWidth="120" MinHeight="20" MaxLength="20" HorizontalAlignment="Left" Height="20" Width="120" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" ToolTip="Введите название детали" AutoWordSelection="True" SpellCheck.IsEnabled="True" Language="ru-ru" />
                         <Button x:Name="AddTypeBtn" Content="+" Margin="0,55,0,0" MinWidth="20" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Grid.Column="1" Height="20" Width="20" ToolTip="Добавить заготовку" Click="AddTypeDetail"/>
                     </Grid>
-                    <ComboBox x:Name="WorkDrop" Grid.Column="1" HorizontalAlignment="Center" Margin="0,30,0,0" VerticalAlignment="Top" Width="150" MinWidth="150" MinHeight="20" ToolTip="Выберите работу" IsEditable="True" Height="20" DisplayMemberPath="Name" SelectedIndex="0"/>
+                    <ComboBox x:Name="WorkDrop" Grid.Column="1" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" Width="150" MinWidth="150" MinHeight="20" ToolTip="Выберите работу" IsEditable="True" Height="20" DisplayMemberPath="Name" SelectedIndex="0"/>
                     <TextBlock Grid.Column="1" HorizontalAlignment="Right" TextWrapping="Wrap" VerticalAlignment="Top" MinHeight="20" Margin="0,5,10,0" Text="Стоимость" AllowDrop="False" Height="20" Width="60"/>
                     <Button x:Name="AddWorkBtn" Content="+" Margin="0,55,0,0" MinWidth="20" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Height="20" Width="20" ToolTip="Добавить заготовку" Click="AddWork" Grid.Column="1"/>
+                    <TextBlock x:Name="PriceWork" Grid.Column="1" HorizontalAlignment="Left" Margin="175,30,10,0" TextWrapping="Wrap" MinHeight="20" VerticalAlignment="Top" AllowDrop="False" ToolTip="Цена за единицу, руб" Text="Цена"/>
                 </Grid>
             </GroupBox>
         </Grid>

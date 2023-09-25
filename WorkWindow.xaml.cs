@@ -48,7 +48,8 @@ namespace Metal_Code
             WorkSettings WorkSettings = new WorkSettings(new Work
             {
                 Id = work.Id,
-                Name = work.Name
+                Name = work.Name,
+                Price = work.Price
             });
 
             if (WorkSettings.ShowDialog() == true)
@@ -58,6 +59,7 @@ namespace Metal_Code
                 if (work != null)
                 {
                     work.Name = WorkSettings.Work.Name;
+                    work.Price = WorkSettings.Work.Price;
                     db.SaveChanges();
                     typesList.Items.Refresh();
                 }
