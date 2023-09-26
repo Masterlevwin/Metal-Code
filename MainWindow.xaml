@@ -42,7 +42,13 @@
                         </Grid.ColumnDefinitions>
                         <ComboBox x:Name="DetailDrop" Grid.Column="1" VerticalAlignment="Top" Margin="0,30,0,0" MinHeight="20" Height="20" HorizontalAlignment="Left" Width="150" ToolTip="Выберите заготовку" DisplayMemberPath="Name" SelectedIndex="0" IsEditable="True" MinWidth="150" />
                         <Button x:Name="AddDetailBtn" Content="+" Margin="0,55,0,0" MinWidth="20" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Height="20" Width="20" ToolTip="Добавить деталь" Click="AddDetail"/>
-                        <TextBox x:Name="DetailName" TextWrapping="Wrap" Text="Деталь" VerticalAlignment="Top" Margin="0,30,0,0" MinWidth="120" MinHeight="20" MaxLength="20" HorizontalAlignment="Left" Height="20" Width="120" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" ToolTip="Введите название детали" AutoWordSelection="True" SpellCheck.IsEnabled="True" Language="ru-ru" />
+                        <TextBox x:Name="DetailName" TextWrapping="Wrap" Text="Деталь" VerticalAlignment="Top" Margin="0,30,0,0" MinWidth="120" MinHeight="20" MaxLength="20" HorizontalAlignment="Left" Height="20" Width="120" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" ToolTip="Введите название детали" AutoWordSelection="True" SpellCheck.IsEnabled="True" Language="ru-ru" >
+                            <TextBox.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Удалить"></MenuItem>
+                                </ContextMenu>
+                            </TextBox.ContextMenu>
+                        </TextBox>
                         <Button x:Name="AddTypeBtn" Content="+" Margin="0,55,0,0" MinWidth="20" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Grid.Column="1" Height="20" Width="20" ToolTip="Добавить заготовку" Click="AddTypeDetail"/>
                     </Grid>
                     <ComboBox x:Name="WorkDrop" Grid.Column="1" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" Width="150" MinWidth="150" MinHeight="20" ToolTip="Выберите работу" IsEditable="True" Height="20" DisplayMemberPath="Name" SelectedIndex="0"/>

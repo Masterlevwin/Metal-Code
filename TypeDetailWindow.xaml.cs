@@ -48,7 +48,8 @@ namespace Metal_Code
             TypeDetailSettings TypeDetailSettings = new TypeDetailSettings(new TypeDetail
             {
                 Id = type.Id,
-                Name = type.Name
+                Name = type.Name,
+                Price = type.Price
             });
 
             if (TypeDetailSettings.ShowDialog() == true)
@@ -58,6 +59,7 @@ namespace Metal_Code
                 if (type != null)
                 {
                     type.Name = TypeDetailSettings.TypeDetail.Name;
+                    type.Price = TypeDetailSettings.TypeDetail.Price;
                     db.SaveChanges();
                     typesList.Items.Refresh();
                 }

@@ -1,7 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 
 namespace Metal_Code
 {
@@ -18,7 +21,7 @@ namespace Metal_Code
         {
             InitializeComponent();
             M = this;
-            Loaded += UpdateDrops;
+            //Loaded += UpdateDrops;
         }
 
         // при загрузке окна
@@ -68,7 +71,8 @@ namespace Metal_Code
                 MinHeight = 20,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top,
-                ToolTip = "Введите название детали"
+                ToolTip = "Введите название детали",
+
             };
 
             detailName.SpellCheck.IsEnabled = true;
@@ -100,7 +104,7 @@ namespace Metal_Code
             typeDetail.Margin = AddTypeBtn.Margin;
             Grid.SetColumn(typeDetail, 1);
             DetailGrid.Children.Add(typeDetail);
-            typeDetail.Focus();
+
             AddTypeBtn.Margin = new Thickness(0, AddTypeBtn.Margin.Top + AddTypeBtn.Height + 5, 0, 0);
             AddDetailBtn.Margin = AddTypeBtn.Margin;    // перемещаем обе кнопки одновременно
 
@@ -124,19 +128,40 @@ namespace Metal_Code
                 IsEditable = true
             };
 
+            TextBlock priceView = new()
+            {
+                Text = "Цена",
+                TextWrapping = TextWrapping.Wrap,
+                MinHeight = 20,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                ToolTip = "Цена за единицу, руб"
+            };
+
             work.Margin = AddWorkBtn.Margin;
             Grid.SetColumn(work, 1);
             ProductGrid.Children.Add(work);
-            work.Focus();
-            AddWorkBtn.Margin = new Thickness(0, AddWorkBtn.Margin.Top + AddWorkBtn.Height + 5, 0, 0);
 
+            priceView.Margin = new Thickness(175, AddWorkBtn.Margin.Top, 10, 0);
+            Grid.SetColumn(priceView, 1);
+            ProductGrid.Children.Add(priceView);
+
+            AddWorkBtn.Margin = new Thickness(0, AddWorkBtn.Margin.Top + AddWorkBtn.Height + 5, 0, 0);
             AddDetailBtn.Margin = AddTypeBtn.Margin = AddWorkBtn.Margin;    // перемещаем все кнопки одновременно
+
+            Focus();
         }
 
         private void PriceView()
         {
             if (WorkDrop.SelectedItem is not Work work) return;
-            PriceWork.Text = work.Price.ToString();
+
+            if (work.Name == "Покупка")
+            {
+                if (DetailDrop.SelectedItem is not TypeDetail typeDetail) PriceWork.Text = $"{0}";
+                else PriceWork.Text = $"{typeDetail.Price}";
+            }    
+            else PriceWork.Text = $"{work.Price}";
         }
     }
 }
