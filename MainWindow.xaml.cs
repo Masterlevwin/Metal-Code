@@ -1,10 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.ComponentModel;
-using System.Diagnostics;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 namespace Metal_Code
 {
@@ -15,30 +13,23 @@ namespace Metal_Code
     {
         public static MainWindow M = new();
 
-        TypeDetailContext dbTypeDetails = new();
-        WorkContext dbWorks = new();
+        public readonly TypeDetailContext dbTypeDetails = new();
+        public readonly WorkContext dbWorks = new();
         public MainWindow()
         {
             InitializeComponent();
             M = this;
-            //Loaded += UpdateDrops;
+            Loaded += UpdateDrops;
+            
         }
 
-        // при загрузке окна
-        private void UpdateDrops(object sender, RoutedEventArgs e)  // данный метод также вызывает событие GotFocus
-                                                                    // это временная мера!
+        private void UpdateDrops(object sender, RoutedEventArgs e)  // при загрузке окна
         {
-            // гарантируем, что база данных создана
             dbWorks.Database.EnsureCreated();
-            // загружаем данные из БД
             dbWorks.Works.Load();
-            // и устанавливаем данные в качестве контекста
-            WorkDrop.ItemsSource = dbWorks.Works.Local.ToObservableCollection();
-            PriceView();                                            // временно
 
             dbTypeDetails.Database.EnsureCreated();
             dbTypeDetails.TypeDetails.Load();
-            DetailDrop.ItemsSource = dbTypeDetails.TypeDetails.Local.ToObservableCollection();
         }
 
         private void OpenSettings(object sender, RoutedEventArgs e)
@@ -56,112 +47,40 @@ namespace Metal_Code
             }
         }
 
+        public List<Detail> Details = new();
         private void AddDetail(object sender, RoutedEventArgs e)
         {
-            TextBox detailName = new()
-            {
-                Text = "Деталь",
-                TextWrapping = TextWrapping.Wrap,
-                MaxLength = 20,
-                HorizontalContentAlignment = HorizontalAlignment.Center,
-                VerticalContentAlignment = VerticalAlignment.Center,
-                Width = 120,
-                Height = 20,
-                MinWidth = 120,
-                MinHeight = 20,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top,
-                ToolTip = "Введите название детали",
+            Detail detail = new();
+            detail.Margin = AddDetailBtn.Margin;
+            detail.NameDetail = $"{detail.Margin}";
+            ProductGrid.Children.Add(detail);
+            Details.Add(detail);
 
-            };
-
-            detailName.SpellCheck.IsEnabled = true;
-            detailName.Margin = AddDetailBtn.Margin;
-            Grid.SetColumn(detailName, 0);
-            DetailGrid.Children.Add(detailName);
-            detailName.Focus();
-
+            AddDetailBtn.Margin = new Thickness(0, AddDetailBtn.Margin.Top + AddDetailBtn.Height + 5, 0, 0);
             AddTypeDetail(sender, e);   // при добавлении новой детали добавляем дроп комплектации
         }
 
         private void AddTypeDetail(object sender, RoutedEventArgs e)
         {
-            ComboBox typeDetail = new()
-            {
-                ItemsSource = dbTypeDetails.TypeDetails.Local.ToObservableCollection(),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top,
-                Height = 20,
-                Width = 150,
-                MinHeight = 20,
-                MinWidth = 150,
-                DisplayMemberPath = "Name",
-                SelectedIndex = 0,
-                ToolTip = "Выберите заготовку",
-                IsEditable = true
-            };
+            TypeDetailControl type = new(Details[^1]);
+            type.Margin = AddTypeBtn.Margin;
+            ProductGrid.Children.Add(type);
+            Grid.SetColumn(type, 1);
 
-            typeDetail.Margin = AddTypeBtn.Margin;
-            Grid.SetColumn(typeDetail, 1);
-            DetailGrid.Children.Add(typeDetail);
-
-            AddTypeBtn.Margin = new Thickness(0, AddTypeBtn.Margin.Top + AddTypeBtn.Height + 5, 0, 0);
+            AddTypeBtn.Margin = new Thickness(0, AddTypeBtn.Margin.Top + 25, 0, 0);
             AddDetailBtn.Margin = AddTypeBtn.Margin;    // перемещаем обе кнопки одновременно
-
             AddWork(sender, e);   // при добавлении дропа типовой детали добавляем дроп работ
         }
 
         private void AddWork(object sender, RoutedEventArgs e)
         {
-            ComboBox work = new()
-            {
-                ItemsSource = dbWorks.Works.Local.ToObservableCollection(),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top,
-                Height = 20,
-                Width = 150,
-                MinHeight = 20,
-                MinWidth = 150,
-                DisplayMemberPath = "Name",
-                SelectedIndex = 0,
-                ToolTip = "Выберите работу",
-                IsEditable = true
-            };
-
-            TextBlock priceView = new()
-            {
-                Text = "Цена",
-                TextWrapping = TextWrapping.Wrap,
-                MinHeight = 20,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Top,
-                ToolTip = "Цена за единицу, руб"
-            };
-
+            WorkControl work = new(Details[^1].TypeDetailControls[^1]);
             work.Margin = AddWorkBtn.Margin;
-            Grid.SetColumn(work, 1);
             ProductGrid.Children.Add(work);
+            Grid.SetColumn(work, 2);
 
-            priceView.Margin = new Thickness(175, AddWorkBtn.Margin.Top, 10, 0);
-            Grid.SetColumn(priceView, 1);
-            ProductGrid.Children.Add(priceView);
-
-            AddWorkBtn.Margin = new Thickness(0, AddWorkBtn.Margin.Top + AddWorkBtn.Height + 5, 0, 0);
+            AddWorkBtn.Margin = new Thickness(0, AddWorkBtn.Margin.Top + 25, 0, 0);
             AddDetailBtn.Margin = AddTypeBtn.Margin = AddWorkBtn.Margin;    // перемещаем все кнопки одновременно
-
-            Focus();
-        }
-
-        private void PriceView()
-        {
-            if (WorkDrop.SelectedItem is not Work work) return;
-
-            if (work.Name == "Покупка")
-            {
-                if (DetailDrop.SelectedItem is not TypeDetail typeDetail) PriceWork.Text = $"{0}";
-                else PriceWork.Text = $"{typeDetail.Price}";
-            }    
-            else PriceWork.Text = $"{work.Price}";
         }
     }
 }

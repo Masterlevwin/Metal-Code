@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:Metal_Code" xmlns:Sqlite="clr-namespace:Microsoft.Data.Sqlite;assembly=Microsoft.Data.Sqlite" x:Name="ProgramWindow"
         x:Class="Metal_Code.MainWindow"
         mc:Ignorable="d"
-        Title="Провэлд" Height="768" Width="1024" WindowStartupLocation="CenterScreen" FontFamily="Century" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" VerticalContentAlignment="Stretch" AutomationProperties.Name="" MinWidth="1024" MinHeight="768" GotFocus="UpdateDrops">
+        Title="Провэлд" Height="768" Width="1024" WindowStartupLocation="CenterScreen" FontFamily="Century" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" VerticalContentAlignment="Stretch" AutomationProperties.Name="" MinWidth="1024" MinHeight="768">
     <Grid x:Name="MenuGrid">
         <Menu VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" FontSize="10" FontFamily="Forte" RenderTransformOrigin="0.499,-1.337">
             <MenuItem Header="Файл" FontFamily="Forte">
@@ -24,39 +24,24 @@
         </Menu>
         <Grid x:Name="WindowGrid">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition MinWidth="617" Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=Product}" ToolTip="" MinWidth="500" Margin="20,20,20,20">
-                <Grid x:Name="ProductGrid" AllowDrop="True" Margin="0,0,5,0">
+                <Grid x:Name="ProductGrid" AllowDrop="True" Margin="10,0,10,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" MinWidth="340"/>
-                        <ColumnDefinition Width="Auto" MinWidth="150"/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
-                    <TextBox x:Name="Product" Text="Изделие" AutoWordSelection="True" TextWrapping="Wrap" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="300" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="43" VerticalContentAlignment="Center" MinHeight="20" Margin="0,5,20,0" SpellCheck.IsEnabled="True" Language="ru-ru" Height="20" />
-                    <TextBox x:Name="Count" TextWrapping="Wrap" AutoWordSelection="True" ToolTip="Введите количество требуемых изделий" AllowDrop="False" Grid.Column="1" MaxLines="1" MaxLength="5" Text="шт" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="0,5,0,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Left" Height="20" Width="40"/>
-                    <Grid x:Name="DetailGrid">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition/>
-                            <ColumnDefinition/>
-                        </Grid.ColumnDefinitions>
-                        <ComboBox x:Name="DetailDrop" Grid.Column="1" VerticalAlignment="Top" Margin="0,30,0,0" MinHeight="20" Height="20" HorizontalAlignment="Left" Width="150" ToolTip="Выберите заготовку" DisplayMemberPath="Name" SelectedIndex="0" IsEditable="True" MinWidth="150" />
-                        <Button x:Name="AddDetailBtn" Content="+" Margin="0,55,0,0" MinWidth="20" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Height="20" Width="20" ToolTip="Добавить деталь" Click="AddDetail"/>
-                        <TextBox x:Name="DetailName" TextWrapping="Wrap" Text="Деталь" VerticalAlignment="Top" Margin="0,30,0,0" MinWidth="120" MinHeight="20" MaxLength="20" HorizontalAlignment="Left" Height="20" Width="120" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" ToolTip="Введите название детали" AutoWordSelection="True" SpellCheck.IsEnabled="True" Language="ru-ru" >
-                            <TextBox.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="Удалить"></MenuItem>
-                                </ContextMenu>
-                            </TextBox.ContextMenu>
-                        </TextBox>
-                        <Button x:Name="AddTypeBtn" Content="+" Margin="0,55,0,0" MinWidth="20" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Grid.Column="1" Height="20" Width="20" ToolTip="Добавить заготовку" Click="AddTypeDetail"/>
-                    </Grid>
-                    <ComboBox x:Name="WorkDrop" Grid.Column="1" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" Width="150" MinWidth="150" MinHeight="20" ToolTip="Выберите работу" IsEditable="True" Height="20" DisplayMemberPath="Name" SelectedIndex="0"/>
-                    <TextBlock Grid.Column="1" HorizontalAlignment="Right" TextWrapping="Wrap" VerticalAlignment="Top" MinHeight="20" Margin="0,5,10,0" Text="Стоимость" AllowDrop="False" Height="20" Width="60"/>
-                    <Button x:Name="AddWorkBtn" Content="+" Margin="0,55,0,0" MinWidth="20" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Height="20" Width="20" ToolTip="Добавить заготовку" Click="AddWork" Grid.Column="1"/>
-                    <TextBlock x:Name="PriceWork" Grid.Column="1" HorizontalAlignment="Left" Margin="175,30,10,0" TextWrapping="Wrap" MinHeight="20" VerticalAlignment="Top" AllowDrop="False" ToolTip="Цена за единицу, руб" Text="Цена"/>
+                    <Button x:Name="AddDetailBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddDetail" Height="20" Width="20"/>
+                    <Button x:Name="AddTypeBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddTypeDetail" Height="20" Width="20" Grid.Column="1"/>
+                    <Button x:Name="AddWorkBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddWork" Height="20" Width="20" Grid.Column="2"/>
                 </Grid>
             </GroupBox>
+            <TextBox x:Name="Product" Text="Изделие" AutoWordSelection="True" TextWrapping="Wrap" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" Height="20" VerticalContentAlignment="Center" HorizontalAlignment="Left" />
+            <TextBox x:Name="Count" TextWrapping="Wrap" AutoWordSelection="True" ToolTip="Введите количество требуемых изделий" AllowDrop="False" MaxLines="1" MaxLength="5" Text="шт" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="400,40,0,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Left" Height="20" Width="40"/>
+            <TextBlock x:Name="Total" HorizontalAlignment="Right" TextWrapping="Wrap" VerticalAlignment="Top" MinHeight="20" Margin="0,40,40,0" Text="Стоимость" AllowDrop="False" Height="20"/>
         </Grid>
     </Grid>
 </Window>
