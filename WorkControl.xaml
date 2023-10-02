@@ -5,17 +5,16 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="260" GotFocus="PriceView">
-    <Grid VerticalAlignment="Top">
+             d:DesignHeight="20" d:DesignWidth="400" GotFocus="PriceView">
+    <Grid x:Name="WorkGrid" VerticalAlignment="Top">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto" MinWidth="50"/>
-            <ColumnDefinition/>
+            <ColumnDefinition Width="140"/>
+            <ColumnDefinition Width="7*"/>
+            <ColumnDefinition Width="19*"/>
         </Grid.ColumnDefinitions>
-        <ComboBox x:Name="WorkDrop" DisplayMemberPath="Name" VerticalAlignment="Center" Padding="0,0,0,0" MinWidth="120" MinHeight="20" Height="20" Margin="20,0,0,0" SelectedIndex="0" VerticalContentAlignment="Center"/>
-        <TextBlock x:Name="WorkPrice" Grid.Column="1" TextWrapping="Wrap" MinWidth="30" MinHeight="20" Height="20" Text="{Binding Price}" Margin="20,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-        <TextBlock Grid.Column="2" TextWrapping="Wrap" Text="{Binding TotalPrice}" VerticalAlignment="Top" Height="20" MinWidth="30" MinHeight="20" HorizontalAlignment="Left" Margin="20,0,0,0"/>
-        <Button Grid.Column="2" Content="x" MinWidth="10" MinHeight="10" Height="10" Click="Remove" Width="10" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+        <ComboBox x:Name="WorkDrop" DisplayMemberPath="Name" VerticalAlignment="Center" MinWidth="120" MinHeight="20" Height="20" Margin="20,0,0,0" SelectedIndex="0" VerticalContentAlignment="Center" SelectionChanged="CreateWork"/>
+        <TextBlock x:Name="WorkPrice" Grid.Column="1" MinWidth="30" MinHeight="20" Height="20" Text="{Binding Price}" HorizontalAlignment="Left" Width="30" Margin="20,0,0,0" TextWrapping="Wrap"/>
+        <Button MinWidth="10" MinHeight="10" Height="10" Click="Remove" Width="10" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0"/>
 
     </Grid>
 </UserControl>

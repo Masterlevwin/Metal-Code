@@ -41,21 +41,45 @@ namespace Metal_Code
         }
         public void Remove()
         {
-            Update();
+            UpdatePosition();
             MainWindow.M.ProductGrid.Children.Remove(this);
         }
-        public void Update()
+        public void UpdatePosition()
         {
             int num = type.WorkControls.IndexOf(this);
-            for (int i = num + 1; i < type.WorkControls.Count; i++)
-                type.WorkControls[i].Margin = new Thickness(0, type.WorkControls[i].Margin.Top - 25, 0, 0);
+            if (type.WorkControls.Count > 1) for (int i = num + 1; i < type.WorkControls.Count; i++) type.WorkControls[i].Margin = new Thickness(0, type.WorkControls[i].Margin.Top - 25, 0, 0);            
             MainWindow.M.AddWorkBtn.Margin = new Thickness(0, MainWindow.M.AddWorkBtn.Margin.Top - 25, 0, 0);
-            type.Update();
+            type.UpdatePosition();
         }
 
         private void PriceView(object sender, RoutedEventArgs e)
         {
             PriceView();
+        }
+
+        UserControl? workType = null;
+        private void CreateWork(object sender, SelectionChangedEventArgs e)
+        {
+            if (WorkDrop.SelectedItem is not Work work) return;
+            if (WorkGrid.Children.Contains(workType)) WorkGrid.Children.Remove(workType);
+
+            switch (work.Name)
+            {
+                case "Покупка":
+                    break;
+                case "Сварка":
+                    WeldControl weld = new(this);
+                    WorkGrid.Children.Add(weld);
+                    Grid.SetColumn(weld, 2);
+                    workType = weld;
+                    break;
+                case "Окраска":
+                    PaintControl paint = new(this);
+                    WorkGrid.Children.Add(paint);
+                    Grid.SetColumn(paint, 2);
+                    workType = paint;
+                    break;
+            }
         }
     }
 }

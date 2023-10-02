@@ -32,20 +32,24 @@ namespace Metal_Code
         public void Remove()
         {
             foreach (WorkControl w in WorkControls) w.Remove();
+            WorkControls.Clear();
             MainWindow.M.ProductGrid.Children.Remove(this);
         }
 
-        public void Update()
+        public void UpdatePosition()
         {
             int num = det.TypeDetailControls.IndexOf(this);
-            for (int i = num + 1; i < det.TypeDetailControls.Count; i++)
+            if (det.TypeDetailControls.Count > 1)
             {
-                det.TypeDetailControls[i].Margin = new Thickness(0, det.TypeDetailControls[i].Margin.Top - 25, 0, 0);
-                foreach (WorkControl _w in det.TypeDetailControls[i].WorkControls)
-                    _w.Margin = new Thickness(0, _w.Margin.Top - 25, 0, 0);
+                for (int i = num + 1; i < det.TypeDetailControls.Count; i++)
+                {
+                    det.TypeDetailControls[i].Margin = new Thickness(0, det.TypeDetailControls[i].Margin.Top - 25, 0, 0);
+                    foreach (WorkControl _w in det.TypeDetailControls[i].WorkControls)
+                        _w.Margin = new Thickness(0, _w.Margin.Top - 25, 0, 0);
+                }
             }
             MainWindow.M.AddTypeBtn.Margin = new Thickness(0, MainWindow.M.AddTypeBtn.Margin.Top - 25, 0, 0);
-            det.Update();
+            det.UpdatePosition();
         }
     }
 }

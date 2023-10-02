@@ -35,8 +35,8 @@
                         <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
                     <Button x:Name="AddDetailBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddDetail" Height="20" Width="20"/>
-                    <Button x:Name="AddTypeBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddTypeDetail" Height="20" Width="20" Grid.Column="1"/>
-                    <Button x:Name="AddWorkBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddWork" Height="20" Width="20" Grid.Column="2"/>
+                    <Button x:Name="AddTypeBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddTypeDetail" Height="20" Width="20" Grid.Column="1" Visibility="Hidden"/>
+                    <Button x:Name="AddWorkBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddWork" Height="20" Width="20" Grid.Column="2" Visibility="Hidden"/>
                 </Grid>
             </GroupBox>
             <TextBox x:Name="Product" Text="Изделие" AutoWordSelection="True" TextWrapping="Wrap" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" Height="20" VerticalContentAlignment="Center" HorizontalAlignment="Left" />

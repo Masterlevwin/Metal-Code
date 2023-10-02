@@ -20,7 +20,6 @@ namespace Metal_Code
             InitializeComponent();
             M = this;
             Loaded += UpdateDrops;
-            
         }
 
         private void UpdateDrops(object sender, RoutedEventArgs e)  // при загрузке окна
@@ -50,6 +49,8 @@ namespace Metal_Code
         public List<Detail> Details = new();
         private void AddDetail(object sender, RoutedEventArgs e)
         {
+            if (AddTypeBtn.Visibility != Visibility.Visible) AddTypeBtn.Visibility = Visibility.Visible;
+
             Detail detail = new();
             detail.Margin = AddDetailBtn.Margin;
             detail.NameDetail = $"{detail.Margin}";
@@ -62,6 +63,8 @@ namespace Metal_Code
 
         private void AddTypeDetail(object sender, RoutedEventArgs e)
         {
+            if (AddWorkBtn.Visibility != Visibility.Visible) AddWorkBtn.Visibility = Visibility.Visible;
+
             TypeDetailControl type = new(Details[^1]);
             type.Margin = AddTypeBtn.Margin;
             ProductGrid.Children.Add(type);
