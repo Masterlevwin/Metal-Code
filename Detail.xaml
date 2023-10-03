@@ -11,9 +11,9 @@
             <ColumnDefinition Width="3*"/>
             <ColumnDefinition Width="2*"/>
         </Grid.ColumnDefinitions>
-        <TextBox TextWrapping="Wrap" Text="{Binding NameDetail}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="120" MinHeight="20" VerticalAlignment="Top" MaxLength="40" MaxLines="1" Margin="10,0,0,0"/>
-        <TextBox Grid.Column="1" TextWrapping="Wrap" Text="{Binding Count}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="40" MinHeight="20" Margin="20,0,0,0" HorizontalAlignment="Left"/>
-        <Button MinWidth="10" MinHeight="10" VerticalAlignment="Center" Click="Remove" Height="10" HorizontalAlignment="Left">
+        <TextBox TextWrapping="Wrap" Text="{Binding NameDetail}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="120" MinHeight="20" VerticalAlignment="Top" MaxLength="40" MaxLines="1" Margin="10,0,0,0" ToolTip="Введите наименование детали"/>
+        <TextBox Grid.Column="1" TextWrapping="Wrap" Text="{Binding Count}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="40" MinHeight="20" Margin="20,0,0,0" HorizontalAlignment="Left" ToolTip="Введите количество"/>
+        <Button MinWidth="10" MinHeight="10" VerticalAlignment="Center" Click="Remove" Height="10" HorizontalAlignment="Left" ToolTip="Удалить">
             <Button.Background>
                 <ImageBrush/>
             </Button.Background>

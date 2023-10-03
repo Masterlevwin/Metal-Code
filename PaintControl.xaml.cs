@@ -1,17 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Windows.Controls;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace Metal_Code
 {
@@ -20,11 +8,25 @@ namespace Metal_Code
     /// </summary>
     public partial class PaintControl : UserControl
     {
+        public float Price { get; set; }
+
         private readonly WorkControl work;
         public PaintControl(WorkControl _work)
         {
             InitializeComponent();
             work = _work;
+            DataContext = this;
+        }
+
+        private void SetPaint(string s)
+        {
+            if(float.TryParse(s, out float p)) Price += p;
+            PaintPrice.Text = $"{Price}";
+        }
+
+        private void SetPaint(object sender, RoutedEventArgs e)
+        {
+            SetPaint(PaintText.Text);
         }
     }
 }

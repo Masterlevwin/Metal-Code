@@ -34,14 +34,15 @@
                         <ColumnDefinition/>
                         <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
-                    <Button x:Name="AddDetailBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddDetail" Height="20" Width="20"/>
-                    <Button x:Name="AddTypeBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddTypeDetail" Height="20" Width="20" Grid.Column="1" Visibility="Hidden"/>
-                    <Button x:Name="AddWorkBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddWork" Height="20" Width="20" Grid.Column="2" Visibility="Hidden"/>
+                    <Button x:Name="AddDetailBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddDetail" Height="20" Width="20" ToolTip="Добавить деталь"/>
+                    <Button x:Name="AddTypeBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddTypeDetail" Height="20" Width="20" Grid.Column="1" Visibility="Hidden" ToolTip="Добавить заготовку"/>
+                    <Button x:Name="AddWorkBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddWork" Height="20" Width="20" Grid.Column="2" Visibility="Hidden" ToolTip="Добавить работу"/>
                 </Grid>
             </GroupBox>
             <TextBox x:Name="Product" Text="Изделие" AutoWordSelection="True" TextWrapping="Wrap" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" Height="20" VerticalContentAlignment="Center" HorizontalAlignment="Left" />
             <TextBox x:Name="Count" TextWrapping="Wrap" AutoWordSelection="True" ToolTip="Введите количество требуемых изделий" AllowDrop="False" MaxLines="1" MaxLength="5" Text="шт" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="400,40,0,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Left" Height="20" Width="40"/>
-            <TextBlock x:Name="Total" HorizontalAlignment="Right" TextWrapping="Wrap" VerticalAlignment="Top" MinHeight="20" Margin="0,40,40,0" Text="Стоимость" AllowDrop="False" Height="20"/>
+            <TextBlock x:Name="Total" HorizontalAlignment="Right" TextWrapping="Wrap" VerticalAlignment="Top" MinHeight="20" Margin="0,40,40,0" Text="Стоимость" AllowDrop="False" Height="20" ToolTip="Общая стоимость"/>
+            <GroupBox Grid.Column="1" Header="Сметная ведомость" Margin="20,20,20,20" MinWidth="300"/>
         </Grid>
     </Grid>
 </Window>

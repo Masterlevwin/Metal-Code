@@ -51,5 +51,10 @@ namespace Metal_Code
             MainWindow.M.AddTypeBtn.Margin = new Thickness(0, MainWindow.M.AddTypeBtn.Margin.Top - 25, 0, 0);
             det.UpdatePosition();
         }
+
+        private void SetCount(object sender, TextChangedEventArgs e)
+        {
+            if (int.TryParse(CountText.Text, out int count)) Count = count;
+        }
     }
 }

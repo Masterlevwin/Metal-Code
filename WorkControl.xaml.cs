@@ -9,10 +9,9 @@ namespace Metal_Code
     public partial class WorkControl : UserControl
     {
         public float Price { get; set; }
-        public float TotalPrice { get; set; }
         public string? NameWork { get; set; }
 
-        private readonly TypeDetailControl type;
+        public readonly TypeDetailControl type;
         public WorkControl(TypeDetailControl t)
         {
             InitializeComponent();
@@ -20,19 +19,22 @@ namespace Metal_Code
             type = t;
             type.WorkControls.Add(this);
             WorkDrop.ItemsSource = MainWindow.M.dbWorks.Works.Local.ToObservableCollection();
-            WorkPrice.DataContext = WorkDrop.SelectedItem;
         }
 
+        private void PriceView(object sender, RoutedEventArgs e)
+        {
+            PriceView();
+        }
         private void PriceView()
         {
             if (WorkDrop.SelectedItem is not Work work) return;
-
             if (work.Name == "Покупка")
             {
-                if (type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail) WorkPrice.Text = $"{0}";
-                else WorkPrice.Text = $"{typeDetail.Price}";
-            }    
-            else WorkPrice.Text = $"{work.Price}";
+                if (type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail) Price = 0;
+                else Price = typeDetail.Price;
+            }
+            else Price = work.Price;
+            WorkPrice.Text = $"{Price}";
         }
 
         private void Remove(object sender, RoutedEventArgs e)
@@ -52,10 +54,6 @@ namespace Metal_Code
             type.UpdatePosition();
         }
 
-        private void PriceView(object sender, RoutedEventArgs e)
-        {
-            PriceView();
-        }
 
         UserControl? workType = null;
         private void CreateWork(object sender, SelectionChangedEventArgs e)
@@ -80,6 +78,7 @@ namespace Metal_Code
                     workType = paint;
                     break;
             }
+            PriceView();
         }
     }
 }

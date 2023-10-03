@@ -5,16 +5,16 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="400" GotFocus="PriceView">
+             d:DesignHeight="20" d:DesignWidth="400">
     <Grid x:Name="WorkGrid" VerticalAlignment="Top">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="140"/>
             <ColumnDefinition Width="7*"/>
             <ColumnDefinition Width="19*"/>
         </Grid.ColumnDefinitions>
-        <ComboBox x:Name="WorkDrop" DisplayMemberPath="Name" VerticalAlignment="Center" MinWidth="120" MinHeight="20" Height="20" Margin="20,0,0,0" SelectedIndex="0" VerticalContentAlignment="Center" SelectionChanged="CreateWork"/>
-        <TextBlock x:Name="WorkPrice" Grid.Column="1" MinWidth="30" MinHeight="20" Height="20" Text="{Binding Price}" HorizontalAlignment="Left" Width="30" Margin="20,0,0,0" TextWrapping="Wrap"/>
-        <Button MinWidth="10" MinHeight="10" Height="10" Click="Remove" Width="10" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0"/>
+        <ComboBox x:Name="WorkDrop" DisplayMemberPath="Name" VerticalAlignment="Center" MinWidth="120" MinHeight="20" Height="20" Margin="20,0,0,0" SelectedIndex="0" VerticalContentAlignment="Center" SelectionChanged="CreateWork" ToolTip="Выберите работу"/>
+        <TextBlock x:Name="WorkPrice" Grid.Column="1" MinWidth="30" MinHeight="20" Height="20" HorizontalAlignment="Left" Width="30" Margin="20,0,0,0" TextWrapping="Wrap" ToolTip="Цена"/>
+        <Button MinWidth="10" MinHeight="10" Height="10" Click="Remove" Width="10" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0" ToolTip="Удалить"/>
 
     </Grid>
 </UserControl>
