@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Windows.Controls;
 using System.Windows;
-using System.Linq;
 
 namespace Metal_Code
 {
@@ -13,7 +12,7 @@ namespace Metal_Code
         public int Count { get; set; }
         public string? NameTypeDetail { get; set; }
 
-        private readonly Detail det;
+        public readonly Detail det;
         public List<WorkControl> WorkControls = new();
 
         public TypeDetailControl(Detail d)
@@ -27,12 +26,13 @@ namespace Metal_Code
 
         private void Remove(object sender, RoutedEventArgs e)
         {
+            if (det.TypeDetailControls.Count == 1) return;
             Remove();
         }
         public void Remove()
         {
-            foreach (WorkControl w in WorkControls) w.Remove();
-            WorkControls.Clear();
+            for (int i = 0; i < WorkControls.Count; i++) WorkControls[i]?.Remove();
+            det.TypeDetailControls.Remove(this);
             MainWindow.M.ProductGrid.Children.Remove(this);
         }
 

@@ -6,6 +6,11 @@
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
              d:DesignHeight="20" d:DesignWidth="350" VerticalContentAlignment="Top" HorizontalContentAlignment="Left">
+    <UserControl.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="Удалить" Click="Remove"></MenuItem>
+        </ContextMenu>
+    </UserControl.ContextMenu>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
@@ -13,7 +18,6 @@
         </Grid.ColumnDefinitions>
         <ComboBox x:Name="TypeDetailDrop" DisplayMemberPath="Name" VerticalAlignment="Center" MinHeight="20" Margin="20,0,0,0" MinWidth="240" Height="20" SelectedIndex="0" VerticalContentAlignment="Center" MaxWidth="240" ToolTip="Выберите заготовку"/>
         <TextBox x:Name="CountText" Grid.Column="1" TextWrapping="Wrap" Text="{Binding Count}" VerticalAlignment="Center" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="20,0,0,0" MinWidth="30" HorizontalAlignment="Left" Height="20" ToolTip="Введите количество" TextChanged="SetCount"/>
-        <Button MinWidth="10" MinHeight="10" Height="10" Click="Remove" HorizontalAlignment="Left" VerticalAlignment="Center" Width="10" Margin="10,0,0,0" ToolTip="Удалить"/>
 
     </Grid>
 </UserControl>

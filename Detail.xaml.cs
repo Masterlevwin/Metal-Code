@@ -22,13 +22,18 @@ namespace Metal_Code
 
         private void Remove(object sender, RoutedEventArgs e)
         {
+            if (MainWindow.M.Details.Count == 1) return;
             Remove();
         }
         public void Remove()
         {
-            foreach (TypeDetailControl t in TypeDetailControls) t.Remove();
-            TypeDetailControls.Clear();
+            for (int i = 0; i < TypeDetailControls.Count; i++) TypeDetailControls[i]?.Remove();
             MainWindow.M.Details.Remove(this);
+            if (MainWindow.M.Details.Count == 0)
+            {
+                MainWindow.M.AddTypeBtn.Visibility = Visibility.Hidden;
+                MainWindow.M.AddWorkBtn.Visibility = Visibility.Hidden;
+            }
             MainWindow.M.ProductGrid.Children.Remove(this);
         }
 
@@ -47,11 +52,6 @@ namespace Metal_Code
                             _w.Margin = new Thickness(0, _w.Margin.Top - 25, 0, 0);
                     }
                 }
-            }
-            else
-            {
-                MainWindow.M.AddTypeBtn.Visibility = Visibility.Hidden;
-                MainWindow.M.AddWorkBtn.Visibility = Visibility.Hidden;
             }
             MainWindow.M.AddDetailBtn.Margin = new Thickness(0, MainWindow.M.AddDetailBtn.Margin.Top - 25, 0, 0);
         }

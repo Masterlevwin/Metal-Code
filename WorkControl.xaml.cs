@@ -39,11 +39,13 @@ namespace Metal_Code
 
         private void Remove(object sender, RoutedEventArgs e)
         {
+            if (type.WorkControls.Count == 1) return;
             Remove();
         }
         public void Remove()
         {
             UpdatePosition();
+            type.WorkControls.Remove(this);
             MainWindow.M.ProductGrid.Children.Remove(this);
         }
         public void UpdatePosition()
@@ -53,7 +55,6 @@ namespace Metal_Code
             MainWindow.M.AddWorkBtn.Margin = new Thickness(0, MainWindow.M.AddWorkBtn.Margin.Top - 25, 0, 0);
             type.UpdatePosition();
         }
-
 
         UserControl? workType = null;
         private void CreateWork(object sender, SelectionChangedEventArgs e)

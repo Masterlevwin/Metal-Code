@@ -27,16 +27,16 @@
                 <ColumnDefinition MinWidth="617" Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=Product}" ToolTip="" MinWidth="500" Margin="20,20,20,20">
-                <Grid x:Name="ProductGrid" AllowDrop="True" Margin="10,0,10,0">
+            <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=Product}" ToolTip="" MinWidth="500" Margin="20,20,20,20" TabIndex="1">
+                <Grid x:Name="ProductGrid" AllowDrop="True" Margin="10,30,10,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition/>
                         <ColumnDefinition/>
                         <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
-                    <Button x:Name="AddDetailBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddDetail" Height="20" Width="20" ToolTip="Добавить деталь"/>
-                    <Button x:Name="AddTypeBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddTypeDetail" Height="20" Width="20" Grid.Column="1" Visibility="Hidden" ToolTip="Добавить заготовку"/>
-                    <Button x:Name="AddWorkBtn" Content="+" HorizontalAlignment="Left" Margin="0,30,0,0" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddWork" Height="20" Width="20" Grid.Column="2" Visibility="Hidden" ToolTip="Добавить работу"/>
+                    <Button x:Name="AddDetailBtn" Content="+" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddDetail" Height="20" Width="20" ToolTip="Добавить деталь"/>
+                    <Button x:Name="AddTypeBtn" Content="+" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddTypeDetail" Height="20" Width="20" Grid.Column="1" ToolTip="Добавить заготовку" Visibility="Hidden"/>
+                    <Button x:Name="AddWorkBtn" Content="+" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" MinWidth="20" Click="AddWork" Height="20" Width="20" Grid.Column="2" ToolTip="Добавить работу" Visibility="Hidden"/>
                 </Grid>
             </GroupBox>
             <TextBox x:Name="Product" Text="Изделие" AutoWordSelection="True" TextWrapping="Wrap" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" Height="20" VerticalContentAlignment="Center" HorizontalAlignment="Left" />
