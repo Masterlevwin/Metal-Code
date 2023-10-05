@@ -50,41 +50,13 @@ namespace Metal_Code
         public List<Detail> Details = new();
         private void AddDetail(object sender, RoutedEventArgs e)
         {
-            if (AddTypeBtn.Visibility != Visibility.Visible) AddTypeBtn.Visibility = Visibility.Visible;
-
             Detail detail = new();
-            detail.Margin = AddDetailBtn.Margin;
-            detail.NameDetail = $"{detail.Margin}";
-            ProductGrid.Children.Add(detail);
+            detail.Margin = new Thickness(0, AddDetailBtn.Margin.Top + 25, 0, 0);
+
             Details.Add(detail);
+            ProductGrid.Children.Add(detail);
 
-            AddDetailBtn.Margin = new Thickness(0, AddDetailBtn.Margin.Top + AddDetailBtn.Height + 5, 0, 0);
-            AddTypeDetail(sender, e);   // при добавлении новой детали добавляем дроп комплектации
-        }
-
-        private void AddTypeDetail(object sender, RoutedEventArgs e)
-        {
-            if (AddWorkBtn.Visibility != Visibility.Visible) AddWorkBtn.Visibility = Visibility.Visible;
-
-            TypeDetailControl type = new(Details[^1]);
-            type.Margin = AddTypeBtn.Margin;
-            ProductGrid.Children.Add(type);
-            Grid.SetColumn(type, 1);
-
-            AddTypeBtn.Margin = new Thickness(0, AddTypeBtn.Margin.Top + 25, 0, 0);
-            AddDetailBtn.Margin = AddTypeBtn.Margin;    // перемещаем обе кнопки одновременно
-            AddWork(sender, e);   // при добавлении дропа типовой детали добавляем дроп работ
-        }
-
-        private void AddWork(object sender, RoutedEventArgs e)
-        {
-            WorkControl work = new(Details[^1].TypeDetailControls[^1]);
-            work.Margin = AddWorkBtn.Margin;
-            ProductGrid.Children.Add(work);
-            Grid.SetColumn(work, 2);
-
-            AddWorkBtn.Margin = new Thickness(0, AddWorkBtn.Margin.Top + 25, 0, 0);
-            AddDetailBtn.Margin = AddTypeBtn.Margin = AddWorkBtn.Margin;    // перемещаем все кнопки одновременно
+            detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
         }
     }
 }

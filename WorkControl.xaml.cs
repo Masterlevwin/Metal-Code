@@ -17,24 +17,12 @@ namespace Metal_Code
             InitializeComponent();
             DataContext = this;
             type = t;
-            type.WorkControls.Add(this);
             WorkDrop.ItemsSource = MainWindow.M.dbWorks.Works.Local.ToObservableCollection();
         }
 
-        private void PriceView(object sender, RoutedEventArgs e)
+        private void AddWork(object sender, RoutedEventArgs e)
         {
-            PriceView();
-        }
-        private void PriceView()
-        {
-            if (WorkDrop.SelectedItem is not Work work) return;
-            if (work.Name == "Покупка")
-            {
-                if (type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail) Price = 0;
-                else Price = typeDetail.Price;
-            }
-            else Price = work.Price;
-            WorkPrice.Text = $"{Price}";
+            type.AddWork();
         }
 
         private void Remove(object sender, RoutedEventArgs e)
@@ -44,17 +32,19 @@ namespace Metal_Code
         }
         public void Remove()
         {
-            UpdatePosition();
+            UpdatePosition(false);
             type.WorkControls.Remove(this);
-            MainWindow.M.ProductGrid.Children.Remove(this);
+            type.TypeDetailGrid.Children.Remove(this);
         }
-        public void UpdatePosition()
+        public void UpdatePosition(bool direction)
         {
-            int num = type.WorkControls.IndexOf(this);
-            if (type.WorkControls.Count > 1) for (int i = num + 1; i < type.WorkControls.Count; i++) type.WorkControls[i].Margin = new Thickness(0, type.WorkControls[i].Margin.Top - 25, 0, 0);            
-            MainWindow.M.AddWorkBtn.Margin = new Thickness(0, MainWindow.M.AddWorkBtn.Margin.Top - 25, 0, 0);
-            type.UpdatePosition();
+            int numW = type.WorkControls.IndexOf(this);
+            if (type.WorkControls.Count > 1) for (int i = numW + 1; i < type.WorkControls.Count; i++)
+                    type.WorkControls[i].Margin = new Thickness(0,
+                        direction ? type.WorkControls[i].Margin.Top + 25 : type.WorkControls[i].Margin.Top - 25, 0, 0);
+            type.UpdatePosition(direction);
         }
+
 
         UserControl? workType = null;
         private void CreateWork(object sender, SelectionChangedEventArgs e)
@@ -80,6 +70,18 @@ namespace Metal_Code
                     break;
             }
             PriceView();
+        }
+
+        private void PriceView()
+        {
+            if (WorkDrop.SelectedItem is not Work work) return;
+            if (work.Name == "Покупка")
+            {
+                if (type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail) Price = 0;
+                else Price = typeDetail.Price;
+            }
+            else Price = work.Price;
+            WorkPrice.Text = $"{Price}";
         }
     }
 }

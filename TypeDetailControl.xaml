@@ -5,19 +5,21 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="350" VerticalContentAlignment="Top" HorizontalContentAlignment="Left">
+             d:DesignHeight="20" d:DesignWidth="500">
     <UserControl.ContextMenu>
         <ContextMenu>
+            <MenuItem Header="Добавить" Click="AddTypeDetail"></MenuItem>
             <MenuItem Header="Удалить" Click="Remove"></MenuItem>
         </ContextMenu>
     </UserControl.ContextMenu>
-    <Grid>
+    <Grid x:Name="TypeDetailGrid">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
-        <ComboBox x:Name="TypeDetailDrop" DisplayMemberPath="Name" VerticalAlignment="Center" MinHeight="20" Margin="20,0,0,0" MinWidth="240" Height="20" SelectedIndex="0" VerticalContentAlignment="Center" MaxWidth="240" ToolTip="Выберите заготовку"/>
-        <TextBox x:Name="CountText" Grid.Column="1" TextWrapping="Wrap" Text="{Binding Count}" VerticalAlignment="Center" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="20,0,0,0" MinWidth="30" HorizontalAlignment="Left" Height="20" ToolTip="Введите количество" TextChanged="SetCount"/>
+        <ComboBox x:Name="TypeDetailDrop" DisplayMemberPath="Name" MinHeight="20" Margin="20,0,0,0" MinWidth="240" Height="20" SelectedIndex="0" VerticalContentAlignment="Center" MaxWidth="240" ToolTip="Выберите заготовку" VerticalAlignment="Top"/>
+        <TextBox x:Name="CountText" Grid.Column="1" TextWrapping="Wrap" Text="{Binding Count}" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="20,0,0,0" MinWidth="30" Height="20" ToolTip="Введите количество" TextChanged="SetCount" Width="30" VerticalAlignment="Top"/>
 
     </Grid>
 </UserControl>

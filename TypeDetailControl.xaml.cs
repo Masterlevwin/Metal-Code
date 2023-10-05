@@ -20,8 +20,29 @@ namespace Metal_Code
             InitializeComponent();
             DataContext = this;
             det = d;
-            det.TypeDetailControls.Add(this);
             TypeDetailDrop.ItemsSource = MainWindow.M.dbTypeDetails.TypeDetails.Local.ToObservableCollection();
+        }
+
+        private void AddTypeDetail(object sender, RoutedEventArgs e)
+        {
+            det.AddTypeDetail();
+        }
+
+        public void AddWork()
+        {
+            WorkControl work = new(this);
+
+            if (WorkControls.Count > 0)
+            {
+                work.Margin = new Thickness(0, WorkControls[^1].Margin.Top + 25, 0, 0);
+            }
+
+            WorkControls.Add(work);
+            TypeDetailGrid.Children.Add(work);
+
+            Grid.SetColumn(work, 2);
+
+            work.UpdatePosition(true);
         }
 
         private void Remove(object sender, RoutedEventArgs e)
@@ -33,28 +54,27 @@ namespace Metal_Code
         {
             for (int i = 0; i < WorkControls.Count; i++) WorkControls[i]?.Remove();
             det.TypeDetailControls.Remove(this);
-            MainWindow.M.ProductGrid.Children.Remove(this);
+            det.DetailGrid.Children.Remove(this);
         }
 
-        public void UpdatePosition()
+        public void UpdatePosition(bool direction)
         {
             int num = det.TypeDetailControls.IndexOf(this);
             if (det.TypeDetailControls.Count > 1)
             {
                 for (int i = num + 1; i < det.TypeDetailControls.Count; i++)
                 {
-                    det.TypeDetailControls[i].Margin = new Thickness(0, det.TypeDetailControls[i].Margin.Top - 25, 0, 0);
-                    foreach (WorkControl _w in det.TypeDetailControls[i].WorkControls)
-                        _w.Margin = new Thickness(0, _w.Margin.Top - 25, 0, 0);
+                    det.TypeDetailControls[i].Margin = new Thickness(0,
+                        direction ? det.TypeDetailControls[i].Margin.Top + 25 : det.TypeDetailControls[i].Margin.Top - 25, 0, 0);
                 }
             }
-            MainWindow.M.AddTypeBtn.Margin = new Thickness(0, MainWindow.M.AddTypeBtn.Margin.Top - 25, 0, 0);
-            det.UpdatePosition();
+            det.UpdatePosition(direction);
         }
 
         private void SetCount(object sender, TextChangedEventArgs e)
         {
             if (int.TryParse(CountText.Text, out int count)) Count = count;
         }
+
     }
 }
