@@ -55,6 +55,10 @@ namespace Metal_Code
             switch (work.Name)
             {
                 case "Покупка":
+                    PropertyControl prop = new(this);
+                    WorkGrid.Children.Add(prop);
+                    Grid.SetColumn(prop, 2);
+                    workType = prop;
                     break;
                 case "Сварка":
                     WeldControl weld = new(this);

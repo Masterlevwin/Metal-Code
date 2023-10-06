@@ -32,10 +32,7 @@ namespace Metal_Code
         {
             WorkControl work = new(this);
 
-            if (WorkControls.Count > 0)
-            {
-                work.Margin = new Thickness(0, WorkControls[^1].Margin.Top + 25, 0, 0);
-            }
+            if (WorkControls.Count > 0) work.Margin = new Thickness(0, WorkControls[^1].Margin.Top + 25, 0, 0);
 
             WorkControls.Add(work);
             TypeDetailGrid.Children.Add(work);
@@ -53,16 +50,17 @@ namespace Metal_Code
         public void Remove()
         {
             for (int i = 0; i < WorkControls.Count; i++) WorkControls[i]?.Remove();
+            UpdatePosition(false);
             det.TypeDetailControls.Remove(this);
             det.DetailGrid.Children.Remove(this);
         }
 
         public void UpdatePosition(bool direction)
         {
-            int num = det.TypeDetailControls.IndexOf(this);
+            int numT = det.TypeDetailControls.IndexOf(this);
             if (det.TypeDetailControls.Count > 1)
             {
-                for (int i = num + 1; i < det.TypeDetailControls.Count; i++)
+                for (int i = numT + 1; i < det.TypeDetailControls.Count; i++)
                 {
                     det.TypeDetailControls[i].Margin = new Thickness(0,
                         direction ? det.TypeDetailControls[i].Margin.Top + 25 : det.TypeDetailControls[i].Margin.Top - 25, 0, 0);
@@ -71,9 +69,12 @@ namespace Metal_Code
             det.UpdatePosition(direction);
         }
 
+        public delegate void PriceChanged(TypeDetailControl t);
+        public event PriceChanged Priced;
         private void SetCount(object sender, TextChangedEventArgs e)
         {
             if (int.TryParse(CountText.Text, out int count)) Count = count;
+            Priced?.Invoke(this);
         }
 
     }

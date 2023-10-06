@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 namespace Metal_Code
 {
@@ -21,6 +20,10 @@ namespace Metal_Code
             DataContext = this;
         }
 
+        private void AddDetail(object sender, RoutedEventArgs e)
+        {
+            MainWindow.M.AddDetail();
+        }
         public void AddTypeDetail()
         {
             TypeDetailControl type = new(this);
@@ -34,8 +37,6 @@ namespace Metal_Code
 
             Grid.SetColumn(type, 2);
             
-            type.UpdatePosition(true);
-
             type.AddWork();   // при добавлении дропа типовой детали добавляем дроп работ
         }
 
@@ -47,7 +48,6 @@ namespace Metal_Code
         public void Remove()
         {
             for (int i = 0; i < TypeDetailControls.Count; i++) TypeDetailControls[i]?.Remove();
-            UpdatePosition(false);
             MainWindow.M.Details.Remove(this);
             MainWindow.M.ProductGrid.Children.Remove(this);
         }
@@ -63,7 +63,6 @@ namespace Metal_Code
                         direction ? MainWindow.M.Details[i].Margin.Top + 25 : MainWindow.M.Details[i].Margin.Top - 25, 0, 0);
                 }
             }
-            MainWindow.M.AddDetailBtn.Margin = new Thickness(0, MainWindow.M.Details[^1].Margin.Top + 25, 0, 0);
         }
     }
 }

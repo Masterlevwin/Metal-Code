@@ -1,9 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
 using System.Collections.Generic;
 using System.Windows;
-using System.Windows.Controls;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
+using System.Linq;
 
 namespace Metal_Code
 {
@@ -21,6 +19,8 @@ namespace Metal_Code
             InitializeComponent();
             M = this;
             Loaded += UpdateDrops;
+
+            AddDetail();
         }
 
         private void UpdateDrops(object sender, RoutedEventArgs e)  // при загрузке окна
@@ -48,11 +48,14 @@ namespace Metal_Code
         }
 
         public List<Detail> Details = new();
-        private void AddDetail(object sender, RoutedEventArgs e)
+        public void AddDetail()
         {
             Detail detail = new();
-            detail.Margin = new Thickness(0, AddDetailBtn.Margin.Top + 25, 0, 0);
 
+            if (Details.Count > 0)
+                detail.Margin = new Thickness(0,
+                    Details[^1].Margin.Top + 25 * Details[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
+            
             Details.Add(detail);
             ProductGrid.Children.Add(detail);
 

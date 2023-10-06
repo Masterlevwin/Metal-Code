@@ -29,7 +29,7 @@ namespace Metal_Code
         // добавление
         private void Add_Click(object sender, RoutedEventArgs e)
         {
-            TypeDetailSettings TypeDetailSettings = new TypeDetailSettings(new TypeDetail());
+            TypeDetailSettings TypeDetailSettings = new(new TypeDetail());
             if (TypeDetailSettings.ShowDialog() == true)
             {
                 TypeDetail TypeDetail = TypeDetailSettings.TypeDetail;
@@ -45,7 +45,7 @@ namespace Metal_Code
             // если ни одного объекта не выделено, выходим
             if (type is null) return;
 
-            TypeDetailSettings TypeDetailSettings = new TypeDetailSettings(new TypeDetail
+            TypeDetailSettings TypeDetailSettings = new(new TypeDetail
             {
                 Id = type.Id,
                 Name = type.Name,
@@ -69,9 +69,8 @@ namespace Metal_Code
         private void Delete_Click(object sender, RoutedEventArgs e)
         {
             // получаем выделенный объект
-            TypeDetail? type = typesList.SelectedItem as TypeDetail;
             // если ни одного объекта не выделено, выходим
-            if (type is null) return;
+            if (typesList.SelectedItem is not TypeDetail type) return;
             db.TypeDetails.Remove(type);
             db.SaveChanges();
         }
