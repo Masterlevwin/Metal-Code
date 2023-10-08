@@ -45,7 +45,6 @@ namespace Metal_Code
             type.UpdatePosition(direction);
         }
 
-
         UserControl? workType = null;
         private void CreateWork(object sender, SelectionChangedEventArgs e)
         {

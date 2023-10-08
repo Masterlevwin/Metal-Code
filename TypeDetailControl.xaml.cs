@@ -65,12 +65,12 @@ namespace Metal_Code
                     det.TypeDetailControls[i].Margin = new Thickness(0,
                         direction ? det.TypeDetailControls[i].Margin.Top + 25 : det.TypeDetailControls[i].Margin.Top - 25, 0, 0);
                 }
+                det.UpdatePosition(direction);
             }
-            det.UpdatePosition(direction);
         }
 
         public delegate void PriceChanged(TypeDetailControl t);
-        public event PriceChanged Priced;
+        public event PriceChanged? Priced;
         private void SetCount(object sender, TextChangedEventArgs e)
         {
             if (int.TryParse(CountText.Text, out int count)) Count = count;
