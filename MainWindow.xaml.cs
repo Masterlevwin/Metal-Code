@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Windows;
 using System.Linq;
+using System.Windows.Controls;
 
 namespace Metal_Code
 {
@@ -47,6 +48,10 @@ namespace Metal_Code
             }
         }
 
+        public string? Product { get; set; }
+        public int Count { get; set; }
+        public float Price { get; set; }
+
         public List<Detail> Details = new();
         public void AddDetail()
         {
@@ -60,6 +65,19 @@ namespace Metal_Code
             ProductGrid.Children.Add(detail);
 
             detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
+        }
+
+        private void SetCount(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int c)) Count = c;
+            if (Count > 0) TotalResult();
+        }
+
+        private void TotalResult()
+        {
+            Price = 0;
+            foreach (Detail d in Details) Price += d.Price;
+            Total.Text = $"{Price * Count}";
         }
     }
 }
