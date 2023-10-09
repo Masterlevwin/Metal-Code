@@ -18,8 +18,8 @@ namespace Metal_Code
         public TypeDetailControl(Detail d)
         {
             InitializeComponent();
-            DataContext = this;
             det = d;
+            det.Counted += CountChanged;
             TypeDetailDrop.ItemsSource = MainWindow.M.dbTypeDetails.TypeDetails.Local.ToObservableCollection();
         }
 
@@ -69,13 +69,16 @@ namespace Metal_Code
             }
         }
 
-        public delegate void PriceChanged(TypeDetailControl t);
+        public delegate void PriceChanged();
         public event PriceChanged? Priced;
         private void SetCount(object sender, TextChangedEventArgs e)
         {
             if (int.TryParse(CountText.Text, out int count)) Count = count;
-            Priced?.Invoke(this);
+            CountChanged();
         }
-
+        public void CountChanged()
+        {
+            Priced?.Invoke();
+        }
     }
 }

@@ -10,14 +10,23 @@ namespace Metal_Code
     /// </summary>
     public partial class WeldControl : UserControl
     {
-        public float Price { get; set; }
+        //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WeldControl}}}"
+        public static readonly DependencyProperty MyPropertyProperty =
+            DependencyProperty.Register("Price", typeof(float), typeof(WeldControl));
+        public float Price
+        {
+            get { return (float)GetValue(MyPropertyProperty); }
+            set { SetValue(MyPropertyProperty, value); }
+        }
+
+        public string? Weld{ get; set; }
 
         private readonly WorkControl work;
         public WeldControl(WorkControl _work)
         {
             InitializeComponent();
             work = _work;
-            DataContext = this;
+            work.type.Priced += PriceChanged;
         }
 
         public Dictionary<string, Dictionary<float, float>> weldDict = new()
@@ -129,47 +138,42 @@ namespace Metal_Code
             }
         };
 
+        private void SetWeld(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) SetWeld(tBox.Text);
+        }
         private void SetWeld(string _weld)
         {
-            float weld = 0;
+            Weld = _weld;
+            PriceChanged();
+        }
+
+        private void PriceChanged()
+        {
+            float _weld = 0;
             try
             {
-                object result = new DataTable().Compute(_weld, null);
-                if (float.TryParse(result.ToString(), out float f)) weld = f;
+                object result = new DataTable().Compute(Weld, null);
+                if (float.TryParse(result.ToString(), out float f)) _weld = f;
             }
             catch
             {
-                System.Windows.Forms.MessageBox.Show("Исправьте длину свариваемой поверхности \nили поставьте 0", "Ошибка",
-                    System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Hand);
+                //System.Windows.Forms.MessageBox.Show("Исправьте длину свариваемой поверхности \nили поставьте 0", "Ошибка",
+                    //System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Hand);
                 return;
             }
 
-            float sideRatio;
-            switch (weld * work.type.Count)
+            var sideRatio = (float)(_weld * work.type.Count) switch
             {
-                
-                case < 300:
-                    sideRatio = 3;
-                    break;
-                case < 1000:
-                    sideRatio = 10;
-                    break;
-                case < 10000:
-                    sideRatio = 100;
-                    break;
-                default:
-                    sideRatio = 1;
-                    break;
-            }
+                < 300 => 3,
+                < 1000 => 10,
+                < 10000 => 100,
+                _ => (float)1,
+            };
 
-            Price = weldDict["aisi430"][sideRatio] * weld * work.type.Count + work.Price;
+            Price = work.Result = weldDict["aisi430"][sideRatio] * _weld * work.type.Count * work.type.det.Count + work.Price;
 
-            WeldPrice.Text = $"{Price}";
-        }
-
-        private void SetWeld(object sender, RoutedEventArgs e)
-        {
-            SetWeld(WeldText.Text);
+            work.type.det.PriceResult();
         }
     }
 }

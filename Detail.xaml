@@ -18,8 +18,8 @@
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
-        <TextBox Text="{Binding NameDetail}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="150" MinHeight="20" VerticalAlignment="Top" ToolTip="Введите наименование детали" MaxWidth="150" MaxLines="1"/>
-        <TextBox Grid.Column="1" TextWrapping="Wrap" Text="{Binding Count}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="40" MinHeight="20" Margin="20,0,0,0" HorizontalAlignment="Left" ToolTip="Введите количество" VerticalAlignment="Top"/>
+        <TextBox Text="{Binding Price, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:Detail}}}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="150" MinHeight="20" VerticalAlignment="Top" ToolTip="Введите наименование детали" MaxWidth="150" MaxLines="1"/>
+        <TextBox x:Name="CountText" Grid.Column="1" TextWrapping="Wrap" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="40" MinHeight="20" Margin="20,0,0,0" HorizontalAlignment="Left" ToolTip="Введите количество" VerticalAlignment="Top" TextChanged="SetCount"/>
     </Grid>
 </UserControl>
     

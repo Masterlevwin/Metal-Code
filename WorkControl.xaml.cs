@@ -9,13 +9,13 @@ namespace Metal_Code
     public partial class WorkControl : UserControl
     {
         public float Price { get; set; }
+        public float Result { get; set; }
         public string? NameWork { get; set; }
 
         public readonly TypeDetailControl type;
         public WorkControl(TypeDetailControl t)
         {
             InitializeComponent();
-            DataContext = this;
             type = t;
             WorkDrop.ItemsSource = MainWindow.M.dbWorks.Works.Local.ToObservableCollection();
         }

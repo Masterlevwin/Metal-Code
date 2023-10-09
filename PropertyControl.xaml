@@ -12,7 +12,7 @@
             <ColumnDefinition Width="Auto" MinWidth="50"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <TextBlock x:Name="TypeDetailPrice" Grid.Column="2" MinHeight="20" MaxHeight="20" MinWidth="50" MaxWidth="50" ToolTip="Стоимость деталей" VerticalAlignment="Top" Height="20" Margin="10,0,0,0"/>
+        <TextBlock Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PropertyControl}}}" Grid.Column="2" MinHeight="20" MaxHeight="20" MinWidth="50" MaxWidth="50" ToolTip="Стоимость деталей" VerticalAlignment="Top" Height="20" Margin="10,0,0,0"/>
         <ComboBox VerticalAlignment="Top" ToolTip="Выберите режим расчета" HorizontalAlignment="Left" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" Height="20" Width="30" Margin="20,0,0,0"/>
         <ComboBox x:Name="MetalDrop" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="50" MinHeight="20" Grid.Column="1" MaxWidth="50" MaxHeight="20" Height="20" Width="50" Margin="10,0,0,0"/>
         <TextBox HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="20" MinHeight="20" MaxWidth="20" MaxHeight="20" HorizontalContentAlignment="Center" Margin="60,0,0,0" MaxLines="1"/>

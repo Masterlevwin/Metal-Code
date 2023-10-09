@@ -1,5 +1,6 @@
-﻿using System.Windows.Controls;
-using System.Windows;
+﻿using System.Windows;
+using System.Windows.Controls;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace Metal_Code
 {
@@ -8,25 +9,40 @@ namespace Metal_Code
     /// </summary>
     public partial class PaintControl : UserControl
     {
-        public float Price { get; set; }
+        //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PaintControl}}}"
+        public static readonly DependencyProperty MyPropertyProperty =
+            DependencyProperty.Register("Price", typeof(float), typeof(PaintControl));
+        public float Price
+        {
+            get { return (float)GetValue(MyPropertyProperty); }
+            set { SetValue(MyPropertyProperty, value); }
+        }
+
+        public float Square { get; set; }
 
         private readonly WorkControl work;
         public PaintControl(WorkControl _work)
         {
             InitializeComponent();
             work = _work;
-            DataContext = this;
+            work.type.Priced += PriceChanged;
         }
 
-        private void SetPaint(string s)
+        private void SetSquare(object sender, TextChangedEventArgs e)
         {
-            if(float.TryParse(s, out float p)) Price += p;
-            PaintPrice.Text = $"{Price}";
+            if (sender is TextBox tBox) if (float.TryParse(tBox.Text, out float p)) SetSquare(p);
+        }
+        public void SetSquare(float _square)
+        {
+            Square = _square;
+            PriceChanged();
         }
 
-        private void SetPaint(object sender, RoutedEventArgs e)
+        private void PriceChanged()
         {
-            SetPaint(PaintText.Text);
+            Price = work.Result = Square * work.type.Count * work.type.det.Count + work.Price;
+
+            work.type.det.PriceResult();
         }
     }
 }

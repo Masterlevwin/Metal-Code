@@ -24,15 +24,15 @@
         </Menu>
         <Grid x:Name="WindowGrid">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition MinWidth="617" Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition MinWidth="540" Width="Auto"/>
+                <ColumnDefinition Width="Auto" MinWidth="555.107"/>
             </Grid.ColumnDefinitions>
             <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=Product}" ToolTip="" MinWidth="500" Margin="20,20,20,20" TabIndex="1">
                 <Grid x:Name="ProductGrid" AllowDrop="True" Margin="10,30,10,0"/>
             </GroupBox>
-            <TextBox x:Name="Product" Text="Изделие" AutoWordSelection="True" TextWrapping="Wrap" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" Height="20" VerticalContentAlignment="Center" HorizontalAlignment="Left" />
+            <TextBox x:Name="Product" Text="Изделие" AutoWordSelection="True" TextWrapping="Wrap" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" Height="20" VerticalContentAlignment="Center" HorizontalAlignment="Left" Width="330" />
             <TextBox x:Name="Count" TextWrapping="Wrap" AutoWordSelection="True" ToolTip="Введите количество требуемых изделий" AllowDrop="False" MaxLines="1" MaxLength="5" Text="шт" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="400,40,0,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Left" Height="20" Width="40"/>
-            <TextBlock x:Name="Total" HorizontalAlignment="Right" TextWrapping="Wrap" VerticalAlignment="Top" MinHeight="20" Margin="0,40,40,0" Text="Стоимость" AllowDrop="False" Height="20" ToolTip="Общая стоимость"/>
+            <TextBlock x:Name="Total" HorizontalAlignment="Right" TextWrapping="Wrap" VerticalAlignment="Top" MinHeight="20" Margin="0,40,40,0" Text="Стоимость" AllowDrop="False" Height="20" ToolTip="Общая стоимость" Width="60"/>
             <GroupBox Grid.Column="1" Header="Сметная ведомость" Margin="20,20,20,20" MinWidth="300"/>
         </Grid>
     </Grid>

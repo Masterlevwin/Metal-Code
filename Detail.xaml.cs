@@ -9,15 +9,23 @@ namespace Metal_Code
     /// </summary>
     public partial class Detail : UserControl
     {
-        public int Count { get; set; }
+        //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:Detail}}}"
+        public static readonly DependencyProperty MyPropertyProperty =
+            DependencyProperty.Register("Price", typeof(float), typeof(Detail));
+        public float Price
+        {
+            get { return (float)GetValue(MyPropertyProperty); }
+            set { SetValue(MyPropertyProperty, value); }
+        }
+
         public string? NameDetail { get; set; }
+        public int Count { get; set; }
 
         public List<TypeDetailControl> TypeDetailControls = new();
 
         public Detail()
         {
             InitializeComponent();
-            DataContext = this;
         }
 
         private void AddDetail(object sender, RoutedEventArgs e)
@@ -61,6 +69,26 @@ namespace Metal_Code
                 {
                     MainWindow.M.Details[i].Margin = new Thickness(0,
                         direction ? MainWindow.M.Details[i].Margin.Top + 25 : MainWindow.M.Details[i].Margin.Top - 25, 0, 0);
+                }
+            }
+        }
+
+        public delegate void CountChanged();
+        public event CountChanged? Counted;
+        private void SetCount(object sender, TextChangedEventArgs e)
+        {
+            if (int.TryParse(CountText.Text, out int count)) Count = count;
+            Counted?.Invoke();
+        }
+
+        public void PriceResult()
+        {
+            Price = 0;
+            foreach (TypeDetailControl t in TypeDetailControls)
+            {
+                foreach (WorkControl w in t.WorkControls)
+                {
+                    Price += w.Result;
                 }
             }
         }

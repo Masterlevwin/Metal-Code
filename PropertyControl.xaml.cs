@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 
 namespace Metal_Code
 {
@@ -12,21 +8,28 @@ namespace Metal_Code
     /// </summary>
     public partial class PropertyControl : UserControl
     {
-        public float Price { get; set; }
+        //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PropertyControl}}}"
+        public static readonly DependencyProperty MyPropertyProperty =
+            DependencyProperty.Register("Price", typeof(float), typeof(PropertyControl));
+        public float Price
+        {
+            get { return (float)GetValue(MyPropertyProperty); }
+            set { SetValue(MyPropertyProperty, value); }
+        }
 
         private readonly WorkControl work;
         public PropertyControl(WorkControl _work)
         {
             InitializeComponent();
             work = _work;
-            DataContext = work.DataContext;
-            work.type.Priced += PriceView;
+            work.type.Priced += PriceChanged;
         }
 
-        public void PriceView(TypeDetailControl t)
+        public void PriceChanged()
         {
-            Price = t.Count * work.Price;
-            TypeDetailPrice.Text = $"{Price}";
+            Price = work.Result = work.type.Count * work.type.det.Count * work.Price;
+
+            work.type.det.PriceResult();
         }
     }
 }
