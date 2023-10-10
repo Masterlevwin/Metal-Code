@@ -8,7 +8,15 @@ namespace Metal_Code
     /// </summary>
     public partial class WorkControl : UserControl
     {
-        public float Price { get; set; }
+        //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WorkControl}}}"
+        public static readonly DependencyProperty MyPropertyProperty =
+            DependencyProperty.Register("Price", typeof(float), typeof(WorkControl));
+        public float Price
+        {
+            get { return (float)GetValue(MyPropertyProperty); }
+            set { SetValue(MyPropertyProperty, value); }
+        }
+
         public float Result { get; set; }
         public string? NameWork { get; set; }
 
@@ -75,7 +83,7 @@ namespace Metal_Code
             PriceView();
         }
 
-        private void PriceView()
+        public void PriceView()
         {
             if (WorkDrop.SelectedItem is not Work work) return;
             if (work.Name == "Покупка")
@@ -84,7 +92,6 @@ namespace Metal_Code
                 else Price = typeDetail.Price;
             }
             else Price = work.Price;
-            WorkPrice.Text = $"{Price}";
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Windows.Controls;
 using System.Windows;
+using System;
 
 namespace Metal_Code
 {
@@ -50,7 +51,6 @@ namespace Metal_Code
         public void Remove()
         {
             for (int i = 0; i < WorkControls.Count; i++) WorkControls[i]?.Remove();
-            UpdatePosition(false);
             det.TypeDetailControls.Remove(this);
             det.DetailGrid.Children.Remove(this);
         }
@@ -65,8 +65,8 @@ namespace Metal_Code
                     det.TypeDetailControls[i].Margin = new Thickness(0,
                         direction ? det.TypeDetailControls[i].Margin.Top + 25 : det.TypeDetailControls[i].Margin.Top - 25, 0, 0);
                 }
-                det.UpdatePosition(direction);
             }
+            det.UpdatePosition(direction);
         }
 
         public delegate void PriceChanged();
@@ -79,6 +79,11 @@ namespace Metal_Code
         public void CountChanged()
         {
             Priced?.Invoke();
+        }
+
+        private void PriceView(object sender, RoutedEventArgs e)
+        {
+            foreach (WorkControl w in WorkControls) w.PriceView();
         }
     }
 }

@@ -73,11 +73,12 @@ namespace Metal_Code
             if (Count > 0) TotalResult();
         }
 
-        private void TotalResult()
+        public void TotalResult()
         {
             Price = 0;
             foreach (Detail d in Details) Price += d.Price;
             Total.Text = $"{Price * Count}";
+            DetailsGrid.ItemsSource = Details;
         }
     }
 }

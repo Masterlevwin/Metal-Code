@@ -50,7 +50,7 @@ namespace Metal_Code
 
         private void Remove(object sender, RoutedEventArgs e)
         {
-            if (MainWindow.M.Details[0] == this) return;
+            if (MainWindow.M.Details.Count == 1) return;
             Remove();
         }
         public void Remove()
@@ -91,6 +91,7 @@ namespace Metal_Code
                     Price += w.Result;
                 }
             }
+            MainWindow.M.TotalResult();
         }
     }
 }
