@@ -5,13 +5,13 @@ using System.Windows.Controls;
 namespace Metal_Code
 {
     /// <summary>
-    /// Логика взаимодействия для Detail.xaml
+    /// Логика взаимодействия для DetailControl.xaml
     /// </summary>
-    public partial class Detail : UserControl
+    public partial class DetailControl : UserControl
     {
-        //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:Detail}}}"
+        //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}"
         public static readonly DependencyProperty MyPropertyProperty =
-            DependencyProperty.Register("Price", typeof(float), typeof(Detail));
+            DependencyProperty.Register("Price", typeof(float), typeof(DetailControl));
         public float Price
         {
             get { return (float)GetValue(MyPropertyProperty); }
@@ -23,7 +23,7 @@ namespace Metal_Code
 
         public List<TypeDetailControl> TypeDetailControls = new();
 
-        public Detail()
+        public DetailControl()
         {
             InitializeComponent();
         }
@@ -50,25 +50,25 @@ namespace Metal_Code
 
         private void Remove(object sender, RoutedEventArgs e)
         {
-            if (MainWindow.M.Details.Count == 1) return;
+            if (MainWindow.M.DetailControls.Count == 1) return;
             Remove();
         }
         public void Remove()
         {
             for (int i = 0; i < TypeDetailControls.Count; i++) TypeDetailControls[i]?.Remove();
-            MainWindow.M.Details.Remove(this);
+            MainWindow.M.DetailControls.Remove(this);
             MainWindow.M.ProductGrid.Children.Remove(this);
         }
 
         public void UpdatePosition(bool direction)
         {
-            int num = MainWindow.M.Details.IndexOf(this);
-            if (MainWindow.M.Details.Count > 1)
+            int num = MainWindow.M.DetailControls.IndexOf(this);
+            if (MainWindow.M.DetailControls.Count > 1)
             {
-                for (int i = num + 1; i < MainWindow.M.Details.Count; i++)
+                for (int i = num + 1; i < MainWindow.M.DetailControls.Count; i++)
                 {
-                    MainWindow.M.Details[i].Margin = new Thickness(0,
-                        direction ? MainWindow.M.Details[i].Margin.Top + 25 : MainWindow.M.Details[i].Margin.Top - 25, 0, 0);
+                    MainWindow.M.DetailControls[i].Margin = new Thickness(0,
+                        direction ? MainWindow.M.DetailControls[i].Margin.Top + 25 : MainWindow.M.DetailControls[i].Margin.Top - 25, 0, 0);
                 }
             }
         }
@@ -92,6 +92,11 @@ namespace Metal_Code
                 }
             }
             MainWindow.M.TotalResult();
+        }
+
+        private void SetName(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) NameDetail = tBox.Text; 
         }
     }
 }

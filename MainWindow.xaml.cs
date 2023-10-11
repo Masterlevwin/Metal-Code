@@ -52,16 +52,16 @@ namespace Metal_Code
         public int Count { get; set; }
         public float Price { get; set; }
 
-        public List<Detail> Details = new();
+        public List<DetailControl> DetailControls = new();
         public void AddDetail()
         {
-            Detail detail = new();
+            DetailControl detail = new();
 
-            if (Details.Count > 0)
+            if (DetailControls.Count > 0)
                 detail.Margin = new Thickness(0,
-                    Details[^1].Margin.Top + 25 * Details[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
+                    DetailControls[^1].Margin.Top + 25 * DetailControls[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
             
-            Details.Add(detail);
+            DetailControls.Add(detail);
             ProductGrid.Children.Add(detail);
 
             detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
@@ -76,9 +76,20 @@ namespace Metal_Code
         public void TotalResult()
         {
             Price = 0;
-            foreach (Detail d in Details) Price += d.Price;
+            foreach (DetailControl d in DetailControls) Price += d.Price;
             Total.Text = $"{Price * Count}";
-            DetailsGrid.ItemsSource = Details;
+            SaveDetails();
+        }
+
+        public void SaveDetails()
+        {
+            List<Detail> details = new();
+            for (int i = 0; i < DetailControls.Count; i++)
+            {
+                Detail d = new(DetailControls[i].NameDetail, DetailControls[i].Count, DetailControls[i].Price);
+                details.Add(d);
+            }
+            DetailsGrid.ItemsSource = details;
         }
     }
 }

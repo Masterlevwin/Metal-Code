@@ -1,41 +1,68 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
 
-public class TypeDetail
+namespace Metal_Code
 {
-    public int Id { get; set; }
-    public string? Name { get; set; }
-    public float Price { get; set; }
-    public TypeDetail()
+    [Serializable]
+    public class Detail
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public int Count { get; set; }
+        public float Price { get; set; }
+
+        public List<SaveTypeDetail> TypeDetails = new();
+        public Detail(string? _name, int _count, float _price)
+        {
+            Name = _name;
+            Count = _count;
+            Price = _price;
+        }
+    }
+
+    public class SaveTypeDetail
     {
 
     }
-}
 
-public class Work
-{
-    public int Id { get; set; }
-    public string? Name { get; set; }
-    public float Price { get; set; }
-    public Work()
+    public class TypeDetail
     {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public float Price { get; set; }
+        public TypeDetail()
+        {
 
+        }
     }
-}
 
-public class TypeDetailContext : DbContext
-{
-    public DbSet<TypeDetail> TypeDetails { get; set; } = null!;
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    public class Work
     {
-        optionsBuilder.UseSqlite("Data Source=typedetails.db"); 
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public float Price { get; set; }
+        public Work()
+        {
+
+        }
     }
-}
 
-public class WorkContext : DbContext
-{
-    public DbSet<Work> Works { get; set; } = null!;
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    public class TypeDetailContext : DbContext
     {
-        optionsBuilder.UseSqlite("Data Source=works.db"); 
+        public DbSet<TypeDetail> TypeDetails { get; set; } = null!;
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseSqlite("Data Source=typedetails.db");
+        }
+    }
+
+    public class WorkContext : DbContext
+    {
+        public DbSet<Work> Works { get; set; } = null!;
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseSqlite("Data Source=works.db");
+        }
     }
 }

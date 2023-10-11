@@ -13,10 +13,10 @@ namespace Metal_Code
         public int Count { get; set; }
         public string? NameTypeDetail { get; set; }
 
-        public readonly Detail det;
+        public readonly DetailControl det;
         public List<WorkControl> WorkControls = new();
 
-        public TypeDetailControl(Detail d)
+        public TypeDetailControl(DetailControl d)
         {
             InitializeComponent();
             det = d;

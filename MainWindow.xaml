@@ -24,8 +24,8 @@
         </Menu>
         <Grid x:Name="WindowGrid">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition MinWidth="540" Width="Auto"/>
-                <ColumnDefinition Width="Auto" MinWidth="555.107"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition/>
             </Grid.ColumnDefinitions>
             <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" ToolTip="" MinWidth="500" Margin="20,20,20,20" TabIndex="1">
                 <Grid x:Name="ProductGrid" AllowDrop="True" Margin="10,30,10,0"/>
@@ -34,7 +34,7 @@
             <TextBox AutoWordSelection="True" ToolTip="Введите количество требуемых изделий" AllowDrop="False" MaxLines="1" Text="шт" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="400,40,0,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Left" Height="20" Width="40" TextChanged="SetCount" MaxLength="4"/>
             <TextBlock x:Name="Total" HorizontalAlignment="Left" MinHeight="20" Margin="480,40,0,0" AllowDrop="False" ToolTip="Общая стоимость" VerticalAlignment="Top" Text="Стоимость" MinWidth="80"/>
             <GroupBox Grid.Column="1" Header="Сметная ведомость" Margin="20,20,20,20" MinWidth="300">
-                <DataGrid x:Name="DetailsGrid"/>
+                <DataGrid x:Name="DetailsGrid" Height="372" Margin="10,0,235,0"/>
             </GroupBox>
         </Grid>
     </Grid>
