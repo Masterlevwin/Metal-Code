@@ -86,7 +86,16 @@ namespace Metal_Code
             List<Detail> details = new();
             for (int i = 0; i < DetailControls.Count; i++)
             {
-                Detail d = new(DetailControls[i].NameDetail, DetailControls[i].Count, DetailControls[i].Price);
+                Detail d = new(i + 1, DetailControls[i].NameDetail, DetailControls[i].Price / DetailControls[i].Count, DetailControls[i].Count, DetailControls[i].Price);
+                foreach (TypeDetailControl t in DetailControls[i].TypeDetailControls)
+                {
+                    SaveTypeDetail sType = new()
+                    {
+                        Name = t.NameTypeDetail,
+                        Count = t.Count
+                    };
+                    d.TypeDetails.Add(sType);
+                }
                 details.Add(d);
             }
             DetailsGrid.ItemsSource = details;

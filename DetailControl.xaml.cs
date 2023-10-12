@@ -9,9 +9,9 @@ namespace Metal_Code
     /// </summary>
     public partial class DetailControl : UserControl
     {
-        //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}"
+        //Text="{Binding Стоимость, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}"
         public static readonly DependencyProperty MyPropertyProperty =
-            DependencyProperty.Register("Price", typeof(float), typeof(DetailControl));
+            DependencyProperty.Register("Стоимость", typeof(float), typeof(DetailControl));
         public float Price
         {
             get { return (float)GetValue(MyPropertyProperty); }
@@ -96,7 +96,7 @@ namespace Metal_Code
 
         private void SetName(object sender, TextChangedEventArgs e)
         {
-            if (sender is TextBox tBox) NameDetail = tBox.Text; 
+            if (sender is TextBox tBox) NameDetail = tBox.Text;
         }
     }
 }

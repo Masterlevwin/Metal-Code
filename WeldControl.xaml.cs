@@ -10,9 +10,9 @@ namespace Metal_Code
     /// </summary>
     public partial class WeldControl : UserControl
     {
-        //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WeldControl}}}"
+        //Text="{Binding Стоимость, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WeldControl}}}"
         public static readonly DependencyProperty MyPropertyProperty =
-            DependencyProperty.Register("Price", typeof(float), typeof(WeldControl));
+            DependencyProperty.Register("Стоимость", typeof(float), typeof(WeldControl));
         public float Price
         {
             get { return (float)GetValue(MyPropertyProperty); }

@@ -7,23 +7,31 @@ namespace Metal_Code
     [Serializable]
     public class Detail
     {
-        public int Id { get; set; }
-        public string? Name { get; set; }
-        public int Count { get; set; }
-        public float Price { get; set; }
+        public int N { get; set; }
+        public string? Наименование { get; set; }
+        public float Цена { get; set; }
+        public int Кол { get; set; }
+        public float Стоимость { get; set; }
 
         public List<SaveTypeDetail> TypeDetails = new();
-        public Detail(string? _name, int _count, float _price)
+        public Detail(int id, string? _name, float _price, int _count, float _total)
         {
-            Name = _name;
-            Count = _count;
-            Price = _price;
+            N = id;
+            Наименование = _name;
+            Цена = _price;
+            Кол = _count;
+            Стоимость = _total;
         }
     }
 
     public class SaveTypeDetail
     {
+        public string? Name { get; set; }
+        public int Count { get; set; }
+        public SaveTypeDetail()
+        {
 
+        }
     }
 
     public class TypeDetail
