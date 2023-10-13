@@ -19,7 +19,7 @@
             <ColumnDefinition Width="19*"/>
         </Grid.ColumnDefinitions>
         <ComboBox x:Name="WorkDrop" DisplayMemberPath="Name" MinWidth="120" MinHeight="20" Height="20" Margin="20,0,0,0" SelectedIndex="0" VerticalContentAlignment="Center" SelectionChanged="CreateWork" ToolTip="Выберите работу" VerticalAlignment="Top"/>
-        <TextBlock x:Name="WorkPrice" Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WorkControl}}}" Grid.Column="1" MinWidth="30" MinHeight="20" Height="20" Width="30" Margin="20,0,0,0" TextWrapping="Wrap" ToolTip="Цена" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+        <TextBlock x:Name="WorkPrice" Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WorkControl}}}" Grid.Column="1" MinWidth="30" MinHeight="20" Height="20" Width="30" Margin="20,0,0,0" ToolTip="Цена" VerticalAlignment="Top" HorizontalAlignment="Left"/>
 
     </Grid>
 </UserControl>

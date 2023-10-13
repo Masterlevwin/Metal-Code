@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="45" d:DesignWidth="250">
+             d:DesignHeight="20" d:DesignWidth="250">
     <Grid x:Name="PropertyGrid">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" MinWidth="120"/>

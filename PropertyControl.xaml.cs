@@ -10,7 +10,7 @@ namespace Metal_Code
     {
         //Text="{Binding Стоимость, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PropertyControl}}}"
         public static readonly DependencyProperty MyPropertyProperty =
-            DependencyProperty.Register("Стоимость", typeof(float), typeof(PropertyControl));
+            DependencyProperty.Register("Price", typeof(float), typeof(PropertyControl));
         public float Price
         {
             get { return (float)GetValue(MyPropertyProperty); }

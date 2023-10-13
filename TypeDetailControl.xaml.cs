@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Windows.Controls;
 using System.Windows;
-using System;
 
 namespace Metal_Code
 {
@@ -74,9 +73,9 @@ namespace Metal_Code
         private void SetCount(object sender, TextChangedEventArgs e)
         {
             if (int.TryParse(CountText.Text, out int count)) Count = count;
-            CountChanged();
+            Priced?.Invoke();
         }
-        public void CountChanged()
+        public void CountChanged()      //запуск события из DetailControl 
         {
             Priced?.Invoke();
         }
@@ -84,6 +83,7 @@ namespace Metal_Code
         private void PriceView(object sender, RoutedEventArgs e)
         {
             foreach (WorkControl w in WorkControls) w.PriceView();
+            Priced?.Invoke();
         }
     }
 }

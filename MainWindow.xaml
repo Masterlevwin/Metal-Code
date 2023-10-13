@@ -5,11 +5,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:Metal_Code" xmlns:Sqlite="clr-namespace:Microsoft.Data.Sqlite;assembly=Microsoft.Data.Sqlite" x:Name="ProgramWindow"
         x:Class="Metal_Code.MainWindow"
         mc:Ignorable="d"
-        Title="Провэлд" Height="768" Width="1024" WindowStartupLocation="CenterScreen" FontFamily="Century" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" VerticalContentAlignment="Stretch" AutomationProperties.Name="" MinWidth="1600" MinHeight="900">
-    <Grid x:Name="MenuGrid">
+        Title="Провэлд" FontFamily="Century" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch" WindowStartupLocation="CenterScreen">
+    <Grid x:Name="MenuGrid" MinWidth="1280" MinHeight="720">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="865*"/>
-            <ColumnDefinition Width="159*"/>
+            <ColumnDefinition Width="951*"/>
+            <ColumnDefinition Width="329*"/>
         </Grid.ColumnDefinitions>
         <Menu VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" FontSize="10" FontFamily="Forte" RenderTransformOrigin="0.499,-1.337" Grid.ColumnSpan="2">
             <MenuItem Header="Файл" FontFamily="Forte">
@@ -27,31 +27,43 @@
             </MenuItem>
         </Menu>
         <Grid x:Name="WindowGrid" Grid.ColumnSpan="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="11*"/>
+                <RowDefinition Height="9*"/>
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" ToolTip="" MinWidth="500" Margin="20,20,20,20" TabIndex="1">
+            <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" ToolTip="" MinWidth="500" TabIndex="1" Grid.RowSpan="2" Margin="20,20,15,20">
                 <Grid x:Name="ProductGrid" AllowDrop="True" Margin="10,30,10,0"/>
             </GroupBox>
-            <TextBox x:Name="ProductName" Text="Изделие" AutoWordSelection="True" TextWrapping="Wrap" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" Height="20" VerticalContentAlignment="Center" HorizontalAlignment="Left" Width="330" />
-            <TextBox AutoWordSelection="True" ToolTip="Введите количество требуемых изделий" AllowDrop="False" MaxLines="1" Text="шт" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="435,40,0,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Left" Height="20" Width="40" TextChanged="SetCount" MaxLength="4"/>
-            <TextBlock x:Name="Total" HorizontalAlignment="Right" MinHeight="20" AllowDrop="False" ToolTip="Общая стоимость" VerticalAlignment="Top" Text="Стоимость" MinWidth="80" Margin="0,40,10,0"/>
-            <GroupBox Header="Сметная ведомость" Grid.Column="2" Margin="20,20,20,20"/>
-            <GroupBox x:Name="OrderBox" Grid.Column="1" Margin="20,20,20,20" Header="Коммерческое предложение" MinWidth="400">
+            <TextBox x:Name="ProductName" Text="Изделие" AutoWordSelection="True" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" Height="20" VerticalContentAlignment="Center" HorizontalAlignment="Left" Width="330" />
+            <TextBox ToolTip="Введите количество требуемых изделий" AllowDrop="False" MaxLines="1" Text="шт" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="375,40,0,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Left" Height="20" Width="40" TextChanged="SetCount" MaxLength="4"/>
+            <TextBlock x:Name="Total" HorizontalAlignment="Left" MinHeight="20" AllowDrop="False" ToolTip="Общая стоимость" VerticalAlignment="Top" MinWidth="80" Margin="425,40,0,0" Height="20" Width="80"/>
+            <GroupBox Header="Сметная ведомость" Grid.Column="1" Grid.Row="1" Margin="15,15,20,20" VerticalAlignment="Top" MaxWidth="500" HorizontalAlignment="Left" Height="21" Width="129"/>
+            <GroupBox x:Name="OrderBox" Grid.Column="1" Margin="15,20,20,15" Header="Коммерческое предложение" MaxWidth="440" HorizontalAlignment="Left" MinWidth="440" Width="440">
                 <Grid x:Name="OrderGrid">
-                    <TextBox HorizontalAlignment="Right" TextWrapping="Wrap" Text="тел:(812)509-60-11" Width="120" VerticalAlignment="Top" Margin="0,0,5,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                    <Image HorizontalAlignment="Left" VerticalAlignment="Top" Source="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg" Height="30" Width="30"/>
-                    <TextBox HorizontalAlignment="Left" Margin="80,20,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="30" MinWidth="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                    <TextBox HorizontalAlignment="Left" Margin="140,20,0,0" TextWrapping="Wrap" VerticalAlignment="Top" MinWidth="150" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                    <DataGrid x:Name="DetailsGrid" Margin="0,155,0,520" VerticalAlignment="Top"/>
+                    <TextBox HorizontalAlignment="Right" Text="тел:(812)603-45-33" Width="120" VerticalAlignment="Top" Margin="0,0,5,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1"/>
+                    <Image HorizontalAlignment="Left" VerticalAlignment="Top" Height="30" Width="30" Source="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg"/>
+                    <TextBox HorizontalAlignment="Left" Margin="80,20,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40"/>
+                    <TextBox HorizontalAlignment="Left" Margin="150,20,0,0" VerticalAlignment="Top" MinWidth="150" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="150"/>
+                    <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="0,225,0,0"/>
                     <TextBlock HorizontalAlignment="Left" Margin="40,20,0,0" TextWrapping="Wrap" Text="КП №" VerticalAlignment="Top"/>
-                    <TextBlock HorizontalAlignment="Left" Margin="115,20,0,0" TextWrapping="Wrap" Text="для" VerticalAlignment="Top"/>
-                    <TextBlock HorizontalAlignment="Left" Margin="295,21,0,0" TextWrapping="Wrap" Text="от 12.10.23" VerticalAlignment="Top"/>
-                    <TextBlock HorizontalAlignment="Left" Margin="15,41,0,0" TextWrapping="Wrap" Text="Данный расчет действителен в течении 2-х банковских дней" VerticalAlignment="Top" FontSize="8"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="125,20,0,0" TextWrapping="Wrap" Text="для" VerticalAlignment="Top"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="305,20,0,0" VerticalAlignment="Top" Text="{Binding DisplayDate, ElementName=datePicker}"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="15,40,0,0" TextWrapping="Wrap" Text="Данный расчет действителен в течении 2-х банковских дней" VerticalAlignment="Top" FontSize="8"/>
                     <TextBlock HorizontalAlignment="Left" Margin="15,55,0,0" TextWrapping="Wrap" Text="Срок изготовления:" VerticalAlignment="Top"/>
-                    <TextBox Margin="135,55,0,0" TextWrapping="Wrap" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="30"/>
+                    <TextBox Margin="135,55,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="200,55,0,0" TextWrapping="Wrap" Text="раб/дней" VerticalAlignment="Top"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="15,75,0,0" TextWrapping="Wrap" Text="Порядок отгрузки:" VerticalAlignment="Top"/>
+                    <TextBox HorizontalAlignment="Left" Margin="15,95,0,0" TextWrapping="Wrap" Text="Адрес доставки..." VerticalAlignment="Top" Width="220" Height="45" IsEnabled="{Binding IsChecked, ElementName=checkBox1}"/>
+                    <TextBox HorizontalAlignment="Left" Margin="15,145,0,0" TextWrapping="Wrap" Text="Комментарии..." VerticalAlignment="Top" Width="220" Height="45"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="15,195,0,0" TextWrapping="Wrap" Text="Ваш менеджер:" VerticalAlignment="Top"/>
+                    <ComboBox HorizontalAlignment="Left" Margin="115,195,0,0" VerticalAlignment="Top" Width="120"/>
+                    <DatePicker x:Name="datePicker" HorizontalAlignment="Left" Margin="305,51,0,0" VerticalAlignment="Top" FirstDayOfWeek="Monday"/>
+                    <CheckBox x:Name="checkBox1" Content="Доставка" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="135,75,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                    <TextBox HorizontalAlignment="Left" Margin="240,75,0,0" Text="Цена" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" IsEnabled="{Binding IsChecked, ElementName=checkBox1}"/>
                 </Grid>
             </GroupBox>
         </Grid>

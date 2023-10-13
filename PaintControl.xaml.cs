@@ -11,7 +11,7 @@ namespace Metal_Code
     {
         //Text="{Binding Стоимость, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PaintControl}}}"
         public static readonly DependencyProperty MyPropertyProperty =
-            DependencyProperty.Register("Стоимость", typeof(float), typeof(PaintControl));
+            DependencyProperty.Register("Price", typeof(float), typeof(PaintControl));
         public float Price
         {
             get { return (float)GetValue(MyPropertyProperty); }
