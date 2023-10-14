@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows.Controls;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Collections.ObjectModel;
 
 namespace Metal_Code
 {
@@ -21,12 +22,14 @@ namespace Metal_Code
         public readonly TypeDetailContext dbTypeDetails = new();
         public readonly WorkContext dbWorks = new();
 
+        public readonly ApplicationViewModel DetailsModel = new(new DefaultDialogService(), new JsonFileService());
+
         public MainWindow()
         {
             InitializeComponent();
             M = this;
+            DataContext = DetailsModel;
             Loaded += UpdateDrops;
-
             AddDetail();
         }
 
@@ -73,6 +76,12 @@ namespace Metal_Code
             detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
         }
 
+        private void ClearDetails()
+        {
+            if (DetailControls.Count > 0) foreach (DetailControl d in DetailControls) d.Remove();
+            //DetailControls.Clear();
+        }
+
         private void SetCount(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int c)) Count = c;
@@ -84,27 +93,59 @@ namespace Metal_Code
             Price = 0;
             foreach (DetailControl d in DetailControls) Price += d.Price;
             Total.Text = $"{Price * Count}";
-            SaveDetails();
+            //SaveDetails();
         }
 
-        public void SaveDetails()
+        public ObservableCollection<Detail> SaveDetails()
         {
-            List<Detail> details = new();
+            ObservableCollection<Detail> details = new();
             for (int i = 0; i < DetailControls.Count; i++)
             {
-                Detail d = new(i + 1, DetailControls[i].NameDetail, DetailControls[i].Price / DetailControls[i].Count, DetailControls[i].Count, DetailControls[i].Price);
-                foreach (TypeDetailControl t in DetailControls[i].TypeDetailControls)
+                Detail detail = new(i + 1, DetailControls[i].NameDetail, DetailControls[i].Price / DetailControls[i].Count, DetailControls[i].Count, DetailControls[i].Price);
+                for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
                 {
-                    SaveTypeDetail sType = new()
+                    SaveTypeDetail typeDetail = new(DetailControls[i].TypeDetailControls[j].TypeDetailDrop.DisplayMemberPath, DetailControls[i].TypeDetailControls[j].Count);
+                    for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
                     {
-                        Name = t.NameTypeDetail,
-                        Count = t.Count
-                    };
-                    d.TypeDetails.Add(sType);
+                        SaveWork saveWork = new(DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.DisplayMemberPath);
+                        typeDetail.Works.Add(saveWork);
+                    }
+                    detail.TypeDetails.Add(typeDetail);
                 }
-                details.Add(d);
+                details.Add(detail);
             }
+
             DetailsGrid.ItemsSource = details;
+            return details;
+        }
+
+        public void LoadDetails()
+        {
+            //ClearDetails();
+            for (int i = 0; i < DetailsModel.Details.Count; i++)
+            {
+                AddDetail();
+                DetailControls[i].NameDetail = DetailsModel.Details[i].Наименование;
+                DetailControls[i].Count = DetailsModel.Details[i].Кол;
+
+                for (int j = 0; j < DetailsModel.Details[i].TypeDetails.Count; j++)
+                {
+                    foreach (var t in dbTypeDetails.TypeDetails) if (t.Name == DetailsModel.Details[i].TypeDetails[j].Name)
+                            DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedItem = t;
+                    DetailControls[i].TypeDetailControls[j].Count = DetailsModel.Details[i].TypeDetails[j].Count;
+
+                    for (int k = 0; k < DetailsModel.Details[i].TypeDetails[j].Works.Count; k++)
+                    {
+                        foreach (var w in dbWorks.Works) if (w.Name == DetailsModel.Details[i].TypeDetails[j].Works[k].Name)
+                                DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedItem = w;
+                        if (DetailControls[i].TypeDetailControls[j].WorkControls.Count < DetailsModel.Details[i].TypeDetails[j].Works.Count)
+                            DetailControls[i].TypeDetailControls[j].AddWork();
+                    }
+                    if (DetailControls[i].TypeDetailControls.Count < DetailsModel.Details[i].TypeDetails.Count)
+                        DetailControls[i].AddTypeDetail();
+                }
+            }
+            DetailsGrid.ItemsSource = DetailsModel.Details;
         }
     }
 }

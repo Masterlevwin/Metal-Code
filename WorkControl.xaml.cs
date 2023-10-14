@@ -18,6 +18,7 @@ namespace Metal_Code
         }
 
         public float Result { get; set; }
+
         public readonly TypeDetailControl type;
         public WorkControl(TypeDetailControl t)
         {
@@ -53,6 +54,11 @@ namespace Metal_Code
 
         UserControl? workType = null;
         private void CreateWork(object sender, SelectionChangedEventArgs e)
+        {
+            CreateWork();
+        }
+
+        public void CreateWork()
         {
             if (WorkDrop.SelectedItem is not Work work) return;
             if (WorkGrid.Children.Contains(workType)) WorkGrid.Children.Remove(workType);

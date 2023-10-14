@@ -9,17 +9,25 @@ namespace Metal_Code
     /// </summary>
     public partial class DetailControl : UserControl
     {
-        //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}"
-        public static readonly DependencyProperty MyPropertyProperty =
-            DependencyProperty.Register("Price", typeof(float), typeof(DetailControl));
-        public float Price
+        //Text="{Binding NameDetail, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}"
+        public static readonly DependencyProperty dPname =
+            DependencyProperty.Register("NameDetail", typeof(string), typeof(DetailControl));
+        public string? NameDetail
         {
-            get { return (float)GetValue(MyPropertyProperty); }
-            set { SetValue(MyPropertyProperty, value); }
+            get { return (string)GetValue(dPname); }
+            set { SetValue(dPname, value); }
         }
 
-        public string? NameDetail { get; set; }
-        public int Count { get; set; }
+        //Text="{Binding Count, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}"
+        public static readonly DependencyProperty dPcount =
+            DependencyProperty.Register("Count", typeof(int), typeof(DetailControl));
+        public int Count
+        {
+            get { return (int)GetValue(dPcount); }
+            set { SetValue(dPcount, value); }
+        }
+
+        public float Price { get; set; }
 
         public List<TypeDetailControl> TypeDetailControls = new();
 
@@ -73,11 +81,16 @@ namespace Metal_Code
             }
         }
 
+        private void SetName(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) NameDetail = tBox.Text;
+        }
+
         public delegate void CountChanged();
         public event CountChanged? Counted;
         private void SetCount(object sender, TextChangedEventArgs e)
         {
-            if (int.TryParse(CountText.Text, out int count)) Count = count;
+            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count)) Count = count;
             Counted?.Invoke();
         }
 
@@ -92,11 +105,6 @@ namespace Metal_Code
                 }
             }
             MainWindow.M.TotalResult();
-        }
-
-        private void SetName(object sender, TextChangedEventArgs e)
-        {
-            if (sender is TextBox tBox) NameDetail = tBox.Text;
         }
     }
 }

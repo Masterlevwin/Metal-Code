@@ -14,7 +14,7 @@ namespace Metal_Code
         public float Стоимость { get; set; }
 
         public List<SaveTypeDetail> TypeDetails = new();
-        public Detail(int id, string? _name, float _price, int _count, float _total)
+        public Detail(int id = 0, string? _name = "", float _price = 0, int _count = 0, float _total = 0)
         {
             N = id;
             Наименование = _name;
@@ -24,13 +24,27 @@ namespace Metal_Code
         }
     }
 
+    [Serializable]
     public class SaveTypeDetail
     {
         public string? Name { get; set; }
         public int Count { get; set; }
-        public SaveTypeDetail()
-        {
 
+        public List<SaveWork> Works = new();
+        public SaveTypeDetail(string? _name = "", int _count = 0)
+        {
+            Name = _name;
+            Count = _count;
+        }
+    }
+    
+    [Serializable]
+    public class SaveWork
+    {
+        public string? Name { get; set; }
+        public SaveWork(string? _name = "")
+        {
+            Name = _name;
         }
     }
 

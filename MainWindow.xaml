@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:Metal_Code" xmlns:Sqlite="clr-namespace:Microsoft.Data.Sqlite;assembly=Microsoft.Data.Sqlite" x:Name="ProgramWindow"
         x:Class="Metal_Code.MainWindow"
         mc:Ignorable="d"
-        Title="Провэлд" FontFamily="Century" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch" WindowStartupLocation="CenterScreen">
+        Title="Провэлд" FontFamily="Century" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen">
     <Grid x:Name="MenuGrid" MinWidth="1280" MinHeight="720">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="951*"/>
@@ -14,8 +14,8 @@
         <Menu VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" FontSize="10" FontFamily="Forte" RenderTransformOrigin="0.499,-1.337" Grid.ColumnSpan="2">
             <MenuItem Header="Файл" FontFamily="Forte">
                 <MenuItem Header="Создать"/>
-                <MenuItem Header="Открыть"/>
-                <MenuItem Header="Сохранить"/>
+                <MenuItem Header="Открыть" Command="{Binding OpenCommand}"/>
+                <MenuItem Header="Сохранить" Command="{Binding SaveCommand}"/>
                 <Separator/>
                 <MenuItem Header="Выход"/>
             </MenuItem>
@@ -51,7 +51,7 @@
                     <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="0,225,0,0"/>
                     <TextBlock HorizontalAlignment="Left" Margin="40,20,0,0" TextWrapping="Wrap" Text="КП №" VerticalAlignment="Top"/>
                     <TextBlock HorizontalAlignment="Left" Margin="125,20,0,0" TextWrapping="Wrap" Text="для" VerticalAlignment="Top"/>
-                    <TextBlock HorizontalAlignment="Left" Margin="305,20,0,0" VerticalAlignment="Top" Text="{Binding DisplayDate, ElementName=datePicker}"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="305,20,0,0" VerticalAlignment="Top" Text="{Binding DisplayDate.Now, ElementName=datePicker, Mode=OneWay}"/>
                     <TextBlock HorizontalAlignment="Left" Margin="15,40,0,0" TextWrapping="Wrap" Text="Данный расчет действителен в течении 2-х банковских дней" VerticalAlignment="Top" FontSize="8"/>
                     <TextBlock HorizontalAlignment="Left" Margin="15,55,0,0" TextWrapping="Wrap" Text="Срок изготовления:" VerticalAlignment="Top"/>
                     <TextBox Margin="135,55,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50"/>

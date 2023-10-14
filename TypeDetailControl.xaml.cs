@@ -9,8 +9,14 @@ namespace Metal_Code
     /// </summary>
     public partial class TypeDetailControl : UserControl
     {
-        public int Count { get; set; }
-        public string? NameTypeDetail { get; set; }
+        //Text="{Binding Count, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}"
+        public static readonly DependencyProperty dPcount =
+            DependencyProperty.Register("Count", typeof(int), typeof(TypeDetailControl));
+        public int Count
+        {
+            get { return (int)GetValue(dPcount); }
+            set { SetValue(dPcount, value); }
+        }
 
         public readonly DetailControl det;
         public List<WorkControl> WorkControls = new();
@@ -72,7 +78,7 @@ namespace Metal_Code
         public event PriceChanged? Priced;
         private void SetCount(object sender, TextChangedEventArgs e)
         {
-            if (int.TryParse(CountText.Text, out int count)) Count = count;
+            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count)) Count = count;
             Priced?.Invoke();
         }
         public void CountChanged()      //запуск события из DetailControl 
