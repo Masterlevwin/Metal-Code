@@ -79,7 +79,7 @@ namespace Metal_Code
         private void ClearDetails()
         {
             if (DetailControls.Count > 0) foreach (DetailControl d in DetailControls) d.Remove();
-            //DetailControls.Clear();
+            DetailControls.Clear();
         }
 
         private void SetCount(object sender, TextChangedEventArgs e)
@@ -93,7 +93,7 @@ namespace Metal_Code
             Price = 0;
             foreach (DetailControl d in DetailControls) Price += d.Price;
             Total.Text = $"{Price * Count}";
-            //SaveDetails();
+            SaveDetails();
         }
 
         public ObservableCollection<Detail> SaveDetails()
@@ -104,10 +104,10 @@ namespace Metal_Code
                 Detail detail = new(i + 1, DetailControls[i].NameDetail, DetailControls[i].Price / DetailControls[i].Count, DetailControls[i].Count, DetailControls[i].Price);
                 for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
                 {
-                    SaveTypeDetail typeDetail = new(DetailControls[i].TypeDetailControls[j].TypeDetailDrop.DisplayMemberPath, DetailControls[i].TypeDetailControls[j].Count);
+                    SaveTypeDetail typeDetail = new(DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedIndex, DetailControls[i].TypeDetailControls[j].Count);
                     for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
                     {
-                        SaveWork saveWork = new(DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.DisplayMemberPath);
+                        SaveWork saveWork = new(DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedIndex);
                         typeDetail.Works.Add(saveWork);
                     }
                     detail.TypeDetails.Add(typeDetail);
@@ -130,14 +130,12 @@ namespace Metal_Code
 
                 for (int j = 0; j < DetailsModel.Details[i].TypeDetails.Count; j++)
                 {
-                    foreach (var t in dbTypeDetails.TypeDetails) if (t.Name == DetailsModel.Details[i].TypeDetails[j].Name)
-                            DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedItem = t;
+                    DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedIndex = DetailsModel.Details[i].TypeDetails[j].Index;
                     DetailControls[i].TypeDetailControls[j].Count = DetailsModel.Details[i].TypeDetails[j].Count;
 
                     for (int k = 0; k < DetailsModel.Details[i].TypeDetails[j].Works.Count; k++)
                     {
-                        foreach (var w in dbWorks.Works) if (w.Name == DetailsModel.Details[i].TypeDetails[j].Works[k].Name)
-                                DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedItem = w;
+                        DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedIndex = DetailsModel.Details[i].TypeDetails[j].Works[k].Index;
                         if (DetailControls[i].TypeDetailControls[j].WorkControls.Count < DetailsModel.Details[i].TypeDetails[j].Works.Count)
                             DetailControls[i].TypeDetailControls[j].AddWork();
                     }

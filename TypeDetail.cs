@@ -27,13 +27,13 @@ namespace Metal_Code
     [Serializable]
     public class SaveTypeDetail
     {
-        public string? Name { get; set; }
+        public int Index { get; set; }
         public int Count { get; set; }
 
         public List<SaveWork> Works = new();
-        public SaveTypeDetail(string? _name = "", int _count = 0)
+        public SaveTypeDetail(int _index = 0, int _count = 0)
         {
-            Name = _name;
+            Index = _index;
             Count = _count;
         }
     }
@@ -41,10 +41,10 @@ namespace Metal_Code
     [Serializable]
     public class SaveWork
     {
-        public string? Name { get; set; }
-        public SaveWork(string? _name = "")
+        public int Index { get; set; }
+        public SaveWork(int _index = 0)
         {
-            Name = _name;
+            Index = _index;
         }
     }
 
