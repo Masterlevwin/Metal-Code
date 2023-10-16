@@ -85,10 +85,8 @@ namespace Metal_Code
         {
             Priced?.Invoke();
         }
-
-        private void PriceView(object sender, RoutedEventArgs e)
+        private void PriceView(object sender, SelectionChangedEventArgs e)
         {
-            foreach (WorkControl w in WorkControls) w.PriceView();
             Priced?.Invoke();
         }
     }

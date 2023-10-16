@@ -44,14 +44,14 @@
             <GroupBox Header="Сметная ведомость" Grid.Column="1" Grid.Row="1" Margin="15,15,20,20" VerticalAlignment="Top" MaxWidth="500" HorizontalAlignment="Left" Height="21" Width="129"/>
             <GroupBox x:Name="OrderBox" Grid.Column="1" Margin="15,20,20,15" Header="Коммерческое предложение" MaxWidth="440" HorizontalAlignment="Left" MinWidth="440" Width="440">
                 <Grid x:Name="OrderGrid">
-                    <TextBox HorizontalAlignment="Right" Text="тел:(812)603-45-33" Width="120" VerticalAlignment="Top" Margin="0,0,5,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1"/>
-                    <Image HorizontalAlignment="Left" VerticalAlignment="Top" Height="30" Width="30" Source="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg"/>
-                    <TextBox HorizontalAlignment="Left" Margin="80,20,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40"/>
-                    <TextBox HorizontalAlignment="Left" Margin="150,20,0,0" VerticalAlignment="Top" MinWidth="150" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="150"/>
-                    <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="0,225,0,0"/>
+                    <TextBox x:Name="Phone" HorizontalAlignment="Right" Text="тел:(812)603-45-33" Width="120" VerticalAlignment="Top" Margin="0,0,5,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1"/>
+                    <Image x:Name="Logo" HorizontalAlignment="Left" VerticalAlignment="Top" Height="30" Width="30" Source="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg"/>
+                    <TextBox x:Name="Order" HorizontalAlignment="Left" Margin="80,20,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40"/>
+                    <TextBox x:Name="Company" HorizontalAlignment="Left" Margin="150,20,0,0" VerticalAlignment="Top" MinWidth="150" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="150"/>
+                    <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" Margin="15,225,0,0" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
                     <TextBlock HorizontalAlignment="Left" Margin="40,20,0,0" TextWrapping="Wrap" Text="КП №" VerticalAlignment="Top"/>
                     <TextBlock HorizontalAlignment="Left" Margin="125,20,0,0" TextWrapping="Wrap" Text="для" VerticalAlignment="Top"/>
-                    <TextBlock HorizontalAlignment="Left" Margin="305,20,0,0" VerticalAlignment="Top" Text="{Binding DisplayDate.Now, ElementName=datePicker, Mode=OneWay}"/>
+                    <TextBlock x:Name="Date" HorizontalAlignment="Left" Margin="305,20,0,0" VerticalAlignment="Top" Text="{Binding DisplayDate.Now, ElementName=datePicker, Mode=OneWay}"/>
                     <TextBlock HorizontalAlignment="Left" Margin="15,40,0,0" TextWrapping="Wrap" Text="Данный расчет действителен в течении 2-х банковских дней" VerticalAlignment="Top" FontSize="8"/>
                     <TextBlock HorizontalAlignment="Left" Margin="15,55,0,0" TextWrapping="Wrap" Text="Срок изготовления:" VerticalAlignment="Top"/>
                     <TextBox Margin="135,55,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50"/>
@@ -64,6 +64,7 @@
                     <DatePicker x:Name="datePicker" HorizontalAlignment="Left" Margin="305,51,0,0" VerticalAlignment="Top" FirstDayOfWeek="Monday"/>
                     <CheckBox x:Name="checkBox1" Content="Доставка" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="135,75,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
                     <TextBox HorizontalAlignment="Left" Margin="240,75,0,0" Text="Цена" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" IsEnabled="{Binding IsChecked, ElementName=checkBox1}"/>
+                    <TextBlock HorizontalAlignment="Right" TextWrapping="Wrap" Text="ООО Провэлд" VerticalAlignment="Top" Margin="0,1,134,0"/>
                 </Grid>
             </GroupBox>
         </Grid>

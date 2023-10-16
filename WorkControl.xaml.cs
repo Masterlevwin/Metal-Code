@@ -24,6 +24,7 @@ namespace Metal_Code
         {
             InitializeComponent();
             type = t;
+            type.Priced += PriceView;
             WorkDrop.ItemsSource = MainWindow.M.dbWorks.Works.Local.ToObservableCollection();
         }
 
@@ -87,7 +88,7 @@ namespace Metal_Code
             PriceView();
         }
 
-        public void PriceView()
+        public void PriceView()         // метод отображения цены типовой детали или работы
         {
             if (WorkDrop.SelectedItem is not Work work) return;
             if (work.Name == "Покупка")

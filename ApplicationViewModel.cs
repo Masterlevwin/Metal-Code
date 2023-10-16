@@ -129,7 +129,7 @@ namespace Metal_Code
                   {
                       if (obj is Detail detail)
                       {
-                          Detail detailCopy = new(detail.N, detail.Наименование, detail.Цена, detail.Кол, detail.Стоимость);
+                          Detail detailCopy = new(detail.N, detail.Title, detail.Count,detail.Price, detail.Total);
                           Details.Insert(0, detailCopy);
                       }
                   });
@@ -180,6 +180,7 @@ namespace Metal_Code
         public bool OpenFileDialog()
         {
             OpenFileDialog openFileDialog = new();
+            openFileDialog.Filter = "Metal-Code (*.mcm)|*.mcm|All files (*.*)|*.*";
             if (openFileDialog.ShowDialog() == true)
             {
                 FilePath = openFileDialog.FileName;
@@ -191,6 +192,7 @@ namespace Metal_Code
         public bool SaveFileDialog()
         {
             SaveFileDialog saveFileDialog = new();
+            saveFileDialog.Filter = "Metal-Code (*.mcm)|*.mcm|All files (*.*)|*.*";
             if (saveFileDialog.ShowDialog() == true)
             {
                 FilePath = saveFileDialog.FileName;
@@ -231,6 +233,8 @@ namespace Metal_Code
             DataContractJsonSerializer jsonFormatter = new(typeof(ObservableCollection<Detail>));
             using FileStream fs = new(filename, FileMode.Create);
             jsonFormatter.WriteObject(fs, details);
+
+            MainWindow.M.ExportToExcel(filename);
         }
     }
 }

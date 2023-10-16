@@ -8,19 +8,21 @@ namespace Metal_Code
     public class Detail
     {
         public int N { get; set; }
-        public string? Наименование { get; set; }
-        public float Цена { get; set; }
-        public int Кол { get; set; }
-        public float Стоимость { get; set; }
+        public string? Title { get; set; }
+        public int Count { get; set; }
+        public float Price { get; set; }
+        public float Total { get; set; }
+        public string? Description { get; set; }
 
         public List<SaveTypeDetail> TypeDetails = new();
-        public Detail(int id = 0, string? _name = "", float _price = 0, int _count = 0, float _total = 0)
+        public Detail(int id = 0, string? _name = "", int _count = 0, float _price = 0, float _total = 0, string? _description = null)
         {
             N = id;
-            Наименование = _name;
-            Цена = _price;
-            Кол = _count;
-            Стоимость = _total;
+            Title = _name;
+            Count = _count;
+            Price = _price;
+            Total = _total;
+            Description = _description;
         }
     }
 
