@@ -8,6 +8,8 @@ using GemBox.Spreadsheet;
 using System.Data;
 using System.Reflection;
 using System;
+using System.Globalization;
+using Org.BouncyCastle.Bcpg;
 
 namespace Metal_Code
 {
@@ -78,6 +80,13 @@ namespace Metal_Code
         {
             if (DetailControls.Count > 0) foreach (DetailControl d in DetailControls) d.Remove();
             DetailControls.Clear();
+        }
+
+        private void SetDate(object sender, SelectionChangedEventArgs e)
+        {
+            DateTime? date = datePicker.SelectedDate;
+            TimeSpan duration = date.Value - DateTime.Now;
+            MessageBox.Show(duration.TotalDays.ToString());
         }
 
         private void SetCount(object sender, TextChangedEventArgs e)
@@ -265,5 +274,6 @@ namespace Metal_Code
                 return t;
             }
         }
+
     }
 }
