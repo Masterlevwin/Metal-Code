@@ -7,6 +7,7 @@ using System.IO;
 using System.Runtime.Serialization.Json;
 using Microsoft.Win32;
 using System.Windows;
+using Metal_Code;
 
 namespace Metal_Code
 {
@@ -24,7 +25,7 @@ namespace Metal_Code
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
-
+        public Product product;
         Detail selectedDetail;
         public Detail SelectedDetail
         {
@@ -36,7 +37,7 @@ namespace Metal_Code
             }
         }
 
-        public ObservableCollection<Detail> Details { get; set; } = new ObservableCollection<Detail>();
+        //public ObservableCollection<Detail> Details { get; set; } = new ObservableCollection<Detail>();
 
         // команда сохранения файла
         private RelayCommand saveCommand;
@@ -50,7 +51,7 @@ namespace Metal_Code
                       {
                           if (dialogService.SaveFileDialog() == true)
                           {
-                              fileService.Save(dialogService.FilePath, MainWindow.M.SaveDetails());
+                              fileService.Save(dialogService.FilePath, MainWindow.M.SaveProduct());
                               dialogService.ShowMessage("Файл сохранен");
                           }
                       }
@@ -74,11 +75,9 @@ namespace Metal_Code
                       {
                           if (dialogService.OpenFileDialog() == true)
                           {
-                              var details = fileService.Open(dialogService.FilePath);
-                              Details.Clear();
-                              foreach (Detail d in details) Details.Add(d);
+                              product = fileService.Open(dialogService.FilePath);
                               dialogService.ShowMessage("Файл открыт");
-                              MainWindow.M.LoadDetails();
+                              MainWindow.M.LoadProduct();
                           }
                       }
                       catch (Exception ex)
@@ -99,7 +98,7 @@ namespace Metal_Code
                   (addCommand = new RelayCommand(obj =>
                   {
                       Detail detail = new();
-                      Details.Insert(0, detail);
+                      product.Details.Insert(0, detail);
                       SelectedDetail = detail;
                   }));
             }
@@ -113,9 +112,9 @@ namespace Metal_Code
             {
                 return removeCommand ??= new RelayCommand(obj =>
                   {
-                      if (obj is Detail detail) Details.Remove(detail);
+                      if (obj is Detail detail) product.Details.Remove(detail);
                   },
-                 (obj) => Details.Count > 0);
+                 (obj) => product.Details.Count > 0);
             }
         }
 
@@ -130,7 +129,7 @@ namespace Metal_Code
                       if (obj is Detail detail)
                       {
                           Detail detailCopy = new(detail.N, detail.Title, detail.Count,detail.Price, detail.Total);
-                          Details.Insert(0, detailCopy);
+                          product.Details.Insert(0, detailCopy);
                       }
                   });
             }
@@ -209,30 +208,30 @@ namespace Metal_Code
 
     public interface IFileService
     {
-        ObservableCollection<Detail> Open(string filename);
-        void Save(string filename, ObservableCollection<Detail> details);
+        Product Open(string filename);
+        void Save(string filename, Product product);
     }
 
     public class JsonFileService : IFileService
     {
-        public ObservableCollection<Detail> Open(string filename)
+        public Product Open(string filename)
         {
-            ObservableCollection<Detail>? details = new();
-            DataContractJsonSerializer jsonFormatter = new(typeof(ObservableCollection<Detail>));
+            Product product = new();
+            DataContractJsonSerializer jsonFormatter = new(typeof(Product));
 
             using (FileStream fs = new(filename, FileMode.OpenOrCreate))
             {
-                details = jsonFormatter.ReadObject(fs) as ObservableCollection<Detail>;
+                product = jsonFormatter.ReadObject(fs) as Product;
             }
 
-            return details;
+            return product;
         }
 
-        public void Save(string filename, ObservableCollection<Detail> details)
+        public void Save(string filename, Product product)
         {
-            DataContractJsonSerializer jsonFormatter = new(typeof(ObservableCollection<Detail>));
+            DataContractJsonSerializer jsonFormatter = new(typeof(Product));
             using FileStream fs = new(filename, FileMode.Create);
-            jsonFormatter.WriteObject(fs, details);
+            jsonFormatter.WriteObject(fs, product);
 
             MainWindow.M.ExportToExcel(filename);
         }

@@ -1,9 +1,23 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace Metal_Code
 {
+    [Serializable]
+    public class Product
+    {
+        public string? Name, Order, Company, Production, Manager;
+        public int Count, Delivery;
+        public bool HasDelivery;
+        public ObservableCollection<Detail> Details { get; set; } = new();
+        public Product()
+        {
+
+        }
+    }
+
     [Serializable]
     public class Detail
     {
