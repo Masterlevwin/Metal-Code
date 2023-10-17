@@ -8,9 +8,6 @@ using GemBox.Spreadsheet;
 using System.Data;
 using System.Reflection;
 using System;
-using System.Globalization;
-using Org.BouncyCastle.Bcpg;
-using static System.Windows.Forms.AxHost;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 namespace Metal_Code
@@ -21,15 +18,16 @@ namespace Metal_Code
     public partial class MainWindow : Window
     {
         public static MainWindow M = new();
-        public readonly string version = "1.0.0";
+        readonly string version = "1.0.0";
         public readonly TypeDetailContext dbTypeDetails = new();
         public readonly WorkContext dbWorks = new();
-        public readonly ApplicationViewModel DetailsModel = new(new DefaultDialogService(), new JsonFileService());
+        public readonly ProductViewModel DetailsModel = new(new DefaultDialogService(), new JsonFileService());
 
         public MainWindow()
         {
             InitializeComponent();
             M = this;
+            Version.Text = version;
             DataContext = DetailsModel;
             Loaded += LoadDataBases;
             AddDetail();
@@ -77,10 +75,27 @@ namespace Metal_Code
             detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
         }
 
-        private void ClearDetails()
+        private void ClearDetails(object sender, RoutedEventArgs e)     // метод очищения текущего расчета
         {
-            if (DetailControls.Count > 0) foreach (DetailControl d in DetailControls) d.Remove();
-            DetailControls.Clear();
+            ClearCalculate();   // очищаем расчет
+            ClearDetails();     // удаляем все детали
+            AddDetail();        // добавляем пустой блок детали
+        }
+        private void ClearDetails()         // метод удаления всех деталей и очищения текущего расчета
+        {
+            while (DetailControls.Count > 0) DetailControls[^1].Remove();
+        }
+        private void ClearCalculate()
+        {
+            ProductName.Text = "";
+            Order.Text = "";
+            Company.Text = "";
+            DateProduction.Text = "";
+            ManagerDrop.Text = "";
+            Comment.Text = "";
+            SetCount(0);
+            CheckDelivery.IsChecked = false;
+            Delivery.Text = "";
         }
 
         private void SetDate(object sender, SelectionChangedEventArgs e)
@@ -133,6 +148,7 @@ namespace Metal_Code
                 Company = Company.Text,
                 Production = DateProduction.Text,
                 Manager = ManagerDrop.Text,
+                Comment = Comment.Text,
                 Count = Count,
                 HasDelivery = (bool)CheckDelivery.IsChecked
             };
@@ -176,6 +192,7 @@ namespace Metal_Code
             Company.Text = DetailsModel.product.Company;
             DateProduction.Text = DetailsModel.product.Production;
             ManagerDrop.Text = DetailsModel.product.Manager;
+            Comment.Text = DetailsModel.product.Comment;
             SetCount(DetailsModel.product.Count);
             CheckDelivery.IsChecked = DetailsModel.product.HasDelivery;
             Delivery.Text = $"{DetailsModel.product.Delivery}";
@@ -184,7 +201,8 @@ namespace Metal_Code
         }
         public void LoadDetails(ObservableCollection<Detail> details)
         {
-            //ClearDetails();
+            ClearDetails();   // очищаем текущий расчет
+
             for (int i = 0; i < details.Count; i++)
             {
                 AddDetail();
@@ -206,7 +224,6 @@ namespace Metal_Code
                         DetailControls[i].AddTypeDetail();
                 }
             }
-            DetailsGrid.ItemsSource = details;
         }
 
         public void ExportToExcel(string path)
@@ -366,6 +383,5 @@ namespace Metal_Code
                 return t;
             }
         }
-
     }
 }

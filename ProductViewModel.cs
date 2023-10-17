@@ -1,22 +1,20 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Collections.ObjectModel;
 using System;
 using System.Windows.Input;
 using System.IO;
 using System.Runtime.Serialization.Json;
 using Microsoft.Win32;
 using System.Windows;
-using Metal_Code;
 
 namespace Metal_Code
 {
-    public class ApplicationViewModel : INotifyPropertyChanged
+    public class ProductViewModel : INotifyPropertyChanged
     {
         readonly IFileService fileService;
         readonly IDialogService dialogService;
 
-        public ApplicationViewModel(IDialogService _dialogService, IFileService _fileService)
+        public ProductViewModel(IDialogService _dialogService, IFileService _fileService)
         {
             dialogService = _dialogService;
             fileService = _fileService;
@@ -128,7 +126,7 @@ namespace Metal_Code
                   {
                       if (obj is Detail detail)
                       {
-                          Detail detailCopy = new(detail.N, detail.Title, detail.Count,detail.Price, detail.Total);
+                          Detail detailCopy = new(detail.N, detail.Title, detail.Count, detail.Price, detail.Total);
                           product.Details.Insert(0, detailCopy);
                       }
                   });

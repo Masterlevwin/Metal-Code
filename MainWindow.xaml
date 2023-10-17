@@ -11,9 +11,9 @@
             <ColumnDefinition Width="951*"/>
             <ColumnDefinition Width="329*"/>
         </Grid.ColumnDefinitions>
-        <Menu VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" FontSize="10" FontFamily="Forte" RenderTransformOrigin="0.499,-1.337" Grid.ColumnSpan="2">
-            <MenuItem Header="Файл" FontFamily="Forte">
-                <MenuItem Header="Создать"/>
+        <Menu VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" FontSize="10" RenderTransformOrigin="0.499,-1.337" Grid.ColumnSpan="2">
+            <MenuItem Header="Файл">
+                <MenuItem Header="Создать" Click="ClearDetails"/>
                 <MenuItem Header="Открыть" Command="{Binding OpenCommand}"/>
                 <MenuItem Header="Сохранить" Command="{Binding SaveCommand}"/>
                 <Separator/>
@@ -24,6 +24,7 @@
                 <MenuItem Header="База работ" Click="OpenSettings"/>
             </MenuItem>
             <MenuItem Header="О программе">
+                <TextBlock x:Name="Version"/>
             </MenuItem>
         </Menu>
         <Grid x:Name="WindowGrid" Grid.ColumnSpan="2">
@@ -44,26 +45,26 @@
             <GroupBox Header="Сметная ведомость" Grid.Column="1" Grid.Row="1" Margin="15,15,20,20" VerticalAlignment="Top" MaxWidth="500" HorizontalAlignment="Left" Height="21" Width="129"/>
             <GroupBox x:Name="OrderBox" Grid.Column="1" Margin="15,20,20,15" Header="Коммерческое предложение" MaxWidth="440" HorizontalAlignment="Left" MinWidth="440" Width="440">
                 <Grid x:Name="OrderGrid">
-                    <TextBox x:Name="Phone" HorizontalAlignment="Right" Text="тел:(812)603-45-33" Width="120" VerticalAlignment="Top" Margin="0,0,5,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1"/>
+                    <TextBox x:Name="Phone" HorizontalAlignment="Right" Text="тел:(812)603-45-33" Width="120" VerticalAlignment="Top" Margin="0,0,5,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите актуальный номер телефона"/>
                     <Image x:Name="Logo" HorizontalAlignment="Left" VerticalAlignment="Top" Height="30" Width="30" Source="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg"/>
-                    <TextBox x:Name="Order" HorizontalAlignment="Left" Margin="80,20,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40"/>
-                    <TextBox x:Name="Company" HorizontalAlignment="Left" Margin="150,20,0,0" VerticalAlignment="Top" MinWidth="150" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="150"/>
+                    <TextBox x:Name="Order" HorizontalAlignment="Left" Margin="80,20,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40" ToolTip="Введите номер предложения"/>
+                    <TextBox x:Name="Company" HorizontalAlignment="Left" Margin="150,20,0,0" VerticalAlignment="Top" MinWidth="150" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="150" ToolTip="Введите контрагента"/>
                     <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" Margin="15,225,0,0" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
                     <TextBlock HorizontalAlignment="Left" Margin="40,20,0,0" TextWrapping="Wrap" Text="КП №" VerticalAlignment="Top"/>
                     <TextBlock HorizontalAlignment="Left" Margin="125,20,0,0" TextWrapping="Wrap" Text="для" VerticalAlignment="Top"/>
                     <TextBlock HorizontalAlignment="Left" Margin="15,40,0,0" TextWrapping="Wrap" Text="Данный расчет действителен в течении 2-х банковских дней" VerticalAlignment="Top" FontSize="8"/>
                     <TextBlock HorizontalAlignment="Left" Margin="15,55,0,0" TextWrapping="Wrap" Text="Срок изготовления:" VerticalAlignment="Top"/>
-                    <TextBox x:Name="DateProduction" Margin="135,55,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50"/>
+                    <TextBox x:Name="DateProduction" Margin="135,55,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50" ToolTip="Введите срок изготовления"/>
                     <TextBlock HorizontalAlignment="Left" Margin="200,55,0,0" TextWrapping="Wrap" Text="раб/дней" VerticalAlignment="Top"/>
                     <TextBlock HorizontalAlignment="Left" Margin="15,75,0,0" TextWrapping="Wrap" Text="Порядок отгрузки:" VerticalAlignment="Top"/>
-                    <TextBox x:Name="Adress" HorizontalAlignment="Left" Margin="15,95,0,0" TextWrapping="Wrap" Text="Адрес доставки..." VerticalAlignment="Top" Width="220" Height="45" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}"/>
-                    <TextBox x:Name="Comment" HorizontalAlignment="Left" Margin="15,145,0,0" TextWrapping="Wrap" Text="Комментарии..." VerticalAlignment="Top" Width="220" Height="45"/>
+                    <TextBox x:Name="Adress" HorizontalAlignment="Left" Margin="15,95,0,0" TextWrapping="Wrap" Text="Адрес доставки..." VerticalAlignment="Top" Width="220" Height="45" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}" ToolTip="Введите адрес доставки"/>
+                    <TextBox x:Name="Comment" HorizontalAlignment="Left" Margin="15,145,0,0" TextWrapping="Wrap" Text="Комментарии..." VerticalAlignment="Top" Width="220" Height="45" ToolTip="Введите комментарий"/>
                     <TextBlock HorizontalAlignment="Left" Margin="15,195,0,0" TextWrapping="Wrap" Text="Ваш менеджер:" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="ManagerDrop" HorizontalAlignment="Left" Margin="115,195,0,0" VerticalAlignment="Top" Width="120"/>
-                    <DatePicker x:Name="datePicker" HorizontalAlignment="Left" Margin="305,51,0,0" VerticalAlignment="Top" FirstDayOfWeek="Monday" SelectedDateChanged="SetDate"/>
-                    <CheckBox x:Name="CheckDelivery" Content="Доставка" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="135,75,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                    <TextBox x:Name="Delivery" HorizontalAlignment="Left" Margin="240,75,0,0" Text="Цена" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}"/>
-                    <TextBlock HorizontalAlignment="Right" TextWrapping="Wrap" Text="ООО Провэлд" VerticalAlignment="Top" Margin="0,1,134,0"/>
+                    <ComboBox x:Name="ManagerDrop" HorizontalAlignment="Left" Margin="115,195,0,0" VerticalAlignment="Top" Width="120" ToolTip="Выберите менеджера"/>
+                    <DatePicker x:Name="datePicker" HorizontalAlignment="Left" Margin="305,51,0,0" VerticalAlignment="Top" FirstDayOfWeek="Monday" SelectedDateChanged="SetDate" ToolTip="Выберите дату изготовления"/>
+                    <CheckBox x:Name="CheckDelivery" Content="Доставка" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="135,75,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Если не выбрано, то порядок отгрузки: Самовывоз"/>
+                    <TextBox x:Name="Delivery" HorizontalAlignment="Left" Margin="240,75,0,0" Text="Цена" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}" ToolTip="Введите цену доставки"/>
+                    <TextBlock HorizontalAlignment="Right" TextWrapping="Wrap" Text="ООО Провэлд" VerticalAlignment="Top" Margin="0,0,135,0"/>
                 </Grid>
             </GroupBox>
         </Grid>

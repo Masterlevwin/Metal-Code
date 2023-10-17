@@ -8,7 +8,7 @@ namespace Metal_Code
     [Serializable]
     public class Product
     {
-        public string? Name, Order, Company, Production, Manager;
+        public string? Name, Order, Company, Production, Manager, Comment;
         public int Count, Delivery;
         public bool HasDelivery;
         public ObservableCollection<Detail> Details { get; set; } = new();
