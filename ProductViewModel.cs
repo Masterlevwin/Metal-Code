@@ -35,8 +35,6 @@ namespace Metal_Code
             }
         }
 
-        //public ObservableCollection<Detail> Details { get; set; } = new ObservableCollection<Detail>();
-
         // команда сохранения файла
         private RelayCommand saveCommand;
         public RelayCommand SaveCommand

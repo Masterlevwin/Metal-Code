@@ -22,6 +22,7 @@
             <MenuItem x:Name="Settings" Header="Настройки">
                 <MenuItem Header="База типовых деталей" Click="OpenSettings"/>
                 <MenuItem Header="База работ" Click="OpenSettings"/>
+                <MenuItem Header="База менеджеров" Click="OpenSettings"/>
             </MenuItem>
             <MenuItem Header="О программе">
                 <TextBlock x:Name="Version"/>
@@ -60,7 +61,7 @@
                     <TextBox x:Name="Adress" HorizontalAlignment="Left" Margin="15,95,0,0" TextWrapping="Wrap" Text="Адрес доставки..." VerticalAlignment="Top" Width="220" Height="45" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}" ToolTip="Введите адрес доставки"/>
                     <TextBox x:Name="Comment" HorizontalAlignment="Left" Margin="15,145,0,0" TextWrapping="Wrap" Text="Комментарии..." VerticalAlignment="Top" Width="220" Height="45" ToolTip="Введите комментарий"/>
                     <TextBlock HorizontalAlignment="Left" Margin="15,195,0,0" TextWrapping="Wrap" Text="Ваш менеджер:" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="ManagerDrop" HorizontalAlignment="Left" Margin="115,195,0,0" VerticalAlignment="Top" Width="120" ToolTip="Выберите менеджера"/>
+                    <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" HorizontalAlignment="Left" Margin="115,195,0,0" VerticalAlignment="Top" Width="120" ToolTip="Выберите менеджера" SelectedIndex="0"/>
                     <DatePicker x:Name="datePicker" HorizontalAlignment="Left" Margin="305,51,0,0" VerticalAlignment="Top" FirstDayOfWeek="Monday" SelectedDateChanged="SetDate" ToolTip="Выберите дату изготовления"/>
                     <CheckBox x:Name="CheckDelivery" Content="Доставка" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="135,75,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Если не выбрано, то порядок отгрузки: Самовывоз"/>
                     <TextBox x:Name="Delivery" HorizontalAlignment="Left" Margin="240,75,0,0" Text="Цена" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}" ToolTip="Введите цену доставки"/>

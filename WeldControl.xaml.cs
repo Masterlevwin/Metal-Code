@@ -29,6 +29,7 @@ namespace Metal_Code
             work.type.Priced += PriceChanged;
         }
 
+
         public Dictionary<string, Dictionary<float, float>> weldDict = new()
         {
             ["ст3"] = new Dictionary<float, float>()
@@ -143,13 +144,13 @@ namespace Metal_Code
             if (sender is TextBox tBox) SetWeld(tBox.Text);
         }
         private void SetWeld(string _weld)
-        {
+        { 
             Weld = _weld;
             PriceChanged();
         }
 
         private void PriceChanged()
-        {
+        {  
             float _weld = 0;
             try
             {

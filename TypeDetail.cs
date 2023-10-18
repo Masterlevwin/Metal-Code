@@ -86,6 +86,17 @@ namespace Metal_Code
         }
     }
 
+    public class Manager
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public string? Contact {  get; set; }
+        public Manager()
+        {
+
+        }
+    }
+
     public class TypeDetailContext : DbContext
     {
         public DbSet<TypeDetail> TypeDetails { get; set; } = null!;
@@ -101,6 +112,15 @@ namespace Metal_Code
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlite("Data Source=works.db");
+        }
+    }
+
+    public class ManagerContext : DbContext
+    {
+        public DbSet<Manager> Managers { get; set; } = null!;
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseSqlite("Data Source=managers.db");
         }
     }
 }

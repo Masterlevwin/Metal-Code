@@ -8,7 +8,6 @@ using GemBox.Spreadsheet;
 using System.Data;
 using System.Reflection;
 using System;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 namespace Metal_Code
 {
@@ -21,6 +20,7 @@ namespace Metal_Code
         readonly string version = "1.0.0";
         public readonly TypeDetailContext dbTypeDetails = new();
         public readonly WorkContext dbWorks = new();
+        public readonly ManagerContext dbManagers = new();
         public readonly ProductViewModel DetailsModel = new(new DefaultDialogService(), new JsonFileService());
 
         public MainWindow()
@@ -40,6 +40,10 @@ namespace Metal_Code
 
             dbTypeDetails.Database.EnsureCreated();
             dbTypeDetails.TypeDetails.Load();
+
+            dbManagers.Database.EnsureCreated();
+            dbManagers.Managers.Load();
+            ManagerDrop.ItemsSource = dbManagers.Managers.Local.ToObservableCollection();
         }
 
         private void OpenSettings(object sender, RoutedEventArgs e)
@@ -54,6 +58,11 @@ namespace Metal_Code
             {
                 WorkWindow workWindow = new();
                 workWindow.Show();
+            }
+            else if (sender == Settings.Items[2])
+            {
+                ManagerWindow managerWindow = new();
+                managerWindow.Show();
             }
         }
 
@@ -169,14 +178,13 @@ namespace Metal_Code
                     for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
                     {
                         SaveWork saveWork = new(DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedIndex);
-                        typeDetail.Works.Add(saveWork);
-
                         if (DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedItem is Work work)
                         {
                             if (work.Name == "Покупка" && DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedItem is TypeDetail type)
                                 detail.Description += $"{work.Name} ({type.Name})\n";
                             else detail.Description += work.Name + "\n";
                         }
+                        typeDetail.Works.Add(saveWork);
                     }
                     detail.TypeDetails.Add(typeDetail);
                 }

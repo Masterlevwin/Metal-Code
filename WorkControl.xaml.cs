@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Reflection;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace Metal_Code
@@ -53,7 +54,7 @@ namespace Metal_Code
             type.UpdatePosition(direction);
         }
 
-        UserControl? workType = null;
+        public UserControl workType;
         private void CreateWork(object sender, SelectionChangedEventArgs e)
         {
             CreateWork();
