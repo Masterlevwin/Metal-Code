@@ -138,14 +138,37 @@ namespace Metal_Code
             Price = 0;
             foreach (DetailControl d in DetailControls) Price += d.Price;
             Total.Text = $"{Price * Count}";
-
-            DetailsGrid.ItemsSource = SaveDetails();
+            DetailsGrid.ItemsSource = SourceDetails();
             DetailsGrid.Columns[0].Header = "N";
             DetailsGrid.Columns[1].Header = "Наименование";
             DetailsGrid.Columns[2].Header = "Кол-во, шт";
             DetailsGrid.Columns[3].Header = "Цена, руб";
             DetailsGrid.Columns[4].Header = "Стоимость";
             DetailsGrid.Columns[5].Header = "Работы";
+        }
+
+        private ObservableCollection<Detail> SourceDetails()
+        {
+            ObservableCollection<Detail> details = new();
+            for (int i = 0; i < DetailControls.Count; i++)
+            {
+                Detail _detail = new(i + 1, DetailControls[i].NameDetail, DetailControls[i].Count,
+                    DetailControls[i].Price / DetailControls[i].Count, DetailControls[i].Price);
+                for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
+                {
+                    for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
+                    {
+                        if (DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedItem is Work work)
+                        {
+                            if (work.Name == "Покупка" && DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedItem is TypeDetail type)
+                                _detail.Description += $"{work.Name} ({type.Name})\n";
+                            else _detail.Description += work.Name + "\n";
+                        }
+                    }
+                }
+                details.Add(_detail);
+            }
+            return details;
         }
 
         public Product SaveProduct()
@@ -163,49 +186,57 @@ namespace Metal_Code
             };
             if (int.TryParse(Delivery.Text, out int d)) prod.Delivery = d;
 
-            prod.Details = SaveDetails();
-            return prod;
+            DetailsModel.Product = prod;
+            DetailsModel.Product.Details = SaveDetails();
+            return DetailsModel.Product;
         }
         public ObservableCollection<Detail> SaveDetails()
         {
             ObservableCollection<Detail> details = new();
             for (int i = 0; i < DetailControls.Count; i++)
             {
-                Detail detail = new(i + 1, DetailControls[i].NameDetail, DetailControls[i].Count, DetailControls[i].Price / DetailControls[i].Count, DetailControls[i].Price);
+                Detail _detail = new(i + 1, DetailControls[i].NameDetail, DetailControls[i].Count,
+                    DetailControls[i].Price / DetailControls[i].Count, DetailControls[i].Price);
                 for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
                 {
-                    SaveTypeDetail typeDetail = new(DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedIndex, DetailControls[i].TypeDetailControls[j].Count);
+                    SaveTypeDetail _typeDetail = new(DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedIndex,
+                        DetailControls[i].TypeDetailControls[j].Count);
                     for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
                     {
-                        SaveWork saveWork = new(DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedIndex);
+                        SaveWork _saveWork = new(DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedIndex);
                         if (DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedItem is Work work)
                         {
                             if (work.Name == "Покупка" && DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedItem is TypeDetail type)
-                                detail.Description += $"{work.Name} ({type.Name})\n";
-                            else detail.Description += work.Name + "\n";
+                                _detail.Description += $"{work.Name} ({type.Name})\n";
+                            else _detail.Description += work.Name + "\n";
                         }
-                        typeDetail.Works.Add(saveWork);
+
+                        DetailControls[i].TypeDetailControls[j].WorkControls[k].PropertiesChanged?.Invoke(
+                            DetailControls[i].TypeDetailControls[j].WorkControls[k], true);
+                        _saveWork.PropsList = DetailControls[i].TypeDetailControls[j].WorkControls[k].propsList;
+
+                        _typeDetail.Works.Add(_saveWork);
                     }
-                    detail.TypeDetails.Add(typeDetail);
+                    _detail.TypeDetails.Add(_typeDetail);
                 }
-                details.Add(detail);
+                details.Add(_detail);
             }
             return details;
         }
 
         public void LoadProduct()
         {
-            ProductName.Text = DetailsModel.product.Name;
-            Order.Text = DetailsModel.product.Order;
-            Company.Text = DetailsModel.product.Company;
-            DateProduction.Text = DetailsModel.product.Production;
-            ManagerDrop.Text = DetailsModel.product.Manager;
-            Comment.Text = DetailsModel.product.Comment;
-            SetCount(DetailsModel.product.Count);
-            CheckDelivery.IsChecked = DetailsModel.product.HasDelivery;
-            Delivery.Text = $"{DetailsModel.product.Delivery}";
+            ProductName.Text = DetailsModel.Product.Name;
+            Order.Text = DetailsModel.Product.Order;
+            Company.Text = DetailsModel.Product.Company;
+            DateProduction.Text = DetailsModel.Product.Production;
+            ManagerDrop.Text = DetailsModel.Product.Manager;
+            Comment.Text = DetailsModel.Product.Comment;
+            SetCount(DetailsModel.Product.Count);
+            CheckDelivery.IsChecked = DetailsModel.Product.HasDelivery;
+            Delivery.Text = $"{DetailsModel.Product.Delivery}";
 
-            LoadDetails(DetailsModel.product.Details);
+            LoadDetails(DetailsModel.Product.Details);
         }
         public void LoadDetails(ObservableCollection<Detail> details)
         {
@@ -214,22 +245,27 @@ namespace Metal_Code
             for (int i = 0; i < details.Count; i++)
             {
                 AddDetail();
-                DetailControls[i].NameDetail = details[i].Title;
-                DetailControls[i].Count = details[i].Count;
+                DetailControl _det = DetailControls[i];
+                _det.NameDetail = details[i].Title;
+                _det.Count = details[i].Count;
 
                 for (int j = 0; j < details[i].TypeDetails.Count; j++)
                 {
-                    DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedIndex = details[i].TypeDetails[j].Index;
-                    DetailControls[i].TypeDetailControls[j].Count = details[i].TypeDetails[j].Count;
+                    TypeDetailControl _type = DetailControls[i].TypeDetailControls[j];
+                    _type.TypeDetailDrop.SelectedIndex = details[i].TypeDetails[j].Index;
+                    _type.Count = details[i].TypeDetails[j].Count;
 
                     for (int k = 0; k < details[i].TypeDetails[j].Works.Count; k++)
                     {
-                        DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedIndex = details[i].TypeDetails[j].Works[k].Index;
-                        if (DetailControls[i].TypeDetailControls[j].WorkControls.Count < details[i].TypeDetails[j].Works.Count)
-                            DetailControls[i].TypeDetailControls[j].AddWork();
+                        WorkControl _work = DetailControls[i].TypeDetailControls[j].WorkControls[k];
+                        _work.WorkDrop.SelectedIndex = details[i].TypeDetails[j].Works[k].Index;
+
+                        _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
+                        _work.PropertiesChanged?.Invoke(_work, false);
+
+                        if (_type.WorkControls.Count < details[i].TypeDetails[j].Works.Count) _type.AddWork(); 
                     }
-                    if (DetailControls[i].TypeDetailControls.Count < details[i].TypeDetails.Count)
-                        DetailControls[i].AddTypeDetail();
+                    if (_det.TypeDetailControls.Count < details[i].TypeDetails.Count) _det.AddTypeDetail();
                 }
             }
         }
@@ -272,7 +308,7 @@ namespace Metal_Code
             style.Borders.SetBorders(MultipleBorders.Outside, SpreadsheetColor.FromName(ColorName.Black), LineStyle.Thin);
             worksheet.Cells.GetSubrange("A4:F5").Style = style;
 
-            DataTable dt = ToDataTable(SaveDetails());
+            DataTable dt = ToDataTable(DetailsModel.Product.Details);
             worksheet.InsertDataTable(dt, new InsertDataTableOptions()
                 {
                     ColumnHeaders = true,
@@ -297,6 +333,8 @@ namespace Metal_Code
                 worksheet.Cells[num + 9, 2].Value = "Самовывоз со склада Исполнителя по адресу: Ленинградская область, Всеволожский район, Колтушское сельское поселение, деревня Мяглово, ул. Дорожная, уч. 4Б.";
                 worksheet.Rows[num + 9].AutoFit(true);
             }
+
+            worksheet.Cells.GetSubrangeAbsolute(3, 3, num + 5, 4).Style.NumberFormat = $"00.00";
 
             CellRange cells = worksheet.Cells.GetSubrangeAbsolute(3, 0, num + 5, 5);
             cells.AutoFitColumnWidth();
@@ -341,7 +379,7 @@ namespace Metal_Code
             workbook.Save(path.Remove(path.LastIndexOf(".")) + ".xlsx");
         }
 
-        public DataTable ToDataTable<T>(ObservableCollection<T> items)
+        public static DataTable ToDataTable<T>(ObservableCollection<T> items)
         {
             var tb = new DataTable(typeof(T).Name);
 

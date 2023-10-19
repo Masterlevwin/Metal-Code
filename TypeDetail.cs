@@ -58,6 +58,8 @@ namespace Metal_Code
     public class SaveWork
     {
         public int Index { get; set; }
+
+        public List<string>? PropsList = new();
         public SaveWork(int _index = 0)
         {
             Index = _index;

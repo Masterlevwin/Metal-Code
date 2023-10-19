@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+﻿using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -9,6 +9,10 @@ namespace Metal_Code
     /// </summary>
     public partial class WorkControl : UserControl
     {
+        public List<string> propsList = new();
+        public delegate void PropsChanged(WorkControl w, bool b);
+        public PropsChanged PropertiesChanged;
+
         //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WorkControl}}}"
         public static readonly DependencyProperty MyPropertyProperty =
             DependencyProperty.Register("Price", typeof(float), typeof(WorkControl));

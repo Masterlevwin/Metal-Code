@@ -23,7 +23,7 @@ namespace Metal_Code
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
-        public Product product;
+        public Product Product;
         Detail selectedDetail;
         public Detail SelectedDetail
         {
@@ -71,7 +71,7 @@ namespace Metal_Code
                       {
                           if (dialogService.OpenFileDialog() == true)
                           {
-                              product = fileService.Open(dialogService.FilePath);
+                              Product = fileService.Open(dialogService.FilePath);
                               dialogService.ShowMessage("Файл открыт");
                               MainWindow.M.LoadProduct();
                           }
@@ -94,7 +94,7 @@ namespace Metal_Code
                   (addCommand = new RelayCommand(obj =>
                   {
                       Detail detail = new();
-                      product.Details.Insert(0, detail);
+                      Product.Details.Insert(0, detail);
                       SelectedDetail = detail;
                   }));
             }
@@ -108,9 +108,9 @@ namespace Metal_Code
             {
                 return removeCommand ??= new RelayCommand(obj =>
                   {
-                      if (obj is Detail detail) product.Details.Remove(detail);
+                      if (obj is Detail detail) Product.Details.Remove(detail);
                   },
-                 (obj) => product.Details.Count > 0);
+                 (obj) => Product.Details.Count > 0);
             }
         }
 
@@ -125,7 +125,7 @@ namespace Metal_Code
                       if (obj is Detail detail)
                       {
                           Detail detailCopy = new(detail.N, detail.Title, detail.Count, detail.Price, detail.Total);
-                          product.Details.Insert(0, detailCopy);
+                          Product.Details.Insert(0, detailCopy);
                       }
                   });
             }

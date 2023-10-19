@@ -11,15 +11,31 @@ namespace Metal_Code
     public partial class WeldControl : UserControl
     {
         //Text="{Binding Price, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WeldControl}}}"
-        public static readonly DependencyProperty MyPropertyProperty =
+        public static readonly DependencyProperty MyPropertyPrice =
             DependencyProperty.Register("Price", typeof(float), typeof(WeldControl));
         public float Price
         {
-            get { return (float)GetValue(MyPropertyProperty); }
-            set { SetValue(MyPropertyProperty, value); }
+            get { return (float)GetValue(MyPropertyPrice); }
+            set { SetValue(MyPropertyPrice, value); }
         }
 
-        public string? Weld{ get; set; }
+        //Text="{Binding Ratio, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WeldControl}}}"
+        public static readonly DependencyProperty MyPropertyRatio =
+            DependencyProperty.Register("Ratio", typeof(string), typeof(WeldControl));
+        public string Ratio
+        {
+            get { return (string)GetValue(MyPropertyRatio); }
+            set { SetValue(MyPropertyRatio, value); }
+        }
+
+        //Text="{Binding Weld, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WeldControl}}}"
+        public static readonly DependencyProperty MyPropertyWeld =
+            DependencyProperty.Register("Weld", typeof(string), typeof(WeldControl));
+        public string Weld
+        {
+            get { return (string)GetValue(MyPropertyWeld); }
+            set { SetValue(MyPropertyWeld, value); }
+        }
 
         private readonly WorkControl work;
         public WeldControl(WorkControl _work)
@@ -27,8 +43,8 @@ namespace Metal_Code
             InitializeComponent();
             work = _work;
             work.type.Priced += PriceChanged;
+            work.PropertiesChanged += SaveOrLoadProperties;
         }
-
 
         public Dictionary<string, Dictionary<float, float>> weldDict = new()
         {
@@ -139,6 +155,16 @@ namespace Metal_Code
             }
         };
 
+        private void SetRatio(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) SetRatio(tBox.Text);
+        }
+        private void SetRatio(string? _ratio)
+        {
+            Ratio = _ratio;
+            PriceChanged();
+        }
+
         private void SetWeld(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox) SetWeld(tBox.Text);
@@ -172,9 +198,27 @@ namespace Metal_Code
                 _ => (float)1,
             };
 
-            Price = work.Result = weldDict["aisi430"][sideRatio] * _weld * work.type.Count * work.type.det.Count + work.Price;
+            float _ratio = 1;
+            if (float.TryParse(Ratio, out float r)) _ratio = r;
+
+            Price = work.Result = weldDict["aisi430"][sideRatio] * _weld * _ratio * work.type.Count * work.type.det.Count + work.Price;
 
             work.type.det.PriceResult();
+        }
+
+        public void SaveOrLoadProperties(WorkControl w, bool isSaved)
+        {
+            if (isSaved)
+            {
+                w.propsList.Clear();
+                w.propsList.Add(Weld);
+                w.propsList.Add(Ratio);
+            }
+            else
+            {
+                SetWeld(w.propsList[0]);
+                SetRatio(w.propsList[1]);
+            }
         }
     }
 }
