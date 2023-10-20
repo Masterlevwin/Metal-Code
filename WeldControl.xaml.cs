@@ -42,7 +42,7 @@ namespace Metal_Code
         {
             InitializeComponent();
             work = _work;
-            work.type.Priced += PriceChanged;
+            work.type.Counted += PriceChanged;
             work.PropertiesChanged += SaveOrLoadProperties;
         }
 

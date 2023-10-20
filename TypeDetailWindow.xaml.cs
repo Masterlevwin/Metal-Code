@@ -49,7 +49,8 @@ namespace Metal_Code
             {
                 Id = type.Id,
                 Name = type.Name,
-                Price = type.Price
+                Price = type.Price,
+                Sort = type.Sort
             });
 
             if (TypeDetailSettings.ShowDialog() == true)
@@ -60,6 +61,7 @@ namespace Metal_Code
                 {
                     type.Name = TypeDetailSettings.TypeDetail.Name;
                     type.Price = TypeDetailSettings.TypeDetail.Price;
+                    type.Sort = TypeDetailSettings.TypeDetail.Sort;
                     db.SaveChanges();
                     typesList.Items.Refresh();
                 }

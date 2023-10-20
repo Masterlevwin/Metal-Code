@@ -75,11 +75,11 @@ namespace Metal_Code
         }
 
         public delegate void PriceChanged();
-        public event PriceChanged? Priced;
+        public event PriceChanged? Priced, Counted;
         private void SetCount(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count)) Count = count;
-            Priced?.Invoke();
+            Counted?.Invoke();
         }
         public void CountChanged()      //запуск события из DetailControl 
         {

@@ -429,5 +429,12 @@ namespace Metal_Code
                 return t;
             }
         }
+
+        public static float Parser(string data)        //обёртка для парсинга float-значений
+        {
+            if (float.TryParse(data, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands,
+                System.Globalization.CultureInfo.InvariantCulture, out float f)) return f;
+            else return 0;
+        }
     }
 }
