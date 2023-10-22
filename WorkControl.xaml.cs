@@ -14,12 +14,12 @@ namespace Metal_Code
         public PropsChanged PropertiesChanged;
 
         //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WorkControl}}}"
-        public static readonly DependencyProperty MyPropertyProperty =
+        public static readonly DependencyProperty MyPropertyPrice =
             DependencyProperty.Register("Price", typeof(float), typeof(WorkControl));
         public float Price
         {
-            get { return (float)GetValue(MyPropertyProperty); }
-            set { SetValue(MyPropertyProperty, value); }
+            get { return (float)GetValue(MyPropertyPrice); }
+            set { SetValue(MyPropertyPrice, value); }
         }
 
         public float Result { get; set; }

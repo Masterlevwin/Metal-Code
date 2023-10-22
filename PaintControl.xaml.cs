@@ -8,7 +8,7 @@ namespace Metal_Code
     /// </summary>
     public partial class PaintControl : UserControl
     {
-        //Text="{Binding Total, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PaintControl}}}"
+        //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PaintControl}}}"
         public static readonly DependencyProperty MyPropertyPrice =
             DependencyProperty.Register("Price", typeof(float), typeof(PaintControl));
         public float Price

@@ -8,13 +8,15 @@ using GemBox.Spreadsheet;
 using System.Data;
 using System.Reflection;
 using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace Metal_Code
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         public static MainWindow M = new();
         readonly string version = "1.0.0";
@@ -66,8 +68,43 @@ namespace Metal_Code
             }
         }
 
-        public int Count { get; set; }
-        public float Price { get; set; }
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        private int count;
+        public int Count
+        {
+            get { return count; }
+            set { 
+                count = value;
+                OnPropertyChanged("Count");
+            }
+        }
+        private void SetCount(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int c)) SetCount(c);
+        }
+        private void SetCount(int _count)
+        {
+            Count = _count;
+            if (Count > 0) TotalResult();
+        }
+
+        private float Result { get; set; }
+        public void TotalResult()
+        {
+            Result = 0;
+            foreach (DetailControl d in DetailControls) Result += d.Price;
+            Total.Text = $"{Result * Count}";
+
+            DetailsGrid.ItemsSource = SourceDetails();
+            DetailsGrid.Columns[0].Header = "N";
+            DetailsGrid.Columns[1].Header = "Наименование";
+            DetailsGrid.Columns[2].Header = "Кол-во, шт";
+            DetailsGrid.Columns[3].Header = "Цена, руб";
+            DetailsGrid.Columns[4].Header = "Стоимость";
+            DetailsGrid.Columns[5].Header = "Работы";
+        }
 
         public List<DetailControl> DetailControls = new();
         public void AddDetail()
@@ -96,15 +133,9 @@ namespace Metal_Code
         }
         private void ClearCalculate()
         {
-            ProductName.Text = "";
-            Order.Text = "";
-            Company.Text = "";
-            DateProduction.Text = "";
-            ManagerDrop.Text = "";
-            Comment.Text = "";
             SetCount(0);
             CheckDelivery.IsChecked = false;
-            Delivery.Text = "";
+            ProductName.Text = Order.Text = Company.Text = DateProduction.Text = ManagerDrop.Text = Comment.Text = Delivery.Text = "";
         }
 
         private void SetDate(object sender, SelectionChangedEventArgs e)
@@ -121,30 +152,6 @@ namespace Metal_Code
 
                 return calcBusinessDays;
             }
-        }
-
-        private void SetCount(object sender, TextChangedEventArgs e)
-        {
-            if (int.TryParse(ProductCount.Text, out int c)) SetCount(c);
-        }
-        private void SetCount(int _count)
-        {
-            Count = _count;
-            ProductCount.Text = $"{Count}";
-            if (Count > 0) TotalResult();
-        }
-        public void TotalResult()
-        {
-            Price = 0;
-            foreach (DetailControl d in DetailControls) Price += d.Price;
-            Total.Text = $"{Price * Count}";
-            DetailsGrid.ItemsSource = SourceDetails();
-            DetailsGrid.Columns[0].Header = "N";
-            DetailsGrid.Columns[1].Header = "Наименование";
-            DetailsGrid.Columns[2].Header = "Кол-во, шт";
-            DetailsGrid.Columns[3].Header = "Цена, руб";
-            DetailsGrid.Columns[4].Header = "Стоимость";
-            DetailsGrid.Columns[5].Header = "Работы";
         }
 
         private ObservableCollection<Detail> SourceDetails()
@@ -225,16 +232,17 @@ namespace Metal_Code
         }
 
         public void LoadProduct()
-        {
+        {            
+            SetCount(DetailsModel.Product.Count);
+            CheckDelivery.IsChecked = DetailsModel.Product.HasDelivery;
+            
+            Delivery.Text = $"{DetailsModel.Product.Delivery}";
             ProductName.Text = DetailsModel.Product.Name;
             Order.Text = DetailsModel.Product.Order;
             Company.Text = DetailsModel.Product.Company;
             DateProduction.Text = DetailsModel.Product.Production;
             ManagerDrop.Text = DetailsModel.Product.Manager;
             Comment.Text = DetailsModel.Product.Comment;
-            SetCount(DetailsModel.Product.Count);
-            CheckDelivery.IsChecked = DetailsModel.Product.HasDelivery;
-            Delivery.Text = $"{DetailsModel.Product.Delivery}";
 
             LoadDetails(DetailsModel.Product.Details);
         }
@@ -350,7 +358,7 @@ namespace Metal_Code
             worksheet.Cells[num + 5, 4].Formula = "=SUM(totalOrder)";
             worksheet.Cells[num + 5, 4].Style.Font.Weight = ExcelFont.BoldWeight;
             worksheet.Cells[num + 5, 4].Style.HorizontalAlignment = HorizontalAlignmentStyle.Center;
-            worksheet.Cells[num + 5, 5].Value = $"{Price * Count} за {Count} изделий";
+            worksheet.Cells[num + 5, 5].Value = $"{Result * Count} за {Count} изделий";
 
             worksheet.Cells[num + 7, 0].Value = "Срок изготовления:";
             worksheet.Cells[num + 7, 0].Style.VerticalAlignment = VerticalAlignmentStyle.Top;

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -44,20 +45,9 @@ namespace Metal_Code
         {
             CreateSort();
         }
-        public void CreateSort()
+        private void CreateSort()
         {
-            if (work.type.TypeDetailDrop.SelectedItem is TypeDetail type)
-            {
-                Dict.Clear();
-
-                string[] strings = type.Sort.Split(',');
-                for (int i = 0; i < strings.Length; i += 4) Dict[strings[i]] = (strings[i + 1], strings[i + 2], strings[i + 3]);
-
-                SortDrop.Items.Clear();
-                foreach (string s in Dict.Keys) SortDrop.Items.Add(s);
-            }
-            SortDrop.SelectedIndex = 0;
-            ChangeSort();
+            CreateSort(SortDrop.SelectedIndex);
         }
         public void CreateSort(int ndx)
         {
@@ -81,7 +71,7 @@ namespace Metal_Code
         }
         public void ChangeSort()
         {
-            if (Dict.Count > 0 && SortDrop.Items.Count > 0)
+            if (Dict.Count > 0 && SortDrop.SelectedIndex != -1)
             {
                 A_prop.Text = Dict[$"{SortDrop.SelectedItem}"].Item1;
                 B_prop.Text = Dict[$"{SortDrop.SelectedItem}"].Item2;
@@ -101,6 +91,7 @@ namespace Metal_Code
                 _ => 1,
             };
 
+            Mass = (float)Math.Round(Mass, 2);
             PriceChanged();
         }
 
@@ -117,13 +108,10 @@ namespace Metal_Code
             {
                 w.propsList.Clear();
                 w.propsList.Add($"{SortDrop.SelectedIndex}");
-                MessageBox.Show(w.propsList[0]);
             }
             else
             {
-                if (int.TryParse(w.propsList[0], out int ndx)) CreateSort(ndx);
-                MessageBox.Show($"{SortDrop.SelectedIndex}");
-                //ChangeSort();
+                CreateSort((int)MainWindow.Parser(w.propsList[0]));
             }
         }
     }
