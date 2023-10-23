@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="500" VerticalAlignment="Top" Background="#FFBEF7FC">
+             d:DesignHeight="20" d:DesignWidth="500" VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}">
     <UserControl.ContextMenu>
         <ContextMenu>
             <MenuItem Header="Добавить" Click="AddTypeDetail"></MenuItem>
@@ -15,11 +15,12 @@
     <Grid x:Name="TypeDetailGrid">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto" MinWidth="60"/>
-            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="140"/>
+            <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <ComboBox x:Name="TypeDetailDrop" DisplayMemberPath="Name" MinHeight="20" Margin="20,0,0,0" MinWidth="150" Height="20" SelectedIndex="0" VerticalContentAlignment="Center" ToolTip="Выберите заготовку" VerticalAlignment="Top" MaxWidth="150" SelectionChanged="PriceView"/>
-        <TextBox Text="{Binding Count, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}" Grid.Column="1" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="20,0,0,0" MinWidth="40" ToolTip="Введите количество" TextChanged="SetCount" VerticalAlignment="Top" MaxLength="4" MaxLines="1" Height="20"/>
+        <ComboBox x:Name="TypeDetailDrop" DisplayMemberPath="Name" MinHeight="20" Margin="20,0,0,0" MinWidth="150" Height="20" SelectedIndex="0" VerticalContentAlignment="Center" ToolTip="Выберите заготовку" VerticalAlignment="Top" MaxWidth="150" SelectionChanged="PriceView" HorizontalAlignment="Left"/>
+        <TextBox Text="{Binding Count, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}" Grid.Column="1" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="20,0,0,0" MinWidth="40" ToolTip="Введите количество" TextChanged="SetCount" VerticalAlignment="Top" MaxLength="4" MaxLines="1" Height="20" Width="40" HorizontalAlignment="Left"/>
+        <ComboBox x:Name="MetalDrop" Grid.Column="1" HorizontalAlignment="Left" Margin="70,0,0,0" VerticalAlignment="Top" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" Height="20" Width="70" SelectionChanged="SetMetal" SelectedIndex="0"/>
 
     </Grid>
 </UserControl>

@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="600" VerticalAlignment="Top" Background="#FFE0FAE7">
+             d:DesignHeight="20" d:DesignWidth="600" VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}">
     <UserControl.ContextMenu>
         <ContextMenu>
             <MenuItem Header="Добавить" Click="AddWork"></MenuItem>
@@ -18,7 +18,7 @@
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <ComboBox x:Name="WorkDrop" DisplayMemberPath="Name" MinWidth="120" MinHeight="20" Height="20" Margin="20,0,0,0" SelectedIndex="0" VerticalContentAlignment="Center" SelectionChanged="CreateWork" ToolTip="Выберите работу" VerticalAlignment="Center"/>
+        <ComboBox x:Name="WorkDrop" DisplayMemberPath="Name" MinWidth="120" MinHeight="20" Height="20" Margin="20,0,0,0" SelectedIndex="0" VerticalContentAlignment="Center" SelectionChanged="CreateWork" ToolTip="Выберите работу" VerticalAlignment="Center" HorizontalAlignment="Left"/>
         <TextBlock x:Name="WorkPrice" Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WorkControl}}}" Grid.Column="1" MinWidth="30" MinHeight="20" Height="20" Width="30" Margin="20,0,0,0" ToolTip="Цена" VerticalAlignment="Center" HorizontalAlignment="Left"/>
 
     </Grid>

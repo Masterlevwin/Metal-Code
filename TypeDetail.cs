@@ -45,12 +45,14 @@ namespace Metal_Code
     {
         public int Index { get; set; }
         public int Count { get; set; }
+        public int Metal { get; set; }
 
         public List<SaveWork> Works = new();
-        public SaveTypeDetail(int _index = 0, int _count = 0)
+        public SaveTypeDetail(int _index = 0, int _count = 0, int _metal = 0)
         {
             Index = _index;
             Count = _count;
+            Metal = _metal;
         }
     }
     

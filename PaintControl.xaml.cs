@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace Metal_Code
@@ -26,10 +27,10 @@ namespace Metal_Code
             set { SetValue(MyPropertyRatio, value); }
         }
 
-        //Text="{Binding Square, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PaintControl}}}"
+        //Text="{Binding Ral, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PaintControl}}}"
         public static readonly DependencyProperty MyPropertySquare =
-            DependencyProperty.Register("Square", typeof(string), typeof(PaintControl));
-        public string Square
+            DependencyProperty.Register("Ral", typeof(string), typeof(PaintControl));
+        public string Ral
         {
             get { return (string)GetValue(MyPropertySquare); }
             set { SetValue(MyPropertySquare, value); }
@@ -44,14 +45,13 @@ namespace Metal_Code
             work.PropertiesChanged += SaveOrLoadProperties;
         }
 
-        private void SetSquare(object sender, TextChangedEventArgs e)
+        private void SetRal(object sender, TextChangedEventArgs e)
         {
-            if (sender is TextBox tBox) SetSquare(tBox.Text);
+            if (sender is TextBox tBox) SetRal(tBox.Text);
         }
-        public void SetSquare(string _square)
+        public void SetRal(string _ral)
         {
-            Square = _square;
-            PriceChanged();
+            Ral = _ral;
         }
 
         private void SetRatio(object sender, TextChangedEventArgs e)
@@ -66,13 +66,18 @@ namespace Metal_Code
 
         private void PriceChanged()
         {
-            float _paint = 0;
-            if (float.TryParse(Square, out float p)) _paint = p;
-
             float _ratio = 1;
             if (float.TryParse(Ratio, out float r)) _ratio = r;
-
-            Price = work.Result = _paint * _ratio * work.type.Count * work.type.det.Count + work.Price;
+            
+            for (int i = 0; i < work.type.WorkControls.Count; i++)
+            {
+                WorkControl _work = work.type.WorkControls[i];
+                if (_work.workType is PropertyControl prop)
+                {
+                    Price = work.Result = (float)Math.Round(_ratio * work.type.Count * work.type.det.Count * prop.Mass * 812
+                        / MainWindow.Parser(prop.S_prop.Text) / work.type.MetalDict[$"{work.type.MetalDrop.SelectedItem}"], 2) + work.Price;
+                }
+            }
 
             work.type.det.PriceResult();
         }
@@ -82,12 +87,12 @@ namespace Metal_Code
             if (isSaved)
             {
                 w.propsList.Clear();
-                w.propsList.Add(Square);
+                w.propsList.Add(Ral);
                 w.propsList.Add(Ratio);
             }
             else
             {
-                SetSquare(w.propsList[0]);
+                SetRal(w.propsList[0]);
                 SetRatio(w.propsList[1]);
             }
         }

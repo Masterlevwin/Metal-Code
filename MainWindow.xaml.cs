@@ -207,7 +207,7 @@ namespace Metal_Code
                 for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
                 {
                     SaveTypeDetail _typeDetail = new(DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedIndex,
-                        DetailControls[i].TypeDetailControls[j].Count);
+                        DetailControls[i].TypeDetailControls[j].Count, DetailControls[i].TypeDetailControls[j].MetalDrop.SelectedIndex);
                     for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
                     {
                         SaveWork _saveWork = new(DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedIndex);
@@ -262,6 +262,7 @@ namespace Metal_Code
                     TypeDetailControl _type = DetailControls[i].TypeDetailControls[j];
                     _type.TypeDetailDrop.SelectedIndex = details[i].TypeDetails[j].Index;
                     _type.Count = details[i].TypeDetails[j].Count;
+                    _type.SetMetal(details[i].TypeDetails[j].Index);
 
                     for (int k = 0; k < details[i].TypeDetails[j].Works.Count; k++)
                     {

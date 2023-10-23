@@ -170,7 +170,7 @@ namespace Metal_Code
             if (sender is TextBox tBox) SetWeld(tBox.Text);
         }
         private void SetWeld(string _weld)
-        { 
+        {
             Weld = _weld;
             PriceChanged();
         }
@@ -201,7 +201,14 @@ namespace Metal_Code
             float _ratio = 1;
             if (float.TryParse(Ratio, out float r)) _ratio = r;
 
-            Price = work.Result = weldDict["aisi430"][sideRatio] * _weld * _ratio * work.type.Count * work.type.det.Count + work.Price;
+            if (weldDict.ContainsKey($"{work.type.MetalDrop.SelectedItem}"))
+                Price = work.Result = weldDict[$"{work.type.MetalDrop.SelectedItem}"][sideRatio]
+                    * _weld * _ratio * work.type.Count * work.type.det.Count + work.Price;
+            else
+            {
+                Price = work.Result = 0;
+                //MessageBox.Show("Данная работа невозможна!");
+            }
 
             work.type.det.PriceResult();
         }

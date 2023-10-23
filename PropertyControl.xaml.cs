@@ -76,18 +76,22 @@ namespace Metal_Code
                 A_prop.Text = Dict[$"{SortDrop.SelectedItem}"].Item1;
                 B_prop.Text = Dict[$"{SortDrop.SelectedItem}"].Item2;
                 S_prop.Text = Dict[$"{SortDrop.SelectedItem}"].Item3;
+                if (MainWindow.Parser(S_prop.Text) <= 0) S_prop.Text = "1";
             }
             SetMass();
         }
 
         public void SetMass()
         {
-            if (work.type.TypeDetailDrop.SelectedItem is not TypeDetail type) return;
+            if (work.type.TypeDetailDrop.SelectedItem is not TypeDetail type ||
+                !work.type.MetalDict.ContainsKey($"{work.type.MetalDrop.SelectedItem}")) return;
 
             Mass = type.Name switch
             {
-                "Швеллер" => (float)(MainWindow.Parser(A_prop.Text) * MainWindow.Parser(B_prop.Text) * 7.86 / 1000),
-                "Квадрат" => (float)(MainWindow.Parser(A_prop.Text) * MainWindow.Parser(A_prop.Text) * 7.86 / 1000),
+                "Швеллер" => (float)(MainWindow.Parser(A_prop.Text) * MainWindow.Parser(B_prop.Text)
+                    * work.type.MetalDict[$"{work.type.MetalDrop.SelectedItem}"] / 1000),
+                "Квадрат" => (float)(MainWindow.Parser(A_prop.Text) * MainWindow.Parser(A_prop.Text)
+                    * work.type.MetalDict[$"{work.type.MetalDrop.SelectedItem}"] / 1000),
                 _ => 1,
             };
 

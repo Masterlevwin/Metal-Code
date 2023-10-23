@@ -5,15 +5,16 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="330">
+             d:DesignHeight="20" d:DesignWidth="350">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <TextBox Text="{Binding Weld, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WeldControl}}}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="130" MinHeight="20" Margin="20,0,0,0" MaxWidth="130" MaxHeight="20" MaxLines="1" ToolTip="Введите длину свариваемой поверхности" TextChanged="SetWeld"/>
-        <TextBox Text="{Binding Ratio, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WeldControl}}}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" Grid.Column="1" Margin="10,0,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" TextChanged="SetRatio"/>
-        <TextBlock Grid.Column="2" MinHeight="20" MaxHeight="20" MinWidth="50" MaxWidth="50" ToolTip="Стоимость сварки" VerticalAlignment="Top" Text="{Binding Price, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WeldControl}}}" HorizontalAlignment="Left" Margin="20,0,0,0"/>
+        <TextBox Text="{Binding Weld, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WeldControl}}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="20,0,0,0" MaxLines="1" ToolTip="Введите длину свариваемой поверхности" TextChanged="SetWeld" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" Height="20" Width="70"/>
+        <TextBox Text="{Binding Ratio, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WeldControl}}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" Grid.Column="1" Margin="10,0,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" TextChanged="SetRatio" Height="20" Width="30"/>
+        <TextBlock Grid.Column="2" MinHeight="20" MaxHeight="20" MinWidth="50" MaxWidth="50" ToolTip="Стоимость сварки" VerticalAlignment="Center" Text="{Binding Price, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WeldControl}}}" HorizontalAlignment="Left" Margin="20,0,0,0" Height="20" Width="50"/>
+        <ComboBox HorizontalAlignment="Left" Margin="100,0,0,0" VerticalAlignment="Center" Height="20" Width="28" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" SelectedIndex="0"/>
     </Grid>
 </UserControl>
