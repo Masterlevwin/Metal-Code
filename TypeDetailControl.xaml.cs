@@ -25,7 +25,6 @@ namespace Metal_Code
         {
             InitializeComponent();
             det = d;
-            det.Counted += CountChanged;
             TypeDetailDrop.ItemsSource = MainWindow.M.dbTypeDetails.TypeDetails.Local.ToObservableCollection();
             foreach (string s in MetalDict.Keys) MetalDrop.Items.Add(s);
         }
@@ -61,7 +60,7 @@ namespace Metal_Code
         public void SetMetal(int ndx)
         {
             MetalDrop.SelectedIndex = ndx;
-            CountChanged();
+            Priced?.Invoke();
         }
 
         private void AddTypeDetail(object sender, RoutedEventArgs e)
@@ -116,11 +115,7 @@ namespace Metal_Code
             if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count)) Count = count;
             Counted?.Invoke();
         }
-        public void CountChanged()      //запуск события из DetailControl 
-        {
-            Counted?.Invoke();
-            Priced?.Invoke();
-        }
+
         private void PriceView(object sender, SelectionChangedEventArgs e)
         {
             Priced?.Invoke();

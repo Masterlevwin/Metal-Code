@@ -18,7 +18,7 @@ namespace Metal_Code
             set { SetValue(dPname, value); }
         }
 
-        //Text="{Binding Count, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}"
+        //Text="{Binding Count, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}"
         public static readonly DependencyProperty dPcount =
             DependencyProperty.Register("Count", typeof(int), typeof(DetailControl));
         public int Count
@@ -86,12 +86,10 @@ namespace Metal_Code
             if (sender is TextBox tBox) NameDetail = tBox.Text;
         }
 
-        public delegate void CountChanged();
-        public event CountChanged? Counted;
         private void SetCount(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count)) Count = count;
-            Counted?.Invoke();
+            MainWindow.M.TotalResult();
         }
 
         public void PriceResult()

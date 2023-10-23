@@ -19,7 +19,7 @@
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <TextBox Text="{Binding NameDetail, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="150" MinHeight="20" VerticalAlignment="Top" ToolTip="Введите наименование детали" MaxWidth="150" MaxLines="1" TextChanged="SetName"/>
-        <TextBox Text="{Binding Count, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}" Grid.Column="1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="40" MinHeight="20" Margin="20,0,0,0" HorizontalAlignment="Left" ToolTip="Введите количество" VerticalAlignment="Top" TextChanged="SetCount" MaxLength="4" MaxLines="1"/>
+        <TextBox Text="{Binding Count, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}" Grid.Column="1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="40" MinHeight="20" Margin="20,0,0,0" HorizontalAlignment="Left" ToolTip="Введите количество" VerticalAlignment="Top" MaxLength="4" MaxLines="1" TextChanged="SetCount"/>
     </Grid>
 </UserControl>
     

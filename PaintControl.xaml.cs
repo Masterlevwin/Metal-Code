@@ -18,7 +18,7 @@ namespace Metal_Code
             set { SetValue(MyPropertyPrice, value); }
         }
 
-        //Text="{Binding Ratio, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PaintControl}}}"
+        //Text="{Binding Ratio, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PaintControl}}}"
         public static readonly DependencyProperty MyPropertyRatio =
             DependencyProperty.Register("Ratio", typeof(string), typeof(PaintControl));
         public string Ratio
@@ -42,7 +42,10 @@ namespace Metal_Code
             InitializeComponent();
             work = _work;
             work.type.Counted += PriceChanged;
+            work.type.Priced += PriceChanged;
             work.PropertiesChanged += SaveOrLoadProperties;
+            TypeDrop.Items.Add("кг");
+            TypeDrop.Items.Add("шт");
         }
 
         private void SetRal(object sender, TextChangedEventArgs e)
@@ -52,6 +55,16 @@ namespace Metal_Code
         public void SetRal(string _ral)
         {
             Ral = _ral;
+        }
+
+        private void SetType(object sender, SelectionChangedEventArgs e)
+        {
+            SetType(TypeDrop.SelectedIndex);
+        }
+        public void SetType(int ndx = 0)
+        {
+            TypeDrop.SelectedIndex = ndx;
+            PriceChanged();
         }
 
         private void SetRatio(object sender, TextChangedEventArgs e)
@@ -74,8 +87,16 @@ namespace Metal_Code
                 WorkControl _work = work.type.WorkControls[i];
                 if (_work.workType is PropertyControl prop)
                 {
-                    Price = work.Result = (float)Math.Round(_ratio * work.type.Count * work.type.det.Count * prop.Mass * 812
-                        / MainWindow.Parser(prop.S_prop.Text) / work.type.MetalDict[$"{work.type.MetalDrop.SelectedItem}"], 2) + work.Price;
+                    if (TypeDrop.SelectedIndex == 0)
+                    {
+                        Price = work.Result = (float)Math.Round(_ratio * work.type.Count * prop.Mass * 812
+                            / MainWindow.Parser(prop.S_prop.Text) / work.type.MetalDict[$"{work.type.MetalDrop.SelectedItem}"], 2) + work.Price;
+                    }
+                    else if (TypeDrop.SelectedIndex == 1)
+                    {
+                        Price = work.Result = _ratio * work.type.Count * 350 + work.Price;
+                    }
+                    break;
                 }
             }
 
@@ -88,12 +109,14 @@ namespace Metal_Code
             {
                 w.propsList.Clear();
                 w.propsList.Add(Ral);
+                w.propsList.Add($"{TypeDrop.SelectedIndex}");
                 w.propsList.Add(Ratio);
             }
             else
             {
                 SetRal(w.propsList[0]);
-                SetRatio(w.propsList[1]);
+                SetType((int)MainWindow.Parser(w.propsList[1]));
+                SetRatio(w.propsList[2]);
             }
         }
     }

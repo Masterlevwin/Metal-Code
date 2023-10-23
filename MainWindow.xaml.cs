@@ -87,14 +87,15 @@ namespace Metal_Code
         private void SetCount(int _count)
         {
             Count = _count;
-            if (Count > 0) TotalResult();
+            TotalResult();
         }
 
-        private float Result { get; set; }
+        public float Result { get; set; }
+
         public void TotalResult()
         {
             Result = 0;
-            foreach (DetailControl d in DetailControls) Result += d.Price;
+            foreach (DetailControl d in DetailControls) Result += d.Price * d.Count;
             Total.Text = $"{Result * Count}";
 
             DetailsGrid.ItemsSource = SourceDetails();
@@ -160,7 +161,7 @@ namespace Metal_Code
             for (int i = 0; i < DetailControls.Count; i++)
             {
                 Detail _detail = new(i + 1, DetailControls[i].NameDetail, DetailControls[i].Count,
-                    DetailControls[i].Price / DetailControls[i].Count, DetailControls[i].Price);
+                    DetailControls[i].Price, DetailControls[i].Price * DetailControls[i].Count);
                 for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
                 {
                     for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
@@ -203,7 +204,7 @@ namespace Metal_Code
             for (int i = 0; i < DetailControls.Count; i++)
             {
                 Detail _detail = new(i + 1, DetailControls[i].NameDetail, DetailControls[i].Count,
-                    DetailControls[i].Price / DetailControls[i].Count, DetailControls[i].Price);
+                    DetailControls[i].Price, DetailControls[i].Price * DetailControls[i].Count);
                 for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
                 {
                     SaveTypeDetail _typeDetail = new(DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedIndex,
@@ -262,7 +263,7 @@ namespace Metal_Code
                     TypeDetailControl _type = DetailControls[i].TypeDetailControls[j];
                     _type.TypeDetailDrop.SelectedIndex = details[i].TypeDetails[j].Index;
                     _type.Count = details[i].TypeDetails[j].Count;
-                    _type.SetMetal(details[i].TypeDetails[j].Index);
+                    _type.SetMetal(details[i].TypeDetails[j].Metal);
 
                     for (int k = 0; k < details[i].TypeDetails[j].Works.Count; k++)
                     {

@@ -101,7 +101,7 @@ namespace Metal_Code
 
         public void PriceChanged()
         {
-            Price = work.Result = work.type.Count * work.type.det.Count * work.Price * Mass;
+            Price = work.Result = work.type.Count * work.Price * Mass;
 
             work.type.det.PriceResult();
         }

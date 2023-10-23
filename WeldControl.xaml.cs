@@ -43,6 +43,7 @@ namespace Metal_Code
             InitializeComponent();
             work = _work;
             work.type.Counted += PriceChanged;
+            work.type.Priced += PriceChanged;
             work.PropertiesChanged += SaveOrLoadProperties;
         }
 
@@ -203,7 +204,7 @@ namespace Metal_Code
 
             if (weldDict.ContainsKey($"{work.type.MetalDrop.SelectedItem}"))
                 Price = work.Result = weldDict[$"{work.type.MetalDrop.SelectedItem}"][sideRatio]
-                    * _weld * _ratio * work.type.Count * work.type.det.Count + work.Price;
+                    * _weld * _ratio * work.type.Count + work.Price;
             else
             {
                 Price = work.Result = 0;
