@@ -87,17 +87,24 @@ namespace Metal_Code
         private void SetCount(int _count)
         {
             Count = _count;
-            CountText.Text = $"{Count}";
-            TotalResult();
+            if (Count > 0) TotalResult();
         }
 
-        public float Result { get; set; }
-
+        private float result;
+        public float Result
+        {
+            get { return result; }
+            set
+            {
+                result = value;
+                OnPropertyChanged("Result");
+            }
+        }
         public void TotalResult()
         {
             Result = 0;
             foreach (DetailControl d in DetailControls) Result += d.Price * d.Count;
-            Total.Text = $"{Result * Count}";
+            Result *= Count;
 
             DetailsGrid.ItemsSource = SourceDetails();
             DetailsGrid.Columns[0].Header = "N";
@@ -241,7 +248,6 @@ namespace Metal_Code
         {            
             SetCount(DetailsModel.Product.Count);
             CheckDelivery.IsChecked = DetailsModel.Product.HasDelivery;
-            
             Delivery.Text = $"{DetailsModel.Product.Delivery}";
             ProductName.Text = DetailsModel.Product.Name;
             Order.Text = DetailsModel.Product.Order;
@@ -376,7 +382,7 @@ namespace Metal_Code
             worksheet.Cells[num + 8, 3].Value = $"Всего за {Count} шт:";
             worksheet.Cells[num + 8, 3].Style.Font.Weight = ExcelFont.BoldWeight;
             worksheet.Cells[num + 8, 3].Style.HorizontalAlignment = HorizontalAlignmentStyle.Right;
-            worksheet.Cells[num + 8, 4].Value = $"{Result * Count + Parser(Delivery.Text)}";
+            worksheet.Cells[num + 8, 4].Value = $"{Result + Parser(Delivery.Text)}";
             worksheet.Cells[num + 8, 4].Style.Font.Weight = ExcelFont.BoldWeight;
             worksheet.Cells[num + 8, 4].Style.HorizontalAlignment = HorizontalAlignmentStyle.Center;
 
