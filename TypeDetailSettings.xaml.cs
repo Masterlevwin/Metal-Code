@@ -18,9 +18,9 @@ namespace Metal_Code
         void Accept_Click(object sender, RoutedEventArgs e)
         {
             string[] strings = TypeDetail.Sort.Split(',');
-            if (strings.Length % 4 != 0)
+            if (strings.Length % 3 != 0)
             {
-                MessageBox.Show("Недостаточно данных.\nПроверьте: Виды - количество значений должно быть кратно 4-м!");
+                MessageBox.Show("Недостаточно данных.\nПроверьте: Виды - количество значений должно быть кратно 3-м!");
                 return;
             }
             else DialogResult = true;

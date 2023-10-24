@@ -89,7 +89,7 @@ namespace Metal_Code
         }
         public void Remove()
         {
-            for (int i = 0; i < WorkControls.Count; i++) WorkControls[i]?.Remove();
+            while (WorkControls.Count > 0) WorkControls[^1].Remove();
             det.TypeDetailControls.Remove(this);
             det.DetailGrid.Children.Remove(this);
         }

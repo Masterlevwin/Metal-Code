@@ -5,19 +5,18 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="350">
+             d:DesignHeight="20" d:DesignWidth="330">
     <Grid x:Name="PropertyGrid">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" MinWidth="190"/>
-            <ColumnDefinition Width="Auto" MinWidth="48"/>
+            <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <TextBlock Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PropertyControl}}}" Grid.Column="1" MinHeight="20" MaxHeight="20" MinWidth="50" MaxWidth="50" ToolTip="Стоимость деталей" VerticalAlignment="Center" HorizontalAlignment="Left" Height="20" Width="50" Margin="20,0,0,0"/>
-        <ComboBox x:Name="SortDrop" VerticalAlignment="Center" ToolTip="Выберите вид детали" HorizontalAlignment="Left" MinWidth="70" MinHeight="20" MaxWidth="70" MaxHeight="20" Height="20" Width="50" Margin="20,0,0,0" SelectionChanged="ChangeSort" SelectedIndex="0" IsSynchronizedWithCurrentItem="True"/>
-        <TextBox x:Name="A_prop" VerticalAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" HorizontalContentAlignment="Center" MaxLines="1" Height="20" Width="30" HorizontalAlignment="Left" Margin="100,0,0,0"/>
-        <TextBox x:Name="B_prop" HorizontalAlignment="Left" VerticalAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" HorizontalContentAlignment="Center" Margin="140,0,0,0" MaxLines="1" Height="20" Width="30"/>
-        <TextBox x:Name="S_prop" HorizontalAlignment="Left" VerticalAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" HorizontalContentAlignment="Center" Margin="180,0,0,0" MaxLines="1" Height="20" Width="30"/>
-        <TextBlock Text="{Binding Mass, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PropertyControl}}}" Grid.Column="2" HorizontalAlignment="Left" Margin="20,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center" MinWidth="50" MinHeight="20" MaxWidth="50" MaxHeight="20"/>
+        <ComboBox x:Name="SortDrop" VerticalAlignment="Center" ToolTip="Выберите вид детали" HorizontalAlignment="Left" MinWidth="70" MinHeight="20" MaxWidth="70" MaxHeight="20" Height="20" Margin="20,0,0,0" SelectionChanged="ChangeSort" IsSynchronizedWithCurrentItem="True"/>
+        <TextBox x:Name="A_prop" VerticalAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" HorizontalContentAlignment="Center" MaxLines="1" Height="20" Width="30" HorizontalAlignment="Left" Margin="100,0,0,0" ToolTip="Высота, мм"/>
+        <TextBox x:Name="B_prop" HorizontalAlignment="Left" VerticalAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" HorizontalContentAlignment="Center" Margin="140,0,0,0" MaxLines="1" Height="20" Width="30" ToolTip="Ширина, мм"/>
+        <TextBox x:Name="S_prop" HorizontalAlignment="Left" VerticalAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" HorizontalContentAlignment="Center" Margin="180,0,0,0" MaxLines="1" Height="20" Width="30" ToolTip="Толщина, мм"/>
+        <TextBox x:Name="L_prop" HorizontalAlignment="Left" VerticalAlignment="Center" MinWidth="40" MinHeight="20" MaxWidth="40" MaxHeight="20" HorizontalContentAlignment="Center" Margin="220,0,0,0" MaxLines="1" ToolTip="Длина, мм"/>
+        <TextBlock Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PropertyControl}}}" Grid.Column="1" HorizontalAlignment="Left" TextWrapping="Wrap" VerticalAlignment="Center" MinWidth="50" MinHeight="20" MaxWidth="50" MaxHeight="20" ToolTip="{Binding Mass, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PropertyControl}}}" Margin="20,0,0,0"/>
 
     </Grid>
 </UserControl>

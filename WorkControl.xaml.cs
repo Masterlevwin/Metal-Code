@@ -47,6 +47,7 @@ namespace Metal_Code
         {
             UpdatePosition(false);
             type.WorkControls.Remove(this);
+            type.det.PriceResult();
             type.TypeDetailGrid.Children.Remove(this);
         }
         public void UpdatePosition(bool direction)

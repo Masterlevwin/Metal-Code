@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -41,11 +42,15 @@ namespace Metal_Code
         {
             InitializeComponent();
             work = _work;
-            work.type.Counted += PriceChanged;
-            work.type.Priced += PriceChanged;
-            work.PropertiesChanged += SaveOrLoadProperties;
-            TypeDrop.Items.Add("кг");
-            TypeDrop.Items.Add("шт");
+
+            work.PropertiesChanged += SaveOrLoadProperties; // подписка на сохранение и загрузку файла
+            work.type.Counted += PriceChanged;              // подписка на изменение количества типовых деталей  
+            foreach (WorkControl w in work.type.WorkControls)
+                if (w != work && w.workType is PropertyControl prop)
+                    prop.MassChanged += MassChanged;        // подписка на изменение массы типовой детали
+
+            // формирование списка видов расчета окраски
+            foreach (string s in TypeDict.Keys) TypeDrop.Items.Add(s);
         }
 
         private void SetRal(object sender, TextChangedEventArgs e)
@@ -57,11 +62,16 @@ namespace Metal_Code
             Ral = _ral;
         }
 
+        private Dictionary<string, float> TypeDict = new()
+        {
+            ["кг"] = 812,
+            ["шт"] = 350
+        };
         private void SetType(object sender, SelectionChangedEventArgs e)
         {
             SetType(TypeDrop.SelectedIndex);
         }
-        public void SetType(int ndx = 0)
+        public void SetType(int ndx)
         {
             TypeDrop.SelectedIndex = ndx;
             PriceChanged();
@@ -77,28 +87,19 @@ namespace Metal_Code
             PriceChanged();
         }
 
+        float Mass { get; set; }
+        private void MassChanged(PropertyControl prop)
+        {
+            Mass = prop.Mass/ MainWindow.Parser(prop.S_prop.Text)/ work.type.MetalDict[$"{work.type.MetalDrop.SelectedItem}"];
+            PriceChanged();
+        }
         private void PriceChanged()
         {
             float _ratio = 1;
             if (float.TryParse(Ratio, out float r)) _ratio = r;
-            
-            for (int i = 0; i < work.type.WorkControls.Count; i++)
-            {
-                WorkControl _work = work.type.WorkControls[i];
-                if (_work.workType is PropertyControl prop)
-                {
-                    if (TypeDrop.SelectedIndex == 0)
-                    {
-                        Price = work.Result = (float)Math.Round(_ratio * work.type.Count * prop.Mass * 812
-                            / MainWindow.Parser(prop.S_prop.Text) / work.type.MetalDict[$"{work.type.MetalDrop.SelectedItem}"], 2) + work.Price;
-                    }
-                    else if (TypeDrop.SelectedIndex == 1)
-                    {
-                        Price = work.Result = _ratio * work.type.Count * 350 + work.Price;
-                    }
-                    break;
-                }
-            }
+
+            Price = work.Result = (float)Math.Round(TypeDrop.SelectedIndex == 0 ? Mass * TypeDict[$"{TypeDrop.SelectedItem}"] * _ratio * work.type.Count + work.Price
+                : TypeDict[$"{TypeDrop.SelectedItem}"] * _ratio * work.type.Count + work.Price, 2);
 
             work.type.det.PriceResult();
         }

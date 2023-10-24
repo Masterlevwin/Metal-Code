@@ -63,7 +63,7 @@ namespace Metal_Code
         }
         public void Remove()
         {
-            for (int i = 0; i < TypeDetailControls.Count; i++) TypeDetailControls[i]?.Remove();
+            while (TypeDetailControls.Count > 0) TypeDetailControls[^1].Remove();
             MainWindow.M.DetailControls.Remove(this);
             MainWindow.M.ProductGrid.Children.Remove(this);
         }
