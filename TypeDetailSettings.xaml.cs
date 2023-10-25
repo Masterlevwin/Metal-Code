@@ -17,13 +17,16 @@ namespace Metal_Code
 
         void Accept_Click(object sender, RoutedEventArgs e)
         {
-            string[] strings = TypeDetail.Sort.Split(',');
-            if (strings.Length % 3 != 0)
+            if (TypeDetail.Sort != null)
             {
-                MessageBox.Show("Недостаточно данных.\nПроверьте: Виды - количество значений должно быть кратно 3-м!");
-                return;
+                string[] strings = TypeDetail.Sort.Split(',');
+                if (strings.Length > 0 && strings.Length % 3 != 0)
+                {
+                    MessageBox.Show("Недостаточно данных.\nПроверьте: Виды - количество значений должно быть кратно 3-м!");
+                    return;
+                }
             }
-            else DialogResult = true;
+            DialogResult = true;
         }
     }
 }

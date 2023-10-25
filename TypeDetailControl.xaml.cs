@@ -26,41 +26,7 @@ namespace Metal_Code
             InitializeComponent();
             det = d;
             TypeDetailDrop.ItemsSource = MainWindow.M.dbTypeDetails.TypeDetails.Local.ToObservableCollection();
-            foreach (string s in MetalDict.Keys) MetalDrop.Items.Add(s);
-        }
-
-        public Dictionary<string, float> MetalDict = new()
-        {
-            ["ст3"] = 7.85f,
-            ["09г2с"] = 7.85f,
-            ["хк"] = 7.85f,
-            ["цинк"] = 7.85f,
-            ["aisi430"] = 8f,
-            ["aisi430шлиф"] = 8f,
-            ["aisi430зерк"] = 8f,
-            ["aisi304"] = 8f,
-            ["aisi304шлиф"] = 8f,
-            ["aisi304зерк"] = 8f,
-            ["aisi321"] = 8f,
-            ["амг2"] = 2.7f,
-            ["амг5"] = 2.7f,
-            ["амг6"] = 2.7f,
-            ["д16"] = 2.7f,
-            ["латунь"] = 8.5f,
-            ["медь"] = 8.9f
-        };
-        private void SetMetal(object sender, SelectionChangedEventArgs e)
-        {
-            SetMetal();
-        }
-        private void SetMetal()
-        {
-            SetMetal(MetalDrop.SelectedIndex);
-        }
-        public void SetMetal(int ndx)
-        {
-            MetalDrop.SelectedIndex = ndx;
-            Priced?.Invoke();
+            MetalDrop.ItemsSource = MainWindow.M.dbMetals.Metals.Local.ToObservableCollection();
         }
 
         private void AddTypeDetail(object sender, RoutedEventArgs e)

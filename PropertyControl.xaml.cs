@@ -34,34 +34,29 @@ namespace Metal_Code
             InitializeComponent();
             work = _work;
 
-            Loaded += CreateSort;                           // при загрузке формируем словарь видов типовой детали по умолчанию
             work.PropertiesChanged += SaveOrLoadProperties; // подписка на сохранение и загрузку файла
             work.type.Priced += CreateSort;                 // подписка на изменение материала типовой детали
             work.type.Counted += PriceChanged;              // подписка на изменение количества типовых деталей
+            CreateSort(0);                  // при загрузке формируем словарь видов типовой детали по умолчанию
         }
 
         Dictionary<string, (string, string)> Dict = new();
 
-        private void CreateSort(object sender, RoutedEventArgs e)
-        {
-            CreateSort();
-        }
         private void CreateSort()
         {
             CreateSort(SortDrop.SelectedIndex);
         }
-        public void CreateSort(int ndx)
+        public void CreateSort(int ndx = 0)
         {
-            if (work.type.TypeDetailDrop.SelectedItem is TypeDetail type)
-            {
-                Dict.Clear();
+            if (work.type.TypeDetailDrop.SelectedItem is not TypeDetail type || type.Sort == null) return;
 
-                string[] strings = type.Sort.Split(',');
-                for (int i = 0; i < strings.Length; i += 3) Dict[strings[i]] = (strings[i + 1], strings[i + 2]);
+            Dict.Clear();
 
-                SortDrop.Items.Clear();
-                foreach (string s in Dict.Keys) SortDrop.Items.Add(s);
-            }
+            string[] strings = type.Sort.Split(',');
+            for (int i = 0; i < strings.Length; i += 3) Dict[strings[i]] = (strings[i + 1], strings[i + 2]);
+
+            SortDrop.Items.Clear();
+            foreach (string s in Dict.Keys) SortDrop.Items.Add(s);
             SortDrop.SelectedIndex = ndx;
             ChangeSort();
         }
@@ -85,8 +80,7 @@ namespace Metal_Code
         public event Changed? MassChanged;       // событие на изменение массы типовой детали
         public void MassCalculate()
         {
-            if (work.type.TypeDetailDrop.SelectedItem is not TypeDetail type ||
-                !work.type.MetalDict.ContainsKey($"{work.type.MetalDrop.SelectedItem}")) return;
+            if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
             if (MainWindow.Parser(S_prop.Text) <= 0) S_prop.Text = "1";
             if (MainWindow.Parser(L_prop.Text) <= 0) L_prop.Text = "1000";
@@ -96,7 +90,7 @@ namespace Metal_Code
                 * MainWindow.Parser(B_prop.Text)
                 * MainWindow.Parser(S_prop.Text)
                 * MainWindow.Parser(L_prop.Text)
-                * work.type.MetalDict[$"{work.type.MetalDrop.SelectedItem}"] / 1000000, 2);
+                * metal.Density / 1000000, 2);
             
             MassChanged?.Invoke(this);
 

@@ -43,14 +43,17 @@ namespace Metal_Code
             InitializeComponent();
             work = _work;
 
+            // формирование списка видов расчета окраски
+            foreach (string s in TypeDict.Keys) TypeDrop.Items.Add(s);
+
             work.PropertiesChanged += SaveOrLoadProperties; // подписка на сохранение и загрузку файла
             work.type.Counted += PriceChanged;              // подписка на изменение количества типовых деталей  
             foreach (WorkControl w in work.type.WorkControls)
                 if (w != work && w.workType is PropertyControl prop)
+                {
                     prop.MassChanged += MassChanged;        // подписка на изменение массы типовой детали
-
-            // формирование списка видов расчета окраски
-            foreach (string s in TypeDict.Keys) TypeDrop.Items.Add(s);
+                    MassChanged(prop);
+                } 
         }
 
         private void SetRal(object sender, TextChangedEventArgs e)
@@ -71,7 +74,7 @@ namespace Metal_Code
         {
             SetType(TypeDrop.SelectedIndex);
         }
-        public void SetType(int ndx)
+        public void SetType(int ndx = 0)
         {
             TypeDrop.SelectedIndex = ndx;
             PriceChanged();
@@ -90,7 +93,8 @@ namespace Metal_Code
         float Mass { get; set; }
         private void MassChanged(PropertyControl prop)
         {
-            Mass = prop.Mass/ MainWindow.Parser(prop.S_prop.Text)/ work.type.MetalDict[$"{work.type.MetalDrop.SelectedItem}"];
+            if (work.type.MetalDrop.SelectedItem is Metal metal)
+                Mass = prop.Mass / MainWindow.Parser(prop.S_prop.Text) / metal.Density;
             PriceChanged();
         }
         private void PriceChanged()

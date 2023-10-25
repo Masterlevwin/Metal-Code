@@ -97,9 +97,12 @@ namespace Metal_Code
         public void PriceView()         // метод отображения цены типовой детали или работы
         {
             if (WorkDrop.SelectedItem is not Work work) return;
+
             if (work.Name == "Покупка")
             {
-                if (type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail) Price = 0;
+                if (type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail) return;
+                
+                if (typeDetail.Name == "Лист металла" && type.MetalDrop.SelectedItem is Metal metal) Price = metal.MassPrice;
                 else Price = typeDetail.Price;
             }
             else Price = work.Price;

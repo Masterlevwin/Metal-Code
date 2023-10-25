@@ -23,6 +23,7 @@ namespace Metal_Code
         public readonly TypeDetailContext dbTypeDetails = new();
         public readonly WorkContext dbWorks = new();
         public readonly ManagerContext dbManagers = new();
+        public readonly MetalContext dbMetals = new();
         public readonly ProductViewModel DetailsModel = new(new DefaultDialogService(), new JsonFileService());
 
         public MainWindow()
@@ -46,6 +47,9 @@ namespace Metal_Code
             dbManagers.Database.EnsureCreated();
             dbManagers.Managers.Load();
             ManagerDrop.ItemsSource = dbManagers.Managers.Local.ToObservableCollection();
+
+            dbMetals.Database.EnsureCreated();
+            dbMetals.Metals.Load();
         }
 
         private void OpenSettings(object sender, RoutedEventArgs e)
@@ -65,6 +69,11 @@ namespace Metal_Code
             {
                 ManagerWindow managerWindow = new();
                 managerWindow.Show();
+            }
+            else if (sender == Settings.Items[3])
+            {
+                MetalWindow metalWindow = new();
+                metalWindow.Show();
             }
         }
 
@@ -109,10 +118,10 @@ namespace Metal_Code
             DetailsGrid.ItemsSource = SourceDetails();
             DetailsGrid.Columns[0].Header = "N";
             DetailsGrid.Columns[1].Header = "Наименование";
-            DetailsGrid.Columns[2].Header = "Кол-во, шт";
-            DetailsGrid.Columns[3].Header = "Цена, руб";
-            DetailsGrid.Columns[4].Header = "Стоимость";
-            DetailsGrid.Columns[5].Header = "Работы";
+            DetailsGrid.Columns[2].Header = "Работы";
+            DetailsGrid.Columns[3].Header = "Кол-во, шт";
+            DetailsGrid.Columns[4].Header = "Цена, руб";
+            DetailsGrid.Columns[5].Header = "Стоимость";
         }
 
         public List<DetailControl> DetailControls = new();
@@ -274,7 +283,7 @@ namespace Metal_Code
                     TypeDetailControl _type = DetailControls[i].TypeDetailControls[j];
                     _type.TypeDetailDrop.SelectedIndex = details[i].TypeDetails[j].Index;
                     _type.Count = details[i].TypeDetails[j].Count;
-                    _type.SetMetal(details[i].TypeDetails[j].Metal);
+                    _type.MetalDrop.SelectedIndex = details[i].TypeDetails[j].Metal;
 
                     for (int k = 0; k < details[i].TypeDetails[j].Works.Count; k++)
                     {
@@ -348,9 +357,9 @@ namespace Metal_Code
 
             if (CheckDelivery.IsChecked == true)
             {
-                worksheet.Cells[num + 7, 1].Value = "Доставка";
-                worksheet.Cells[num + 7, 2].Value = 1;
-                if (int.TryParse(Delivery.Text, out int d)) worksheet.Cells[num + 7, 3].Value = worksheet.Cells[num + 7, 4].Value = d;
+                worksheet.Cells[num + 7, 2].Value = "Доставка";
+                worksheet.Cells[num + 7, 3].Value = 1;
+                if (int.TryParse(Delivery.Text, out int d)) worksheet.Cells[num + 7, 4].Value = worksheet.Cells[num + 7, 5].Value = d;
                 num++;
                 worksheet.Cells[num + 11, 2].Value = "Доставка силами Исполнителя по адресу Заказчика.";
             }
@@ -362,7 +371,7 @@ namespace Metal_Code
                 worksheet.Rows[num + 11].AutoFit(true);
             }
 
-            worksheet.Cells.GetSubrangeAbsolute(5, 3, num + 7, 4).Style.NumberFormat = $"00.00";
+            worksheet.Cells.GetSubrangeAbsolute(5, 4, num + 7, 5).Style.NumberFormat = $"00.00";
 
             CellRange cells = worksheet.Cells.GetSubrangeAbsolute(5, 0, num + 7, 5);
             cells.AutoFitColumnWidth();
@@ -371,20 +380,21 @@ namespace Metal_Code
             cells.Style.HorizontalAlignment = HorizontalAlignmentStyle.Center;
             cells.Style.VerticalAlignment = VerticalAlignmentStyle.Center;
 
-            worksheet.Cells[num + 7, 3].Value = "Стоимость изделия:";
-            worksheet.Cells[num + 7, 3].Style.Font.Weight = ExcelFont.BoldWeight;
-            worksheet.Cells[num + 7, 3].Style.HorizontalAlignment = HorizontalAlignmentStyle.Right;
-            worksheet.NamedRanges.Add("totalOrder", worksheet.Cells.GetSubrangeAbsolute(7, 4, num + 6, 4));
-            worksheet.Cells[num + 7, 4].Formula = "=SUM(totalOrder)";
+            worksheet.Cells[num + 7, 4].Value = "Стоимость изделия:";
             worksheet.Cells[num + 7, 4].Style.Font.Weight = ExcelFont.BoldWeight;
-            worksheet.Cells[num + 7, 4].Style.HorizontalAlignment = HorizontalAlignmentStyle.Center;
+            worksheet.Cells[num + 7, 4].Style.HorizontalAlignment = HorizontalAlignmentStyle.Right;
+            worksheet.NamedRanges.Add("totalOrder", worksheet.Cells.GetSubrangeAbsolute(7, 5, num + 6, 5));
+            worksheet.Cells[num + 7, 5].Formula = "=SUM(totalOrder)";
+            worksheet.Cells[num + 7, 5].Style.Font.Weight = ExcelFont.BoldWeight;
+            worksheet.Cells[num + 7, 5].Style.HorizontalAlignment = HorizontalAlignmentStyle.Center;
+            worksheet.Cells.GetSubrangeAbsolute(num + 7, 0, num + 7, 4).Merged = true;
 
-            worksheet.Cells[num + 8, 3].Value = $"Всего за {Count} шт:";
-            worksheet.Cells[num + 8, 3].Style.Font.Weight = ExcelFont.BoldWeight;
-            worksheet.Cells[num + 8, 3].Style.HorizontalAlignment = HorizontalAlignmentStyle.Right;
-            worksheet.Cells[num + 8, 4].Value = $"{Result + Parser(Delivery.Text)}";
+            worksheet.Cells[num + 8, 4].Value = $"Всего за {Count} шт:";
             worksheet.Cells[num + 8, 4].Style.Font.Weight = ExcelFont.BoldWeight;
-            worksheet.Cells[num + 8, 4].Style.HorizontalAlignment = HorizontalAlignmentStyle.Center;
+            worksheet.Cells[num + 8, 4].Style.HorizontalAlignment = HorizontalAlignmentStyle.Right;
+            worksheet.Cells[num + 8, 5].Value = $"{Result + Parser(Delivery.Text)}";
+            worksheet.Cells[num + 8, 5].Style.Font.Weight = ExcelFont.BoldWeight;
+            worksheet.Cells[num + 8, 5].Style.HorizontalAlignment = HorizontalAlignmentStyle.Center;
 
             worksheet.Cells[num + 9, 0].Value = "Срок изготовления:";
             worksheet.Cells[num + 9, 0].Style.VerticalAlignment = VerticalAlignmentStyle.Top;

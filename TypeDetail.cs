@@ -23,20 +23,19 @@ namespace Metal_Code
     {
         public int N { get; set; }
         public string? Title { get; set; }
+        public string? Description { get; set; }
         public int Count { get; set; }
         public float Price { get; set; }
         public float Total { get; set; }
-        public string? Description { get; set; }
 
         public List<SaveTypeDetail> TypeDetails = new();
-        public Detail(int id = 0, string? _name = "", int _count = 0, float _price = 0, float _total = 0, string? _description = null)
+        public Detail(int id = 0, string? _name = "", int _count = 0, float _price = 0, float _total = 0)
         {
             N = id;
             Title = _name;
             Count = _count;
             Price = _price;
             Total = _total;
-            Description = _description;
         }
     }
 
@@ -101,6 +100,21 @@ namespace Metal_Code
 
         }
     }
+    
+    public class Metal
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public float Density {  get; set; }
+        public float MassPrice {  get; set; }
+        public float WayPrice { get; set; }
+        public float PinholePrice { get; set; }
+
+        public Metal()
+        {
+
+        }
+    }
 
     public class TypeDetailContext : DbContext
     {
@@ -126,6 +140,15 @@ namespace Metal_Code
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlite("Data Source=managers.db");
+        }
+    }
+    
+    public class MetalContext : DbContext
+    {
+        public DbSet<Metal> Metals { get; set; } = null!;
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseSqlite("Data Source=metals.db");
         }
     }
 }

@@ -202,9 +202,8 @@ namespace Metal_Code
             float _ratio = 1;
             if (float.TryParse(Ratio, out float r)) _ratio = r;
 
-            if (weldDict.ContainsKey($"{work.type.MetalDrop.SelectedItem}"))
-                Price = work.Result = weldDict[$"{work.type.MetalDrop.SelectedItem}"][sideRatio]
-                    * _weld * _ratio * work.type.Count + work.Price;
+            if (work.type.MetalDrop.SelectedItem is Metal metal && weldDict.ContainsKey(metal.Name))
+                Price = work.Result = weldDict[metal.Name][sideRatio] * _weld * _ratio * work.type.Count + work.Price;
             else
             {
                 Price = work.Result = 0;
