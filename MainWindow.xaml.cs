@@ -86,7 +86,7 @@ namespace Metal_Code
             get { return count; }
             set { 
                 count = value;
-                OnPropertyChanged("Count");
+                OnPropertyChanged(nameof(Count));
             }
         }
         private void SetCount(object sender, TextChangedEventArgs e)
@@ -106,7 +106,7 @@ namespace Metal_Code
             set
             {
                 result = value;
-                OnPropertyChanged("Result");
+                OnPropertyChanged(nameof(Result));
             }
         }
         public void TotalResult()
@@ -371,7 +371,7 @@ namespace Metal_Code
                 worksheet.Rows[num + 11].AutoFit(true);
             }
 
-            worksheet.Cells.GetSubrangeAbsolute(5, 4, num + 7, 5).Style.NumberFormat = $"00.00";
+            worksheet.Cells.GetSubrangeAbsolute(5, 4, num + 8, 5).Style.NumberFormat = $"00.00";
 
             CellRange cells = worksheet.Cells.GetSubrangeAbsolute(5, 0, num + 7, 5);
             cells.AutoFitColumnWidth();

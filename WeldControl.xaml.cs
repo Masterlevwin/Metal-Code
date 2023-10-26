@@ -1,40 +1,53 @@
 ﻿using System.Windows.Controls;
 using System.Data;
 using System.Collections.Generic;
-using System.Windows;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace Metal_Code
 {
     /// <summary>
     /// Логика взаимодействия для WeldControl.xaml
     /// </summary>
-    public partial class WeldControl : UserControl
+    public partial class WeldControl : UserControl, INotifyPropertyChanged
     {
-        //Text="{Binding Price, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WeldControl}}}"
-        public static readonly DependencyProperty MyPropertyPrice =
-            DependencyProperty.Register("Price", typeof(float), typeof(WeldControl));
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        private float price;
         public float Price
         {
-            get { return (float)GetValue(MyPropertyPrice); }
-            set { SetValue(MyPropertyPrice, value); }
+            get => price;
+            set
+            {
+                price = value;
+                OnPropertyChanged(nameof(Price));
+            }
         }
 
-        //Text="{Binding Ratio, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WeldControl}}}"
-        public static readonly DependencyProperty MyPropertyRatio =
-            DependencyProperty.Register("Ratio", typeof(string), typeof(WeldControl));
-        public string Ratio
+        private float ratio;
+        public float Ratio
         {
-            get { return (string)GetValue(MyPropertyRatio); }
-            set { SetValue(MyPropertyRatio, value); }
+            get => ratio;
+            set
+            {
+                if (value != ratio)
+                {
+                    ratio = value;
+                    OnPropertyChanged(nameof(Ratio));
+                }
+            }
         }
 
-        //Text="{Binding Weld, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WeldControl}}}"
-        public static readonly DependencyProperty MyPropertyWeld =
-            DependencyProperty.Register("Weld", typeof(string), typeof(WeldControl));
-        public string Weld
+        private string? weld;
+        public string? Weld
         {
-            get { return (string)GetValue(MyPropertyWeld); }
-            set { SetValue(MyPropertyWeld, value); }
+            get => weld;
+            set
+            {
+                weld = value;
+                OnPropertyChanged(nameof(Weld));
+            }
         }
 
         private readonly WorkControl work;
@@ -42,9 +55,10 @@ namespace Metal_Code
         {
             InitializeComponent();
             work = _work;
-            work.type.Counted += PriceChanged;
-            work.type.Priced += PriceChanged;
-            work.PropertiesChanged += SaveOrLoadProperties;
+
+            work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+            work.type.Counted += PriceChanged;                  // подписка на изменение количества типовых деталей
+            work.type.Priced += PriceChanged;                   // подписка на изменение материала типовой детали
         }
 
         public Dictionary<string, Dictionary<float, float>> weldDict = new()
@@ -160,9 +174,9 @@ namespace Metal_Code
         {
             if (sender is TextBox tBox) SetRatio(tBox.Text);
         }
-        private void SetRatio(string? _ratio)
+        private void SetRatio(string _ratio)
         {
-            Ratio = _ratio;
+            if (float.TryParse(_ratio, out float r)) Ratio = r;     // стандартный парсер избавляет от проблемы с запятой
             PriceChanged();
         }
 
@@ -182,7 +196,7 @@ namespace Metal_Code
             try
             {
                 object result = new DataTable().Compute(Weld, null);
-                if (float.TryParse(result.ToString(), out float f)) _weld = f;
+                if (float.TryParse($"{result}", out float f)) _weld = f;
             }
             catch
             {
@@ -199,16 +213,9 @@ namespace Metal_Code
                 _ => (float)1,
             };
 
-            float _ratio = 1;
-            if (float.TryParse(Ratio, out float r)) _ratio = r;
-
             if (work.type.MetalDrop.SelectedItem is Metal metal && weldDict.ContainsKey(metal.Name))
-                Price = work.Result = weldDict[metal.Name][sideRatio] * _weld * _ratio * work.type.Count + work.Price;
-            else
-            {
-                Price = work.Result = 0;
-                //MessageBox.Show("Данная работа невозможна!");
-            }
+                Price = work.Result = weldDict[metal.Name][sideRatio] * _weld * Ratio * work.type.Count + work.Price;
+            else Price = work.Result = 0;
 
             work.type.det.PriceResult();
         }
@@ -218,8 +225,8 @@ namespace Metal_Code
             if (isSaved)
             {
                 w.propsList.Clear();
-                w.propsList.Add(Weld);
-                w.propsList.Add(Ratio);
+                w.propsList.Add($"{Weld}");
+                w.propsList.Add($"{Ratio}");
             }
             else
             {
@@ -227,5 +234,6 @@ namespace Metal_Code
                 SetRatio(w.propsList[1]);
             }
         }
+
     }
 }

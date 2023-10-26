@@ -1,31 +1,95 @@
 ﻿using System.Collections.Generic;
 using System;
-using System.Windows;
 using System.Windows.Controls;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace Metal_Code
 {
     /// <summary>
     /// Логика взаимодействия для PropertyControl.xaml
     /// </summary>
-    public partial class PropertyControl : UserControl
+    public partial class PropertyControl : UserControl, INotifyPropertyChanged
     {
-        //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PropertyControl}}}"
-        public static readonly DependencyProperty MyPropertyPrice =
-            DependencyProperty.Register("Price", typeof(float), typeof(PropertyControl));
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        private float price;
         public float Price
         {
-            get { return (float)GetValue(MyPropertyPrice); }
-            set { SetValue(MyPropertyPrice, value); }
+            get { return price; }
+            set
+            {
+                price = value;
+                OnPropertyChanged(nameof(Price));
+            }
         }
 
-        //Text="{Binding Mass, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PropertyControl}}}"
-        public static readonly DependencyProperty MyPropertyMass =
-            DependencyProperty.Register("Mass", typeof(float), typeof(PropertyControl));
+        private float mass;
         public float Mass
         {
-            get { return (float)GetValue(MyPropertyMass); }
-            set { SetValue(MyPropertyMass, value); }
+            get { return mass; }
+            set
+            {
+                mass = value;
+                OnPropertyChanged(nameof(Mass));
+            }
+        }
+
+        private float a;
+        public float A
+        {
+            get => a;
+            set
+            {
+                if (value != a)
+                {
+                    a = value;
+                    OnPropertyChanged(nameof(A));
+                }
+            }
+        }
+
+        private float b;
+        public float B
+        {
+            get => b;
+            set
+            {
+                if (value != b)
+                {
+                    b = value;
+                    OnPropertyChanged(nameof(B));
+                }
+            }
+        }
+
+        private float s;
+        public float S
+        {
+            get => s;
+            set
+            {
+                if (value != s)
+                {
+                    s = value;
+                    OnPropertyChanged(nameof(S));
+                }
+            }
+        }
+
+        private float l;
+        public float L
+        {
+            get => l;
+            set
+            {
+                if (value != l)
+                {
+                    l = value;
+                    OnPropertyChanged(nameof(L));
+                }
+            }
         }
 
         private readonly WorkControl work;
@@ -35,18 +99,18 @@ namespace Metal_Code
             work = _work;
 
             work.PropertiesChanged += SaveOrLoadProperties; // подписка на сохранение и загрузку файла
-            work.type.Priced += CreateSort;                 // подписка на изменение материала типовой детали
             work.type.Counted += PriceChanged;              // подписка на изменение количества типовых деталей
-            CreateSort(0);                  // при загрузке формируем словарь видов типовой детали по умолчанию
+            work.type.Priced += CreateSort;                 // подписка на изменение материала типовой детали
+            CreateSort();                  // при загрузке формируем словарь видов типовой детали по умолчанию
         }
 
         Dictionary<string, (string, string)> Dict = new();
 
-        private void CreateSort()
+        private void CreateSort()       // метод-прокладка между событием от типовой детали и формированием ее сорта
         {
-            CreateSort(SortDrop.SelectedIndex);
+            CreateSort(0);
         }
-        public void CreateSort(int ndx = 0)
+        public void CreateSort(int ndx)
         {
             if (work.type.TypeDetailDrop.SelectedItem is not TypeDetail type || type.Sort == null) return;
 
@@ -69,12 +133,25 @@ namespace Metal_Code
         {
             if (Dict.Count > 0 && SortDrop.SelectedIndex != -1)
             {
-                A_prop.Text = Dict[$"{SortDrop.SelectedItem}"].Item1;
-                B_prop.Text = Dict[$"{SortDrop.SelectedItem}"].Item2;
+                A = MainWindow.Parser(Dict[$"{SortDrop.SelectedItem}"].Item1);
+                B = MainWindow.Parser(Dict[$"{SortDrop.SelectedItem}"].Item2);
             }
             MassCalculate();
         }
 
+        private void SetProperty(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) SetProperty(tBox.Name, tBox.Text);
+        }
+        public void SetProperty(string _prop, string _value)
+        {
+            switch (_prop)
+            {
+                case "S_prop": if (float.TryParse(_value, out float s)) S = s; break;
+                case "L_prop": if (float.TryParse(_value, out float l)) L = l; break;
+            }
+            MassCalculate();
+        }
 
         public delegate void Changed(PropertyControl prop);
         public event Changed? MassChanged;       // событие на изменение массы типовой детали
@@ -82,16 +159,8 @@ namespace Metal_Code
         {
             if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
-            if (MainWindow.Parser(S_prop.Text) <= 0) S_prop.Text = "1";
-            if (MainWindow.Parser(L_prop.Text) <= 0) L_prop.Text = "1000";
+            Mass = (float)Math.Round(A * B * S * L * metal.Density / 1000000, 2);
 
-            Mass = (float)Math.Round(
-                MainWindow.Parser(A_prop.Text)
-                * MainWindow.Parser(B_prop.Text)
-                * MainWindow.Parser(S_prop.Text)
-                * MainWindow.Parser(L_prop.Text)
-                * metal.Density / 1000000, 2);
-            
             MassChanged?.Invoke(this);
 
             PriceChanged();
@@ -110,11 +179,16 @@ namespace Metal_Code
             {
                 w.propsList.Clear();
                 w.propsList.Add($"{SortDrop.SelectedIndex}");
+                w.propsList.Add($"{S}");
+                w.propsList.Add($"{L}");
             }
             else
             {
                 CreateSort((int)MainWindow.Parser(w.propsList[0]));
+                SetProperty("S_prop", w.propsList[1]);
+                SetProperty("L_prop", w.propsList[2]);
             }
         }
+
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Windows;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Windows.Controls;
 
 namespace Metal_Code
@@ -8,33 +9,45 @@ namespace Metal_Code
     /// <summary>
     /// Логика взаимодействия для PaintControl.xaml
     /// </summary>
-    public partial class PaintControl : UserControl
+    public partial class PaintControl : UserControl, INotifyPropertyChanged
     {
-        //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PaintControl}}}"
-        public static readonly DependencyProperty MyPropertyPrice =
-            DependencyProperty.Register("Price", typeof(float), typeof(PaintControl));
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        private float price;
         public float Price
         {
-            get { return (float)GetValue(MyPropertyPrice); }
-            set { SetValue(MyPropertyPrice, value); }
+            get => price;
+            set
+            {
+                price = value;
+                OnPropertyChanged(nameof(Price));
+            }
         }
 
-        //Text="{Binding Ratio, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PaintControl}}}"
-        public static readonly DependencyProperty MyPropertyRatio =
-            DependencyProperty.Register("Ratio", typeof(string), typeof(PaintControl));
-        public string Ratio
+        private float ratio;
+        public float Ratio
         {
-            get { return (string)GetValue(MyPropertyRatio); }
-            set { SetValue(MyPropertyRatio, value); }
+            get => ratio;
+            set
+            {
+                if (value != ratio)
+                {
+                    ratio = value;
+                    OnPropertyChanged(nameof(Ratio));
+                }
+            }
         }
 
-        //Text="{Binding Ral, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PaintControl}}}"
-        public static readonly DependencyProperty MyPropertySquare =
-            DependencyProperty.Register("Ral", typeof(string), typeof(PaintControl));
-        public string Ral
+        private string? ral;
+        public string? Ral
         {
-            get { return (string)GetValue(MyPropertySquare); }
-            set { SetValue(MyPropertySquare, value); }
+            get => ral;
+            set
+            {
+                ral = value;
+                OnPropertyChanged(nameof(Ral));
+            }
         }
 
         private readonly WorkControl work;
@@ -47,7 +60,7 @@ namespace Metal_Code
             foreach (string s in TypeDict.Keys) TypeDrop.Items.Add(s);
 
             work.PropertiesChanged += SaveOrLoadProperties; // подписка на сохранение и загрузку файла
-            work.type.Counted += PriceChanged;              // подписка на изменение количества типовых деталей  
+            work.type.Counted += PriceChanged;              // подписка на изменение количества типовых деталей
             foreach (WorkControl w in work.type.WorkControls)
                 if (w != work && w.workType is PropertyControl prop)
                 {
@@ -86,7 +99,7 @@ namespace Metal_Code
         }
         private void SetRatio(string _ratio)
         {
-            Ratio = _ratio;
+            if (float.TryParse(_ratio, out float r)) Ratio = r;     // стандартный парсер избавляет от проблемы с запятой
             PriceChanged();
         }
 
@@ -99,11 +112,8 @@ namespace Metal_Code
         }
         private void PriceChanged()
         {
-            float _ratio = 1;
-            if (float.TryParse(Ratio, out float r)) _ratio = r;
-
-            Price = work.Result = (float)Math.Round(TypeDrop.SelectedIndex == 0 ? Mass * TypeDict[$"{TypeDrop.SelectedItem}"] * _ratio * work.type.Count + work.Price
-                : TypeDict[$"{TypeDrop.SelectedItem}"] * _ratio * work.type.Count + work.Price, 2);
+            Price = work.Result = (float)Math.Round(TypeDrop.SelectedIndex == 0 ? Mass * TypeDict[$"{TypeDrop.SelectedItem}"] * Ratio * work.type.Count + work.Price
+                : TypeDict[$"{TypeDrop.SelectedItem}"] * Ratio * work.type.Count + work.Price, 2);
 
             work.type.det.PriceResult();
         }
@@ -115,7 +125,7 @@ namespace Metal_Code
                 w.propsList.Clear();
                 w.propsList.Add(Ral);
                 w.propsList.Add($"{TypeDrop.SelectedIndex}");
-                w.propsList.Add(Ratio);
+                w.propsList.Add($"{Ratio}");
             }
             else
             {
@@ -124,5 +134,6 @@ namespace Metal_Code
                 SetRatio(w.propsList[2]);
             }
         }
+
     }
 }

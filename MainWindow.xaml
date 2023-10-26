@@ -59,7 +59,7 @@
                     <TextBox x:Name="DateProduction" Margin="135,55,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50" ToolTip="Введите срок изготовления"/>
                     <TextBlock HorizontalAlignment="Left" Margin="200,55,0,0" TextWrapping="Wrap" Text="раб/дней" VerticalAlignment="Top"/>
                     <TextBlock HorizontalAlignment="Left" Margin="15,75,0,0" TextWrapping="Wrap" Text="Порядок отгрузки:" VerticalAlignment="Top"/>
-                    <TextBox x:Name="Adress" HorizontalAlignment="Left" Margin="15,95,0,0" TextWrapping="Wrap" Text="Адрес доставки..." VerticalAlignment="Top" Width="220" Height="45" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}" ToolTip="Введите адрес доставки"/>
+                    <TextBox x:Name="Adress" HorizontalAlignment="Left" Margin="15,95,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="220" Height="45" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}" ToolTip="Введите адрес доставки" Text="Адрес доставки:"/>
                     <TextBox x:Name="Comment" HorizontalAlignment="Left" Margin="15,145,0,0" TextWrapping="Wrap" Text="Комментарии..." VerticalAlignment="Top" Width="220" Height="45" ToolTip="Введите комментарий"/>
                     <TextBlock HorizontalAlignment="Left" Margin="15,195,0,0" TextWrapping="Wrap" Text="Ваш менеджер:" VerticalAlignment="Top"/>
                     <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" HorizontalAlignment="Left" Margin="115,195,0,0" VerticalAlignment="Top" Width="120" ToolTip="Выберите менеджера" SelectedIndex="0"/>
