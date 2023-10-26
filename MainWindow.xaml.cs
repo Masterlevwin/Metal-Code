@@ -316,7 +316,6 @@ namespace Metal_Code
             worksheet.Rows["2"].Style = workbook.Styles[BuiltInCellStyleName.Heading1];
             worksheet.Rows["2"].Style.HorizontalAlignment = HorizontalAlignmentStyle.Center;
             worksheet.Cells["A3"].Value = "Данный расчет действителен в течении 2-х банковских дней";
-            //worksheet.Cells["A3"].Style.Font.Size = 10;
             worksheet.Cells["B4"].Value = $"Для изготовления изделия";
             worksheet.Cells["D4"].Value = ProductName.Text;
             worksheet.Cells["D4"].Style.Font.Weight = ExcelFont.BoldWeight;
