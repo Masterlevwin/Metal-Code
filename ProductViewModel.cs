@@ -47,7 +47,7 @@ namespace Metal_Code
                       {
                           if (dialogService.SaveFileDialog() == true)
                           {
-                              fileService.Save(dialogService.FilePath, MainWindow.M.SaveProduct());
+                              fileService.Save(dialogService.FilePaths[0], MainWindow.M.SaveProduct());
                               dialogService.ShowMessage("Файл сохранен");
                           }
                       }
@@ -71,7 +71,7 @@ namespace Metal_Code
                       {
                           if (dialogService.OpenFileDialog() == true)
                           {
-                              Product = fileService.Open(dialogService.FilePath);
+                              Product = fileService.Open(dialogService.FilePaths[0]);
                               dialogService.ShowMessage("Файл открыт");
                               MainWindow.M.LoadProduct();
                           }
@@ -90,13 +90,12 @@ namespace Metal_Code
         {
             get
             {
-                return addCommand ??
-                  (addCommand = new RelayCommand(obj =>
+                return addCommand ??= new RelayCommand(obj =>
                   {
                       Detail detail = new();
                       Product.Details.Insert(0, detail);
                       SelectedDetail = detail;
-                  }));
+                  });
             }
         }
 
@@ -163,14 +162,14 @@ namespace Metal_Code
     public interface IDialogService
     {
         void ShowMessage(string message);   // показ сообщения
-        string FilePath { get; set; }   // путь к выбранному файлу
+        string[] FilePaths { get; set; }   // путь к выбранному файлу
         bool OpenFileDialog();  // открытие файла
         bool SaveFileDialog();  // сохранение файла
     }
 
     public class DefaultDialogService : IDialogService
     {
-        public string? FilePath { get; set; }
+        public string[]? FilePaths { get; set; }
 
         public bool OpenFileDialog()
         {
@@ -178,7 +177,7 @@ namespace Metal_Code
             openFileDialog.Filter = "Metal-Code (*.mcm)|*.mcm|All files (*.*)|*.*";
             if (openFileDialog.ShowDialog() == true)
             {
-                FilePath = openFileDialog.FileName;
+                FilePaths = openFileDialog.FileNames;
                 return true;
             }
             return false;
@@ -190,7 +189,7 @@ namespace Metal_Code
             saveFileDialog.Filter = "Metal-Code (*.mcm)|*.mcm|All files (*.*)|*.*";
             if (saveFileDialog.ShowDialog() == true)
             {
-                FilePath = saveFileDialog.FileName;
+                FilePaths = saveFileDialog.FileNames;
                 return true;
             }
             return false;

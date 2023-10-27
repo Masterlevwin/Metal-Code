@@ -90,6 +90,15 @@ namespace Metal_Code
                     Grid.SetColumn(paint, 2);
                     workType = paint;
                     break;
+                case "Резка":
+                    if (ContainsProp(out PropertyControl? _prop))
+                    {
+                        CutControl cut = new(this, new ExcelDialogService());
+                        WorkGrid.Children.Add(cut);
+                        Grid.SetColumn(cut, 2);
+                        workType = cut;
+                    }
+                    break;
             }
             PriceView();
         }
@@ -106,6 +115,17 @@ namespace Metal_Code
                 else Price = typeDetail.Price;
             }
             else Price = work.Price;
+        }
+
+        private bool ContainsProp(out PropertyControl? prop)
+        {
+            foreach (WorkControl w in type.WorkControls) if (w.workType is PropertyControl _prop)
+                {
+                    prop = _prop;
+                    return true;
+                }
+            prop = null;
+            return false;
         }
     }
 }
