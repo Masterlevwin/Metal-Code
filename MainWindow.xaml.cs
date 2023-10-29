@@ -114,6 +114,7 @@ namespace Metal_Code
             Result = 0;
             foreach (DetailControl d in DetailControls) Result += d.Price * d.Count;
             Result *= Count;
+            Result = (float)Math.Round(Result, 2);
 
             DetailsGrid.ItemsSource = SourceDetails();
             DetailsGrid.Columns[0].Header = "N";
@@ -122,6 +123,14 @@ namespace Metal_Code
             DetailsGrid.Columns[3].Header = "Кол-во, шт";
             DetailsGrid.Columns[4].Header = "Цена, руб";
             DetailsGrid.Columns[5].Header = "Стоимость";
+        }
+
+        private void UpdateResult(object sender, RoutedEventArgs e)     // метод принудительного обновления стоимости;
+                                                                        // создан для исправления ситуации с запятой в коэффициентах работ
+                                                                        // не доработан (в PropertyControl изменение толщины требует фокус на длине)
+        {
+            foreach (DetailControl d in DetailControls)
+                foreach (TypeDetailControl t in d.TypeDetailControls) t.UpdateTotal();
         }
 
         public List<DetailControl> DetailControls = new();

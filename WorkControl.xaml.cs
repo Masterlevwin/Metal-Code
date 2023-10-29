@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -11,7 +12,7 @@ namespace Metal_Code
     {
         public List<string> propsList = new();
         public delegate void PropsChanged(WorkControl w, bool b);
-        public PropsChanged PropertiesChanged;
+        public PropsChanged? PropertiesChanged;
 
         //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WorkControl}}}"
         public static readonly DependencyProperty MyPropertyPrice =
@@ -59,7 +60,7 @@ namespace Metal_Code
             type.UpdatePosition(direction);
         }
 
-        public UserControl workType;
+        public UserControl? workType;
         private void CreateWork(object sender, SelectionChangedEventArgs e)
         {
             CreateWork();
@@ -77,6 +78,11 @@ namespace Metal_Code
                     WorkGrid.Children.Add(prop);
                     Grid.SetColumn(prop, 2);
                     workType = prop;
+                    if (type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
+                    {
+                        type.AddWork();                                     // если типовой деталью является лист металла,
+                        type.WorkControls[^1].WorkDrop.SelectedIndex = 3;   // то добавляем резку
+                    }
                     break;
                 case "Сварка":
                     WeldControl weld = new(this);
@@ -90,16 +96,20 @@ namespace Metal_Code
                     Grid.SetColumn(paint, 2);
                     workType = paint;
                     break;
-                case "Резка":
-                    if (ContainsProp(out PropertyControl? _prop))
-                    {
-                        CutControl cut = new(this, new ExcelDialogService());
-                        WorkGrid.Children.Add(cut);
-                        Grid.SetColumn(cut, 2);
-                        workType = cut;
-                    }
+                case "Резка листа":
+                    CutControl cut = new(this, new ExcelDialogService());
+                    WorkGrid.Children.Add(cut);
+                    Grid.SetColumn(cut, 2);
+                    workType = cut;
                     break;
             }
+
+            if (ValidateProp(out int index))
+            {
+                if (WorkDrop.Items.Count <= index) MessageBox.Show($"Такая работа уже есть!\nУдалите лишнее!");
+                else WorkDrop.SelectedIndex = index;
+            }
+
             PriceView();
         }
 
@@ -110,21 +120,24 @@ namespace Metal_Code
             if (work.Name == "Покупка")
             {
                 if (type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail) return;
-                
+
                 if (typeDetail.Name == "Лист металла" && type.MetalDrop.SelectedItem is Metal metal) Price = metal.MassPrice;
                 else Price = typeDetail.Price;
             }
             else Price = work.Price;
         }
 
-        private bool ContainsProp(out PropertyControl? prop)
+        private bool ValidateProp(out int ndx)
         {
-            foreach (WorkControl w in type.WorkControls) if (w.workType is PropertyControl _prop)
+            if (type.WorkControls.Count > 0) ndx = type.WorkControls.Max(i => i.WorkDrop.SelectedIndex);
+            else ndx = WorkDrop.SelectedIndex;
+
+            foreach (WorkControl w in type.WorkControls) if (w != this && w.WorkDrop.SelectedIndex == WorkDrop.SelectedIndex)
                 {
-                    prop = _prop;
+                    ndx++;
                     return true;
                 }
-            prop = null;
+
             return false;
         }
     }

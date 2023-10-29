@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -92,6 +93,7 @@ namespace Metal_Code
                     _prop.MassChanged += MassChanged;        // подписка на изменение массы типовой детали или толщины листа
                     MassChanged(_prop);
                 }
+            BtnEnabled();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной
         }
 
         private void SetRatio(object sender, TextChangedEventArgs e)
@@ -134,12 +136,23 @@ namespace Metal_Code
 
         private void PriceChanged()
         {
+            BtnEnabled();
             if (Way == 0 || Pinhole == 0) return;
             if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
-            Price = work.Result = (Way * metal.WayPrice * Wratio + Pinhole * metal.PinholePrice * Pratio) * work.type.Count * Ratio + work.Price * work.type.Count;
+            Price = work.Result = (float)Math.Round((Way * metal.WayPrice * Wratio + Pinhole * metal.PinholePrice * Pratio) * work.type.Count * Ratio + work.Price * work.type.Count, 2);
 
             work.type.det.PriceResult();
+        }
+
+        private void BtnEnabled()
+        {
+            if (work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name != "Лист металла")
+            {
+                CutBtn.IsEnabled = false;
+                Way = Price = Pinhole = 0;
+            }   
+            else CutBtn.IsEnabled = true;
         }
 
         public void SaveOrLoadProperties(WorkControl w, bool isSaved)
@@ -193,6 +206,8 @@ namespace Metal_Code
 
         public void ItemList(DataTable table)
         {
+            if (items.Count > 0) items.Clear();
+
             //сначала считываем общие данные для всей раскладки:
             //марку металла и толщину
             for (int i = 0; i < table.Rows.Count; i++)
@@ -208,13 +223,13 @@ namespace Metal_Code
 
                 if ($"{table.Rows[i].ItemArray[4]}" == "Толщина (mm)")
                 {
-                    prop.SetProperty("S_prop", $"{table.Rows[i].ItemArray[5]}");
+                    if (prop != null) prop.S = MainWindow.Parser($"{table.Rows[i].ItemArray[5]}");
                     break;
                 }
             }
 
             //затем считываем значения для каждого листа
-            LaserItem item = null;
+            LaserItem? item = null;
 
             for (int i = 0; i < table.Rows.Count; i++)
             {
@@ -255,14 +270,19 @@ namespace Metal_Code
 
         public void SumProperties(List<LaserItem> _items)
         {
+            Way = 0;
+            Pinhole = 0;
+
             for (int i = 0; i < _items.Count; i++)
             {
                 Way += _items[i].way * _items[i].sheets;
                 Pinhole += _items[i].pinholes * _items[i].sheets;
             }
-            MassChanged(prop);
-        }
 
+            work.type.SetCount(_items.Sum(s => s.sheets));      // устанавливаем общее количество порезанных листов
+
+            if (prop != null) MassChanged(prop);
+        }
     }
 
     [Serializable]

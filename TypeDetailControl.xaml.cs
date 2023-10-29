@@ -1,21 +1,45 @@
 ﻿using System.Collections.Generic;
 using System.Windows.Controls;
 using System.Windows;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace Metal_Code
 {
     /// <summary>
     /// Логика взаимодействия для TypeDetailControl.xaml
     /// </summary>
-    public partial class TypeDetailControl : UserControl
+    public partial class TypeDetailControl : UserControl, INotifyPropertyChanged
     {
-        //Text="{Binding Count, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}"
-        public static readonly DependencyProperty dPcount =
-            DependencyProperty.Register("Count", typeof(int), typeof(TypeDetailControl));
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        private int count;
         public int Count
         {
-            get { return (int)GetValue(dPcount); }
-            set { SetValue(dPcount, value); }
+            get => count;
+            set
+            {
+                if (value != count)
+                {
+                    count = value;
+                    OnPropertyChanged(nameof(Count));
+                }
+            }
+        }
+
+        private bool hasMetal;
+        public bool HasMetal
+        {
+            get => hasMetal;
+            set
+            {
+                if (value != hasMetal)
+                {
+                    hasMetal = value;
+                    OnPropertyChanged(nameof(HasMetal));
+                }
+            }
         }
 
         public readonly DetailControl det;
@@ -78,13 +102,21 @@ namespace Metal_Code
         public event PriceChanged? Priced, Counted;
         private void SetCount(object sender, TextChangedEventArgs e)
         {
-            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count)) Count = count;
+            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count)) SetCount(count);
+        }
+        public void SetCount(int _count)
+        {
+            Count = _count;
             Counted?.Invoke();
         }
-
         private void PriceView(object sender, SelectionChangedEventArgs e)
         {
             Priced?.Invoke();
+        }
+
+        public void UpdateTotal()
+        {
+            Counted?.Invoke();      // Priced? - нельзя, так как обновит вид типовой детали
         }
     }
 }

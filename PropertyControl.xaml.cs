@@ -148,6 +148,8 @@ namespace Metal_Code
         {
             switch (_prop)
             {
+                case "A_prop": if (float.TryParse(_value, out float a)) A = a; break;
+                case "B_prop": if (float.TryParse(_value, out float b)) B = b; break;
                 case "S_prop": if (float.TryParse(_value, out float s)) S = s; break;
                 case "L_prop": if (float.TryParse(_value, out float l)) L = l; break;
             }
