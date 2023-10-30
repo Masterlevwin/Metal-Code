@@ -51,6 +51,7 @@ namespace Metal_Code
             det = d;
             TypeDetailDrop.ItemsSource = MainWindow.M.dbTypeDetails.TypeDetails.Local.ToObservableCollection();
             MetalDrop.ItemsSource = MainWindow.M.dbMetals.Metals.Local.ToObservableCollection();
+            HasMetal = true;
         }
 
         private void AddTypeDetail(object sender, RoutedEventArgs e)
@@ -109,14 +110,20 @@ namespace Metal_Code
             Count = _count;
             Counted?.Invoke();
         }
-        private void PriceView(object sender, SelectionChangedEventArgs e)
+
+        private void CheckMetal(object sender, RoutedEventArgs e)
         {
-            Priced?.Invoke();
+            Counted?.Invoke();
         }
 
         public void UpdateTotal()
         {
             Counted?.Invoke();      // Priced? - нельзя, так как обновит вид типовой детали
+        }
+
+        private void PriceView(object sender, SelectionChangedEventArgs e)
+        {
+            Priced?.Invoke();
         }
     }
 }

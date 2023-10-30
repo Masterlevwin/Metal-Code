@@ -315,6 +315,7 @@ namespace Metal_Code
         {
             OpenFileDialog openFileDialog = new();
             openFileDialog.Filter = "Excel (*.xlsx)|*.xlsx|All files (*.*)|*.*";
+            openFileDialog.Multiselect = true;
             if (openFileDialog.ShowDialog() == true)
             {
                 FilePaths = openFileDialog.FileNames;

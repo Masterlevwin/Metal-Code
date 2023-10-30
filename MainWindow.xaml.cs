@@ -122,7 +122,7 @@ namespace Metal_Code
             DetailsGrid.Columns[2].Header = "Работы";
             DetailsGrid.Columns[3].Header = "Кол-во, шт";
             DetailsGrid.Columns[4].Header = "Цена, руб";
-            DetailsGrid.Columns[5].Header = "Стоимость";
+            DetailsGrid.Columns[5].Header = "Стоимость, руб";
         }
 
         private void UpdateResult(object sender, RoutedEventArgs e)     // метод принудительного обновления стоимости;
@@ -231,27 +231,30 @@ namespace Metal_Code
             ObservableCollection<Detail> details = new();
             for (int i = 0; i < DetailControls.Count; i++)
             {
-                Detail _detail = new(i + 1, DetailControls[i].NameDetail, DetailControls[i].Count,
-                    DetailControls[i].Price, DetailControls[i].Price * DetailControls[i].Count);
-                for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
+                DetailControl det = DetailControls[i];
+                Detail _detail = new(i + 1, det.NameDetail, det.Count, det.Price, det.Price * det.Count);
+                    
+                for (int j = 0; j < det.TypeDetailControls.Count; j++)
                 {
-                    SaveTypeDetail _typeDetail = new(DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedIndex,
-                        DetailControls[i].TypeDetailControls[j].Count, DetailControls[i].TypeDetailControls[j].MetalDrop.SelectedIndex);
-                    for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
+                    TypeDetailControl type = det.TypeDetailControls[j];
+                    SaveTypeDetail _typeDetail = new(type.TypeDetailDrop.SelectedIndex, type.Count, type.MetalDrop.SelectedIndex, type.HasMetal);
+                        
+                    for (int k = 0; k < type.WorkControls.Count; k++)
                     {
-                        SaveWork _saveWork = new(DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedIndex);
-                        if (DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedItem is Work work)
+                        WorkControl work = type.WorkControls[k];
+                        SaveWork _saveWork = new(work.WorkDrop.SelectedIndex);
+
+                        if (work.WorkDrop.SelectedItem is Work _work)
                         {
-                            if (work.Name == "Покупка" && DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedItem is TypeDetail type)
-                                _detail.Description += $"{work.Name} ({type.Name})\n";
-                            else if (work.Name == "Окраска" && DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is PaintControl _paint)
-                                _detail.Description += $"{work.Name} (цвет - {_paint.Ral})\n";
-                            else _detail.Description += work.Name + "\n";
+                            if (_work.Name == "Покупка" && type.TypeDetailDrop.SelectedItem is TypeDetail _type)
+                                _detail.Description += $"{_work.Name} ({_type.Name})\n";
+                            else if (_work.Name == "Окраска" && work.workType is PaintControl _paint)
+                                _detail.Description += $"{_work.Name} (цвет - {_paint.Ral})\n";
+                            else _detail.Description += _work.Name + "\n";
                         }
 
-                        DetailControls[i].TypeDetailControls[j].WorkControls[k].PropertiesChanged?.Invoke(
-                            DetailControls[i].TypeDetailControls[j].WorkControls[k], true);
-                        _saveWork.PropsList = DetailControls[i].TypeDetailControls[j].WorkControls[k].propsList;
+                        work.PropertiesChanged?.Invoke(work, true);  
+                        _saveWork.PropsList = work.propsList;
 
                         _typeDetail.Works.Add(_saveWork);
                     }
@@ -293,12 +296,12 @@ namespace Metal_Code
                     _type.TypeDetailDrop.SelectedIndex = details[i].TypeDetails[j].Index;
                     _type.Count = details[i].TypeDetails[j].Count;
                     _type.MetalDrop.SelectedIndex = details[i].TypeDetails[j].Metal;
+                    _type.HasMetal = details[i].TypeDetails[j].HasMetal;
 
                     for (int k = 0; k < details[i].TypeDetails[j].Works.Count; k++)
                     {
                         WorkControl _work = DetailControls[i].TypeDetailControls[j].WorkControls[k];
                         _work.WorkDrop.SelectedIndex = details[i].TypeDetails[j].Works[k].Index;
-
                         _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
                         _work.PropertiesChanged?.Invoke(_work, false);
 
@@ -395,7 +398,12 @@ namespace Metal_Code
             worksheet.Cells[num + 7, 5].Formula = "=SUM(totalOrder)";
             worksheet.Cells[num + 7, 5].Style.Font.Weight = ExcelFont.BoldWeight;
             worksheet.Cells[num + 7, 5].Style.HorizontalAlignment = HorizontalAlignmentStyle.Center;
-            worksheet.Cells.GetSubrangeAbsolute(num + 7, 0, num + 7, 4).Merged = true;
+            worksheet.Cells.GetSubrangeAbsolute(num + 7, 3, num + 7, 4).Merged = true;
+            
+            worksheet.Cells[num + 8, 1].Value = "Материал:";
+            worksheet.Cells[num + 8, 1].Style.VerticalAlignment = VerticalAlignmentStyle.Top;
+            worksheet.Cells[num + 8, 2].Value = DetailControls[0].TypeDetailControls[0].HasMetal ? "Исполнителя" : "Заказчика";
+            worksheet.Cells[num + 8, 2].Style.Font.Weight = ExcelFont.BoldWeight;
 
             worksheet.Cells[num + 8, 4].Value = $"Всего за {Count} шт:";
             worksheet.Cells[num + 8, 4].Style.Font.Weight = ExcelFont.BoldWeight;
@@ -404,24 +412,25 @@ namespace Metal_Code
             worksheet.Cells[num + 8, 5].Style.Font.Weight = ExcelFont.BoldWeight;
             worksheet.Cells[num + 8, 5].Style.HorizontalAlignment = HorizontalAlignmentStyle.Center;
 
-            worksheet.Cells[num + 9, 0].Value = "Срок изготовления:";
-            worksheet.Cells[num + 9, 0].Style.VerticalAlignment = VerticalAlignmentStyle.Top;
+            worksheet.Cells[num + 9, 1].Value = "Срок изготовления:";
+            worksheet.Cells[num + 9, 1].Style.VerticalAlignment = VerticalAlignmentStyle.Top;
             worksheet.Cells[num + 9, 2].Value = DateProduction.Text + " раб/дней.";
             worksheet.Cells[num + 9, 2].Style.Font.Weight = ExcelFont.BoldWeight;
             worksheet.Cells.GetSubrangeAbsolute(num + 9, 2, num + 9, 4).Merged = true;
 
-            worksheet.Cells[num + 10, 0].Value = "Условия оплаты:";
-            worksheet.Cells[num + 10, 0].Style.VerticalAlignment = VerticalAlignmentStyle.Top;
+            worksheet.Cells[num + 10, 1].Value = "Условия оплаты:";
+            worksheet.Cells[num + 10, 1].Style.VerticalAlignment = VerticalAlignmentStyle.Top;
             worksheet.Cells[num + 10, 2].Value = "Предоплата 100% по счету Исполнителя.";
             worksheet.Cells.GetSubrangeAbsolute(num + 10, 2, num + 10, 5).Merged = true;
 
-            worksheet.Cells[num + 11, 0].Value = "Порядок отгрузки:";
+            worksheet.Cells[num + 11, 1].Value = "Порядок отгрузки:";
 
-            worksheet.Cells[num + 12, 0].Value = "Ваш менеджер:";
+            worksheet.Cells[num + 12, 1].Value = "Ваш менеджер:";
             worksheet.Cells[num + 12, 2].Value = ManagerDrop.Text;
             worksheet.Cells[num + 12, 2].Style.Font.Weight = ExcelFont.BoldWeight;
 
-            worksheet.Cells.GetSubrangeAbsolute(num + 8, 0, num + 13, 5).Style.VerticalAlignment = VerticalAlignmentStyle.Top;
+            worksheet.Cells.GetSubrangeAbsolute(num + 9, 0, num + 13, 5).Style.VerticalAlignment = VerticalAlignmentStyle.Top;
+            worksheet.Cells.GetSubrangeAbsolute(num + 9, 0, num + 13, 5).AutoFitColumnWidth();
 
             worksheet.Cells[num + 12, 5].Value = version;
             worksheet.Cells[num + 12, 5].Style.HorizontalAlignment = HorizontalAlignmentStyle.Right;

@@ -171,7 +171,7 @@ namespace Metal_Code
 
         public void PriceChanged()
         {
-            Price = work.Result = (float)Math.Round(work.type.Count * work.Price * Mass, 2);
+            Price = work.Result = work.type.HasMetal ? (float)Math.Round(work.type.Count * work.Price * Mass, 2) : 0;
 
             work.type.det.PriceResult();
         }
