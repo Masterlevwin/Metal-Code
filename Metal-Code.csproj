@@ -6,11 +6,18 @@
     <RootNamespace>Metal_Code</RootNamespace>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
-    <UseWindowsForms>true</UseWindowsForms>
+    <UseWindowsForms>False</UseWindowsForms>
+    <StartupObject>Metal_Code.App</StartupObject>
+    <ApplicationIcon>excel_logo.ico</ApplicationIcon>
+    <IsPublishable>False</IsPublishable>
   </PropertyGroup>
 
   <ItemGroup>
     <None Remove="WhatsApp Image 2019-07-15 at 12.28.15.jpeg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="excel_logo.ico" />
   </ItemGroup>
 
   <ItemGroup>

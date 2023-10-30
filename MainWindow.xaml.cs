@@ -488,5 +488,24 @@ namespace Metal_Code
                 System.Globalization.CultureInfo.InvariantCulture, out float f)) return f;
             else return 0;
         }
+
+        public static float SizeDetail(string str)
+        {
+            //выходим из метода, если строки нет, или она не содержит информацию о размере детали
+            if (str == null || !str.Contains('X')) return 0;
+
+            float size = 1;
+
+            //создаем и сразу инициализируем массив строк по следующему принципу:
+            //если у детали есть отверстия('Ø'), то сначала обрезаем строку до знака диаметра,
+            //а затем разделяем получившуюся строку на два числовых значения (размеры детали),
+            //иначе сразу разделяем строку на размеры
+            string[] sizes = str.Contains('Ø') ? str[..str.IndexOf('Ø')].Split('X') : str.Split('X');
+
+            //перемножаем размеры детали, получая её площадь (это нужно для расчета окраски)
+            foreach (string s in sizes) size *= Parser(s);
+
+            return size;
+        }
     }
 }

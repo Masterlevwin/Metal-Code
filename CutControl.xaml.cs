@@ -238,6 +238,7 @@ namespace Metal_Code
                 if (table.Rows[i].ItemArray[0]?.ToString() == "Размер листа")
                 {
                     item.sheetSize = $"{table.Rows[i].ItemArray[1]}".TrimEnd('m');
+                    SetSheetSize(item.sheetSize);
                 }
 
                 if (table.Rows[i].ItemArray[2]?.ToString() == "Кол-во повторов")
@@ -282,6 +283,19 @@ namespace Metal_Code
             work.type.SetCount(_items.Sum(s => s.sheets));      // устанавливаем общее количество порезанных листов
 
             if (prop != null) MassChanged(prop);
+        }
+
+        private void SetSheetSize(string _sheetsize)
+        {
+            if (_sheetsize == null || !_sheetsize.Contains('X')) return;
+
+            string[] properties = _sheetsize.Split('X');
+
+            if (prop != null)
+            {
+                prop.A = MainWindow.Parser(properties[0]);
+                prop.B = MainWindow.Parser(properties[1]);
+            }
         }
     }
 

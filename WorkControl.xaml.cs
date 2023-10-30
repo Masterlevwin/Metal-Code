@@ -125,6 +125,8 @@ namespace Metal_Code
                 else Price = typeDetail.Price;
             }
             else Price = work.Price;
+
+            if (workType == null) Result = Price * type.Count;
         }
 
         private bool ValidateProp(out int ndx)

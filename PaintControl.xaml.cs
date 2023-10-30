@@ -112,8 +112,9 @@ namespace Metal_Code
         }
         private void PriceChanged()
         {
-            Price = work.Result = (float)Math.Round(TypeDrop.SelectedIndex == 0 ? Mass * TypeDict[$"{TypeDrop.SelectedItem}"] * Ratio * work.type.Count + work.Price
-                : TypeDict[$"{TypeDrop.SelectedItem}"] * Ratio * work.type.Count + work.Price, 2);
+            if (Mass > 0)
+                Price = work.Result = (float)Math.Round(TypeDrop.SelectedIndex == 0 ? Mass * TypeDict[$"{TypeDrop.SelectedItem}"] * Ratio * work.type.Count + work.Price
+                    : TypeDict[$"{TypeDrop.SelectedItem}"] * Ratio * work.type.Count + work.Price, 2);
 
             work.type.det.PriceResult();
         }
