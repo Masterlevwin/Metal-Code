@@ -10,6 +10,8 @@ using System.Reflection;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
+using System.Windows.Media.Animation;
 
 namespace Metal_Code
 {
@@ -115,6 +117,7 @@ namespace Metal_Code
             foreach (DetailControl d in DetailControls) Result += d.Price * d.Count;
             Result *= Count;
             Result = (float)Math.Round(Result, 2);
+            //AnimBtn();
 
             DetailsGrid.ItemsSource = SourceDetails();
             DetailsGrid.Columns[0].Header = "N";
@@ -123,6 +126,17 @@ namespace Metal_Code
             DetailsGrid.Columns[3].Header = "Кол-во, шт";
             DetailsGrid.Columns[4].Header = "Цена, руб";
             DetailsGrid.Columns[5].Header = "Стоимость, руб";
+        }
+
+        private void AnimBtn()
+        {
+            DoubleAnimation buttonAnimation = new();
+            buttonAnimation.From = ResultBtn.ActualWidth;
+            buttonAnimation.To = 150;
+            buttonAnimation.Duration = TimeSpan.FromSeconds(3);
+            buttonAnimation.RepeatBehavior = new RepeatBehavior(TimeSpan.FromSeconds(7));
+            buttonAnimation.AutoReverse = true;
+            ResultBtn.BeginAnimation(WidthProperty, buttonAnimation);
         }
 
         private void UpdateResult(object sender, RoutedEventArgs e)     // метод принудительного обновления стоимости;
