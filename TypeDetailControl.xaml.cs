@@ -52,11 +52,19 @@ namespace Metal_Code
             TypeDetailDrop.ItemsSource = MainWindow.M.dbTypeDetails.TypeDetails.Local.ToObservableCollection();
             MetalDrop.ItemsSource = MainWindow.M.dbMetals.Metals.Local.ToObservableCollection();
             HasMetal = true;
+            AddProperty();
         }
 
         private void AddTypeDetail(object sender, RoutedEventArgs e)
         {
             det.AddTypeDetail();
+        }
+
+        private void AddProperty()
+        {
+            PropertyControl prop = new();
+            TypeDetailGrid.Children.Add(prop);
+            Grid.SetColumn(prop, 2);
         }
 
         public void AddWork()
@@ -68,7 +76,7 @@ namespace Metal_Code
             WorkControls.Add(work);
             TypeDetailGrid.Children.Add(work);
 
-            Grid.SetColumn(work, 2);
+            Grid.SetColumn(work, 3);
 
             work.UpdatePosition(true);
         }

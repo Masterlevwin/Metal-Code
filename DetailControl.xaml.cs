@@ -34,6 +34,7 @@ namespace Metal_Code
         public DetailControl()
         {
             InitializeComponent();
+            Count = 1;
         }
 
         private void AddDetail(object sender, RoutedEventArgs e)
@@ -47,6 +48,7 @@ namespace Metal_Code
             if (TypeDetailControls.Count > 0)
                 type.Margin = new Thickness(0,
                     TypeDetailControls[^1].Margin.Top + 25 * TypeDetailControls[^1].WorkControls.Count, 0, 0);
+                    
 
             TypeDetailControls.Add(type);
             DetailGrid.Children.Add(type);
@@ -86,7 +88,7 @@ namespace Metal_Code
             if (sender is TextBox tBox) NameDetail = tBox.Text;
         }
 
-        private void SetCount(object sender, TextChangedEventArgs e)
+        private void SetCount(object sender, TextChangedEventArgs e)    // свойство временно не используется, так как заказчик посчитал его ненужным
         {
             if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count)) Count = count;
             MainWindow.M.TotalResult();

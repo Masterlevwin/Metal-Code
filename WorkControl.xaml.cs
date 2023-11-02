@@ -74,7 +74,7 @@ namespace Metal_Code
             switch (work.Name)
             {
                 case "Покупка":
-                    PropertyControl prop = new(this);
+                    /*PropertyControl prop = new(this);
                     WorkGrid.Children.Add(prop);
                     Grid.SetColumn(prop, 2);
                     workType = prop;
@@ -82,7 +82,7 @@ namespace Metal_Code
                     {
                         type.AddWork();                                     // если типовой деталью является лист металла,
                         type.WorkControls[^1].WorkDrop.SelectedIndex = 3;   // то добавляем резку
-                    }
+                    }*/
                     break;
                 case "Сварка":
                     WeldControl weld = new(this);

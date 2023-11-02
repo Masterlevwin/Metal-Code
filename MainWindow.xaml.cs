@@ -10,8 +10,9 @@ using System.Reflection;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 using System.Windows.Media.Animation;
+using ExcelDataReader;
+using System.IO;
 
 namespace Metal_Code
 {
@@ -155,7 +156,7 @@ namespace Metal_Code
             if (DetailControls.Count > 0)
                 detail.Margin = new Thickness(0,
                     DetailControls[^1].Margin.Top + 25 * DetailControls[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
-            
+
             DetailControls.Add(detail);
             ProductGrid.Children.Add(detail);
 
@@ -398,7 +399,7 @@ namespace Metal_Code
 
             worksheet.Cells.GetSubrangeAbsolute(5, 4, num + 8, 5).Style.NumberFormat = $"00.00";
 
-            CellRange cells = worksheet.Cells.GetSubrangeAbsolute(5, 0, num + 7, 5);
+            GemBox.Spreadsheet.CellRange cells = worksheet.Cells.GetSubrangeAbsolute(5, 0, num + 7, 5);
             cells.AutoFitColumnWidth();
             cells.Style.Borders.SetBorders(MultipleBorders.Inside, SpreadsheetColor.FromName(ColorName.Black), LineStyle.Thin);
             cells.Style.Borders.SetBorders(MultipleBorders.Outside,SpreadsheetColor.FromName(ColorName.Black), LineStyle.Medium);

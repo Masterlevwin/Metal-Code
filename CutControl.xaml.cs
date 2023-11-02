@@ -73,7 +73,7 @@ namespace Metal_Code
             }
         }
 
-        private readonly WorkControl work;
+        public readonly WorkControl work;
         private PropertyControl? prop;
         readonly IDialogService dialogService;
 
@@ -189,8 +189,7 @@ namespace Metal_Code
                 dialogService.ShowMessage(ex.Message);
             }
         }
-
-        private void LoadExcel(string[] paths)
+        public void LoadExcel(string[] paths)
         {
             for (int i = 0; i < paths.Length; i++)
             {
@@ -198,7 +197,15 @@ namespace Metal_Code
                 using IExcelDataReader reader = ExcelReaderFactory.CreateReader(stream);
                 DataSet result = reader.AsDataSet();
                 DataTable table = result.Tables[0];
-                ItemList(table);
+
+                if (i == 0) ItemList(table);
+                else
+                {
+                    work.type.det.AddTypeDetail();                                                    // добавляем типовую деталь
+                    work.type.det.TypeDetailControls[^1].TypeDetailDrop.SelectedIndex = 2;            // устанавливаем "Лист металла"
+                    work.type.det.TypeDetailControls[^1].WorkControls[0].WorkDrop.SelectedIndex = 0;  // устанавливаем "Покупка", автоматически добавится "Резка листа"
+                    if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut) _cut.ItemList(table);    // заполняем эту резку
+                }
             }
         }
 

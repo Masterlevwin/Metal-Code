@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="500" VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" ToolTip="ПКМ - Добавить или Удалить">
+             d:DesignHeight="20" d:DesignWidth="250" VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" ToolTip="ПКМ - Добавить или Удалить">
     <UserControl.ContextMenu>
         <ContextMenu>
             <MenuItem Header="Добавить" Click="AddDetail"></MenuItem>
@@ -14,12 +14,10 @@
     </UserControl.ContextMenu>
     <Grid x:Name="DetailGrid">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto" MinWidth="150"/>
+            <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <TextBox Text="{Binding NameDetail, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="150" MinHeight="20" VerticalAlignment="Top" ToolTip="Введите наименование детали" MaxWidth="150" MaxLines="1" TextChanged="SetName"/>
-        <TextBox Text="{Binding Count, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}" Grid.Column="1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="40" MinHeight="20" Margin="20,0,0,0" HorizontalAlignment="Left" ToolTip="Введите количество деталей" VerticalAlignment="Top" MaxLength="4" MaxLines="1" TextChanged="SetCount"/>
+        <TextBox Text="{Binding NameDetail, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="150" MinHeight="20" VerticalAlignment="Top" ToolTip="Введите наименование детали" MaxWidth="150" MaxLines="1" TextChanged="SetName" Height="20"/>
     </Grid>
 </UserControl>
     

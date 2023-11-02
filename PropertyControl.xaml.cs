@@ -94,15 +94,15 @@ namespace Metal_Code
         }
 
         private readonly WorkControl work;
-        public PropertyControl(WorkControl _work)
+        public PropertyControl(WorkControl? _work = null)
         {
             InitializeComponent();
             work = _work;
 
-            work.PropertiesChanged += SaveOrLoadProperties; // подписка на сохранение и загрузку файла
-            work.type.Counted += PriceChanged;              // подписка на изменение количества типовых деталей
-            work.type.Priced += CreateSort;                 // подписка на изменение материала типовой детали
-            CreateSort();                  // при загрузке формируем словарь видов типовой детали по умолчанию
+            //work.PropertiesChanged += SaveOrLoadProperties; // подписка на сохранение и загрузку файла
+            //work.type.Counted += PriceChanged;              // подписка на изменение количества типовых деталей
+            //work.type.Priced += CreateSort;                 // подписка на изменение материала типовой детали
+            //CreateSort();                  // при загрузке формируем словарь видов типовой детали по умолчанию
         }
 
         Dictionary<string, (string, string)> Dict = new();
@@ -153,7 +153,7 @@ namespace Metal_Code
                 case "S_prop": if (float.TryParse(_value, out float s)) S = s; break;
                 case "L_prop": if (float.TryParse(_value, out float l)) L = l; break;
             }
-            MassCalculate();
+            //MassCalculate();
         }
 
         public delegate void Changed(PropertyControl prop);
