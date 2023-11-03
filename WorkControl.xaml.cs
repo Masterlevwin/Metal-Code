@@ -14,15 +14,6 @@ namespace Metal_Code
         public delegate void PropsChanged(WorkControl w, bool b);
         public PropsChanged? PropertiesChanged;
 
-        //Text="{Binding Price, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:WorkControl}}}"
-        public static readonly DependencyProperty MyPropertyPrice =
-            DependencyProperty.Register("Price", typeof(float), typeof(WorkControl));
-        public float Price
-        {
-            get { return (float)GetValue(MyPropertyPrice); }
-            set { SetValue(MyPropertyPrice, value); }
-        }
-
         public float Result { get; set; }
 
         public readonly TypeDetailControl type;
@@ -30,7 +21,6 @@ namespace Metal_Code
         {
             InitializeComponent();
             type = t;
-            type.Priced += PriceView;
             WorkDrop.ItemsSource = MainWindow.M.dbWorks.Works.Local.ToObservableCollection();
         }
 
@@ -51,6 +41,7 @@ namespace Metal_Code
             type.det.PriceResult();
             type.TypeDetailGrid.Children.Remove(this);
         }
+
         public void UpdatePosition(bool direction)
         {
             int numW = type.WorkControls.IndexOf(this);
@@ -59,6 +50,7 @@ namespace Metal_Code
                         direction ? type.WorkControls[i].Margin.Top + 25 : type.WorkControls[i].Margin.Top - 25, 0, 0);
             type.UpdatePosition(direction);
         }
+
 
         public UserControl? workType;
         private void CreateWork(object sender, SelectionChangedEventArgs e)
@@ -73,33 +65,22 @@ namespace Metal_Code
 
             switch (work.Name)
             {
-                case "Покупка":
-                    /*PropertyControl prop = new(this);
-                    WorkGrid.Children.Add(prop);
-                    Grid.SetColumn(prop, 2);
-                    workType = prop;
-                    if (type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
-                    {
-                        type.AddWork();                                     // если типовой деталью является лист металла,
-                        type.WorkControls[^1].WorkDrop.SelectedIndex = 3;   // то добавляем резку
-                    }*/
-                    break;
                 case "Сварка":
                     WeldControl weld = new(this);
                     WorkGrid.Children.Add(weld);
-                    Grid.SetColumn(weld, 2);
+                    Grid.SetColumn(weld, 1);
                     workType = weld;
                     break;
                 case "Окраска":
                     PaintControl paint = new(this);
                     WorkGrid.Children.Add(paint);
-                    Grid.SetColumn(paint, 2);
+                    Grid.SetColumn(paint, 1);
                     workType = paint;
                     break;
-                case "Резка листа":
+                case "Лазерная резка":
                     CutControl cut = new(this, new ExcelDialogService());
                     WorkGrid.Children.Add(cut);
-                    Grid.SetColumn(cut, 2);
+                    Grid.SetColumn(cut, 1);
                     workType = cut;
                     break;
             }
@@ -109,24 +90,6 @@ namespace Metal_Code
                 if (WorkDrop.Items.Count <= index) MessageBox.Show($"Такая работа уже есть!\nУдалите лишнее!");
                 else WorkDrop.SelectedIndex = index;
             }
-
-            PriceView();
-        }
-
-        public void PriceView()         // метод отображения цены типовой детали или работы
-        {
-            if (WorkDrop.SelectedItem is not Work work) return;
-
-            if (work.Name == "Покупка")
-            {
-                if (type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail) return;
-
-                if (typeDetail.Name == "Лист металла" && type.MetalDrop.SelectedItem is Metal metal) Price = metal.MassPrice;
-                else Price = typeDetail.Price;
-            }
-            else Price = work.Price;
-
-            if (workType == null) Result = Price * type.Count;
         }
 
         private bool ValidateProp(out int ndx)
@@ -141,6 +104,15 @@ namespace Metal_Code
                 }
 
             return false;
+        }
+
+        public void SetResult(float price)
+        {
+            if (WorkDrop.SelectedItem is not Work work) return;
+
+            Result = price + work.Price;
+
+            type.det.PriceResult();
         }
     }
 }

@@ -46,14 +46,16 @@ namespace Metal_Code
         public int Count { get; set; }
         public int Metal { get; set; }
         public bool HasMetal { get; set; }
+        public (int, float, float, float, float) Tuple { get; set; }
 
         public List<SaveWork> Works = new();
-        public SaveTypeDetail(int _index = 0, int _count = 0, int _metal = 0, bool hasMetal = true)
+        public SaveTypeDetail(int _index = 0, int _count = 0, int _metal = 0, bool _hasMetal = true, (int, float, float, float, float) _tuple = default)
         {
             Index = _index;
             Count = _count;
             Metal = _metal;
-            HasMetal = hasMetal;
+            HasMetal = _hasMetal;
+            Tuple = _tuple;
         }
     }
     
@@ -109,8 +111,8 @@ namespace Metal_Code
         public string? Name { get; set; }
         public float Density {  get; set; }
         public float MassPrice {  get; set; }
-        public float WayPrice { get; set; }
-        public float PinholePrice { get; set; }
+        public string? WayPrice { get; set; }
+        public string? PinholePrice { get; set; }
 
         public Metal()
         {

@@ -74,7 +74,6 @@ namespace Metal_Code
         }
 
         public readonly WorkControl work;
-        private PropertyControl? prop;
         readonly IDialogService dialogService;
 
         public CutControl(WorkControl _work, IDialogService _dialogService)
@@ -84,15 +83,7 @@ namespace Metal_Code
             dialogService = _dialogService;
 
             work.PropertiesChanged += SaveOrLoadProperties; // подписка на сохранение и загрузку файла
-            work.type.Counted += PriceChanged;              // подписка на изменение количества типовых деталей
             work.type.Priced += PriceChanged;               // подписка на изменение материала типовой детали
-            foreach (WorkControl w in work.type.WorkControls)
-                if (w != work && w.workType is PropertyControl _prop)
-                {
-                    prop = _prop;
-                    _prop.MassChanged += MassChanged;        // подписка на изменение массы типовой детали или толщины листа
-                    MassChanged(_prop);
-                }
             BtnEnabled();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной
         }
 
@@ -126,23 +117,16 @@ namespace Metal_Code
             PriceChanged();
         }
 
-        float Wratio, Pratio;
-        private void MassChanged(PropertyControl prop)
-        {
-            Wratio = prop.S * 1.05f;
-            Pratio = prop.S * 1.5f;
-            PriceChanged();
-        }
-
         private void PriceChanged()
         {
             BtnEnabled();
             if (Way == 0 || Pinhole == 0) return;
             if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
-
-            Price = work.Result = (float)Math.Round((Way * metal.WayPrice * Wratio + Pinhole * metal.PinholePrice * Pratio) * work.type.Count * Ratio + work.Price * work.type.Count, 2);
-
-            work.type.det.PriceResult();
+            
+            if (MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+                Price = (float)Math.Round(Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1
+                                    + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2 * Ratio, 2);
+            work.SetResult(Price);
         }
 
         private void BtnEnabled()
@@ -203,7 +187,7 @@ namespace Metal_Code
                 {
                     work.type.det.AddTypeDetail();                                                    // добавляем типовую деталь
                     work.type.det.TypeDetailControls[^1].TypeDetailDrop.SelectedIndex = 2;            // устанавливаем "Лист металла"
-                    work.type.det.TypeDetailControls[^1].WorkControls[0].WorkDrop.SelectedIndex = 0;  // устанавливаем "Покупка", автоматически добавится "Резка листа"
+                    work.type.det.TypeDetailControls[^1].WorkControls[0].WorkDrop.SelectedIndex = 3;  // устанавливаем "Лазерная резка"
                     if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut) _cut.ItemList(table);    // заполняем эту резку
                 }
             }
@@ -230,7 +214,7 @@ namespace Metal_Code
 
                 if ($"{table.Rows[i].ItemArray[4]}" == "Толщина (mm)")
                 {
-                    if (prop != null) prop.S = MainWindow.Parser($"{table.Rows[i].ItemArray[5]}");
+                    work.type.S = MainWindow.Parser($"{table.Rows[i].ItemArray[5]}");
                     break;
                 }
             }
@@ -256,7 +240,9 @@ namespace Metal_Code
                 if (table.Rows[i].ItemArray[6]?.ToString() == "Количество проколов  =")
                 {
                     item.pinholes = (int)MainWindow.Parser($"{table.Rows[i].ItemArray[8]}");
-                    if ($"{work.type.MetalDrop.SelectedItem}".Contains("шлиф") || $"{work.type.MetalDrop.SelectedItem}".Contains("зер")) item.pinholes *= 2;
+
+                    if (work.type.MetalDrop.SelectedItem is Metal metal &&
+                        (metal.Name.Contains("шлиф") || metal.Name.Contains("зер"))) item.pinholes *= 2;
                 }
 
                 if ($"{table.Rows[i].ItemArray[6]}".Contains("Вес листа  (Kg) ="))
@@ -267,7 +253,8 @@ namespace Metal_Code
                 if ($"{table.Rows[i].ItemArray[6]}".Contains("Длина пути резки (mm) ="))
                 {
                     item.way = (float)Math.Ceiling(MainWindow.Parser($"{table.Rows[i].ItemArray[8]}") / 1000);
-                    if ($"{work.type.MetalDrop.SelectedItem}".Contains("шлиф") || $"{work.type.MetalDrop.SelectedItem}".Contains("зер")) item.way *= 2;
+                    if (work.type.MetalDrop.SelectedItem is Metal metal &&
+                        (metal.Name.Contains("шлиф") || metal.Name.Contains("зер"))) item.way *= 2;
 
                     items.Add(item);
                     item = null;
@@ -289,7 +276,7 @@ namespace Metal_Code
 
             work.type.SetCount(_items.Sum(s => s.sheets));      // устанавливаем общее количество порезанных листов
 
-            if (prop != null) MassChanged(prop);
+            PriceChanged();
         }
 
         private void SetSheetSize(string _sheetsize)
@@ -297,12 +284,8 @@ namespace Metal_Code
             if (_sheetsize == null || !_sheetsize.Contains('X')) return;
 
             string[] properties = _sheetsize.Split('X');
-
-            if (prop != null)
-            {
-                prop.A = MainWindow.Parser(properties[0]);
-                prop.B = MainWindow.Parser(properties[1]);
-            }
+            work.type.A = MainWindow.Parser(properties[0]);
+            work.type.B = MainWindow.Parser(properties[1]);
         }
     }
 

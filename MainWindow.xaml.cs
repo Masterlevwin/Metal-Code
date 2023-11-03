@@ -53,6 +53,26 @@ namespace Metal_Code
 
             dbMetals.Database.EnsureCreated();
             dbMetals.Metals.Load();
+            CreateMetalDict();
+        }
+
+        private List<float> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25 };
+        public Dictionary<string, Dictionary<float, (float, float)>> MetalDict = new();
+        private void CreateMetalDict()
+        {
+            List<Metal> metals = new(dbMetals.Metals.Local.ToList());
+
+            foreach (Metal metal in metals)
+            {
+                Dictionary<float, (float, float)> prices = new();
+
+                string[] _ways = metal.WayPrice.Split('/');
+                string[] _pinholes = metal.PinholePrice.Split('/');
+
+                for (int i = 0; i < _ways.Length; i++) prices[Destinies[i]] = (Parser(_ways[i]), Parser(_pinholes[i]));
+
+                MetalDict[metal.Name] = prices;
+            }           
         }
 
         private void OpenSettings(object sender, RoutedEventArgs e)
@@ -140,13 +160,13 @@ namespace Metal_Code
             ResultBtn.BeginAnimation(WidthProperty, buttonAnimation);
         }
 
-        private void UpdateResult(object sender, RoutedEventArgs e)     // метод принудительного обновления стоимости;
+        /*private void UpdateResult(object sender, RoutedEventArgs e)   // метод принудительного обновления стоимости;
                                                                         // создан для исправления ситуации с запятой в коэффициентах работ
-                                                                        // не доработан (в PropertyControl изменение толщины требует фокус на длине)
+                                                                        //(вроде пропала проблема)
         {
             foreach (DetailControl d in DetailControls)
-                foreach (TypeDetailControl t in d.TypeDetailControls) t.UpdateTotal();
-        }
+                foreach (TypeDetailControl t in d.TypeDetailControls) t.PriceChanged();
+        }*/
 
         public List<DetailControl> DetailControls = new();
         public void AddDetail()
@@ -252,7 +272,8 @@ namespace Metal_Code
                 for (int j = 0; j < det.TypeDetailControls.Count; j++)
                 {
                     TypeDetailControl type = det.TypeDetailControls[j];
-                    SaveTypeDetail _typeDetail = new(type.TypeDetailDrop.SelectedIndex, type.Count, type.MetalDrop.SelectedIndex, type.HasMetal);
+                    SaveTypeDetail _typeDetail = new(type.TypeDetailDrop.SelectedIndex, type.Count, type.MetalDrop.SelectedIndex, type.HasMetal,
+                        (type.SortDrop.SelectedIndex, type.A, type.B, type.S, type.L));
                         
                     for (int k = 0; k < type.WorkControls.Count; k++)
                     {
@@ -312,6 +333,11 @@ namespace Metal_Code
                     _type.Count = details[i].TypeDetails[j].Count;
                     _type.MetalDrop.SelectedIndex = details[i].TypeDetails[j].Metal;
                     _type.HasMetal = details[i].TypeDetails[j].HasMetal;
+                    _type.SortDrop.SelectedIndex = details[i].TypeDetails[j].Tuple.Item1;
+                    _type.A = details[i].TypeDetails[j].Tuple.Item2;
+                    _type.B = details[i].TypeDetails[j].Tuple.Item3;
+                    _type.S = details[i].TypeDetails[j].Tuple.Item4;
+                    _type.L = details[i].TypeDetails[j].Tuple.Item5;
 
                     for (int k = 0; k < details[i].TypeDetails[j].Works.Count; k++)
                     {

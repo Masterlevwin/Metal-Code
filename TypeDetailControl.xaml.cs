@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System;
 
 namespace Metal_Code
 {
@@ -28,6 +29,73 @@ namespace Metal_Code
             }
         }
 
+        private float a;
+        public float A
+        {
+            get => a;
+            set
+            {
+                if (value != a)
+                {
+                    a = value;
+                    OnPropertyChanged(nameof(A));
+                }
+            }
+        }
+
+        private float b;
+        public float B
+        {
+            get => b;
+            set
+            {
+                if (value != b)
+                {
+                    b = value;
+                    OnPropertyChanged(nameof(B));
+                }
+            }
+        }
+
+        private float s;
+        public float S
+        {
+            get => s;
+            set
+            {
+                if (value != s)
+                {
+                    s = value;
+                    OnPropertyChanged(nameof(S));
+                }
+            }
+        }
+
+        private float l;
+        public float L
+        {
+            get => l;
+            set
+            {
+                if (value != l)
+                {
+                    l = value;
+                    OnPropertyChanged(nameof(L));
+                }
+            }
+        }
+
+        private float mass;
+        public float Mass
+        {
+            get { return mass; }
+            set
+            {
+                mass = value;
+                OnPropertyChanged(nameof(Mass));
+            }
+        }
+
         private bool hasMetal;
         public bool HasMetal
         {
@@ -42,6 +110,28 @@ namespace Metal_Code
             }
         }
 
+        private float price;
+        public float Price
+        {
+            get { return price; }
+            set
+            {
+                price = value;
+                OnPropertyChanged(nameof(Price));
+            }
+        }
+
+        private float result;
+        public float Result
+        {
+            get { return result; }
+            set
+            {
+                result = value;
+                OnPropertyChanged(nameof(Result));
+            }
+        }
+
         public readonly DetailControl det;
         public List<WorkControl> WorkControls = new();
 
@@ -52,19 +142,12 @@ namespace Metal_Code
             TypeDetailDrop.ItemsSource = MainWindow.M.dbTypeDetails.TypeDetails.Local.ToObservableCollection();
             MetalDrop.ItemsSource = MainWindow.M.dbMetals.Metals.Local.ToObservableCollection();
             HasMetal = true;
-            AddProperty();
+            CreateSort();
         }
 
         private void AddTypeDetail(object sender, RoutedEventArgs e)
         {
             det.AddTypeDetail();
-        }
-
-        private void AddProperty()
-        {
-            PropertyControl prop = new();
-            TypeDetailGrid.Children.Add(prop);
-            Grid.SetColumn(prop, 2);
         }
 
         public void AddWork()
@@ -76,7 +159,7 @@ namespace Metal_Code
             WorkControls.Add(work);
             TypeDetailGrid.Children.Add(work);
 
-            Grid.SetColumn(work, 3);
+            Grid.SetColumn(work, 1);
 
             work.UpdatePosition(true);
         }
@@ -107,8 +190,9 @@ namespace Metal_Code
             det.UpdatePosition(direction);
         }
 
-        public delegate void PriceChanged();
-        public event PriceChanged? Priced, Counted;
+
+        public delegate void Changed();
+        public event Changed? Priced;
         private void SetCount(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count)) SetCount(count);
@@ -116,22 +200,87 @@ namespace Metal_Code
         public void SetCount(int _count)
         {
             Count = _count;
-            Counted?.Invoke();
+            PriceChanged();
         }
 
-        private void CheckMetal(object sender, RoutedEventArgs e)
+        Dictionary<string, (string, string)> Kinds = new();
+        private void CreateSort(object sender, SelectionChangedEventArgs e)
         {
-            Counted?.Invoke();
+            CreateSort();
+        }
+        public void CreateSort(int ndx = 0)
+        {
+            if (TypeDetailDrop.SelectedItem is not TypeDetail type || type.Sort == null) return;
+
+            Kinds.Clear();
+
+            string[] strings = type.Sort.Split(',');
+            for (int i = 0; i < strings.Length; i += 3) Kinds[strings[i]] = (strings[i + 1], strings[i + 2]);
+
+            SortDrop.Items.Clear();
+            foreach (string s in Kinds.Keys) SortDrop.Items.Add(s);
+            SortDrop.SelectedIndex = ndx;
+            ChangeSort();
         }
 
-        public void UpdateTotal()
+        private void ChangeSort(object sender, SelectionChangedEventArgs e)
         {
-            Counted?.Invoke();      // Priced? - нельзя, так как обновит вид типовой детали
+            ChangeSort();
+        }
+        public void ChangeSort()
+        {
+            if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+            {
+                A = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item1);
+                B = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item2);
+            }
+            MassCalculate();
         }
 
-        private void PriceView(object sender, SelectionChangedEventArgs e)
+        private void SetProperty(object sender, TextChangedEventArgs e)
         {
+            if (sender is TextBox tBox) SetProperty(tBox.Name, tBox.Text);
+        }
+        public void SetProperty(string _prop, string _value)
+        {
+            switch (_prop)
+            {
+                case "A_prop": if (float.TryParse(_value, out float a)) A = a; break;
+                case "B_prop": if (float.TryParse(_value, out float b)) B = b; break;
+                case "S_prop": if (float.TryParse(_value, out float s)) S = s; break;
+                case "L_prop": if (float.TryParse(_value, out float l)) L = l; break;
+            }
+            MassCalculate();
+        }
+
+        private void MassCalculate(object sender, SelectionChangedEventArgs e)
+        {
+            MassCalculate();
+        }
+        public void MassCalculate()
+        {
+            if (TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
+
+            if (type.Name == "Лист металла") Price = metal.MassPrice;
+            else Price = type.Price;
+
+            Mass = (float)Math.Round(A * B * S * L * metal.Density / 1000000, 2);
+
+            PriceChanged();
+        }
+
+        private void HasMetalChanged(object sender, RoutedEventArgs e)
+        {
+            PriceChanged();
+        }
+
+        public void PriceChanged()
+        {
+            Result = HasMetal ? (float)Math.Round(Count * Price * Mass, 2) : 0;
+
             Priced?.Invoke();
+
+            det.PriceResult();
         }
     }
 }

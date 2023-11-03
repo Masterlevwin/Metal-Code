@@ -57,7 +57,6 @@ namespace Metal_Code
             work = _work;
 
             work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-            work.type.Counted += PriceChanged;                  // подписка на изменение количества типовых деталей
             work.type.Priced += PriceChanged;                   // подписка на изменение материала типовой детали
         }
 
@@ -214,10 +213,10 @@ namespace Metal_Code
             };
 
             if (work.type.MetalDrop.SelectedItem is Metal metal && weldDict.ContainsKey(metal.Name))
-                Price = work.Result = weldDict[metal.Name][sideRatio] * _weld * Ratio * work.type.Count + work.Price;
-            else Price = work.Result = 0;
+                Price = weldDict[metal.Name][sideRatio] * _weld * Ratio * work.type.Count;
+            else Price = 0;
 
-            work.type.det.PriceResult();
+            work.SetResult(Price);
         }
 
         public void SaveOrLoadProperties(WorkControl w, bool isSaved)

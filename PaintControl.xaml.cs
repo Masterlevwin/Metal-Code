@@ -60,13 +60,7 @@ namespace Metal_Code
             foreach (string s in TypeDict.Keys) TypeDrop.Items.Add(s);
 
             work.PropertiesChanged += SaveOrLoadProperties; // подписка на сохранение и загрузку файла
-            work.type.Counted += PriceChanged;              // подписка на изменение количества типовых деталей
-            foreach (WorkControl w in work.type.WorkControls)
-                if (w != work && w.workType is PropertyControl prop)
-                {
-                    prop.MassChanged += MassChanged;        // подписка на изменение массы типовой детали
-                    MassChanged(prop);
-                } 
+            work.type.Priced += PriceChanged;               // подписка на изменение свойств типовой детали
         }
 
         private void SetRal(object sender, TextChangedEventArgs e)
@@ -81,7 +75,8 @@ namespace Metal_Code
         private Dictionary<string, float> TypeDict = new()
         {
             ["кг"] = 812,
-            ["шт"] = 350
+            ["шт"] = 350,
+            ["пог"] = 87
         };
         private void SetType(object sender, SelectionChangedEventArgs e)
         {
@@ -103,20 +98,24 @@ namespace Metal_Code
             PriceChanged();
         }
 
-        float Mass { get; set; }
-        private void MassChanged(PropertyControl prop)
-        {
-            if (work.type.MetalDrop.SelectedItem is Metal metal)
-                Mass = prop.Mass / MainWindow.Parser(prop.S_prop.Text) / metal.Density;
-            PriceChanged();
-        }
         private void PriceChanged()
         {
-            if (Mass > 0)
-                Price = work.Result = (float)Math.Round(TypeDrop.SelectedIndex == 0 ? Mass * TypeDict[$"{TypeDrop.SelectedItem}"] * Ratio * work.type.Count + work.Price
-                    : TypeDict[$"{TypeDrop.SelectedItem}"] * Ratio * work.type.Count + work.Price, 2);
+            if (work.type.MetalDrop.SelectedItem is Metal metal)
+                switch (TypeDrop.SelectedItem)
+                {
+                    case "кг":
+                        Price = work.type.Mass / work.type.S / metal.Density * TypeDict[$"{TypeDrop.SelectedItem}"] * Ratio * work.type.Count;
+                        break;
+                    case "шт":
+                        Price = TypeDict[$"{TypeDrop.SelectedItem}"] * Ratio * work.type.Count;
+                        break;
+                    case "пог":
+                        Price = TypeDict[$"{TypeDrop.SelectedItem}"] * Ratio * work.type.Count;     // здесь нужна формула расчета пог.м
+                        break;
+                }
+            Price = (float)Math.Round(Price, 2);
 
-            work.type.det.PriceResult();
+            work.SetResult(Price);
         }
 
         public void SaveOrLoadProperties(WorkControl w, bool isSaved)

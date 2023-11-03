@@ -99,6 +99,7 @@ namespace Metal_Code
             Price = 0;
             foreach (TypeDetailControl t in TypeDetailControls)
             {
+                Price += t.Result;
                 foreach (WorkControl w in t.WorkControls)
                 {
                     Price += w.Result;
