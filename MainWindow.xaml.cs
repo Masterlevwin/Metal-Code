@@ -23,6 +23,8 @@ namespace Metal_Code
     {
         public static MainWindow M = new();
         readonly string version = "1.0.0";
+        public List<Part> Parts = new();
+
         public readonly TypeDetailContext dbTypeDetails = new();
         public readonly WorkContext dbWorks = new();
         public readonly ManagerContext dbManagers = new();
@@ -37,6 +39,7 @@ namespace Metal_Code
             DataContext = DetailsModel;
             Loaded += LoadDataBases;
             AddDetail();
+            PartsGrid.ItemsSource = Parts;
         }
 
         private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна

@@ -9,6 +9,9 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
+using System.Windows.Shapes;
+using System.Collections.ObjectModel;
 
 namespace Metal_Code
 {
@@ -182,16 +185,58 @@ namespace Metal_Code
                 DataSet result = reader.AsDataSet();
                 DataTable table = result.Tables[0];
 
-                if (i == 0) ItemList(table);
+                if (i == 0)
+                {
+                    PartList(table);
+                    ItemList(table);
+                } 
                 else
                 {
                     work.type.det.AddTypeDetail();                                                    // добавляем типовую деталь
                     work.type.det.TypeDetailControls[^1].TypeDetailDrop.SelectedIndex = 2;            // устанавливаем "Лист металла"
-                    work.type.det.TypeDetailControls[^1].WorkControls[0].WorkDrop.SelectedIndex = 3;  // устанавливаем "Лазерная резка"
-                    if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut) _cut.ItemList(table);    // заполняем эту резку
+                    work.type.det.TypeDetailControls[^1].WorkControls[0].WorkDrop.SelectedIndex = 0;  // устанавливаем "Лазерная резка"
+                    if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)      // заполняем эту резку
+                    {
+                        _cut.PartList(table);
+                        _cut.ItemList(table);    
+                    }
                 }
             }
         }
+
+        List<Part> parts = new();
+        public void PartList(DataTable table)
+        {
+            for (int i = 0; i < table.Rows.Count; i++)
+            {
+                if (table.Rows[i] == null) continue;
+
+                if (table.Rows[i].ItemArray[1]?.ToString() == "Название детали")
+                {
+                    for (int j = i + 1; j < table.Rows.Count; j++)
+                    {
+                        Part part = new()
+                        {
+                            Name = $"{table.Rows[j].ItemArray[2]}",
+                            Count = (int)MainWindow.Parser($"{table.Rows[j].ItemArray[6]}"),
+                        };
+                        part.Mass = MainWindow.Parser($"{table.Rows[j].ItemArray[4]}") / part.Count;
+                        part.Way = MainWindow.Parser($"{table.Rows[j].ItemArray[7]}") / part.Count;
+
+                        if (part.Count > 0) AddPart(part);
+
+                        if ($"{table.Rows[j].ItemArray[0]}" == "Имя клиента") break;
+                    }
+                    break;
+                }
+            }
+            MainWindow.M.Parts.AddRange(parts);
+
+            //Parts = details.Sum(p => p.det.parts);    // подсчет общего количество нарезанных частей из этого листа
+                                                        // пока не используется
+        }
+
+        private void AddPart(Part part) { parts.Add(part); }
 
         public List<LaserItem> items = new();
 

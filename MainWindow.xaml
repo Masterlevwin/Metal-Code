@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:Metal_Code" xmlns:Sqlite="clr-namespace:Microsoft.Data.Sqlite;assembly=Microsoft.Data.Sqlite" x:Name="ProgramWindow"
         x:Class="Metal_Code.MainWindow"
         mc:Ignorable="d"
-        Title="Провэлд" FontFamily="Century" Background="#FFD7E4F2" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" Icon="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg" SizeToContent="Width">
-    <Grid x:Name="MenuGrid" MinWidth="1366">
+        Title="Провэлд" FontFamily="Century" Background="#FFD7E4F2" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" Icon="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg" SizeToContent="WidthAndHeight" d:DesignHeight="673.813" d:DesignWidth="1028">
+    <Grid x:Name="MenuGrid">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="951*"/>
             <ColumnDefinition Width="329*"/>
@@ -31,24 +31,28 @@
         </Menu>
         <Grid x:Name="WindowGrid" Grid.ColumnSpan="2">
             <Grid.RowDefinitions>
-                <RowDefinition Height="11*"/>
-                <RowDefinition Height="9*"/>
+                <RowDefinition Height="Auto" MinHeight="330"/>
+                <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition/>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" MinWidth="500" Grid.RowSpan="2" Margin="20,20,15,20" ToolTip="Рабочая область">
+            <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" MinWidth="500" Margin="20,20,15,20" ToolTip="Рабочая область">
                 <ScrollViewer VerticalAlignment="Top" Margin="0,30,0,0" VerticalScrollBarVisibility="Auto">
                     <Grid x:Name="ProductGrid" Margin="10,30,10,0"/>
                 </ScrollViewer>
             </GroupBox>
             <TextBox x:Name="ProductName" Text="Изделие" AutoWordSelection="True" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" Height="20" VerticalContentAlignment="Center" HorizontalAlignment="Left" Width="330" FontSize="14" />
             <TextBox Text="{Binding Count, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" ToolTip="Введите количество требуемых изделий" AllowDrop="False" MaxLines="1" MinWidth="40" HorizontalContentAlignment="Center" Margin="0,40,140,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Right" Height="20" Width="40" MaxLength="4" TextChanged="SetCount" FontSize="14"/>
-            <Button x:Name="ResultBtn" Content="{Binding Result, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" HorizontalAlignment="Right" MinHeight="20" AllowDrop="False" ToolTip="Общая стоимость, нажмите, чтобы обновить" VerticalAlignment="Top" Margin="0,40,55,0" Height="20" FontSize="14" HorizontalContentAlignment="Stretch" MaxWidth="80" BorderThickness="0,0,0,0" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}"/>
-            <GroupBox Header="Сметная ведомость" Grid.Column="1" Grid.Row="1" Margin="15,15,20,20" VerticalAlignment="Top" MaxWidth="500" HorizontalAlignment="Left" Height="21" Width="129"/>
-            <GroupBox x:Name="OrderBox" Grid.Column="1" Margin="15,20,20,15" Header="Коммерческое предложение" MaxWidth="440" HorizontalAlignment="Left" MinWidth="440" Width="440">
-                <Grid x:Name="OrderGrid">
+            <Button x:Name="ResultBtn" Content="{Binding Result, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" HorizontalAlignment="Right" MinHeight="20" AllowDrop="False" ToolTip="Общая стоимость, нажмите, чтобы обновить" VerticalAlignment="Top" Margin="0,40,55,0" Height="20" FontSize="14" HorizontalContentAlignment="Stretch" MaxWidth="80" BorderThickness="0,0,0,0" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" Width="2"/>
+            <GroupBox Header="Сметная ведомость" Grid.Column="1" Grid.Row="1" MaxWidth="440" MinWidth="440" Margin="15,0,0,0">
+                <Grid>
+                    <DataGrid x:Name="PartsGrid" CanUserReorderColumns="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,5,15,5"/>
+                </Grid>
+            </GroupBox>
+            <GroupBox x:Name="OrderBox" Grid.Column="1" Margin="15,20,0,15" Header="Коммерческое предложение" MaxWidth="440" HorizontalAlignment="Left" MinWidth="440">
+                <Grid x:Name="OrderGrid" ScrollViewer.HorizontalScrollBarVisibility="Auto">
                     <TextBox x:Name="Phone" HorizontalAlignment="Right" Text="тел:(812)603-45-33" Width="120" VerticalAlignment="Top" Margin="0,0,5,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите актуальный номер телефона"/>
                     <Image x:Name="Logo" HorizontalAlignment="Left" VerticalAlignment="Top" Height="30" Width="30" Source="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg"/>
                     <TextBox x:Name="Order" HorizontalAlignment="Left" Margin="80,20,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40" ToolTip="Введите номер предложения"/>
@@ -71,7 +75,7 @@
                     <TextBlock Text="ООО Провэлд" HorizontalAlignment="Right" TextWrapping="Wrap" VerticalAlignment="Top" Margin="0,0,135,0"/>
                 </Grid>
             </GroupBox>
-            <TextBlock HorizontalAlignment="Right" Text="руб" VerticalAlignment="Top" Margin="0,40,30,0"/>
+            <TextBlock HorizontalAlignment="Right" Text="руб" VerticalAlignment="Top" Margin="0,40,30,0" Height="14" Width="19"/>
         </Grid>
     </Grid>
 </Window>

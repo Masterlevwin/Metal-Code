@@ -6,10 +6,7 @@
     <RootNamespace>Metal_Code</RootNamespace>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
-    <UseWindowsForms>False</UseWindowsForms>
-    <StartupObject>Metal_Code.App</StartupObject>
-    <ApplicationIcon>excel_logo.ico</ApplicationIcon>
-    <IsPublishable>False</IsPublishable>
+    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,14 +14,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="excel_logo.ico" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <PackageReference Include="EPPlus" Version="7.0.0" />
     <PackageReference Include="ExcelDataReader" Version="3.6.0" />
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.6.0" />
     <PackageReference Include="GemBox.Spreadsheet" Version="49.0.1454" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.12" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.13" />
     <PackageReference Include="System.Runtime.Serialization.Json" Version="4.3.0" />
   </ItemGroup>
 
