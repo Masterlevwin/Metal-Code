@@ -83,6 +83,12 @@ namespace Metal_Code
                     Grid.SetColumn(cut, 1);
                     workType = cut;
                     break;
+                case "Гибка":
+                    BendControl bend = new(this);
+                    WorkGrid.Children.Add(bend);
+                    Grid.SetColumn(bend, 1);
+                    workType = bend;
+                    break;
             }
 
             if (ValidateProp(out int index))

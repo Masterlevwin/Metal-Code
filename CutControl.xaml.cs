@@ -1,4 +1,5 @@
 ﻿using ExcelDataReader;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -9,9 +10,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
-using System.Windows.Shapes;
-using System.Collections.ObjectModel;
 
 namespace Metal_Code
 {
@@ -87,7 +85,7 @@ namespace Metal_Code
 
             work.PropertiesChanged += SaveOrLoadProperties; // подписка на сохранение и загрузку файла
             work.type.Priced += PriceChanged;               // подписка на изменение материала типовой детали
-            BtnEnabled();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной
+            BtnEnabled();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
         }
 
         private void SetRatio(object sender, TextChangedEventArgs e)
@@ -123,12 +121,23 @@ namespace Metal_Code
         private void PriceChanged()
         {
             BtnEnabled();
-            if (Way == 0 || Pinhole == 0) return;
-            if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
-            
-            if (MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                Price = (float)Math.Round(Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1
-                                    + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2 * Ratio, 2);
+            Price = 0;
+
+            if (items.Count > 0)
+            {
+                foreach (LaserItem item in items) Price += ItemPrice(item);
+                if (work.WorkDrop.SelectedItem is Work _work) Price -= _work.Price;
+            }
+            else
+            {
+                if (Way == 0 || Pinhole == 0) return;
+                if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
+
+                if (MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+                    Price = Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1 + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2;
+            }
+
+            Price = (float)Math.Round(Price * Ratio, 2);
             work.SetResult(Price);
         }
 
@@ -204,7 +213,7 @@ namespace Metal_Code
             }
         }
 
-        List<Part> parts = new();
+        public List<PartControl> Parts = new();
         public void PartList(DataTable table)
         {
             for (int i = 0; i < table.Rows.Count; i++)
@@ -220,6 +229,7 @@ namespace Metal_Code
                             Name = $"{table.Rows[j].ItemArray[2]}",
                             Count = (int)MainWindow.Parser($"{table.Rows[j].ItemArray[6]}"),
                         };
+
                         part.Mass = MainWindow.Parser($"{table.Rows[j].ItemArray[4]}") / part.Count;
                         part.Way = MainWindow.Parser($"{table.Rows[j].ItemArray[7]}") / part.Count;
 
@@ -230,13 +240,16 @@ namespace Metal_Code
                     break;
                 }
             }
-            MainWindow.M.Parts.AddRange(parts);
 
-            //Parts = details.Sum(p => p.det.parts);    // подсчет общего количество нарезанных частей из этого листа
+            //Parts = details.Sum(p => p.det.Parts);    // подсчет общего количество нарезанных частей из этого листа
                                                         // пока не используется
         }
 
-        private void AddPart(Part part) { parts.Add(part); }
+        private void AddPart(Part part)
+        {
+            PartControl partControl = new(part);
+            Parts.Add(partControl);
+        }
 
         public List<LaserItem> items = new();
 
@@ -323,6 +336,23 @@ namespace Metal_Code
 
             PriceChanged();
         }
+        public float ItemPrice(LaserItem _item)
+        {
+            if (work.type.MetalDrop.SelectedItem is not Metal metal) return 0;
+
+            _item.price = 0;
+
+            if (MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+            {
+                _item.price = _item.way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1
+                    + _item.pinholes * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2;
+
+                // стоимость резки должна быть не ниже минимальной
+                if (work.WorkDrop.SelectedItem is Work _work) _item.price = _item.price > 0 && _item.price < _work.Price ? _work.Price : _item.price;
+            }
+
+            return _item.price * _item.sheets;
+        }
 
         private void SetSheetSize(string _sheetsize)
         {
@@ -331,6 +361,25 @@ namespace Metal_Code
             string[] properties = _sheetsize.Split('X');
             work.type.A = MainWindow.Parser(properties[0]);
             work.type.B = MainWindow.Parser(properties[1]);
+        }
+    }
+
+    [Serializable]
+    public class Part
+    {
+        public string? Name { get; set; }
+        public int Count { get; set; }
+        public float Way { get; set; }
+        public float Mass { get; set; }
+        public float Price { get; set; }
+
+        public Part(string? _name = "", int _count = 0, float _way = 0, float _mass = 0, float _price = 0)
+        {
+            Name = _name;
+            Count = _count;
+            Way = _way;
+            Mass = _mass;
+            Price = _price;
         }
     }
 

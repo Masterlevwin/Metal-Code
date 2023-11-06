@@ -1,0 +1,17 @@
+﻿<UserControl x:Class="Metal_Code.PartControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Metal_Code"
+             mc:Ignorable="d" 
+             d:DesignHeight="90" d:DesignWidth="90">
+    <Grid x:Name="BendGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" MinHeight="70"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <TextBox Text="{Binding Name}" TextWrapping="Wrap" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="90" MinWidth="90" MinHeight="40" MaxHeight="40" Height="40" ToolTip="Наименование вырезанной детали"/>
+        <TextBox Text="{Binding Count}" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinHeight="20" MaxHeight="20" HorizontalAlignment="Center" MaxLines="1" Margin="0,45,0,0" MaxWidth="50" MinWidth="50" Height="20" Width="50" ToolTip="Количество вырезанных деталей"/>
+    </Grid>
+</UserControl>

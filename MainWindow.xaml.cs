@@ -11,8 +11,6 @@ using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Media.Animation;
-using ExcelDataReader;
-using System.IO;
 
 namespace Metal_Code
 {
@@ -39,7 +37,6 @@ namespace Metal_Code
             DataContext = DetailsModel;
             Loaded += LoadDataBases;
             AddDetail();
-            PartsGrid.ItemsSource = Parts;
         }
 
         private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна
@@ -560,5 +557,107 @@ namespace Metal_Code
 
             return size;
         }
+
+        public Dictionary<float, Dictionary<string, float>> BendDict = new()
+        {
+            [.5f] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [.7f] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [.8f] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [1] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [1.2f] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [1.5f] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [2] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [2.5f] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [3] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 20,
+                ["0.5-1"] = 30,
+                ["1-1.3"] = 35,
+                ["1.3-2.45"] = 100
+            },
+            [4] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 20,
+                ["0.5-1"] = 30,
+                ["1-1.3"] = 35,
+                ["1.3-2.45"] = 100
+            },
+            [5] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 30,
+                ["0.5-1"] = 45,
+                ["1-1.3"] = 65,
+                ["1.3-2.45"] = 200
+            },
+            [6] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 45,
+                ["0.5-1"] = 67.5f,
+                ["1-1.3"] = 97.5f,
+                ["1.3-2.45"] = 300
+            },
+            [8] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 45,
+                ["0.5-1"] = 67.5f,
+                ["1-1.3"] = 97.5f,
+                ["1.3-2.45"] = 300
+            },
+            [10] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 45,
+                ["0.5-1"] = 67.5f,
+                ["1-1.3"] = 97.5f,
+                ["1.3-2.45"] = 300
+            }
+        };
     }
 }
