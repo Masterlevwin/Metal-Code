@@ -63,11 +63,13 @@ namespace Metal_Code
     public class SaveWork
     {
         public int Index { get; set; }
+        public float Ratio { get; set; }
 
         public List<string>? PropsList = new();
-        public SaveWork(int _index = 0)
+        public SaveWork(int _index = 0, float _ratio = 0)
         {
             Index = _index;
+            Ratio = _ratio;
         }
     }
 

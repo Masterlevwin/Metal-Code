@@ -5,15 +5,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="300">
-
+             d:DesignHeight="20" d:DesignWidth="200">
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300"/>
-        </Grid.ColumnDefinitions>
-        <TextBox Text="{Binding Ral, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PaintControl}}}" HorizontalAlignment="Left" VerticalAlignment="Center" MinWidth="70" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Margin="20,0,0,0" MaxWidth="70" MaxHeight="20" MaxLines="1" TextChanged="SetRal" ToolTip="Введите цвет RAL"/>
-        <ComboBox x:Name="TypeDrop" HorizontalAlignment="Left" MinHeight="20" MinWidth="50" Height="20" Margin="100,0,0,0" VerticalAlignment="Center" MaxWidth="50" MaxHeight="20" ToolTip="Выберите режим расчета" SelectionChanged="SetType" SelectedIndex="0"/>
-        <TextBox Text="{Binding Ratio, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PaintControl}}}" HorizontalAlignment="Left" MinHeight="20" MinWidth="30" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="160,0,0,0" VerticalAlignment="Center" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" TextChanged="SetRatio"/>
-        <TextBlock Text="{Binding Price, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:PaintControl}}}" MinHeight="20" MaxHeight="20" ToolTip="Стоимость окраски" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="210,0,0,0" MaxWidth="70"/>
+        <TextBox Text="{Binding Ral, RelativeSource={RelativeSource AncestorType={x:Type local:PaintControl}, Mode=FindAncestor}}" TextChanged="SetRal" HorizontalAlignment="Left" VerticalAlignment="Center" MinWidth="70" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Margin="20,0,0,0" MaxWidth="70" MaxHeight="20" MaxLines="1" ToolTip="Введите цвет RAL"/>
+        <ComboBox x:Name="TypeDrop" SelectionChanged="SetType" HorizontalAlignment="Left" MinHeight="20" MinWidth="70" Height="20" Margin="100,0,0,0" VerticalAlignment="Center" MaxWidth="70" MaxHeight="20" ToolTip="Выберите режим расчета" SelectedIndex="0"/>
     </Grid>
 </UserControl>

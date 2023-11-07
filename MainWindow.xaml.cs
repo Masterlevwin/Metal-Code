@@ -278,7 +278,7 @@ namespace Metal_Code
                     for (int k = 0; k < type.WorkControls.Count; k++)
                     {
                         WorkControl work = type.WorkControls[k];
-                        SaveWork _saveWork = new(work.WorkDrop.SelectedIndex);
+                        SaveWork _saveWork = new(work.WorkDrop.SelectedIndex, work.Ratio);
 
                         if (work.WorkDrop.SelectedItem is Work _work)
                         {
@@ -343,6 +343,7 @@ namespace Metal_Code
                     {
                         WorkControl _work = DetailControls[i].TypeDetailControls[j].WorkControls[k];
                         _work.WorkDrop.SelectedIndex = details[i].TypeDetails[j].Works[k].Index;
+                        _work.Ratio = details[i].TypeDetails[j].Works[k].Ratio;
                         _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
                         _work.PropertiesChanged?.Invoke(_work, false);
 

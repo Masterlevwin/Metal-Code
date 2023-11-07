@@ -1,5 +1,4 @@
 ﻿using ExcelDataReader;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -20,31 +19,6 @@ namespace Metal_Code
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
-
-        private float price;
-        public float Price
-        {
-            get => price;
-            set
-            {
-                price = value;
-                OnPropertyChanged(nameof(Price));
-            }
-        }
-
-        private float ratio;
-        public float Ratio
-        {
-            get => ratio;
-            set
-            {
-                if (value != ratio)
-                {
-                    ratio = value;
-                    OnPropertyChanged(nameof(Ratio));
-                }
-            }
-        }
 
         private float way;
         public float Way
@@ -83,19 +57,10 @@ namespace Metal_Code
             work = _work;
             dialogService = _dialogService;
 
-            work.PropertiesChanged += SaveOrLoadProperties; // подписка на сохранение и загрузку файла
-            work.type.Priced += PriceChanged;               // подписка на изменение материала типовой детали
+            work.OnRatioChanged += PriceChanged;                // подписка на изменение коэффициента
+            work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+            work.type.Priced += PriceChanged;                   // подписка на изменение материала типовой детали
             BtnEnabled();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
-        }
-
-        private void SetRatio(object sender, TextChangedEventArgs e)
-        {
-            if (sender is TextBox tBox) SetRatio(tBox.Text);
-        }
-        private void SetRatio(string _ratio)
-        {
-            if (float.TryParse(_ratio, out float r)) Ratio = r;     // стандартный парсер избавляет от проблемы с запятой
-            PriceChanged();
         }
 
         private void SetWay(object sender, TextChangedEventArgs e)
@@ -121,12 +86,12 @@ namespace Metal_Code
         private void PriceChanged()
         {
             BtnEnabled();
-            Price = 0;
+            float price = 0;
 
             if (items.Count > 0)
             {
-                foreach (LaserItem item in items) Price += ItemPrice(item);
-                if (work.WorkDrop.SelectedItem is Work _work) Price -= _work.Price;
+                foreach (LaserItem item in items) price += ItemPrice(item);
+                work.SetResult(price, false);
             }
             else
             {
@@ -134,11 +99,9 @@ namespace Metal_Code
                 if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
                 if (MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                    Price = Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1 + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2;
+                    price = Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1 + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2;
+                work.SetResult(price);
             }
-
-            Price = (float)Math.Round(Price * Ratio, 2);
-            work.SetResult(Price);
         }
 
         private void BtnEnabled()
@@ -146,7 +109,7 @@ namespace Metal_Code
             if (work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name != "Лист металла")
             {
                 CutBtn.IsEnabled = false;
-                Way = Price = Pinhole = 0;
+                Way = Pinhole = 0;
             }   
             else CutBtn.IsEnabled = true;
         }
@@ -158,13 +121,11 @@ namespace Metal_Code
                 w.propsList.Clear();
                 w.propsList.Add($"{Way}");
                 w.propsList.Add($"{Pinhole}");
-                w.propsList.Add($"{Ratio}");
             }
             else
             {
                 SetWay(w.propsList[0]);
                 SetPinhole(w.propsList[1]);
-                SetRatio(w.propsList[2]);
             }
         }
 
@@ -240,12 +201,9 @@ namespace Metal_Code
                     break;
                 }
             }
-
-            //Parts = details.Sum(p => p.det.Parts);    // подсчет общего количество нарезанных частей из этого листа
-                                                        // пока не используется
         }
 
-        private void AddPart(Part part)
+        public void AddPart(Part part)
         {
             PartControl partControl = new(part);
             Parts.Add(partControl);

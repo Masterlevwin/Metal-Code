@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Metal_Code"
         mc:Ignorable="d"
-        Title="Гибка деталей" Height="300" Width="900" Topmost="True" Closed="FocusMainWindow" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterScreen">
+        Title="Гибка деталей" Height="300" Width="900" Topmost="True" Closed="FocusMainWindow" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterScreen" Icon="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg">
     <ScrollViewer VerticalAlignment="Top" VerticalScrollBarVisibility="Auto">
         <Grid>
             <Grid.RowDefinitions>

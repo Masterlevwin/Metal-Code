@@ -15,31 +15,6 @@ namespace Metal_Code
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
-        private float price;
-        public float Price
-        {
-            get => price;
-            set
-            {
-                price = value;
-                OnPropertyChanged(nameof(Price));
-            }
-        }
-
-        private float ratio;
-        public float Ratio
-        {
-            get => ratio;
-            set
-            {
-                if (value != ratio)
-                {
-                    ratio = value;
-                    OnPropertyChanged(nameof(Ratio));
-                }
-            }
-        }
-
         private int bend;
         public int Bend
         {
@@ -64,8 +39,9 @@ namespace Metal_Code
             // формирование списка длин стороны гиба
             foreach (string s in MainWindow.M.BendDict[0.5f].Keys) ShelfDrop.Items.Add(s);
 
-            work.PropertiesChanged += SaveOrLoadProperties; // подписка на сохранение и загрузку файла
-            work.type.Priced += PriceChanged;               // подписка на изменение материала типовой детали
+            work.OnRatioChanged += PriceChanged;                // подписка на изменение коэффициента
+            work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+            work.type.Priced += PriceChanged;                   // подписка на изменение материала типовой детали
             BtnEnabled();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
         }
 
@@ -77,16 +53,6 @@ namespace Metal_Code
                 Parts.Clear();
             }
             else PartBtn.IsEnabled = true;
-        }
-
-        private void SetRatio(object sender, TextChangedEventArgs e)
-        {
-            if (sender is TextBox tBox) SetRatio(tBox.Text);
-        }
-        private void SetRatio(string _ratio)
-        {
-            if (float.TryParse(_ratio, out float r)) Ratio = r;     // стандартный парсер избавляет от проблемы с запятой
-            PriceChanged();
         }
 
         private void SetBend(object sender, TextChangedEventArgs e)
@@ -112,12 +78,12 @@ namespace Metal_Code
         public void PriceChanged()
         {
             BtnEnabled();
-            Price = 0;
+            float price = 0;
 
             if (Parts.Count > 0)
             {
-                foreach (PartControl p in Parts) foreach (PartBendControl b in p.Bends) Price += b.PriceChanged();
-                if (work.WorkDrop.SelectedItem is Work _work) Price -= _work.Price;
+                foreach (PartControl p in Parts) foreach (PartBendControl b in p.Bends) price += b.PriceChanged();
+                work.SetResult(price, false);
             }
             else
             {
@@ -132,11 +98,9 @@ namespace Metal_Code
                     _ => 0.8f,
                 };
                 if (MainWindow.M.BendDict.ContainsKey(work.type.S))
-                    Price = _bendRatio * Bend * work.type.Count * MainWindow.M.BendDict[work.type.S][$"{ShelfDrop.SelectedItem}"];
+                    price = _bendRatio * Bend * work.type.Count * MainWindow.M.BendDict[work.type.S][$"{ShelfDrop.SelectedItem}"];
+                work.SetResult(price);
             }
-
-            Price = (float)Math.Round(Price * Ratio, 2);
-            work.SetResult(Price);
         }
 
         public void SaveOrLoadProperties(WorkControl w, bool isSaved)
@@ -146,13 +110,11 @@ namespace Metal_Code
                 w.propsList.Clear();
                 w.propsList.Add($"{Bend}");
                 w.propsList.Add($"{ShelfDrop.SelectedIndex}");
-                w.propsList.Add($"{Ratio}");
             }
             else
             {
                 SetBend(w.propsList[0]);
                 SetShelf((int)MainWindow.Parser(w.propsList[1]));
-                SetRatio(w.propsList[2]);
             }
         }
 

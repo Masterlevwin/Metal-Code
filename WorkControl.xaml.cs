@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -8,13 +11,39 @@ namespace Metal_Code
     /// <summary>
     /// Логика взаимодействия для WorkControl.xaml
     /// </summary>
-    public partial class WorkControl : UserControl
+    public partial class WorkControl : UserControl, INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
         public List<string> propsList = new();
         public delegate void PropsChanged(WorkControl w, bool b);
         public PropsChanged? PropertiesChanged;
+        
+        private float result;
+        public float Result
+        {
+            get => result;
+            set
+            {
+                result = value;
+                OnPropertyChanged(nameof(Result));
+            }
+        }
 
-        public float Result { get; set; }
+        private float ratio;
+        public float Ratio
+        {
+            get => ratio;
+            set
+            {
+                if (value != ratio)
+                {
+                    ratio = value;
+                    OnPropertyChanged(nameof(Ratio));
+                }
+            }
+        }
 
         public readonly TypeDetailControl type;
         public WorkControl(TypeDetailControl t)
@@ -51,6 +80,17 @@ namespace Metal_Code
             type.UpdatePosition(direction);
         }
 
+        public delegate void RatioChanged();
+        public event RatioChanged? OnRatioChanged;
+        private void SetRatio(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) SetRatio(tBox.Text);
+        }
+        private void SetRatio(string _ratio)
+        {
+            if (float.TryParse(_ratio, out float r)) Ratio = r;     // стандартный парсер избавляет от проблемы с запятой
+            OnRatioChanged?.Invoke();
+        }
 
         public UserControl? workType;
         private void CreateWork(object sender, SelectionChangedEventArgs e)
@@ -112,11 +152,11 @@ namespace Metal_Code
             return false;
         }
 
-        public void SetResult(float price)
+        public void SetResult(float price, bool addMin = true)
         {
             if (WorkDrop.SelectedItem is not Work work) return;
 
-            Result = price + work.Price;
+            Result = (float)Math.Round(addMin ? (price + work.Price) * Ratio : price * Ratio, 2);
 
             type.det.PriceResult();
         }

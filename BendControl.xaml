@@ -5,13 +5,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d"
-             d:DesignHeight="20" d:DesignWidth="300" >
+             d:DesignHeight="20" d:DesignWidth="200" >
     <Grid>
-        <Button x:Name="PartBtn" Content=". . ." HorizontalAlignment="Left" Margin="20,0,0,0" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="30" MinWidth="30" ToolTip="Загрузить раскладки" Click="ViewBendWindow"/>
-        <TextBox Text="{Binding Bend, RelativeSource={RelativeSource AncestorType={x:Type local:BendControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="60,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="30" MinWidth="30" ToolTip="Длина пути резки, м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" TextChanged="SetBend"/>
-        <ComboBox x:Name="ShelfDrop" HorizontalAlignment="Left" Margin="100,0,0,0" VerticalAlignment="Center" Height="20" MinHeight="20" MaxHeight="20" MinWidth="50" MaxWidth="50" SelectionChanged="SetShelf" SelectedIndex="0"/>
-        <TextBox Text="{Binding Ratio, RelativeSource={RelativeSource AncestorType={x:Type local:BendControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="160,0,0,0" TextChanged="SetRatio"/>
-        <TextBlock Text="{Binding Price, RelativeSource={RelativeSource AncestorType={x:Type local:BendControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="210,0,0,0" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="70"/>
-
+        <Button x:Name="PartBtn" Content=". . ." Click="ViewBendWindow" HorizontalAlignment="Left" Margin="20,0,0,0" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="30" MinWidth="30" ToolTip="Загрузить раскладки"/>
+        <TextBox Text="{Binding Bend, RelativeSource={RelativeSource AncestorType={x:Type local:BendControl}, Mode=FindAncestor}}" TextChanged="SetBend" HorizontalAlignment="Left" Margin="60,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="30" MinWidth="30" ToolTip="Длина пути резки, м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+        <ComboBox x:Name="ShelfDrop" SelectionChanged="SetShelf" HorizontalAlignment="Left" Margin="100,0,0,0" VerticalAlignment="Center" Height="20" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" SelectedIndex="0"/>
     </Grid>
 </UserControl>

@@ -14,31 +14,6 @@ namespace Metal_Code
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
-        private float price;
-        public float Price
-        {
-            get => price;
-            set
-            {
-                price = value;
-                OnPropertyChanged(nameof(Price));
-            }
-        }
-
-        private float ratio;
-        public float Ratio
-        {
-            get => ratio;
-            set
-            {
-                if (value != ratio)
-                {
-                    ratio = value;
-                    OnPropertyChanged(nameof(Ratio));
-                }
-            }
-        }
-
         private string? weld;
         public string? Weld
         {
@@ -56,6 +31,7 @@ namespace Metal_Code
             InitializeComponent();
             work = _work;
 
+            work.OnRatioChanged += PriceChanged;                // подписка на изменение коэффициента
             work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
             work.type.Priced += PriceChanged;                   // подписка на изменение материала типовой детали
         }
@@ -169,16 +145,6 @@ namespace Metal_Code
             }
         };
 
-        private void SetRatio(object sender, TextChangedEventArgs e)
-        {
-            if (sender is TextBox tBox) SetRatio(tBox.Text);
-        }
-        private void SetRatio(string _ratio)
-        {
-            if (float.TryParse(_ratio, out float r)) Ratio = r;     // стандартный парсер избавляет от проблемы с запятой
-            PriceChanged();
-        }
-
         private void SetWeld(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox) SetWeld(tBox.Text);
@@ -212,11 +178,11 @@ namespace Metal_Code
                 _ => (float)1,
             };
 
+            float price = 0;
             if (work.type.MetalDrop.SelectedItem is Metal metal && weldDict.ContainsKey(metal.Name))
-                Price = weldDict[metal.Name][sideRatio] * _weld * Ratio * work.type.Count;
-            else Price = 0;
+                price = weldDict[metal.Name][sideRatio] * _weld * work.type.Count;
 
-            work.SetResult(Price);
+            work.SetResult(price);
         }
 
         public void SaveOrLoadProperties(WorkControl w, bool isSaved)
@@ -225,12 +191,10 @@ namespace Metal_Code
             {
                 w.propsList.Clear();
                 w.propsList.Add($"{Weld}");
-                w.propsList.Add($"{Ratio}");
             }
             else
             {
                 SetWeld(w.propsList[0]);
-                SetRatio(w.propsList[1]);
             }
         }
 

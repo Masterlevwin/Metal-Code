@@ -14,31 +14,6 @@ namespace Metal_Code
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
-        private float price;
-        public float Price
-        {
-            get => price;
-            set
-            {
-                price = value;
-                OnPropertyChanged(nameof(Price));
-            }
-        }
-
-        private float ratio;
-        public float Ratio
-        {
-            get => ratio;
-            set
-            {
-                if (value != ratio)
-                {
-                    ratio = value;
-                    OnPropertyChanged(nameof(Ratio));
-                }
-            }
-        }
-
         private string? ral;
         public string? Ral
         {
@@ -59,8 +34,9 @@ namespace Metal_Code
             // формирование списка видов расчета окраски
             foreach (string s in TypeDict.Keys) TypeDrop.Items.Add(s);
 
-            work.PropertiesChanged += SaveOrLoadProperties; // подписка на сохранение и загрузку файла
-            work.type.Priced += PriceChanged;               // подписка на изменение свойств типовой детали
+            work.OnRatioChanged += PriceChanged;                // подписка на изменение коэффициента
+            work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+            work.type.Priced += PriceChanged;                   // подписка на изменение свойств типовой детали
         }
 
         private void SetRal(object sender, TextChangedEventArgs e)
@@ -88,34 +64,25 @@ namespace Metal_Code
             PriceChanged();
         }
 
-        private void SetRatio(object sender, TextChangedEventArgs e)
-        {
-            if (sender is TextBox tBox) SetRatio(tBox.Text);
-        }
-        private void SetRatio(string _ratio)
-        {
-            if (float.TryParse(_ratio, out float r)) Ratio = r;     // стандартный парсер избавляет от проблемы с запятой
-            PriceChanged();
-        }
-
         private void PriceChanged()
         {
-            if (work.type.MetalDrop.SelectedItem is Metal metal)
+            float price = 0;
+            if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
                 switch (TypeDrop.SelectedItem)
                 {
                     case "кг":
-                        Price = work.type.Mass / work.type.S / metal.Density * TypeDict[$"{TypeDrop.SelectedItem}"] * Ratio * work.type.Count;
+                        price = work.type.Mass / work.type.S / metal.Density * TypeDict[$"{TypeDrop.SelectedItem}"] * work.type.Count;
                         break;
                     case "шт":
-                        Price = TypeDict[$"{TypeDrop.SelectedItem}"] * Ratio * work.type.Count;
+                        price = TypeDict[$"{TypeDrop.SelectedItem}"] * work.type.Count;
                         break;
                     case "пог":
-                        Price = TypeDict[$"{TypeDrop.SelectedItem}"] * Ratio * work.type.Count;     // здесь нужна формула расчета пог.м
+                        price = TypeDict[$"{TypeDrop.SelectedItem}"] * work.type.Count;     // здесь нужна формула расчета пог.м
                         break;
                 }
-            Price = (float)Math.Round(Price, 2);
+            price = (float)Math.Round(price, 2);
 
-            work.SetResult(Price);
+            work.SetResult(price);
         }
 
         public void SaveOrLoadProperties(WorkControl w, bool isSaved)
@@ -123,17 +90,14 @@ namespace Metal_Code
             if (isSaved)
             {
                 w.propsList.Clear();
-                w.propsList.Add(Ral);
+                w.propsList.Add($"{Ral}");
                 w.propsList.Add($"{TypeDrop.SelectedIndex}");
-                w.propsList.Add($"{Ratio}");
             }
             else
             {
                 SetRal(w.propsList[0]);
                 SetType((int)MainWindow.Parser(w.propsList[1]));
-                SetRatio(w.propsList[2]);
             }
         }
-
     }
 }
