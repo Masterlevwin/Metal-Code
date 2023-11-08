@@ -29,7 +29,7 @@ namespace Metal_Code
             }
             else if (sender == Controls.Items[1])
             {
-                WeldControl weld = new();
+                WeldControl weld = new(this);
                 AddControl(weld);
             }
         }

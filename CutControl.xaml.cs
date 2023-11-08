@@ -15,7 +15,7 @@ namespace Metal_Code
     /// <summary>
     /// Логика взаимодействия для CutControl.xaml
     /// </summary>
-    public partial class CutControl : UserControl, INotifyPropertyChanged
+    public partial class CutControl : UserControl, INotifyPropertyChanged, IPriceChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
@@ -57,9 +57,8 @@ namespace Metal_Code
             work = _work;
             dialogService = _dialogService;
 
-            work.OnRatioChanged += PriceChanged;                // подписка на изменение коэффициента
             work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-            work.type.Priced += PriceChanged;                   // подписка на изменение материала типовой детали
+            work.type.Priced += OnPriceChanged;                   // подписка на изменение материала типовой детали
             BtnEnabled();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
         }
 
@@ -70,7 +69,7 @@ namespace Metal_Code
         private void SetWay(string _way)
         {
             if (float.TryParse(_way, out float w)) Way = w;
-            PriceChanged();
+            OnPriceChanged();
         }
 
         private void SetPinhole(object sender, TextChangedEventArgs e)
@@ -80,10 +79,10 @@ namespace Metal_Code
         private void SetPinhole(string _pinhole)
         {
             if (int.TryParse(_pinhole, out int p)) Pinhole = p;
-            PriceChanged();
+            OnPriceChanged();
         }
 
-        private void PriceChanged()
+        public void OnPriceChanged()
         {
             BtnEnabled();
             float price = 0;
@@ -288,7 +287,7 @@ namespace Metal_Code
 
             work.type.SetCount(_items.Sum(s => s.sheets));      // устанавливаем общее количество порезанных листов
 
-            PriceChanged();
+            OnPriceChanged();
         }
         public float ItemPrice(LaserItem _item)
         {

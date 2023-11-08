@@ -80,8 +80,6 @@ namespace Metal_Code
             type.UpdatePosition(direction);
         }
 
-        public delegate void RatioChanged();
-        public event RatioChanged? OnRatioChanged;
         private void SetRatio(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox) SetRatio(tBox.Text);
@@ -89,7 +87,8 @@ namespace Metal_Code
         private void SetRatio(string _ratio)
         {
             if (float.TryParse(_ratio, out float r)) Ratio = r;     // стандартный парсер избавляет от проблемы с запятой
-            OnRatioChanged?.Invoke();
+
+            if (workType != null && workType is IPriceChanged control) control.OnPriceChanged();
         }
 
         public UserControl? workType;

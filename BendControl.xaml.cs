@@ -41,8 +41,6 @@ namespace Metal_Code
 
             if (owner is WorkControl work)
             {
-                MessageBox.Show("owner - work");
-                work.OnRatioChanged += OnPriceChanged;              // подписка на изменение коэффициента
                 work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
                 work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
                 BtnEnable();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
@@ -81,7 +79,6 @@ namespace Metal_Code
             OnPriceChanged();
         }
 
-        List<PartControl> Parts = new();
         public void OnPriceChanged()
         {
             if (owner is not WorkControl work) return;
@@ -91,14 +88,10 @@ namespace Metal_Code
 
             if (Parts.Count > 0)
             {
-                foreach (PartControl p in Parts) foreach (BendControl b in p.UserControls.Cast<BendControl>())
+                foreach (PartControl p in Parts)
+                    foreach (BendControl item in p.UserControls.OfType<BendControl>())
                     {
-                        MessageBox.Show($"{p.Part.Name}");
-                        MessageBox.Show($"{b.Bend * p.Part.Count}");
-
-                        float _price = b.Price(b.Bend * p.Part.Count, work);
-                        MessageBox.Show($"{_price}");
-
+                        float _price = item.Price(item.Bend * p.Part.Count, work);
 
                         // стоимость данной гибки должна быть не ниже минимальной
                         if (work.WorkDrop.SelectedItem is Work _work) _price = _price > 0 && _price < _work.Price ? _work.Price : _price;
@@ -140,6 +133,7 @@ namespace Metal_Code
             }
         }
 
+        List<PartControl> Parts = new();
         private void ViewPartWindow(object sender, RoutedEventArgs e)
         {
             if (owner is not WorkControl work || work.type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail || typeDetail.Name != "Лист металла") return;

@@ -3,13 +3,15 @@ using System.Data;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows;
+using System.Linq;
 
 namespace Metal_Code
 {
     /// <summary>
     /// Логика взаимодействия для WeldControl.xaml
     /// </summary>
-    public partial class WeldControl : UserControl, INotifyPropertyChanged
+    public partial class WeldControl : UserControl, INotifyPropertyChanged, IPriceChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
@@ -25,17 +27,16 @@ namespace Metal_Code
             }
         }
 
-        private readonly WorkControl? work;
-        public WeldControl(WorkControl? _work = null)
+        private readonly UserControl owner;
+        public WeldControl(UserControl _control)
         {
             InitializeComponent();
-            work = _work;
+            owner = _control;
 
-            if (work != null)
+            if (owner is WorkControl work)
             {
-                work.OnRatioChanged += PriceChanged;                // подписка на изменение коэффициента
                 work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-                work.type.Priced += PriceChanged;                   // подписка на изменение материала типовой детали
+                work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
                 BtnEnable();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
             }
             else PartBtn.IsEnabled = false;
@@ -43,14 +44,13 @@ namespace Metal_Code
 
         private void BtnEnable()
         {
-            if (work != null && work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
+            if (owner is WorkControl work && work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
             {
                 foreach (WorkControl w in work.type.WorkControls)
-                    if (w != work && w.workType is CutControl cut && cut.WindowParts != null)
+                    if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
                         PartBtn.IsEnabled = true;
             }
             else PartBtn.IsEnabled = false;
-
         }
 
         public Dictionary<string, Dictionary<float, float>> weldDict = new()
@@ -169,41 +169,54 @@ namespace Metal_Code
         private void SetWeld(string _weld)
         {
             Weld = _weld;
-            PriceChanged();
+            OnPriceChanged();
         }
 
-        private void PriceChanged()
+        public void OnPriceChanged()
         {
+            if (owner is not WorkControl work) return;
+
             BtnEnable();
-            if (work != null)
+            float price = 0;
+
+            if (Parts.Count > 0)
             {
-                float _weld = 0;
-                try
-                {
-                    object result = new DataTable().Compute(Weld, null);
-                    if (float.TryParse($"{result}", out float f)) _weld = f;
-                }
-                catch
-                {
-                    //System.Windows.Forms.MessageBox.Show("Исправьте длину свариваемой поверхности \nили поставьте 0", "Ошибка",
-                    //System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Hand);
-                    return;
-                }
-
-                var sideRatio = (float)(_weld * work.type.Count) switch
-                {
-                    < 300 => 3,
-                    < 1000 => 10,
-                    < 10000 => 100,
-                    _ => (float)1,
-                };
-
-                float price = 0;
-                if (work.type.MetalDrop.SelectedItem is Metal metal && weldDict.ContainsKey(metal.Name))
-                    price = weldDict[metal.Name][sideRatio] * _weld * work.type.Count;
-
+                foreach (PartControl p in Parts)
+                    foreach (WeldControl item in p.UserControls.OfType<WeldControl>())
+                        price += item.Price(ParserWeld(item.Weld) * p.Part.Count, work);
                 work.SetResult(price);
             }
+            else work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work));
+
+        }
+
+        private float ParserWeld(string _weld)
+        {
+            try
+            {
+                object result = new DataTable().Compute(_weld, null);
+                if (float.TryParse($"{result}", out float f)) return f;
+            }
+            catch
+            {
+                //System.Windows.Forms.MessageBox.Show("Исправьте длину свариваемой поверхности \nили поставьте 0", "Ошибка",
+                //System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Hand);
+            }
+            return 0;
+        }
+
+        private float Price(float _count, WorkControl work)
+        {
+            var sideRatio = _count switch
+            {
+                < 300 => 3,
+                < 1000 => 10,
+                < 10000 => 100,
+                _ => 1,
+            };
+
+            return work.type.MetalDrop.SelectedItem is Metal metal && weldDict.ContainsKey(metal.Name) ?
+                weldDict[metal.Name][sideRatio] * _count : 0;
         }
 
         public void SaveOrLoadProperties(WorkControl w, bool isSaved)
@@ -219,5 +232,25 @@ namespace Metal_Code
             }
         }
 
+        List<PartControl> Parts = new();
+        private void ViewPartWindow(object sender, RoutedEventArgs e)
+        {
+            if (owner is not WorkControl work || work.type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail || typeDetail.Name != "Лист металла") return;
+
+            foreach (WorkControl w in work.type.WorkControls)
+                if (w != work && w.workType is CutControl cut && cut.WindowParts != null)
+                {
+                    if (Parts.Count == 0)
+                    {
+                        foreach (PartControl part in cut.WindowParts.Parts)
+                        {
+                            WeldControl weld = new(part);
+                            part.AddControl(weld);
+                        }
+                        Parts.AddRange(cut.WindowParts.Parts);
+                    }
+                    cut.WindowParts.ShowDialog();
+                }
+        }
     }
 }

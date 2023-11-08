@@ -9,7 +9,7 @@ namespace Metal_Code
     /// <summary>
     /// Логика взаимодействия для PaintControl.xaml
     /// </summary>
-    public partial class PaintControl : UserControl, INotifyPropertyChanged
+    public partial class PaintControl : UserControl, INotifyPropertyChanged, IPriceChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
@@ -34,9 +34,8 @@ namespace Metal_Code
             // формирование списка видов расчета окраски
             foreach (string s in TypeDict.Keys) TypeDrop.Items.Add(s);
 
-            work.OnRatioChanged += PriceChanged;                // подписка на изменение коэффициента
             work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-            work.type.Priced += PriceChanged;                   // подписка на изменение свойств типовой детали
+            work.type.Priced += OnPriceChanged;                   // подписка на изменение свойств типовой детали
         }
 
         private void SetRal(object sender, TextChangedEventArgs e)
@@ -61,10 +60,10 @@ namespace Metal_Code
         public void SetType(int ndx = 0)
         {
             TypeDrop.SelectedIndex = ndx;
-            PriceChanged();
+            OnPriceChanged();
         }
 
-        private void PriceChanged()
+        public void OnPriceChanged()
         {
             float price = 0;
             if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
