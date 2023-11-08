@@ -157,7 +157,7 @@ namespace Metal_Code
 
                 if (i == 0)
                 {
-                    PartList(table);
+                    WindowParts = new(this, PartList(table));
                     ItemList(table);
                 } 
                 else
@@ -167,16 +167,18 @@ namespace Metal_Code
                     work.type.det.TypeDetailControls[^1].WorkControls[0].WorkDrop.SelectedIndex = 0;  // устанавливаем "Лазерная резка"
                     if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)      // заполняем эту резку
                     {
-                        _cut.PartList(table);
-                        _cut.ItemList(table);    
+                        _cut.WindowParts = new(this, _cut.PartList(table));
+                        _cut.ItemList(table);
                     }
                 }
             }
         }
 
-        public List<PartControl> Parts = new();
-        public void PartList(DataTable table)
+        public PartWindow? WindowParts = null;
+        public List<PartControl> PartList(DataTable table)
         {
+            List<PartControl> _parts = new();
+
             for (int i = 0; i < table.Rows.Count; i++)
             {
                 if (table.Rows[i] == null) continue;
@@ -194,23 +196,17 @@ namespace Metal_Code
                         part.Mass = MainWindow.Parser($"{table.Rows[j].ItemArray[4]}") / part.Count;
                         part.Way = MainWindow.Parser($"{table.Rows[j].ItemArray[7]}") / part.Count;
 
-                        if (part.Count > 0) AddPart(part);
+                        if (part.Count > 0) _parts.Add(new(part));
 
                         if ($"{table.Rows[j].ItemArray[0]}" == "Имя клиента") break;
                     }
                     break;
                 }
             }
-        }
-
-        public void AddPart(Part part)
-        {
-            PartControl partControl = new(part);
-            Parts.Add(partControl);
+            return _parts;
         }
 
         public List<LaserItem> items = new();
-
         public void ItemList(DataTable table)
         {
             if (items.Count > 0) items.Clear();
@@ -319,25 +315,6 @@ namespace Metal_Code
             string[] properties = _sheetsize.Split('X');
             work.type.A = MainWindow.Parser(properties[0]);
             work.type.B = MainWindow.Parser(properties[1]);
-        }
-    }
-
-    [Serializable]
-    public class Part
-    {
-        public string? Name { get; set; }
-        public int Count { get; set; }
-        public float Way { get; set; }
-        public float Mass { get; set; }
-        public float Price { get; set; }
-
-        public Part(string? _name = "", int _count = 0, float _way = 0, float _mass = 0, float _price = 0)
-        {
-            Name = _name;
-            Count = _count;
-            Way = _way;
-            Mass = _mass;
-            Price = _price;
         }
     }
 

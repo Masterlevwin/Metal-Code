@@ -5,9 +5,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="200">
+             d:DesignHeight="20" d:DesignWidth="140">
     <Grid>
-        <TextBox Text="{Binding Ral, RelativeSource={RelativeSource AncestorType={x:Type local:PaintControl}, Mode=FindAncestor}}" TextChanged="SetRal" HorizontalAlignment="Left" VerticalAlignment="Center" MinWidth="70" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Margin="20,0,0,0" MaxWidth="70" MaxHeight="20" MaxLines="1" ToolTip="Введите цвет RAL"/>
-        <ComboBox x:Name="TypeDrop" SelectionChanged="SetType" HorizontalAlignment="Left" MinHeight="20" MinWidth="70" Height="20" Margin="100,0,0,0" VerticalAlignment="Center" MaxWidth="70" MaxHeight="20" ToolTip="Выберите режим расчета" SelectedIndex="0"/>
+        <TextBox Text="{Binding Ral, RelativeSource={RelativeSource AncestorType={x:Type local:PaintControl}, Mode=FindAncestor}}" TextChanged="SetRal" HorizontalAlignment="Left" VerticalAlignment="Center" MinWidth="50" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Margin="20,0,0,0" MaxWidth="50" MaxHeight="20" MaxLines="1" ToolTip="Введите цвет RAL"/>
+        <ComboBox x:Name="TypeDrop" SelectionChanged="SetType" HorizontalAlignment="Left" MinHeight="20" MinWidth="60" Height="20" Margin="80,0,0,0" VerticalAlignment="Center" MaxWidth="60" MaxHeight="20" ToolTip="Выберите режим расчета" SelectedIndex="0"/>
+        <Button x:Name="PartBtn" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="10" MaxHeight="10" MaxWidth="10" MinWidth="10" Margin="5,0,0,0" FontSize="8" VerticalContentAlignment="Top" HorizontalContentAlignment="Center" Content="О" Padding="0,0,0,0" Grid.IsSharedSizeScope="True" FontFamily="Arial" FontWeight="Bold"/>
     </Grid>
 </UserControl>

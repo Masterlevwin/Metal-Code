@@ -161,4 +161,9 @@ namespace Metal_Code
             type.det.PriceResult();
         }
     }
+
+    public interface IPriceChanged
+    {
+        void OnPriceChanged();
+    }
 }

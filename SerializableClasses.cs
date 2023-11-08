@@ -38,7 +38,26 @@ namespace Metal_Code
             Total = _total;
         }
     }
-    
+
+    [Serializable]
+    public class Part
+    {
+        public string? Name { get; set; }
+        public int Count { get; set; }
+        public float Way { get; set; }
+        public float Mass { get; set; }
+        public float Price { get; set; }
+
+        public Part(string? _name = "", int _count = 0, float _way = 0, float _mass = 0, float _price = 0)
+        {
+            Name = _name;
+            Count = _count;
+            Way = _way;
+            Mass = _mass;
+            Price = _price;
+        }
+    }
+
     [Serializable]
     public class SaveTypeDetail
     {

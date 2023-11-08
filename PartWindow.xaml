@@ -1,11 +1,10 @@
-﻿<Window x:Class="Metal_Code.BendWindow"
+﻿<Window x:Class="Metal_Code.PartWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Metal_Code"
         mc:Ignorable="d"
-        Title="Гибка деталей" Height="300" Width="900" Topmost="True" Closed="FocusMainWindow" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterScreen" Icon="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg">
+        Title="Список деталей" Height="300" Width="900" Topmost="True" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterScreen" Icon="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg">
     <ScrollViewer VerticalAlignment="Top" VerticalScrollBarVisibility="Auto">
         <Grid>
             <Grid.RowDefinitions>

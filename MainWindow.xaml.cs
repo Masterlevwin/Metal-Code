@@ -165,7 +165,7 @@ namespace Metal_Code
                                                                         //(вроде пропала проблема)
         {
             foreach (DetailControl d in DetailControls)
-                foreach (TypeDetailControl t in d.TypeDetailControls) t.PriceChanged();
+                foreach (TypeDetailControl t in d.TypeDetailControls) t.OnPriceChanged();
         }*/
 
         public List<DetailControl> DetailControls = new();

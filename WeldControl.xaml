@@ -5,9 +5,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="200">
+             d:DesignHeight="20" d:DesignWidth="140" VerticalAlignment="Top">
     <Grid>
-        <TextBox Text="{Binding Weld, RelativeSource={RelativeSource AncestorType={x:Type local:WeldControl}, Mode=FindAncestor}}" TextChanged="SetWeld" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="20,0,0,0" MaxLines="1" ToolTip="Введите длину свариваемой поверхности" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" Height="20" Width="70"/>
-        <ComboBox HorizontalAlignment="Left" Margin="100,0,0,0" VerticalAlignment="Center" Height="20" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70"/>
+        <TextBox Text="{Binding Weld, RelativeSource={RelativeSource AncestorType={x:Type local:WeldControl}, Mode=FindAncestor}}" TextChanged="SetWeld" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="20,0,0,0" MaxLines="1" ToolTip="Введите длину свариваемой поверхности" MinHeight="20" MaxHeight="20" MinWidth="60" MaxWidth="60" Height="20" Width="70"/>
+        <ComboBox HorizontalAlignment="Left" Margin="90,0,0,0" VerticalAlignment="Center" Height="20" MinHeight="20" MaxHeight="20" MinWidth="50" MaxWidth="50"/>
+        <Button x:Name="PartBtn" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="10" MaxHeight="10" MaxWidth="10" MinWidth="10" Margin="5,0,0,0" FontSize="8" VerticalContentAlignment="Top" HorizontalContentAlignment="Center" Content="C" Padding="0,0,0,0" Grid.IsSharedSizeScope="True" FontFamily="Arial" FontWeight="Bold" BorderBrush="#FFE1A500"/>
     </Grid>
 </UserControl>

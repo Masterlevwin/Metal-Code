@@ -25,15 +25,32 @@ namespace Metal_Code
             }
         }
 
-        private readonly WorkControl work;
-        public WeldControl(WorkControl _work)
+        private readonly WorkControl? work;
+        public WeldControl(WorkControl? _work = null)
         {
             InitializeComponent();
             work = _work;
 
-            work.OnRatioChanged += PriceChanged;                // подписка на изменение коэффициента
-            work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-            work.type.Priced += PriceChanged;                   // подписка на изменение материала типовой детали
+            if (work != null)
+            {
+                work.OnRatioChanged += PriceChanged;                // подписка на изменение коэффициента
+                work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+                work.type.Priced += PriceChanged;                   // подписка на изменение материала типовой детали
+                BtnEnable();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
+            }
+            else PartBtn.IsEnabled = false;
+        }
+
+        private void BtnEnable()
+        {
+            if (work != null && work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
+            {
+                foreach (WorkControl w in work.type.WorkControls)
+                    if (w != work && w.workType is CutControl cut && cut.WindowParts != null)
+                        PartBtn.IsEnabled = true;
+            }
+            else PartBtn.IsEnabled = false;
+
         }
 
         public Dictionary<string, Dictionary<float, float>> weldDict = new()
@@ -156,33 +173,37 @@ namespace Metal_Code
         }
 
         private void PriceChanged()
-        {  
-            float _weld = 0;
-            try
+        {
+            BtnEnable();
+            if (work != null)
             {
-                object result = new DataTable().Compute(Weld, null);
-                if (float.TryParse($"{result}", out float f)) _weld = f;
-            }
-            catch
-            {
-                //System.Windows.Forms.MessageBox.Show("Исправьте длину свариваемой поверхности \nили поставьте 0", "Ошибка",
+                float _weld = 0;
+                try
+                {
+                    object result = new DataTable().Compute(Weld, null);
+                    if (float.TryParse($"{result}", out float f)) _weld = f;
+                }
+                catch
+                {
+                    //System.Windows.Forms.MessageBox.Show("Исправьте длину свариваемой поверхности \nили поставьте 0", "Ошибка",
                     //System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Hand);
-                return;
+                    return;
+                }
+
+                var sideRatio = (float)(_weld * work.type.Count) switch
+                {
+                    < 300 => 3,
+                    < 1000 => 10,
+                    < 10000 => 100,
+                    _ => (float)1,
+                };
+
+                float price = 0;
+                if (work.type.MetalDrop.SelectedItem is Metal metal && weldDict.ContainsKey(metal.Name))
+                    price = weldDict[metal.Name][sideRatio] * _weld * work.type.Count;
+
+                work.SetResult(price);
             }
-
-            var sideRatio = (float)(_weld * work.type.Count) switch
-            {
-                < 300 => 3,
-                < 1000 => 10,
-                < 10000 => 100,
-                _ => (float)1,
-            };
-
-            float price = 0;
-            if (work.type.MetalDrop.SelectedItem is Metal metal && weldDict.ContainsKey(metal.Name))
-                price = weldDict[metal.Name][sideRatio] * _weld * work.type.Count;
-
-            work.SetResult(price);
         }
 
         public void SaveOrLoadProperties(WorkControl w, bool isSaved)

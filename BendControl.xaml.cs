@@ -3,14 +3,14 @@ using System.Runtime.CompilerServices;
 using System.Windows.Controls;
 using System.Windows;
 using System.Collections.Generic;
-using System;
+using System.Linq;
 
 namespace Metal_Code
 {
     /// <summary>
     /// Логика взаимодействия для BendControl.xaml
     /// </summary>
-    public partial class BendControl : UserControl, INotifyPropertyChanged
+    public partial class BendControl : UserControl, INotifyPropertyChanged, IPriceChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
@@ -29,30 +29,36 @@ namespace Metal_Code
             }
         }
 
-        public readonly WorkControl work;
+        public readonly UserControl owner;
 
-        public BendControl(WorkControl _work)
+        public BendControl(UserControl _control)
         {
             InitializeComponent();
-            work = _work;
+            owner = _control;
 
             // формирование списка длин стороны гиба
             foreach (string s in MainWindow.M.BendDict[0.5f].Keys) ShelfDrop.Items.Add(s);
 
-            work.OnRatioChanged += PriceChanged;                // подписка на изменение коэффициента
-            work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-            work.type.Priced += PriceChanged;                   // подписка на изменение материала типовой детали
-            BtnEnabled();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
+            if (owner is WorkControl work)
+            {
+                MessageBox.Show("owner - work");
+                work.OnRatioChanged += OnPriceChanged;              // подписка на изменение коэффициента
+                work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+                work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
+                BtnEnable();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
+            }
+            else PartBtn.IsEnabled = false;
         }
 
-        private void BtnEnabled()
+        private void BtnEnable()
         {
-            if (work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name != "Лист металла")
+            if (owner is WorkControl work && work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
             {
-                PartBtn.IsEnabled = false;
-                Parts.Clear();
+                foreach (WorkControl w in work.type.WorkControls)
+                    if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
+                        PartBtn.IsEnabled = true;
             }
-            else PartBtn.IsEnabled = true;
+            else PartBtn.IsEnabled = false;
         }
 
         private void SetBend(object sender, TextChangedEventArgs e)
@@ -62,7 +68,7 @@ namespace Metal_Code
         private void SetBend(string _bend)
         {
             if (int.TryParse(_bend, out int b)) Bend = b;
-            PriceChanged();
+            OnPriceChanged();
         }
 
         private void SetShelf(object sender, SelectionChangedEventArgs e)
@@ -72,35 +78,51 @@ namespace Metal_Code
         public void SetShelf(int ndx = 0)
         {
             ShelfDrop.SelectedIndex = ndx;
-            PriceChanged();
+            OnPriceChanged();
         }
 
-        public void PriceChanged()
+        List<PartControl> Parts = new();
+        public void OnPriceChanged()
         {
-            BtnEnabled();
+            if (owner is not WorkControl work) return;
+
+            BtnEnable();
             float price = 0;
 
             if (Parts.Count > 0)
             {
-                foreach (PartControl p in Parts) foreach (PartBendControl b in p.Bends) price += b.PriceChanged();
+                foreach (PartControl p in Parts) foreach (BendControl b in p.UserControls.Cast<BendControl>())
+                    {
+                        MessageBox.Show($"{p.Part.Name}");
+                        MessageBox.Show($"{b.Bend * p.Part.Count}");
+
+                        float _price = b.Price(b.Bend * p.Part.Count, work);
+                        MessageBox.Show($"{_price}");
+
+
+                        // стоимость данной гибки должна быть не ниже минимальной
+                        if (work.WorkDrop.SelectedItem is Work _work) _price = _price > 0 && _price < _work.Price ? _work.Price : _price;
+
+                        price += _price;
+                    }
                 work.SetResult(price, false);
             }
-            else
-            {
-                if (Bend == 0) return;
+            else work.SetResult(Price(Bend * work.type.Count, work));
+        }
 
-                float _bendRatio = Bend * work.type.Count switch
-                {
-                    <= 10 => 3,
-                    <= 20 => 2,
-                    <= 50 => 1.5f,
-                    <= 200 => 1,
-                    _ => 0.8f,
-                };
-                if (MainWindow.M.BendDict.ContainsKey(work.type.S))
-                    price = _bendRatio * Bend * work.type.Count * MainWindow.M.BendDict[work.type.S][$"{ShelfDrop.SelectedItem}"];
-                work.SetResult(price);
-            }
+        private float Price(float _count, WorkControl work)
+        {
+            float _bendRatio = _count switch
+            {
+                <= 10 => 3,
+                <= 20 => 2,
+                <= 50 => 1.5f,
+                <= 200 => 1,
+                _ => 0.8f,
+            };
+
+            return MainWindow.M.BendDict.ContainsKey(work.type.S) ?
+                _bendRatio * _count * MainWindow.M.BendDict[work.type.S][$"{ShelfDrop.SelectedItem}"] : 0;
         }
 
         public void SaveOrLoadProperties(WorkControl w, bool isSaved)
@@ -118,18 +140,24 @@ namespace Metal_Code
             }
         }
 
-        public List<PartControl> Parts = new();
-        private void ViewBendWindow(object sender, RoutedEventArgs e)
+        private void ViewPartWindow(object sender, RoutedEventArgs e)
         {
-            if (work.type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail || typeDetail.Name != "Лист металла") return;
+            if (owner is not WorkControl work || work.type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail || typeDetail.Name != "Лист металла") return;
             
-            foreach (WorkControl w in work.type.WorkControls) if ( w != work && w.workType is CutControl cutControl && cutControl.Parts.Count > 0)
+            foreach (WorkControl w in work.type.WorkControls)
+                if ( w != work && w.workType is CutControl cut && cut.WindowParts != null)
                 {
-                    if (Parts.Count == 0) Parts.AddRange(cutControl.Parts);
-
-                    BendWindow bendWindow = new(this, Parts);
-                    bendWindow.Show();
-                }
+                    if (Parts.Count == 0)
+                    {
+                        foreach (PartControl part in cut.WindowParts.Parts)
+                        {
+                            BendControl bend = new(part);
+                            part.AddControl(bend);
+                        }
+                        Parts.AddRange(cut.WindowParts.Parts);
+                    }
+                    cut.WindowParts.ShowDialog();
+                }      
         }
     }
 }
