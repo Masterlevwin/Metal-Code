@@ -22,15 +22,21 @@ namespace Metal_Code
 
         private void AddControl(object sender, RoutedEventArgs e)
         {
-            if (sender == Controls.Items[0])
+            if (sender == Controls.Items[0]) AddControl(0);
+            else if (sender == Controls.Items[1]) AddControl(1);
+        }
+        public void AddControl(int index)
+        {
+            switch index
             {
-                BendControl bend = new(this);
-                AddControl(bend);
-            }
-            else if (sender == Controls.Items[1])
-            {
-                WeldControl weld = new(this);
-                AddControl(weld);
+                case 0:
+                    BendControl bend = new(this);
+                    AddControl(bend);
+                    break;
+                case 1:
+                    WeldControl weld = new(this);
+                    AddControl(weld);
+                    break;
             }
         }
         public void AddControl(UserControl uc)
