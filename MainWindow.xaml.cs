@@ -21,7 +21,6 @@ namespace Metal_Code
     {
         public static MainWindow M = new();
         readonly string version = "1.0.0";
-        public List<Part> Parts = new();
 
         public readonly TypeDetailContext dbTypeDetails = new();
         public readonly WorkContext dbWorks = new();
@@ -103,6 +102,18 @@ namespace Metal_Code
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
+        private bool isLaser;
+        public bool IsLaser
+        {
+            get { return isLaser; }
+            set
+            {
+                isLaser = value;
+                OnPropertyChanged(nameof(IsLaser));
+            }
+
+        }
+
         private int count;
         public int Count
         {
@@ -140,13 +151,54 @@ namespace Metal_Code
             Result = (float)Math.Round(Result, 2);
             //AnimBtn();
 
-            DetailsGrid.ItemsSource = SourceDetails();
-            DetailsGrid.Columns[0].Header = "N";
-            DetailsGrid.Columns[1].Header = "Наименование";
-            DetailsGrid.Columns[2].Header = "Работы";
-            DetailsGrid.Columns[3].Header = "Кол-во, шт";
-            DetailsGrid.Columns[4].Header = "Цена, руб";
-            DetailsGrid.Columns[5].Header = "Стоимость, руб";
+            ViewDetailsGrid();
+        }
+
+
+        private void IsLaserChanged(object sender, RoutedEventArgs e)
+        {
+            TotalResult();
+        }
+        private void ViewDetailsGrid()
+        {
+            if (IsLaser)
+            {
+                Parts = PartsSource();
+                DetailsGrid.ItemsSource = PartsSource();
+                DetailsGrid.Columns[0].Header = "N";
+                DetailsGrid.Columns[1].Header = "Материал";
+                DetailsGrid.Columns[2].Header = "Толщина";
+                DetailsGrid.Columns[3].Header = "Работы";
+                DetailsGrid.Columns[4].Header = "Наименование";
+                DetailsGrid.Columns[5].Header = "Кол-во, шт";
+                DetailsGrid.Columns[6].Header = "Цена, руб";
+                DetailsGrid.Columns[7].Header = "Стоимость, руб";
+            }
+            else
+            {
+                DetailsGrid.ItemsSource = DetailsSource();
+                DetailsGrid.Columns[0].Header = "N";
+                DetailsGrid.Columns[1].Header = "Наименование";
+                DetailsGrid.Columns[2].Header = "Работы";
+                DetailsGrid.Columns[3].Header = "Кол-во, шт";
+                DetailsGrid.Columns[4].Header = "Цена, руб";
+                DetailsGrid.Columns[5].Header = "Стоимость, руб";
+            }
+        }
+
+        public ObservableCollection<Part> Parts = new();
+        private ObservableCollection<Part> PartsSource()
+        {
+            ObservableCollection<Part> parts = new();
+
+            for (int i = 0; i < DetailControls.Count; i++)
+                for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
+                    for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
+                        if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is CutControl _cut)
+                            if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
+                                foreach (PartControl p in _cut.WindowParts.Parts)
+                                    parts.Add(p.Part);
+            return parts;
         }
 
         private void AnimBtn()
@@ -216,7 +268,7 @@ namespace Metal_Code
             }
         }
 
-        private ObservableCollection<Detail> SourceDetails()
+        private ObservableCollection<Detail> DetailsSource()
         {
             ObservableCollection<Detail> details = new();
             for (int i = 0; i < DetailControls.Count; i++)
@@ -398,7 +450,7 @@ namespace Metal_Code
             style.Borders.SetBorders(MultipleBorders.Outside, SpreadsheetColor.FromName(ColorName.Black), LineStyle.Thin);
             worksheet.Cells.GetSubrange("A6:F7").Style = style;
 
-            DataTable dt = ToDataTable(DetailsModel.Product.Details);
+            DataTable dt = IsLaser ? ToDataTable(Parts) : ToDataTable(DetailsModel.Product.Details);
             worksheet.InsertDataTable(dt, new InsertDataTableOptions()
                 {
                     ColumnHeaders = true,
@@ -426,7 +478,7 @@ namespace Metal_Code
 
             worksheet.Cells.GetSubrangeAbsolute(5, 4, num + 8, 5).Style.NumberFormat = $"00.00";
 
-            GemBox.Spreadsheet.CellRange cells = worksheet.Cells.GetSubrangeAbsolute(5, 0, num + 7, 5);
+            CellRange cells = worksheet.Cells.GetSubrangeAbsolute(5, 0, num + 7, 5);
             cells.AutoFitColumnWidth();
             cells.Style.Borders.SetBorders(MultipleBorders.Inside, SpreadsheetColor.FromName(ColorName.Black), LineStyle.Thin);
             cells.Style.Borders.SetBorders(MultipleBorders.Outside,SpreadsheetColor.FromName(ColorName.Black), LineStyle.Medium);
@@ -660,5 +712,6 @@ namespace Metal_Code
                 ["1.3-2.45"] = 300
             }
         };
+
     }
 }

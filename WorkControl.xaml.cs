@@ -161,6 +161,7 @@ namespace Metal_Code
         }
     }
 
+
     public interface IPriceChanged
     {
         void OnPriceChanged();

@@ -27,7 +27,7 @@ namespace Metal_Code
         }
         public void AddControl(int index)
         {
-            switch index
+            switch (index)
             {
                 case 0:
                     BendControl bend = new(this);
@@ -48,30 +48,5 @@ namespace Metal_Code
 
             Grid.SetRow(uc, 1);
         }
-
-        /*private void Remove(object sender, RoutedEventArgs e)
-        {
-            if (UserControls.Count == 1) return;
-            Remove();
-        }
-        public void Remove()
-        {
-            UpdatePosition(false);
-            UserControls.Remove(this);
-            BendGrid.Children.Remove(this);
-        }
-
-        public void UpdatePosition(bool direction)
-        {
-            int numB = UserControls.IndexOf(this);
-            if (UserControls.Count > 1)
-            {
-                for (int i = numB + 1; i < UserControls.Count; i++)
-                {
-                    UserControls[i].Margin = new Thickness(0,
-                        direction ? UserControls[i].Margin.Top + 25 : UserControls[i].Margin.Top - 25, 0, 0);
-                }
-            }
-        }*/
     }
 }

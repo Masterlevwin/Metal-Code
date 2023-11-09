@@ -9,6 +9,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Shapes;
 
 namespace Metal_Code
 {
@@ -94,7 +95,7 @@ namespace Metal_Code
             }
             else
             {
-                if (Way == 0 || Pinhole == 0) return;
+                //if (Way == 0 || Pinhole == 0) return;
                 if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
                 if (MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
@@ -137,7 +138,6 @@ namespace Metal_Code
                 if (dialogService.OpenFileDialog() == true)
                 {
                     LoadExcel(dialogService.FilePaths);
-                    dialogService.ShowMessage("Файл открыт");
                 }
             }
             catch (Exception ex)
@@ -163,7 +163,7 @@ namespace Metal_Code
                 {
                     work.type.det.AddTypeDetail();                                                    // добавляем типовую деталь
                     work.type.det.TypeDetailControls[^1].TypeDetailDrop.SelectedIndex = 2;            // устанавливаем "Лист металла"
-                    work.type.det.TypeDetailControls[^1].WorkControls[0].WorkDrop.SelectedIndex = 0;  // устанавливаем "Лазерная резка"
+                    work.type.det.TypeDetailControls[^1].WorkControls[0].WorkDrop.SelectedIndex = 2;  // устанавливаем "Лазерная резка"
                     if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)      // заполняем эту резку
                     {
                         _cut.WindowParts = new(this, _cut.PartList(table));
@@ -219,6 +219,9 @@ namespace Metal_Code
                     foreach (Metal metal in work.type.MetalDrop.Items) if (metal.Name == $"{table.Rows[i].ItemArray[9]}")
                         {
                             work.type.MetalDrop.SelectedItem = metal;
+                            if (WindowParts != null && WindowParts.Parts.Count > 0)
+                                foreach (PartControl p in WindowParts.Parts)
+                                    p.Part.Metal = metal.Name;
                             break;
                         }   
                 }
@@ -226,6 +229,9 @@ namespace Metal_Code
                 if ($"{table.Rows[i].ItemArray[4]}" == "Толщина (mm)")
                 {
                     work.type.S = MainWindow.Parser($"{table.Rows[i].ItemArray[5]}");
+                    if (WindowParts != null && WindowParts.Parts.Count > 0)
+                        foreach (PartControl p in WindowParts.Parts)
+                            p.Part.Destiny = work.type.S;
                     break;
                 }
             }
