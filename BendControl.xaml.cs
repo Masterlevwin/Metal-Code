@@ -37,7 +37,7 @@ namespace Metal_Code
             owner = _control;
 
             // формирование списка длин стороны гиба
-            foreach (string s in MainWindow.M.BendDict[0.5f].Keys) ShelfDrop.Items.Add(s);
+            foreach (string s in BendDict[0.5f].Keys) ShelfDrop.Items.Add(s);
 
             if (owner is WorkControl work)
             {
@@ -58,6 +58,108 @@ namespace Metal_Code
             }
             else PartBtn.IsEnabled = false;
         }
+
+        public Dictionary<float, Dictionary<string, float>> BendDict = new()
+        {
+            [.5f] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [.7f] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [.8f] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [1] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [1.2f] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [1.5f] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [2] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [2.5f] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 15,
+                ["0.5-1"] = 20,
+                ["1-1.3"] = 25,
+                ["1.3-2.45"] = 70
+            },
+            [3] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 20,
+                ["0.5-1"] = 30,
+                ["1-1.3"] = 35,
+                ["1.3-2.45"] = 100
+            },
+            [4] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 20,
+                ["0.5-1"] = 30,
+                ["1-1.3"] = 35,
+                ["1.3-2.45"] = 100
+            },
+            [5] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 30,
+                ["0.5-1"] = 45,
+                ["1-1.3"] = 65,
+                ["1.3-2.45"] = 200
+            },
+            [6] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 45,
+                ["0.5-1"] = 67.5f,
+                ["1-1.3"] = 97.5f,
+                ["1.3-2.45"] = 300
+            },
+            [8] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 45,
+                ["0.5-1"] = 67.5f,
+                ["1-1.3"] = 97.5f,
+                ["1.3-2.45"] = 300
+            },
+            [10] = new Dictionary<string, float>
+            {
+                ["до 0.5"] = 45,
+                ["0.5-1"] = 67.5f,
+                ["1-1.3"] = 97.5f,
+                ["1.3-2.45"] = 300
+            }
+        };
 
         private void SetBend(object sender, TextChangedEventArgs e)
         {
@@ -114,8 +216,8 @@ namespace Metal_Code
                 _ => 0.8f,
             };
 
-            return MainWindow.M.BendDict.ContainsKey(work.type.S) ?
-                _bendRatio * _count * MainWindow.M.BendDict[work.type.S][$"{ShelfDrop.SelectedItem}"] : 0;
+            return BendDict.ContainsKey(work.type.S) ?
+                _bendRatio * _count * BendDict[work.type.S][$"{ShelfDrop.SelectedItem}"] : 0;
         }
 
         public void SaveOrLoadProperties(WorkControl w, bool isSaved)

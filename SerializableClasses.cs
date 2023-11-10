@@ -21,15 +21,15 @@ namespace Metal_Code
     [Serializable]
     public class Detail
     {
-        public int N { get; set; }
         public string? Title { get; set; }
         public string? Description { get; set; }
+        public int N { get; set; }
         public int Count { get; set; }
         public float Price { get; set; }
         public float Total { get; set; }
 
         public List<SaveTypeDetail> TypeDetails = new();
-        public Detail(int id = 0, string? _name = "", int _count = 0, float _price = 0, float _total = 0)
+        public Detail(int id = 0, string? _name = null, int _count = 0, float _price = 0, float _total = 0)
         {
             N = id;
             Title = _name;
@@ -42,22 +42,22 @@ namespace Metal_Code
     [Serializable]
     public class Part
     {
-        public int N { get; set; }
         public string? Metal { get; set; }
         public float Destiny { get; set; }
         public string? Description { get; set; }
+        public string? Accuracy { get; set; }
         public string? Name { get; set; }
         public int Count { get; set; }
         public float Price { get; set; }
         public float Total { get; set; }
-        public float Way { get; set; }
-        public float Mass { get; set; }
 
-        public Part(int id = 0, string? _name = "", int _count = 0)
+        public float Way, Mass;         // чтобы не отображать в DataGrid, объявлены полями
+
+        public Part(string? _name = null, int _count = 0, string? accuracy = null)
         {
-            N = id;
             Name = _name;
             Count = _count;
+            Accuracy = accuracy;
         }
     }
 

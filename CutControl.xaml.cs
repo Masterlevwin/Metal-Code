@@ -95,7 +95,7 @@ namespace Metal_Code
             }
             else
             {
-                //if (Way == 0 || Pinhole == 0) return;
+                if (Way == 0 || Pinhole == 0) return;
                 if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
                 if (MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
@@ -106,11 +106,7 @@ namespace Metal_Code
 
         private void BtnEnabled()
         {
-            if (work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name != "Лист металла")
-            {
-                CutBtn.IsEnabled = false;
-                Way = Pinhole = 0;
-            }   
+            if (work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name != "Лист металла") CutBtn.IsEnabled = false;
             else CutBtn.IsEnabled = true;
         }
 
@@ -190,6 +186,7 @@ namespace Metal_Code
                         {
                             Name = $"{table.Rows[j].ItemArray[2]}",
                             Count = (int)MainWindow.Parser($"{table.Rows[j].ItemArray[6]}"),
+                            Accuracy = $"H14/h14 +-IT 14/2"
                         };
 
                         part.Mass = MainWindow.Parser($"{table.Rows[j].ItemArray[4]}") / part.Count;
@@ -231,7 +228,7 @@ namespace Metal_Code
                     work.type.S = MainWindow.Parser($"{table.Rows[i].ItemArray[5]}");
                     if (WindowParts != null && WindowParts.Parts.Count > 0)
                         foreach (PartControl p in WindowParts.Parts)
-                            p.Part.Destiny = work.type.S;
+                            p.Part.Destiny = work.type.S;  
                     break;
                 }
             }

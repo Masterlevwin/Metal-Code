@@ -4,13 +4,14 @@ using System.Windows;
 using System.Linq;
 using System.Windows.Controls;
 using System.Collections.ObjectModel;
-using GemBox.Spreadsheet;
 using System.Data;
 using System.Reflection;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Media.Animation;
+using OfficeOpenXml.Style;
+using OfficeOpenXml;
 
 namespace Metal_Code
 {
@@ -154,7 +155,6 @@ namespace Metal_Code
             ViewDetailsGrid();
         }
 
-
         private void IsLaserChanged(object sender, RoutedEventArgs e)
         {
             TotalResult();
@@ -163,26 +163,29 @@ namespace Metal_Code
         {
             if (IsLaser)
             {
-                Parts = PartsSource();
                 DetailsGrid.ItemsSource = PartsSource();
-                DetailsGrid.Columns[0].Header = "N";
-                DetailsGrid.Columns[1].Header = "Материал";
-                DetailsGrid.Columns[2].Header = "Толщина";
-                DetailsGrid.Columns[3].Header = "Работы";
+                DetailsGrid.Columns[0].Header = "Материал";
+                DetailsGrid.Columns[1].Header = "Толщина";
+                DetailsGrid.Columns[2].Header = "Работы";
+                DetailsGrid.Columns[3].Header = "Точность";
                 DetailsGrid.Columns[4].Header = "Наименование";
                 DetailsGrid.Columns[5].Header = "Кол-во, шт";
                 DetailsGrid.Columns[6].Header = "Цена, руб";
                 DetailsGrid.Columns[7].Header = "Стоимость, руб";
+                //DetailsGrid.Columns[8].Header = "Периметр детали";
+                //DetailsGrid.Columns[9].Header = "Вес детали";
+                Parts = PartsSource();
             }
             else
             {
                 DetailsGrid.ItemsSource = DetailsSource();
-                DetailsGrid.Columns[0].Header = "N";
-                DetailsGrid.Columns[1].Header = "Наименование";
-                DetailsGrid.Columns[2].Header = "Работы";
+                DetailsGrid.Columns[0].Header = "Наименование";
+                DetailsGrid.Columns[1].Header = "Работы";
+                DetailsGrid.Columns[2].Header = "N";
                 DetailsGrid.Columns[3].Header = "Кол-во, шт";
                 DetailsGrid.Columns[4].Header = "Цена, руб";
                 DetailsGrid.Columns[5].Header = "Стоимость, руб";
+                DetailsGrid.FrozenColumnCount = 1;
             }
         }
 
@@ -281,9 +284,7 @@ namespace Metal_Code
                     {
                         if (DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedItem is Work work)
                         {
-                            if (work.Name == "Покупка" && DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedItem is TypeDetail type)
-                                _detail.Description += $"{work.Name} ({type.Name})\n";
-                            else if (work.Name == "Окраска" && DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is PaintControl _paint)
+                            if (work.Name == "Окраска" && DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is PaintControl _paint)
                                 _detail.Description += $"{work.Name} (цвет - {_paint.Ral})\n";
                             else _detail.Description += work.Name + "\n";
                         }
@@ -326,7 +327,9 @@ namespace Metal_Code
                     TypeDetailControl type = det.TypeDetailControls[j];
                     SaveTypeDetail _typeDetail = new(type.TypeDetailDrop.SelectedIndex, type.Count, type.MetalDrop.SelectedIndex, type.HasMetal,
                         (type.SortDrop.SelectedIndex, type.A, type.B, type.S, type.L));
-                        
+
+                    if (type.TypeDetailDrop.SelectedItem is TypeDetail _type) _detail.Description += $"{_type.Name}:" + " ";
+
                     for (int k = 0; k < type.WorkControls.Count; k++)
                     {
                         WorkControl work = type.WorkControls[k];
@@ -334,11 +337,9 @@ namespace Metal_Code
 
                         if (work.WorkDrop.SelectedItem is Work _work)
                         {
-                            if (_work.Name == "Покупка" && type.TypeDetailDrop.SelectedItem is TypeDetail _type)
-                                _detail.Description += $"{_work.Name} ({_type.Name})\n";
-                            else if (_work.Name == "Окраска" && work.workType is PaintControl _paint)
-                                _detail.Description += $"{_work.Name} (цвет - {_paint.Ral})\n";
-                            else _detail.Description += _work.Name + "\n";
+                            if (_work.Name == "Окраска" && work.workType is PaintControl _paint)
+                                _detail.Description += $"{_work.Name} (цвет - {_paint.Ral}) ";
+                            else _detail.Description += $"{_work.Name}" + " ";
                         }
 
                         work.PropertiesChanged?.Invoke(work, true);  
@@ -350,6 +351,9 @@ namespace Metal_Code
                 }
                 details.Add(_detail);
             }
+
+            // добавить механизм сохранения Parts, всех соответствующих контролов и т.д.
+
             return details;
         }
 
@@ -408,131 +412,167 @@ namespace Metal_Code
 
         public void ExportToExcel(string path)
         {
-            SpreadsheetInfo.SetLicense("FREE-LIMITED-KEY");
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
-            ExcelFile workbook = new();
-            ExcelWorksheet worksheet = workbook.Worksheets.Add("Лист1");
-
-            worksheet.Pictures.Add("excel_logo.jpg", "A1");
-
-            worksheet.Cells["E1"].Value = "ООО ПРОВЭЛД  " + Phone.Text;
-            worksheet.Rows["1"].Style = workbook.Styles[BuiltInCellStyleName.Heading3];
-            worksheet.Rows["1"].Style.HorizontalAlignment = HorizontalAlignmentStyle.Right;
-            worksheet.Cells[1, 5].Value = "КП № " + Order.Text + " для " + Company.Text + " от " + DateTime.Now.ToString("d");
-            worksheet.Rows["2"].Style = workbook.Styles[BuiltInCellStyleName.Heading1];
-            worksheet.Rows["2"].Style.HorizontalAlignment = HorizontalAlignmentStyle.Center;
-            worksheet.Cells["A3"].Value = "Данный расчет действителен в течении 2-х банковских дней";
-            worksheet.Cells["B4"].Value = $"Для изготовления изделия";
-            worksheet.Cells["D4"].Value = ProductName.Text;
-            worksheet.Cells["D4"].Style.Font.Weight = ExcelFont.BoldWeight;
-            worksheet.Cells["B5"].Value = "понадобятся следующие детали и работы:";
-
-            worksheet.Cells.GetSubrange("C1:F1").Merged = true;
-            worksheet.Cells.GetSubrange("B2:F2").Merged = true;
-            worksheet.Cells.GetSubrange("A3:F3").Merged = true;
-            worksheet.Cells.GetSubrange("B4:C4").Merged = true;
-            worksheet.Cells.GetSubrange("B5:E5").Merged = true;
-            worksheet.Cells.GetSubrange("A6:A7").Merged = true;
-            worksheet.Cells.GetSubrange("B6:B7").Merged = true;
-            worksheet.Cells.GetSubrange("C6:C7").Merged = true;
-            worksheet.Cells.GetSubrange("D6:D7").Merged = true;
-            worksheet.Cells.GetSubrange("E6:E7").Merged = true;
-            worksheet.Cells.GetSubrange("F6:F7").Merged = true;
-
-            CellStyle style = new()
+            using (var workbook = new ExcelPackage())
             {
-                HorizontalAlignment = HorizontalAlignmentStyle.Center,
-                VerticalAlignment = VerticalAlignmentStyle.Center,
-                WrapText = true
-            };
-            style.FillPattern.SetSolid(SpreadsheetColor.FromArgb(255, 180, 100));
-            style.Borders.SetBorders(MultipleBorders.Inside, SpreadsheetColor.FromName(ColorName.Black), LineStyle.Thin);
-            style.Borders.SetBorders(MultipleBorders.Outside, SpreadsheetColor.FromName(ColorName.Black), LineStyle.Thin);
-            worksheet.Cells.GetSubrange("A6:F7").Style = style;
+                ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("Лист1");
 
-            DataTable dt = IsLaser ? ToDataTable(Parts) : ToDataTable(DetailsModel.Product.Details);
-            worksheet.InsertDataTable(dt, new InsertDataTableOptions()
+                worksheet.Drawings.AddPicture("A1", IsLaser ? "laser_logo.jpg" : "excel_logo.jpg");  // файлы должны быть в директории bin/Debug...
+
+                worksheet.Cells["A1"].Value = IsLaser ? "ООО ЛАЗЕРФЛЕКС  " + Phone.Text : "ООО ПРОВЭЛД  " + Phone.Text;   // тел:(812)509-60-11 или тел:(812)603-45-33 - по умолчанию
+                worksheet.Cells[1, 1, 1, IsLaser ? 8 : 6].Merge = true;
+                worksheet.Rows[1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+
+                if (IsLaser)
                 {
-                    ColumnHeaders = true,
-                    StartRow = 6
-                });
-            for (int col = 0; col < DetailsGrid.Columns.Count; col++) worksheet.Cells[6, col].Value = DetailsGrid.Columns[col].Header;
+                    worksheet.Cells["D2"].Value = "КП № " + Order.Text + " для " + Company.Text + " от " + DateTime.Now.ToString("d");
+                    worksheet.Cells[2, 4, 2, 8].Merge = true;
+                }
+                else
+                {
+                    worksheet.Cells["B2"].Value = "КП № " + Order.Text + " для " + Company.Text + " от " + DateTime.Now.ToString("d");
+                    worksheet.Cells[2, 2, 2, 6].Merge = true;
+                }
+                // здесь нужен стиль заголовка
+                worksheet.Rows[2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
-            int num = dt.Rows.Count;
+                worksheet.Cells["A3"].Value = "Данный расчет действителен в течении 2-х банковских дней";
+                worksheet.Cells[3, 1, 3, IsLaser ? 8 : 6].Merge = true;
+                worksheet.Rows[3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
 
-            if (CheckDelivery.IsChecked == true)
-            {
-                worksheet.Cells[num + 7, 2].Value = "Доставка";
-                worksheet.Cells[num + 7, 3].Value = 1;
-                if (int.TryParse(Delivery.Text, out int d)) worksheet.Cells[num + 7, 4].Value = worksheet.Cells[num + 7, 5].Value = d;
-                num++;
-                worksheet.Cells[num + 11, 2].Value = "Доставка силами Исполнителя по адресу Заказчика.";
+                if (!IsLaser)
+                {
+                    worksheet.Cells["B4"].Value = $"Для изготовления изделия";
+                    worksheet.Cells["C4"].Value = ProductName.Text;
+                    worksheet.Cells["C4"].Style.Font.Bold = true;
+                    worksheet.Cells["B5"].Value = "понадобятся следующие детали и работы:";
+                }
+
+                DataTable dt = IsLaser ? ToDataTable(Parts) : ToDataTable(DetailsModel.Product.Details);
+                worksheet.Cells["A7"].LoadFromDataTable(dt, true);
+                int num = dt.Rows.Count;
+
+                for (int col = 0; col < DetailsGrid.Columns.Count; col++)
+                {
+                    worksheet.Cells[6, col + 1].Value = DetailsGrid.Columns[col].Header;
+                    worksheet.Cells[6, col + 1, 7, col + 1].Merge = true;
+                    worksheet.Cells[6, col + 1, 7, col + 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    worksheet.Cells[6, col + 1, 7, col + 1].Style.Fill.BackgroundColor.SetColor(0, 120, 180, 255);
+                    worksheet.Cells[6, col + 1].Style.WrapText = true;
+                }
+
+                if (CheckDelivery.IsChecked == true)
+                {
+                    worksheet.Cells[num + 8, IsLaser ? 5 : 3].Value = "Доставка";
+                    worksheet.Cells[num + 8, IsLaser ? 6 : 4].Value = 1;
+                    if (int.TryParse(Delivery.Text, out int d)) worksheet.Cells[num + 8, IsLaser ? 7 : 5].Value = worksheet.Cells[num + 8, IsLaser ? 8 : 6].Value = d;
+                    num++;
+                    worksheet.Cells[num + 12, 2].Value = "Доставка силами Исполнителя по адресу Заказчика.";
+                }
+                else
+                {
+                    worksheet.Cells[num + 12, 2].Value = "Самовывоз со склада Исполнителя по адресу: Ленинградская область, Всеволожский район, Колтушское сельское поселение, деревня Мяглово, ул. Дорожная, уч. 4Б.";
+                    worksheet.Cells[num + 12, 2].Style.WrapText = true;
+                }
+
+                ExcelRange table = worksheet.Cells[6, 1, num + 7, IsLaser ? 8 : 6];
+                if (!IsLaser) table.Style.WrapText = true;
+                table.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                table.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                table.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                table.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+
+                if (IsLaser) worksheet.Cells[6, 2, num + 7, 2].Style.Numberformat.Format = "0.0";
+
+                worksheet.Cells[num + 8, IsLaser ? 7 : 5].Value = "ИТОГО:";
+                worksheet.Cells[num + 8, IsLaser ? 7 : 5].Style.Font.Bold = true;
+                worksheet.Cells[num + 8, IsLaser ? 7 : 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                worksheet.Names.Add("totalOrder", worksheet.Cells[7, IsLaser ? 8 : 6, num + 7, IsLaser ? 8 : 6]);
+                worksheet.Cells[num + 8, IsLaser ? 8 : 6].Formula = "=SUM(totalOrder)";
+                worksheet.Cells[num + 8, IsLaser ? 8 : 6].Style.Font.Bold = true;
+                worksheet.Cells[num + 8, IsLaser ? 8 : 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                worksheet.Cells[num + 8, 1, num + 8, IsLaser ? 8 : 6].Style.Border.BorderAround(ExcelBorderStyle.Medium);
+
+                worksheet.Cells[num + 9, 1].Value = "Материал:";
+                worksheet.Cells[num + 9, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+                worksheet.Cells[num + 9, 2].Value = DetailControls[0].TypeDetailControls[0].HasMetal ? "Исполнителя" : "Заказчика";
+                worksheet.Cells[num + 9, 2].Style.Font.Bold = true;
+                worksheet.Cells[num + 9, 2, num + 9, 3].Merge = true;
+
+                worksheet.Cells[num + 10, 1].Value = "Срок изготовления:";
+                worksheet.Cells[num + 10, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+                worksheet.Cells[num + 10, 2].Value = DateProduction.Text + " раб/дней.";
+                worksheet.Cells[num + 10, 2].Style.Font.Bold = true;
+                worksheet.Cells[num + 10, 2, num + 10, 3].Merge = true;
+
+                worksheet.Cells[num + 11, 1].Value = "Условия оплаты:";
+                worksheet.Cells[num + 11, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+                worksheet.Cells[num + 11, 2].Value = "Предоплата 100% по счету Исполнителя.";
+                worksheet.Cells[num + 11, 2, num + 11, 5].Merge = true;
+
+                worksheet.Cells[num + 12, 1].Value = "Порядок отгрузки:";
+                worksheet.Cells[num + 12, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+                worksheet.Cells[num + 12, 2].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+                worksheet.Cells[num + 12, 2, num + 12, 5].Merge = true;
+
+                worksheet.Cells[num + 14, 1].Value = "Ваш менеджер:";
+                worksheet.Cells[num + 14, 2].Value = ManagerDrop.Text;
+                worksheet.Cells[num + 14, 2].Style.Font.Bold = true;
+                worksheet.Cells[num + 14, 2, num + 14, 3].Merge = true;
+
+
+                worksheet.Cells[num + 13, 1].Value = "Расшифровка работ: ";
+                worksheet.Cells[num + 13, 2].Value = "";
+                foreach (var cell in worksheet.Cells[8, 3, num + 8, 3])
+                {
+                    if (cell.Value != null && $"{cell.Value}".Contains('Л') && !$"{worksheet.Cells[num + 13, 2].Value}".Contains('Л')) worksheet.Cells[num + 13, 2].Value += "Л - Лазер";
+                }
+                worksheet.Cells[num + 13, 2, num + 13, 5].Merge = true;
+
+                worksheet.Cells[num + 14, IsLaser ? 8 : 6].Value = version;
+                worksheet.Cells[num + 14, IsLaser ? 8 : 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+
+                worksheet.Cells.AutoFitColumns();
+                if (worksheet.Rows[num + 12].Height < 35) worksheet.Rows[num + 12].Height = 35;
+
+                workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");
             }
-            else
-            {
-                worksheet.Cells.GetSubrangeAbsolute(num + 11, 2, num + 11, 5).Merged = true;
-                worksheet.Cells[num + 11, 2].Style.WrapText = true;
-                worksheet.Cells[num + 11, 2].Value = "Самовывоз со склада Исполнителя по адресу: Ленинградская область, Всеволожский район, Колтушское сельское поселение, деревня Мяглово, ул. Дорожная, уч. 4Б.";
-                worksheet.Rows[num + 11].AutoFit(true);
-            }
-
-            worksheet.Cells.GetSubrangeAbsolute(5, 4, num + 8, 5).Style.NumberFormat = $"00.00";
-
-            CellRange cells = worksheet.Cells.GetSubrangeAbsolute(5, 0, num + 7, 5);
-            cells.AutoFitColumnWidth();
-            cells.Style.Borders.SetBorders(MultipleBorders.Inside, SpreadsheetColor.FromName(ColorName.Black), LineStyle.Thin);
-            cells.Style.Borders.SetBorders(MultipleBorders.Outside,SpreadsheetColor.FromName(ColorName.Black), LineStyle.Medium);
-            cells.Style.HorizontalAlignment = HorizontalAlignmentStyle.Center;
-            cells.Style.VerticalAlignment = VerticalAlignmentStyle.Center;
-
-            worksheet.Cells[num + 7, 4].Value = "Стоимость изделия:";
-            worksheet.Cells[num + 7, 4].Style.Font.Weight = ExcelFont.BoldWeight;
-            worksheet.Cells[num + 7, 4].Style.HorizontalAlignment = HorizontalAlignmentStyle.Right;
-            worksheet.NamedRanges.Add("totalOrder", worksheet.Cells.GetSubrangeAbsolute(7, 5, num + 6, 5));
-            worksheet.Cells[num + 7, 5].Formula = "=SUM(totalOrder)";
-            worksheet.Cells[num + 7, 5].Style.Font.Weight = ExcelFont.BoldWeight;
-            worksheet.Cells[num + 7, 5].Style.HorizontalAlignment = HorizontalAlignmentStyle.Center;
-            worksheet.Cells.GetSubrangeAbsolute(num + 7, 3, num + 7, 4).Merged = true;
-            
-            worksheet.Cells[num + 8, 1].Value = "Материал:";
-            worksheet.Cells[num + 8, 1].Style.VerticalAlignment = VerticalAlignmentStyle.Top;
-            worksheet.Cells[num + 8, 2].Value = DetailControls[0].TypeDetailControls[0].HasMetal ? "Исполнителя" : "Заказчика";
-            worksheet.Cells[num + 8, 2].Style.Font.Weight = ExcelFont.BoldWeight;
-
-            worksheet.Cells[num + 8, 4].Value = $"Всего за {Count} шт:";
-            worksheet.Cells[num + 8, 4].Style.Font.Weight = ExcelFont.BoldWeight;
-            worksheet.Cells[num + 8, 4].Style.HorizontalAlignment = HorizontalAlignmentStyle.Right;
-            worksheet.Cells[num + 8, 5].Value = $"{Result + Parser(Delivery.Text)}";
-            worksheet.Cells[num + 8, 5].Style.Font.Weight = ExcelFont.BoldWeight;
-            worksheet.Cells[num + 8, 5].Style.HorizontalAlignment = HorizontalAlignmentStyle.Center;
-
-            worksheet.Cells[num + 9, 1].Value = "Срок изготовления:";
-            worksheet.Cells[num + 9, 1].Style.VerticalAlignment = VerticalAlignmentStyle.Top;
-            worksheet.Cells[num + 9, 2].Value = DateProduction.Text + " раб/дней.";
-            worksheet.Cells[num + 9, 2].Style.Font.Weight = ExcelFont.BoldWeight;
-            worksheet.Cells.GetSubrangeAbsolute(num + 9, 2, num + 9, 4).Merged = true;
-
-            worksheet.Cells[num + 10, 1].Value = "Условия оплаты:";
-            worksheet.Cells[num + 10, 1].Style.VerticalAlignment = VerticalAlignmentStyle.Top;
-            worksheet.Cells[num + 10, 2].Value = "Предоплата 100% по счету Исполнителя.";
-            worksheet.Cells.GetSubrangeAbsolute(num + 10, 2, num + 10, 5).Merged = true;
-
-            worksheet.Cells[num + 11, 1].Value = "Порядок отгрузки:";
-
-            worksheet.Cells[num + 12, 1].Value = "Ваш менеджер:";
-            worksheet.Cells[num + 12, 2].Value = ManagerDrop.Text;
-            worksheet.Cells[num + 12, 2].Style.Font.Weight = ExcelFont.BoldWeight;
-
-            worksheet.Cells.GetSubrangeAbsolute(num + 9, 0, num + 13, 5).Style.VerticalAlignment = VerticalAlignmentStyle.Top;
-            worksheet.Cells.GetSubrangeAbsolute(num + 9, 0, num + 13, 5).AutoFitColumnWidth();
-
-            worksheet.Cells[num + 12, 5].Value = version;
-            worksheet.Cells[num + 12, 5].Style.HorizontalAlignment = HorizontalAlignmentStyle.Right;
-
-            worksheet.PrintOptions.FitWorksheetWidthToPages = 1;
-
-            workbook.Save(path.Remove(path.LastIndexOf(".")) + ".xlsx");
         }
+
+        /*private byte Commerce(ExcelWorksheet worksheet)
+        {
+            List<LaserBlock> lasers = Data.D.lasers.OrderBy(p => p.destinyDrop.Text).ToList();
+
+            byte k = 0;
+
+            for (int i = 0; i < lasers.Count; i++)
+            {
+                if (lasers[i].details.Count > 0)
+                {
+                    for (int j = 0; j < lasers[i].details.Count; j++)
+                    {
+                        worksheet.Cells[k + j + 5, 1].Value = lasers[i].metalDrop.Text;
+                        worksheet.Cells[k + j + 5, 2].Value = lasers[i].destinyDrop.Text;
+                        worksheet.Cells[k + j + 5, 3].Value = "Л";
+                        if (lasers[i].details[j].det.hasBend) worksheet.Cells[k + j + 5, 3].Value += " + Г";
+                        if (lasers[i].details[j].det.hasRoll) worksheet.Cells[k + j + 5, 3].Value += " + В";
+                        if (lasers[i].details[j].det.hasWeld) worksheet.Cells[k + j + 5, 3].Value += " + С";
+                        if (lasers[i].details[j].det.hasPaint) worksheet.Cells[k + j + 5, 3].Value += " + О(" + $" RAL {lasers[i].details[j].det.ral}" + " )";
+                        worksheet.Cells[k + j + 5, 4].Value = "H14/h14 +-IT 14/2";
+                        worksheet.Cells[k + j + 5, 5].Value = lasers[i].details[j].det.name.Substring(0, lasers[i].details[j].det.name.LastIndexOf(' ') + 1);
+                        worksheet.Cells[k + j + 5, 6].Value = lasers[i].details[j].det.parts;
+                        worksheet.Cells[k + j + 5, 7].Value = Math.Round(lasers[i].details[j].price, 2);
+                        worksheet.Cells[k + j + 5, 8].Value = Math.Round(lasers[i].details[j].det.parts * lasers[i].details[j].price, 2);
+                    }
+
+                    k += (byte)lasers[i].details.Count;
+                }
+            }
+
+            return k;
+        }*/
 
         public static DataTable ToDataTable<T>(ObservableCollection<T> items)
         {
@@ -610,108 +650,5 @@ namespace Metal_Code
 
             return size;
         }
-
-        public Dictionary<float, Dictionary<string, float>> BendDict = new()
-        {
-            [.5f] = new Dictionary<string, float>
-            {
-                ["до 0.5"] = 15,
-                ["0.5-1"] = 20,
-                ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
-            },
-            [.7f] = new Dictionary<string, float>
-            {
-                ["до 0.5"] = 15,
-                ["0.5-1"] = 20,
-                ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
-            },
-            [.8f] = new Dictionary<string, float>
-            {
-                ["до 0.5"] = 15,
-                ["0.5-1"] = 20,
-                ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
-            },
-            [1] = new Dictionary<string, float>
-            {
-                ["до 0.5"] = 15,
-                ["0.5-1"] = 20,
-                ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
-            },
-            [1.2f] = new Dictionary<string, float>
-            {
-                ["до 0.5"] = 15,
-                ["0.5-1"] = 20,
-                ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
-            },
-            [1.5f] = new Dictionary<string, float>
-            {
-                ["до 0.5"] = 15,
-                ["0.5-1"] = 20,
-                ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
-            },
-            [2] = new Dictionary<string, float>
-            {
-                ["до 0.5"] = 15,
-                ["0.5-1"] = 20,
-                ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
-            },
-            [2.5f] = new Dictionary<string, float>
-            {
-                ["до 0.5"] = 15,
-                ["0.5-1"] = 20,
-                ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
-            },
-            [3] = new Dictionary<string, float>
-            {
-                ["до 0.5"] = 20,
-                ["0.5-1"] = 30,
-                ["1-1.3"] = 35,
-                ["1.3-2.45"] = 100
-            },
-            [4] = new Dictionary<string, float>
-            {
-                ["до 0.5"] = 20,
-                ["0.5-1"] = 30,
-                ["1-1.3"] = 35,
-                ["1.3-2.45"] = 100
-            },
-            [5] = new Dictionary<string, float>
-            {
-                ["до 0.5"] = 30,
-                ["0.5-1"] = 45,
-                ["1-1.3"] = 65,
-                ["1.3-2.45"] = 200
-            },
-            [6] = new Dictionary<string, float>
-            {
-                ["до 0.5"] = 45,
-                ["0.5-1"] = 67.5f,
-                ["1-1.3"] = 97.5f,
-                ["1.3-2.45"] = 300
-            },
-            [8] = new Dictionary<string, float>
-            {
-                ["до 0.5"] = 45,
-                ["0.5-1"] = 67.5f,
-                ["1-1.3"] = 97.5f,
-                ["1.3-2.45"] = 300
-            },
-            [10] = new Dictionary<string, float>
-            {
-                ["до 0.5"] = 45,
-                ["0.5-1"] = 67.5f,
-                ["1-1.3"] = 97.5f,
-                ["1.3-2.45"] = 300
-            }
-        };
-
     }
 }

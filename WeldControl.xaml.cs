@@ -53,7 +53,7 @@ namespace Metal_Code
             else PartBtn.IsEnabled = false;
         }
 
-        public Dictionary<string, Dictionary<float, float>> weldDict = new()
+        public Dictionary<string, Dictionary<float, float>> WeldDict = new()
         {
             ["ст3"] = new Dictionary<float, float>()
             {
@@ -215,8 +215,8 @@ namespace Metal_Code
                 _ => 1,
             };
 
-            return work.type.MetalDrop.SelectedItem is Metal metal && weldDict.ContainsKey(metal.Name) ?
-                weldDict[metal.Name][sideRatio] * _count : 0;
+            return work.type.MetalDrop.SelectedItem is Metal metal && WeldDict.ContainsKey(metal.Name) ?
+                WeldDict[metal.Name][sideRatio] * _count : 0;
         }
 
         public void SaveOrLoadProperties(WorkControl w, bool isSaved)
