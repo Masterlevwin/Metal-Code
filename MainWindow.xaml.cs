@@ -306,6 +306,7 @@ namespace Metal_Code
                 Manager = ManagerDrop.Text,
                 Comment = Comment.Text,
                 Count = Count,
+                IsLaser = IsLaser,
                 HasDelivery = (bool)CheckDelivery.IsChecked
             };
             if (int.TryParse(Delivery.Text, out int d)) prod.Delivery = d;
@@ -340,9 +341,18 @@ namespace Metal_Code
                             if (_work.Name == "Окраска" && work.workType is PaintControl _paint)
                                 _detail.Description += $"{_work.Name} (цвет - {_paint.Ral}) ";
                             else _detail.Description += $"{_work.Name}" + " ";
+
+                            if (IsLaser && work.workType is CutControl _cut)
+                            {
+                                _saveWork.Parts = _cut.Parts;
+                                _saveWork.Items = _cut.items;
+
+                                if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
+                                    foreach (PartControl part in _cut.WindowParts.Parts) part.PropertiesChanged?.Invoke(part, true);
+                            }
                         }
 
-                        work.PropertiesChanged?.Invoke(work, true);  
+                        work.PropertiesChanged?.Invoke(work, true);
                         _saveWork.PropsList = work.propsList;
 
                         _typeDetail.Works.Add(_saveWork);
@@ -368,6 +378,7 @@ namespace Metal_Code
             DateProduction.Text = DetailsModel.Product.Production;
             ManagerDrop.Text = DetailsModel.Product.Manager;
             Comment.Text = DetailsModel.Product.Comment;
+            IsLaser = DetailsModel.Product.IsLaser;
 
             LoadDetails(DetailsModel.Product.Details);
         }
@@ -402,6 +413,24 @@ namespace Metal_Code
                         _work.Ratio = details[i].TypeDetails[j].Works[k].Ratio;
                         _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
                         _work.PropertiesChanged?.Invoke(_work, false);
+
+                        if (IsLaser && _work.workType is CutControl _cut)
+                        {                            
+                            _cut.items = details[i].TypeDetails[j].Works[k].Items;
+                            _cut.SumProperties(_cut.items);
+
+                            _cut.Parts = details[i].TypeDetails[j].Works[k].Parts;
+                            _cut.WindowParts = new(_cut, _cut.PartList());
+
+                            if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
+                                foreach (PartControl part in _cut.WindowParts.Parts)
+                                {
+                                    if (part.Part.PropsDict.Count > 0)
+                                        foreach (int index in part.Part.PropsDict.Keys)
+                                            part.AddControl((int)Parser(part.Part.PropsDict[index][0]));
+                                    part.PropertiesChanged?.Invoke(part, false);
+                                }
+                        }
 
                         if (_type.WorkControls.Count < details[i].TypeDetails[j].Works.Count) _type.AddWork(); 
                     }

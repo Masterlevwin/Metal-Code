@@ -17,7 +17,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public List<string> propsList = new();
-        public delegate void PropsChanged(WorkControl w, bool b);
+        public delegate void PropsChanged(UserControl w, bool b);
         public PropsChanged? PropertiesChanged;
         
         private float result;

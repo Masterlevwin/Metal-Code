@@ -33,13 +33,20 @@ namespace Metal_Code
             InitializeComponent();
             owner = _control;
 
+            // формирование списка типов расчета сварки
+            foreach (string s in TypeDict.Keys) TypeDrop.Items.Add(s);
+
             if (owner is WorkControl work)
             {
                 work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
                 work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
                 BtnEnable();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
             }
-            else PartBtn.IsEnabled = false;
+            else if (owner is PartControl part)
+            {
+                part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+                PartBtn.IsEnabled = false;
+            }
         }
 
         private void BtnEnable()
@@ -48,7 +55,19 @@ namespace Metal_Code
             {
                 foreach (WorkControl w in work.type.WorkControls)
                     if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
+                    {
+                        if (Parts.Count == 0)
+                        {
+                            /*foreach (PartControl part in cut.WindowParts.Parts)
+                            {
+                                WeldControl weld = new(part);
+                                part.AddControl(weld);
+                            }*/
+                            CreateParts(cut.WindowParts.Parts);
+                        }
                         PartBtn.IsEnabled = true;
+                        break;
+                    }   
             }
             else PartBtn.IsEnabled = false;
         }
@@ -172,6 +191,21 @@ namespace Metal_Code
             OnPriceChanged();
         }
 
+        private Dictionary<string, float> TypeDict = new()
+        {
+            ["дву"] = 1.7f,
+            ["одн"] = 1,
+        };
+        private void SetType(object sender, SelectionChangedEventArgs e)
+        {
+            SetType(TypeDrop.SelectedIndex);
+        }
+        public void SetType(int ndx = 0)
+        {
+            TypeDrop.SelectedIndex = ndx;
+            OnPriceChanged();
+        }
+
         public void OnPriceChanged()
         {
             if (owner is not WorkControl work) return;
@@ -209,48 +243,53 @@ namespace Metal_Code
         {
             var sideRatio = _count switch
             {
+                < 100 => 1,
                 < 300 => 3,
                 < 1000 => 10,
-                < 10000 => 100,
-                _ => 1,
+                _ => 100,
             };
 
             return work.type.MetalDrop.SelectedItem is Metal metal && WeldDict.ContainsKey(metal.Name) ?
-                WeldDict[metal.Name][sideRatio] * _count : 0;
+                WeldDict[metal.Name][sideRatio] * _count * TypeDict[$"{TypeDrop.SelectedItem}"] : 0;
         }
 
-        public void SaveOrLoadProperties(WorkControl w, bool isSaved)
+        public void SaveOrLoadProperties(UserControl uc, bool isSaved)
         {
             if (isSaved)
             {
-                w.propsList.Clear();
-                w.propsList.Add($"{Weld}");
+                if (uc is WorkControl w)
+                {
+                    w.propsList.Clear();
+                    w.propsList.Add($"{Weld}");
+                    w.propsList.Add($"{TypeDrop.SelectedIndex}");
+                }
+                else if (uc is PartControl p)       // первый элемент списка {1} - это (MenuItem)PartControl.Controls.Items[1]
+                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{1}", $"{Weld}", $"{TypeDrop.SelectedIndex}" };   
             }
             else
             {
-                SetWeld(w.propsList[0]);
+                if (uc is WorkControl w)
+                {
+                    SetWeld(w.propsList[0]);
+                    SetType((int)MainWindow.Parser(w.propsList[1]));
+                }
+                else if (uc is PartControl p)
+                {
+                    SetWeld(p.Part.PropsDict[p.UserControls.IndexOf(this)][1]);
+                    SetType((int)MainWindow.Parser(p.Part.PropsDict[p.UserControls.IndexOf(this)][2]));
+                }
             }
         }
 
-        List<PartControl> Parts = new();
+        public List<PartControl> Parts = new();
         private void ViewPartWindow(object sender, RoutedEventArgs e)
         {
             if (owner is not WorkControl work || work.type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail || typeDetail.Name != "Лист металла") return;
 
             foreach (WorkControl w in work.type.WorkControls)
-                if (w != work && w.workType is CutControl cut && cut.WindowParts != null)
-                {
-                    if (Parts.Count == 0)
-                    {
-                        foreach (PartControl part in cut.WindowParts.Parts)
-                        {
-                            WeldControl weld = new(part);
-                            part.AddControl(weld);
-                        }
-                        Parts.AddRange(cut.WindowParts.Parts);
-                    }
-                    cut.WindowParts.ShowDialog();
-                }
+                if (w != work && w.workType is CutControl cut && cut.WindowParts != null) cut.WindowParts.ShowDialog();
         }
+
+        public void CreateParts(List<PartControl> parts) { Parts.AddRange(parts); }     // метод, необходимый для корректной загрузки расчета
     }
 }

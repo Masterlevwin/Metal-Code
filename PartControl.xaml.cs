@@ -9,6 +9,9 @@ namespace Metal_Code
     /// </summary>
     public partial class PartControl : UserControl
     {
+        public delegate void PropsChanged(UserControl w, bool b);
+        public PropsChanged? PropertiesChanged;
+
         public Part Part { get; set; }
 
         public List<UserControl> UserControls = new();
@@ -24,6 +27,7 @@ namespace Metal_Code
         {
             if (sender == Controls.Items[0]) AddControl(0);
             else if (sender == Controls.Items[1]) AddControl(1);
+            else if (sender == Controls.Items[2]) AddControl(2);
         }
         public void AddControl(int index)
         {
@@ -36,6 +40,10 @@ namespace Metal_Code
                 case 1:
                     WeldControl weld = new(this);
                     AddControl(weld);
+                    break;
+                case 2:
+                    PaintControl paint = new(this);
+                    AddControl(paint);
                     break;
             }
         }

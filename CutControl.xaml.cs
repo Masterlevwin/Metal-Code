@@ -110,8 +110,9 @@ namespace Metal_Code
             else CutBtn.IsEnabled = true;
         }
 
-        public void SaveOrLoadProperties(WorkControl w, bool isSaved)
+        public void SaveOrLoadProperties(UserControl _w, bool isSaved)
         {
+            if (_w is not WorkControl w) return;
             if (isSaved)
             {
                 w.propsList.Clear();
@@ -170,35 +171,43 @@ namespace Metal_Code
         }
 
         public PartWindow? WindowParts = null;
-        public List<PartControl> PartList(DataTable table)
+        public List<Part> Parts = new();
+        public List<PartControl> PartList(DataTable? table = null)
         {
             List<PartControl> _parts = new();
 
-            for (int i = 0; i < table.Rows.Count; i++)
-            {
-                if (table.Rows[i] == null) continue;
-
-                if (table.Rows[i].ItemArray[1]?.ToString() == "Название детали")
+            if (table != null && Parts != null)
+                for (int i = 0; i < table.Rows.Count; i++)
                 {
-                    for (int j = i + 1; j < table.Rows.Count; j++)
+                    if (table.Rows[i] == null) continue;
+
+                    if (table.Rows[i].ItemArray[1]?.ToString() == "Название детали")
                     {
-                        Part part = new()
+                        for (int j = i + 1; j < table.Rows.Count; j++)
                         {
-                            Name = $"{table.Rows[j].ItemArray[2]}",
-                            Count = (int)MainWindow.Parser($"{table.Rows[j].ItemArray[6]}"),
-                            Accuracy = $"H14/h14 +-IT 14/2"
-                        };
+                            Part part = new()
+                            {
+                                Name = $"{table.Rows[j].ItemArray[2]}",
+                                Count = (int)MainWindow.Parser($"{table.Rows[j].ItemArray[6]}"),
+                                Accuracy = $"H14/h14 +-IT 14/2"
+                            };
 
-                        part.Mass = MainWindow.Parser($"{table.Rows[j].ItemArray[4]}") / part.Count;
-                        part.Way = MainWindow.Parser($"{table.Rows[j].ItemArray[7]}") / part.Count;
+                            part.Mass = MainWindow.Parser($"{table.Rows[j].ItemArray[4]}") / part.Count;
+                            part.Way = MainWindow.Parser($"{table.Rows[j].ItemArray[7]}") / part.Count;
 
-                        if (part.Count > 0) _parts.Add(new(part));
+                            if (part.Count > 0)
+                            {
+                                _parts.Add(new(part));
+                                Parts.Add(part);
+                            }
 
-                        if ($"{table.Rows[j].ItemArray[0]}" == "Имя клиента") break;
+                            if ($"{table.Rows[j].ItemArray[0]}" == "Имя клиента") break;
+                        }
+                        break;
                     }
-                    break;
                 }
-            }
+            else if (Parts != null && Parts.Count > 0) foreach (Part part in Parts) _parts.Add(new(part));
+
             return _parts;
         }
 

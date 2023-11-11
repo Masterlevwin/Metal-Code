@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Windows.Controls;
 
 namespace Metal_Code
 {
@@ -10,7 +11,7 @@ namespace Metal_Code
     {
         public string? Name, Order, Company, Production, Manager, Comment;
         public int Count, Delivery;
-        public bool HasDelivery;
+        public bool IsLaser, HasDelivery;
         public ObservableCollection<Detail> Details { get; set; } = new();
         public Product()
         {
@@ -53,6 +54,8 @@ namespace Metal_Code
 
         public float Way, Mass;         // чтобы не отображать в DataGrid, объявлены полями
 
+        public Dictionary<int, List<string>> PropsDict = new();
+
         public Part(string? _name = null, int _count = 0, string? accuracy = null)
         {
             Name = _name;
@@ -88,6 +91,9 @@ namespace Metal_Code
         public float Ratio { get; set; }
 
         public List<string>? PropsList = new();
+
+        public List<LaserItem> Items = new();
+        public List<Part> Parts = new();
         public SaveWork(int _index = 0, float _ratio = 0)
         {
             Index = _index;
