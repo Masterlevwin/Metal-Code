@@ -248,10 +248,13 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p)       // первый элемент списка {0} - это (MenuItem)PartControl.Controls.Items[0]
                 {
+                    p.Part.PropsDict.Clear();
                     if (Bend == 0) return;
 
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{0}", $"{Bend}", $"{ShelfDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + Г")) p.Part.Description += " + Г";
+
+                    MessageBox.Show($"{p.UserControls.IndexOf(this)}");
 
                     float _price = Price(Bend * p.Part.Count, p.Cut.work);
                     // стоимость данной гибки должна быть не ниже минимальной
@@ -268,6 +271,8 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p)
                 {
+                    MessageBox.Show($"{p.UserControls.IndexOf(this)}");
+
                     SetBend(p.Part.PropsDict[p.UserControls.IndexOf(this)][1]);
                     SetShelf((int)MainWindow.Parser(p.Part.PropsDict[p.UserControls.IndexOf(this)][2]));
                 }

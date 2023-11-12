@@ -145,8 +145,8 @@ namespace Metal_Code
             {
                 SetWay(w.propsList[0]);
                 SetPinhole(w.propsList[1]);
-                WayTotal = MainWindow.Parser(w.propsList[2]);
-                MassTotal = MainWindow.Parser(w.propsList[3]);
+                if (float.TryParse(w.propsList[2], out float _way)) WayTotal = _way;
+                if (float.TryParse(w.propsList[3], out float _mass)) MassTotal = _mass;
             }
         }
 

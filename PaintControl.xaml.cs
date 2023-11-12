@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -103,22 +104,31 @@ namespace Metal_Code
             BtnEnable();
             float price = 0;
 
-            if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
-                switch (TypeDrop.SelectedItem)
-                {
-                    case "кг":
-                        price = work.type.Mass / work.type.S / metal.Density * TypeDict[$"{TypeDrop.SelectedItem}"] * work.type.Count;
-                        break;
-                    case "шт":
-                        price = TypeDict[$"{TypeDrop.SelectedItem}"] * work.type.Count;
-                        break;
-                    case "пог":
-                        price = TypeDict[$"{TypeDrop.SelectedItem}"] * work.type.Count;     // здесь нужна формула расчета пог.м
-                        break;
-                }
-            price = (float)Math.Round(price, 2);
+            if (Parts.Count > 0)
+            {
+                foreach (PartControl p in Parts)
+                    foreach (PaintControl item in p.UserControls.OfType<PaintControl>())
+                        if (item.Ral != null) price += item.Price(p.Part.Mass * p.Part.Count, work);
 
-            work.SetResult(price);
+                // стоимость данной окраски должна быть не ниже минимальной
+                if (work.WorkDrop.SelectedItem is Work _work) price = price > 0 && price < _work.Price ? _work.Price : price;
+
+                work.SetResult(price, false);
+            }
+            else if (Ral != null) work.SetResult(Price(work.type.Mass * work.type.Count, work));
+        }
+
+        private float Price(float _count, WorkControl work)
+        {
+            if (work.type.MetalDrop.SelectedItem is not Metal metal) return 0;
+
+            return TypeDrop.SelectedItem switch
+            {
+                "кг" => _count / work.type.S / metal.Density * TypeDict[$"{TypeDrop.SelectedItem}"],
+                "шт" => TypeDict[$"{TypeDrop.SelectedItem}"] * _count,
+                "пог" => TypeDict[$"{TypeDrop.SelectedItem}"] * _count,// здесь нужна формула расчета пог.м
+                _ => 0,
+            };
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
@@ -133,10 +143,13 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p)       // первый элемент списка {2} - это (MenuItem)PartControl.Controls.Items[2]
                 {
+                    p.Part.PropsDict.Clear();
                     if (Ral == null || Ral == "") return;
 
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{2}", $"{Ral}", $"{TypeDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + О")) p.Part.Description += $" + О (цвет - {Ral}) ";
+
+                    p.Part.Price += Price(p.Part.Mass * p.Part.Count, p.Cut.work) / p.Part.Count;
                 }
             }
             else

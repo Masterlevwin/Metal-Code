@@ -36,16 +36,13 @@ namespace Metal_Code
             switch (index)
             {
                 case 0:
-                    BendControl bend = new(this);
-                    AddControl(bend);
+                    AddControl(new BendControl(this));
                     break;
                 case 1:
-                    WeldControl weld = new(this);
-                    AddControl(weld);
+                    AddControl(new WeldControl(this));
                     break;
                 case 2:
-                    PaintControl paint = new(this);
-                    AddControl(paint);
+                    AddControl(new PaintControl(this));
                     break;
             }
         }

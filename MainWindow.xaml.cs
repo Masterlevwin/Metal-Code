@@ -358,12 +358,12 @@ namespace Metal_Code
                                     p.Description = "Л";
                                     p.Price = 0;
                                 }
-                                
-                                _saveWork.Parts = _cut.Parts;
-                                _saveWork.Items = _cut.items;
 
                                 if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
                                     foreach (PartControl part in _cut.WindowParts.Parts) part.PropertiesChanged?.Invoke(part, true);
+
+                                _saveWork.Parts = _cut.Parts;
+                                _saveWork.Items = _cut.items;
                             }
                         }
 
@@ -441,8 +441,17 @@ namespace Metal_Code
                                 foreach (PartControl part in _cut.WindowParts.Parts)
                                 {
                                     if (part.Part.PropsDict.Count > 0)
-                                        foreach (int index in part.Part.PropsDict.Keys)
-                                            part.AddControl((int)Parser(part.Part.PropsDict[index][0]));
+                                    {
+                                        MessageBox.Show($"{part.Part.PropsDict.Count}");
+                                        for (int key = 0; key < part.Part.PropsDict.Keys.Count; key++)
+                                        {
+                                            MessageBox.Show($"{key}");
+                                            if (part.Part.PropsDict.ContainsKey(key))
+                                            {
+                                                part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
+                                            }
+                                        }
+                                    }         
                                     part.PropertiesChanged?.Invoke(part, false);
                                 }
                         }
