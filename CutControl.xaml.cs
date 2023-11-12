@@ -49,6 +49,20 @@ namespace Metal_Code
             }
         }
 
+        private float massTotal;
+        public float MassTotal
+        {
+            get => massTotal;
+            set => massTotal = value;
+        }
+
+        private float wayTotal;
+        public float WayTotal
+        {
+            get => wayTotal;
+            set => wayTotal = value;
+        }
+
         public readonly WorkControl work;
         readonly IDialogService dialogService;
 
@@ -110,19 +124,29 @@ namespace Metal_Code
             else CutBtn.IsEnabled = true;
         }
 
-        public void SaveOrLoadProperties(UserControl _w, bool isSaved)
+        public void SaveOrLoadProperties(UserControl uc, bool isSaved)
         {
-            if (_w is not WorkControl w) return;
+            if (uc is not WorkControl w) return;
             if (isSaved)
             {
                 w.propsList.Clear();
                 w.propsList.Add($"{Way}");
                 w.propsList.Add($"{Pinhole}");
+                w.propsList.Add($"{WayTotal}");
+                w.propsList.Add($"{MassTotal}");
+
+                foreach (Part p in Parts)
+                {
+                    p.Price += (float)Math.Round(work.Result * p.Way / WayTotal, 2);
+                    p.Price += (float)Math.Round(work.type.Result * p.Mass / MassTotal, 2);
+                }
             }
             else
             {
                 SetWay(w.propsList[0]);
                 SetPinhole(w.propsList[1]);
+                WayTotal = MainWindow.Parser(w.propsList[2]);
+                MassTotal = MainWindow.Parser(w.propsList[3]);
             }
         }
 
@@ -189,6 +213,7 @@ namespace Metal_Code
                             {
                                 Name = $"{table.Rows[j].ItemArray[2]}",
                                 Count = (int)MainWindow.Parser($"{table.Rows[j].ItemArray[6]}"),
+                                Description = "Л",
                                 Accuracy = $"H14/h14 +-IT 14/2"
                             };
 
@@ -197,7 +222,7 @@ namespace Metal_Code
 
                             if (part.Count > 0)
                             {
-                                _parts.Add(new(part));
+                                _parts.Add(new(this, part));
                                 Parts.Add(part);
                             }
 
@@ -206,7 +231,7 @@ namespace Metal_Code
                         break;
                     }
                 }
-            else if (Parts != null && Parts.Count > 0) foreach (Part part in Parts) _parts.Add(new(part));
+            else if (Parts != null && Parts.Count > 0) foreach (Part part in Parts) _parts.Add(new(this, part));
 
             return _parts;
         }
@@ -216,10 +241,17 @@ namespace Metal_Code
         {
             if (items.Count > 0) items.Clear();
 
-            //сначала считываем общие данные для всей раскладки:
-            //марку металла и толщину
+            // сначала считываем общие данные для всей раскладки:
+            // вес всех деталей, длину пути резки, марку металла и толщину
             for (int i = 0; i < table.Rows.Count; i++)
             {
+                if ($"{table.Rows[i].ItemArray[6]}".Contains("Общий вес деталей (Kg) ="))
+                    MassTotal = MainWindow.Parser($"{table.Rows[i].ItemArray[8]}");
+
+                if ($"{table.Rows[i].ItemArray[6]}".Contains("Итого Длина пути резки (mm)"))
+                    WayTotal = MainWindow.Parser($"{table.Rows[i].ItemArray[8]}");
+
+
                 if ($"{table.Rows[i].ItemArray[8]}" == "Материал")
                 {
                     foreach (Metal metal in work.type.MetalDrop.Items) if (metal.Name == $"{table.Rows[i].ItemArray[9]}")

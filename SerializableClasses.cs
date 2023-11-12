@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows.Controls;
 
 namespace Metal_Code
@@ -51,8 +52,10 @@ namespace Metal_Code
         public int Count { get; set; }
         public float Price { get; set; }
         public float Total { get; set; }
-
-        public float Way, Mass;         // чтобы не отображать в DataGrid, объявлены полями
+        [Browsable(false)]
+        public float Way { get; set; }
+        [Browsable(false)]
+        public float Mass { get; set; }
 
         public Dictionary<int, List<string>> PropsDict = new();
 

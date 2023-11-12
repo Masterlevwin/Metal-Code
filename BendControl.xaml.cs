@@ -247,7 +247,17 @@ namespace Metal_Code
                     w.propsList.Add($"{ShelfDrop.SelectedIndex}");
                 }
                 else if (uc is PartControl p)       // первый элемент списка {0} - это (MenuItem)PartControl.Controls.Items[0]
+                {
+                    if (Bend == 0) return;
+
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{0}", $"{Bend}", $"{ShelfDrop.SelectedIndex}" };
+                    if (p.Part.Description != null && !p.Part.Description.Contains(" + Г")) p.Part.Description += " + Г";
+
+                    float _price = Price(Bend * p.Part.Count, p.Cut.work);
+                    // стоимость данной гибки должна быть не ниже минимальной
+                    if (p.Cut.work.WorkDrop.SelectedItem is Work _work) _price = _price > 0 && _price < _work.Price ? _work.Price : _price;
+                    p.Part.Price += _price / p.Part.Count;
+                }
             }
             else
             {

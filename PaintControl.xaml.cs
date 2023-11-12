@@ -132,7 +132,12 @@ namespace Metal_Code
                     w.propsList.Add($"{TypeDrop.SelectedIndex}");
                 }
                 else if (uc is PartControl p)       // первый элемент списка {2} - это (MenuItem)PartControl.Controls.Items[2]
+                {
+                    if (Ral == null || Ral == "") return;
+
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{2}", $"{Ral}", $"{TypeDrop.SelectedIndex}" };
+                    if (p.Part.Description != null && !p.Part.Description.Contains(" + О")) p.Part.Description += $" + О (цвет - {Ral}) ";
+                }
             }
             else
             {

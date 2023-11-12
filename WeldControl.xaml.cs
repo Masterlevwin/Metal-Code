@@ -217,10 +217,10 @@ namespace Metal_Code
             {
                 foreach (PartControl p in Parts)
                     foreach (WeldControl item in p.UserControls.OfType<WeldControl>())
-                        price += item.Price(ParserWeld(item.Weld) * p.Part.Count, work);
-                work.SetResult(price);
+                        if (item.Weld != null) price += item.Price(ParserWeld(item.Weld) * p.Part.Count, work);
+                work.SetResult(price, false);
             }
-            else work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work));
+            else if (Weld != null) work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work));
 
         }
 
@@ -233,7 +233,7 @@ namespace Metal_Code
             }
             catch
             {
-                //System.Windows.Forms.MessageBox.Show("Исправьте длину свариваемой поверхности \nили поставьте 0", "Ошибка",
+                MessageBox.Show("Исправьте длину свариваемой поверхности \nили поставьте 0", "Ошибка");
                 //System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Hand);
             }
             return 0;
@@ -249,7 +249,7 @@ namespace Metal_Code
                 _ => 100,
             };
 
-            return work.type.MetalDrop.SelectedItem is Metal metal && WeldDict.ContainsKey(metal.Name) ?
+            return work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && WeldDict.ContainsKey(metal.Name) ?
                 WeldDict[metal.Name][sideRatio] * _count * TypeDict[$"{TypeDrop.SelectedItem}"] : 0;
         }
 
@@ -264,7 +264,14 @@ namespace Metal_Code
                     w.propsList.Add($"{TypeDrop.SelectedIndex}");
                 }
                 else if (uc is PartControl p)       // первый элемент списка {1} - это (MenuItem)PartControl.Controls.Items[1]
-                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{1}", $"{Weld}", $"{TypeDrop.SelectedIndex}" };   
+                {
+                    if (Weld == null || Weld == "") return;
+
+                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{1}", $"{Weld}", $"{TypeDrop.SelectedIndex}" };
+                    if (p.Part.Description != null && !p.Part.Description.Contains(" + С")) p.Part.Description += " + С";
+
+                    p.Part.Price += Price(ParserWeld(Weld) * p.Part.Count, p.Cut.work) / p.Part.Count;
+                }
             }
             else
             {

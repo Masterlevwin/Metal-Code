@@ -9,16 +9,18 @@ namespace Metal_Code
     /// </summary>
     public partial class PartControl : UserControl
     {
-        public delegate void PropsChanged(UserControl w, bool b);
+        public delegate void PropsChanged(UserControl uc, bool b);
         public PropsChanged? PropertiesChanged;
 
+        public readonly CutControl Cut;
         public Part Part { get; set; }
 
         public List<UserControl> UserControls = new();
 
-        public PartControl(Part _part)
+        public PartControl(CutControl _cut, Part _part)
         {
             InitializeComponent();
+            Cut = _cut;
             Part = _part;
             DataContext = Part;
         }
