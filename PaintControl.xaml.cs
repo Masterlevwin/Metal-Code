@@ -143,7 +143,6 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p)       // первый элемент списка {2} - это (MenuItem)PartControl.Controls.Items[2]
                 {
-                    p.Part.PropsDict.Clear();
                     if (Ral == null || Ral == "") return;
 
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{2}", $"{Ral}", $"{TypeDrop.SelectedIndex}" };
