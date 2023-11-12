@@ -357,6 +357,7 @@ namespace Metal_Code
                                 {
                                     p.Description = "Л";
                                     p.Price = 0;
+                                    p.PropDict.Clear();
                                 }
 
                                 if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
@@ -442,10 +443,8 @@ namespace Metal_Code
                                 {
                                     if (part.Part.PropsDict.Count > 0)
                                     {
-                                        MessageBox.Show($"{part.Part.PropsDict.Count}");
                                         for (int key = 0; key < part.Part.PropsDict.Keys.Count; key++)
                                         {
-                                            MessageBox.Show($"{key}");
                                             if (part.Part.PropsDict.ContainsKey(key))
                                             {
                                                 part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
