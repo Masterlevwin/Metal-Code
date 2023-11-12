@@ -265,7 +265,6 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p)       // первый элемент списка {1} - это (MenuItem)PartControl.Controls.Items[1]
                 {
-                    p.Part.PropsDict.Clear();
                     if (Weld == null || Weld == "") return;
 
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{1}", $"{Weld}", $"{TypeDrop.SelectedIndex}" };
