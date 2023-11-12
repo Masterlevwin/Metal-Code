@@ -248,7 +248,6 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p)       // первый элемент списка {0} - это (MenuItem)PartControl.Controls.Items[0]
                 {
-                    p.Part.PropsDict.Clear();
                     if (Bend == 0) return;
 
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{0}", $"{Bend}", $"{ShelfDrop.SelectedIndex}" };
