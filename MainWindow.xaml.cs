@@ -675,6 +675,7 @@ namespace Metal_Code
 
         private void Exit(object sender, CancelEventArgs e)
         {
+            //foreach (Window w in Application.Current.Windows) w.Close();
             MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
                                            MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
             if (response == MessageBoxResult.No) e.Cancel = true;
