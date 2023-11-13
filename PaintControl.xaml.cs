@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
@@ -148,7 +149,22 @@ namespace Metal_Code
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{2}", $"{Ral}", $"{TypeDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + О")) p.Part.Description += $" + О (цвет - {Ral}) ";
 
-                    p.Part.Price += Price(p.Part.Mass * p.Part.Count, p.Cut.work) / p.Part.Count;
+                    float price = 0, count = 0;             // переменные для расчета части цены отдельной детали
+                    if (p.Cut.WindowParts != null) foreach (PartControl _p in p.Cut.WindowParts.Parts)
+                            foreach (PaintControl item in _p.UserControls.OfType<PaintControl>())
+                                if (item.Ral != null)       // перебираем все используемые блоки окраски
+                                {                           // считаем общую стоимость всей окраски этого листа и кол-во окрашиваемых деталей
+                                    price += item.Price(_p.Part.Mass * _p.Part.Count, p.Cut.work);
+                                    count += _p.Part.Count;
+                                }
+                    // стоимость всей окраски должна быть не ниже минимальной
+                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим окраску среди работ и получаем её минималку
+                        if (_w.workType is PaintControl && _w.WorkDrop.SelectedItem is Work _work)
+                        {
+                            if (price > 0 && price < _work.Price) p.Part.Price += _work.Price / count;  // если расчетная стоимость ниже минимальной,
+                                                                                                        // к цене детали добавляем усредненную часть минималки от общего количества деталей
+                            else p.Part.Price += Price(p.Part.Mass * p.Part.Count, p.Cut.work) / p.Part.Count;   // иначе добавляем часть от количества именно этой детали                
+                        }
                 }
             }
             else

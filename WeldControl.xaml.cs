@@ -218,6 +218,10 @@ namespace Metal_Code
                 foreach (PartControl p in Parts)
                     foreach (WeldControl item in p.UserControls.OfType<WeldControl>())
                         if (item.Weld != null) price += item.Price(ParserWeld(item.Weld) * p.Part.Count, work);
+
+                // стоимость данной сварки должна быть не ниже минимальной
+                if (work.WorkDrop.SelectedItem is Work _work) price = price > 0 && price < _work.Price ? _work.Price : price;
+
                 work.SetResult(price, false);
             }
             else if (Weld != null) work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work));
@@ -233,8 +237,8 @@ namespace Metal_Code
             }
             catch
             {
-                MessageBox.Show("Исправьте длину свариваемой поверхности \nили поставьте 0", "Ошибка");
-                //System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Hand);
+                MessageBox.Show("Исправьте длину свариваемой поверхности \nили поставьте 0", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Hand);
             }
             return 0;
         }
@@ -270,7 +274,22 @@ namespace Metal_Code
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{1}", $"{Weld}", $"{TypeDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + С")) p.Part.Description += " + С";
 
-                    p.Part.Price += Price(ParserWeld(Weld) * p.Part.Count, p.Cut.work) / p.Part.Count;
+                    float price = 0, count = 0;             // переменные для расчета части цены отдельной детали
+                    if (p.Cut.WindowParts != null) foreach (PartControl _p in p.Cut.WindowParts.Parts)
+                            foreach (WeldControl item in _p.UserControls.OfType<WeldControl>())
+                                if (item.Weld != null)       // перебираем все используемые блоки сварки
+                                {                            // считаем общую стоимость всей сварки этого листа и кол-во свариваемых деталей
+                                    price += item.Price(ParserWeld(item.Weld) * _p.Part.Count, p.Cut.work);
+                                    count += _p.Part.Count;
+                                }
+                    // стоимость всей сварки должна быть не ниже минимальной
+                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим сварку среди работ и получаем её минималку
+                        if (_w.workType is WeldControl && _w.WorkDrop.SelectedItem is Work _work)
+                        {
+                            if (price > 0 && price < _work.Price) p.Part.Price += _work.Price / count;  // если расчетная стоимость ниже минимальной,
+                                                                                                        // к цене детали добавляем усредненную часть минималки от общего количества деталей
+                            else p.Part.Price += Price(ParserWeld(Weld) * p.Part.Count, p.Cut.work) / p.Part.Count;   // иначе добавляем часть от количества именно этой детали                
+                        }
                 }
             }
             else

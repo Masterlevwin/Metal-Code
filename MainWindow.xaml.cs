@@ -350,22 +350,22 @@ namespace Metal_Code
                             if (_work.Name == "Окраска" && work.workType is PaintControl _paint)
                                 _detail.Description += $"{_work.Name} (цвет - {_paint.Ral}) ";
                             else _detail.Description += $"{_work.Name}" + " ";
+                        }
 
-                            if (IsLaser && work.workType is CutControl _cut)
+                        if (IsLaser && work.workType is CutControl _cut)
+                        {
+                            foreach (Part p in _cut.Parts)
                             {
-                                foreach (Part p in _cut.Parts)
-                                {
-                                    p.Description = "Л";
-                                    p.Price = 0;
-                                    p.PropDict.Clear();
-                                }
-
-                                if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
-                                    foreach (PartControl part in _cut.WindowParts.Parts) part.PropertiesChanged?.Invoke(part, true);
-
-                                _saveWork.Parts = _cut.Parts;
-                                _saveWork.Items = _cut.items;
+                                p.Description = "Л";
+                                p.Price = 0;
+                                p.PropsDict.Clear();
                             }
+
+                            if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
+                                foreach (PartControl part in _cut.WindowParts.Parts) part.PropertiesChanged?.Invoke(part, true);
+
+                            _saveWork.Parts = _cut.Parts;
+                            _saveWork.Items = _cut.items;
                         }
 
                         work.PropertiesChanged?.Invoke(work, true);
@@ -377,9 +377,6 @@ namespace Metal_Code
                 }
                 details.Add(_detail);
             }
-
-            // добавить механизм сохранения Parts, всех соответствующих контролов и т.д.
-
             return details;
         }
 
@@ -426,9 +423,6 @@ namespace Metal_Code
                     {
                         WorkControl _work = DetailControls[i].TypeDetailControls[j].WorkControls[k];
                         _work.WorkDrop.SelectedIndex = details[i].TypeDetails[j].Works[k].Index;
-                        _work.Ratio = details[i].TypeDetails[j].Works[k].Ratio;
-                        _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
-                        _work.PropertiesChanged?.Invoke(_work, false);
 
                         if (IsLaser && _work.workType is CutControl _cut)
                         {                            
@@ -442,18 +436,15 @@ namespace Metal_Code
                                 foreach (PartControl part in _cut.WindowParts.Parts)
                                 {
                                     if (part.Part.PropsDict.Count > 0)
-                                    {
-                                        for (int key = 0; key < part.Part.PropsDict.Keys.Count; key++)
-                                        {
-                                            if (part.Part.PropsDict.ContainsKey(key))
-                                            {
-                                                part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
-                                            }
-                                        }
-                                    }         
+                                        foreach (int key in  part.Part.PropsDict.Keys)
+                                            part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
+                                            
                                     part.PropertiesChanged?.Invoke(part, false);
                                 }
                         }
+                        _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
+                        _work.PropertiesChanged?.Invoke(_work, false);
+                        _work.Ratio = details[i].TypeDetails[j].Works[k].Ratio;
 
                         if (_type.WorkControls.Count < details[i].TypeDetails[j].Works.Count) _type.AddWork(); 
                     }

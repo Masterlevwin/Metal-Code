@@ -52,6 +52,7 @@ namespace Metal_Code
         public int Count { get; set; }
         public float Price { get; set; }
         public float Total { get; set; }
+
         [Browsable(false)]
         public float Way { get; set; }
         [Browsable(false)]

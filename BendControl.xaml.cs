@@ -253,12 +253,15 @@ namespace Metal_Code
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{0}", $"{Bend}", $"{ShelfDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + Г")) p.Part.Description += " + Г";
 
-                    MessageBox.Show($"{p.UserControls.IndexOf(this)}");
-
-                    float _price = Price(Bend * p.Part.Count, p.Cut.work);
-                    // стоимость данной гибки должна быть не ниже минимальной
-                    if (p.Cut.work.WorkDrop.SelectedItem is Work _work) _price = _price > 0 && _price < _work.Price ? _work.Price : _price;
-                    p.Part.Price += _price / p.Part.Count;
+                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим гибку среди работ и получаем её минималку
+                        if (_w.workType is BendControl && _w.WorkDrop.SelectedItem is Work _work)
+                        {
+                            float _price = Price(Bend * p.Part.Count, p.Cut.work);
+                            // стоимость данной гибки должна быть не ниже минимальной
+                            _price = _price > 0 && _price < _work.Price ? _work.Price : _price;
+                            p.Part.Price += _price / p.Part.Count;
+                            break;
+                        }
                 }
             }
             else
@@ -270,8 +273,6 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p)
                 {
-                    MessageBox.Show($"{p.UserControls.IndexOf(this)}");
-
                     SetBend(p.Part.PropsDict[p.UserControls.IndexOf(this)][1]);
                     SetShelf((int)MainWindow.Parser(p.Part.PropsDict[p.UserControls.IndexOf(this)][2]));
                 }
