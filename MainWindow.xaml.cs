@@ -672,5 +672,13 @@ namespace Metal_Code
 
             return size;
         }
+
+        private void Exit(object sender, CancelEventArgs e)
+        {
+            MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
+                                           MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+            if (response == MessageBoxResult.No) e.Cancel = true;
+            else Application.Current.Shutdown();
+        }
     }
 }

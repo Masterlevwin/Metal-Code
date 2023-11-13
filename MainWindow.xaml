@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:Metal_Code" x:Name="ProgramWindow"
         x:Class="Metal_Code.MainWindow"
         mc:Ignorable="d"
-        Title="Провэлд" FontFamily="Century" Background="#FFD7E4F2" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" Icon="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg" d:DesignHeight="673.813" d:DesignWidth="1028" MinWidth="1024" MinHeight="768">
+        Title="Провэлд" FontFamily="Century" Background="#FFD7E4F2" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" Icon="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg" d:DesignHeight="673.813" d:DesignWidth="1028" MinWidth="1024" MinHeight="768" Closing="Exit">
     <Grid x:Name="MenuGrid">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="535*"/>
