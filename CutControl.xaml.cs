@@ -49,6 +49,20 @@ namespace Metal_Code
             }
         }
 
+        private float mass;
+        public float Mass
+        {
+            get => mass;
+            set
+            {
+                if (value != mass)
+                {
+                    mass = value;
+                    OnPropertyChanged(nameof(Mass));
+                }
+            }
+        }
+
         private float massTotal;
         public float MassTotal
         {
@@ -175,6 +189,7 @@ namespace Metal_Code
                 DataSet result = reader.AsDataSet();
                 DataTable table = result.Tables[0];
 
+                if (!MainWindow.M.IsLaser) MainWindow.M.IsLaser = true;
                 if (i == 0)
                 {
                     WindowParts = new(this, PartList(table));
@@ -327,6 +342,7 @@ namespace Metal_Code
             {
                 Way += _items[i].way * _items[i].sheets;
                 Pinhole += _items[i].pinholes * _items[i].sheets;
+                Mass += _items[i].mass * _items[i].sheets;
             }
 
             work.type.SetCount(_items.Sum(s => s.sheets));      // устанавливаем общее количество порезанных листов

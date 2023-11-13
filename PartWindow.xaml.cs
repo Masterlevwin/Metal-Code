@@ -25,5 +25,15 @@ namespace Metal_Code
             DialogResult = true;
             Hide();
         }
+
+        private void AddControl(object sender, RoutedEventArgs e)
+        {
+            foreach (PartControl p in Parts)
+            {
+                if (sender == Controls.Items[0]) p.AddControl(0);
+                else if (sender == Controls.Items[1]) p.AddControl(1);
+                else if (sender == Controls.Items[2]) p.AddControl(2);
+            }
+        }
     }
 }

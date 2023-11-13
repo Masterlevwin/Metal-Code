@@ -18,6 +18,13 @@
                     </ItemsPanelTemplate>
                 </ListBox.ItemsPanel>
             </ListBox>
+            <Menu Margin="20,10,10,10" HorizontalAlignment="Left" Grid.Row="1" VerticalAlignment="Bottom">
+                <MenuItem x:Name="Controls" Header="Добавить всем">
+                    <MenuItem Header="Гибка" Click="AddControl"/>
+                    <MenuItem Header="Сварка" Click="AddControl"/>
+                    <MenuItem Header="Окраска" Click="AddControl"/>
+                </MenuItem>
+            </Menu>
         </Grid>
     </ScrollViewer>
 </Window>

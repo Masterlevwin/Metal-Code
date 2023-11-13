@@ -135,6 +135,8 @@ namespace Metal_Code
                 if (WorkDrop.Items.Count <= index) MessageBox.Show($"Такая работа уже есть!\nУдалите лишнее!");
                 else WorkDrop.SelectedIndex = index;
             }
+
+            SetRatio("1");      // запускаем процесс формирования стоимости по умолчанию
         }
 
         private bool ValidateProp(out int ndx)

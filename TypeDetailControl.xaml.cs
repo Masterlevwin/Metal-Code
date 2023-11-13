@@ -264,7 +264,16 @@ namespace Metal_Code
             if (type.Name == "Лист металла") Price = metal.MassPrice;
             else Price = type.Price;
 
-            Mass = (float)Math.Round(A * B * S * L * metal.Density / 1000000, 2);
+            if (MainWindow.M.IsLaser)
+            {
+                foreach (WorkControl w in WorkControls)
+                    if (w.workType is CutControl cut)
+                    {
+                        Mass = cut.Mass;
+                        break;
+                    }
+            } 
+            else Mass = (float)Math.Round(A * B * S * L * metal.Density / 1000000, 2);
 
             PriceChanged();
         }
@@ -276,7 +285,7 @@ namespace Metal_Code
 
         public void PriceChanged()
         {
-            Result = HasMetal ? (float)Math.Round(Count * Price * Mass, 2) : 0;
+            Result = HasMetal ? (float)Math.Round((MainWindow.M.IsLaser ? 1 : Count) * Price * Mass, 2) : 0;
 
             Priced?.Invoke();
 
