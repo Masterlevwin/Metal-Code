@@ -210,14 +210,18 @@ namespace Metal_Code
         }
         public void CreateSort(int ndx = 0)
         {
-            if (TypeDetailDrop.SelectedItem is not TypeDetail type || type.Sort == null) return;
-            
             Kinds.Clear();
+            SortDrop.Items.Clear();
+            if (TypeDetailDrop.SelectedItem is not TypeDetail type || type.Sort == null)
+            {
+                SortDrop.SelectedIndex = -1;
+                A = B = S = L = 0;
+                return;
+            }
 
             string[] strings = type.Sort.Split(',');
             for (int i = 0; i < strings.Length; i += 3) Kinds[strings[i]] = (strings[i + 1], strings[i + 2]);
 
-            SortDrop.Items.Clear();
             foreach (string s in Kinds.Keys) SortDrop.Items.Add(s);
             SortDrop.SelectedIndex = ndx;
             ChangeSort();

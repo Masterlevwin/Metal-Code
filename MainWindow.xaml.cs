@@ -262,7 +262,7 @@ namespace Metal_Code
         private void ClearCalculate()
         {
             SetCount(0);
-            CheckDelivery.IsChecked = false;
+            CheckDelivery.IsChecked = IsLaser = false;
             ProductName.Text = Order.Text = Company.Text = DateProduction.Text = ManagerDrop.Text = Comment.Text = Delivery.Text = "";
         }
 
@@ -475,7 +475,7 @@ namespace Metal_Code
                 worksheet.Cells[IsLaser ? "D2" : "B2"].Value = "КП № " + Order.Text + " для " + Company.Text + " от " + DateTime.Now.ToString("d");
                 worksheet.Cells[2, IsLaser ? 4 : 2, 2, IsLaser ? 8 : 6].Merge = true;
                 worksheet.Cells[2, IsLaser ? 4 : 2, 2, IsLaser ? 8 : 6].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
-                worksheet.Cells[2, IsLaser ? 4 : 2, 2, IsLaser ? 8 : 6].Style.Border.Bottom.Color.SetColor(0, 120, 180, 255);
+                worksheet.Cells[2, IsLaser ? 4 : 2, 2, IsLaser ? 8 : 6].Style.Border.Bottom.Color.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
 
                 worksheet.Cells["A3"].Value = "Данный расчет действителен в течении 2-х банковских дней";
                 worksheet.Cells[3, 1, 3, IsLaser ? 8 : 6].Merge = true;
@@ -506,7 +506,7 @@ namespace Metal_Code
                     worksheet.Cells[6, col + 1].Value = DetailsGrid.Columns[col].Header;
                     worksheet.Cells[6, col + 1, 7, col + 1].Merge = true;
                     worksheet.Cells[6, col + 1, 7, col + 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
-                    worksheet.Cells[6, col + 1, 7, col + 1].Style.Fill.BackgroundColor.SetColor(0, 120, 180, 255);
+                    worksheet.Cells[6, col + 1, 7, col + 1].Style.Fill.BackgroundColor.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
                     worksheet.Cells[6, col + 1].Style.WrapText = true;
                 }
 
@@ -524,7 +524,7 @@ namespace Metal_Code
                     worksheet.Cells[num + 12, 2].Style.WrapText = true;
                 }
 
-                ExcelRange table = worksheet.Cells[6, 1, num + 7, IsLaser ? 10 : 6];
+                ExcelRange table = worksheet.Cells[6, 1, num + 7, IsLaser ? 8 : 6];
                 if (!IsLaser) table.Style.WrapText = true;
                 table.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 table.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
@@ -593,6 +593,11 @@ namespace Metal_Code
                 worksheet.Cells.AutoFitColumns();
                 if (worksheet.Rows[num + 12].Height < 35) worksheet.Rows[num + 12].Height = 35;
                 if (IsLaser && worksheet.Columns[5].Width < 15) worksheet.Columns[5].Width = 15;
+
+                worksheet.PrinterSettings.FitToPage = true;
+                worksheet.PrinterSettings.FitToWidth = 1;
+                worksheet.PrinterSettings.FitToHeight = 0;
+                worksheet.PrinterSettings.HorizontalCentered = true;
 
                 workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");
             }
@@ -681,6 +686,10 @@ namespace Metal_Code
                                            MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
             if (response == MessageBoxResult.No) e.Cancel = true;
             else Environment.Exit(0);       //Application.Current.Shutdown(); - вызывает два диаологовых окна
+        }
+        private void Exit(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
         }
     }
 }

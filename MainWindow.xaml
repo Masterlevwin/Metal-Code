@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:Metal_Code" x:Name="ProgramWindow"
         x:Class="Metal_Code.MainWindow"
         mc:Ignorable="d"
-        Title="Провэлд" FontFamily="Century" Background="#FFD7E4F2" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" Icon="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg" d:DesignHeight="673.813" d:DesignWidth="1028" MinWidth="1024" MinHeight="768" Closing="Exit">
+        Title="Провэлд" FontFamily="Century" Background="#FFD7E4F2" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" Icon="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg" d:DesignHeight="673.813" d:DesignWidth="1028" Closing="Exit">
     <Grid x:Name="MenuGrid">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="535*"/>
@@ -17,7 +17,7 @@
                 <MenuItem Header="Открыть" Command="{Binding OpenCommand}"/>
                 <MenuItem Header="Сохранить" Command="{Binding SaveCommand}"/>
                 <Separator/>
-                <MenuItem Header="Выход"/>
+                <MenuItem Header="Выход" Click="Exit"/>
             </MenuItem>
             <MenuItem x:Name="Settings" Header="Настройки">
                 <MenuItem Header="База типовых деталей" Click="OpenSettings"/>
@@ -36,27 +36,27 @@
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" MinWidth="535"/>
-                <ColumnDefinition Width="Auto" MinWidth="455"/>
+                <ColumnDefinition/>
             </Grid.ColumnDefinitions>
-            <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" MinWidth="500" Margin="20,20,15,20" ToolTip="Рабочая область">
+            <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" MinWidth="500" Margin="20,20,15,20" ToolTip="Рабочая область" Grid.RowSpan="2">
                 <ScrollViewer VerticalAlignment="Top" Margin="0,30,0,0" VerticalScrollBarVisibility="Auto">
                     <Grid x:Name="ProductGrid" Margin="10,30,10,0"/>
                 </ScrollViewer>
             </GroupBox>
             <TextBox x:Name="ProductName" Text="Изделие" AutoWordSelection="True" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" Height="20" VerticalContentAlignment="Center" HorizontalAlignment="Left" Width="330" FontSize="14" />
             <TextBox Text="{Binding Count, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" ToolTip="Введите количество требуемых изделий" AllowDrop="False" MaxLines="1" MinWidth="40" HorizontalContentAlignment="Center" Margin="0,40,140,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Right" Height="20" Width="40" MaxLength="4" TextChanged="SetCount" FontSize="14"/>
-            <Button x:Name="ResultBtn" Content="{Binding Result, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" HorizontalAlignment="Right" MinHeight="20" AllowDrop="False" ToolTip="Общая стоимость, нажмите, чтобы обновить" VerticalAlignment="Top" Margin="0,40,55,0" FontSize="14" HorizontalContentAlignment="Stretch" MaxWidth="80" BorderThickness="0,0,0,0" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" Click="UpdateResult"/>
-            <GroupBox Header="Ведомость деталей" Grid.Column="1" Grid.Row="1" MaxWidth="440" MinWidth="440" Margin="15,0,0,0">
+            <Button x:Name="ResultBtn" Content="{Binding Result, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" HorizontalAlignment="Right" MinHeight="20" AllowDrop="False" ToolTip="Общая стоимость, нажмите, чтобы обновить" VerticalAlignment="Top" Margin="0,40,55,0" FontSize="14" HorizontalContentAlignment="Stretch" MaxWidth="80" BorderThickness="0,0,0,0" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Click="UpdateResult"/>
+            <GroupBox Header="Ведомость деталей" Grid.Column="1" Grid.Row="1" MinWidth="400" Margin="15,0,20,20">
                 <Grid>
                     <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" Margin="15,5,15,5" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" CanUserReorderColumns="False" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn"/>
                 </Grid>
             </GroupBox>
-            <GroupBox x:Name="OrderBox" Grid.Column="1" Margin="15,20,0,15" Header="Коммерческое предложение" MaxWidth="440" HorizontalAlignment="Left" MinWidth="440" Width="440">
+            <GroupBox x:Name="OrderBox" Grid.Column="1" Margin="15,20,20,15" Header="Коммерческое предложение" MinWidth="400">
                 <Grid x:Name="OrderGrid" ScrollViewer.HorizontalScrollBarVisibility="Auto">
                     <TextBox x:Name="Phone" HorizontalAlignment="Right" Width="120" VerticalAlignment="Top" Margin="0,0,5,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите актуальный номер телефона"/>
                     <Image x:Name="Logo" HorizontalAlignment="Left" VerticalAlignment="Top" Height="30" Width="30" Source="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg"/>
                     <TextBox x:Name="Order" HorizontalAlignment="Left" Margin="80,20,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40" ToolTip="Введите номер предложения"/>
-                    <TextBox x:Name="Company" HorizontalAlignment="Left" Margin="150,20,0,0" VerticalAlignment="Top" MinWidth="150" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="150" ToolTip="Введите контрагента"/>
+                    <TextBox x:Name="Company" HorizontalAlignment="Left" Margin="150,20,0,0" VerticalAlignment="Top" MinWidth="200" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите контрагента"/>
                     <TextBlock HorizontalAlignment="Left" Margin="40,20,0,0" TextWrapping="Wrap" Text="КП №" VerticalAlignment="Top"/>
                     <TextBlock HorizontalAlignment="Left" Margin="125,20,0,0" TextWrapping="Wrap" Text="для" VerticalAlignment="Top"/>
                     <TextBlock HorizontalAlignment="Left" Margin="15,40,0,0" TextWrapping="Wrap" Text="Данный расчет действителен в течении 2-х банковских дней" VerticalAlignment="Top" FontSize="8"/>
@@ -64,10 +64,10 @@
                     <TextBox x:Name="DateProduction" Margin="135,55,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50" ToolTip="Введите срок изготовления"/>
                     <TextBlock HorizontalAlignment="Left" Margin="200,55,0,0" TextWrapping="Wrap" Text="раб/дней" VerticalAlignment="Top"/>
                     <TextBlock HorizontalAlignment="Left" Margin="15,75,0,0" TextWrapping="Wrap" Text="Порядок отгрузки:" VerticalAlignment="Top"/>
-                    <TextBox x:Name="Adress" HorizontalAlignment="Left" Margin="15,95,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="220" Height="45" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}" ToolTip="Введите адрес доставки" Text="Адрес доставки:"/>
-                    <TextBox x:Name="Comment" HorizontalAlignment="Left" Margin="15,145,0,0" TextWrapping="Wrap" Text="Комментарии..." VerticalAlignment="Top" Width="220" Height="45" ToolTip="Введите комментарий"/>
+                    <TextBox x:Name="Adress" HorizontalAlignment="Left" Margin="15,95,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="250" Height="45" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}" ToolTip="Введите адрес доставки" Text="Адрес доставки:"/>
+                    <TextBox x:Name="Comment" HorizontalAlignment="Left" Margin="15,145,0,0" TextWrapping="Wrap" Text="Комментарии..." VerticalAlignment="Top" Width="250" Height="45" ToolTip="Введите комментарий"/>
                     <TextBlock HorizontalAlignment="Left" Margin="15,195,0,0" TextWrapping="Wrap" Text="Ваш менеджер:" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" HorizontalAlignment="Left" Margin="115,195,0,0" VerticalAlignment="Top" Width="120" ToolTip="Выберите менеджера" SelectedIndex="0"/>
+                    <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" HorizontalAlignment="Left" Margin="115,195,0,0" VerticalAlignment="Top" Width="150" ToolTip="Выберите менеджера" SelectedIndex="0"/>
                     <DatePicker x:Name="datePicker" HorizontalAlignment="Left" Margin="305,51,0,0" VerticalAlignment="Top" FirstDayOfWeek="Monday" SelectedDateChanged="SetDate" ToolTip="Выберите дату изготовления"/>
                     <CheckBox x:Name="CheckDelivery" Content="Доставка" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="135,75,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Если не выбрано, то порядок отгрузки: Самовывоз"/>
                     <TextBox x:Name="Delivery" HorizontalAlignment="Left" Margin="240,75,0,0" Text="Цена" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}" ToolTip="Введите цену доставки"/>

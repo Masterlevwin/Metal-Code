@@ -237,8 +237,8 @@ namespace Metal_Code
             }
             catch
             {
-                MessageBox.Show("Исправьте длину свариваемой поверхности \nили поставьте 0", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Hand);
+                //MessageBox.Show("Исправьте длину свариваемой поверхности \nили поставьте 0", "Ошибка",
+                    //MessageBoxButton.OK, MessageBoxImage.Hand);
             }
             return 0;
         }

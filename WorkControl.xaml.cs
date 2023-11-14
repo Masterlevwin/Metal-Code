@@ -134,6 +134,12 @@ namespace Metal_Code
                     Grid.SetColumn(pipe, 1);
                     workType = pipe;
                     break;
+                case "Доп работа":
+                    ExtraControl extra = new(this);
+                    WorkGrid.Children.Add(extra);
+                    Grid.SetColumn(extra, 1);
+                    workType = extra;
+                    break;
             }
 
             if (ValidateProp(out int index))
