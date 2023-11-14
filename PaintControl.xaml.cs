@@ -116,6 +116,14 @@ namespace Metal_Code
 
                 work.SetResult(price, false);
             }
+            else if (work.type.TypeDetailDrop.SelectedItem is TypeDetail type && type.Name != null && type.Name.Contains("Труба"))
+            {
+                foreach (WorkControl w in work.type.WorkControls) if (w != work && w.workType is PipeControl pipe)
+                    {
+                        work.SetResult(Price(pipe.Mold, work));
+                        break;
+                    }
+            }
             else if (Ral != null) work.SetResult(Price(work.type.Mass * work.type.Count, work));
         }
 

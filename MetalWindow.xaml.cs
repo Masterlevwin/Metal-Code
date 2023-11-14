@@ -31,6 +31,7 @@ namespace Metal_Code
             MetalGrid.Columns[3].Header = "Цена за кг";
             MetalGrid.Columns[4].Header = "Цена за метр";
             MetalGrid.Columns[5].Header = "Цена за прокол";
+            MetalGrid.Columns[6].Header = "Цена за пог метр";
         }
 
         // добавление
@@ -59,7 +60,8 @@ namespace Metal_Code
                 Density = metal.Density,
                 MassPrice = metal.MassPrice,
                 WayPrice = metal.WayPrice,
-                PinholePrice = metal.PinholePrice
+                PinholePrice = metal.PinholePrice,
+                MoldPrice = metal.MoldPrice
             });
 
             if (MetalSettings.ShowDialog() == true)
@@ -73,6 +75,7 @@ namespace Metal_Code
                     metal.MassPrice = MetalSettings.Metal.MassPrice;
                     metal.WayPrice = MetalSettings.Metal.WayPrice;
                     metal.PinholePrice = MetalSettings.Metal.PinholePrice;
+                    metal.MoldPrice = MetalSettings.Metal.MoldPrice;
                     db.SaveChanges();
                     MetalGrid.Items.Refresh();
                 }

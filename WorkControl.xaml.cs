@@ -128,6 +128,12 @@ namespace Metal_Code
                     Grid.SetColumn(bend, 1);
                     workType = bend;
                     break;
+                case "Труборез":
+                    PipeControl pipe = new(this);
+                    WorkGrid.Children.Add(pipe);
+                    Grid.SetColumn(pipe, 1);
+                    workType = pipe;
+                    break;
             }
 
             if (ValidateProp(out int index))

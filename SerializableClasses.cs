@@ -147,6 +147,7 @@ namespace Metal_Code
         public float MassPrice {  get; set; }
         public string? WayPrice { get; set; }
         public string? PinholePrice { get; set; }
+        public string? MoldPrice { get; set; }
 
         public Metal()
         {

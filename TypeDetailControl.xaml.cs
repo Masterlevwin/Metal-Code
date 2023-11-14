@@ -211,7 +211,7 @@ namespace Metal_Code
         public void CreateSort(int ndx = 0)
         {
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || type.Sort == null) return;
-
+            
             Kinds.Clear();
 
             string[] strings = type.Sort.Split(',');
@@ -261,7 +261,7 @@ namespace Metal_Code
         {
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
 
-            if (type.Name == "Лист металла") Price = metal.MassPrice;
+            if (type.Name == "Лист металла" || (type.Name != null && type.Name.Contains("Труба"))) Price = metal.MassPrice;
             else Price = type.Price;
 
             if (MainWindow.M.IsLaser)
@@ -288,8 +288,6 @@ namespace Metal_Code
             Result = HasMetal ? (float)Math.Round((MainWindow.M.IsLaser ? 1 : Count) * Price * Mass, 2) : 0;
 
             Priced?.Invoke();
-
-            det.PriceResult();
         }
     }
 }

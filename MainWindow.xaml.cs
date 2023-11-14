@@ -12,8 +12,6 @@ using System.Runtime.CompilerServices;
 using System.Windows.Media.Animation;
 using OfficeOpenXml.Style;
 using OfficeOpenXml;
-using OfficeOpenXml.Table;
-using System.Drawing;
 
 namespace Metal_Code
 {
@@ -61,21 +59,25 @@ namespace Metal_Code
         }
 
         private List<double> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25 };
-        public Dictionary<string, Dictionary<double, (float, float)>> MetalDict = new();
+        public Dictionary<string, Dictionary<double, (float, float, float)>> MetalDict = new();
         private void CreateMetalDict()
         {
             List<Metal> metals = new(dbMetals.Metals.Local.ToList());
 
             foreach (Metal metal in metals)
             {
-                Dictionary<double, (float, float)> prices = new();
+                if (metal.Name != null && metal.WayPrice != null && metal.PinholePrice != null && metal.MoldPrice != null)
+                {
+                    Dictionary<double, (float, float, float)> prices = new();
+                    
+                    string[] _ways = metal.WayPrice.Split('/');
+                    string[] _pinholes = metal.PinholePrice.Split('/');
+                    string[] _molds = metal.MoldPrice.Split('/');
 
-                string[] _ways = metal.WayPrice.Split('/');
-                string[] _pinholes = metal.PinholePrice.Split('/');
+                    for (int i = 0; i < _ways.Length; i++) prices[Destinies[i]] = (Parser(_ways[i]), Parser(_pinholes[i]), Parser(_molds[i]));
 
-                for (int i = 0; i < _ways.Length; i++) prices[Destinies[i]] = (Parser(_ways[i]), Parser(_pinholes[i]));
-
-                MetalDict[metal.Name] = prices;
+                    MetalDict[metal.Name] = prices;
+                }
             }           
         }
 
@@ -675,11 +677,10 @@ namespace Metal_Code
 
         private void Exit(object sender, CancelEventArgs e)
         {
-            //foreach (Window w in Application.Current.Windows) w.Close();
             MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
                                            MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
             if (response == MessageBoxResult.No) e.Cancel = true;
-            else Application.Current.Shutdown();
+            else Environment.Exit(0);       //Application.Current.Shutdown(); - вызывает два диаологовых окна
         }
     }
 }

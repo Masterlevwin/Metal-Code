@@ -9,7 +9,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Shapes;
 
 namespace Metal_Code
 {
@@ -126,7 +125,7 @@ namespace Metal_Code
                 if (Way == 0 || Pinhole == 0) return;
                 if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
-                if (MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+                if (metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
                     price = Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1 + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2;
                 work.SetResult(price);
             }
@@ -190,6 +189,7 @@ namespace Metal_Code
                 DataTable table = result.Tables[0];
 
                 if (!MainWindow.M.IsLaser) MainWindow.M.IsLaser = true;
+                
                 if (i == 0)
                 {
                     WindowParts = new(this, PartList(table));
@@ -206,6 +206,8 @@ namespace Metal_Code
                         _cut.ItemList(table);
                     }
                 }
+
+                if (MainWindow.M.Count == 0) MainWindow.M.Count = 1;
             }
         }
 
@@ -311,7 +313,7 @@ namespace Metal_Code
                 {
                     item.pinholes = (int)MainWindow.Parser($"{table.Rows[i].ItemArray[8]}");
 
-                    if (work.type.MetalDrop.SelectedItem is Metal metal &&
+                    if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null &&
                         (metal.Name.Contains("шлиф") || metal.Name.Contains("зер"))) item.pinholes *= 2;
                 }
 
@@ -323,7 +325,7 @@ namespace Metal_Code
                 if ($"{table.Rows[i].ItemArray[6]}".Contains("Длина пути резки (mm) ="))
                 {
                     item.way = (float)Math.Ceiling(MainWindow.Parser($"{table.Rows[i].ItemArray[8]}") / 1000);
-                    if (work.type.MetalDrop.SelectedItem is Metal metal &&
+                    if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null &&
                         (metal.Name.Contains("шлиф") || metal.Name.Contains("зер"))) item.way *= 2;
 
                     items.Add(item);
@@ -355,7 +357,7 @@ namespace Metal_Code
 
             _item.price = 0;
 
-            if (MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+            if (metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
             {
                 _item.price = _item.way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1
                     + _item.pinholes * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2;
