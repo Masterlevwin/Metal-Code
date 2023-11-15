@@ -73,6 +73,7 @@
                     <TextBox x:Name="Delivery" HorizontalAlignment="Left" Margin="240,75,0,0" Text="Цена" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}" ToolTip="Введите цену доставки"/>
                     <TextBlock x:Name="Boss" HorizontalAlignment="Right" TextWrapping="Wrap" VerticalAlignment="Top" Margin="0,0,135,0"/>
                     <CheckBox IsChecked="{Binding IsLaser, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Content="Лазер" ToolTip="Отметьте, если нужно КП от Лазерфлекс" HorizontalAlignment="Left" Margin="15,0,0,5" VerticalAlignment="Bottom" Click="IsLaserChanged"/>
+                    <CheckBox IsChecked="{Binding Agent, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="365,20,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="SetAgent" Content="счёт от ИП или ПК"/>
                 </Grid>
             </GroupBox>
             <TextBlock HorizontalAlignment="Right" Text="руб" VerticalAlignment="Top" Margin="0,40,30,0" Height="14" Width="19"/>

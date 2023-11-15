@@ -57,15 +57,7 @@ namespace Metal_Code
                 foreach (WorkControl w in work.type.WorkControls)
                     if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
                     {
-                        if (Parts.Count == 0)
-                        {
-                            /*foreach (PartControl part in cut.WindowParts.Parts)
-                            {
-                                PaintControl paint = new(part);
-                                part.AddControl(paint);
-                            }*/
-                            CreateParts(cut.WindowParts.Parts);
-                        }
+                        if (Parts.Count == 0) CreateParts(cut.WindowParts.Parts);
                         PartBtn.IsEnabled = true;
                         break;
                     }
@@ -80,6 +72,7 @@ namespace Metal_Code
         public void SetRal(string _ral)
         {
             Ral = _ral;
+            OnPriceChanged();
         }
 
         private Dictionary<string, float> TypeDict = new()
@@ -116,15 +109,16 @@ namespace Metal_Code
 
                 work.SetResult(price, false);
             }
-            else if (work.type.TypeDetailDrop.SelectedItem is TypeDetail type && type.Name != null && type.Name.Contains("Труба"))
+            else if (Ral != null && work.type.Mass > 0)
             {
-                foreach (WorkControl w in work.type.WorkControls) if (w != work && w.workType is PipeControl pipe)
+                foreach (WorkControl w in work.type.WorkControls)
+                    if (w != work && w.workType is PipeControl pipe)
                     {
                         work.SetResult(Price(pipe.Mold, work));
-                        break;
+                        return;
                     }
+                work.SetResult(Price(work.type.Mass * work.type.Count, work));
             }
-            else if (Ral != null) work.SetResult(Price(work.type.Mass * work.type.Count, work));
         }
 
         private float Price(float _count, WorkControl work)
@@ -135,7 +129,7 @@ namespace Metal_Code
             {
                 "кг" => _count / work.type.S / metal.Density * TypeDict[$"{TypeDrop.SelectedItem}"],
                 "шт" => TypeDict[$"{TypeDrop.SelectedItem}"] * _count,
-                "пог" => TypeDict[$"{TypeDrop.SelectedItem}"] * _count,// здесь нужна формула расчета пог.м
+                "пог" => TypeDict[$"{TypeDrop.SelectedItem}"] * _count,     // здесь нужна формула расчета пог.м
                 _ => 0,
             };
         }
@@ -169,9 +163,10 @@ namespace Metal_Code
                     foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим окраску среди работ и получаем её минималку
                         if (_w.workType is PaintControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
-                            if (price > 0 && price < _work.Price) p.Part.Price += _work.Price / count;  // если расчетная стоимость ниже минимальной,
-                                                                                                        // к цене детали добавляем усредненную часть минималки от общего количества деталей
-                            else p.Part.Price += Price(p.Part.Mass * p.Part.Count, p.Cut.work) / p.Part.Count;   // иначе добавляем часть от количества именно этой детали                
+                            if (price > 0 && price < _work.Price) p.Part.Price += _work.Price * _w.Ratio / count;  // если расчетная стоимость ниже минимальной,
+                                                                            // к цене детали добавляем усредненную часть минималки от общего количества деталей
+                            else p.Part.Price += Price(p.Part.Mass * p.Part.Count, p.Cut.work) * _w.Ratio / p.Part.Count;   // иначе добавляем часть от количества именно этой детали                
+                            break;
                         }
                 }
             }

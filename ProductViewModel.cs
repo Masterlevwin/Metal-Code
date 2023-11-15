@@ -45,10 +45,17 @@ namespace Metal_Code
                   {
                       try
                       {
-                          if (dialogService.SaveFileDialog() == true)
+                          if (dialogService.SaveFileDialog() == true) 
                           {
-                              fileService.Save(dialogService.FilePaths[0], MainWindow.M.SaveProduct());
-                              dialogService.ShowMessage("Файл сохранен");
+                              string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
+                              + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
+
+                              if (MainWindow.M.IsLaser) _path += $" с материалом {MainWindow.M.GetMetalPrice()}";
+
+                              fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());
+                              dialogService.ShowMessage("Расчёт сохранен");
+
+                              MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);
                           }
                       }
                       catch (Exception ex)
@@ -162,7 +169,7 @@ namespace Metal_Code
     public interface IDialogService
     {
         void ShowMessage(string message);   // показ сообщения
-        string[] FilePaths { get; set; }   // путь к выбранному файлу
+        string[]? FilePaths { get; set; }   // путь к выбранному файлу
         bool OpenFileDialog();  // открытие файла
         bool SaveFileDialog();  // сохранение файла
     }
@@ -186,7 +193,7 @@ namespace Metal_Code
         public bool SaveFileDialog()
         {
             SaveFileDialog saveFileDialog = new();
-            saveFileDialog.Filter = "Metal-Code (*.mcm)|*.mcm|All files (*.*)|*.*";
+            saveFileDialog.Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*";
             if (saveFileDialog.ShowDialog() == true)
             {
                 FilePaths = saveFileDialog.FileNames;
@@ -227,8 +234,6 @@ namespace Metal_Code
             DataContractJsonSerializer jsonFormatter = new(typeof(Product));
             using FileStream fs = new(filename, FileMode.Create);
             jsonFormatter.WriteObject(fs, product);
-
-            MainWindow.M.ExportToExcel(filename);
         }
     }
 }

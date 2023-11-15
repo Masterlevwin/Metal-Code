@@ -56,15 +56,7 @@ namespace Metal_Code
                 foreach (WorkControl w in work.type.WorkControls)
                     if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
                     {
-                        if (Parts.Count == 0)
-                        {
-                            /*foreach (PartControl part in cut.WindowParts.Parts)
-                            {
-                                WeldControl weld = new(part);
-                                part.AddControl(weld);
-                            }*/
-                            CreateParts(cut.WindowParts.Parts);
-                        }
+                        if (Parts.Count == 0) CreateParts(cut.WindowParts.Parts);
                         PartBtn.IsEnabled = true;
                         break;
                     }   
@@ -286,9 +278,10 @@ namespace Metal_Code
                     foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим сварку среди работ и получаем её минималку
                         if (_w.workType is WeldControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
-                            if (price > 0 && price < _work.Price) p.Part.Price += _work.Price / count;  // если расчетная стоимость ниже минимальной,
-                                                                                                        // к цене детали добавляем усредненную часть минималки от общего количества деталей
-                            else p.Part.Price += Price(ParserWeld(Weld) * p.Part.Count, p.Cut.work) / p.Part.Count;   // иначе добавляем часть от количества именно этой детали                
+                            if (price > 0 && price < _work.Price) p.Part.Price += _work.Price * _w.Ratio / count;  // если расчетная стоимость ниже минимальной,
+                                                                            // к цене детали добавляем усредненную часть минималки от общего количества деталей
+                            else p.Part.Price += Price(ParserWeld(Weld) * p.Part.Count, p.Cut.work) * _w.Ratio / p.Part.Count;   // иначе добавляем часть от количества именно этой детали                
+                            break;
                         }
                 }
             }

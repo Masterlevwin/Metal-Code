@@ -59,15 +59,7 @@ namespace Metal_Code
                 foreach (WorkControl w in work.type.WorkControls)
                     if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
                     {
-                        if (Parts.Count == 0)
-                        {
-                            /*foreach (PartControl part in cut.WindowParts.Parts)
-                            {
-                                BendControl bend = new(part);
-                                part.AddControl(bend);
-                            }*/
-                            CreateParts(cut.WindowParts.Parts);
-                        }
+                        if (Parts.Count == 0) CreateParts(cut.WindowParts.Parts);
                         PartBtn.IsEnabled = true;
                         break;
                     }
@@ -258,7 +250,7 @@ namespace Metal_Code
                         {
                             float _price = Price(Bend * p.Part.Count, p.Cut.work);
                             // стоимость данной гибки должна быть не ниже минимальной
-                            _price = _price > 0 && _price < _work.Price ? _work.Price : _price;
+                            _price = _price > 0 && _price < _work.Price ? _work.Price * _w.Ratio : _price * _w.Ratio;
                             p.Part.Price += _price / p.Part.Count;
                             break;
                         }
