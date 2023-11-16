@@ -25,7 +25,7 @@ namespace Metal_Code
             // и устанавливаем данные в качестве контекста
             DataContext = db.Metals.Local.ToObservableCollection();
             MetalGrid.ItemsSource = db.Metals.Local.ToObservableCollection();
-            MetalGrid.Columns[0].Header = "N";
+            MetalGrid.Columns[0].Header = "Mass";
             MetalGrid.Columns[1].Header = "Марка";
             MetalGrid.Columns[2].Header = "Плотность";
             MetalGrid.Columns[3].Header = "Цена за кг";

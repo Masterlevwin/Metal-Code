@@ -265,7 +265,7 @@ namespace Metal_Code
         {
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
 
-            if (type.Name == "Лист металла" || (type.Name != null && type.Name.Contains("Труба"))) Price = metal.MassPrice;
+            if (type.Name == "Лист металла") Price = metal.MassPrice;       // || (type.Name != null && type.Name.Contains("Труба"))
             else Price = type.Price;
 
             if (MainWindow.M.IsLaser)
@@ -278,6 +278,10 @@ namespace Metal_Code
                     }
             } 
             else Mass = (float)Math.Round(A * B * S * L * metal.Density / 1000000, 2);
+
+            if (type.Name != null && type.Name.Contains("Труба")) Mass = 0.0157f * S * (A + B - 2.86f * S);
+
+            det.MassCalculate();
 
             PriceChanged();
         }

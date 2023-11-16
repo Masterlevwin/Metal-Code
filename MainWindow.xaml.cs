@@ -114,7 +114,7 @@ namespace Metal_Code
         private bool isLaser;
         public bool IsLaser
         {
-            get { return isLaser; }
+            get => isLaser;
             set
             {
                 isLaser = value;
@@ -132,12 +132,8 @@ namespace Metal_Code
             get => agent;
             set
             {
-                if (value != agent)
-                {
-                    agent = value;
-
-                    OnPropertyChanged(nameof(Agent));
-                }
+                agent = value;
+                OnPropertyChanged(nameof(Agent));
             }
         }
         private void SetAgent(object sender, RoutedEventArgs e)
@@ -148,8 +144,9 @@ namespace Metal_Code
         private int count;
         public int Count
         {
-            get { return count; }
-            set { 
+            get => count;
+            set
+            { 
                 count = value;
                 OnPropertyChanged(nameof(Count));
             }
@@ -164,10 +161,41 @@ namespace Metal_Code
             if (Count > 0) TotalResult();
         }
 
+        private float paint;
+        public float Paint
+        {
+            get => paint;
+            set
+            {
+                if (value != paint)
+                {
+                    paint = value;
+                    OnPropertyChanged(nameof(Paint));
+                }
+            }
+        }
+        private void SetPaint(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int p)) SetPaint(p);
+        }
+        public void SetPaint(float _paint)
+        {
+            Paint = _paint;
+            if (Paint > 0) TotalResult();
+        }
+        public float PaintResult()
+        {
+            float result = 0;
+            foreach (DetailControl d in DetailControls)
+                foreach (TypeDetailControl t in d.TypeDetailControls)
+                    result += 110 * t.L * t.Count / 1000;     // простая формула окраски через пог м типовой детали
+            return result;
+        }
+
         private float result;
         public float Result
         {
-            get { return result; }
+            get => result;
             set
             {
                 result = value;
@@ -209,7 +237,7 @@ namespace Metal_Code
                 DetailsGrid.ItemsSource = DetailsSource();
                 DetailsGrid.Columns[0].Header = "Наименование";
                 DetailsGrid.Columns[1].Header = "Работы";
-                DetailsGrid.Columns[2].Header = "N";
+                DetailsGrid.Columns[2].Header = "Масса, кг";
                 DetailsGrid.Columns[3].Header = "Кол-во, шт";
                 DetailsGrid.Columns[4].Header = "Цена за шт, руб";
                 DetailsGrid.Columns[5].Header = "Стоимость, руб";
@@ -316,7 +344,7 @@ namespace Metal_Code
             ObservableCollection<Detail> details = new();
             for (int i = 0; i < DetailControls.Count; i++)
             {
-                Detail _detail = new(i + 1, DetailControls[i].NameDetail, DetailControls[i].Count,
+                Detail _detail = new(DetailControls[i].NameDetail, DetailControls[i].Count, DetailControls[i].Mass,
                     DetailControls[i].Price, DetailControls[i].Price * DetailControls[i].Count);
                 for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
                 {
@@ -361,7 +389,7 @@ namespace Metal_Code
             for (int i = 0; i < DetailControls.Count; i++)
             {
                 DetailControl det = DetailControls[i];
-                Detail _detail = new(i + 1, det.NameDetail, det.Count, det.Price, det.Price * det.Count);
+                Detail _detail = new(det.NameDetail, det.Count, det.Mass, det.Price, det.Price * det.Count);
                     
                 for (int j = 0; j < det.TypeDetailControls.Count; j++)
                 {
@@ -578,6 +606,7 @@ namespace Metal_Code
             worksheet.Cells[num + 8, IsLaser ? 8 : 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             worksheet.Cells[num + 8, 1, num + 8, IsLaser ? 8 : 6].Style.Border.BorderAround(ExcelBorderStyle.Medium);
             worksheet.Cells[8, IsLaser ? 7 : 5, num + 8, IsLaser ? 8 : 6].Style.Numberformat.Format = "#,##0.00";
+            if (!IsLaser) worksheet.Cells[8, 3, num + 8, 3].Style.Numberformat.Format = "#,##0.00";
 
             worksheet.Cells[num + 9, 1].Value = "Материал:";
             worksheet.Cells[num + 9, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
@@ -627,6 +656,7 @@ namespace Metal_Code
             if (worksheet.Rows[num + 12].Height < 35) worksheet.Rows[num + 12].Height = 35;
             if (IsLaser && worksheet.Columns[5].Width < 15) worksheet.Columns[5].Width = 15;
             if (IsLaser) worksheet.DeleteRow(4, 2);
+            else worksheet.DeleteRow(num + 13, 1);
 
             worksheet.PrinterSettings.FitToPage = true;
             worksheet.PrinterSettings.FitToWidth = 1;
@@ -764,5 +794,6 @@ namespace Metal_Code
         {
             Application.Current.Shutdown();
         }
+
     }
 }

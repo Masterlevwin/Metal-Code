@@ -25,17 +25,17 @@ namespace Metal_Code
     {
         public string? Title { get; set; }
         public string? Description { get; set; }
-        public int N { get; set; }
+        public float Mass { get; set; }
         public int Count { get; set; }
         public float Price { get; set; }
         public float Total { get; set; }
 
         public List<SaveTypeDetail> TypeDetails = new();
-        public Detail(int id = 0, string? _name = null, int _count = 0, float _price = 0, float _total = 0)
+        public Detail(string? _name = null, int _count = 0, float _mass = 1, float _price = 0, float _total = 0)
         {
-            N = id;
             Title = _name;
             Count = _count;
+            Mass = _mass;
             Price = _price;
             Total = _total;
         }

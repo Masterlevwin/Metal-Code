@@ -130,7 +130,7 @@ namespace Metal_Code
                   {
                       if (obj is Detail detail)
                       {
-                          Detail detailCopy = new(detail.N, detail.Title, detail.Count, detail.Price, detail.Total);
+                          Detail detailCopy = new(detail.Title, detail.Count, detail.Mass, detail.Price, detail.Total);
                           Product.Details.Insert(0, detailCopy);
                       }
                   });

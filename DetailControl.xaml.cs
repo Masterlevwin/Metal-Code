@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -7,27 +10,46 @@ namespace Metal_Code
     /// <summary>
     /// Логика взаимодействия для DetailControl.xaml
     /// </summary>
-    public partial class DetailControl : UserControl
+    public partial class DetailControl : UserControl, INotifyPropertyChanged
     {
-        //Text="{Binding NameDetail, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}"
-        public static readonly DependencyProperty dPname =
-            DependencyProperty.Register("NameDetail", typeof(string), typeof(DetailControl));
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        private string? nameDetail;
         public string? NameDetail
         {
-            get { return (string)GetValue(dPname); }
-            set { SetValue(dPname, value); }
+            get => nameDetail;
+            set
+            {
+                nameDetail = value;
+                OnPropertyChanged(nameof(NameDetail));
+            }
         }
 
-        //Text="{Binding Count, Mode=TwoWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}"
-        public static readonly DependencyProperty dPcount =
-            DependencyProperty.Register("Count", typeof(int), typeof(DetailControl));
+        private int count;
         public int Count
         {
-            get { return (int)GetValue(dPcount); }
-            set { SetValue(dPcount, value); }
+            get => count;
+            set
+            {
+                count = value;
+                OnPropertyChanged(nameof(Count));
+            }
         }
 
-        public float Price { get; set; }
+        private float mass;
+        public float Mass
+        {
+            get => mass;
+            set => mass = value;
+        }
+
+        private float price;
+        public float Price
+        {
+            get => price;
+            set => price = value;
+        }
 
         public List<TypeDetailControl> TypeDetailControls = new();
 
@@ -94,6 +116,13 @@ namespace Metal_Code
             MainWindow.M.TotalResult();
         }
 
+        public void MassCalculate()
+        {
+            Mass = 0;
+            foreach (TypeDetailControl t in TypeDetailControls) Mass += t.Mass;
+            Mass = (float)Math.Round(Mass, 2);
+        }
+
         public void PriceResult()
         {
             Price = 0;
@@ -105,6 +134,14 @@ namespace Metal_Code
                     Price += w.Result;
                 }
             }
+
+            if (!MainWindow.M.IsLaser)
+            {
+                MainWindow.M.Paint = MainWindow.M.PaintResult();
+                Price += MainWindow.M.Paint / MainWindow.M.DetailControls.Count;      // размазываем окраску в деталях
+            }
+            
+
             MainWindow.M.TotalResult();
         }
     }
