@@ -279,9 +279,7 @@ namespace Metal_Code
             } 
             else Mass = (float)Math.Round(A * B * S * L * metal.Density / 1000000, 2);
 
-            if (type.Name != null && type.Name.Contains("Труба")) Mass = 0.0157f * S * (A + B - 2.86f * S);
-
-            det.MassCalculate();
+            if (type.Name != null && type.Name.Contains("Труба")) Mass = metal.Density / 7850 * 0.0157f * S * (A + B - 2.86f * S) * L; 
 
             PriceChanged();
         }

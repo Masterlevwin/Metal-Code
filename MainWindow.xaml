@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:Metal_Code" x:Name="ProgramWindow"
         x:Class="Metal_Code.MainWindow"
         mc:Ignorable="d"
-        Title="Провэлд" FontFamily="Century" Background="#FFD7E4F2" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" Icon="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg" d:DesignHeight="673.813" d:DesignWidth="1028" Closing="Exit">
+        Title="Провэлд" FontFamily="Century" Background="#FFD7E4F2" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" Icon="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg" d:DesignHeight="673.813" d:DesignWidth="1130.441" Closing="Exit" WindowState="Maximized">
     <Grid x:Name="MenuGrid">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="535*"/>
@@ -75,13 +75,13 @@
                     <CheckBox IsChecked="{Binding IsLaser, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Content="Лазер" ToolTip="Отметьте, если нужно КП от Лазерфлекс" HorizontalAlignment="Left" Margin="15,0,0,5" VerticalAlignment="Bottom" Click="IsLaserChanged"/>
                     <CheckBox IsChecked="{Binding Agent, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="365,20,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="SetAgent" Content="счёт от ИП или ПК"/>
                     <TextBlock HorizontalAlignment="Left" Margin="305,100,0,0" Text="Окраска" VerticalAlignment="Top" TextWrapping="NoWrap"/>
-                    <TextBox Text="{Binding Paint, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" HorizontalAlignment="Left" Margin="390,100,0,0" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" ToolTip="Стоимость окраски" TextChanged="SetPaint"/>
+                    <CheckBox x:Name="CheckPaint" Content="{Binding Paint, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" HorizontalAlignment="Left" Margin="390,100,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - окраска в деталях, о - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="True"/>
                     <TextBlock HorizontalAlignment="Left" Margin="305,125,0,0" Text="Конструктор" VerticalAlignment="Top" TextWrapping="NoWrap"/>
-                    <TextBox HorizontalAlignment="Left" Margin="390,125,0,0" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" ToolTip="Стоимость конструкторских работ"/>
                     <TextBlock HorizontalAlignment="Left" Margin="305,150,0,0" Text="Прототип" VerticalAlignment="Top" TextWrapping="NoWrap"/>
                     <TextBox HorizontalAlignment="Left" Margin="390,150,0,0" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" ToolTip="Стоимость прототипа"/>
                     <TextBlock HorizontalAlignment="Left" Margin="305,175,0,0" Text="Накладные" VerticalAlignment="Top" TextWrapping="NoWrap"/>
                     <TextBox HorizontalAlignment="Left" Margin="390,175,0,0" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" ToolTip="Стоимость накладных расходов"/>
+                    <CheckBox x:Name="CheckConstruct" Content="{Binding Construct, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" HorizontalAlignment="Left" Margin="390,125,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - конструктор в деталях, о - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="True"/>
                 </Grid>
             </GroupBox>
             <TextBlock HorizontalAlignment="Right" Text="руб" VerticalAlignment="Top" Margin="0,40,30,0" Height="14" Width="19"/>

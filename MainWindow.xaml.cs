@@ -13,6 +13,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Media.Animation;
 using OfficeOpenXml.Style;
 using OfficeOpenXml;
+using System.Diagnostics;
 
 namespace Metal_Code
 {
@@ -174,21 +175,37 @@ namespace Metal_Code
                 }
             }
         }
-        private void SetPaint(object sender, TextChangedEventArgs e)
-        {
-            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int p)) SetPaint(p);
-        }
-        public void SetPaint(float _paint)
-        {
-            Paint = _paint;
-            if (Paint > 0) TotalResult();
-        }
         public float PaintResult()
         {
             float result = 0;
             foreach (DetailControl d in DetailControls)
                 foreach (TypeDetailControl t in d.TypeDetailControls)
                     result += 110 * t.L * t.Count / 1000;     // простая формула окраски через пог м типовой детали
+            // проверяем наличие работы "Окраска" и добавляем её минималку к расчету
+            if (dbWorks.Works.Contains(dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска"))
+                && dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска") is Work work) result += work.Price;
+            return result;
+        }
+
+        private float construct;
+        public float Construct
+        {
+            get => construct;
+            set
+            {
+                if (value != construct)
+                {
+                    construct = value;
+                    OnPropertyChanged(nameof(Construct));
+                }
+            }
+        }
+        public float ConstructResult()
+        {
+            float result = 0;
+            // проверяем наличие работы "Конструкторские работы" и добавляем её минималку к расчету
+            if (dbWorks.Works.Contains(dbWorks.Works.FirstOrDefault(n => n.Name == "Конструкторские работы"))
+                && dbWorks.Works.FirstOrDefault(n => n.Name == "Конструкторские работы") is Work work) result += work.Price;
             return result;
         }
 
@@ -205,10 +222,14 @@ namespace Metal_Code
         public void TotalResult()
         {
             Result = 0;
+
+            Paint = PaintResult();
+            Construct = ConstructResult();
+
             foreach (DetailControl d in DetailControls) Result += d.Price * d.Count;
+
             Result *= Count;
             Result = (float)Math.Round(Result, 2);
-            //AnimBtn();
 
             ViewDetailsGrid();
         }
@@ -272,17 +293,6 @@ namespace Metal_Code
                                 foreach (PartControl p in _cut.WindowParts.Parts)
                                     parts.Add(p.Part);
             return parts;
-        }
-
-        private void AnimBtn()
-        {
-            DoubleAnimation buttonAnimation = new();
-            buttonAnimation.From = ResultBtn.ActualWidth;
-            buttonAnimation.To = 150;
-            buttonAnimation.Duration = TimeSpan.FromSeconds(3);
-            buttonAnimation.RepeatBehavior = new RepeatBehavior(TimeSpan.FromSeconds(7));
-            buttonAnimation.AutoReverse = true;
-            ResultBtn.BeginAnimation(WidthProperty, buttonAnimation);
         }
 
         private void UpdateResult(object sender, RoutedEventArgs e)   // метод принудительного обновления стоимости
@@ -375,9 +385,12 @@ namespace Metal_Code
                 Comment = Comment.Text,
                 Count = Count,
                 IsLaser = IsLaser,
-                HasDelivery = (bool)CheckDelivery.IsChecked
             };
+            if (CheckDelivery.IsChecked != null) prod.HasDelivery = (bool)CheckDelivery.IsChecked;
             if (int.TryParse(Delivery.Text, out int d)) prod.Delivery = d;
+
+            if (CheckPaint.IsChecked != null) prod.HasPaint = (bool)CheckPaint.IsChecked;
+            if (CheckConstruct.IsChecked != null) prod.HasPaint = (bool)CheckConstruct.IsChecked;
 
             DetailsModel.Product = prod;
             DetailsModel.Product.Details = SaveDetails();
@@ -451,6 +464,8 @@ namespace Metal_Code
             ManagerDrop.Text = DetailsModel.Product.Manager;
             Comment.Text = DetailsModel.Product.Comment;
             IsLaser = DetailsModel.Product.IsLaser;
+            CheckPaint.IsChecked = DetailsModel.Product.HasPaint;
+            CheckConstruct.IsChecked = DetailsModel.Product.HasConstruct;
 
             LoadDetails(DetailsModel.Product.Details);
         }
@@ -571,9 +586,25 @@ namespace Metal_Code
                 worksheet.Cells[6, col + 1].Style.WrapText = true;
             }
 
+            if (!IsLaser && CheckPaint.IsChecked == null)
+            {
+                worksheet.Cells[num + 8, 1].Value = "Окраска";
+                worksheet.Cells[num + 8, 4].Value = 1;
+                worksheet.Cells[num + 8, 5].Value = worksheet.Cells[num + 8, 6].Value = Paint;
+                num++;
+            }
+
+            if (CheckConstruct.IsChecked == null)
+            {
+                worksheet.Cells[num + 8, IsLaser ? 5 : 1].Value = "Конструкторские работы";
+                worksheet.Cells[num + 8, IsLaser ? 6 : 4].Value = 1;
+                worksheet.Cells[num + 8, IsLaser ? 7 : 5].Value = worksheet.Cells[num + 8, IsLaser ? 8 : 6].Value = Construct;
+                num++;
+            }
+
             if (CheckDelivery.IsChecked == true)
             {
-                worksheet.Cells[num + 8, IsLaser ? 5 : 3].Value = "Доставка";
+                worksheet.Cells[num + 8, IsLaser ? 5 : 1].Value = "Доставка";
                 worksheet.Cells[num + 8, IsLaser ? 6 : 4].Value = 1;
                 if (int.TryParse(Delivery.Text, out int d)) worksheet.Cells[num + 8, IsLaser ? 7 : 5].Value = worksheet.Cells[num + 8, IsLaser ? 8 : 6].Value = d;
                 num++;
@@ -581,7 +612,8 @@ namespace Metal_Code
             }
             else
             {
-                worksheet.Cells[num + 12, 2].Value = "Самовывоз со склада Исполнителя по адресу: Ленинградская область, Всеволожский район, Колтушское сельское поселение, деревня Мяглово, ул. Дорожная, уч. 4Б.";
+                worksheet.Cells[num + 12, 2].Value = "Самовывоз со склада Исполнителя по адресу: Ленинградская область, Всеволожский район," +
+                    "Колтушское сельское поселение, деревня Мяглово, ул. Дорожная, уч. 4Б.";
                 worksheet.Cells[num + 12, 2].Style.WrapText = true;
             }
 
@@ -667,6 +699,7 @@ namespace Metal_Code
 
             CreateScore(worksheet, num, path);
         }
+
         private void CreateScore(ExcelWorksheet worksheet, int num, string _path)
         {
             ExcelRange extable = worksheet.Cells[IsLaser ? 6 : 8, IsLaser ? 5 : 1, IsLaser ? num + 5 : num + 7, IsLaser ? 7 : 5];
@@ -703,7 +736,7 @@ namespace Metal_Code
             table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             scoresheet.Cells.AutoFitColumns();
 
-            workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Файл для счета " + ".xlsx");
+            workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Файл для счета " + Order.Text + ".xlsx");
         }
 
         public static DataTable ToDataTable<T>(ObservableCollection<T> items)

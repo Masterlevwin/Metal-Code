@@ -73,6 +73,7 @@ namespace Metal_Code
                     
 
             TypeDetailControls.Add(type);
+            type.Priced += MassCalculate;       // подписка на изменение типовой детали для расчета общей массы детали
             DetailGrid.Children.Add(type);
 
             Grid.SetColumn(type, 2);
@@ -129,18 +130,14 @@ namespace Metal_Code
             foreach (TypeDetailControl t in TypeDetailControls)
             {
                 Price += t.Result;
-                foreach (WorkControl w in t.WorkControls)
-                {
-                    Price += w.Result;
-                }
+                foreach (WorkControl w in t.WorkControls) Price += w.Result;
             }
 
-            if (!MainWindow.M.IsLaser)
-            {
-                MainWindow.M.Paint = MainWindow.M.PaintResult();
-                Price += MainWindow.M.Paint / MainWindow.M.DetailControls.Count;      // размазываем окраску в деталях
-            }
-            
+            // добавляем окраску, если она отмечена галочкой или квадратиком
+            if (!MainWindow.M.IsLaser && MainWindow.M.CheckPaint.IsChecked != false) Price += MainWindow.M.Paint / MainWindow.M.DetailControls.Count;
+
+            // добавляем конструкторские работы, если они отмечены галочкой или квадратиком
+            if (!MainWindow.M.IsLaser && MainWindow.M.CheckConstruct.IsChecked != false) Price += MainWindow.M.Construct / MainWindow.M.DetailControls.Count;
 
             MainWindow.M.TotalResult();
         }

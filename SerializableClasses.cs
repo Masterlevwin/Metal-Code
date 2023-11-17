@@ -12,7 +12,7 @@ namespace Metal_Code
     {
         public string? Name, Order, Company, Production, Manager, Comment;
         public int Count, Delivery;
-        public bool IsLaser, HasDelivery;
+        public bool IsLaser, HasDelivery, HasPaint, HasConstruct;
         public ObservableCollection<Detail> Details { get; set; } = new();
         public Product()
         {

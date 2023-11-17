@@ -217,7 +217,6 @@ namespace Metal_Code
                 work.SetResult(price, false);
             }
             else if (Weld != null) work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work));
-
         }
 
         private float ParserWeld(string _weld)
@@ -239,14 +238,14 @@ namespace Metal_Code
         {
             var sideRatio = _count switch
             {
-                < 100 => 1,
-                < 300 => 3,
-                < 1000 => 10,
+                < 1000 => 1,
+                < 3000 => 3,
+                < 10000 => 10,
                 _ => 100,
             };
 
             return work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && WeldDict.ContainsKey(metal.Name) ?
-                WeldDict[metal.Name][sideRatio] * _count * TypeDict[$"{TypeDrop.SelectedItem}"] : 0;
+                WeldDict[metal.Name][sideRatio] * _count / 10 * TypeDict[$"{TypeDrop.SelectedItem}"] : 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
