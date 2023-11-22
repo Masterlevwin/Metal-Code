@@ -77,7 +77,7 @@ namespace Metal_Code
 
         private Dictionary<string, float> TypeDict = new()
         {
-            ["кг"] = 812,
+            ["м²"] = 812,
             ["шт"] = 350,
             ["пог"] = 87
         };
@@ -127,7 +127,7 @@ namespace Metal_Code
 
             return TypeDrop.SelectedItem switch
             {
-                "кг" => _count / work.type.S / metal.Density * TypeDict[$"{TypeDrop.SelectedItem}"],
+                "м²" => _count / work.type.S / metal.Density * TypeDict[$"{TypeDrop.SelectedItem}"],
                 "шт" => TypeDict[$"{TypeDrop.SelectedItem}"] * _count,
                 "пог" => TypeDict[$"{TypeDrop.SelectedItem}"] * _count,     // здесь нужна формула расчета пог.м
                 _ => 0,

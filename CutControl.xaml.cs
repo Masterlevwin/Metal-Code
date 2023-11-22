@@ -181,6 +181,9 @@ namespace Metal_Code
         }
         public void LoadExcel(string[] paths)
         {
+            if (!MainWindow.M.IsLaser) MainWindow.M.IsLaser = true;
+            if (MainWindow.M.Count == 0) MainWindow.M.Count = 1;
+
             for (int i = 0; i < paths.Length; i++)
             {
                 using FileStream stream = File.Open(paths[i], FileMode.Open, FileAccess.Read);
@@ -188,26 +191,33 @@ namespace Metal_Code
                 DataSet result = reader.AsDataSet();
                 DataTable table = result.Tables[0];
 
-                if (!MainWindow.M.IsLaser) MainWindow.M.IsLaser = true;
-                
                 if (i == 0)
                 {
                     WindowParts = new(this, PartList(table));
                     ItemList(table);
+                    work.type.MassCalculate();
                 } 
                 else
-                {
-                    work.type.det.AddTypeDetail();                                                    // добавляем типовую деталь
-                    work.type.det.TypeDetailControls[^1].TypeDetailDrop.SelectedIndex = 2;            // устанавливаем "Лист металла"
-                    work.type.det.TypeDetailControls[^1].WorkControls[0].WorkDrop.SelectedIndex = 2;  // устанавливаем "Лазерная резка"
-                    if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)      // заполняем эту резку
+                {   // добавляем типовую деталь
+                    work.type.det.AddTypeDetail();
+
+                    // устанавливаем "Лист металла"
+                    if (MainWindow.M.dbTypeDetails.TypeDetails.Contains(MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла"))
+                        && MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла") is TypeDetail t)
+                        work.type.det.TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
+                    
+                    // устанавливаем "Лазерная резка"
+                    if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка"))
+                        && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка") is Work w)
+                        work.type.det.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+                    
+                    // заполняем эту резку
+                    if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)
                     {
                         _cut.WindowParts = new(this, _cut.PartList(table));
                         _cut.ItemList(table);
                     }
                 }
-
-                if (MainWindow.M.Count == 0) MainWindow.M.Count = 1;
             }
         }
 

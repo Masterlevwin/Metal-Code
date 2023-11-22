@@ -7,8 +7,8 @@
              mc:Ignorable="d"
              d:DesignHeight="20" d:DesignWidth="140" VerticalAlignment="Top" >
     <Grid x:Name="BendGrid">
-        <Button x:Name="PartBtn" Click="ViewPartWindow" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="10" MaxHeight="10" MaxWidth="10" MinWidth="10" Margin="5,0,0,0" FontSize="8" VerticalContentAlignment="Top" HorizontalContentAlignment="Center" Content="Г" Padding="0,0,0,0" Grid.IsSharedSizeScope="True" FontFamily="Arial" FontWeight="Bold" BorderBrush="#FF197DE1"/>
-        <TextBox Text="{Binding Bend, RelativeSource={RelativeSource AncestorType={x:Type local:BendControl}, Mode=FindAncestor}}" TextChanged="SetBend" HorizontalAlignment="Left" Margin="20,0,0,0" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="40" MinWidth="40" ToolTip="Введите количество однотипных гибов" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="2"/>
+        <Button x:Name="PartBtn" Click="ViewPartWindow" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="20" Margin="5,0,0,0" Content="..." Padding="0,0,0,0" Grid.IsSharedSizeScope="True" FontFamily="Arial" FontWeight="Bold" BorderBrush="#FF197DE1"/>
+        <TextBox Text="{Binding Bend, RelativeSource={RelativeSource AncestorType={x:Type local:BendControl}, Mode=FindAncestor}}" TextChanged="SetBend" HorizontalAlignment="Left" Margin="30,0,0,0" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="35" MinWidth="35" ToolTip="Введите количество однотипных гибов" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="2"/>
         <ComboBox x:Name="ShelfDrop" SelectionChanged="SetShelf" HorizontalAlignment="Left" Margin="70,0,0,0" VerticalAlignment="Center" Height="20" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" SelectedIndex="0" ToolTip="Выберите длину гиба"/>
     </Grid>
 </UserControl>

@@ -5,12 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:Metal_Code" x:Name="ProgramWindow"
         x:Class="Metal_Code.MainWindow"
         mc:Ignorable="d"
-        Title="Провэлд" FontFamily="Century" Background="#FFD7E4F2" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" Icon="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg" d:DesignHeight="673.813" d:DesignWidth="1130.441" Closing="Exit" WindowState="Maximized">
+        Title="Провэлд" FontFamily="Century" Background="#FFD7E4F2" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" Icon="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg" d:DesignHeight="805.736" d:DesignWidth="1809.931" Closing="Exit" WindowState="Maximized">
     <Grid x:Name="MenuGrid">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="535*"/>
-            <ColumnDefinition Width="493*"/>
-        </Grid.ColumnDefinitions>
         <Menu VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" FontSize="10" RenderTransformOrigin="0.499,-1.337" Grid.ColumnSpan="2" Height="15">
             <MenuItem Header="Файл">
                 <MenuItem Header="Создать" Click="ClearDetails"/>
@@ -29,30 +25,30 @@
                 <TextBlock x:Name="Version"/>
             </MenuItem>
         </Menu>
-        <Grid x:Name="WindowGrid" Grid.ColumnSpan="2">
+        <Grid x:Name="WindowGrid">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" MinHeight="330"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" MinWidth="535"/>
+                <ColumnDefinition Width="Auto" MinWidth="1286"/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
             <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" MinWidth="500" Margin="20,20,15,20" ToolTip="Рабочая область" Grid.RowSpan="2">
-                <ScrollViewer VerticalAlignment="Top" Margin="0,30,0,0" VerticalScrollBarVisibility="Auto">
-                    <Grid x:Name="ProductGrid" Margin="10,30,10,0"/>
+                <ScrollViewer VerticalAlignment="Top" Margin="0,55,0,0" VerticalScrollBarVisibility="Auto">
+                    <Grid x:Name="ProductGrid" Margin="10,0,10,0"/>
                 </ScrollViewer>
             </GroupBox>
             <TextBox x:Name="ProductName" Text="Изделие" AutoWordSelection="True" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" Height="20" VerticalContentAlignment="Center" HorizontalAlignment="Left" Width="330" FontSize="14" />
-            <TextBox Text="{Binding Count, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" ToolTip="Введите количество требуемых изделий" AllowDrop="False" MaxLines="1" MinWidth="40" HorizontalContentAlignment="Center" Margin="0,40,140,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Right" Height="20" Width="40" MaxLength="4" TextChanged="SetCount" FontSize="14"/>
-            <Button x:Name="ResultBtn" Content="{Binding Result, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" HorizontalAlignment="Right" MinHeight="20" AllowDrop="False" ToolTip="Общая стоимость, нажмите, чтобы обновить" VerticalAlignment="Top" Margin="0,40,55,0" FontSize="14" HorizontalContentAlignment="Stretch" MaxWidth="80" BorderThickness="0,0,0,0" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Click="UpdateResult"/>
-            <GroupBox Header="Ведомость деталей" Grid.Column="1" Grid.Row="1" MinWidth="400" Margin="15,0,20,20">
+            <TextBox Text="{Binding Count, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Введите количество требуемых изделий" AllowDrop="False" MaxLines="1" MinWidth="40" HorizontalContentAlignment="Center" Margin="0,40,145,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Right" Height="20" Width="40" MaxLength="4" TextChanged="SetCount" FontSize="14"/>
+            <Button x:Name="ResultBtn" Content="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Right" MinHeight="20" AllowDrop="False" ToolTip="Общая стоимость, нажмите, чтобы обновить" VerticalAlignment="Top" Margin="0,40,55,0" FontSize="14" HorizontalContentAlignment="Stretch" MaxWidth="80" BorderThickness="0,0,0,0" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Click="UpdateResult" Height="20"/>
+            <GroupBox Header="Ведомость деталей" Grid.Column="1" Grid.Row="1" MinWidth="400" Margin="15,0,15,20">
                 <Grid>
                     <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" Margin="15,5,15,5" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" CanUserReorderColumns="False" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn"/>
                 </Grid>
             </GroupBox>
-            <GroupBox x:Name="OrderBox" Grid.Column="1" Margin="15,20,20,15" Header="Коммерческое предложение" MinWidth="400">
-                <Grid x:Name="OrderGrid" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+            <GroupBox x:Name="OrderBox" Grid.Column="1" Margin="15,20,15,15" Header="Коммерческое предложение" MinWidth="400">
+                <Grid x:Name="OrderGrid">
                     <TextBox x:Name="Phone" HorizontalAlignment="Right" Width="120" VerticalAlignment="Top" Margin="0,0,5,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите актуальный номер телефона"/>
                     <Image x:Name="Logo" HorizontalAlignment="Left" VerticalAlignment="Top" Height="30" Width="30" Source="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg"/>
                     <TextBox x:Name="Order" HorizontalAlignment="Left" Margin="80,20,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40" ToolTip="Введите номер предложения"/>
@@ -72,19 +68,35 @@
                     <CheckBox x:Name="CheckDelivery" Content="Доставка" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="135,75,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Если не выбрано, то порядок отгрузки: Самовывоз"/>
                     <TextBox x:Name="Delivery" HorizontalAlignment="Left" Margin="220,73,0,0" Text="Цена" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}" ToolTip="Введите цену доставки"/>
                     <TextBlock x:Name="Boss" HorizontalAlignment="Right" TextWrapping="Wrap" VerticalAlignment="Top" Margin="0,0,135,0"/>
-                    <CheckBox IsChecked="{Binding IsLaser, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Content="Лазер" ToolTip="Отметьте, если нужно КП от Лазерфлекс" HorizontalAlignment="Left" Margin="15,0,0,5" VerticalAlignment="Bottom" Click="IsLaserChanged"/>
-                    <CheckBox IsChecked="{Binding Agent, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="365,20,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="SetAgent" Content="счёт от ИП или ПК"/>
+                    <CheckBox IsChecked="{Binding IsLaser, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Content="Лазер" ToolTip="Отметьте, если нужно КП от Лазерфлекс" HorizontalAlignment="Left" Margin="15,0,0,5" VerticalAlignment="Bottom" Click="IsLaserChanged"/>
+                    <CheckBox IsChecked="{Binding Agent, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="365,20,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="SetAgent" Content="счёт от ИП или ПК"/>
                     <TextBlock HorizontalAlignment="Left" Margin="305,100,0,0" Text="Окраска" VerticalAlignment="Top" TextWrapping="NoWrap"/>
-                    <CheckBox x:Name="CheckPaint" Content="{Binding Paint, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" HorizontalAlignment="Left" Margin="390,100,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - окраска в деталях, о - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="True"/>
+                    <CheckBox x:Name="CheckPaint" Content="{Binding Paint, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="390,100,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - окраска в деталях, о - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="True"/>
                     <TextBlock HorizontalAlignment="Left" Margin="305,125,0,0" Text="Конструктор" VerticalAlignment="Top" TextWrapping="NoWrap"/>
                     <TextBlock HorizontalAlignment="Left" Margin="305,150,0,0" Text="Прототип" VerticalAlignment="Top" TextWrapping="NoWrap"/>
                     <TextBox HorizontalAlignment="Left" Margin="390,150,0,0" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" ToolTip="Стоимость прототипа"/>
                     <TextBlock HorizontalAlignment="Left" Margin="305,175,0,0" Text="Накладные" VerticalAlignment="Top" TextWrapping="NoWrap"/>
                     <TextBox HorizontalAlignment="Left" Margin="390,175,0,0" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" ToolTip="Стоимость накладных расходов"/>
-                    <CheckBox x:Name="CheckConstruct" Content="{Binding Construct, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" HorizontalAlignment="Left" Margin="390,125,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - конструктор в деталях, о - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="True"/>
+                    <CheckBox x:Name="CheckConstruct" Content="{Binding Construct, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="390,125,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - конструктор в деталях, о - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="True"/>
+                    <TextBox x:Name="PaintRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,97,0,0" TextChanged="UpdateResult"/>
+                    <TextBox x:Name="ConstructRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,122,0,0" TextChanged="UpdateResult"/>
                 </Grid>
             </GroupBox>
             <TextBlock HorizontalAlignment="Right" Text="руб" VerticalAlignment="Top" Margin="0,40,30,0" Height="14" Width="19"/>
+            <TextBlock HorizontalAlignment="Left" Margin="90,70,0,0" Text="Деталь" VerticalAlignment="Top" FontFamily="Century" Height="14" Width="42"/>
+            <TextBlock HorizontalAlignment="Left" Margin="240,70,0,0" Text="Заготовка" VerticalAlignment="Top" Height="14" Width="58"/>
+            <TextBlock Margin="380,70,0,0" Text="Тип" VerticalAlignment="Top" Height="14" Width="24" HorizontalAlignment="Left"/>
+            <TextBlock HorizontalAlignment="Left" Margin="460,70,0,0" Text="A" VerticalAlignment="Top" Height="14" Width="9"/>
+            <TextBlock HorizontalAlignment="Left" Margin="510,70,0,0" Text="B" VerticalAlignment="Top" Height="14" Width="9"/>
+            <TextBlock HorizontalAlignment="Left" Margin="555,70,0,0" Text="S" VerticalAlignment="Top" Height="14" Width="8"/>
+            <TextBlock HorizontalAlignment="Left" Margin="600,70,0,0" Text="L" VerticalAlignment="Top" Height="14" Width="8"/>
+            <TextBlock HorizontalAlignment="Left" Margin="645,70,0,0" Text="Кол-во" VerticalAlignment="Top" Height="14" Width="39"/>
+            <TextBlock HorizontalAlignment="Left" Margin="700,70,0,0" Text="Материал" VerticalAlignment="Top" Height="14" Width="58"/>
+            <CheckBox HorizontalAlignment="Left" Margin="776,70,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Добавить к расчету стоимость материала ВСЕХ деталей" Height="15" Width="16"/>
+            <TextBlock HorizontalAlignment="Left" Margin="810,70,0,0" Text="Стоимость" VerticalAlignment="Top" Height="14" Width="60"/>
+            <TextBlock HorizontalAlignment="Left" Margin="940,70,0,0" Text="Работа" VerticalAlignment="Top" Height="14" Width="39"/>
+            <TextBlock HorizontalAlignment="Left" Margin="1200,70,0,0" Text="Стоимость" VerticalAlignment="Top" Height="14" Width="60"/>
+            <TextBlock HorizontalAlignment="Left" Margin="1155,70,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
         </Grid>
     </Grid>
 </Window>

@@ -7,8 +7,8 @@
              mc:Ignorable="d" 
              d:DesignHeight="20" d:DesignWidth="140">
     <Grid>
-        <TextBox Text="{Binding Mold, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetMold" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="35" MinWidth="35" ToolTip="Длина трубы, пог м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="20,0,0,0"/>
-        <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetWay" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="35" MinWidth="35" ToolTip="Длина пути резки, м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="65,0,0,0"/>
-        <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetPinhole" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="30" MinWidth="30" ToolTip="Количество проколов, шт" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="110,0,0,0"/>
+        <TextBox Text="{Binding Mold, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetMold" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="45" ToolTip="Длина трубы, пог м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0"/>
+        <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetWay" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="45" ToolTip="Длина пути резки, м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="55,0,0,0"/>
+        <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetPinhole" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="35" ToolTip="Количество проколов, шт" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="105,0,0,0"/>
     </Grid>
 </UserControl>

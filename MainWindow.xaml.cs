@@ -175,15 +175,22 @@ namespace Metal_Code
                 }
             }
         }
+        private void SetPaint(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) if (float.TryParse(tBox.Text, out float p)) Paint = p;
+        }
         public float PaintResult()
         {
             float result = 0;
-            foreach (DetailControl d in DetailControls)
-                foreach (TypeDetailControl t in d.TypeDetailControls)
-                    result += 110 * t.L * t.Count / 1000;     // простая формула окраски через пог м типовой детали
-            // проверяем наличие работы "Окраска" и добавляем её минималку к расчету
-            if (dbWorks.Works.Contains(dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска"))
-                && dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска") is Work work) result += work.Price;
+            if (CheckPaint.IsChecked != false)
+            {
+                foreach (DetailControl d in DetailControls)
+                    foreach (TypeDetailControl t in d.TypeDetailControls)
+                        result += 110 * t.L * t.Count / 1000;     // простая формула окраски через пог м типовой детали
+                                                                  // проверяем наличие работы "Окраска" и добавляем её минималку к расчету
+                if (dbWorks.Works.Contains(dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска"))
+                    && dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска") is Work work) result += work.Price;
+            }
             return result;
         }
 
@@ -203,9 +210,10 @@ namespace Metal_Code
         public float ConstructResult()
         {
             float result = 0;
-            // проверяем наличие работы "Конструкторские работы" и добавляем её минималку к расчету
-            if (dbWorks.Works.Contains(dbWorks.Works.FirstOrDefault(n => n.Name == "Конструкторские работы"))
-                && dbWorks.Works.FirstOrDefault(n => n.Name == "Конструкторские работы") is Work work) result += work.Price;
+            if (CheckConstruct.IsChecked != false)
+                // проверяем наличие работы "Конструкторские работы" и добавляем её минималку к расчету
+                if (dbWorks.Works.Contains(dbWorks.Works.FirstOrDefault(n => n.Name == "Конструкторские работы"))
+                    && dbWorks.Works.FirstOrDefault(n => n.Name == "Конструкторские работы") is Work work) result += work.Price;
             return result;
         }
 
@@ -295,6 +303,21 @@ namespace Metal_Code
             return parts;
         }
 
+        private void UpdateResult(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox)
+            {
+                switch (tBox.Name)
+                {
+                    case "PaintRatio":
+                        if (float.TryParse(PaintRatio.Text, out float p)) Paint *= p;
+                        break;
+                    case "ConstructRatio":
+                        if (float.TryParse(ConstructRatio.Text, out float c)) Construct *= c;
+                        break;
+                }
+            }
+        }
         private void UpdateResult(object sender, RoutedEventArgs e)   // метод принудительного обновления стоимости
         {
             foreach (DetailControl d in DetailControls)
@@ -390,7 +413,7 @@ namespace Metal_Code
             if (int.TryParse(Delivery.Text, out int d)) prod.Delivery = d;
 
             if (CheckPaint.IsChecked != null) prod.HasPaint = (bool)CheckPaint.IsChecked;
-            if (CheckConstruct.IsChecked != null) prod.HasPaint = (bool)CheckConstruct.IsChecked;
+            if (CheckConstruct.IsChecked != null) prod.HasConstruct = (bool)CheckConstruct.IsChecked;
 
             DetailsModel.Product = prod;
             DetailsModel.Product.Details = SaveDetails();
@@ -520,7 +543,7 @@ namespace Metal_Code
                         _work.PropertiesChanged?.Invoke(_work, false);
                         _work.Ratio = details[i].TypeDetails[j].Works[k].Ratio;
 
-                        if (_type.WorkControls.Count < details[i].TypeDetails[j].Works.Count) _type.AddWork(); 
+                        if (_type.WorkControls.Count < details[i].TypeDetails[j].Works.Count) _type.AddWork();
                     }
                     if (_det.TypeDetailControls.Count < details[i].TypeDetails.Count) _det.AddTypeDetail();
                 }
@@ -562,11 +585,7 @@ namespace Metal_Code
                 worksheet.Cells["B5"].Value = "понадобятся следующие детали и работы:";
             }
 
-            foreach (Part part in Parts)
-            {
-                if (part.Name != null) part.Name = Agent ? part.Name.Insert(0, "Изготовление ") : part.Name.Insert(0, "Деталь ");
-                part.Total = (float)Math.Round(part.Count * part.Price, 2);
-            }
+            foreach (Part part in Parts) part.Total = (float)Math.Round(part.Count * part.Price, 2);
 
             DataTable dt = IsLaser ? ToDataTable(Parts) : ToDataTable(DetailsModel.Product.Details);
             worksheet.Cells["A7"].LoadFromDataTable(dt, true);
@@ -679,6 +698,7 @@ namespace Metal_Code
                     if (cell.Value != null && $"{cell.Value}".Contains('О') && !$"{worksheet.Cells[num + 13, 2].Value}".Contains('О')) worksheet.Cells[num + 13, 2].Value += "О - Окраска ";
                 }
                 worksheet.Cells[num + 13, 2, num + 13, 5].Merge = true;
+                foreach (var cell in worksheet.Cells[8, 5, num + 8, 5]) if (cell.Value != null) cell.Value = Agent ? $"{cell.Value}".Insert(0, "Изготовление детали ") : $"{cell.Value}".Insert(0, "Деталь ");
             }
 
             worksheet.Cells[num + 14, IsLaser ? 8 : 6].Value = "версия: " + version;

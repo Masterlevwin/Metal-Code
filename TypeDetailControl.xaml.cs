@@ -216,6 +216,7 @@ namespace Metal_Code
             {
                 SortDrop.SelectedIndex = -1;
                 A = B = S = L = 0;
+                A_prop.IsEnabled = B_prop.IsEnabled = true;
                 return;
             }
 
@@ -237,6 +238,8 @@ namespace Metal_Code
             {
                 A = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item1);
                 B = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item2);
+                S = L = 1;
+                A_prop.IsEnabled = B_prop.IsEnabled = false;
             }
             MassCalculate();
         }
@@ -279,7 +282,7 @@ namespace Metal_Code
             } 
             else Mass = (float)Math.Round(A * B * S * L * metal.Density / 1000000, 2);
 
-            if (type.Name != null && type.Name.Contains("Труба")) Mass = metal.Density / 7850 * 0.0157f * S * (A + B - 2.86f * S) * L; 
+            //if (type.Name != null && type.Name.Contains("Труба")) Mass = metal.Density / 7850 * 0.0157f * S * (A + B - 2.86f * S) * L; 
 
             PriceChanged();
         }

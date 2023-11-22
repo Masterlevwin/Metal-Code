@@ -7,8 +7,8 @@
              mc:Ignorable="d" 
              d:DesignHeight="20" d:DesignWidth="140" VerticalAlignment="Top">
     <Grid>
-        <TextBox Text="{Binding Ral, RelativeSource={RelativeSource AncestorType={x:Type local:PaintControl}, Mode=FindAncestor}}" TextChanged="SetRal" HorizontalAlignment="Left" VerticalAlignment="Center" MinWidth="60" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Margin="20,0,0,0" MaxWidth="60" MaxHeight="20" MaxLines="1" ToolTip="Введите цвет RAL"/>
+        <TextBox Text="{Binding Ral, RelativeSource={RelativeSource AncestorType={x:Type local:PaintControl}, Mode=FindAncestor}}" TextChanged="SetRal" HorizontalAlignment="Left" VerticalAlignment="Center" MinWidth="55" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Margin="30,0,0,0" MaxWidth="55" MaxHeight="20" MaxLines="1" ToolTip="Введите цвет RAL"/>
         <ComboBox x:Name="TypeDrop" SelectionChanged="SetType" HorizontalAlignment="Left" MinHeight="20" MinWidth="50" Height="20" Margin="90,0,0,0" VerticalAlignment="Center" MaxWidth="50" MaxHeight="20" ToolTip="Выберите тип расчета" SelectedIndex="0"/>
-        <Button x:Name="PartBtn" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="10" MaxHeight="10" MaxWidth="10" MinWidth="10" Margin="5,0,0,0" FontSize="8" VerticalContentAlignment="Top" HorizontalContentAlignment="Center" Content="О" Padding="0,0,0,0" Grid.IsSharedSizeScope="True" FontFamily="Arial" FontWeight="Bold" Click="ViewPartWindow" BorderBrush="#FFE600FF"/>
+        <Button x:Name="PartBtn" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="20" Margin="5,0,0,0" VerticalContentAlignment="Top" HorizontalContentAlignment="Center" Content="..." Padding="0,0,0,0" Grid.IsSharedSizeScope="True" FontFamily="Arial" FontWeight="Bold" Click="ViewPartWindow" BorderBrush="#FFE600FF"/>
     </Grid>
 </UserControl>

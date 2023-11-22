@@ -7,8 +7,8 @@
              mc:Ignorable="d" 
              d:DesignHeight="20" d:DesignWidth="140">
     <Grid>
-        <Button x:Name="CutBtn" Click="LoadFiles" Content=". . ." HorizontalAlignment="Left" Margin="20,0,0,0" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="20" MinWidth="20" ToolTip="Загрузить раскладки"/>
-        <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" TextChanged="SetWay" HorizontalAlignment="Left" Margin="50,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="40" MinWidth="40" ToolTip="Длина пути резки, м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+        <Button x:Name="CutBtn" Click="LoadFiles" Content=". . ." HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Center" MinHeight="20" MinWidth="40" ToolTip="Загрузить раскладки" FontWeight="Bold" BorderBrush="#FF00C800"/>
+        <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" TextChanged="SetWay" HorizontalAlignment="Left" Margin="50,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="45" MinWidth="45" ToolTip="Длина пути резки, м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
         <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" TextChanged="SetPinhole" HorizontalAlignment="Left" Margin="100,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="40" MinWidth="40" ToolTip="Количество проколов, шт" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
     </Grid>
 </UserControl>

@@ -70,7 +70,6 @@ namespace Metal_Code
             if (TypeDetailControls.Count > 0)
                 type.Margin = new Thickness(0,
                     TypeDetailControls[^1].Margin.Top + 25 * TypeDetailControls[^1].WorkControls.Count, 0, 0);
-                    
 
             TypeDetailControls.Add(type);
             type.Priced += MassCalculate;       // подписка на изменение типовой детали для расчета общей массы детали
