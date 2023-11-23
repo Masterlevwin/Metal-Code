@@ -260,6 +260,18 @@ namespace Metal_Code
             MassCalculate();
         }
 
+        private List<(float, float)> Corners = new()
+        {
+            (3.5f, 1.2f), (3.5f, 1.2f), (4, 1.3f), (4, 1.3f), (5, 1.7f), (5.5f, 1.8f), (6, 2), (7, 2.3f),
+            (7.5f, 2.5f), (7.5f, 2.5f), (8, 2.7f), (8, 2.7f), (9, 3), (9, 3), (10, 3.3f), (12, 4), (12, 4),
+            (14, 4.6f), (14, 4.6f), (16, 5.3f)
+        };
+
+        private List<float> Channels = new()
+        {
+            4.84f, 5.9f, 7.05f, 8.59f, 10.4f, 12.3f, 14.2f, 15.3f, 16.3f, 17.4f, 18.4f, 21, 24, 27.7f, 31.8f, 36.5f, 41.9f, 48.3f
+        };
+
         private void MassCalculate(object sender, SelectionChangedEventArgs e)
         {
             MassCalculate();
@@ -268,7 +280,7 @@ namespace Metal_Code
         {
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
 
-            if (type.Name == "Лист металла") Price = metal.MassPrice;       // || (type.Name != null && type.Name.Contains("Труба"))
+            if (type.Name == "Лист металла") Price = metal.MassPrice;
             else Price = type.Price;
 
             if (MainWindow.M.IsLaser)
@@ -279,10 +291,56 @@ namespace Metal_Code
                         Mass = cut.Mass;
                         break;
                     }
-            } 
-            else Mass = (float)Math.Round(A * B * S * L * metal.Density / 1000000, 2);
-
-            //if (type.Name != null && type.Name.Contains("Труба")) Mass = metal.Density / 7850 * 0.0157f * S * (A + B - 2.86f * S) * L; 
+            }
+            else
+            {
+                switch (type.Name)
+                {
+                    case "Труба профильная":
+                        Mass = 0.0157f * S * (A + B - 2.86f * S) * L * metal.Density / 7850;
+                        break;
+                    case "Труба круглая":
+                        Mass = (float)Math.PI * S * (A - S) * L * metal.Density / 1000;
+                        break;
+                    case "Труба круглая ВГП":
+                        Mass = (float)Math.PI * S * (A - S) * L * metal.Density / 1000;
+                        break;
+                    case "Уголок равнополочный":
+                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                            Mass = (S * (A + B - S) + 0.2146f * (Corners[SortDrop.SelectedIndex].Item1 * Corners[SortDrop.SelectedIndex].Item1
+                                - 2 * Corners[SortDrop.SelectedIndex].Item2 * Corners[SortDrop.SelectedIndex].Item2)) * metal.Density / 1000;
+                        break;
+                    case "Уголок неравнополочный":
+                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                            Mass = (S * (A + B - S) + 0.2146f * (Corners[SortDrop.SelectedIndex].Item1 * Corners[SortDrop.SelectedIndex].Item1
+                                - 2 * Corners[SortDrop.SelectedIndex].Item2 * Corners[SortDrop.SelectedIndex].Item2)) * metal.Density / 1000;
+                        break;
+                    case "Круг":
+                        Mass = (float)Math.PI * A * A / 4 * metal.Density / 1000;
+                        break;
+                    case "Квадрат":
+                        Mass = A * A * metal.Density / 1000;
+                        break;
+                    case "Швеллер":
+                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1) Mass = Channels[SortDrop.SelectedIndex];
+                        break;
+                    case "Полиуретан":
+                        Mass = A * B * S * 1.2f / 1000000;
+                        break;
+                    case "Фторопласт":
+                        Mass = A * B * S * 1.2f / 1000000;
+                        break;
+                    case "Капролон":
+                        Mass = A * B * S * 1.2f / 1000000;
+                        break;
+                    case "ЛДСП":
+                        Mass = 680 * S / 1000;      //680*F56*0,001 плюс дичь в формировании цены! сомнительная позиция...
+                        break;
+                    default:
+                        Mass = A * B * S * L * metal.Density / 1000000;
+                        break;
+                }
+            }
 
             PriceChanged();
         }

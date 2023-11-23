@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace Metal_Code
 {
@@ -170,6 +171,17 @@ namespace Metal_Code
             if (WorkDrop.SelectedItem is not Work work) return;
 
             Result = (float)Math.Round(addMin ? (price + work.Price) * Ratio : price * Ratio, 2);
+
+            if (addMin)
+            {
+                ResultText.Foreground = Brushes.Blue;       // если добавлена минималка, окрашиваем результат
+                ResultText.ToolTip = "Стоимость услуги\nДобавлена минималка";
+            }
+            else
+            {
+                ResultText.Foreground = Brushes.Black;
+                ResultText.ToolTip = "Стоимость услуги";
+            }
 
             type.det.PriceResult();
         }

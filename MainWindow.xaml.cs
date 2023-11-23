@@ -594,7 +594,11 @@ namespace Metal_Code
                 worksheet.Columns[9].Hidden = true;
                 worksheet.Columns[10].Hidden = true;
             }
+
             int num = dt.Rows.Count;
+
+            if (IsLaser) foreach (var cell in worksheet.Cells[8, 5, num + 8, 5])
+                    if (cell.Value != null) cell.Value = Agent ? $"{cell.Value}".Insert(0, "Изготовление детали ") : $"{cell.Value}".Insert(0, "Деталь ");
 
             for (int col = 0; col < DetailsGrid.Columns.Count; col++)
             {
@@ -648,7 +652,7 @@ namespace Metal_Code
                 if (cell.Value != null && $"{cell.Value}".Contains("0,7") || $"{cell.Value}".Contains("0,8"))
                     cell.Style.Numberformat.Format = "0.0";
 
-            worksheet.Cells[num + 8, IsLaser ? 7 : 5].Value = "ИТОГО:";
+            worksheet.Cells[num + 8, IsLaser ? 7 : 5].Value = Agent ? "ИТОГО:" : "ИТОГО с НДС:";
             worksheet.Cells[num + 8, IsLaser ? 7 : 5].Style.Font.Bold = true;
             worksheet.Cells[num + 8, IsLaser ? 7 : 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             worksheet.Names.Add("totalOrder", worksheet.Cells[7, IsLaser ? 8 : 6, num + 7, IsLaser ? 8 : 6]);
@@ -698,7 +702,6 @@ namespace Metal_Code
                     if (cell.Value != null && $"{cell.Value}".Contains('О') && !$"{worksheet.Cells[num + 13, 2].Value}".Contains('О')) worksheet.Cells[num + 13, 2].Value += "О - Окраска ";
                 }
                 worksheet.Cells[num + 13, 2, num + 13, 5].Merge = true;
-                foreach (var cell in worksheet.Cells[8, 5, num + 8, 5]) if (cell.Value != null) cell.Value = Agent ? $"{cell.Value}".Insert(0, "Изготовление детали ") : $"{cell.Value}".Insert(0, "Деталь ");
             }
 
             worksheet.Cells[num + 14, IsLaser ? 8 : 6].Value = "версия: " + version;

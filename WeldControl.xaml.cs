@@ -216,7 +216,20 @@ namespace Metal_Code
 
                 work.SetResult(price, false);
             }
-            else if (Weld != null) work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work));
+            else if (Weld != null)
+            {
+                if (HasMinPrice()) work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work), false);
+                else work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work));               
+            }
+        }
+
+        private bool HasMinPrice()
+        {
+            foreach (DetailControl det in MainWindow.M.DetailControls)
+                foreach (TypeDetailControl t in det.TypeDetailControls)
+                    foreach (WorkControl w in t.WorkControls)
+                        if (w != owner && w.workType is WeldControl) return true;
+            return false;
         }
 
         private float ParserWeld(string _weld)
