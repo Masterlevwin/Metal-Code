@@ -80,6 +80,7 @@
                     <CheckBox x:Name="CheckConstruct" Content="{Binding Construct, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="390,125,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - конструктор в деталях, о - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="True"/>
                     <TextBox x:Name="PaintRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,97,0,0" TextChanged="UpdateResult"/>
                     <TextBox x:Name="ConstructRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,122,0,0" TextChanged="UpdateResult"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="470,75,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
                 </Grid>
             </GroupBox>
             <TextBlock HorizontalAlignment="Right" Text="руб" VerticalAlignment="Top" Margin="0,40,30,0" Height="14" Width="19"/>
@@ -92,11 +93,12 @@
             <TextBlock HorizontalAlignment="Left" Margin="600,70,0,0" Text="L" VerticalAlignment="Top" Height="14" Width="8"/>
             <TextBlock HorizontalAlignment="Left" Margin="645,70,0,0" Text="Кол-во" VerticalAlignment="Top" Height="14" Width="39"/>
             <TextBlock HorizontalAlignment="Left" Margin="700,70,0,0" Text="Материал" VerticalAlignment="Top" Height="14" Width="58"/>
-            <CheckBox HorizontalAlignment="Left" Margin="776,70,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Добавить к расчету стоимость материала ВСЕХ деталей" Height="15" Width="16"/>
+            <CheckBox HorizontalAlignment="Left" Margin="776,70,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Добавить к расчету стоимость материала ВСЕХ деталей" Height="15" Width="16" Click="SetAllMetal"/>
             <TextBlock HorizontalAlignment="Left" Margin="810,70,0,0" Text="Стоимость" VerticalAlignment="Top" Height="14" Width="60"/>
             <TextBlock HorizontalAlignment="Left" Margin="940,70,0,0" Text="Работа" VerticalAlignment="Top" Height="14" Width="39"/>
             <TextBlock HorizontalAlignment="Left" Margin="1200,70,0,0" Text="Стоимость" VerticalAlignment="Top" Height="14" Width="60"/>
             <TextBlock HorizontalAlignment="Left" Margin="1155,70,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
+            <Button Margin="70,70,0,0" Content="+" Click="AddDetail" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" IsDefault="True" MinWidth="16" MinHeight="16"/>
         </Grid>
     </Grid>
 </Window>

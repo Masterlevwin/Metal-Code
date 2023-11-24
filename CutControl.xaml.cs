@@ -350,6 +350,7 @@ namespace Metal_Code
         {
             Way = 0;
             Pinhole = 0;
+            Mass = 0;
 
             for (int i = 0; i < _items.Count; i++)
             {

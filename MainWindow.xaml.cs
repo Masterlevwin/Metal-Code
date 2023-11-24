@@ -324,7 +324,19 @@ namespace Metal_Code
                 foreach (TypeDetailControl t in d.TypeDetailControls) t.PriceChanged();
         }
 
+        private void SetAllMetal(object sender, RoutedEventArgs e)
+        {
+            if (sender is CheckBox cBox)
+                foreach (DetailControl d in DetailControls)
+                    foreach (TypeDetailControl t in d.TypeDetailControls) t.CheckMetal.IsChecked = cBox.IsChecked;
+            UpdateResult(sender, e);
+        }
+
         public List<DetailControl> DetailControls = new();
+        private void AddDetail(object sender, RoutedEventArgs e)
+        {
+            AddDetail();
+        }
         public void AddDetail()
         {
             DetailControl detail = new();
@@ -540,7 +552,7 @@ namespace Metal_Code
                                 }
                         }
                         _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
-                        _work.PropertiesChanged?.Invoke(_work, false);
+                        if (!IsLaser) _work.PropertiesChanged?.Invoke(_work, false);
                         _work.Ratio = details[i].TypeDetails[j].Works[k].Ratio;
 
                         if (_type.WorkControls.Count < details[i].TypeDetails[j].Works.Count) _type.AddWork();
