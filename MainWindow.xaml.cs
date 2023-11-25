@@ -552,7 +552,7 @@ namespace Metal_Code
                                 }
                         }
                         _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
-                        if (!IsLaser) _work.PropertiesChanged?.Invoke(_work, false);
+                        _work.PropertiesChanged?.Invoke(_work, false); 
                         _work.Ratio = details[i].TypeDetails[j].Works[k].Ratio;
 
                         if (_type.WorkControls.Count < details[i].TypeDetails[j].Works.Count) _type.AddWork();
