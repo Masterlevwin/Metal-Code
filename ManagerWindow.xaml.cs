@@ -36,6 +36,7 @@ namespace Metal_Code
                 Manager Manager = ManagerSettings.Manager;
                 db.Managers.Add(Manager);
                 db.SaveChanges();
+                MainWindow.M.UpdateDataBases();
             }
         }
         // редактирование
@@ -63,6 +64,7 @@ namespace Metal_Code
                     manager.Contact = ManagerSettings.Manager.Contact;
                     db.SaveChanges();
                     typesList.Items.Refresh();
+                    MainWindow.M.UpdateDataBases();
                 }
             }
         }
@@ -75,6 +77,7 @@ namespace Metal_Code
             if (manager is null) return;
             db.Managers.Remove(manager);
             db.SaveChanges();
+            MainWindow.M.UpdateDataBases();
         }
 
         private void FocusMainWindow(object sender, EventArgs e)

@@ -61,6 +61,12 @@ namespace Metal_Code
             CreateMetalDict();
         }
 
+        public void UpdateDataBases()
+        {
+            dbManagers.Managers.Load();
+            dbWorks.Works.Load();
+        }
+
         private List<double> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25 };
         public Dictionary<string, Dictionary<double, (float, float, float)>> MetalDict = new();
         private void CreateMetalDict()

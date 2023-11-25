@@ -35,6 +35,7 @@ namespace Metal_Code
                 Work Work = WorkSettings.Work;
                 db.Works.Add(Work);
                 db.SaveChanges();
+                MainWindow.M.UpdateDataBases();
             }
         }
         // редактирование
@@ -62,6 +63,7 @@ namespace Metal_Code
                     work.Price = WorkSettings.Work.Price;
                     db.SaveChanges();
                     typesList.Items.Refresh();
+                    MainWindow.M.UpdateDataBases();
                 }
             }
         }
@@ -74,6 +76,7 @@ namespace Metal_Code
             if (work is null) return;
             db.Works.Remove(work);
             db.SaveChanges();
+            MainWindow.M.UpdateDataBases();
         }
 
         private void FocusMainWindow(object sender, System.EventArgs e)
