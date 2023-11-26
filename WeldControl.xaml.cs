@@ -228,7 +228,7 @@ namespace Metal_Code
             foreach (DetailControl det in MainWindow.M.DetailControls)
                 foreach (TypeDetailControl t in det.TypeDetailControls)
                     foreach (WorkControl w in t.WorkControls)
-                        if (w != owner && w.workType is WeldControl) return true;
+                        if (w != owner && w.workType is WeldControl && w.WorkDrop.SelectedItem is Work work && w.Result >= work.Price) return true;
             return false;
         }
 

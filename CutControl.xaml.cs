@@ -126,8 +126,9 @@ namespace Metal_Code
                 if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
                 if (metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                    price = Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1 + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2;
-                work.SetResult(price);
+                    work.SetResult(Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1
+                        + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2);
+                else work.SetResult(price, false);
             }
         }
 

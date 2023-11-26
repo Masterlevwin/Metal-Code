@@ -64,6 +64,8 @@ namespace Metal_Code
         public void UpdateDataBases()
         {
             dbManagers.Managers.Load();
+            dbTypeDetails.TypeDetails.Load();
+            dbMetals.Metals.Load();
             dbWorks.Works.Load();
         }
 
@@ -237,8 +239,8 @@ namespace Metal_Code
         {
             Result = 0;
 
-            Paint = PaintResult();
-            Construct = ConstructResult();
+            //Paint = PaintResult();
+            //Construct = ConstructResult();
 
             foreach (DetailControl d in DetailControls) Result += d.Price * d.Count;
 

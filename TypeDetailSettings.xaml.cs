@@ -17,7 +17,7 @@ namespace Metal_Code
 
         void Accept_Click(object sender, RoutedEventArgs e)
         {
-            if (TypeDetail.Sort != null)
+            if (TypeDetail.Sort != null && TypeDetail.Sort != "")
             {
                 string[] strings = TypeDetail.Sort.Split(',');
                 if (strings.Length > 0 && strings.Length % 3 != 0)

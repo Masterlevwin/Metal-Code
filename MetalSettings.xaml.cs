@@ -17,6 +17,11 @@ namespace Metal_Code
 
         void Accept_Click(object sender, RoutedEventArgs e)
         {
+            if (Metal.Name != null && (Metal.WayPrice == "" || Metal.PinholePrice == "" || Metal.MoldPrice == ""))
+            {
+                MessageBox.Show("Недостаточно данных.\nПроверьте цены - все поля должны быть заполнены!");
+                return;
+            }
             DialogResult = true;
         }
     }
