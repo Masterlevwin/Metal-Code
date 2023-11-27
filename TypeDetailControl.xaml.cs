@@ -356,5 +356,10 @@ namespace Metal_Code
 
             Priced?.Invoke();
         }
+
+        private void AddComment(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("В разработке");
+        }
     }
 }

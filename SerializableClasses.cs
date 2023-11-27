@@ -91,16 +91,16 @@ namespace Metal_Code
     [Serializable]
     public class SaveWork
     {
-        public int Index { get; set; }
+        public string? NameWork { get; set; }
         public float Ratio { get; set; }
 
         public List<string>? PropsList = new();
 
         public List<LaserItem> Items = new();
         public List<Part> Parts = new();
-        public SaveWork(int _index = 0, float _ratio = 0)
+        public SaveWork(string? _namework, float _ratio = 0)
         {
-            Index = _index;
+            NameWork = _namework;
             Ratio = _ratio;
         }
     }

@@ -12,16 +12,16 @@ namespace Metal_Code
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
-        private string? nameWork;
-        public string? NameWork
+        private string? nameExtra;
+        public string? NameExtra
         {
-            get => nameWork;
+            get => nameExtra;
             set
             {
-                if (value != nameWork)
+                if (value != nameExtra)
                 {
-                    nameWork = value;
-                    OnPropertyChanged(nameof(NameWork));
+                    nameExtra = value;
+                    OnPropertyChanged(nameof(NameExtra));
                 }
             }
         }
@@ -57,7 +57,7 @@ namespace Metal_Code
         }
         private void SetName(string _name)
         {
-            if (_name != null && _name != "") NameWork = _name;
+            if (_name != null && _name != "") NameExtra = _name;
             OnPriceChanged();
         }
 
@@ -82,7 +82,7 @@ namespace Metal_Code
             if (isSaved)
             {
                 w.propsList.Clear();
-                w.propsList.Add($"{NameWork}");
+                w.propsList.Add($"{NameExtra}");
                 w.propsList.Add($"{Price}");
             }
             else

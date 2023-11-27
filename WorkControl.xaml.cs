@@ -97,7 +97,6 @@ namespace Metal_Code
         {
             CreateWork();
         }
-
         public void CreateWork()
         {
             if (WorkDrop.SelectedItem is not Work work) return;

@@ -10,10 +10,8 @@ using System;
 using System.IO;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Windows.Media.Animation;
 using OfficeOpenXml.Style;
 using OfficeOpenXml;
-using System.Diagnostics;
 
 namespace Metal_Code
 {
@@ -239,8 +237,8 @@ namespace Metal_Code
         {
             Result = 0;
 
-            //Paint = PaintResult();
-            //Construct = ConstructResult();
+            Paint = PaintResult();
+            Construct = ConstructResult();
 
             foreach (DetailControl d in DetailControls) Result += d.Price * d.Count;
 
@@ -405,7 +403,7 @@ namespace Metal_Code
                     {
                         if (DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedItem is Work work)
                         {
-                            if (work.Name == "Окраска" && DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is PaintControl _paint)
+                            if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is PaintControl _paint)
                                 _detail.Description += $"{work.Name} (цвет - {_paint.Ral})\n";
                             else _detail.Description += work.Name + "\n";
                         }
@@ -458,35 +456,36 @@ namespace Metal_Code
                     for (int k = 0; k < type.WorkControls.Count; k++)
                     {
                         WorkControl work = type.WorkControls[k];
-                        SaveWork _saveWork = new(work.WorkDrop.SelectedIndex, work.Ratio);
 
                         if (work.WorkDrop.SelectedItem is Work _work)
                         {
-                            if (_work.Name == "Окраска" && work.workType is PaintControl _paint)
+                            SaveWork _saveWork = new(_work.Name, work.Ratio);
+
+                            if (work.workType is PaintControl _paint)
                                 _detail.Description += $"{_work.Name} (цвет - {_paint.Ral}) ";
                             else _detail.Description += $"{_work.Name}" + " ";
-                        }
 
-                        if (IsLaser && work.workType is CutControl _cut)
-                        {
-                            foreach (Part p in _cut.Parts)
+                            if (IsLaser && work.workType is CutControl _cut)
                             {
-                                p.Description = "Л";
-                                p.Price = 0;
-                                p.PropsDict.Clear();
+                                foreach (Part p in _cut.Parts)
+                                {
+                                    p.Description = "Л";
+                                    p.Price = 0;
+                                    p.PropsDict.Clear();
+                                }
+
+                                if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
+                                    foreach (PartControl part in _cut.WindowParts.Parts) part.PropertiesChanged?.Invoke(part, true);
+
+                                _saveWork.Parts = _cut.Parts;
+                                _saveWork.Items = _cut.items;
                             }
 
-                            if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
-                                foreach (PartControl part in _cut.WindowParts.Parts) part.PropertiesChanged?.Invoke(part, true);
+                            work.PropertiesChanged?.Invoke(work, true);
+                            _saveWork.PropsList = work.propsList;
 
-                            _saveWork.Parts = _cut.Parts;
-                            _saveWork.Items = _cut.items;
+                            _typeDetail.Works.Add(_saveWork);
                         }
-
-                        work.PropertiesChanged?.Invoke(work, true);
-                        _saveWork.PropsList = work.propsList;
-
-                        _typeDetail.Works.Add(_saveWork);
                     }
                     _detail.TypeDetails.Add(_typeDetail);
                 }
@@ -539,7 +538,14 @@ namespace Metal_Code
                     for (int k = 0; k < details[i].TypeDetails[j].Works.Count; k++)
                     {
                         WorkControl _work = DetailControls[i].TypeDetailControls[j].WorkControls[k];
-                        _work.WorkDrop.SelectedIndex = details[i].TypeDetails[j].Works[k].Index;
+
+                        foreach (Work w in _work.WorkDrop.Items)        // чтобы не подвязываться на сохраненный индекс работы, ориентируемся на ее имя
+                                                                        // таким образом избегаем ошибки, когда админ изменит порядок работ в базе данных
+                            if (w.Name == details[i].TypeDetails[j].Works[k].NameWork)
+                            {
+                                _work.WorkDrop.SelectedIndex = _work.WorkDrop.Items.IndexOf(w);
+                                break;
+                            }
 
                         if (IsLaser && _work.workType is CutControl _cut)
                         {                            
