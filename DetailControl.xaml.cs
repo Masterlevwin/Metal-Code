@@ -136,7 +136,7 @@ namespace Metal_Code
             if (!MainWindow.M.IsLaser && MainWindow.M.CheckPaint.IsChecked != false) Price += MainWindow.M.Paint / MainWindow.M.DetailControls.Count;
 
             // добавляем конструкторские работы, если они отмечены галочкой или квадратиком
-            if (!MainWindow.M.IsLaser && MainWindow.M.CheckConstruct.IsChecked != false) Price += MainWindow.M.Construct / MainWindow.M.DetailControls.Count;
+            if (MainWindow.M.CheckConstruct.IsChecked != false) Price += MainWindow.M.Construct / MainWindow.M.DetailControls.Count;
 
             MainWindow.M.TotalResult();
         }

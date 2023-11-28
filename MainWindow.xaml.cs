@@ -12,6 +12,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using OfficeOpenXml.Style;
 using OfficeOpenXml;
+using System.Windows.Media.Imaging;
 
 namespace Metal_Code
 {
@@ -39,7 +40,7 @@ namespace Metal_Code
             AddDetail();
             Boss.Text = "ООО Провэлд  ";
             Phone.Text = "тел:(812)603-45-33";
-            Agent = true;
+            IsAgent = false;
         }
 
         private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна
@@ -125,6 +126,8 @@ namespace Metal_Code
             set
             {
                 isLaser = value;
+                Logo.Source = IsLaser ? new BitmapImage(new Uri("laser_logo.jpg", UriKind.Relative))
+                    : new BitmapImage(new Uri("excel_logo.jpeg", UriKind.Relative));
                 OnPropertyChanged(nameof(IsLaser));
             }
         }
@@ -133,19 +136,16 @@ namespace Metal_Code
             TotalResult();
         }
 
-        private bool agent;
-        public bool Agent
+        private bool isAgent;
+        public bool IsAgent
         {
-            get => agent;
+            get => isAgent;
             set
             {
-                agent = value;
-                OnPropertyChanged(nameof(Agent));
+                isAgent = value;
+                CheckAgent.Content = IsAgent ? "счёт от ИП или ПК" : "счёт от ООО";
+                OnPropertyChanged(nameof(IsAgent));
             }
-        }
-        private void SetAgent(object sender, RoutedEventArgs e)
-        {
-            if (sender is CheckBox cBox) cBox.Content = Agent ? "счёт от ИП или ПК" : "счёт от ООО";
         }
 
         private int count;
@@ -193,7 +193,7 @@ namespace Metal_Code
                 foreach (DetailControl d in DetailControls)
                     foreach (TypeDetailControl t in d.TypeDetailControls)
                         result += 110 * t.L * t.Count / 1000;     // простая формула окраски через пог м типовой детали
-                                                                  // проверяем наличие работы "Окраска" и добавляем её минималку к расчету
+                                                                  // проверяем наличие работы "Окраска" и добавляем её цену к расчету
                 if (dbWorks.Works.Contains(dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска"))
                     && dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска") is Work work) result += work.Price;
             }
@@ -217,7 +217,7 @@ namespace Metal_Code
         {
             float result = 0;
             if (CheckConstruct.IsChecked != false)
-                // проверяем наличие работы "Конструкторские работы" и добавляем её минималку к расчету
+                // проверяем наличие работы "Конструкторские работы" и добавляем её цену к расчету
                 if (dbWorks.Works.Contains(dbWorks.Works.FirstOrDefault(n => n.Name == "Конструкторские работы"))
                     && dbWorks.Works.FirstOrDefault(n => n.Name == "Конструкторские работы") is Work work) result += work.Price;
             return result;
@@ -424,6 +424,8 @@ namespace Metal_Code
                 Production = DateProduction.Text,
                 Manager = ManagerDrop.Text,
                 Comment = Comment.Text,
+                PaintRatio = PaintRatio.Text,
+                ConstructRatio = ConstructRatio.Text,
                 Count = Count,
                 IsLaser = IsLaser,
             };
@@ -444,7 +446,14 @@ namespace Metal_Code
             {
                 DetailControl det = DetailControls[i];
                 Detail _detail = new(det.NameDetail, det.Count, det.Mass, det.Price, det.Price * det.Count);
-                    
+
+                int partsCount = 0;     // считаем количество ВСЕХ нарезанных деталей,
+                                        // чтобы в дальнейшем "размазывать" конструкторские работы в их ценах
+                foreach (TypeDetailControl t in det.TypeDetailControls)
+                    foreach (WorkControl w in t.WorkControls)
+                        if (w.workType is CutControl _cut && _cut.Parts.Count > 0)
+                            partsCount += _cut.Parts.Sum(c => c.Count);
+
                 for (int j = 0; j < det.TypeDetailControls.Count; j++)
                 {
                     TypeDetailControl type = det.TypeDetailControls[j];
@@ -472,6 +481,7 @@ namespace Metal_Code
                                     p.Description = "Л";
                                     p.Price = 0;
                                     p.PropsDict.Clear();
+                                    p.Price += Construct / partsCount;
                                 }
 
                                 if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
@@ -507,7 +517,9 @@ namespace Metal_Code
             Comment.Text = DetailsModel.Product.Comment;
             IsLaser = DetailsModel.Product.IsLaser;
             CheckPaint.IsChecked = DetailsModel.Product.HasPaint;
+            PaintRatio.Text = DetailsModel.Product.PaintRatio;
             CheckConstruct.IsChecked = DetailsModel.Product.HasConstruct;
+            ConstructRatio.Text = DetailsModel.Product.ConstructRatio;
 
             LoadDetails(DetailsModel.Product.Details);
         }
@@ -624,7 +636,7 @@ namespace Metal_Code
             int num = dt.Rows.Count;
 
             if (IsLaser) foreach (var cell in worksheet.Cells[8, 5, num + 8, 5])
-                    if (cell.Value != null) cell.Value = Agent ? $"{cell.Value}".Insert(0, "Изготовление детали ") : $"{cell.Value}".Insert(0, "Деталь ");
+                    if (cell.Value != null) cell.Value = IsAgent ? $"{cell.Value}".Insert(0, "Изготовление детали ") : $"{cell.Value}".Insert(0, "Деталь ");
 
             for (int col = 0; col < DetailsGrid.Columns.Count; col++)
             {
@@ -633,6 +645,22 @@ namespace Metal_Code
                 worksheet.Cells[6, col + 1, 7, col + 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
                 worksheet.Cells[6, col + 1, 7, col + 1].Style.Fill.BackgroundColor.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
                 worksheet.Cells[6, col + 1].Style.WrapText = true;
+            }
+
+            if (IsLaser)
+            {
+                foreach (DetailControl d in DetailControls)
+                    foreach (TypeDetailControl t in d.TypeDetailControls)
+                        foreach (WorkControl w in t.WorkControls)
+                            if (w.workType is ExtraControl _extra)
+                            {
+                                worksheet.Cells[num + 8, 4].Value = "Доп работа";
+                                worksheet.Cells[num + 8, 5].Value = _extra.NameExtra;
+                                worksheet.Cells[num + 8, 6].Value = t.Count;
+                                worksheet.Cells[num + 8, 7].Value = _extra.Price;
+                                worksheet.Cells[num + 8, 8].Value = t.Count * _extra.Price;
+                                num++;
+                            }
             }
 
             if (!IsLaser && CheckPaint.IsChecked == null)
@@ -678,7 +706,7 @@ namespace Metal_Code
                 if (cell.Value != null && $"{cell.Value}".Contains("0,7") || $"{cell.Value}".Contains("0,8"))
                     cell.Style.Numberformat.Format = "0.0";
 
-            worksheet.Cells[num + 8, IsLaser ? 7 : 5].Value = Agent ? "ИТОГО:" : "ИТОГО с НДС:";
+            worksheet.Cells[num + 8, IsLaser ? 7 : 5].Value = IsAgent ? "ИТОГО:" : "ИТОГО с НДС:";
             worksheet.Cells[num + 8, IsLaser ? 7 : 5].Style.Font.Bold = true;
             worksheet.Cells[num + 8, IsLaser ? 7 : 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             worksheet.Names.Add("totalOrder", worksheet.Cells[7, IsLaser ? 8 : 6, num + 7, IsLaser ? 8 : 6]);

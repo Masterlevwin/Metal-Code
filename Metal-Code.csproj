@@ -10,6 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="excel_logo.jpeg" />
+    <None Remove="laser_logo.jpg" />
     <None Remove="WhatsApp Image 2019-07-15 at 12.28.15.jpeg" />
   </ItemGroup>
 
@@ -22,6 +24,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="excel_logo.jpeg" />
+    <Resource Include="laser_logo.jpg" />
     <Resource Include="WhatsApp Image 2019-07-15 at 12.28.15.jpeg" />
   </ItemGroup>
 

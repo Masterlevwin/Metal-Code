@@ -3,14 +3,13 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Windows.Controls;
 
 namespace Metal_Code
 {
     [Serializable]
     public class Product
     {
-        public string? Name, Order, Company, Production, Manager, Comment;
+        public string? Name, Order, Company, Production, Manager, Comment, PaintRatio, ConstructRatio;
         public int Count, Delivery;
         public bool IsLaser, HasDelivery, HasPaint, HasConstruct;
         public ObservableCollection<Detail> Details { get; set; } = new();
