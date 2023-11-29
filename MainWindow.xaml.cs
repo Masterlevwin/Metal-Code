@@ -715,7 +715,7 @@ namespace Metal_Code
             table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             foreach (var cell in worksheet.Cells[8, 2, num + 8, 2])
-                if (cell.Value != null && $"{cell.Value}".Contains("0,7") || $"{cell.Value}".Contains("0,8"))
+                if (cell.Value != null && $"{cell.Value}".Contains("0,7") || $"{cell.Value}".Contains("0,8") || $"{cell.Value}".Contains("1,2"))
                     cell.Style.Numberformat.Format = "0.0";
 
             worksheet.Cells[num + 8, IsLaser ? 7 : 5].Value = IsAgent ? "ИТОГО:" : "ИТОГО с НДС:";
