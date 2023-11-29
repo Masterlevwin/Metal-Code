@@ -1,5 +1,5 @@
 ﻿using System.Windows;
-
+using System.Windows.Controls;
 
 namespace Metal_Code
 {
@@ -19,6 +19,11 @@ namespace Metal_Code
         void Accept_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = true;
+        }
+
+        private void SetPassword(object sender, RoutedEventArgs e)
+        {
+            if (sender is PasswordBox pBox) Manager.Password = pBox.Password;
         }
     }
 }

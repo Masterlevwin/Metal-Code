@@ -37,10 +37,20 @@ namespace Metal_Code
             Version.Text = version;
             DataContext = DetailsModel;
             Loaded += LoadDataBases;
-            AddDetail();
-            Boss.Text = "ООО Провэлд  ";
-            Phone.Text = "тел:(812)603-45-33";
-            IsAgent = false;
+        }
+
+        private void ViewLoginWindow()
+        {
+            LoginWindow loginWindow = new();
+            IsEnabled = false;
+            if (loginWindow.ShowDialog() == true)
+            {
+                IsEnabled = true;
+                Boss.Text = "ООО Провэлд  ";
+                Phone.Text = "тел:(812)603-45-33";
+                IsAgent = false;
+                AddDetail();
+            }
         }
 
         private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна
@@ -58,6 +68,8 @@ namespace Metal_Code
             dbMetals.Database.EnsureCreated();
             dbMetals.Metals.Load();
             CreateMetalDict();
+
+            ViewLoginWindow();
         }
 
         public void UpdateDataBases()
@@ -898,12 +910,11 @@ namespace Metal_Code
             MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
                                            MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
             if (response == MessageBoxResult.No) e.Cancel = true;
-            else Environment.Exit(0);       //Application.Current.Shutdown(); - вызывает два диаологовых окна
+            else Environment.Exit(0);
         }
-        private void Exit(object sender, RoutedEventArgs e)
+        public void Exit(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
         }
-
     }
 }

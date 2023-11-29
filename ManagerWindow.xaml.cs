@@ -50,7 +50,9 @@ namespace Metal_Code
             {
                 Id = manager.Id,
                 Name = manager.Name,
-                Contact = manager.Contact
+                Contact = manager.Contact,
+                Password = manager.Password,
+                IsAdmin = manager.IsAdmin
             });
 
             if (ManagerSettings.ShowDialog() == true)
@@ -61,6 +63,8 @@ namespace Metal_Code
                 {
                     manager.Name = ManagerSettings.Manager.Name;
                     manager.Contact = ManagerSettings.Manager.Contact;
+                    manager.Password = ManagerSettings.Manager.Password;
+                    manager.IsAdmin = ManagerSettings.Manager.IsAdmin;
                     db.SaveChanges();
                     typesList.Items.Refresh();
                 }
