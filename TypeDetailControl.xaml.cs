@@ -319,7 +319,7 @@ namespace Metal_Code
                         Mass = (float)Math.PI * A * A / 4 * metal.Density / 1000;
                         break;
                     case "Квадрат":
-                        Mass = A * A * metal.Density / 1000;
+                        Mass = A * A * metal.Density / 1000000;
                         break;
                     case "Швеллер":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1) Mass = Channels[SortDrop.SelectedIndex];

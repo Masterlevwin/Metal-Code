@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:Metal_Code" x:Name="ProgramWindow"
         x:Class="Metal_Code.MainWindow"
         mc:Ignorable="d"
-        Title="Metal-Code" FontFamily="Century" Background="#FFD7E4F2" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" Icon="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg" d:DesignHeight="805.736" d:DesignWidth="1809.931" Closing="Exit" WindowState="Maximized">
+        Title="Metal-Code" FontFamily="Century" Background="#FFD7E4F2" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" d:DesignHeight="805.736" d:DesignWidth="1809.931" Closing="Exit" WindowState="Maximized" Icon="/app_logo.jpeg">
     <Grid x:Name="MenuGrid">
         <Menu VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" FontSize="10" RenderTransformOrigin="0.499,-1.337" Grid.ColumnSpan="2" Height="15">
             <MenuItem Header="Файл">
@@ -50,7 +50,7 @@
             <GroupBox x:Name="OrderBox" Grid.Column="1" Margin="15,20,15,15" Header="Коммерческое предложение" MinWidth="400">
                 <Grid x:Name="OrderGrid">
                     <TextBox x:Name="Phone" HorizontalAlignment="Right" Width="120" VerticalAlignment="Top" Margin="0,0,5,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите актуальный номер телефона"/>
-                    <Image x:Name="Logo" HorizontalAlignment="Left" VerticalAlignment="Bottom" Height="27" Margin="40,0,0,5" Source="/excel_logo.jpeg"/>
+                    <Image x:Name="Logo" HorizontalAlignment="Left" VerticalAlignment="Bottom" Height="27" Margin="40,0,0,5" Source="/app_logo.jpeg"/>
                     <TextBox x:Name="Order" HorizontalAlignment="Left" Margin="80,20,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40" ToolTip="Введите номер предложения"/>
                     <TextBox x:Name="Company" HorizontalAlignment="Left" Margin="150,20,0,0" VerticalAlignment="Top" MinWidth="200" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите контрагента"/>
                     <TextBlock HorizontalAlignment="Left" Margin="40,20,0,0" TextWrapping="Wrap" Text="КП №" VerticalAlignment="Top"/>

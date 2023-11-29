@@ -127,7 +127,7 @@ namespace Metal_Code
             {
                 isLaser = value;
                 Logo.Source = IsLaser ? new BitmapImage(new Uri("laser_logo.jpg", UriKind.Relative))
-                    : new BitmapImage(new Uri("excel_logo.jpeg", UriKind.Relative));
+                    : new BitmapImage(new Uri("app_logo.jpeg", UriKind.Relative));
                 OnPropertyChanged(nameof(IsLaser));
             }
         }
@@ -595,7 +595,7 @@ namespace Metal_Code
             using var workbook = new ExcelPackage();
             ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("Лист1");
 
-            worksheet.Drawings.AddPicture("A1", IsLaser ? "laser_logo.jpg" : "excel_logo.jpg");  // файлы должны быть в директории bin/Debug...
+            worksheet.Drawings.AddPicture("A1", IsLaser ? "laser_logo.jpg" : "app_logo.jpg");  // файлы должны быть в директории bin/Debug...
 
             worksheet.Cells["A1"].Value = Boss.Text + Phone.Text;
             worksheet.Cells[1, 1, 1, IsLaser ? 8 : 6].Merge = true;

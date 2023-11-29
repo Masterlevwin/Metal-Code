@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Материал" Topmost="True" WindowStartupLocation="CenterScreen" Width="370" Height="200" ResizeMode="NoResize" Icon="/WhatsApp Image 2019-07-15 at 12.28.15.jpeg">
+        Title="Материал" Topmost="True" WindowStartupLocation="CenterScreen" Width="370" Height="200" ResizeMode="NoResize" Icon="/app_logo.jpeg">
     <Window.Resources>
         <Style TargetType="TextBlock">
             <Setter Property="Margin" Value="8" />

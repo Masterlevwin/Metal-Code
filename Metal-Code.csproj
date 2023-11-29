@@ -7,12 +7,17 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>app_logo.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="excel_logo.jpeg" />
+    <None Remove="app_logo.ico" />
+    <None Remove="app_logo.jpeg" />
     <None Remove="laser_logo.jpg" />
-    <None Remove="WhatsApp Image 2019-07-15 at 12.28.15.jpeg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="app_logo.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,9 +29,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="excel_logo.jpeg" />
+    <Resource Include="app_logo.ico" />
+    <Resource Include="app_logo.jpeg">
+      <CopyToOutputDirectory></CopyToOutputDirectory>
+    </Resource>
     <Resource Include="laser_logo.jpg" />
-    <Resource Include="WhatsApp Image 2019-07-15 at 12.28.15.jpeg" />
   </ItemGroup>
 
 </Project>
