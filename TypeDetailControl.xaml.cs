@@ -300,10 +300,10 @@ namespace Metal_Code
                         Mass = 0.0157f * S * (A + B - 2.86f * S) * L * metal.Density / 7850;
                         break;
                     case "Труба круглая":
-                        Mass = (float)Math.PI * S * (A - S) * L * metal.Density / 1000;
+                        Mass = (float)Math.PI * S * (A - S) * L * metal.Density / 1000000;
                         break;
                     case "Труба круглая ВГП":
-                        Mass = (float)Math.PI * S * (A - S) * L * metal.Density / 1000;
+                        Mass = (float)Math.PI * S * (A - S) * L * metal.Density / 1000000;
                         break;
                     case "Уголок равнополочный":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
@@ -316,10 +316,10 @@ namespace Metal_Code
                                 - 2 * Corners[SortDrop.SelectedIndex].Item2 * Corners[SortDrop.SelectedIndex].Item2)) * metal.Density / 1000;
                         break;
                     case "Круг":
-                        Mass = (float)Math.PI * A * A / 4 * metal.Density / 1000;
+                        Mass = (float)Math.PI * A * A * L / 4 * metal.Density / 1000000;
                         break;
                     case "Квадрат":
-                        Mass = A * A * metal.Density / 1000000;
+                        Mass = A * A * L * metal.Density / 1000000;
                         break;
                     case "Швеллер":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1) Mass = Channels[SortDrop.SelectedIndex];
@@ -328,7 +328,7 @@ namespace Metal_Code
                         Mass = A * B * S * 1.2f / 1000000;
                         break;
                     case "Фторопласт":
-                        Mass = A * B * S * 1.2f / 1000000;
+                        Mass = A * B * S * 2.2f / 1000000;
                         break;
                     case "Капролон":
                         Mass = A * B * S * 1.2f / 1000000;

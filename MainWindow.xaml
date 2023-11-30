@@ -74,9 +74,9 @@
                     <CheckBox x:Name="CheckPaint" Content="{Binding Paint, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="390,100,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="True"/>
                     <TextBlock HorizontalAlignment="Left" Margin="305,125,0,0" Text="Конструктор" VerticalAlignment="Top" TextWrapping="NoWrap"/>
                     <TextBlock HorizontalAlignment="Left" Margin="305,150,0,0" Text="Прототип" VerticalAlignment="Top" TextWrapping="NoWrap"/>
-                    <TextBox HorizontalAlignment="Left" Margin="390,150,0,0" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" ToolTip="Стоимость прототипа"/>
+                    <TextBox HorizontalAlignment="Left" Margin="390,150,0,0" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" ToolTip="В разработке..."/>
                     <TextBlock HorizontalAlignment="Left" Margin="305,175,0,0" Text="Накладные" VerticalAlignment="Top" TextWrapping="NoWrap"/>
-                    <TextBox HorizontalAlignment="Left" Margin="390,175,0,0" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" ToolTip="Стоимость накладных расходов"/>
+                    <TextBox HorizontalAlignment="Left" Margin="390,175,0,0" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" ToolTip="В разработке..."/>
                     <CheckBox x:Name="CheckConstruct" Content="{Binding Construct, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="390,125,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="False"/>
                     <TextBox x:Name="PaintRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,97,0,0" TextChanged="UpdateResult"/>
                     <TextBox x:Name="ConstructRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,122,0,0" TextChanged="UpdateResult"/>
@@ -99,6 +99,7 @@
             <TextBlock HorizontalAlignment="Left" Margin="1200,70,0,0" Text="Стоимость" VerticalAlignment="Top" Height="14" Width="60"/>
             <TextBlock HorizontalAlignment="Left" Margin="1155,70,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
             <Button Margin="70,70,0,0" Content="+" Click="AddDetail" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" IsDefault="True" MinWidth="16" MinHeight="16"/>
+            <TextBlock HorizontalAlignment="Right" Margin="0,43,190,0" TextWrapping="Wrap" Text="Количество изделий" VerticalAlignment="Top"/>
         </Grid>
     </Grid>
 </Window>

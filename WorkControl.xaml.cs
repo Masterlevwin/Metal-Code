@@ -90,6 +90,7 @@ namespace Metal_Code
             if (float.TryParse(_ratio, out float r)) Ratio = r;     // стандартный парсер избавляет от проблемы с запятой
 
             if (workType != null && workType is IPriceChanged control) control.OnPriceChanged();
+            else if (WorkDrop.SelectedItem is Work work) SetResult(work.Price, false);
         }
 
         public UserControl? workType;
@@ -139,6 +140,15 @@ namespace Metal_Code
                     WorkGrid.Children.Add(extra);
                     Grid.SetColumn(extra, 1);
                     workType = extra;
+                    break;
+                case "Фрезеровка":
+                    MillingControl milling = new(this);
+                    WorkGrid.Children.Add(milling);
+                    Grid.SetColumn(milling, 1);
+                    workType = milling;
+                    break;
+                default:
+                    SetResult(work.Price, false);
                     break;
             }
 
