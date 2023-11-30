@@ -238,7 +238,8 @@ namespace Metal_Code
             {
                 A = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item1);
                 B = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item2);
-                S = L = 1;
+                S = 1;
+                L = 1000;
                 A_prop.IsEnabled = B_prop.IsEnabled = false;
             }
             MassCalculate();
@@ -280,7 +281,11 @@ namespace Metal_Code
         {
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
 
-            if (type.Name == "Лист металла") Price = metal.MassPrice;
+            if (type.Name == "Лист металла")
+            {
+                L = 1;
+                Price = metal.MassPrice;
+            } 
             else Price = type.Price;
 
             if (MainWindow.M.IsLaser)
@@ -305,15 +310,15 @@ namespace Metal_Code
                     case "Труба круглая ВГП":
                         Mass = (float)Math.PI * S * (A - S) * L * metal.Density / 1000000;
                         break;
-                    case "Уголок равнополочный":
-                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
-                            Mass = (S * (A + B - S) + 0.2146f * (Corners[SortDrop.SelectedIndex].Item1 * Corners[SortDrop.SelectedIndex].Item1
-                                - 2 * Corners[SortDrop.SelectedIndex].Item2 * Corners[SortDrop.SelectedIndex].Item2)) * metal.Density / 1000;
-                        break;
                     case "Уголок неравнополочный":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
                             Mass = (S * (A + B - S) + 0.2146f * (Corners[SortDrop.SelectedIndex].Item1 * Corners[SortDrop.SelectedIndex].Item1
-                                - 2 * Corners[SortDrop.SelectedIndex].Item2 * Corners[SortDrop.SelectedIndex].Item2)) * metal.Density / 1000;
+                                - 2 * Corners[SortDrop.SelectedIndex].Item2 * Corners[SortDrop.SelectedIndex].Item2)) * L * metal.Density / 1000000;
+                        break;
+                    case "Уголок равнополочный":
+                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                            Mass = (S * (A + B - S) + 0.2146f * (Corners[SortDrop.SelectedIndex].Item1 * Corners[SortDrop.SelectedIndex].Item1
+                                - 2 * Corners[SortDrop.SelectedIndex].Item2 * Corners[SortDrop.SelectedIndex].Item2)) * L * metal.Density / 1000000;
                         break;
                     case "Круг":
                         Mass = (float)Math.PI * A * A * L / 4 * metal.Density / 1000000;

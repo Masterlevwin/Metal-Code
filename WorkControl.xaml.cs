@@ -105,18 +105,6 @@ namespace Metal_Code
 
             switch (work.Name)
             {
-                case "Сварка":
-                    WeldControl weld = new(this);
-                    WorkGrid.Children.Add(weld);
-                    Grid.SetColumn(weld, 1);
-                    workType = weld;
-                    break;
-                case "Окраска":
-                    PaintControl paint = new(this);
-                    WorkGrid.Children.Add(paint);
-                    Grid.SetColumn(paint, 1);
-                    workType = paint;
-                    break;
                 case "Лазерная резка":
                     CutControl cut = new(this, new ExcelDialogService());
                     WorkGrid.Children.Add(cut);
@@ -128,6 +116,18 @@ namespace Metal_Code
                     WorkGrid.Children.Add(bend);
                     Grid.SetColumn(bend, 1);
                     workType = bend;
+                    break;
+                case "Сварка":
+                    WeldControl weld = new(this);
+                    WorkGrid.Children.Add(weld);
+                    Grid.SetColumn(weld, 1);
+                    workType = weld;
+                    break;
+                case "Окраска":
+                    PaintControl paint = new(this);
+                    WorkGrid.Children.Add(paint);
+                    Grid.SetColumn(paint, 1);
+                    workType = paint;
                     break;
                 case "Труборез":
                     PipeControl pipe = new(this);
@@ -141,7 +141,7 @@ namespace Metal_Code
                     Grid.SetColumn(extra, 1);
                     workType = extra;
                     break;
-                case "Фрезеровка":
+                case "Мех обработка":
                     MillingControl milling = new(this);
                     WorkGrid.Children.Add(milling);
                     Grid.SetColumn(milling, 1);
