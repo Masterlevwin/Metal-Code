@@ -212,6 +212,7 @@ namespace Metal_Code
         {
             Kinds.Clear();
             SortDrop.Items.Clear();
+
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || type.Sort == null)
             {
                 SortDrop.SelectedIndex = -1;
@@ -220,10 +221,14 @@ namespace Metal_Code
                 return;
             }
 
-            string[] strings = type.Sort.Split(',');
-            for (int i = 0; i < strings.Length; i += 3) Kinds[strings[i]] = (strings[i + 1], strings[i + 2]);
+            if (type.Sort != "")
+            {
+                string[] strings = type.Sort.Split(',');
+                for (int i = 0; i < strings.Length; i += 3) Kinds[strings[i]] = (strings[i + 1], strings[i + 2]);
+            }
 
             foreach (string s in Kinds.Keys) SortDrop.Items.Add(s);
+
             SortDrop.SelectedIndex = ndx;
             ChangeSort();
         }
