@@ -16,22 +16,22 @@ namespace Metal_Code
 
         private void Accept_Click(object sender, RoutedEventArgs e)
         {
-            //DialogResult = true;
-            string login = LoginText.Text;
-            string password = PasswordText.Password;
+            DialogResult = true;
+            //string login = LoginText.Text;
+            //string password = PasswordText.Password;
 
-            Manager? manager = MainWindow.M.dbManagers.Managers.FirstOrDefault(x => x.Name == login);
-            if (manager != null)
-            {
-                if (manager.Password == password)
-                {
-                    if (!manager.IsAdmin) MainWindow.M.Settings.IsEnabled = false;
-                    MainWindow.M.ManagerDrop.SelectedItem = manager;
-                    DialogResult = true;
-                }
-                else MessageBox.Show("Неправильный пароль. Попробуйте еще раз.");
-            }
-            else MessageBox.Show("Пользователь с таким именем не найден.");
+            //Manager? manager = MainWindow.M.dbManagers.Managers.FirstOrDefault(x => x.Name == login);
+            //if (manager != null)
+            //{
+            //    if (manager.Password == password)
+            //    {
+            //        if (!manager.IsAdmin) MainWindow.M.Settings.IsEnabled = false;
+            //        MainWindow.M.ManagerDrop.SelectedItem = manager;
+            //        DialogResult = true;
+            //    }
+            //    else MessageBox.Show("Неправильный пароль. Попробуйте еще раз.");
+            //}
+            //else MessageBox.Show("Пользователь с таким именем не найден.");
         }
 
         private void Exit(object sender, RoutedEventArgs e)

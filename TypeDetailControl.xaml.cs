@@ -293,7 +293,7 @@ namespace Metal_Code
             } 
             else Price = type.Price;
 
-            if (MainWindow.M.IsLaser)
+            if (MainWindow.M.IsLaser && type.Name == "Лист металла")
             {
                 foreach (WorkControl w in WorkControls)
                     if (w.workType is CutControl cut)

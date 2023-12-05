@@ -72,6 +72,11 @@ namespace Metal_Code
         public void SetRal(string _ral)
         {
             Ral = _ral;
+            if (Parts.Count > 0)
+            {
+                foreach (PartControl p in Parts)
+                    foreach (PaintControl item in p.UserControls.OfType<PaintControl>()) item.SetRal(Ral);
+            }
             OnPriceChanged();
         }
 
@@ -88,6 +93,11 @@ namespace Metal_Code
         public void SetType(int ndx = 0)
         {
             TypeDrop.SelectedIndex = ndx;
+            if (Parts.Count > 0)
+            {
+                foreach (PartControl p in Parts)
+                    foreach (PaintControl item in p.UserControls.OfType<PaintControl>()) item.SetType(ndx);
+            }
             OnPriceChanged();
         }
 
@@ -172,7 +182,7 @@ namespace Metal_Code
             }
             else
             {
-                if (uc is WorkControl w)
+                if (uc is WorkControl w && Parts.Count == 0)
                 {
                     SetRal(w.propsList[0]);
                     SetType((int)MainWindow.Parser(w.propsList[1]));

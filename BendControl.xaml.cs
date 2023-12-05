@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows;
 using System.Collections.Generic;
 using System.Linq;
+using SQLitePCL;
 
 namespace Metal_Code
 {
@@ -176,6 +177,11 @@ namespace Metal_Code
         private void SetBend(string _bend)
         {
             if (int.TryParse(_bend, out int b)) Bend = b;
+            if (Parts.Count > 0)
+            {
+                foreach (PartControl p in Parts)
+                    foreach (BendControl item in p.UserControls.OfType<BendControl>()) item.SetBend(_bend);
+            }
             OnPriceChanged();
         }
 
@@ -186,6 +192,11 @@ namespace Metal_Code
         public void SetShelf(int ndx = 0)
         {
             ShelfDrop.SelectedIndex = ndx;
+            if (Parts.Count > 0)
+            {
+                foreach (PartControl p in Parts)
+                    foreach (BendControl item in p.UserControls.OfType<BendControl>()) item.SetShelf(ndx);
+            }
             OnPriceChanged();
         }
 
@@ -258,7 +269,7 @@ namespace Metal_Code
             }
             else
             {
-                if (uc is WorkControl w)
+                if (uc is WorkControl w && Parts.Count == 0)
                 {
                     SetBend(w.propsList[0]);
                     SetShelf((int)MainWindow.Parser(w.propsList[1]));

@@ -635,10 +635,27 @@ namespace Metal_Code
                 worksheet.Cells["B5"].Value = "понадобятся следующие детали и работы:";
             }
 
-            foreach (Part part in Parts) part.Total = (float)Math.Round(part.Count * part.Price, 2);
+            if (Parts.Count > 0) foreach (Part part in Parts) part.Total = (float)Math.Round(part.Count * part.Price, 2);
 
             DataTable dt = IsLaser ? ToDataTable(Parts) : ToDataTable(DetailsModel.Product.Details);
-            worksheet.Cells["A7"].LoadFromDataTable(dt, true);
+            worksheet.Cells["A7"].LoadFromDataTable(dt, false);
+
+            //int num = 8;        //счетчик строк деталей
+            //if (IsLaser)
+            //{
+            //    DataTable dt = ToDataTable(Parts);
+            //    worksheet.Cells[num, 1].LoadFromDataTable(ToDataTable(Parts), false);
+            //    worksheet.Columns[9].Hidden = true;
+            //    worksheet.Columns[10].Hidden = true;
+            //    foreach (var cell in worksheet.Cells[8, 5, dt.Rows.Count + 8, 5])
+            //        if (cell.Value != null) cell.Value = IsAgent ? $"{cell.Value}".Insert(0, "Изготовление детали ") : $"{cell.Value}".Insert(0, "Деталь ");
+            //    num += dt.Rows.Count;
+            //}
+
+            //DataTable dt1 = ToDataTable(DetailsModel.Product.Details);
+            //worksheet.Cells[num, IsLaser ? 3 : 1].LoadFromDataTable(dt1, false);
+            //num += dt1.Rows.Count;
+
             if (IsLaser)
             {
                 worksheet.Columns[9].Hidden = true;
