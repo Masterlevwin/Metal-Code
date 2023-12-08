@@ -287,7 +287,7 @@ namespace Metal_Code
                     if (Weld == null || Weld == "") return;
 
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{1}", $"{Weld}", $"{TypeDrop.SelectedIndex}" };
-                    if (p.Part.Description != null && !p.Part.Description.Contains(" + С")) p.Part.Description += " + С";
+                    if (p.Part.Description != null && !p.Part.Description.Contains(" + С ")) p.Part.Description += " + С ";
 
                     float price = 0, count = 0;             // переменные для расчета части цены отдельной детали
                     if (p.Cut.WindowParts != null) foreach (PartControl _p in p.Cut.WindowParts.Parts)
@@ -310,7 +310,7 @@ namespace Metal_Code
             }
             else
             {
-                if (uc is WorkControl w && Parts.Count == 0)
+                if (uc is WorkControl w)
                 {
                     SetWeld(w.propsList[0]);
                     SetType((int)MainWindow.Parser(w.propsList[1]));

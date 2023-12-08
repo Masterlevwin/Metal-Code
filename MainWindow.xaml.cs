@@ -13,6 +13,7 @@ using System.Runtime.CompilerServices;
 using OfficeOpenXml.Style;
 using OfficeOpenXml;
 using System.Windows.Media.Imaging;
+using System.Text;
 
 namespace Metal_Code
 {
@@ -21,6 +22,9 @@ namespace Metal_Code
     /// </summary>
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
         public static MainWindow M = new();
         readonly string version = "1.0.0";
 
@@ -28,14 +32,14 @@ namespace Metal_Code
         public readonly WorkContext dbWorks = new();
         public readonly ManagerContext dbManagers = new();
         public readonly MetalContext dbMetals = new();
-        public readonly ProductViewModel DetailsModel = new(new DefaultDialogService(), new JsonFileService());
+        public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
 
         public MainWindow()
         {
             InitializeComponent();
             M = this;
             Version.Text = version;
-            DataContext = DetailsModel;
+            DataContext = ProductModel;
             Loaded += LoadDataBases;
         }
 
@@ -127,9 +131,6 @@ namespace Metal_Code
                 metalWindow.Show();
             }
         }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         private bool isLaser;
         public bool IsLaser
@@ -232,6 +233,7 @@ namespace Metal_Code
                 // проверяем наличие работы "Конструкторские работы" и добавляем её цену к расчету
                 if (dbWorks.Works.Contains(dbWorks.Works.FirstOrDefault(n => n.Name == "Конструкторские работы"))
                     && dbWorks.Works.FirstOrDefault(n => n.Name == "Конструкторские работы") is Work work) result += work.Price;
+            if (float.TryParse(ConstructRatio.Text, out float c)) result *= c;
             return result;
         }
 
@@ -252,9 +254,11 @@ namespace Metal_Code
             Paint = PaintResult();
             Construct = ConstructResult();
 
-            foreach (DetailControl d in DetailControls) Result += d.Price * d.Count;
+            foreach (DetailControl d in DetailControls) Result += d.Detail.Total;
 
             Result *= Count;
+
+            if (int.TryParse(Delivery.Text, out int del)) Result += del;
             Result = (float)Math.Round(Result, 2);
 
             ViewDetailsGrid();
@@ -262,34 +266,30 @@ namespace Metal_Code
 
         private void ViewDetailsGrid()
         {
+            Parts = PartsSource();
+
             if (IsLaser)
             {
                 Boss.Text = $"ООО ЛАЗЕРФЛЕКС  ";
                 Phone.Text = "тел:(812)509-60-11";
-                DetailsGrid.ItemsSource = PartsSource();
-                DetailsGrid.Columns[0].Header = "Материал";
-                DetailsGrid.Columns[1].Header = "Толщина";
-                DetailsGrid.Columns[2].Header = "Работы";
-                DetailsGrid.Columns[3].Header = "Точность";
-                DetailsGrid.Columns[4].Header = "Наименование";
-                DetailsGrid.Columns[5].Header = "Кол-во, шт";
-                DetailsGrid.Columns[6].Header = "Цена за шт, руб";
-                DetailsGrid.Columns[7].Header = "Стоимость, руб";
-                Parts = PartsSource();
+                DetailsGrid.ItemsSource = Parts;
             }
             else
             {
                 Boss.Text = $"ООО ПРОВЭЛД  ";
                 Phone.Text = "тел:(812)603-45-33";
                 DetailsGrid.ItemsSource = DetailsSource();
-                DetailsGrid.Columns[0].Header = "Наименование";
-                DetailsGrid.Columns[1].Header = "Работы";
-                DetailsGrid.Columns[2].Header = "Масса, кг";
-                DetailsGrid.Columns[3].Header = "Кол-во, шт";
-                DetailsGrid.Columns[4].Header = "Цена за шт, руб";
-                DetailsGrid.Columns[5].Header = "Стоимость, руб";
-                DetailsGrid.FrozenColumnCount = 1;
             }
+            
+            DetailsGrid.Columns[0].Header = "Материал";
+            DetailsGrid.Columns[1].Header = "Толщина";
+            DetailsGrid.Columns[2].Header = "Работы";
+            DetailsGrid.Columns[3].Header = "Точность";
+            DetailsGrid.Columns[4].Header = "Наименование";
+            DetailsGrid.Columns[5].Header = "Кол-во, шт";
+            DetailsGrid.Columns[6].Header = "Цена за шт, руб";
+            DetailsGrid.Columns[7].Header = "Стоимость, руб";
+            DetailsGrid.FrozenColumnCount = 1;
         }
 
         void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
@@ -323,20 +323,13 @@ namespace Metal_Code
 
         private void UpdateResult(object sender, TextChangedEventArgs e)
         {
-            if (sender is TextBox tBox)
-            {
-                switch (tBox.Name)
-                {
-                    case "PaintRatio":
-                        if (float.TryParse(PaintRatio.Text, out float p)) Paint *= p;
-                        break;
-                    case "ConstructRatio":
-                        if (float.TryParse(ConstructRatio.Text, out float c)) Construct *= c;
-                        break;
-                }
-            }
+            UpdateResult();
         }
-        private void UpdateResult(object sender, RoutedEventArgs e)   // метод принудительного обновления стоимости
+        private void UpdateResult(object sender, RoutedEventArgs e)
+        {
+            UpdateResult();
+        }
+        private void UpdateResult()         // метод принудительного обновления стоимости
         {
             foreach (DetailControl d in DetailControls)
                 foreach (TypeDetailControl t in d.TypeDetailControls) t.PriceChanged();
@@ -357,7 +350,7 @@ namespace Metal_Code
         }
         public void AddDetail()
         {
-            DetailControl detail = new();
+            DetailControl detail = new(new());
 
             if (DetailControls.Count > 0)
                 detail.Margin = new Thickness(0,
@@ -407,17 +400,29 @@ namespace Metal_Code
             ObservableCollection<Detail> details = new();
             for (int i = 0; i < DetailControls.Count; i++)
             {
-                Detail _detail = new(DetailControls[i].NameDetail, DetailControls[i].Count, DetailControls[i].Mass,
-                    DetailControls[i].Price, DetailControls[i].Price * DetailControls[i].Count);
+                Detail _detail = DetailControls[i].Detail;
+                _detail.Metal = _detail.Destiny = _detail.Description = "";     //очищаем описания свойств детали
+
                 for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
                 {
+                        //с помощью повторения символа переноса строки визуализируем дерево деталей и работ
+                    if (DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedItem is TypeDetail _type)
+                        _detail.Metal += $"{_type.Name}" + string.Join("", Enumerable.Repeat('\n', DetailControls[i].TypeDetailControls[j].WorkControls.Count));
+
+                    _detail.Destiny += $"{DetailControls[i].TypeDetailControls[j].S}"
+                        + string.Join("", Enumerable.Repeat('\n', DetailControls[i].TypeDetailControls[j].WorkControls.Count));
+
+                    _detail.Accuracy = $"H12/h12 +-IT 12/2"
+                        + string.Join("", Enumerable.Repeat('\n', DetailControls[i].TypeDetailControls[j].WorkControls.Count));
+
                     for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
                     {
                         if (DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedItem is Work work)
                         {
+                                //для окраски уточняем цвет в описании работы
                             if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is PaintControl _paint)
                                 _detail.Description += $"{work.Name} (цвет - {_paint.Ral})\n";
-                            else _detail.Description += work.Name + "\n";
+                            else _detail.Description += $"{work.Name}\n";
                         }
                     }
                 }
@@ -428,7 +433,7 @@ namespace Metal_Code
 
         public Product SaveProduct()
         {
-            Product prod = new()
+            ProductModel.Product = new()
             {
                 Name = ProductName.Text,
                 Order = Order.Text,
@@ -441,15 +446,15 @@ namespace Metal_Code
                 Count = Count,
                 IsLaser = IsLaser,
             };
-            if (CheckDelivery.IsChecked != null) prod.HasDelivery = (bool)CheckDelivery.IsChecked;
-            if (int.TryParse(Delivery.Text, out int d)) prod.Delivery = d;
+            if (CheckDelivery.IsChecked != null) ProductModel.Product.HasDelivery = (bool)CheckDelivery.IsChecked;
+            if (int.TryParse(Delivery.Text, out int d)) ProductModel.Product.Delivery = d;
 
-            if (CheckPaint.IsChecked != null) prod.HasPaint = (bool)CheckPaint.IsChecked;
-            if (CheckConstruct.IsChecked != null) prod.HasConstruct = (bool)CheckConstruct.IsChecked;
+            if (CheckPaint.IsChecked != null) ProductModel.Product.HasPaint = (bool)CheckPaint.IsChecked;
+            if (CheckConstruct.IsChecked != null) ProductModel.Product.HasConstruct = (bool)CheckConstruct.IsChecked;
 
-            DetailsModel.Product = prod;
-            DetailsModel.Product.Details = SaveDetails();
-            return DetailsModel.Product;
+            ProductModel.Product.Details = SaveDetails();
+
+            return ProductModel.Product;
         }
         public ObservableCollection<Detail> SaveDetails()
         {
@@ -457,14 +462,15 @@ namespace Metal_Code
             for (int i = 0; i < DetailControls.Count; i++)
             {
                 DetailControl det = DetailControls[i];
-                Detail _detail = new(det.NameDetail, det.Count, det.Mass, det.Price, det.Price * det.Count);
+                Detail _detail = det.Detail;
+                _detail.Metal = _detail.Destiny = _detail.Description = "";     //очищаем описания свойств детали
 
                 int partsCount = 0;     // считаем количество ВСЕХ нарезанных деталей,
                                         // чтобы в дальнейшем "размазывать" конструкторские работы в их ценах
                 foreach (TypeDetailControl t in det.TypeDetailControls)
                     foreach (WorkControl w in t.WorkControls)
-                        if (w.workType is CutControl _cut && _cut.Parts.Count > 0)
-                            partsCount += _cut.Parts.Sum(c => c.Count);
+                        if (w.workType is CutControl _cut && _cut.PartDetails.Count > 0)
+                            partsCount += _cut.PartDetails.Sum(c => c.Count);
 
                 for (int j = 0; j < det.TypeDetailControls.Count; j++)
                 {
@@ -472,7 +478,19 @@ namespace Metal_Code
                     SaveTypeDetail _typeDetail = new(type.TypeDetailDrop.SelectedIndex, type.Count, type.MetalDrop.SelectedIndex, type.HasMetal,
                         (type.SortDrop.SelectedIndex, type.A, type.B, type.S, type.L));
 
-                    if (type.TypeDetailDrop.SelectedItem is TypeDetail _type) _detail.Description += $"{_type.Name}:" + " ";
+                    //с помощью повторения символа переноса строки визуализируем дерево деталей и работ
+                    if (type.TypeDetailDrop.SelectedItem is TypeDetail _type)
+                        _detail.Metal += $"{_type.Name}" + string.Join("", Enumerable.Repeat('\n', type.WorkControls.Count));
+                    _detail.Destiny += $"{type.S}" + string.Join("", Enumerable.Repeat('\n', type.WorkControls.Count));
+                    _detail.Accuracy = $"H12/h12 +-IT 12/2";
+                    
+                    //удаляем крайний перенос строки
+                    if (j == det.TypeDetailControls.Count - 1)
+                    {
+                        _detail.Metal = _detail.Metal.TrimEnd('\n');
+                        _detail.Destiny = _detail.Destiny.TrimEnd('\n');
+                    }
+                    
 
                     for (int k = 0; k < type.WorkControls.Count; k++)
                     {
@@ -482,13 +500,9 @@ namespace Metal_Code
                         {
                             SaveWork _saveWork = new(_work.Name, work.Ratio);
 
-                            if (work.workType is PaintControl _paint)
-                                _detail.Description += $"{_work.Name} (цвет - {_paint.Ral}) ";
-                            else _detail.Description += $"{_work.Name}" + " ";
-
-                            if (IsLaser && work.workType is CutControl _cut)
+                            if (Parts.Count > 0 && work.workType is CutControl _cut)
                             {
-                                foreach (Part p in _cut.Parts)
+                                foreach (Part p in _cut.PartDetails)
                                 {
                                     p.Description = "Л";
                                     p.Price = 0;
@@ -499,12 +513,19 @@ namespace Metal_Code
                                 if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
                                     foreach (PartControl part in _cut.WindowParts.Parts) part.PropertiesChanged?.Invoke(part, true);
 
-                                _saveWork.Parts = _cut.Parts;
+                                _saveWork.Parts = _cut.PartDetails;
                                 _saveWork.Items = _cut.items;
                             }
 
                             work.PropertiesChanged?.Invoke(work, true);
                             _saveWork.PropsList = work.propsList;
+
+                            //для окраски уточняем цвет в описании работы
+                            if (work.workType is PaintControl _paint) _detail.Description += $"{_work.Name}(цвет - {_paint.Ral})\n";
+                            else _detail.Description += $"{_work.Name}\n";
+                            
+                            //удаляем крайний перенос строки
+                            if (k == type.WorkControls.Count - 1) _detail.Description = _detail.Description.TrimEnd('\n');
 
                             _typeDetail.Works.Add(_saveWork);
                         }
@@ -518,22 +539,22 @@ namespace Metal_Code
 
         public void LoadProduct()
         {            
-            SetCount(DetailsModel.Product.Count);
-            CheckDelivery.IsChecked = DetailsModel.Product.HasDelivery;
-            Delivery.Text = $"{DetailsModel.Product.Delivery}";
-            ProductName.Text = DetailsModel.Product.Name;
-            Order.Text = DetailsModel.Product.Order;
-            Company.Text = DetailsModel.Product.Company;
-            DateProduction.Text = DetailsModel.Product.Production;
-            ManagerDrop.Text = DetailsModel.Product.Manager;
-            Comment.Text = DetailsModel.Product.Comment;
-            IsLaser = DetailsModel.Product.IsLaser;
-            CheckPaint.IsChecked = DetailsModel.Product.HasPaint;
-            PaintRatio.Text = DetailsModel.Product.PaintRatio;
-            CheckConstruct.IsChecked = DetailsModel.Product.HasConstruct;
-            ConstructRatio.Text = DetailsModel.Product.ConstructRatio;
+            SetCount(ProductModel.Product.Count);
+            CheckDelivery.IsChecked = ProductModel.Product.HasDelivery;
+            Delivery.Text = $"{ProductModel.Product.Delivery}";
+            ProductName.Text = ProductModel.Product.Name;
+            Order.Text = ProductModel.Product.Order;
+            Company.Text = ProductModel.Product.Company;
+            DateProduction.Text = ProductModel.Product.Production;
+            ManagerDrop.Text = ProductModel.Product.Manager;
+            Comment.Text = ProductModel.Product.Comment;
+            IsLaser = ProductModel.Product.IsLaser;
+            CheckPaint.IsChecked = ProductModel.Product.HasPaint;
+            PaintRatio.Text = ProductModel.Product.PaintRatio;
+            CheckConstruct.IsChecked = ProductModel.Product.HasConstruct;
+            ConstructRatio.Text = ProductModel.Product.ConstructRatio;
 
-            LoadDetails(DetailsModel.Product.Details);
+            LoadDetails(ProductModel.Product.Details);
         }
         public void LoadDetails(ObservableCollection<Detail> details)
         {
@@ -543,8 +564,8 @@ namespace Metal_Code
             {
                 AddDetail();
                 DetailControl _det = DetailControls[i];
-                _det.NameDetail = details[i].Title;
-                _det.Count = details[i].Count;
+                _det.Detail.Title = details[i].Title;
+                _det.Detail.Count = details[i].Count;
 
                 for (int j = 0; j < details[i].TypeDetails.Count; j++)
                 {
@@ -571,12 +592,12 @@ namespace Metal_Code
                                 break;
                             }
 
-                        if (IsLaser && _work.workType is CutControl _cut)
+                        if (_work.workType is CutControl _cut && details[i].TypeDetails[j].Works[k].Parts.Count > 0)
                         {                            
                             _cut.items = details[i].TypeDetails[j].Works[k].Items;
                             _cut.SumProperties(_cut.items);
 
-                            _cut.Parts = details[i].TypeDetails[j].Works[k].Parts;
+                            _cut.PartDetails = details[i].TypeDetails[j].Works[k].Parts;
                             _cut.WindowParts = new(_cut, _cut.PartList());
 
                             if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
@@ -589,8 +610,9 @@ namespace Metal_Code
                                     part.PropertiesChanged?.Invoke(part, false);
                                 }
                         }
+
                         _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
-                        _work.PropertiesChanged?.Invoke(_work, false); 
+                        _work.PropertiesChanged?.Invoke(_work, false);
                         _work.Ratio = details[i].TypeDetails[j].Works[k].Ratio;
 
                         if (_type.WorkControls.Count < details[i].TypeDetails[j].Works.Count) _type.AddWork();
@@ -609,64 +631,65 @@ namespace Metal_Code
 
             worksheet.Drawings.AddPicture("A1", IsLaser ? "laser_logo.jpg" : "app_logo.jpg");  // файлы должны быть в директории bin/Debug...
 
+                //оформляем первую строку КП, где указываем название нашей компании и ее телефон
             worksheet.Cells["A1"].Value = Boss.Text + Phone.Text;
-            worksheet.Cells[1, 1, 1, IsLaser ? 8 : 6].Merge = true;
+            worksheet.Cells[1, 1, 1, 8].Merge = true;
             worksheet.Rows[1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
-            worksheet.Cells[1, 1, 1, IsLaser ? 8 : 6].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
-            worksheet.Cells[1, 1, 1, IsLaser ? 8 : 6].Style.Border.Bottom.Color.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
+            worksheet.Cells[1, 1, 1, 8].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
+            worksheet.Cells[1, 1, 1, 8].Style.Border.Bottom.Color.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
 
+                //оформляем вторую строку, где указываем номер КП, контрагента и дату создания
             worksheet.Rows[2].Style.Font.Size = 16;
             worksheet.Rows[2].Style.Font.Bold = true;
             worksheet.Rows[2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            worksheet.Cells[IsLaser ? "D2" : "B2"].Value = "КП № " + Order.Text + " для " + Company.Text + " от " + DateTime.Now.ToString("d");
-            worksheet.Cells[2, IsLaser ? 4 : 2, 2, IsLaser ? 8 : 6].Merge = true;
-            worksheet.Cells[2, IsLaser ? 4 : 2, 2, IsLaser ? 8 : 6].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
-            worksheet.Cells[2, IsLaser ? 4 : 2, 2, IsLaser ? 8 : 6].Style.Border.Bottom.Color.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
+            worksheet.Cells["C2"].Value = "КП № " + Order.Text + " для " + Company.Text + " от " + DateTime.Now.ToString("d");
+            worksheet.Cells[2, 3, 2, 8].Merge = true;
+            worksheet.Cells[2, 3, 2, 8].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
+            worksheet.Cells[2, 3, 2, 8].Style.Border.Bottom.Color.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
 
+                //оформляем третью строку с предупреждением
             worksheet.Cells["A3"].Value = "Данный расчет действителен в течении 2-х банковских дней";
-            worksheet.Cells[3, 1, 3, IsLaser ? 8 : 6].Merge = true;
+            worksheet.Cells[3, 1, 3, 8].Merge = true;
             worksheet.Rows[3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
 
-            if (!IsLaser)
+            if (!IsLaser)       //для Провэлда оформляем две уточняющие строки
             {
-                worksheet.Cells["B4"].Value = $"Для изготовления изделия";
-                worksheet.Cells["C4"].Value = ProductName.Text;
-                worksheet.Cells["C4"].Style.Font.Bold = true;
-                worksheet.Cells["B5"].Value = "понадобятся следующие детали и работы:";
+                worksheet.Cells["C4"].Value = $"Для изготовления изделия";
+                worksheet.Cells["C5"].Value = "понадобятся следующие детали и работы:";
+                worksheet.Cells[4, 3, 4, 6].Merge = true;
+                worksheet.Cells[5, 3, 5, 6].Merge = true;
+                worksheet.Cells["G4"].Value = ProductName.Text;
+                worksheet.Cells["G4"].Style.Font.Bold = true;
             }
 
-            if (Parts.Count > 0) foreach (Part part in Parts) part.Total = (float)Math.Round(part.Count * part.Price, 2);
+            int row = 8;        //счетчик строк деталей, начинаем с восьмой строки документа
 
-            DataTable dt = IsLaser ? ToDataTable(Parts) : ToDataTable(DetailsModel.Product.Details);
-            worksheet.Cells["A7"].LoadFromDataTable(dt, false);
-
-            //int num = 8;        //счетчик строк деталей
-            //if (IsLaser)
-            //{
-            //    DataTable dt = ToDataTable(Parts);
-            //    worksheet.Cells[num, 1].LoadFromDataTable(ToDataTable(Parts), false);
-            //    worksheet.Columns[9].Hidden = true;
-            //    worksheet.Columns[10].Hidden = true;
-            //    foreach (var cell in worksheet.Cells[8, 5, dt.Rows.Count + 8, 5])
-            //        if (cell.Value != null) cell.Value = IsAgent ? $"{cell.Value}".Insert(0, "Изготовление детали ") : $"{cell.Value}".Insert(0, "Деталь ");
-            //    num += dt.Rows.Count;
-            //}
-
-            //DataTable dt1 = ToDataTable(DetailsModel.Product.Details);
-            //worksheet.Cells[num, IsLaser ? 3 : 1].LoadFromDataTable(dt1, false);
-            //num += dt1.Rows.Count;
-
-            if (IsLaser)
+                //если есть нарезанные детали, вычисляем общую стоимость каждой и затем оформляем их в КП
+            if (Parts.Count > 0)
             {
-                worksheet.Columns[9].Hidden = true;
-                worksheet.Columns[10].Hidden = true;
-            }
+                foreach (Part part in Parts) part.Total = part.Count * part.Price;
 
-            int num = dt.Rows.Count;
-
-            if (IsLaser) foreach (var cell in worksheet.Cells[8, 5, num + 8, 5])
+                DataTable partTable = ToDataTable(Parts);
+                worksheet.Cells[row, 1].LoadFromDataTable(ToDataTable(Parts), false);
+                foreach (var cell in worksheet.Cells[8, 5, partTable.Rows.Count + 8, 5])
                     if (cell.Value != null) cell.Value = IsAgent ? $"{cell.Value}".Insert(0, "Изготовление детали ") : $"{cell.Value}".Insert(0, "Деталь ");
+                row += partTable.Rows.Count;
+            }
 
+                //далее оформляем остальные детали и работы
+            DataTable detailTable = ToDataTable(ProductModel.Product.Details);
+            worksheet.Cells[row, 1].LoadFromDataTable(detailTable, false);
+            row += detailTable.Rows.Count;
+
+                //в деталях нам не нужно повторно учитывать "Лист металла", если он уже загружен как нарезанные детали
+            for (int i = 8; i < row; i++)
+                if (Parts.Count > 0 && worksheet.Cells[i, 1].Value != null && $"{worksheet.Cells[i, 1].Value}".Contains("Лист металла"))
+                {
+                    worksheet.DeleteRow(i);
+                    row--;
+                }
+
+            //оформляем заголовки таблицы
             for (int col = 0; col < DetailsGrid.Columns.Count; col++)
             {
                 worksheet.Cells[6, col + 1].Value = DetailsGrid.Columns[col].Header;
@@ -675,147 +698,153 @@ namespace Metal_Code
                 worksheet.Cells[6, col + 1, 7, col + 1].Style.Fill.BackgroundColor.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
                 worksheet.Cells[6, col + 1].Style.WrapText = true;
             }
+            worksheet.Columns[9].Hidden = true;
+            worksheet.Columns[10].Hidden = true;
 
-            if (IsLaser)
+            //if (IsLaser)
+            //{
+            //    foreach (DetailControl d in DetailControls)
+            //        foreach (TypeDetailControl t in d.TypeDetailControls)
+            //            foreach (WorkControl w in t.WorkControls)
+            //                if (w.workType is ExtraControl _extra)
+            //                {
+            //                    worksheet.Cells[row + 8, 4].Value = "Доп работа";
+            //                    worksheet.Cells[row + 8, 5].Value = _extra.NameExtra;
+            //                    worksheet.Cells[row + 8, 6].Value = t.Count;
+            //                    worksheet.Cells[row + 8, 7].Value = _extra.Price;
+            //                    worksheet.Cells[row + 8, 8].Value = t.Count * _extra.Price;
+            //                    row++;
+            //                }
+            //}
+
+            if (CheckPaint.IsChecked == null)           //если требуется указать окраску отдельной строкой
             {
-                foreach (DetailControl d in DetailControls)
-                    foreach (TypeDetailControl t in d.TypeDetailControls)
-                        foreach (WorkControl w in t.WorkControls)
-                            if (w.workType is ExtraControl _extra)
-                            {
-                                worksheet.Cells[num + 8, 4].Value = "Доп работа";
-                                worksheet.Cells[num + 8, 5].Value = _extra.NameExtra;
-                                worksheet.Cells[num + 8, 6].Value = t.Count;
-                                worksheet.Cells[num + 8, 7].Value = _extra.Price;
-                                worksheet.Cells[num + 8, 8].Value = t.Count * _extra.Price;
-                                num++;
-                            }
+                worksheet.Cells[row, 5].Value = "Окраска";
+                worksheet.Cells[row, 6].Value = 1;
+                worksheet.Cells[row, 7].Value = worksheet.Cells[row, 8].Value = Paint;
+                row++;
             }
 
-            if (!IsLaser && CheckPaint.IsChecked == null)
+            if (CheckConstruct.IsChecked == null)       //если требуется указать конструкторские работы отдельной строкой
             {
-                worksheet.Cells[num + 8, 1].Value = "Окраска";
-                worksheet.Cells[num + 8, 4].Value = 1;
-                worksheet.Cells[num + 8, 5].Value = worksheet.Cells[num + 8, 6].Value = Paint;
-                num++;
+                worksheet.Cells[row, 5].Value = "Конструкторские работы";
+                worksheet.Cells[row, 6].Value = 1;
+                worksheet.Cells[row, 7].Value = worksheet.Cells[row, 8].Value = Construct;
+                row++;
             }
 
-            if (CheckConstruct.IsChecked == null)
+            if (CheckDelivery.IsChecked == true)        //если требуется доставка
             {
-                worksheet.Cells[num + 8, IsLaser ? 5 : 1].Value = "Конструкторские работы";
-                worksheet.Cells[num + 8, IsLaser ? 6 : 4].Value = 1;
-                worksheet.Cells[num + 8, IsLaser ? 7 : 5].Value = worksheet.Cells[num + 8, IsLaser ? 8 : 6].Value = Construct;
-                num++;
-            }
-
-            if (CheckDelivery.IsChecked == true)
-            {
-                worksheet.Cells[num + 8, IsLaser ? 5 : 1].Value = "Доставка";
-                worksheet.Cells[num + 8, IsLaser ? 6 : 4].Value = 1;
-                if (int.TryParse(Delivery.Text, out int d)) worksheet.Cells[num + 8, IsLaser ? 7 : 5].Value = worksheet.Cells[num + 8, IsLaser ? 8 : 6].Value = d;
-                num++;
-                worksheet.Cells[num + 12, 2].Value = "Доставка силами Исполнителя по адресу Заказчика.";
+                worksheet.Cells[row, 5].Value = "Доставка";
+                worksheet.Cells[row, 6].Value = 1;
+                if (int.TryParse(Delivery.Text, out int d)) worksheet.Cells[row, 7].Value = worksheet.Cells[row, 8].Value = d;
+                row++;
+                worksheet.Cells[row + 4, 2].Value = "Доставка силами Исполнителя по адресу Заказчика.";
             }
             else
             {
-                worksheet.Cells[num + 12, 2].Value = "Самовывоз со склада Исполнителя по адресу: Ленинградская область, Всеволожский район," +
+                worksheet.Cells[row + 4, 2].Value = "Самовывоз со склада Исполнителя по адресу: Ленинградская область, Всеволожский район," +
                     "Колтушское сельское поселение, деревня Мяглово, ул. Дорожная, уч. 4Б.";
-                worksheet.Cells[num + 12, 2].Style.WrapText = true;
+                worksheet.Cells[row + 4, 2].Style.WrapText = true;
             }
 
-            ExcelRange table = worksheet.Cells[6, 1, num + 7, IsLaser ? 8 : 6];
-            if (!IsLaser) table.Style.WrapText = true;
+                //оформляем стиль созданной таблицы
+            ExcelRange table = worksheet.Cells[6, 1, row - 1, 8];
             table.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            table.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            table.Style.VerticalAlignment = ExcelVerticalAlignment.Top;
             table.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
             table.Style.Border.Right.Style = ExcelBorderStyle.Thin;
             table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
-            foreach (var cell in worksheet.Cells[8, 2, num + 8, 2])
+                //приводим float-значения типа 0,699999993 к формату 0,7
+            foreach (var cell in worksheet.Cells[8, 2, row, 2])
                 if (cell.Value != null && $"{cell.Value}".Contains("0,7") || $"{cell.Value}".Contains("0,8") || $"{cell.Value}".Contains("1,2"))
                     cell.Style.Numberformat.Format = "0.0";
 
-            worksheet.Cells[num + 8, IsLaser ? 7 : 5].Value = IsAgent ? "ИТОГО:" : "ИТОГО с НДС:";
-            worksheet.Cells[num + 8, IsLaser ? 7 : 5].Style.Font.Bold = true;
-            worksheet.Cells[num + 8, IsLaser ? 7 : 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            worksheet.Names.Add("totalOrder", worksheet.Cells[7, IsLaser ? 8 : 6, num + 7, IsLaser ? 8 : 6]);
-            worksheet.Cells[num + 8, IsLaser ? 8 : 6].Formula = "=SUM(totalOrder)";
-            worksheet.Cells[num + 8, IsLaser ? 8 : 6].Style.Font.Bold = true;
-            worksheet.Cells[num + 8, IsLaser ? 8 : 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            worksheet.Cells[num + 8, 1, num + 8, IsLaser ? 8 : 6].Style.Border.BorderAround(ExcelBorderStyle.Medium);
-            worksheet.Cells[8, IsLaser ? 7 : 5, num + 8, IsLaser ? 8 : 6].Style.Numberformat.Format = "#,##0.00";
-            if (!IsLaser) worksheet.Cells[8, 3, num + 8, 3].Style.Numberformat.Format = "#,##0.00";
+                //вычисляем итоговую сумму КП и оформляем соответствующим образом
+            worksheet.Cells[row, 7].Value = IsAgent ? "ИТОГО:" : "ИТОГО с НДС:";
+            worksheet.Cells[row, 7].Style.Font.Bold = true;
+            worksheet.Cells[row, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            worksheet.Names.Add("totalOrder", worksheet.Cells[8, 8, row - 1, 8]);
+            worksheet.Cells[row, 8].Formula = "=SUM(totalOrder)";
+            worksheet.Cells[row, 8].Style.Font.Bold = true;
+            worksheet.Cells[row, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            worksheet.Cells[row, 1, row, 8].Style.Border.BorderAround(ExcelBorderStyle.Medium);
+            worksheet.Cells[8, 7, row, 8].Style.Numberformat.Format = "#,##0.00";
 
-            worksheet.Cells[num + 9, 1].Value = "Материал:";
-            worksheet.Cells[num + 9, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
-            worksheet.Cells[num + 9, 2].Value = DetailControls[0].TypeDetailControls[0].HasMetal ? "Исполнителя" : "Заказчика";
-            worksheet.Cells[num + 9, 2].Style.Font.Bold = true;
-            worksheet.Cells[num + 9, 2, num + 9, 3].Merge = true;
+            worksheet.Cells[row + 1, 1].Value = "Материал:";
+            worksheet.Cells[row + 1, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+            worksheet.Cells[row + 1, 2].Value = DetailControls[0].TypeDetailControls[0].HasMetal ? "Исполнителя" : "Заказчика";
+            worksheet.Cells[row + 1, 2].Style.Font.Bold = true;
+            worksheet.Cells[row + 1, 2, row + 1, 3].Merge = true;
 
-            worksheet.Cells[num + 10, 1].Value = "Срок изготовления:";
-            worksheet.Cells[num + 10, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
-            worksheet.Cells[num + 10, 2].Value = DateProduction.Text + " раб/дней.";
-            worksheet.Cells[num + 10, 2].Style.Font.Bold = true;
-            worksheet.Cells[num + 10, 2, num + 10, 3].Merge = true;
+            worksheet.Cells[row + 2, 1].Value = "Срок изготовления:";
+            worksheet.Cells[row + 2, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+            worksheet.Cells[row + 2, 2].Value = DateProduction.Text + " раб/дней.";
+            worksheet.Cells[row + 2, 2].Style.Font.Bold = true;
+            worksheet.Cells[row + 2, 2, row + 2, 3].Merge = true;
 
-            worksheet.Cells[num + 11, 1].Value = "Условия оплаты:";
-            worksheet.Cells[num + 11, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
-            worksheet.Cells[num + 11, 2].Value = "Предоплата 100% по счету Исполнителя.";
-            worksheet.Cells[num + 11, 2, num + 11, 5].Merge = true;
+            worksheet.Cells[row + 3, 1].Value = "Условия оплаты:";
+            worksheet.Cells[row + 3, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+            worksheet.Cells[row + 3, 2].Value = "Предоплата 100% по счету Исполнителя.";
+            worksheet.Cells[row + 3, 2, row + 3, 5].Merge = true;
 
-            worksheet.Cells[num + 12, 1].Value = "Порядок отгрузки:";
-            worksheet.Cells[num + 12, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
-            worksheet.Cells[num + 12, 2].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
-            worksheet.Cells[num + 12, 2, num + 12, 8].Merge = true;
+            worksheet.Cells[row + 4, 1].Value = "Порядок отгрузки:";
+            worksheet.Cells[row + 4, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+            worksheet.Cells[row + 4, 2].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+            worksheet.Cells[row + 4, 2, row + 4, 8].Merge = true;
 
-            worksheet.Cells[num + 14, 1].Value = "Ваш менеджер:";
-            worksheet.Cells[num + 14, 2].Value = ManagerDrop.Text;
-            worksheet.Cells[num + 14, 2].Style.Font.Bold = true;
-            worksheet.Cells[num + 14, 2, num + 14, 4].Merge = true;
-
-            if (IsLaser)
+            if (Parts.Count > 0)        //в случае с нарезанными деталями, оформляем расшифровку работ
             {
-                worksheet.Cells[num + 13, 1].Value = "Расшифровка работ: ";
-                worksheet.Cells[num + 13, 2].Value = "";
-                foreach (var cell in worksheet.Cells[8, 3, num + 8, 3])
+                worksheet.Cells[row + 5, 1].Value = "Расшифровка работ: ";
+                worksheet.Cells[row + 5, 2].Value = "";
+                foreach (ExcelRangeBase cell in worksheet.Cells[8, 3, row + 8, 3])
                 {
-                    if (cell.Value != null && $"{cell.Value}".Contains('Л') && !$"{worksheet.Cells[num + 13, 2].Value}".Contains('Л')) worksheet.Cells[num + 13, 2].Value += "Л - Лазер ";
-                    if (cell.Value != null && $"{cell.Value}".Contains('Г') && !$"{worksheet.Cells[num + 13, 2].Value}".Contains('Г')) worksheet.Cells[num + 13, 2].Value += "Г - Гибка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains('С') && !$"{worksheet.Cells[num + 13, 2].Value}".Contains('С')) worksheet.Cells[num + 13, 2].Value += "С - Сварка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains('О') && !$"{worksheet.Cells[num + 13, 2].Value}".Contains('О')) worksheet.Cells[num + 13, 2].Value += "О - Окраска ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Л") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Л")) worksheet.Cells[row + 5, 2].Value += "Л - Лазер ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Г ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Г ")) worksheet.Cells[row + 5, 2].Value += "Г - Гибка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("С ")) worksheet.Cells[row + 5, 2].Value += "С - Сварка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("О ")) worksheet.Cells[row + 5, 2].Value += "О - Окраска ";
                 }
-                worksheet.Cells[num + 13, 2, num + 13, 5].Merge = true;
+                worksheet.Cells[row + 5, 2, row + 5, 5].Merge = true;
             }
 
-            worksheet.Cells[num + 14, IsLaser ? 8 : 6].Value = "версия: " + version;
-            worksheet.Cells[num + 14, IsLaser ? 8 : 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            worksheet.Cells[row + 6, 1].Value = "Ваш менеджер:";
+            worksheet.Cells[row + 6, 2].Value = ManagerDrop.Text;
+            worksheet.Cells[row + 6, 2].Style.Font.Bold = true;
+            worksheet.Cells[row + 6, 2, row + 6, 4].Merge = true;
 
+            worksheet.Cells[row + 6, 8].Value = "версия: " + version;
+            worksheet.Cells[row + 6, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+
+                //выравниваем содержимое документа и оформляем нюансы
             worksheet.Cells.AutoFitColumns();
-            if (worksheet.Rows[num + 12].Height < 35) worksheet.Rows[num + 12].Height = 35;
-            if (IsLaser && worksheet.Columns[5].Width < 15) worksheet.Columns[5].Width = 15;
-            if (IsLaser) worksheet.DeleteRow(4, 2);
-            else worksheet.DeleteRow(num + 13, 1);
+            if (worksheet.Columns[1].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указан материал
+            if (worksheet.Columns[3].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указаны работы
+            worksheet.Cells[8, 1, row, 3].Style.WrapText = true;                                //переносим текст при необходимости
+            if (worksheet.Rows[row + 4].Height < 35) worksheet.Rows[row + 4].Height = 35;       //оформляем строку, где указан порядок отгрузки
+            if (worksheet.Columns[5].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указано наименование детали
+            if (IsLaser) worksheet.DeleteRow(4, 2);                                             //удаляем 4 и 5 строки, необходимые только для Провэлда
+            else if (Parts.Count > 0) worksheet.DeleteRow(row + 5, 1);       //удаляем строку, где указана расшифровка работ, если нет нарезанных деталей
 
+                //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
             worksheet.PrinterSettings.FitToPage = true;
             worksheet.PrinterSettings.FitToWidth = 1;
             worksheet.PrinterSettings.FitToHeight = 0;
             worksheet.PrinterSettings.HorizontalCentered = true;
 
-            workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");
+            workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем файл .xlsx
 
-            CreateScore(worksheet, num, path);
+            CreateScore(worksheet, row - 8, path);      //создаем файл для счета на основе полученного КП
         }
 
-        private void CreateScore(ExcelWorksheet worksheet, int num, string _path)
+        private void CreateScore(ExcelWorksheet worksheet, int row, string _path)
         {
-            ExcelRange extable = worksheet.Cells[IsLaser ? 6 : 8, IsLaser ? 5 : 1, IsLaser ? num + 5 : num + 7, IsLaser ? 7 : 5];
+            ExcelRange extable = worksheet.Cells[IsLaser ? 6 : 8, 5, IsLaser ? row + 5 : row + 7, 7];
 
             using var workbook = new ExcelPackage();
             ExcelWorksheet scoresheet = workbook.Workbook.Worksheets.Add("Лист1");
 
             extable.Copy(scoresheet.Cells["A2"]);
-
-            if (!IsLaser) scoresheet.DeleteColumn(2, 2);
 
             scoresheet.Cells["A1"].Value = "Наименование";
             scoresheet.Cells["B1"].Value = "Кол-во";
@@ -823,7 +852,7 @@ namespace Metal_Code
             scoresheet.Cells["D1"].Value = "Цена";
             scoresheet.Cells["E1"].Value = "Ед. изм.";
 
-            for (int i = 0; i < num; i++)
+            for (int i = 0; i < row; i++)
             {
                 if (float.TryParse($"{scoresheet.Cells[i + 2, 3].Value}", out float p)) scoresheet.Cells[i + 2, 4].Value = Math.Round(p / 1.2f, 2);
                 scoresheet.Cells[i + 2, 5].Value = "шт";
@@ -831,12 +860,12 @@ namespace Metal_Code
                     && float.TryParse($"{scoresheet.Cells[i + 2, 3].Value}", out float c)) scoresheet.Cells[i + 2, 6].Value = Math.Round(f * c, 2);
 
             }
-            scoresheet.Names.Add("totalOrder", scoresheet.Cells[2, 6, num + 1, 6]);
-            scoresheet.Cells[num + 2, 6].Formula = "=SUM(totalOrder)";
-            scoresheet.Cells[num + 2, 6].Style.Fill.PatternType = ExcelFillStyle.Solid;
-            scoresheet.Cells[num + 2, 6].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Yellow);
+            scoresheet.Names.Add("totalOrder", scoresheet.Cells[2, 6, row + 1, 6]);
+            scoresheet.Cells[row + 2, 6].Formula = "=SUM(totalOrder)";
+            scoresheet.Cells[row + 2, 6].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            scoresheet.Cells[row + 2, 6].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Yellow);
 
-            ExcelRange table = scoresheet.Cells[1, 1, num + 1, 5];
+            ExcelRange table = scoresheet.Cells[1, 1, row + 1, 5];
             table.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
             table.Style.Border.Right.Style = ExcelBorderStyle.Thin;
             table.Style.Border.BorderAround(ExcelBorderStyle.Medium);

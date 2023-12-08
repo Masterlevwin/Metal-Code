@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -10,53 +8,17 @@ namespace Metal_Code
     /// <summary>
     /// Логика взаимодействия для DetailControl.xaml
     /// </summary>
-    public partial class DetailControl : UserControl, INotifyPropertyChanged
+    public partial class DetailControl : UserControl
     {
-        public event PropertyChangedEventHandler? PropertyChanged;
-        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
-
-        private string? nameDetail;
-        public string? NameDetail
-        {
-            get => nameDetail;
-            set
-            {
-                nameDetail = value;
-                OnPropertyChanged(nameof(NameDetail));
-            }
-        }
-
-        private int count;
-        public int Count
-        {
-            get => count;
-            set
-            {
-                count = value;
-                OnPropertyChanged(nameof(Count));
-            }
-        }
-
-        private float mass;
-        public float Mass
-        {
-            get => mass;
-            set => mass = value;
-        }
-
-        private float price;
-        public float Price
-        {
-            get => price;
-            set => price = value;
-        }
-
         public List<TypeDetailControl> TypeDetailControls = new();
 
-        public DetailControl()
+        public Detail Detail {  get; set; }
+
+        public DetailControl(Detail detail)
         {
             InitializeComponent();
-            Count = 1;
+            Detail = detail;
+            DataContext = Detail;
         }
 
         private void AddDetail(object sender, RoutedEventArgs e)
@@ -107,36 +69,38 @@ namespace Metal_Code
 
         private void SetName(object sender, TextChangedEventArgs e)
         {
-            if (sender is TextBox tBox) NameDetail = tBox.Text;
+            if (sender is TextBox tBox) Detail.Title = tBox.Text;
         }
 
         private void SetCount(object sender, TextChangedEventArgs e)    // свойство временно не используется, так как заказчик посчитал его ненужным
         {
-            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count)) Count = count;
+            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count)) Detail.Count = count;
             MainWindow.M.TotalResult();
         }
 
         public void MassCalculate()
         {
-            Mass = 0;
-            foreach (TypeDetailControl t in TypeDetailControls) Mass += t.Mass;
-            Mass = (float)Math.Round(Mass, 2);
+            Detail.Mass = 0;
+            foreach (TypeDetailControl t in TypeDetailControls) Detail.Mass += t.Mass;
+            Detail.Mass = (float)Math.Round(Detail.Mass, 2);
         }
 
         public void PriceResult()
         {
-            Price = 0;
+            Detail.Price = 0;
             foreach (TypeDetailControl t in TypeDetailControls)
             {
-                Price += t.Result;
-                foreach (WorkControl w in t.WorkControls) Price += w.Result;
+                Detail.Price += t.Result;
+                foreach (WorkControl w in t.WorkControls) Detail.Price += w.Result;
             }
 
             // добавляем окраску, если она отмечена галочкой или квадратиком
-            if (!MainWindow.M.IsLaser && MainWindow.M.CheckPaint.IsChecked != false) Price += MainWindow.M.Paint / MainWindow.M.DetailControls.Count;
+            if (!MainWindow.M.IsLaser && MainWindow.M.CheckPaint.IsChecked != false) Detail.Price += MainWindow.M.Paint / MainWindow.M.DetailControls.Count;
 
             // добавляем конструкторские работы, если они отмечены галочкой или квадратиком
-            if (MainWindow.M.CheckConstruct.IsChecked != false) Price += MainWindow.M.Construct / MainWindow.M.DetailControls.Count;
+            if (MainWindow.M.CheckConstruct.IsChecked != false) Detail.Price += MainWindow.M.Construct / MainWindow.M.DetailControls.Count;
+
+            Detail.Total = Detail.Price * Detail.Count;
 
             MainWindow.M.TotalResult();
         }

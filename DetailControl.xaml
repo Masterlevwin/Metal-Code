@@ -17,7 +17,7 @@
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <TextBox Text="{Binding NameDetail, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:DetailControl}}}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="150" MinHeight="20" ToolTip="Введите наименование детали" MaxWidth="150" MaxLines="1" TextChanged="SetName" Height="20" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+        <TextBox Text="{Binding Title}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="150" MinHeight="20" ToolTip="Введите наименование детали" MaxWidth="150" MaxLines="1" Height="20" HorizontalAlignment="Left" VerticalAlignment="Top" TextChanged="SetName"/>
         <Button Content="Х" HorizontalAlignment="Left" Margin="150,0,0,0" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" Padding="0,0,0,0" MaxWidth="10" MaxHeight="10" FontSize="8" BorderThickness="0,0,0,0" Height="10" Width="10" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" Click="Remove"/>
     </Grid>
 </UserControl>

@@ -22,21 +22,24 @@ namespace Metal_Code
     [Serializable]
     public class Detail
     {
-        public string? Title { get; set; }
+        public string? Metal {  get; set; }
+        public string? Destiny { get; set; }
         public string? Description { get; set; }
-        public float Mass { get; set; }
+        public string? Accuracy { get; set; }
+        public string? Title { get; set; }
         public int Count { get; set; }
         public float Price { get; set; }
         public float Total { get; set; }
 
+        [Browsable(false)]
+        public float Mass { get; set; }
+
         public List<SaveTypeDetail> TypeDetails = new();
-        public Detail(string? _name = null, int _count = 0, float _mass = 1, float _price = 0, float _total = 0)
+        public Detail(string? _name = null, int _count = 1, string? _accuracy = null)
         {
             Title = _name;
             Count = _count;
-            Mass = _mass;
-            Price = _price;
-            Total = _total;
+            Accuracy = _accuracy;
         }
     }
 
@@ -47,23 +50,23 @@ namespace Metal_Code
         public float Destiny { get; set; }
         public string? Description { get; set; }
         public string? Accuracy { get; set; }
-        public string? Name { get; set; }
+        public string? Title { get; set; }
         public int Count { get; set; }
         public float Price { get; set; }
         public float Total { get; set; }
 
         [Browsable(false)]
-        public float Way { get; set; }
-        [Browsable(false)]
         public float Mass { get; set; }
+        [Browsable(false)]
+        public float Way { get; set; }
 
         public Dictionary<int, List<string>> PropsDict = new();
 
-        public Part(string? _name = null, int _count = 0, string? accuracy = null)
+        public Part(string? _name = null, int _count = 1, string? _accuracy = null)
         {
-            Name = _name;
+            Title = _name;
             Count = _count;
-            Accuracy = accuracy;
+            Accuracy = _accuracy;
         }
     }
 

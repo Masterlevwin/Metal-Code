@@ -190,7 +190,6 @@ namespace Metal_Code
             det.UpdatePosition(direction);
         }
 
-
         public delegate void Changed();
         public event Changed? Priced;
         private void SetCount(object sender, TextChangedEventArgs e)

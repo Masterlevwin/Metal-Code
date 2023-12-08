@@ -149,7 +149,7 @@ namespace Metal_Code
                 w.propsList.Add($"{WayTotal}");
                 w.propsList.Add($"{MassTotal}");
 
-                foreach (Part p in Parts)
+                foreach (Part p in PartDetails)
                 {
                     p.Price += (float)Math.Round(work.Result * p.Way / WayTotal, 2);
                     p.Price += (float)Math.Round(work.type.Result * p.Mass / MassTotal, 2);
@@ -223,12 +223,13 @@ namespace Metal_Code
         }
 
         public PartWindow? WindowParts = null;
-        public List<Part> Parts = new();
+
+        public List<Part> PartDetails = new();
         public List<PartControl> PartList(DataTable? table = null)
         {
             List<PartControl> _parts = new();
 
-            if (table != null && Parts != null)
+            if (table != null && PartDetails != null)
                 for (int i = 0; i < table.Rows.Count; i++)
                 {
                     if (table.Rows[i] == null) continue;
@@ -239,20 +240,20 @@ namespace Metal_Code
                         {
                             Part part = new()
                             {
-                                Name = $"{table.Rows[j].ItemArray[2]}",
+                                Title = $"{table.Rows[j].ItemArray[2]}",
                                 Count = (int)MainWindow.Parser($"{table.Rows[j].ItemArray[6]}"),
                                 Description = "Л",
                                 Accuracy = $"H14/h14 +-IT 14/2"
                             };
 
-                            part.Name = part.Name[..(part.Name.LastIndexOf(' ') + 1)];
+                            part.Title = part.Title[..(part.Title.LastIndexOf(' ') + 1)];
                             part.Mass = MainWindow.Parser($"{table.Rows[j].ItemArray[4]}") / part.Count;
                             part.Way = MainWindow.Parser($"{table.Rows[j].ItemArray[7]}") / part.Count;
 
                             if (part.Count > 0)
                             {
                                 _parts.Add(new(this, part));
-                                Parts.Add(part);
+                                PartDetails.Add(part);
                             }
 
                             if ($"{table.Rows[j].ItemArray[0]}" == "Имя клиента") break;
@@ -260,7 +261,7 @@ namespace Metal_Code
                         break;
                     }
                 }
-            else if (Parts != null && Parts.Count > 0) foreach (Part part in Parts) _parts.Add(new(this, part));
+            else if (PartDetails != null && PartDetails.Count > 0) foreach (Part part in PartDetails) _parts.Add(new(this, part));
 
             return _parts;
         }

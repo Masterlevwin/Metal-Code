@@ -159,7 +159,7 @@ namespace Metal_Code
                     if (Ral == null || Ral == "") return;
 
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{2}", $"{Ral}", $"{TypeDrop.SelectedIndex}" };
-                    if (p.Part.Description != null && !p.Part.Description.Contains(" + О")) p.Part.Description += $" + О (цвет - {Ral}) ";
+                    if (p.Part.Description != null && !p.Part.Description.Contains(" + О ")) p.Part.Description += $" + О (цвет - {Ral}) ";
 
                     float price = 0, count = 0;             // переменные для расчета части цены отдельной детали
                     if (p.Cut.WindowParts != null) foreach (PartControl _p in p.Cut.WindowParts.Parts)
@@ -182,7 +182,7 @@ namespace Metal_Code
             }
             else
             {
-                if (uc is WorkControl w && Parts.Count == 0)
+                if (uc is WorkControl w)
                 {
                     SetRal(w.propsList[0]);
                     SetType((int)MainWindow.Parser(w.propsList[1]));

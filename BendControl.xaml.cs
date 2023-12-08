@@ -4,7 +4,6 @@ using System.Windows.Controls;
 using System.Windows;
 using System.Collections.Generic;
 using System.Linq;
-using SQLitePCL;
 
 namespace Metal_Code
 {
@@ -254,7 +253,7 @@ namespace Metal_Code
                     if (Bend == 0) return;
 
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{0}", $"{Bend}", $"{ShelfDrop.SelectedIndex}" };
-                    if (p.Part.Description != null && !p.Part.Description.Contains(" + Г")) p.Part.Description += " + Г";
+                    if (p.Part.Description != null && !p.Part.Description.Contains(" + Г ")) p.Part.Description += " + Г ";
 
                     foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим гибку среди работ и получаем её минималку
                         if (_w.workType is BendControl && _w.WorkDrop.SelectedItem is Work _work)
@@ -269,7 +268,7 @@ namespace Metal_Code
             }
             else
             {
-                if (uc is WorkControl w && Parts.Count == 0)
+                if (uc is WorkControl w)
                 {
                     SetBend(w.propsList[0]);
                     SetShelf((int)MainWindow.Parser(w.propsList[1]));

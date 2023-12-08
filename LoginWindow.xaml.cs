@@ -20,7 +20,7 @@ namespace Metal_Code
             //string login = LoginText.Text;
             //string password = PasswordText.Password;
 
-            //Manager? manager = MainWindow.M.dbManagers.Managers.FirstOrDefault(x => x.Name == login);
+            //Manager? manager = MainWindow.M.dbManagers.Managers.FirstOrDefault(x => x.Title == login);
             //if (manager != null)
             //{
             //    if (manager.Password == password)

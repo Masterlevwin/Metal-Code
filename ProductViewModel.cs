@@ -14,24 +14,25 @@ namespace Metal_Code
         readonly IFileService fileService;
         readonly IDialogService dialogService;
 
-        public ProductViewModel(IDialogService _dialogService, IFileService _fileService)
+        public ProductViewModel(IDialogService _dialogService, IFileService _fileService, Product product)
         {
             dialogService = _dialogService;
             fileService = _fileService;
+            Product = product;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public Product Product;
-        Detail selectedDetail;
+        Detail selectedDetail;      //временно не используется
         public Detail SelectedDetail
         {
             get { return selectedDetail; }
             set
             {
                 selectedDetail = value;
-                OnPropertyChanged("SelectedDetail");
+                OnPropertyChanged(nameof(SelectedDetail));
             }
         }
 
@@ -130,8 +131,8 @@ namespace Metal_Code
                   {
                       if (obj is Detail detail)
                       {
-                          Detail detailCopy = new(detail.Title, detail.Count, detail.Mass, detail.Price, detail.Total);
-                          Product.Details.Insert(0, detailCopy);
+                          //Detail detailCopy = new(detail.Title, detail.Count, detail.Price, detail.Total, detail.Mass);
+                          //Product.Details.Insert(0, detailCopy);
                       }
                   });
             }
