@@ -173,14 +173,9 @@ namespace Metal_Code
         {
             if (sender is TextBox tBox) SetBend(tBox.Text);
         }
-        private void SetBend(string _bend)
+        public void SetBend(string _bend)
         {
             if (int.TryParse(_bend, out int b)) Bend = b;
-            if (Parts.Count > 0)
-            {
-                foreach (PartControl p in Parts)
-                    foreach (BendControl item in p.UserControls.OfType<BendControl>()) item.SetBend(_bend);
-            }
             OnPriceChanged();
         }
 
@@ -191,11 +186,6 @@ namespace Metal_Code
         public void SetShelf(int ndx = 0)
         {
             ShelfDrop.SelectedIndex = ndx;
-            if (Parts.Count > 0)
-            {
-                foreach (PartControl p in Parts)
-                    foreach (BendControl item in p.UserControls.OfType<BendControl>()) item.SetShelf(ndx);
-            }
             OnPriceChanged();
         }
 

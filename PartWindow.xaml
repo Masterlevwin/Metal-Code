@@ -1,8 +1,9 @@
-﻿<Window x:Class="Metal_Code.PartWindow"
+﻿<Window
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Metal_Code" x:Class="Metal_Code.PartWindow"
         mc:Ignorable="d"
         Title="Список деталей" Height="300" Width="900" Topmost="True" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterScreen" Icon="/app_logo.jpeg">
     <ScrollViewer VerticalAlignment="Top" VerticalScrollBarVisibility="Auto">
@@ -25,6 +26,16 @@
                     <MenuItem Header="Окраска" Click="AddControl"/>
                 </MenuItem>
             </Menu>
+            <TextBlock HorizontalAlignment="Left" Margin="150,0,0,0" Grid.Row="1" TextWrapping="Wrap" Text="Общее для всех деталей:" VerticalAlignment="Center"/>
+            <TextBlock Text="Г" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="310,10,0,0" MinWidth="10" MinHeight="10" FontWeight="Bold" Grid.Row="1" ToolTip="Гибка для всех"/>
+            <TextBox x:Name="Bend" HorizontalAlignment="Left" Margin="320,0,0,0" Grid.Row="1" VerticalAlignment="Center" MinWidth="35" MinHeight="20" MaxWidth="35" MaxHeight="20" TextChanged="SetProperty" ToolTip="Введите количество однотипных гибов" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+            <ComboBox x:Name="BendDrop" HorizontalAlignment="Left" Margin="365,0,0,0" VerticalAlignment="Center" Height="20" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" SelectedIndex="0" ToolTip="Выберите длину гиба" Grid.Row="1" SelectionChanged="SetType"/>
+            <TextBlock Text="С" HorizontalAlignment="Left" Margin="465,10,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" Grid.Row="1" MinWidth="10" MinHeight="10" ToolTip="Сварка для всех"/>
+            <TextBox x:Name="Weld" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="475,0,0,0" MaxLines="1" ToolTip="Введите длину свариваемой поверхности, мм" MinHeight="20" MaxHeight="20" MinWidth="55" MaxWidth="55" Height="20" Grid.Row="1"/>
+            <ComboBox x:Name="WeldDrop" SelectionChanged="SetType" HorizontalAlignment="Left" Margin="540,0,0,0" VerticalAlignment="Center" Height="20" MinHeight="20" MaxHeight="20" MinWidth="50" MaxWidth="50" ToolTip="Выберите тип расчета" SelectedIndex="0" Grid.Row="1"/>
+            <TextBlock Text="О" HorizontalAlignment="Left" Margin="625,10,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" Grid.Row="1" ToolTip="Окраска для всех" MinWidth="10" MinHeight="10"/>
+            <TextBox x:Name="Paint" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Center" MinWidth="55" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Margin="635,0,0,0" MaxWidth="55" MaxHeight="20" MaxLines="1" ToolTip="Введите цвет RAL" Grid.Row="1"/>
+            <ComboBox x:Name="PaintDrop" SelectionChanged="SetType" HorizontalAlignment="Left" MinHeight="20" MinWidth="50" Height="20" Margin="700,0,0,0" VerticalAlignment="Center" MaxWidth="50" MaxHeight="20" ToolTip="Выберите тип расчета" SelectedIndex="0" Grid.Row="1"/>
         </Grid>
     </ScrollViewer>
 </Window>

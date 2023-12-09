@@ -178,18 +178,13 @@ namespace Metal_Code
         {
             if (sender is TextBox tBox) SetWeld(tBox.Text);
         }
-        private void SetWeld(string _weld)
+        public void SetWeld(string _weld)
         {
             Weld = _weld;
-            if (Parts.Count > 0)
-            {
-                foreach (PartControl p in Parts)
-                    foreach (WeldControl item in p.UserControls.OfType<WeldControl>()) item.SetWeld(Weld);
-            }
             OnPriceChanged();
         }
 
-        private Dictionary<string, float> TypeDict = new()
+        public Dictionary<string, float> TypeDict = new()
         {
             ["дву"] = 1.7f,
             ["одн"] = 1,
@@ -201,11 +196,6 @@ namespace Metal_Code
         public void SetType(int ndx = 0)
         {
             TypeDrop.SelectedIndex = ndx;
-            if (Parts.Count > 0)
-            {
-                foreach (PartControl p in Parts)
-                    foreach (WeldControl item in p.UserControls.OfType<WeldControl>()) item.SetType(ndx);
-            }
             OnPriceChanged();
         }
 

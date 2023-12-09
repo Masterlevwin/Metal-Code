@@ -72,15 +72,10 @@ namespace Metal_Code
         public void SetRal(string _ral)
         {
             Ral = _ral;
-            if (Parts.Count > 0)
-            {
-                foreach (PartControl p in Parts)
-                    foreach (PaintControl item in p.UserControls.OfType<PaintControl>()) item.SetRal(Ral);
-            }
             OnPriceChanged();
         }
 
-        private Dictionary<string, float> TypeDict = new()
+        public Dictionary<string, float> TypeDict = new()
         {
             ["м²"] = 812,
             ["шт"] = 350,
@@ -93,11 +88,6 @@ namespace Metal_Code
         public void SetType(int ndx = 0)
         {
             TypeDrop.SelectedIndex = ndx;
-            if (Parts.Count > 0)
-            {
-                foreach (PartControl p in Parts)
-                    foreach (PaintControl item in p.UserControls.OfType<PaintControl>()) item.SetType(ndx);
-            }
             OnPriceChanged();
         }
 
