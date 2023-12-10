@@ -56,6 +56,8 @@ namespace Metal_Code
                               fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());
                               dialogService.ShowMessage("Расчёт сохранен");
 
+                              MainWindow.M.SaveOffer(_path + ".mcm");        //сохраняем расчет в базе данных
+
                               MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);
                           }
                       }
@@ -81,6 +83,31 @@ namespace Metal_Code
                           {
                               Product = fileService.Open(dialogService.FilePaths[0]);
                               dialogService.ShowMessage("Файл открыт");
+                              MainWindow.M.LoadProduct();
+                          }
+                      }
+                      catch (Exception ex)
+                      {
+                          dialogService.ShowMessage(ex.Message);
+                      }
+                  });
+            }
+        }
+
+        // команда загрузки сохранения
+        private RelayCommand openOfferCommand;
+        public RelayCommand OpenOfferCommand
+        {
+            get
+            {
+                return openOfferCommand ??= new RelayCommand(obj =>
+                  {
+                      try
+                      {
+                          if (MainWindow.M.DetailsGrid.SelectedItem is Offer offer)
+                          {
+                              Product = fileService.Open(offer.Path);
+                              dialogService.ShowMessage("Файл загружен");
                               MainWindow.M.LoadProduct();
                           }
                       }
@@ -141,8 +168,8 @@ namespace Metal_Code
 
     public class RelayCommand : ICommand
     {
-        private Action<object> execute;
-        private Func<object, bool> canExecute;
+        private Action<object?> execute;
+        private Func<object?, bool>? canExecute;
 
         public event EventHandler? CanExecuteChanged
         {
@@ -150,18 +177,18 @@ namespace Metal_Code
             remove { CommandManager.RequerySuggested -= value; }
         }
 
-        public RelayCommand(Action<object> execute, Func<object, bool> canExecute = null)
+        public RelayCommand(Action<object?> execute, Func<object?, bool>? canExecute = null)
         {
             this.execute = execute;
             this.canExecute = canExecute;
         }
 
-        public bool CanExecute(object parameter)
+        public bool CanExecute(object? parameter)
         {
             return canExecute == null || canExecute(parameter);
         }
 
-        public void Execute(object parameter)
+        public void Execute(object? parameter)
         {
             execute(parameter);
         }

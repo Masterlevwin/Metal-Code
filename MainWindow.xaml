@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:Metal_Code"
-        x:Class="Metal_Code.MainWindow"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:Metal_Code" d:DataContext="{d:DesignInstance Type=local:ProductViewModel}"
+    x:Class="Metal_Code.MainWindow"
         mc:Ignorable="d"
         Title="Metal-Code" FontFamily="Century" Background="#FFD7E4F2" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" d:DesignHeight="805.736" d:DesignWidth="1809.931" Closing="Exit" WindowState="Maximized" Icon="/app_logo.jpeg">
     <Grid x:Name="MenuGrid">
@@ -44,7 +44,13 @@
             <Button x:Name="ResultBtn" Content="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Right" MinHeight="20" AllowDrop="False" ToolTip="Общая стоимость, нажмите, чтобы обновить" VerticalAlignment="Top" Margin="0,40,55,0" FontSize="14" HorizontalContentAlignment="Stretch" MaxWidth="80" BorderThickness="0,0,0,0" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Click="UpdateResult" Height="20"/>
             <GroupBox Header="Ведомость деталей" Grid.Column="1" Grid.Row="1" MinWidth="400" Margin="15,0,15,20">
                 <Grid>
-                    <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" Margin="15,5,15,5" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" CanUserReorderColumns="False" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn"/>
+                    <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" Margin="15,5,15,5" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" CanUserReorderColumns="False" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Загрузить" Command="{Binding OpenOfferCommand}"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                    </DataGrid>
                 </Grid>
             </GroupBox>
             <GroupBox x:Name="OrderBox" Grid.Column="1" Margin="15,20,15,15" Header="Коммерческое предложение" MinWidth="400">
@@ -81,6 +87,7 @@
                     <TextBox x:Name="PaintRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,97,0,0" TextChanged="UpdateResult"/>
                     <TextBox x:Name="ConstructRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,122,0,0" TextChanged="UpdateResult"/>
                     <TextBlock HorizontalAlignment="Left" Margin="470,75,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
+                    <Button Content="Список КП" HorizontalAlignment="Left" Margin="400,0,0,10" VerticalAlignment="Bottom" Click="ViewOffers"/>
                 </Grid>
             </GroupBox>
             <TextBlock HorizontalAlignment="Right" Text="руб" VerticalAlignment="Top" Margin="0,40,30,0" Height="14" Width="19"/>

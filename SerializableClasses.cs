@@ -137,12 +137,41 @@ namespace Metal_Code
         public string? Contact {  get; set; }
         public string? Password {  get; set; }
         public bool IsAdmin {  get; set; }
+        public ObservableCollection<Offer> Offers { get; set; } = new();
         public Manager()
         {
 
         }
     }
-    
+
+    public class Offer
+    {
+        [Browsable(false)]
+        public int Id { get; set; }
+        public string? N { get; set; }
+        public string? Company { get; set; }
+        public float Amount { get; set; }
+        public DateTime? CreatedDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? Invoice { get; set; }
+        public string? Order { get; set; }
+        public string? Act { get; set; }
+
+        [Browsable(false)]
+        public string? Path { get; set; }
+        [Browsable(false)]
+        public int ManagerId { get; set; }
+        [Browsable(false)]
+        public Manager? Manager { get; set; }
+        public Offer(string? n = null, string? company = null, float amount = 0)
+        {
+            N = n;
+            Company = company;
+            Amount = amount;
+            CreatedDate = DateTime.Now;
+        }
+    }
+
     public class Metal
     {
         public int Id { get; set; }
@@ -180,6 +209,7 @@ namespace Metal_Code
     public class ManagerContext : DbContext
     {
         public DbSet<Manager> Managers { get; set; } = null!;
+        public DbSet<Offer> Offers { get; set; } = null!;
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlite("Data Source=managers.db");

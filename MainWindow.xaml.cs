@@ -34,6 +34,8 @@ namespace Metal_Code
         public readonly MetalContext dbMetals = new();
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
 
+        public Manager CurrentManager = new();
+
         public MainWindow()
         {
             InitializeComponent();
@@ -67,6 +69,7 @@ namespace Metal_Code
 
             dbManagers.Database.EnsureCreated();
             dbManagers.Managers.Load();
+            dbManagers.Offers.Load();
             ManagerDrop.ItemsSource = dbManagers.Managers.Local.ToObservableCollection();
 
             dbMetals.Database.EnsureCreated();
@@ -289,6 +292,21 @@ namespace Metal_Code
             DetailsGrid.Columns[5].Header = "Кол-во, шт";
             DetailsGrid.Columns[6].Header = "Цена за шт, руб";
             DetailsGrid.Columns[7].Header = "Стоимость, руб";
+            DetailsGrid.FrozenColumnCount = 1;
+        }
+
+        private void ViewOffers(object sender, RoutedEventArgs e)
+        {
+            DetailsGrid.ItemsSource = CurrentManager.Offers;
+
+            DetailsGrid.Columns[0].Header = "N";
+            DetailsGrid.Columns[1].Header = "Компания";
+            DetailsGrid.Columns[2].Header = "Итого, руб.";
+            DetailsGrid.Columns[3].Header = "Дата создания";
+            DetailsGrid.Columns[4].Header = "Дата отгрузки";
+            DetailsGrid.Columns[5].Header = "Счёт";
+            DetailsGrid.Columns[6].Header = "Заказ";
+            DetailsGrid.Columns[7].Header = "УПД / Акт";
             DetailsGrid.FrozenColumnCount = 1;
         }
 
@@ -622,6 +640,22 @@ namespace Metal_Code
             }
         }
 
+        public void SaveOffer(string path)
+        {
+            Offer offer = new(Order.Text, Company.Text, Result)
+            {
+                Path = path
+            };
+
+            foreach (Manager man in dbManagers.Managers.Local.ToObservableCollection()) if (man == CurrentManager)
+                {
+                    offer.Manager = man;
+                    man.Offers.Add(offer);
+                    dbManagers.SaveChanges();
+                    break;
+                }
+        }
+
         public void ExportToExcel(string path)
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
@@ -684,6 +718,7 @@ namespace Metal_Code
                 //в деталях нам не нужно повторно учитывать "Лист металла", если он уже загружен как нарезанные детали
             for (int i = 8; i < row; i++)
                 if (Parts.Count > 0 && worksheet.Cells[i, 1].Value != null && $"{worksheet.Cells[i, 1].Value}".Contains("Лист металла"))
+                    //в одной строчке могут быть и лист металла и другие типовые детали, которые удалять нельзя - исправить метод!
                 {
                     worksheet.DeleteRow(i);
                     row--;
@@ -962,5 +997,6 @@ namespace Metal_Code
         {
             Application.Current.Shutdown();
         }
+
     }
 }
