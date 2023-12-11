@@ -44,10 +44,11 @@
             <Button x:Name="ResultBtn" Content="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Right" MinHeight="20" AllowDrop="False" ToolTip="Общая стоимость, нажмите, чтобы обновить" VerticalAlignment="Top" Margin="0,40,55,0" FontSize="14" HorizontalContentAlignment="Stretch" MaxWidth="80" BorderThickness="0,0,0,0" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Click="UpdateResult" Height="20"/>
             <GroupBox Header="Ведомость деталей" Grid.Column="1" Grid.Row="1" MinWidth="400" Margin="15,0,15,20">
                 <Grid>
-                    <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" Margin="15,5,15,5" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" CanUserReorderColumns="False" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn">
+                    <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" Margin="15,5,15,5" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" CanUserReorderColumns="False" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" LostFocus="EditOffer">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Загрузить" Command="{Binding OpenOfferCommand}"/>
+                                <MenuItem Header="Удалить" Command="{Binding RemoveOfferCommand}"/>
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                     </DataGrid>

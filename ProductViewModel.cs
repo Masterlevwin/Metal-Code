@@ -148,6 +148,27 @@ namespace Metal_Code
             }
         }
 
+        // команда удаления КП
+        private RelayCommand removeOfferCommand;
+        public RelayCommand RemoveOfferCommand
+        {
+            get
+            {
+                return removeOfferCommand ??= new RelayCommand(obj =>
+                  {
+                      if (MainWindow.M.DetailsGrid.SelectedItem is Offer offer)
+                          foreach (Manager man in MainWindow.M.dbManagers.Managers.Local.ToObservableCollection())
+                              if (man == MainWindow.M.CurrentManager)
+                              {
+                                  man.Offers.Remove(offer);
+                                  MainWindow.M.dbManagers.SaveChanges();
+                                  break;
+                              }
+
+                  });
+            }
+        }
+
         // команда копирования объекта
         private RelayCommand doubleCommand;
         public RelayCommand DoubleCommand

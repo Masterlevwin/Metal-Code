@@ -67,6 +67,7 @@ namespace Metal_Code
             dbTypeDetails.Database.EnsureCreated();
             dbTypeDetails.TypeDetails.Load();
 
+            //dbManagers.Database.EnsureDeleted();
             dbManagers.Database.EnsureCreated();
             dbManagers.Managers.Load();
             dbManagers.Offers.Load();
@@ -554,6 +555,27 @@ namespace Metal_Code
             }
             return details;
         }
+        public void SaveOffer(string path)
+        {
+            foreach (Manager man in dbManagers.Managers.Local.ToObservableCollection()) if (man == CurrentManager)
+                {
+                    foreach (Offer of in man.Offers) if (of.Path == path)
+                        {
+                            dbManagers.SaveChanges();
+                            return;
+                        }
+
+                    Offer offer = new(Order.Text, Company.Text, Result)
+                    {
+                        Path = path,
+                        Manager = man
+                    };
+
+                    man.Offers.Add(offer);
+                    dbManagers.SaveChanges();
+                    break;
+                }
+        }
 
         public void LoadProduct()
         {            
@@ -638,22 +660,6 @@ namespace Metal_Code
                     if (_det.TypeDetailControls.Count < details[i].TypeDetails.Count) _det.AddTypeDetail();
                 }
             }
-        }
-
-        public void SaveOffer(string path)
-        {
-            Offer offer = new(Order.Text, Company.Text, Result)
-            {
-                Path = path
-            };
-
-            foreach (Manager man in dbManagers.Managers.Local.ToObservableCollection()) if (man == CurrentManager)
-                {
-                    offer.Manager = man;
-                    man.Offers.Add(offer);
-                    dbManagers.SaveChanges();
-                    break;
-                }
         }
 
         public void ExportToExcel(string path)
@@ -853,15 +859,16 @@ namespace Metal_Code
 
                 //выравниваем содержимое документа и оформляем нюансы
             worksheet.Cells.AutoFitColumns();
-            if (worksheet.Columns[1].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указан материал
-            if (worksheet.Columns[3].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указаны работы
-            worksheet.Cells[8, 1, row, 3].Style.WrapText = true;                                //переносим текст при необходимости
+
+            //if (worksheet.Columns[1].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указан материал
+            //if (worksheet.Columns[3].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указаны работы
+            //worksheet.Cells[8, 1, row, 3].Style.WrapText = true;                                //переносим текст при необходимости
             if (worksheet.Rows[row + 4].Height < 35) worksheet.Rows[row + 4].Height = 35;       //оформляем строку, где указан порядок отгрузки
             if (worksheet.Columns[5].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указано наименование детали
             if (IsLaser) worksheet.DeleteRow(4, 2);                                             //удаляем 4 и 5 строки, необходимые только для Провэлда
             else if (Parts.Count > 0) worksheet.DeleteRow(row + 5, 1);       //удаляем строку, где указана расшифровка работ, если нет нарезанных деталей
-
-                //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
+                
+            //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
             worksheet.PrinterSettings.FitToPage = true;
             worksheet.PrinterSettings.FitToWidth = 1;
             worksheet.PrinterSettings.FitToHeight = 0;
@@ -998,5 +1005,9 @@ namespace Metal_Code
             Application.Current.Shutdown();
         }
 
+        private void EditOffer(object sender, RoutedEventArgs e)        // при потере фокуса (DataGrid.LostFocus="EditOffer")
+        {
+            if (DetailsGrid.SelectedItem is Offer) dbManagers.SaveChanges();
+        }
     }
 }
