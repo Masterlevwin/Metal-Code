@@ -14,6 +14,7 @@ using OfficeOpenXml.Style;
 using OfficeOpenXml;
 using System.Windows.Media.Imaging;
 using System.Text;
+using System.Windows.Media;
 
 namespace Metal_Code
 {
@@ -304,12 +305,27 @@ namespace Metal_Code
             DetailsGrid.Columns[1].Header = "Компания";
             DetailsGrid.Columns[2].Header = "Итого, руб.";
             DetailsGrid.Columns[3].Header = "Дата создания";
+            (DetailsGrid.Columns[3] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
             DetailsGrid.Columns[4].Header = "Дата отгрузки";
+            (DetailsGrid.Columns[4] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
             DetailsGrid.Columns[5].Header = "Счёт";
             DetailsGrid.Columns[6].Header = "Заказ";
             DetailsGrid.Columns[7].Header = "УПД / Акт";
             DetailsGrid.FrozenColumnCount = 1;
         }
+
+        //private void OffersDateProduction(object sender, DataGridRowEventArgs e)
+        //{
+        //    if (e.Row.DataContext is not Offer offer) return;
+
+        //    SolidColorBrush hb = new(Colors.Orange);
+        //    SolidColorBrush nb = new(Colors.White);
+
+        //    if (offer.EndDate == DateTime.Now)
+        //        e.Row.Background = hb;
+        //    else
+        //        e.Row.Background = nb;
+        //}
 
         void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
@@ -395,12 +411,14 @@ namespace Metal_Code
         {
             SetCount(0);
             CheckDelivery.IsChecked = IsLaser = false;
-            ProductName.Text = Order.Text = Company.Text = DateProduction.Text = ManagerDrop.Text = Comment.Text = Delivery.Text = "";
+            ProductName.Text = Order.Text = Company.Text = DateProduction.Text = Comment.Text = Delivery.Text = "";
+            ManagerDrop.SelectedItem = CurrentManager;
         }
 
         private void SetDate(object sender, SelectionChangedEventArgs e)
         {
             DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
+
             int GetBusinessDays(DateTime startD, DateTime endD)
             {
                 int calcBusinessDays =
@@ -412,6 +430,12 @@ namespace Metal_Code
 
                 return calcBusinessDays;
             }
+        }
+
+        private DateTime? EndDate()
+        {
+            if (int.TryParse(DateProduction.Text, out int d)) return DateTime.Now.AddDays(d);
+            else return null;
         }
 
         private ObservableCollection<Detail> DetailsSource()
@@ -568,7 +592,8 @@ namespace Metal_Code
                     Offer offer = new(Order.Text, Company.Text, Result)
                     {
                         Path = path,
-                        Manager = man
+                        Manager = man,
+                        EndDate = EndDate()
                     };
 
                     man.Offers.Add(offer);

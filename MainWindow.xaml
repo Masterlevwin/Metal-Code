@@ -60,21 +60,21 @@
                     <Image x:Name="Logo" HorizontalAlignment="Left" VerticalAlignment="Bottom" Height="27" Margin="40,0,0,5" Source="/app_logo.jpeg"/>
                     <TextBox x:Name="Order" HorizontalAlignment="Left" Margin="80,20,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40" ToolTip="Введите номер предложения"/>
                     <TextBox x:Name="Company" HorizontalAlignment="Left" Margin="150,20,0,0" VerticalAlignment="Top" MinWidth="200" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите контрагента"/>
-                    <TextBlock HorizontalAlignment="Left" Margin="40,20,0,0" TextWrapping="Wrap" Text="КП №" VerticalAlignment="Top"/>
-                    <TextBlock HorizontalAlignment="Left" Margin="125,20,0,0" TextWrapping="Wrap" Text="для" VerticalAlignment="Top"/>
-                    <TextBlock HorizontalAlignment="Left" Margin="15,40,0,0" TextWrapping="Wrap" Text="Данный расчет действителен в течении 2-х банковских дней" VerticalAlignment="Top" FontSize="8"/>
-                    <TextBlock HorizontalAlignment="Left" Margin="15,55,0,0" TextWrapping="Wrap" Text="Срок изготовления:" VerticalAlignment="Top"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="40,20,0,0" Text="КП №" VerticalAlignment="Top"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="125,20,0,0" Text="для" VerticalAlignment="Top"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="15,40,0,0" Text="Данный расчет действителен в течении 2-х банковских дней" VerticalAlignment="Top" FontSize="8"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="15,55,0,0" Text="Срок изготовления:" VerticalAlignment="Top"/>
                     <TextBox x:Name="DateProduction" Margin="135,55,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50" ToolTip="Введите срок изготовления"/>
-                    <TextBlock HorizontalAlignment="Left" Margin="200,55,0,0" TextWrapping="Wrap" Text="раб/дней" VerticalAlignment="Top"/>
-                    <TextBlock HorizontalAlignment="Left" Margin="15,75,0,0" TextWrapping="Wrap" Text="Порядок отгрузки:" VerticalAlignment="Top"/>
-                    <TextBox x:Name="Adress" HorizontalAlignment="Left" Margin="15,95,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="265" Height="45" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}" ToolTip="Введите адрес доставки" Text="Адрес доставки:"/>
-                    <TextBox x:Name="Comment" HorizontalAlignment="Left" Margin="15,145,0,0" TextWrapping="Wrap" Text="Комментарии..." VerticalAlignment="Top" Width="265" Height="45" ToolTip="Введите комментарий"/>
-                    <TextBlock HorizontalAlignment="Left" Margin="15,195,0,0" TextWrapping="Wrap" Text="Ваш менеджер:" VerticalAlignment="Top"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="200,55,0,0" Text="раб/дней" VerticalAlignment="Top"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="15,75,0,0" Text="Порядок отгрузки:" VerticalAlignment="Top"/>
+                    <TextBox x:Name="Adress" HorizontalAlignment="Left" Margin="15,95,0,0" VerticalAlignment="Top" Width="265" Height="45" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}" ToolTip="Введите адрес доставки" Text="Адрес доставки:"/>
+                    <TextBox x:Name="Comment" HorizontalAlignment="Left" Margin="15,145,0,0" Text="Комментарии..." VerticalAlignment="Top" Width="265" Height="45" ToolTip="Введите комментарий"/>
+                    <TextBlock HorizontalAlignment="Left" Margin="15,195,0,0" Text="Ваш менеджер:" VerticalAlignment="Top"/>
                     <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" HorizontalAlignment="Left" Margin="115,195,0,0" VerticalAlignment="Top" Width="165" ToolTip="Выберите менеджера" SelectedIndex="0"/>
-                    <DatePicker x:Name="datePicker" HorizontalAlignment="Left" Margin="305,51,0,0" VerticalAlignment="Top" FirstDayOfWeek="Monday" SelectedDateChanged="SetDate" ToolTip="Выберите дату изготовления"/>
+                    <DatePicker x:Name="datePicker" HorizontalAlignment="Left" Margin="305,50,0,0" VerticalAlignment="Top" FirstDayOfWeek="Monday" SelectedDateChanged="SetDate" ToolTip="Выберите дату изготовления"/>
                     <CheckBox x:Name="CheckDelivery" Content="Доставка" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="135,75,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Если не выбрано, то порядок отгрузки: Самовывоз"/>
                     <TextBox x:Name="Delivery" HorizontalAlignment="Left" Margin="220,73,0,0" Text="Цена" VerticalAlignment="Top" MinWidth="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="60" MaxLines="1" IsEnabled="{Binding IsChecked, ElementName=CheckDelivery}" ToolTip="Введите цену доставки"/>
-                    <TextBlock x:Name="Boss" HorizontalAlignment="Right" TextWrapping="Wrap" VerticalAlignment="Top" Margin="0,0,135,0"/>
+                    <TextBlock x:Name="Boss" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,135,0"/>
                     <CheckBox x:Name="CheckLaser" IsChecked="{Binding IsLaser, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Отметьте, если нужно КП от Лазерфлекс" HorizontalAlignment="Left" Margin="15,0,0,10" VerticalAlignment="Bottom" Click="IsLaserChanged"/>
                     <CheckBox x:Name="CheckAgent" ToolTip="Опция добавляет к наименованию детали строку:&#x0a;&quot;Изготовление детали&quot; - если нужен счет от ИП или ПК&#x0a;&quot;Деталь&quot; - если нужен счет от ООО" IsChecked="{Binding IsAgent, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="200,0,0,10" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="счёт от ИП или ПК" IsEnabled="{Binding IsChecked, ElementName=CheckLaser}"/>
                     <TextBlock HorizontalAlignment="Left" Margin="305,100,0,0" Text="Окраска" VerticalAlignment="Top" TextWrapping="NoWrap"/>
