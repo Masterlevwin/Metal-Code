@@ -220,6 +220,9 @@ namespace Metal_Code
                     }
                 }
             }
+
+                //определяем деталь, в которой загрузили раскладки, как комплект деталей
+            if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged();
         }
 
         public PartWindow? WindowParts = null;

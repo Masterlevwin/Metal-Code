@@ -57,6 +57,7 @@ namespace Metal_Code
                 Phone.Text = "тел:(812)603-45-33";
                 IsAgent = false;
                 AddDetail();
+                ViewOffersGrid();
             }
         }
 
@@ -297,35 +298,40 @@ namespace Metal_Code
             DetailsGrid.FrozenColumnCount = 1;
         }
 
-        private void ViewOffers(object sender, RoutedEventArgs e)
+        private void ViewOffersGrid()
         {
-            DetailsGrid.ItemsSource = CurrentManager.Offers;
+            OffersGrid.ItemsSource = CurrentManager.Offers;
 
-            DetailsGrid.Columns[0].Header = "N";
-            DetailsGrid.Columns[1].Header = "Компания";
-            DetailsGrid.Columns[2].Header = "Итого, руб.";
-            DetailsGrid.Columns[3].Header = "Дата создания";
-            (DetailsGrid.Columns[3] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
-            DetailsGrid.Columns[4].Header = "Дата отгрузки";
-            (DetailsGrid.Columns[4] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
-            DetailsGrid.Columns[5].Header = "Счёт";
-            DetailsGrid.Columns[6].Header = "Заказ";
-            DetailsGrid.Columns[7].Header = "УПД / Акт";
-            DetailsGrid.FrozenColumnCount = 1;
+            OffersGrid.Columns[0].Header = "N";
+            OffersGrid.Columns[1].Header = "Компания";
+            OffersGrid.Columns[2].Header = "Итого, руб.";
+            OffersGrid.Columns[3].Header = "Дата создания";
+            (OffersGrid.Columns[3] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
+            OffersGrid.Columns[4].Header = "Дата отгрузки";
+            (OffersGrid.Columns[4] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
+            OffersGrid.Columns[5].Header = "Счёт";
+            OffersGrid.Columns[6].Header = "Заказ";
+            OffersGrid.Columns[7].Header = "УПД / Акт";
+            OffersGrid.FrozenColumnCount = 1;
         }
 
-        //private void OffersDateProduction(object sender, DataGridRowEventArgs e)
-        //{
-        //    if (e.Row.DataContext is not Offer offer) return;
+        private void EditOffer(object sender, RoutedEventArgs e)        // при потере фокуса (DataGrid.LostFocus="EditOffer")
+        {
+            if (OffersGrid.SelectedItem is Offer) dbManagers.SaveChanges();
+        }
 
-        //    SolidColorBrush hb = new(Colors.Orange);
-        //    SolidColorBrush nb = new(Colors.White);
+        private void OffersDateProduction(object sender, DataGridRowEventArgs e)        // при загрузке строк (DataGrid.LoadingRow="OffersDateProduction")
+        {
+            if (e.Row.DataContext is not Offer offer) return;
 
-        //    if (offer.EndDate == DateTime.Now)
-        //        e.Row.Background = hb;
-        //    else
-        //        e.Row.Background = nb;
-        //}
+            SolidColorBrush hb = new(Colors.Orange);
+            SolidColorBrush nb = new(Colors.White);
+
+            if (offer.EndDate <= DateTime.Now)
+                e.Row.Background = hb;
+            else
+                e.Row.Background = nb;
+        }
 
         void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
@@ -411,7 +417,7 @@ namespace Metal_Code
         {
             SetCount(0);
             CheckDelivery.IsChecked = IsLaser = false;
-            ProductName.Text = Order.Text = Company.Text = DateProduction.Text = Comment.Text = Delivery.Text = "";
+            ProductName.Text = Order.Text = Company.Text = DateProduction.Text = Delivery.Text = "";
             ManagerDrop.SelectedItem = CurrentManager;
         }
 
@@ -476,6 +482,7 @@ namespace Metal_Code
 
         public Product SaveProduct()
         {
+#pragma warning disable CS8629 // Тип значения, допускающего NULL, может быть NULL.
             ProductModel.Product = new()
             {
                 Name = ProductName.Text,
@@ -483,12 +490,13 @@ namespace Metal_Code
                 Company = Company.Text,
                 Production = DateProduction.Text,
                 Manager = ManagerDrop.Text,
-                Comment = Comment.Text,
                 PaintRatio = PaintRatio.Text,
                 ConstructRatio = ConstructRatio.Text,
                 Count = Count,
                 IsLaser = IsLaser,
+                CheckAgent = (bool)CheckAgent.IsChecked
             };
+#pragma warning restore CS8629 // Тип значения, допускающего NULL, может быть NULL.
             if (CheckDelivery.IsChecked != null) ProductModel.Product.HasDelivery = (bool)CheckDelivery.IsChecked;
             if (int.TryParse(Delivery.Text, out int d)) ProductModel.Product.Delivery = d;
 
@@ -568,7 +576,8 @@ namespace Metal_Code
                             else _detail.Description += $"{_work.Name}\n";
                             
                             //удаляем крайний перенос строки
-                            if (k == type.WorkControls.Count - 1) _detail.Description = _detail.Description.TrimEnd('\n');
+                            if (j == det.TypeDetailControls.Count - 1 && k == type.WorkControls.Count - 1)
+                                _detail.Description = _detail.Description.TrimEnd('\n');
 
                             _typeDetail.Works.Add(_saveWork);
                         }
@@ -585,6 +594,7 @@ namespace Metal_Code
                 {
                     foreach (Offer of in man.Offers) if (of.Path == path)
                         {
+                            of.EndDate = EndDate();
                             dbManagers.SaveChanges();
                             return;
                         }
@@ -612,8 +622,8 @@ namespace Metal_Code
             Company.Text = ProductModel.Product.Company;
             DateProduction.Text = ProductModel.Product.Production;
             ManagerDrop.Text = ProductModel.Product.Manager;
-            Comment.Text = ProductModel.Product.Comment;
             IsLaser = ProductModel.Product.IsLaser;
+            CheckAgent.IsChecked = ProductModel.Product.CheckAgent;
             CheckPaint.IsChecked = ProductModel.Product.HasPaint;
             PaintRatio.Text = ProductModel.Product.PaintRatio;
             CheckConstruct.IsChecked = ProductModel.Product.HasConstruct;
@@ -684,6 +694,7 @@ namespace Metal_Code
                     }
                     if (_det.TypeDetailControls.Count < details[i].TypeDetails.Count) _det.AddTypeDetail();
                 }
+                if (_det.Detail.Title == "Комплект деталей") _det.IsComplectChanged();       //если деталь является Комплектом деталей, запускаем ограничения
             }
         }
 
@@ -721,10 +732,10 @@ namespace Metal_Code
             {
                 worksheet.Cells["C4"].Value = $"Для изготовления изделия";
                 worksheet.Cells["C5"].Value = "понадобятся следующие детали и работы:";
-                worksheet.Cells[4, 3, 4, 6].Merge = true;
-                worksheet.Cells[5, 3, 5, 6].Merge = true;
-                worksheet.Cells["G4"].Value = ProductName.Text;
-                worksheet.Cells["G4"].Style.Font.Bold = true;
+                worksheet.Cells[4, 3, 4, 4].Merge = true;
+                worksheet.Cells[5, 3, 5, 5].Merge = true;
+                worksheet.Cells["E4"].Value = ProductName.Text;
+                worksheet.Cells["E4"].Style.Font.Bold = true;
             }
 
             int row = 8;        //счетчик строк деталей, начинаем с восьмой строки документа
@@ -736,8 +747,6 @@ namespace Metal_Code
 
                 DataTable partTable = ToDataTable(Parts);
                 worksheet.Cells[row, 1].LoadFromDataTable(ToDataTable(Parts), false);
-                foreach (var cell in worksheet.Cells[8, 5, partTable.Rows.Count + 8, 5])
-                    if (cell.Value != null) cell.Value = IsAgent ? $"{cell.Value}".Insert(0, "Изготовление детали ") : $"{cell.Value}".Insert(0, "Деталь ");
                 row += partTable.Rows.Count;
             }
 
@@ -746,16 +755,19 @@ namespace Metal_Code
             worksheet.Cells[row, 1].LoadFromDataTable(detailTable, false);
             row += detailTable.Rows.Count;
 
-                //в деталях нам не нужно повторно учитывать "Лист металла", если он уже загружен как нарезанные детали
+                //в деталях нам не нужно повторно учитывать "Комплект деталей"
             for (int i = 8; i < row; i++)
-                if (Parts.Count > 0 && worksheet.Cells[i, 1].Value != null && $"{worksheet.Cells[i, 1].Value}".Contains("Лист металла"))
-                    //в одной строчке могут быть и лист металла и другие типовые детали, которые удалять нельзя - исправить метод!
+                if (Parts.Count > 0 && worksheet.Cells[i, 5].Value != null && $"{worksheet.Cells[i, 5].Value}".Contains("Комплект деталей"))
                 {
                     worksheet.DeleteRow(i);
                     row--;
                 }
 
-            //оформляем заголовки таблицы
+                //взависимости от исходящего контрагента добавляем к наименованию детали формулировку услуги или товара
+            foreach (var cell in worksheet.Cells[8, 5, row + 8, 5])
+                if (cell.Value != null) cell.Value = IsAgent ? $"{cell.Value}".Insert(0, "Изготовление детали ") : $"{cell.Value}".Insert(0, "Деталь ");
+
+                //оформляем заголовки таблицы
             for (int col = 0; col < DetailsGrid.Columns.Count; col++)
             {
                 worksheet.Cells[6, col + 1].Value = DetailsGrid.Columns[col].Header;
@@ -766,22 +778,6 @@ namespace Metal_Code
             }
             worksheet.Columns[9].Hidden = true;
             worksheet.Columns[10].Hidden = true;
-
-            //if (IsLaser)
-            //{
-            //    foreach (DetailControl d in DetailControls)
-            //        foreach (TypeDetailControl t in d.TypeDetailControls)
-            //            foreach (WorkControl w in t.WorkControls)
-            //                if (w.workType is ExtraControl _extra)
-            //                {
-            //                    worksheet.Cells[row + 8, 4].Value = "Доп работа";
-            //                    worksheet.Cells[row + 8, 5].Value = _extra.NameExtra;
-            //                    worksheet.Cells[row + 8, 6].Value = t.Count;
-            //                    worksheet.Cells[row + 8, 7].Value = _extra.Price;
-            //                    worksheet.Cells[row + 8, 8].Value = t.Count * _extra.Price;
-            //                    row++;
-            //                }
-            //}
 
             if (CheckPaint.IsChecked == null)           //если требуется указать окраску отдельной строкой
             {
@@ -885,11 +881,9 @@ namespace Metal_Code
                 //выравниваем содержимое документа и оформляем нюансы
             worksheet.Cells.AutoFitColumns();
 
-            //if (worksheet.Columns[1].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указан материал
-            //if (worksheet.Columns[3].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указаны работы
-            //worksheet.Cells[8, 1, row, 3].Style.WrapText = true;                                //переносим текст при необходимости
             if (worksheet.Rows[row + 4].Height < 35) worksheet.Rows[row + 4].Height = 35;       //оформляем строку, где указан порядок отгрузки
             if (worksheet.Columns[5].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указано наименование детали
+            worksheet.Cells[8, 1, row, 3].Style.WrapText = true;                                //переносим текст при необходимости
             if (IsLaser) worksheet.DeleteRow(4, 2);                                             //удаляем 4 и 5 строки, необходимые только для Провэлда
             else if (Parts.Count > 0) worksheet.DeleteRow(row + 5, 1);       //удаляем строку, где указана расшифровка работ, если нет нарезанных деталей
                 
@@ -1030,9 +1024,5 @@ namespace Metal_Code
             Application.Current.Shutdown();
         }
 
-        private void EditOffer(object sender, RoutedEventArgs e)        // при потере фокуса (DataGrid.LostFocus="EditOffer")
-        {
-            if (DetailsGrid.SelectedItem is Offer) dbManagers.SaveChanges();
-        }
     }
 }

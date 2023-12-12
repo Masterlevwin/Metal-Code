@@ -3,16 +3,15 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using static OfficeOpenXml.ExcelErrorValue;
 
 namespace Metal_Code
 {
     [Serializable]
     public class Product
     {
-        public string? Name, Order, Company, Production, Manager, Comment, PaintRatio, ConstructRatio;
+        public string? Name, Order, Company, Production, Manager, PaintRatio, ConstructRatio;
         public int Count, Delivery;
-        public bool IsLaser, HasDelivery, HasPaint, HasConstruct;
+        public bool IsLaser, HasDelivery, HasPaint, HasConstruct, CheckAgent;
         public ObservableCollection<Detail> Details { get; set; } = new();
         public Product()
         {
@@ -34,6 +33,8 @@ namespace Metal_Code
 
         [Browsable(false)]
         public float Mass { get; set; }
+        [Browsable(false)]
+        public bool IsComplect { get; set; } = false;
 
         public List<SaveTypeDetail> TypeDetails = new();
         public Detail(string? _name = null, int _count = 1, string? _accuracy = null)

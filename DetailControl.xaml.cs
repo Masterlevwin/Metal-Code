@@ -27,6 +27,8 @@ namespace Metal_Code
         }
         public void AddTypeDetail()
         {
+            if (Detail.IsComplect) return;      //нельзя добавить еще типовые детали, если это Комплект деталей
+
             TypeDetailControl type = new(this);
 
             if (TypeDetailControls.Count > 0)
@@ -69,7 +71,27 @@ namespace Metal_Code
 
         private void SetName(object sender, TextChangedEventArgs e)
         {
-            if (sender is TextBox tBox) Detail.Title = tBox.Text;
+            if (sender is TextBox tBox) SetName(tBox.Text);
+        }
+
+        public void SetName(string name)
+        {
+            Detail.Title = DetailName.Text = name;
+        }
+
+        public void IsComplectChanged()     // метод, в котором эта деталь определяется как Комплект деталей
+                                            // и устанавливаются ограничения на добавление типовых деталей
+        {
+            Detail.IsComplect = true;
+            SetName("Комплект деталей");
+            DetailName.IsEnabled = false;
+
+            MessageBox.Show("Предупреждение: все работы, кроме гибки, сварки и окраски," +
+            "определенные в комплекте деталей, учитываться в КП не будут!");
+
+            foreach (TypeDetailControl t in TypeDetailControls)
+                foreach (UIElement element in t.TypeDetailGrid.Children)
+                    if(element is not WorkControl && element is not CheckBox) element.IsEnabled = false;
         }
 
         private void SetCount(object sender, TextChangedEventArgs e)    // свойство временно не используется, так как заказчик посчитал его ненужным

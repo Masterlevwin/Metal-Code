@@ -104,8 +104,9 @@ namespace Metal_Code
                   {
                       try
                       {
-                          if (MainWindow.M.DetailsGrid.SelectedItem is Offer offer)
+                          if (MainWindow.M.OffersGrid.SelectedItem is Offer offer)
                           {
+                              Product = null;       //иногда дублируются расчеты, возможно сброс Продукта поможет
                               Product = fileService.Open(offer.Path);
                               dialogService.ShowMessage("Файл загружен");
                               MainWindow.M.LoadProduct();
@@ -156,7 +157,7 @@ namespace Metal_Code
             {
                 return removeOfferCommand ??= new RelayCommand(obj =>
                   {
-                      if (MainWindow.M.DetailsGrid.SelectedItem is Offer offer)
+                      if (MainWindow.M.OffersGrid.SelectedItem is Offer offer)
                           foreach (Manager man in MainWindow.M.dbManagers.Managers.Local.ToObservableCollection())
                               if (man == MainWindow.M.CurrentManager)
                               {
