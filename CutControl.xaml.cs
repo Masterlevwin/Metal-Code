@@ -172,7 +172,7 @@ namespace Metal_Code
             {
                 if (dialogService.OpenFileDialog() == true)
                 {
-                    LoadExcel(dialogService.FilePaths);
+                    if (dialogService.FilePaths != null) LoadExcel(dialogService.FilePaths);
                 }
             }
             catch (Exception ex)
@@ -182,6 +182,38 @@ namespace Metal_Code
         }
         public void LoadExcel(string[] paths)
         {
+            // раскладки можно загрузить только в отдельную деталь Комплект деталей,
+            // в которой нет других типовых деталей, кроме Лист металла, и в этом "Листе" должна быть резка...
+            // ...это условие необходимо соблюдать для корректного отображения сборных деталей в КП
+            foreach (TypeDetailControl tc in work.type.det.TypeDetailControls)
+            {
+                if ((tc.TypeDetailDrop.SelectedItem is TypeDetail _t && _t.Name != "Лист металла")
+                    || (!tc.WorkControls.Contains(tc.WorkControls.FirstOrDefault(w => w.workType is CutControl))))
+                {
+                    MainWindow.M.AddDetail();
+
+                    // устанавливаем "Лист металла"
+                    if (MainWindow.M.dbTypeDetails.TypeDetails.Contains(MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла"))
+                        && MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла") is TypeDetail t)
+                        MainWindow.M.DetailControls[^1].TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
+
+                    // устанавливаем "Лазерная резка"
+                    if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка"))
+                        && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка") is Work w)
+                        MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+
+                    // вызываем загрузку раскладок в новой детали
+                    if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)
+                    {
+                        _cut.LoadExcel(paths);
+                        MainWindow.M.StatusBegin($"Раскладки загружены в новую деталь \"Комплект деталей\"");
+                    }
+
+                    work.Remove();      // удаляем типовую деталь с этой работой
+                    return;
+                }
+            }
+
             if (!MainWindow.M.IsLaser) MainWindow.M.IsLaser = true;
             if (MainWindow.M.Count == 0) MainWindow.M.Count = 1;
 

@@ -15,6 +15,7 @@ using OfficeOpenXml;
 using System.Windows.Media.Imaging;
 using System.Text;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace Metal_Code
 {
@@ -315,19 +316,22 @@ namespace Metal_Code
             OffersGrid.FrozenColumnCount = 1;
         }
 
-        private void EditOffer(object sender, RoutedEventArgs e)        // при потере фокуса (DataGrid.LostFocus="EditOffer")
+        private void EditOffer(object sender, RoutedEventArgs e)        // при потере фокуса (OffersGrid.LostFocus="EditOffer")
         {
             if (OffersGrid.SelectedItem is Offer) dbManagers.SaveChanges();
         }
 
-        private void OffersDateProduction(object sender, DataGridRowEventArgs e)        // при загрузке строк (DataGrid.LoadingRow="OffersDateProduction")
+        private void OffersDateProduction(object sender, DataGridRowEventArgs e)        // при загрузке строк (OffersGrid.LoadingRow="OffersDateProduction")
         {
             if (e.Row.DataContext is not Offer offer) return;
 
             SolidColorBrush hb = new(Colors.Orange);
             SolidColorBrush nb = new(Colors.White);
 
-            if (offer.EndDate <= DateTime.Now)
+            // если наступила дата отгрузки, а закрывающий документ еще не записан,
+            // предполагаем, что отгрузка еще не произведена, и окрашиваем такое КП в оранжевый цвет
+            // иначе КП окрашиваем в стандартный белый цвет
+            if (offer.EndDate <= DateTime.Now && (offer.Act == null || offer.Act == ""))
                 e.Row.Background = hb;
             else
                 e.Row.Background = nb;
@@ -336,6 +340,20 @@ namespace Metal_Code
         void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
             if (((PropertyDescriptor)e.PropertyDescriptor).IsBrowsable == false) e.Cancel = true;
+        }
+
+        public void StatusBegin(string? notify = null)
+        {
+            if (notify != null) NotifyText.Text = notify;
+            ColorAnimation animation = new()
+            {
+                From = Colors.White,
+                To = Colors.Orange,
+                Duration = new Duration(TimeSpan.FromSeconds(1)),
+                AutoReverse = true
+            };
+            Status.Background = new SolidColorBrush(Colors.White);
+            Status.Background.BeginAnimation(SolidColorBrush.ColorProperty, animation);
         }
 
         public string GetMetalPrice()
@@ -574,6 +592,9 @@ namespace Metal_Code
                             //для окраски уточняем цвет в описании работы
                             if (work.workType is PaintControl _paint) _detail.Description += $"{_work.Name}(цвет - {_paint.Ral})\n";
                             else _detail.Description += $"{_work.Name}\n";
+
+                            //для доп работы её наименование добавляем к наименованию детали - особый случай
+                            //if (work.workType is ExtraControl _extra) _detail.Title += $"\n{_extra.NameExtra}";
                             
                             //удаляем крайний перенос строки
                             if (j == det.TypeDetailControls.Count - 1 && k == type.WorkControls.Count - 1)

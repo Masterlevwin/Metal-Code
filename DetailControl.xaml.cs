@@ -80,14 +80,13 @@ namespace Metal_Code
         }
 
         public void IsComplectChanged()     // метод, в котором эта деталь определяется как Комплект деталей
-                                            // и устанавливаются ограничения на добавление типовых деталей
+                                            // и устанавливаются ограничения на изменение полей типовых деталей
         {
             Detail.IsComplect = true;
             SetName("Комплект деталей");
             DetailName.IsEnabled = false;
 
-            MessageBox.Show("Предупреждение: все работы, кроме гибки, сварки и окраски," +
-            "определенные в комплекте деталей, учитываться в КП не будут!");
+            MainWindow.M.StatusBegin($"Важно: все работы, кроме гибки, сварки и окраски, определенные в \"Комплекте деталей\", учитываться в КП не будут!");
 
             foreach (TypeDetailControl t in TypeDetailControls)
                 foreach (UIElement element in t.TypeDetailGrid.Children)
@@ -117,10 +116,10 @@ namespace Metal_Code
             }
 
             // добавляем окраску, если она отмечена галочкой или квадратиком
-            if (!MainWindow.M.IsLaser && MainWindow.M.CheckPaint.IsChecked != false) Detail.Price += MainWindow.M.Paint / MainWindow.M.DetailControls.Count;
+            if (MainWindow.M.CheckPaint.IsChecked != false && !Detail.IsComplect) Detail.Price += MainWindow.M.Paint / MainWindow.M.DetailControls.Count;
 
             // добавляем конструкторские работы, если они отмечены галочкой или квадратиком
-            if (MainWindow.M.CheckConstruct.IsChecked != false) Detail.Price += MainWindow.M.Construct / MainWindow.M.DetailControls.Count;
+            if (MainWindow.M.CheckConstruct.IsChecked != false && !Detail.IsComplect) Detail.Price += MainWindow.M.Construct / MainWindow.M.DetailControls.Count;
 
             Detail.Total = Detail.Price * Detail.Count;
 
