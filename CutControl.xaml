@@ -5,10 +5,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="140">
+             d:DesignHeight="20" d:DesignWidth="140" Style="{DynamicResource UserControlStyle}" >
     <Grid>
-        <Button x:Name="CutBtn" Click="LoadFiles" Content=". . ." HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Center" MinHeight="20" MinWidth="40" ToolTip="Загрузить раскладки" FontWeight="Bold"/>
-        <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" TextChanged="SetWay" HorizontalAlignment="Left" Margin="50,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="45" MinWidth="45" ToolTip="Длина пути резки, м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-        <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" TextChanged="SetPinhole" HorizontalAlignment="Left" Margin="100,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="40" MinWidth="40" ToolTip="Количество проколов, шт" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+        <Button x:Name="CutBtn" Style="{DynamicResource ButtonStyle}" Click="LoadFiles" Content=". . ." HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Center" MinHeight="20" MinWidth="40" ToolTip="Загрузить раскладки" FontWeight="Bold"/>
+        <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" Style="{DynamicResource TextBoxStyle}" TextChanged="SetWay" HorizontalAlignment="Left" Margin="50,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="45" MinWidth="45" ToolTip="Длина пути резки, м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+        <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" Style="{DynamicResource TextBoxStyle}" TextChanged="SetPinhole" HorizontalAlignment="Left" Margin="100,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="40" MinWidth="40" ToolTip="Количество проколов, шт" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
     </Grid>
 </UserControl>

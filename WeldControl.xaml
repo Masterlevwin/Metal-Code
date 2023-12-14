@@ -5,11 +5,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="140" VerticalAlignment="Top">
+             d:DesignHeight="20" d:DesignWidth="140" VerticalAlignment="Top" Style="{DynamicResource UserControlStyle}" >
     <Grid>
-        <TextBox Text="{Binding Weld, RelativeSource={RelativeSource AncestorType={x:Type local:WeldControl}, Mode=FindAncestor}}" TextChanged="SetWeld" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="30,0,0,0" MaxLines="1" ToolTip="Введите длину свариваемой поверхности, мм" MinHeight="20" MaxHeight="20" MinWidth="55" MaxWidth="55" Height="20"/>
-        <ComboBox x:Name="TypeDrop" SelectionChanged="SetType" HorizontalAlignment="Left" Margin="90,0,0,0" VerticalAlignment="Center" Height="20" MinHeight="20" MaxHeight="20" MinWidth="50" MaxWidth="50" ToolTip="Выберите тип расчета" SelectedIndex="0"/>
-        <Button x:Name="PartBtn" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0" Content="..." Padding="0,0,0,0" Grid.IsSharedSizeScope="True" FontFamily="Arial" FontWeight="Bold" Click="ViewPartWindow" MinWidth="20" MinHeight="20"/>
-        <TextBlock HorizontalAlignment="Left" Margin="6,-3,0,0" TextWrapping="Wrap" Text="С" VerticalAlignment="Top" FontWeight="Bold"/>
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Weld, RelativeSource={RelativeSource AncestorType={x:Type local:WeldControl}, Mode=FindAncestor}}" TextChanged="SetWeld" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="30,0,0,0" MaxLines="1" ToolTip="Введите длину свариваемой поверхности, мм" MinHeight="20" MaxHeight="20" MinWidth="55" MaxWidth="55" Height="20"/>
+        <ComboBox x:Name="TypeDrop" Style="{DynamicResource ComboBoxStyle}" SelectionChanged="SetType" HorizontalAlignment="Left" Margin="90,0,0,0" VerticalAlignment="Center" Height="20" MinHeight="20" MaxHeight="20" MinWidth="50" MaxWidth="50" ToolTip="Выберите тип расчета" SelectedIndex="0"/>
+        <Button x:Name="PartBtn" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0" Content="..." Padding="0,0,0,0" Grid.IsSharedSizeScope="True" FontFamily="Arial" FontWeight="Bold" Click="ViewPartWindow" MinWidth="20" MinHeight="20"/>
+        <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="6,-3,0,0" TextWrapping="Wrap" Text="С" VerticalAlignment="Top" FontWeight="Bold"/>
     </Grid>
 </UserControl>

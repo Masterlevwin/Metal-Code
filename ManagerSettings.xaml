@@ -4,40 +4,28 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Менеджер" Height="250" Width="300" Topmost="True" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Icon="/app_logo.jpeg">
-    <Window.Resources>
-        <Style TargetType="TextBlock">
-            <Setter Property="Margin" Value="8" />
-        </Style>
-        <Style TargetType="TextBox">
-            <Setter Property="Margin" Value="8" />
-        </Style>
-        <Style TargetType="Button">
-            <Setter Property="MinWidth" Value="60" />
-            <Setter Property="Margin" Value="8" />
-        </Style>
-    </Window.Resources>
+        Title="Менеджер" Height="250" Width="300" Style="{DynamicResource WindowStyle}" Topmost="True" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Icon="/app_logo.jpeg">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition />
             <RowDefinition />
-            <RowDefinition/>
+            <RowDefinition />
             <RowDefinition />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="100" />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
-        <TextBlock Text="Фамилия и Имя" TextWrapping="Wrap" />
-        <TextBox Text="{Binding Name}" Grid.Column="1" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" />
+        <TextBlock Text="Фамилия и Имя" Style="{DynamicResource TextBlockStyle}" TextWrapping="Wrap" Margin="8" />
+        <TextBox Text="{Binding Name}" Style="{DynamicResource TextBoxStyle}" Margin="8" Grid.Column="1" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" />
         <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Grid.Row="3" Grid.Column="1">
-            <Button IsDefault="True" Click="Accept_Click" >OK</Button>
-            <Button IsCancel="True" >Отмена</Button>
+            <Button Style="{DynamicResource ButtonStyle}" Margin="8" IsDefault="True" Click="Accept_Click" MinWidth="60" >OK</Button>
+            <Button Style="{DynamicResource ButtonStyle}" Margin="8" IsCancel="True" MinWidth="60" >Отмена</Button>
         </StackPanel>
-        <TextBlock Margin="8,8,8,8" Grid.Row="1" Text="Контактные данные" TextWrapping="Wrap" />
-        <TextBox Text="{Binding Contact}" Grid.Column="1" SpellCheck.IsEnabled="True" Language="ru-ru" Margin="8,8,8,8" Grid.Row="1" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" />
-        <TextBlock Margin="8,8,8,8" Grid.Row="2" Text="Пароль" TextWrapping="Wrap" />
-        <PasswordBox Grid.Row="2" Grid.Column="1" Margin="8,8,8,8" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" PasswordChanged="SetPassword"/>
-        <CheckBox IsChecked="{Binding IsAdmin}" Content="Админ" HorizontalAlignment="Center" Grid.Row="3" VerticalAlignment="Center"/>
+        <TextBlock Style="{DynamicResource TextBlockStyle}" Margin="8" Grid.Row="1" Text="Контактные данные" TextWrapping="Wrap" />
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Contact}" Grid.Column="1" SpellCheck.IsEnabled="True" Language="ru-ru" Margin="8" Grid.Row="1" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" />
+        <TextBlock Style="{DynamicResource TextBlockStyle}" Margin="8" Grid.Row="2" Text="Пароль" TextWrapping="Wrap" />
+        <PasswordBox Grid.Row="2" Grid.Column="1" Margin="8" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" PasswordChanged="SetPassword"/>
+        <CheckBox Style="{DynamicResource CheckBoxStyle}" IsChecked="{Binding IsAdmin}" Content="Админ" HorizontalAlignment="Center" Grid.Row="3" VerticalAlignment="Center"/>
     </Grid>
 </Window>

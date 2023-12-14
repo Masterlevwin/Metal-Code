@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="300" VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}">
+             d:DesignHeight="20" d:DesignWidth="300" VerticalAlignment="Top" Style="{DynamicResource UserControlStyle}" >
     <UserControl.ContextMenu>
         <ContextMenu>
             <MenuItem Header="Добавить" Click="AddWork"></MenuItem>
@@ -18,8 +18,8 @@
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <ComboBox x:Name="WorkDrop" DisplayMemberPath="Name" MinWidth="120" MinHeight="20" Height="20" Margin="20,0,0,0" VerticalContentAlignment="Center" SelectionChanged="CreateWork" ToolTip="Выберите работу" VerticalAlignment="Center" HorizontalAlignment="Left"/>
-        <TextBox Text="{Binding Ratio, RelativeSource={RelativeSource AncestorType={x:Type local:WorkControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="10,0,0,0" TextChanged="SetRatio" Grid.Column="2"/>
-        <TextBlock x:Name="ResultText" Text="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:WorkControl}, Mode=FindAncestor}}" MinHeight="20" MaxHeight="20" HorizontalAlignment="Left" Margin="60,0,0,0" VerticalAlignment="Center" MaxWidth="70" Grid.Column="2"/>
+        <ComboBox x:Name="WorkDrop" Style="{DynamicResource ComboBoxStyle}" DisplayMemberPath="Name" MinWidth="120" MinHeight="20" Height="20" Margin="20,0,0,0" VerticalContentAlignment="Center" SelectionChanged="CreateWork" ToolTip="Выберите работу" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Ratio, RelativeSource={RelativeSource AncestorType={x:Type local:WorkControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="10,0,0,0" TextChanged="SetRatio" Grid.Column="2"/>
+        <TextBlock x:Name="ResultText" Style="{DynamicResource TextBlockStyle}" Text="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:WorkControl}, Mode=FindAncestor}}" MinHeight="20" MaxHeight="20" HorizontalAlignment="Left" Margin="60,0,0,0" VerticalAlignment="Center" MaxWidth="70" Grid.Column="2"/>
     </Grid>
 </UserControl>

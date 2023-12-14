@@ -3,39 +3,27 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" Height="200" Width="300" Topmost="True" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Icon="/app_logo.jpeg" ShowInTaskbar="False" WindowStyle="None">
-    <Window.Resources>
-        <Style TargetType="TextBlock">
-            <Setter Property="Margin" Value="8" />
-        </Style>
-        <Style TargetType="TextBox">
-            <Setter Property="Margin" Value="8" />
-        </Style>
-        <Style TargetType="Button">
-            <Setter Property="MinWidth" Value="60" />
-            <Setter Property="Margin" Value="8" />
-        </Style>
-    </Window.Resources>
+        mc:Ignorable="d" Height="200" Width="300" Style="{DynamicResource WindowStyle}" Topmost="True" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Icon="/app_logo.jpeg" ShowInTaskbar="False" WindowStyle="None" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
+            <RowDefinition />
             <RowDefinition/>
             <RowDefinition/>
             <RowDefinition />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition />
-            <ColumnDefinition />
+            <ColumnDefinition Width="7*" />
+            <ColumnDefinition Width="8*" />
         </Grid.ColumnDefinitions>
-        <TextBlock Text="Авторизация" Grid.ColumnSpan="2" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource {x:Static SystemColors.DesktopBrushKey}}" FontSize="16"/>
+        <TextBlock Text="Авторизация" Style="{DynamicResource TextBlockStyle}" Grid.ColumnSpan="2" Foreground="{DynamicResource {x:Static SystemColors.DesktopBrushKey}}" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         <Rectangle Grid.RowSpan="4" Stroke="Red" Grid.ColumnSpan="2" StrokeThickness="2"/>
-        <TextBlock Text="Введите фамилию и имя" TextWrapping="Wrap" Margin="8,8,8,8" TextAlignment="Center" Grid.Row="1" />
-        <TextBox x:Name="LoginText" Grid.Column="1" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="8,8,8,8" Grid.Row="1" />
-        <TextBlock Text="Введите пароль" Margin="8,8,8,8" Grid.Row="2" TextAlignment="Center"/>
-        <PasswordBox x:Name="PasswordText" Grid.Row="2" Grid.Column="1" Margin="8,8,8,8" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-        <StackPanel Orientation="Horizontal" Grid.Row="3" Grid.Column="1">
-            <Button IsDefault="True" Click="Accept_Click" Content="Войти"/>
-            <Button Content="Выйти" Click="Exit"/>
+        <TextBlock Text="Введите фамилию и имя" Style="{DynamicResource TextBlockStyle}" TextWrapping="Wrap" Margin="8" TextAlignment="Center" Grid.Row="1" />
+        <TextBox x:Name="LoginText" Style="{DynamicResource TextBoxStyle}" Margin="8" Grid.Column="1" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Grid.Row="1" />
+        <TextBlock Text="Введите пароль" Style="{DynamicResource TextBlockStyle}" Margin="8" Grid.Row="2" TextAlignment="Center"/>
+        <PasswordBox x:Name="PasswordText" Grid.Row="2" Grid.Column="1" Margin="8" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+        <StackPanel Orientation="Horizontal" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Center">
+            <Button Style="{DynamicResource ButtonStyle}" Margin="8" IsDefault="True" Click="Accept_Click" Content="Войти" MinWidth="60"/>
+            <Button Style="{DynamicResource ButtonStyle}" Margin="8" Content="Выйти" Click="Exit" MinWidth="60"/>
         </StackPanel>
     </Grid>
 </Window>

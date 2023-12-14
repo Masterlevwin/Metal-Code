@@ -4,19 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Вид работы" Height="200" Width="300" Topmost="True" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Icon="/app_logo.jpeg">
-    <Window.Resources>
-        <Style TargetType="TextBlock">
-            <Setter Property="Margin" Value="8" />
-        </Style>
-        <Style TargetType="TextBox">
-            <Setter Property="Margin" Value="8" />
-        </Style>
-        <Style TargetType="Button">
-            <Setter Property="MinWidth" Value="60" />
-            <Setter Property="Margin" Value="8" />
-        </Style>
-    </Window.Resources>
+        Title="Вид работы" Style="{DynamicResource WindowStyle}" Height="200" Width="300" Topmost="True" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Icon="/app_logo.jpeg">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition />
@@ -24,16 +12,16 @@
             <RowDefinition />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="100" />
+            <ColumnDefinition Width="110" />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
-        <TextBlock Text="Наименование" />
-        <TextBox Text="{Binding Name}" Grid.Column="1" SpellCheck.IsEnabled="True" Language="ru-ru" />
-        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Grid.Row="3" Grid.Column="1">
-            <Button IsDefault="True" Click="Accept_Click" >OK</Button>
-            <Button IsCancel="True" >Отмена</Button>
+        <TextBlock Style="{DynamicResource TextBlockStyle}" Text="Наименование" Margin="8,8,8,8" />
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Name}" Grid.Column="1" SpellCheck.IsEnabled="True" Language="ru-ru" Margin="8,8,8,8" />
+        <StackPanel Orientation="Horizontal" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" Width="152">
+            <Button Style="{DynamicResource ButtonStyle}" IsDefault="True" Click="Accept_Click" Margin="8" MinWidth="60" >OK</Button>
+            <Button Style="{DynamicResource ButtonStyle}" IsCancel="True" Margin="8" MinWidth="60" >Отмена</Button>
         </StackPanel>
-        <TextBlock Margin="8,8,8,8" Grid.Row="1" Text="Цена" />
-        <TextBox Text="{Binding Price}" Grid.Column="1" SpellCheck.IsEnabled="True" Language="ru-ru" Margin="8,8,8,8" Grid.Row="1" />
+        <TextBlock Style="{DynamicResource TextBlockStyle}" Margin="8,8,8,8" Grid.Row="1" Text="Цена" />
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Price}" Grid.Column="1" SpellCheck.IsEnabled="True" Language="ru-ru" Margin="8,8,8,8" Grid.Row="1" />
     </Grid>
 </Window>

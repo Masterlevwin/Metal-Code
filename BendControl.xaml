@@ -5,11 +5,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d"
-             d:DesignHeight="20" d:DesignWidth="140" VerticalAlignment="Top" >
+             d:DesignHeight="20" d:DesignWidth="140" VerticalAlignment="Top" Style="{DynamicResource UserControlStyle}" >
     <Grid x:Name="BendGrid">
-        <Button x:Name="PartBtn" Click="ViewPartWindow" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="20" Margin="5,0,0,0" Padding="0,0,0,0" Grid.IsSharedSizeScope="True" FontFamily="Arial" FontWeight="Bold" Content="..."/>
-        <TextBox Text="{Binding Bend, RelativeSource={RelativeSource AncestorType={x:Type local:BendControl}, Mode=FindAncestor}}" TextChanged="SetBend" HorizontalAlignment="Left" Margin="30,0,0,0" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="35" MinWidth="35" ToolTip="Введите количество однотипных гибов" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="2"/>
-        <ComboBox x:Name="ShelfDrop" SelectionChanged="SetShelf" HorizontalAlignment="Left" Margin="70,0,0,0" VerticalAlignment="Center" Height="20" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" SelectedIndex="0" ToolTip="Выберите длину гиба"/>
-        <TextBlock Text="Г" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6,-3,0,0" MinWidth="10" MinHeight="10" FontWeight="Bold"/>
+        <Button x:Name="PartBtn" Style="{DynamicResource ButtonStyle}" Click="ViewPartWindow" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="20" Margin="5,0,0,0" Padding="0,0,0,0" Grid.IsSharedSizeScope="True" FontFamily="Arial" FontWeight="Bold" Content="..."/>
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Bend, RelativeSource={RelativeSource AncestorType={x:Type local:BendControl}, Mode=FindAncestor}}" TextChanged="SetBend" HorizontalAlignment="Left" Margin="30,0,0,0" VerticalAlignment="Center" MinHeight="20" MaxHeight="20" MaxWidth="35" MinWidth="35" ToolTip="Введите количество однотипных гибов" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="2"/>
+        <ComboBox x:Name="ShelfDrop" Style="{DynamicResource ComboBoxStyle}" SelectionChanged="SetShelf" HorizontalAlignment="Left" Margin="70,0,0,0" VerticalAlignment="Center" Height="20" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" SelectedIndex="0" ToolTip="Выберите длину гиба"/>
+        <TextBlock Text="Г" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6,-3,0,0" MinWidth="10" MinHeight="10" FontWeight="Bold"/>
     </Grid>
 </UserControl>

@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Список менеджеров" Height="450" Width="450" Topmost="True" WindowStartupLocation="CenterScreen" Closed="FocusMainWindow" ResizeMode="NoResize" Icon="/app_logo.jpeg">
+        Title="Список менеджеров" Style="{DynamicResource WindowStyle}" Height="450" Width="450" Topmost="True" WindowStartupLocation="CenterScreen" Closed="FocusMainWindow" ResizeMode="NoResize" Icon="/app_logo.jpeg">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition />
@@ -14,16 +14,16 @@
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel>
-                        <TextBlock Text="{Binding Name}" FontSize="16" />
-                        <TextBlock Text="{Binding Contact}" FontSize="16" />
+                        <TextBlock Style="{DynamicResource TextBlockStyle}" Text="{Binding Name}" FontSize="16" />
+                        <TextBlock Style="{DynamicResource TextBlockStyle}" Text="{Binding Contact}" FontSize="16" />
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
-            <Button Content="Добавить" Margin="10" Click="Add_Click" />
-            <Button Content="Изменить" Margin="10" Click="Edit_Click"  />
-            <Button Content="Удалить" Margin="10" Click="Delete_Click"  />
+            <Button Style="{DynamicResource ButtonStyle}" Content="Добавить" Margin="10" Click="Add_Click" />
+            <Button Style="{DynamicResource ButtonStyle}" Content="Изменить" Margin="10" Click="Edit_Click"  />
+            <Button Style="{DynamicResource ButtonStyle}" Content="Удалить" Margin="10" Click="Delete_Click"  />
         </StackPanel>
     </Grid>
 </Window>

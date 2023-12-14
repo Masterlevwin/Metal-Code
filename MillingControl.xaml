@@ -5,9 +5,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="140">
+             d:DesignHeight="20" d:DesignWidth="140" Style="{DynamicResource UserControlStyle}" >
     <Grid>
-        <TextBox Text="{Binding Hours, RelativeSource={RelativeSource AncestorType={x:Type local:MillingControl}, Mode=FindAncestor}}" ToolTip="Введите количество часов работы" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" Margin="100,0,0,0" Width="40" Height="20" MinWidth="40" MinHeight="20" MaxWidth="40" MaxHeight="20" TextChanged="SetHours"/>
-        <TextBlock Text="Труд, час" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="40,0,0,0"/>
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Hours, RelativeSource={RelativeSource AncestorType={x:Type local:MillingControl}, Mode=FindAncestor}}" ToolTip="Введите количество часов работы" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" Margin="100,0,0,0" Width="40" Height="20" MinWidth="40" MinHeight="20" MaxWidth="40" MaxHeight="20" TextChanged="SetHours"/>
+        <TextBlock Style="{DynamicResource TextBlockStyle}" Text="Труд, час" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="40,0,0,0"/>
     </Grid>
 </UserControl>

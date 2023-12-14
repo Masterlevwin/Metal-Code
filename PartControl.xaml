@@ -4,14 +4,14 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="90" d:DesignWidth="130">
+             d:DesignHeight="90" d:DesignWidth="130" Style="{DynamicResource UserControlStyle}" >
     <Grid x:Name="ControlGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="70"/>
             <RowDefinition/>
         </Grid.RowDefinitions>
-        <TextBox Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="100" MinWidth="120" MinHeight="40" MaxHeight="40" Height="40" ToolTip="Наименование вырезанной детали"/>
-        <TextBox Text="{Binding Count}" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinHeight="20" MaxHeight="20" HorizontalAlignment="Left" MaxLines="1" Margin="10,45,0,0" MaxWidth="40" MinWidth="40" Height="20" ToolTip="Количество вырезанных деталей"/>
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="100" MinWidth="120" MinHeight="40" MaxHeight="40" Height="40" ToolTip="Наименование вырезанной детали"/>
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Count}" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinHeight="20" MaxHeight="20" HorizontalAlignment="Left" MaxLines="1" Margin="10,45,0,0" MaxWidth="40" MinWidth="40" Height="20" ToolTip="Количество вырезанных деталей"/>
         <Menu Margin="0,45,10,0" HorizontalAlignment="Right" MinHeight="20" MaxHeight="20" MaxWidth="60">
             <MenuItem x:Name="Controls" Header="Добавить" Padding="0,0,0,0">
                 <MenuItem Header="Гибка" Click="AddControl"/>

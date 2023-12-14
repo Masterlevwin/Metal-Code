@@ -44,6 +44,7 @@ namespace Metal_Code
             M = this;
             Version.Text = version;
             DataContext = ProductModel;
+            IsLaser = false;
             Loaded += LoadDataBases;
         }
 
@@ -148,6 +149,8 @@ namespace Metal_Code
                 isLaser = value;
                 Logo.Source = IsLaser ? new BitmapImage(new Uri("laser_logo.jpg", UriKind.Relative))
                     : new BitmapImage(new Uri("app_logo.jpeg", UriKind.Relative));
+                if (IsLaser) ThemeChange("laserTheme");
+                else ThemeChange("appTheme");
                 OnPropertyChanged(nameof(IsLaser));
             }
         }
@@ -489,6 +492,9 @@ namespace Metal_Code
                                 //для окраски уточняем цвет в описании работы
                             if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is PaintControl _paint)
                                 _detail.Description += $"{work.Name} (цвет - {_paint.Ral})\n";
+                                //для доп работы её наименование добавляем к наименованию работы - особый случай
+                            else if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is ExtraControl _extra) _detail.Description += $"{_extra.NameExtra}\n";
+                                //в остальных случаях добавляем наименование работы
                             else _detail.Description += $"{work.Name}\n";
                         }
                     }
@@ -591,10 +597,10 @@ namespace Metal_Code
 
                             //для окраски уточняем цвет в описании работы
                             if (work.workType is PaintControl _paint) _detail.Description += $"{_work.Name}(цвет - {_paint.Ral})\n";
+                            //для доп работы её наименование добавляем к наименованию работы - особый случай
+                            else if (work.workType is ExtraControl _extra) _detail.Description += $"{_extra.NameExtra}\n";
+                            //в остальных случаях добавляем наименование работы
                             else _detail.Description += $"{_work.Name}\n";
-
-                            //для доп работы её наименование добавляем к наименованию детали - особый случай
-                            //if (work.workType is ExtraControl _extra) _detail.Title += $"\n{_extra.NameExtra}";
                             
                             //удаляем крайний перенос строки
                             if (j == det.TypeDetailControls.Count - 1 && k == type.WorkControls.Count - 1)
@@ -1042,8 +1048,19 @@ namespace Metal_Code
         }
         public void Exit(object sender, RoutedEventArgs e)
         {
-            Application.Current.Shutdown();
+            Environment.Exit(0);
         }
 
+        private void ThemeChange(string style)
+        {
+            // определяем путь к файлу ресурсов
+            Uri? uri = new(style + ".xaml", UriKind.Relative);
+            // загружаем словарь ресурсов
+            ResourceDictionary? resourceDict = Application.LoadComponent(uri) as ResourceDictionary;
+            // очищаем коллекцию ресурсов приложения
+            Application.Current.Resources.Clear();
+            // добавляем загруженный словарь ресурсов
+            Application.Current.Resources.MergedDictionaries.Add(resourceDict);
+        }
     }
 }

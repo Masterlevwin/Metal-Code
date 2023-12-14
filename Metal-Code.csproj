@@ -17,6 +17,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Page Remove="appTheme.xaml" />
+    <Page Remove="laserTheme.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="app_logo.ico" />
   </ItemGroup>
 
@@ -29,10 +34,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="appTheme.xaml" />
     <Resource Include="app_logo.ico" />
     <Resource Include="app_logo.jpeg">
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </Resource>
+    <Resource Include="laserTheme.xaml" />
     <Resource Include="laser_logo.jpg" />
   </ItemGroup>
 
