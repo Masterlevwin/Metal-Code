@@ -328,7 +328,7 @@ namespace Metal_Code
         {
             if (e.Row.DataContext is not Offer offer) return;
 
-            SolidColorBrush hb = new(Colors.Orange);
+            SolidColorBrush hb = new(Colors.Gold);
             SolidColorBrush nb = new(Colors.White);
 
             // если наступила дата отгрузки, а закрывающий документ еще не записан,
