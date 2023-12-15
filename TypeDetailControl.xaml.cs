@@ -244,7 +244,7 @@ namespace Metal_Code
                 B = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item2);
                 S = 1;
                 L = 1000;
-                A_prop.IsEnabled = B_prop.IsEnabled = false;
+                if (TypeDetailDrop.SelectedItem is TypeDetail type && type.Name != "Лист металла") A_prop.IsEnabled = B_prop.IsEnabled = false;
             }
             MassCalculate();
         }
@@ -292,7 +292,7 @@ namespace Metal_Code
             } 
             else Price = type.Price;
 
-            if (MainWindow.M.IsLaser && type.Name == "Лист металла")
+            if (det.Detail.Title == "Комплект деталей" && type.Name == "Лист металла")
             {
                 foreach (WorkControl w in WorkControls)
                     if (w.workType is CutControl cut)
@@ -361,7 +361,7 @@ namespace Metal_Code
 
         public void PriceChanged()
         {
-            Result = HasMetal ? (float)Math.Round((MainWindow.M.IsLaser ? 1 : Count) * Price * Mass, 2) : 0;
+            Result = HasMetal ? (float)Math.Round((det.Detail.Title == "Комплект деталей" ? 1 : Count) * Price * Mass, 2) : 0;
 
             Priced?.Invoke();
         }

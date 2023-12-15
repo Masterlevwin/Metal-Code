@@ -46,7 +46,7 @@ namespace Metal_Code
                   {
                       try
                       {
-                          if (dialogService.SaveFileDialog() == true) 
+                          if (dialogService.SaveFileDialog() == true)
                           {
                               string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
                               + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
@@ -59,6 +59,33 @@ namespace Metal_Code
                               MainWindow.M.SaveOffer(_path + ".mcm");        //сохраняем расчет в базе данных
 
                               MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);
+                          }
+                      }
+                      catch (Exception ex)
+                      {
+                          dialogService.ShowMessage(ex.Message);
+                      }
+                  });
+            }
+        }
+
+        // команда сохранения отчета
+        private RelayCommand saveReportCommand;
+        public RelayCommand SaveReportCommand
+        {
+            get
+            {
+                return saveReportCommand ??= new RelayCommand(obj =>
+                  {
+                      try
+                      {
+                          if (dialogService.SaveFileDialog() == true)
+                          {
+                              string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
+                              + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
+
+                              MainWindow.M.StatusBegin($"Создан отчёт за {DateTime.Now.Month}");
+                              MainWindow.M.CreateReport(dialogService.FilePaths[0]);
                           }
                       }
                       catch (Exception ex)
@@ -104,9 +131,8 @@ namespace Metal_Code
                   {
                       try
                       {
-                          if (MainWindow.M.OffersGrid.SelectedItem is Offer offer)
+                          if (MainWindow.M.OffersGrid.SelectedItem is Offer offer && offer.Path != null)
                           {
-                              Product = null;       //иногда дублируются расчеты, возможно сброс Продукта поможет
                               Product = fileService.Open(offer.Path);
                               dialogService.ShowMessage("Файл загружен");
                               MainWindow.M.LoadProduct();
@@ -260,15 +286,15 @@ namespace Metal_Code
 
     public interface IFileService
     {
-        Product Open(string filename);
+        Product? Open(string filename);
         void Save(string filename, Product product);
     }
 
     public class JsonFileService : IFileService
     {
-        public Product Open(string filename)
+        public Product? Open(string filename)
         {
-            Product product = new();
+            Product? product = new();
             DataContractJsonSerializer jsonFormatter = new(typeof(Product));
 
             using (FileStream fs = new(filename, FileMode.OpenOrCreate))

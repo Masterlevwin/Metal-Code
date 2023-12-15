@@ -12,6 +12,7 @@
                 <MenuItem Header="Создать" Click="ClearDetails"/>
                 <MenuItem Header="Открыть" Command="{Binding OpenCommand}"/>
                 <MenuItem Header="Сохранить" Command="{Binding SaveCommand}"/>
+                <MenuItem Header="Отчет" Command="{Binding SaveReportCommand}"/>
                 <Separator/>
                 <MenuItem Header="Выход" Click="Exit"/>
             </MenuItem>

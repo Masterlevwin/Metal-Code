@@ -64,6 +64,8 @@ namespace Metal_Code
 
             work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
             work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
+
+            SetMold($"{work.type.L / 1000}");      //переносим погонные метры из типовой детали
         }
 
         private void SetMold(object sender, TextChangedEventArgs e)

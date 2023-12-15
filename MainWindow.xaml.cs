@@ -28,7 +28,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "1.0.0";
+        readonly string version = "2.0.0";
 
         public readonly TypeDetailContext dbTypeDetails = new();
         public readonly WorkContext dbWorks = new();
@@ -773,7 +773,7 @@ namespace Metal_Code
                 foreach (Part part in Parts) part.Total = part.Count * part.Price;
 
                 DataTable partTable = ToDataTable(Parts);
-                worksheet.Cells[row, 1].LoadFromDataTable(ToDataTable(Parts), false);
+                worksheet.Cells[row, 1].LoadFromDataTable(partTable, false);
                 row += partTable.Rows.Count;
             }
 
@@ -912,7 +912,7 @@ namespace Metal_Code
             if (worksheet.Columns[5].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указано наименование детали
             worksheet.Cells[8, 1, row, 3].Style.WrapText = true;                                //переносим текст при необходимости
             if (IsLaser) worksheet.DeleteRow(4, 2);                                             //удаляем 4 и 5 строки, необходимые только для Провэлда
-            else if (Parts.Count > 0) worksheet.DeleteRow(row + 5, 1);       //удаляем строку, где указана расшифровка работ, если нет нарезанных деталей
+            if (Parts.Count == 0) worksheet.DeleteRow(row + 5, 1);       //удаляем строку, где указана расшифровка работ, если нет нарезанных деталей
                 
             //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
             worksheet.PrinterSettings.FitToPage = true;
@@ -1061,6 +1061,19 @@ namespace Metal_Code
             Application.Current.Resources.Clear();
             // добавляем загруженный словарь ресурсов
             Application.Current.Resources.MergedDictionaries.Add(resourceDict);
+        }
+
+        public void CreateReport(string path)           //метод создания отчета по заказам
+        {
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var workbook = new ExcelPackage();
+            ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("Лист1");
+
+            DataTable reportTable = ToDataTable(CurrentManager.Offers);
+            worksheet.Cells["A1"].LoadFromDataTable(reportTable, false);
+
+            workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
         }
     }
 }
