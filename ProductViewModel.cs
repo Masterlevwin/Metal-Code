@@ -51,14 +51,14 @@ namespace Metal_Code
                               string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
                               + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
 
-                              if (MainWindow.M.IsLaser) _path += $" с материалом {MainWindow.M.GetMetalPrice()}";
+                              //_path += $" с материалом {MainWindow.M.GetMetalPrice()}"; - это строчка дублирует детали при повторном сохранении
 
-                              fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());
-                              dialogService.ShowMessage("Расчёт сохранен");
+                              fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());     //сохраняем расчет в папке
+                              MainWindow.M.SaveOffer(_path + ".mcm");                           //сохраняем расчет в базе данных
 
-                              MainWindow.M.SaveOffer(_path + ".mcm");        //сохраняем расчет в базе данных
+                              dialogService.ShowMessage($"{Product.Details.Count}");
 
-                              MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);
+                              MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);           //формируем КП в формате excel
                           }
                       }
                       catch (Exception ex)

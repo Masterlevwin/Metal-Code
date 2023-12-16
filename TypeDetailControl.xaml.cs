@@ -4,6 +4,7 @@ using System.Windows;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System;
+using System.Diagnostics;
 
 namespace Metal_Code
 {
@@ -366,9 +367,19 @@ namespace Metal_Code
             Priced?.Invoke();
         }
 
-        private void AddComment(object sender, RoutedEventArgs e)
+        private void CopyTypeDetail(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("В разработке");
+            det.AddTypeDetail();
+            det.TypeDetailControls[^1].TypeDetailDrop.SelectedIndex = TypeDetailDrop.SelectedIndex;
+            det.TypeDetailControls[^1].SortDrop.SelectedIndex = SortDrop.SelectedIndex;
+            det.TypeDetailControls[^1].A = A;
+            det.TypeDetailControls[^1].B = B;
+            det.TypeDetailControls[^1].S = S;
+            det.TypeDetailControls[^1].L = L;
+            det.TypeDetailControls[^1].SetCount(Count);
+            det.TypeDetailControls[^1].MetalDrop.SelectedIndex = MetalDrop.SelectedIndex;
+            det.TypeDetailControls[^1].HasMetal = HasMetal;
+            det.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedIndex = WorkControls[0].WorkDrop.SelectedIndex;
         }
     }
 }

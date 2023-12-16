@@ -10,7 +10,7 @@
         <ContextMenu>
             <MenuItem Header="Добавить" Click="AddTypeDetail"></MenuItem>
             <MenuItem Header="Удалить" Click="Remove"></MenuItem>
-            <MenuItem Header="Комментарий" Click="AddComment"></MenuItem>
+            <MenuItem Header="Скопировать" Click="CopyTypeDetail"></MenuItem>
         </ContextMenu>
     </UserControl.ContextMenu>
     <Grid x:Name="TypeDetailGrid">

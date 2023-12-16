@@ -44,8 +44,27 @@ namespace Metal_Code
             M = this;
             Version.Text = version;
             DataContext = ProductModel;
-            IsLaser = false;
             Loaded += LoadDataBases;
+        }
+
+        private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна
+        {
+            dbWorks.Database.EnsureCreated();
+            dbWorks.Works.Load();
+
+            dbTypeDetails.Database.EnsureCreated();
+            dbTypeDetails.TypeDetails.Load();
+
+            dbManagers.Database.EnsureCreated();
+            dbManagers.Managers.Load();
+            dbManagers.Offers.Load();
+            ManagerDrop.ItemsSource = dbManagers.Managers.Local.ToObservableCollection();
+
+            dbMetals.Database.EnsureCreated();
+            dbMetals.Metals.Load();
+            CreateMetalDict();
+
+            ViewLoginWindow();
         }
 
         private void ViewLoginWindow()
@@ -57,31 +76,9 @@ namespace Metal_Code
                 IsEnabled = true;
                 Boss.Text = "ООО Провэлд  ";
                 Phone.Text = "тел:(812)603-45-33";
-                IsAgent = false;
                 AddDetail();
                 ViewOffersGrid();
             }
-        }
-
-        private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна
-        {
-            dbWorks.Database.EnsureCreated();
-            dbWorks.Works.Load();
-
-            dbTypeDetails.Database.EnsureCreated();
-            dbTypeDetails.TypeDetails.Load();
-
-            //dbManagers.Database.EnsureDeleted();
-            dbManagers.Database.EnsureCreated();
-            dbManagers.Managers.Load();
-            dbManagers.Offers.Load();
-            ManagerDrop.ItemsSource = dbManagers.Managers.Local.ToObservableCollection();
-
-            dbMetals.Database.EnsureCreated();
-            dbMetals.Metals.Load();
-            CreateMetalDict();
-
-            ViewLoginWindow();
         }
 
         public void UpdateDataBases()
@@ -147,16 +144,27 @@ namespace Metal_Code
             set
             {
                 isLaser = value;
-                Logo.Source = IsLaser ? new BitmapImage(new Uri("laser_logo.jpg", UriKind.Relative))
-                    : new BitmapImage(new Uri("app_logo.jpeg", UriKind.Relative));
-                if (IsLaser) ThemeChange("laserTheme");
-                else ThemeChange("appTheme");
+                if (IsLaser)
+                {
+                    LaserRadioButton.IsChecked = true;
+                    ThemeChange("laserTheme");
+                }
+                else
+                {
+                    AppRadioButton.IsChecked = true;
+                    ThemeChange("appTheme");
+                }
                 OnPropertyChanged(nameof(IsLaser));
             }
         }
         private void IsLaserChanged(object sender, RoutedEventArgs e)
         {
-            TotalResult();
+            if (sender is RadioButton radioButton)
+            {
+                if (radioButton.Name == "AppRadioButton") IsLaser = false;
+                else if (radioButton.Name == "LaserRadioButton") IsLaser = true;
+            }
+            if (Count > 0) TotalResult();
         }
 
         private bool isAgent;
@@ -166,9 +174,49 @@ namespace Metal_Code
             set
             {
                 isAgent = value;
-                CheckAgent.Content = IsAgent ? "счёт от ИП или ПК" : "счёт от ООО";
+                if (IsAgent) IPRadioButton.IsChecked = true;
+                else OOORadioButton.IsChecked = true;
                 OnPropertyChanged(nameof(IsAgent));
             }
+        }
+        private void IsAgentChanged(object sender, RoutedEventArgs e)
+        {
+            if (sender is RadioButton radioButton)
+            {
+                if (radioButton.Name == "IPRadioButton") IsAgent = true;
+                else if (radioButton.Name == "OOORadioButton") IsAgent = false;
+            }
+        }
+
+        private bool hasDelivery;
+        public bool HasDelivery
+        {
+            get => hasDelivery;
+            set
+            {
+                hasDelivery = value;
+                if (HasDelivery) DeliveryRadioButton.IsChecked = true;
+                else PickupRadioButton.IsChecked = true;
+                OnPropertyChanged(nameof(IsLaser));
+            }
+        }
+        private void HasDeliveryChanged(object sender, RoutedEventArgs e)
+        {
+            if (sender is RadioButton radioButton)
+            {
+                if (radioButton.Name == "DeliveryRadioButton") HasDelivery = true;
+                else if (radioButton.Name == "PickupRadioButton")
+                {
+                    HasDelivery = false;
+                    Delivery.Text = "";
+                }
+                
+            }
+            if (Count > 0) TotalResult();
+        }
+        private void SetDelivery(object sender, TextChangedEventArgs e)
+        {
+            if (int.TryParse(Delivery.Text, out _)) TotalResult();
         }
 
         private int count;
@@ -213,13 +261,15 @@ namespace Metal_Code
             float result = 0;
             if (CheckPaint.IsChecked != false)
             {
-                foreach (DetailControl d in DetailControls)
+                foreach (DetailControl d in DetailControls) if (!d.Detail.IsComplect)
                     foreach (TypeDetailControl t in d.TypeDetailControls)
-                        result += 110 * t.L * t.Count / 1000;     // простая формула окраски через пог м типовой детали
-                                                                  // проверяем наличие работы "Окраска" и добавляем её цену к расчету
+                        result += 87 * t.L * t.Count / 1000;     // простая формула окраски через пог м типовой детали
+
+                    // проверяем наличие работы "Окраска" и добавляем её минималку к расчету, если она есть
                 if (dbWorks.Works.Contains(dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска"))
-                    && dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска") is Work work) result += work.Price;
+                        && dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска") is Work work) result += work.Price;
             }
+            if (float.TryParse(PaintRatio.Text, out float p)) result *= p;
             return result;
         }
 
@@ -240,7 +290,7 @@ namespace Metal_Code
         {
             float result = 0;
             if (CheckConstruct.IsChecked != false)
-                // проверяем наличие работы "Конструкторские работы" и добавляем её цену к расчету
+                // проверяем наличие работы "Конструкторские работы" и добавляем её минималку к расчету
                 if (dbWorks.Works.Contains(dbWorks.Works.FirstOrDefault(n => n.Name == "Конструкторские работы"))
                     && dbWorks.Works.FirstOrDefault(n => n.Name == "Конструкторские работы") is Work work) result += work.Price;
             if (float.TryParse(ConstructRatio.Text, out float c)) result *= c;
@@ -260,9 +310,6 @@ namespace Metal_Code
         public void TotalResult()
         {
             Result = 0;
-
-            Paint = PaintResult();
-            Construct = ConstructResult();
 
             foreach (DetailControl d in DetailControls) Result += d.Detail.Total;
 
@@ -351,7 +398,7 @@ namespace Metal_Code
             ColorAnimation animation = new()
             {
                 From = Colors.White,
-                To = Colors.Orange,
+                To = Colors.Red,
                 Duration = new Duration(TimeSpan.FromSeconds(1)),
                 AutoReverse = true
             };
@@ -393,6 +440,9 @@ namespace Metal_Code
         }
         private void UpdateResult()         // метод принудительного обновления стоимости
         {
+            Paint = PaintResult();
+            Construct = ConstructResult();
+
             foreach (DetailControl d in DetailControls)
                 foreach (TypeDetailControl t in d.TypeDetailControls) t.PriceChanged();
         }
@@ -437,7 +487,6 @@ namespace Metal_Code
         private void ClearCalculate()
         {
             SetCount(0);
-            CheckDelivery.IsChecked = IsLaser = false;
             ProductName.Text = Order.Text = Company.Text = DateProduction.Text = Delivery.Text = "";
             ManagerDrop.SelectedItem = CurrentManager;
         }
@@ -518,10 +567,10 @@ namespace Metal_Code
                 ConstructRatio = ConstructRatio.Text,
                 Count = Count,
                 IsLaser = IsLaser,
-                CheckAgent = (bool)CheckAgent.IsChecked
+                IsAgent = IsAgent,
+                HasDelivery = HasDelivery
             };
 #pragma warning restore CS8629 // Тип значения, допускающего NULL, может быть NULL.
-            if (CheckDelivery.IsChecked != null) ProductModel.Product.HasDelivery = (bool)CheckDelivery.IsChecked;
             if (int.TryParse(Delivery.Text, out int d)) ProductModel.Product.Delivery = d;
 
             if (CheckPaint.IsChecked != null) ProductModel.Product.HasPaint = (bool)CheckPaint.IsChecked;
@@ -540,12 +589,12 @@ namespace Metal_Code
                 Detail _detail = det.Detail;
                 _detail.Metal = _detail.Destiny = _detail.Description = "";     //очищаем описания свойств детали
 
-                int partsCount = 0;     // считаем количество ВСЕХ нарезанных деталей,
-                                        // чтобы в дальнейшем "размазывать" конструкторские работы в их ценах
-                foreach (TypeDetailControl t in det.TypeDetailControls)
-                    foreach (WorkControl w in t.WorkControls)
-                        if (w.workType is CutControl _cut && _cut.PartDetails.Count > 0)
-                            partsCount += _cut.PartDetails.Sum(c => c.Count);
+                //int partsCount = 0;     // считаем количество ВСЕХ нарезанных деталей,
+                //                        // чтобы в дальнейшем "размазывать" конструкторские работы в их ценах
+                //foreach (TypeDetailControl t in det.TypeDetailControls)
+                //    foreach (WorkControl w in t.WorkControls)
+                //        if (w.workType is CutControl _cut && _cut.PartDetails.Count > 0)
+                //            partsCount += _cut.PartDetails.Sum(c => c.Count);
 
                 for (int j = 0; j < det.TypeDetailControls.Count; j++)
                 {
@@ -582,7 +631,7 @@ namespace Metal_Code
                                     p.Description = "Л";
                                     p.Price = 0;
                                     p.PropsDict.Clear();
-                                    p.Price += Construct / partsCount;
+                                    //p.Price += Construct / partsCount;
                                 }
 
                                 if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
@@ -641,20 +690,20 @@ namespace Metal_Code
 
         public void LoadProduct()
         {            
-            SetCount(ProductModel.Product.Count);
-            CheckDelivery.IsChecked = ProductModel.Product.HasDelivery;
-            Delivery.Text = $"{ProductModel.Product.Delivery}";
             ProductName.Text = ProductModel.Product.Name;
             Order.Text = ProductModel.Product.Order;
             Company.Text = ProductModel.Product.Company;
             DateProduction.Text = ProductModel.Product.Production;
             ManagerDrop.Text = ProductModel.Product.Manager;
-            IsLaser = ProductModel.Product.IsLaser;
-            CheckAgent.IsChecked = ProductModel.Product.CheckAgent;
             CheckPaint.IsChecked = ProductModel.Product.HasPaint;
             PaintRatio.Text = ProductModel.Product.PaintRatio;
             CheckConstruct.IsChecked = ProductModel.Product.HasConstruct;
             ConstructRatio.Text = ProductModel.Product.ConstructRatio;
+            SetCount(ProductModel.Product.Count);
+            IsLaser = ProductModel.Product.IsLaser;
+            IsAgent = ProductModel.Product.IsAgent;
+            HasDelivery = ProductModel.Product.HasDelivery;
+            Delivery.Text = $"{ProductModel.Product.Delivery}";
 
             LoadDetails(ProductModel.Product.Details);
         }
@@ -822,7 +871,7 @@ namespace Metal_Code
                 row++;
             }
 
-            if (CheckDelivery.IsChecked == true)        //если требуется доставка
+            if (HasDelivery)        //если требуется доставка
             {
                 worksheet.Cells[row, 5].Value = "Доставка";
                 worksheet.Cells[row, 6].Value = 1;

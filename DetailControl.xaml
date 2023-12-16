@@ -11,7 +11,7 @@
             <MenuItem Header="Удалить" Click="Remove"></MenuItem>
         </ContextMenu>
     </UserControl.ContextMenu>
-    <Grid x:Name="DetailGrid">
+    <Grid x:Name="DetailGrid" >
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>

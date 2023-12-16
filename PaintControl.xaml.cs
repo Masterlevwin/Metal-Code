@@ -114,7 +114,7 @@ namespace Metal_Code
                 foreach (WorkControl w in work.type.WorkControls)
                     if (w != work && w.workType is PipeControl pipe)
                     {
-                        work.SetResult(Price(pipe.Mold, work));
+                        work.SetResult(Price(pipe.Mold * work.type.Count, work));
                         return;
                     }
                 work.SetResult(Price(work.type.Mass * work.type.Count, work));
@@ -127,7 +127,7 @@ namespace Metal_Code
 
             return TypeDrop.SelectedItem switch
             {
-                "м²" => _count / work.type.S / metal.Density * TypeDict[$"{TypeDrop.SelectedItem}"],
+                "м²" => TypeDict[$"{TypeDrop.SelectedItem}"] * _count / work.type.S / metal.Density,
                 "шт" => TypeDict[$"{TypeDrop.SelectedItem}"] * _count,
                 "пог" => TypeDict[$"{TypeDrop.SelectedItem}"] * _count,     // здесь нужна формула расчета пог.м
                 _ => 0,
