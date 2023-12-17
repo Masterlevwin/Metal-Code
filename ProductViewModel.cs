@@ -51,14 +51,12 @@ namespace Metal_Code
                               string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
                               + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
 
-                              //_path += $" с материалом {MainWindow.M.GetMetalPrice()}"; - это строчка дублирует детали при повторном сохранении
+                              //_path += $" с материалом {MainWindow.M.GetMetalPrice()}";
 
-                              fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());     //сохраняем расчет в папке
                               MainWindow.M.SaveOffer(_path + ".mcm");                           //сохраняем расчет в базе данных
-
-                              dialogService.ShowMessage($"{Product.Details.Count}");
-
+                              fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());     //сохраняем расчет в папке
                               MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);           //формируем КП в формате excel
+                              MainWindow.M.StatusBegin($"Расчет сохранен");
                           }
                       }
                       catch (Exception ex)
@@ -84,8 +82,8 @@ namespace Metal_Code
                               string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
                               + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
 
-                              MainWindow.M.StatusBegin($"Создан отчёт за {DateTime.Now.Month}");
                               MainWindow.M.CreateReport(dialogService.FilePaths[0]);
+                              MainWindow.M.StatusBegin($"Создан отчёт за {DateTime.Now.Month}");
                           }
                       }
                       catch (Exception ex)
@@ -109,8 +107,8 @@ namespace Metal_Code
                           if (dialogService.OpenFileDialog() == true)
                           {
                               Product = fileService.Open(dialogService.FilePaths[0]);
-                              dialogService.ShowMessage("Файл открыт");
                               MainWindow.M.LoadProduct();
+                              MainWindow.M.StatusBegin($"Расчет открыт");
                           }
                       }
                       catch (Exception ex)
@@ -134,8 +132,8 @@ namespace Metal_Code
                           if (MainWindow.M.OffersGrid.SelectedItem is Offer offer && offer.Path != null)
                           {
                               Product = fileService.Open(offer.Path);
-                              dialogService.ShowMessage("Файл загружен");
                               MainWindow.M.LoadProduct();
+                              MainWindow.M.StatusBegin($"Расчет загружен");
                           }
                       }
                       catch (Exception ex)
@@ -191,7 +189,7 @@ namespace Metal_Code
                                   MainWindow.M.dbManagers.SaveChanges();
                                   break;
                               }
-
+                      MainWindow.M.StatusBegin($"Расчет удален из базы");
                   });
             }
         }

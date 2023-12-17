@@ -150,9 +150,15 @@ namespace Metal_Code
     {
         [Browsable(false)]
         public int Id { get; set; }
+
         public string? N { get; set; }
         public string? Company { get; set; }
         public float Amount { get; set; }
+        public float Material { get; set; }
+
+        [Browsable(false)]
+        public float Services { get; set; }
+
         public DateTime? CreatedDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string? Invoice { get; set; }
@@ -165,11 +171,13 @@ namespace Metal_Code
         public int ManagerId { get; set; }
         [Browsable(false)]
         public Manager? Manager { get; set; }
-        public Offer(string? n = null, string? company = null, float amount = 0)
+        public Offer(string? n = null, string? company = null, float amount = 0, float material = 0, float services = 0)
         {
             N = n;
             Company = company;
             Amount = amount;
+            Material = material;
+            Services = services;
             CreatedDate = DateTime.Now;
         }
     }

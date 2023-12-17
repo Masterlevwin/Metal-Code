@@ -55,6 +55,7 @@ namespace Metal_Code
             dbTypeDetails.Database.EnsureCreated();
             dbTypeDetails.TypeDetails.Load();
 
+            //dbManagers.Database.EnsureDeleted();
             dbManagers.Database.EnsureCreated();
             dbManagers.Managers.Load();
             dbManagers.Offers.Load();
@@ -210,9 +211,8 @@ namespace Metal_Code
                     HasDelivery = false;
                     Delivery.Text = "";
                 }
-                
             }
-            if (Count > 0) TotalResult();
+            UpdateResult();
         }
         private void SetDelivery(object sender, TextChangedEventArgs e)
         {
@@ -356,19 +356,15 @@ namespace Metal_Code
             OffersGrid.Columns[0].Header = "N";
             OffersGrid.Columns[1].Header = "Компания";
             OffersGrid.Columns[2].Header = "Итого, руб.";
-            OffersGrid.Columns[3].Header = "Дата создания";
-            (OffersGrid.Columns[3] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
-            OffersGrid.Columns[4].Header = "Дата отгрузки";
+            OffersGrid.Columns[3].Header = "Материал, руб.";
+            OffersGrid.Columns[4].Header = "Дата создания";
             (OffersGrid.Columns[4] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
-            OffersGrid.Columns[5].Header = "Счёт";
-            OffersGrid.Columns[6].Header = "Заказ";
-            OffersGrid.Columns[7].Header = "УПД / Акт";
-            OffersGrid.FrozenColumnCount = 1;
-        }
-
-        private void EditOffer(object sender, RoutedEventArgs e)        // при потере фокуса (OffersGrid.LostFocus="EditOffer")
-        {
-            if (OffersGrid.SelectedItem is Offer) dbManagers.SaveChanges();
+            OffersGrid.Columns[5].Header = "Дата отгрузки";
+            (OffersGrid.Columns[5] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
+            OffersGrid.Columns[6].Header = "Счёт";
+            OffersGrid.Columns[7].Header = "Заказ";
+            OffersGrid.Columns[8].Header = "УПД / Акт";
+            OffersGrid.FrozenColumnCount = 2;
         }
 
         private void OffersDateProduction(object sender, DataGridRowEventArgs e)        // при загрузке строк (OffersGrid.LoadingRow="OffersDateProduction")
@@ -406,14 +402,16 @@ namespace Metal_Code
             Status.Background.BeginAnimation(SolidColorBrush.ColorProperty, animation);
         }
 
-        public string GetMetalPrice()
+        public float GetMetalPrice()
         {
             float metalprice = 0;
             foreach (DetailControl d in DetailControls)
                 foreach (TypeDetailControl t in d.TypeDetailControls) metalprice += t.Result;
 
-            return $"{Math.Round(metalprice, 2)}";
+            return (float)Math.Round(metalprice, 2);
         }
+
+        public float GetServices() => (float)Math.Round(Result - GetMetalPrice(), 2);
 
         public ObservableCollection<Part> Parts = new();
         private ObservableCollection<Part> PartsSource()
@@ -486,7 +484,7 @@ namespace Metal_Code
         }
         private void ClearCalculate()
         {
-            SetCount(0);
+            SetCount(1);
             ProductName.Text = Order.Text = Company.Text = DateProduction.Text = Delivery.Text = "";
             ManagerDrop.SelectedItem = CurrentManager;
         }
@@ -670,22 +668,33 @@ namespace Metal_Code
                 {
                     foreach (Offer of in man.Offers) if (of.Path == path)
                         {
+                            of.N = Order.Text;
+                            of.Company = Company.Text;
+                            of.Amount = Result;
+                            of.Material = GetMetalPrice();
+                            of.Services = GetServices();
                             of.EndDate = EndDate();
                             dbManagers.SaveChanges();
+                            OffersGrid.Items.Refresh();
                             return;
                         }
 
-                    Offer offer = new(Order.Text, Company.Text, Result)
+                    Offer offer = new(Order.Text, Company.Text, Result, GetMetalPrice(), GetServices())
                     {
+                        EndDate = EndDate(),
                         Path = path,
                         Manager = man,
-                        EndDate = EndDate()
                     };
 
                     man.Offers.Add(offer);
                     dbManagers.SaveChanges();
                     break;
                 }
+        }
+
+        private void EditOffers(object sender, System.Windows.Input.MouseEventArgs e)       //когда мышь покидает OffersGrid
+        {
+            dbManagers.SaveChanges();       //сохраняем изменения в базе данных
         }
 
         public void LoadProduct()
@@ -706,6 +715,7 @@ namespace Metal_Code
             Delivery.Text = $"{ProductModel.Product.Delivery}";
 
             LoadDetails(ProductModel.Product.Details);
+            UpdateResult();
         }
         public void LoadDetails(ObservableCollection<Detail> details)
         {
@@ -1112,7 +1122,7 @@ namespace Metal_Code
             Application.Current.Resources.MergedDictionaries.Add(resourceDict);
         }
 
-        public void CreateReport(string path)           //метод создания отчета по заказам
+        public void CreateReport(string path)           //метод создания отчета по заказам - нужно доработать!
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
@@ -1121,6 +1131,10 @@ namespace Metal_Code
 
             DataTable reportTable = ToDataTable(CurrentManager.Offers);
             worksheet.Cells["A1"].LoadFromDataTable(reportTable, false);
+
+            worksheet.DeleteColumn(1, 2);
+            worksheet.DeleteColumn(5, 2);
+            worksheet.DeleteColumn(7, 4);            
 
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
         }

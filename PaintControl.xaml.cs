@@ -91,7 +91,7 @@ namespace Metal_Code
             OnPriceChanged();
         }
 
-        public void OnPriceChanged()        // добавить расчет отдельный Part
+        public void OnPriceChanged()
         {
             if (owner is not WorkControl work) return;
 
