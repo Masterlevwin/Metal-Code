@@ -86,7 +86,7 @@ namespace Metal_Code
             dialogService = _dialogService;
 
             work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-            work.type.Priced += OnPriceChanged;                   // подписка на изменение материала типовой детали
+            work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
             BtnEnabled();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
         }
 
@@ -214,6 +214,9 @@ namespace Metal_Code
                 }
             }
 
+            //определяем деталь, в которой загрузили раскладки, как комплект деталей
+            if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged();
+
             if (!MainWindow.M.IsLaser) MainWindow.M.IsLaser = true;
             if (MainWindow.M.Count == 0) MainWindow.M.Count = 1;
 
@@ -252,9 +255,6 @@ namespace Metal_Code
                     }
                 }
             }
-
-                //определяем деталь, в которой загрузили раскладки, как комплект деталей
-            if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged();
         }
 
         public PartWindow? WindowParts = null;

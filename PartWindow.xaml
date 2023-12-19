@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     x:Class="Metal_Code.PartWindow"
         mc:Ignorable="d"
-        Title="Список деталей" Style="{DynamicResource WindowStyle}" Height="300" Width="900" Topmost="True" ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterScreen" Icon="/app_logo.jpeg">
+        Title="Список деталей" Style="{DynamicResource WindowStyle}" Height="300" Width="900" Topmost="True" ShowInTaskbar="False" WindowStartupLocation="CenterScreen" Icon="/app_logo.jpeg">
     <ScrollViewer VerticalAlignment="Top" VerticalScrollBarVisibility="Auto">
         <Grid>
             <Grid.RowDefinitions>

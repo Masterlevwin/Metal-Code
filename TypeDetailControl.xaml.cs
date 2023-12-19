@@ -244,8 +244,13 @@ namespace Metal_Code
                 A = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item1);
                 B = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item2);
                 S = 1;
-                L = 1000;
-                if (TypeDetailDrop.SelectedItem is TypeDetail type && type.Name != "Лист металла") A_prop.IsEnabled = B_prop.IsEnabled = false;
+
+                if (TypeDetailDrop.SelectedItem is TypeDetail type && type.Name == "Лист металла") L = 1;
+                else
+                {
+                    A_prop.IsEnabled = B_prop.IsEnabled = false;
+                    L = 1000;
+                }
             }
             MassCalculate();
         }
@@ -286,11 +291,8 @@ namespace Metal_Code
         {
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
 
-            if (type.Name == "Лист металла")
-            {
-                L = 1;
-                Price = metal.MassPrice;
-            } 
+            //нужно пересмотреть цены на металлические заготовки, возможно стоит добавить навигационные ссылки на металл в базе
+            if (type.Name == "Лист металла" || (type.Name != null && type.Name.Contains("Труба"))) Price = metal.MassPrice;
             else Price = type.Price;
 
             if (det.Detail.Title == "Комплект деталей" && type.Name == "Лист металла")

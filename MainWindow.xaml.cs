@@ -477,6 +477,7 @@ namespace Metal_Code
             ClearCalculate();   // очищаем расчет
             ClearDetails();     // удаляем все детали
             AddDetail();        // добавляем пустой блок детали
+            SetCount(1);
         }
         private void ClearDetails()         // метод удаления всех деталей и очищения текущего расчета
         {
