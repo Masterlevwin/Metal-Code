@@ -26,7 +26,8 @@ namespace Metal_Code
                 if (manager.Password == password)
                 {
                     if (!manager.IsAdmin) MainWindow.M.Settings.IsEnabled = false;
-                    MainWindow.M.ManagerDrop.SelectedItem = MainWindow.M.CurrentManager = manager;
+                    if (MainWindow.M.ManagerDrop.Items.Contains(manager)) MainWindow.M.ManagerDrop.SelectedItem = manager;
+                    MainWindow.M.CurrentManager = manager;
                     DialogResult = true;
                 }
                 else MessageBox.Show("Неправильный пароль. Попробуйте еще раз.");

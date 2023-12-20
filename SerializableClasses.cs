@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Metal_Code
 {
@@ -139,6 +140,7 @@ namespace Metal_Code
         public string? Contact {  get; set; }
         public string? Password {  get; set; }
         public bool IsAdmin {  get; set; }
+        public bool IsEngineer {  get; set; }
         public ObservableCollection<Offer> Offers { get; set; } = new();
         public Manager()
         {
@@ -164,13 +166,17 @@ namespace Metal_Code
         public string? Invoice { get; set; }
         public string? Order { get; set; }
         public string? Act { get; set; }
+        public string? Autor { get; set; }
+
+        [Browsable(false)]
+        public Manager? Manager { get; set; }
+
+        [Browsable(false)]
+        public int ManagerId { get; set; }
 
         [Browsable(false)]
         public string? Path { get; set; }
-        [Browsable(false)]
-        public int ManagerId { get; set; }
-        [Browsable(false)]
-        public Manager? Manager { get; set; }
+
         public Offer(string? n = null, string? company = null, float amount = 0, float material = 0, float services = 0)
         {
             N = n;

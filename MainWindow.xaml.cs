@@ -16,6 +16,7 @@ using System.Windows.Media.Imaging;
 using System.Text;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Data;
 
 namespace Metal_Code
 {
@@ -59,7 +60,7 @@ namespace Metal_Code
             dbManagers.Database.EnsureCreated();
             dbManagers.Managers.Load();
             dbManagers.Offers.Load();
-            ManagerDrop.ItemsSource = dbManagers.Managers.Local.ToObservableCollection();
+            ManagerDrop.ItemsSource = dbManagers.Managers.Local.ToObservableCollection().Where(m => !m.IsEngineer);
 
             dbMetals.Database.EnsureCreated();
             dbMetals.Metals.Load();
@@ -351,7 +352,7 @@ namespace Metal_Code
 
         private void ViewOffersGrid()
         {
-            OffersGrid.ItemsSource = CurrentManager.Offers;
+            if (ManagerDrop.SelectedItem is Manager man) OffersGrid.ItemsSource = man.Offers;
 
             OffersGrid.Columns[0].Header = "N";
             OffersGrid.Columns[1].Header = "Компания";
@@ -364,6 +365,7 @@ namespace Metal_Code
             OffersGrid.Columns[6].Header = "Счёт";
             OffersGrid.Columns[7].Header = "Заказ";
             OffersGrid.Columns[8].Header = "УПД / Акт";
+            OffersGrid.Columns[9].Header = "Автор";
             OffersGrid.FrozenColumnCount = 2;
         }
 
@@ -385,7 +387,8 @@ namespace Metal_Code
 
         void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
-            if (((PropertyDescriptor)e.PropertyDescriptor).IsBrowsable == false) e.Cancel = true;
+            if (((PropertyDescriptor)e.PropertyDescriptor).IsBrowsable == false) e.Cancel = true;   //скрываем свойства с атрибутом [IsBrowsable]
+            if (e.PropertyName == "Autor") e.Column.IsReadOnly = true;                              //запрещаем редактировать автора расчета
         }
 
         public void StatusBegin(string? notify = null)
@@ -665,7 +668,7 @@ namespace Metal_Code
         }
         public void SaveOffer(string path)
         {
-            foreach (Manager man in dbManagers.Managers.Local.ToObservableCollection()) if (man == CurrentManager)
+            foreach (Manager man in dbManagers.Managers.Local.ToObservableCollection()) if (man == ManagerDrop.SelectedItem)
                 {
                     foreach (Offer of in man.Offers) if (of.Path == path)
                         {
@@ -675,6 +678,7 @@ namespace Metal_Code
                             of.Material = GetMetalPrice();
                             of.Services = GetServices();
                             of.EndDate = EndDate();
+                            of.Autor = CurrentManager.Name;
                             dbManagers.SaveChanges();
                             OffersGrid.Items.Refresh();
                             return;
@@ -684,7 +688,8 @@ namespace Metal_Code
                     {
                         EndDate = EndDate(),
                         Path = path,
-                        Manager = man,
+                        Autor = CurrentManager.Name,
+                        Manager = man
                     };
 
                     man.Offers.Add(offer);
