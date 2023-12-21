@@ -1141,7 +1141,7 @@ namespace Metal_Code
             worksheet.DeleteColumn(1, 2);
             worksheet.DeleteColumn(5, 2);
             worksheet.DeleteColumn(8, 4);
-            worksheet.InsertColumn(5, 1);
+            worksheet.InsertColumn(1, 1);
 
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
         }
