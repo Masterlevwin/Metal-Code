@@ -1132,12 +1132,16 @@ namespace Metal_Code
             using var workbook = new ExcelPackage();
             ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("Лист1");
 
-            DataTable reportTable = ToDataTable(CurrentManager.Offers);
-            worksheet.Cells["A1"].LoadFromDataTable(reportTable, false);
+            if (ManagerDrop.SelectedItem is Manager man)
+            {
+                DataTable reportTable = ToDataTable(man.Offers);
+                worksheet.Cells["A1"].LoadFromDataTable(reportTable);
+            }
 
             worksheet.DeleteColumn(1, 2);
             worksheet.DeleteColumn(5, 2);
-            worksheet.DeleteColumn(7, 4);            
+            worksheet.DeleteColumn(8, 4);
+            worksheet.InsertColumn(5, 1);
 
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
         }
