@@ -152,7 +152,7 @@ namespace Metal_Code
                     break;
             }
 
-            if (ValidateProp(out int index))
+            if (workType is not BendControl && ValidateProp(out int index))
             {
                 if (WorkDrop.Items.Count <= index) MessageBox.Show($"Такая работа уже есть!\nУдалите лишнее!");
                 else WorkDrop.SelectedIndex = index;

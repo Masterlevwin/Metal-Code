@@ -218,7 +218,7 @@ namespace Metal_Code
             if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged();
 
             if (!MainWindow.M.IsLaser) MainWindow.M.IsLaser = true;
-            if (MainWindow.M.Count == 0) MainWindow.M.Count = 1;
+            if (MainWindow.M.Count == 0) MainWindow.M.SetCount(1);
 
             for (int i = 0; i < paths.Length; i++)
             {
@@ -264,7 +264,9 @@ namespace Metal_Code
         {
             List<PartControl> _parts = new();
 
-            if (table != null && PartDetails != null)
+            if (table != null)
+            {
+                PartDetails.Clear();
                 for (int i = 0; i < table.Rows.Count; i++)
                 {
                     if (table.Rows[i] == null) continue;
@@ -296,7 +298,8 @@ namespace Metal_Code
                         break;
                     }
                 }
-            else if (PartDetails != null && PartDetails.Count > 0) foreach (Part part in PartDetails) _parts.Add(new(this, part));
+            }
+            else if (PartDetails.Count > 0) foreach (Part part in PartDetails) _parts.Add(new(this, part));
 
             return _parts;
         }

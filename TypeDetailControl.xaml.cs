@@ -148,6 +148,11 @@ namespace Metal_Code
 
         private void AddTypeDetail(object sender, RoutedEventArgs e)
         {
+            if (det.Detail.IsComplect)
+            {
+                MainWindow.M.StatusBegin($"Нельзя добавить заготовку в \"Комплект деталей\". Сначала добавьте новую деталь!");
+                return;
+            }
             det.AddTypeDetail();
         }
 
@@ -297,6 +302,9 @@ namespace Metal_Code
 
             if (det.Detail.Title == "Комплект деталей" && type.Name == "Лист металла")
             {
+                foreach (UIElement element in TypeDetailGrid.Children)
+                    if (element is not WorkControl && element is not CheckBox) element.IsEnabled = false;
+
                 foreach (WorkControl w in WorkControls)
                     if (w.workType is CutControl cut)
                     {

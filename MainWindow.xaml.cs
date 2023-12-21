@@ -234,7 +234,7 @@ namespace Metal_Code
         {
             if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int c)) SetCount(c);
         }
-        private void SetCount(int _count)
+        public void SetCount(int _count)
         {
             Count = _count;
             if (Count > 0) TotalResult();
@@ -557,7 +557,6 @@ namespace Metal_Code
 
         public Product SaveProduct()
         {
-#pragma warning disable CS8629 // Тип значения, допускающего NULL, может быть NULL.
             ProductModel.Product = new()
             {
                 Name = ProductName.Text,
@@ -572,7 +571,6 @@ namespace Metal_Code
                 IsAgent = IsAgent,
                 HasDelivery = HasDelivery
             };
-#pragma warning restore CS8629 // Тип значения, допускающего NULL, может быть NULL.
             if (int.TryParse(Delivery.Text, out int d)) ProductModel.Product.Delivery = d;
 
             if (CheckPaint.IsChecked != null) ProductModel.Product.HasPaint = (bool)CheckPaint.IsChecked;
@@ -616,7 +614,6 @@ namespace Metal_Code
                         _detail.Metal = _detail.Metal.TrimEnd('\n');
                         _detail.Destiny = _detail.Destiny.TrimEnd('\n');
                     }
-                    
 
                     for (int k = 0; k < type.WorkControls.Count; k++)
                     {

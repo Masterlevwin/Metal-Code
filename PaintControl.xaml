@@ -9,7 +9,7 @@
     <Grid>
         <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Ral, RelativeSource={RelativeSource AncestorType={x:Type local:PaintControl}, Mode=FindAncestor}}" TextChanged="SetRal" HorizontalAlignment="Left" VerticalAlignment="Center" MinWidth="55" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Margin="30,0,0,0" MaxWidth="55" MaxHeight="20" MaxLines="1" ToolTip="Введите цвет RAL"/>
         <ComboBox x:Name="TypeDrop" Style="{DynamicResource ComboBoxStyle}" SelectionChanged="SetType" HorizontalAlignment="Left" MinHeight="20" MinWidth="50" Height="20" Margin="90,0,0,0" VerticalAlignment="Center" MaxWidth="50" MaxHeight="20" ToolTip="Выберите тип расчета" SelectedIndex="0"/>
-        <Button x:Name="PartBtn" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="20" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Content="..." Padding="0,0,0,0" Grid.IsSharedSizeScope="True" FontFamily="Arial" FontWeight="Bold" Click="ViewPartWindow"/>
+        <Button x:Name="PartBtn" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="20" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Content="..." Padding="0,0,0,0" Grid.IsSharedSizeScope="True" FontFamily="Arial" FontWeight="Bold" Click="ViewPartWindow" IsEnabled="False"/>
         <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="6,-3,0,0" TextWrapping="Wrap" Text="О" VerticalAlignment="Top" FontWeight="Bold"/>
     </Grid>
 </UserControl>
