@@ -729,6 +729,7 @@ namespace Metal_Code
                 AddDetail();
                 DetailControl _det = DetailControls[i];
                 _det.Detail.Title = details[i].Title;
+                if (_det.Detail.Title == "Комплект деталей") _det.IsComplectChanged();       //если деталь является Комплектом деталей, запускаем ограничения
                 _det.Detail.Count = details[i].Count;
 
                 for (int j = 0; j < details[i].TypeDetails.Count; j++)
@@ -783,7 +784,6 @@ namespace Metal_Code
                     }
                     if (_det.TypeDetailControls.Count < details[i].TypeDetails.Count) _det.AddTypeDetail();
                 }
-                if (_det.Detail.Title == "Комплект деталей") _det.IsComplectChanged();       //если деталь является Комплектом деталей, запускаем ограничения
             }
         }
 
