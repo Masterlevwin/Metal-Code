@@ -17,6 +17,7 @@ using System.Text;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Data;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Metal_Code
 {
@@ -557,7 +558,7 @@ namespace Metal_Code
 
         public Product SaveProduct()
         {
-            ProductModel.Product = new()
+            Product product = new()
             {
                 Name = ProductName.Text,
                 Order = Order.Text,
@@ -571,14 +572,14 @@ namespace Metal_Code
                 IsAgent = IsAgent,
                 HasDelivery = HasDelivery
             };
-            if (int.TryParse(Delivery.Text, out int d)) ProductModel.Product.Delivery = d;
+            if (int.TryParse(Delivery.Text, out int d))product.Delivery = d;
 
-            if (CheckPaint.IsChecked != null) ProductModel.Product.HasPaint = (bool)CheckPaint.IsChecked;
-            if (CheckConstruct.IsChecked != null) ProductModel.Product.HasConstruct = (bool)CheckConstruct.IsChecked;
+            if (CheckPaint.IsChecked != null) product.HasPaint = (bool)CheckPaint.IsChecked;
+            if (CheckConstruct.IsChecked != null) product.HasConstruct = (bool)CheckConstruct.IsChecked;
 
-            ProductModel.Product.Details = SaveDetails();
+            product.Details = SaveDetails();
 
-            return ProductModel.Product;
+            return product;
         }
         public ObservableCollection<Detail> SaveDetails()
         {
@@ -595,6 +596,8 @@ namespace Metal_Code
                 //    foreach (WorkControl w in t.WorkControls)
                 //        if (w.workType is CutControl _cut && _cut.PartDetails.Count > 0)
                 //            partsCount += _cut.PartDetails.Sum(c => c.Count);
+
+                if (_detail.TypeDetails.Count > 0) _detail.TypeDetails.Clear();     //как будто решаем проблему дублирования при пересохранении
 
                 for (int j = 0; j < det.TypeDetailControls.Count; j++)
                 {
@@ -1134,14 +1137,32 @@ namespace Metal_Code
 
             if (ManagerDrop.SelectedItem is Manager man)
             {
-                DataTable reportTable = ToDataTable(man.Offers);
+                //создаем новый список КП, которые выложены в работу, т.е. оплачены и имеют номер заказа
+                ObservableCollection<Offer> _offers = new(man.Offers.Where(o => o.Order != null && o.Order != "").ToList());
+
+                //конвертируем список в таблицу и переносим в excel
+                DataTable reportTable = ToDataTable(_offers);
                 worksheet.Cells["A1"].LoadFromDataTable(reportTable);
             }
 
+            //настраиваем отчет согласно принятому ранее порядку отображения столбцов
             worksheet.DeleteColumn(1, 2);
             worksheet.DeleteColumn(5, 2);
             worksheet.DeleteColumn(8, 4);
             worksheet.InsertColumn(1, 1);
+            worksheet.Cells[1, 6, 100, 6].Copy(worksheet.Cells[1, 1, 100, 1]);
+            worksheet.InsertColumn(3, 3);
+            worksheet.Cells[1, 10, 100, 10].Copy(worksheet.Cells[1, 3, 100, 3]);
+            worksheet.Cells[1, 8, 100, 8].Copy(worksheet.Cells[1, 4, 100, 4]);
+            worksheet.Cells[1, 7, 100, 7].Copy(worksheet.Cells[1, 5, 100, 5]);
+            worksheet.DeleteColumn(7, 5);
+            worksheet.InsertRow(1, 1);
+            worksheet.Cells[1, 1].Value = $"Счет";
+            worksheet.Cells[1, 2].Value = $"Проект";
+            worksheet.Cells[1, 3].Value = $"Заказ";
+            worksheet.Cells[1, 4].Value = $"Работа";
+            worksheet.Cells[1, 5].Value = $"Металл";
+            worksheet.Cells[1, 6].Value = $"Итого";
 
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
         }

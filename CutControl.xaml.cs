@@ -342,6 +342,9 @@ namespace Metal_Code
                 }
             }
 
+            //оформляем заголовок окна деталей в соответствии с толщиной и маркой стали
+            if (WindowParts != null) WindowParts.Title = $"s{work.type.S} {work.type.MetalDrop.Text}";
+
             //затем считываем значения для каждого листа
             LaserItem? item = null;
 

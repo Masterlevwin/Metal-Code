@@ -8,13 +8,13 @@
         Title="Metal-Code" Style="{DynamicResource WindowStyle}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" d:DesignHeight="805.736" d:DesignWidth="1907.931" Closing="Exit" WindowState="Maximized" Icon="/app_logo.jpeg" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveCaptionTextBrushKey}}">
     <Grid x:Name="MenuGrid">
         <Menu VerticalAlignment="Top" RenderTransformOrigin="0.499,-1.337" Grid.ColumnSpan="2" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" Padding="10,0,0,0" FontFamily="Leelawadee UI">
-            <MenuItem Header="Файл">
-                <MenuItem Header="Создать" Click="ClearDetails"/>
-                <MenuItem Header="Открыть" Command="{Binding OpenCommand}"/>
-                <MenuItem Header="Сохранить" Command="{Binding SaveCommand}"/>
-                <MenuItem Header="Отчет" Command="{Binding SaveReportCommand}"/>
+            <MenuItem Header="_Файл">
+                <MenuItem Header="_Новый проект" Click="ClearDetails"/>
+                <MenuItem Header="_Открыть" Command="{Binding OpenCommand}"/>
+                <MenuItem Header="_Сохранить" Command="{Binding SaveCommand}"/>
+                <MenuItem Header="_Получить отчет" Command="{Binding SaveReportCommand}"/>
                 <Separator/>
-                <MenuItem Header="Выход" Click="Exit"/>
+                <MenuItem Header="_Выход" Click="Exit"/>
             </MenuItem>
             <MenuItem x:Name="Settings" Header="Параметры">
                 <MenuItem Header="База типовых деталей" Click="OpenSettings"/>
@@ -111,6 +111,10 @@
                     <TextBlock x:Name="NotifyText" Style="{DynamicResource TextBlockStyle}" />
                 </StackPanel>
             </StatusBar>
+            <Button Content="Нов" Click="ClearDetails" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="400,40,0,0"/>
+            <Button Content="Отк" Command="{Binding OpenCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,40,0,0"/>
+            <Button Content="Сох" Command="{Binding SaveCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="460,40,0,0"/>
+            <Button Content="Отч" Command="{Binding SaveReportCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="490,40,0,0"/>
         </Grid>
     </Grid>
 </Window>

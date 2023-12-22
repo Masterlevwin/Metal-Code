@@ -4,8 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     x:Class="Metal_Code.PartWindow"
-        mc:Ignorable="d"
-        Title="Список деталей" Style="{DynamicResource WindowStyle}" Height="300" Width="900" Topmost="True" ShowInTaskbar="False" WindowStartupLocation="CenterScreen" Icon="/app_logo.jpeg">
+        mc:Ignorable="d" Style="{DynamicResource WindowStyle}" Height="300" Width="900" Topmost="True" ShowInTaskbar="False" WindowStartupLocation="CenterScreen" Icon="/app_logo.jpeg">
     <ScrollViewer VerticalAlignment="Top" VerticalScrollBarVisibility="Auto">
         <Grid>
             <Grid.ColumnDefinitions>
@@ -27,13 +26,13 @@
                 </MenuItem>
             </Menu>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Center" Text="Общее для всех деталей:" VerticalAlignment="Top" Margin="10,55,10,0"/>
-            <TextBlock Text="Г" Style="{DynamicResource TextBlockStyle}" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" ToolTip="Гибка для всех" Height="16" Width="10" HorizontalAlignment="Left" Margin="10,75,0,0"/>
+            <TextBlock Text="Г" Style="{DynamicResource TextBlockStyle}" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" ToolTip="Гибка для всех" Height="16" Width="10" HorizontalAlignment="Left" Margin="10,77,0,0"/>
             <TextBox x:Name="Bend" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="35" MinHeight="20" MaxWidth="35" MaxHeight="20" TextChanged="SetProperty" ToolTip="Введите количество однотипных гибов" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="20" Width="35" Margin="20,75,0,0"/>
             <ComboBox x:Name="BendDrop" Style="{DynamicResource ComboBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Height="20" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" SelectedIndex="0" ToolTip="Выберите длину гиба" SelectionChanged="SetType" Width="70" Margin="65,75,0,0"/>
-            <TextBlock Text="С" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="10,100,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" MinWidth="10" MinHeight="10" ToolTip="Сварка для всех"/>
+            <TextBlock Text="С" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="10,102,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" MinWidth="10" MinHeight="10" ToolTip="Сварка для всех"/>
             <TextBox x:Name="Weld" Style="{DynamicResource TextBoxStyle}" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="20,100,0,0" MaxLines="1" ToolTip="Введите длину свариваемой поверхности, мм" MinHeight="20" MaxHeight="20" MinWidth="55" MaxWidth="55" Height="20" Width="55"/>
             <ComboBox x:Name="WeldDrop" Style="{DynamicResource ComboBoxStyle}" SelectionChanged="SetType" HorizontalAlignment="Left" Margin="85,100,0,0" VerticalAlignment="Top" Height="20" MinHeight="20" MaxHeight="20" MinWidth="50" MaxWidth="50" ToolTip="Выберите тип расчета" SelectedIndex="0" Width="50"/>
-            <TextBlock Text="О" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="10,125,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Окраска для всех" MinWidth="10" MinHeight="10" Height="16" Width="10"/>
+            <TextBlock Text="О" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="10,127,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Окраска для всех" MinWidth="10" MinHeight="10" Height="16" Width="10"/>
             <TextBox x:Name="Paint" Style="{DynamicResource TextBoxStyle}" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="55" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Margin="20,125,0,0" MaxWidth="55" MaxHeight="20" MaxLines="1" ToolTip="Введите цвет RAL" Width="55"/>
             <ComboBox x:Name="PaintDrop" Style="{DynamicResource ComboBoxStyle}" SelectionChanged="SetType" HorizontalAlignment="Left" MinHeight="20" MinWidth="50" Height="20" Margin="85,125,0,0" VerticalAlignment="Top" MaxWidth="50" MaxHeight="20" ToolTip="Выберите тип расчета" SelectedIndex="0" Width="50"/>
         </Grid>

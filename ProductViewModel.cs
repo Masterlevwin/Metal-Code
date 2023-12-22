@@ -51,7 +51,7 @@ namespace Metal_Code
                               string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
                               + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
 
-                              //_path += $" с материалом {MainWindow.M.GetMetalPrice()}";
+                              _path += $" с материалом {MainWindow.M.GetMetalPrice()}";
 
                               MainWindow.M.SaveOffer(_path + ".mcm");                           //сохраняем расчет в базе данных
                               fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());     //сохраняем расчет в папке
