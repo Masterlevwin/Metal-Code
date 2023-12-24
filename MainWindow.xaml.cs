@@ -80,7 +80,6 @@ namespace Metal_Code
                 Boss.Text = "ООО Провэлд  ";
                 Phone.Text = "тел:(812)603-45-33";
                 AddDetail();
-                ViewOffersGrid();
             }
         }
 
@@ -351,9 +350,14 @@ namespace Metal_Code
             DetailsGrid.FrozenColumnCount = 1;
         }
 
-        private void ViewOffersGrid()
+        private void ManagerChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ManagerDrop.SelectedItem is Manager man) OffersGrid.ItemsSource = man.Offers;
+            if (ManagerDrop.SelectedItem is Manager man) ViewOffersGrid(man);
+        }
+
+        private void ViewOffersGrid(Manager man)
+        {
+            OffersGrid.ItemsSource = man.Offers;
 
             OffersGrid.Columns[0].Header = "N";
             OffersGrid.Columns[1].Header = "Компания";
@@ -368,6 +372,10 @@ namespace Metal_Code
             OffersGrid.Columns[8].Header = "УПД / Акт";
             OffersGrid.Columns[9].Header = "Автор";
             OffersGrid.FrozenColumnCount = 2;
+
+            //если список КП принадлежит текущему менеджеру, разрешаем ему удалять эти КП
+            foreach (MenuItem item in OffersGrid.ContextMenu.Items)
+                if (item.Name == "DeleteOffer") item.IsEnabled = CurrentManager == man;
         }
 
         private void OffersDateProduction(object sender, DataGridRowEventArgs e)        // при загрузке строк (OffersGrid.LoadingRow="OffersDateProduction")
@@ -1128,22 +1136,31 @@ namespace Metal_Code
             Application.Current.Resources.MergedDictionaries.Add(resourceDict);
         }
 
-        public void CreateReport(string path)           //метод создания отчета по заказам - нужно доработать!
+        public void CreateReport(string path, string report)           //метод создания отчета...
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
             using var workbook = new ExcelPackage();
             ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("Лист1");
 
-            if (ManagerDrop.SelectedItem is Manager man)
+            ObservableCollection<Offer> _offers = new();
+            if (report != null)
             {
-                //создаем новый список КП, которые выложены в работу, т.е. оплачены и имеют номер заказа
-                ObservableCollection<Offer> _offers = new(man.Offers.Where(o => o.Order != null && o.Order != "").ToList());
-
-                //конвертируем список в таблицу и переносим в excel
-                DataTable reportTable = ToDataTable(_offers);
-                worksheet.Cells["A1"].LoadFromDataTable(reportTable);
+                if (report == "По заказам" && ManagerDrop.SelectedItem is Manager man)          //...по оплаченнным заказам менеджера
+                {
+                    //создаем новый список КП, которые выложены в работу, т.е. оплачены и имеют номер заказа
+                    _offers = new(man.Offers.Where(o => o.Order is not null and not "").ToList());
+                }
+                else if (report == "По расчетам")                                               //...по выполненным расчетам инженера
+                {
+                    //создаем новый список КП, которые выполнены определенным инженером или менеджером
+                    _offers = new(dbManagers.Offers.Where(a => a.Autor == CurrentManager.Name));    //придумать возможность выбора инженера!
+                }
             }
+
+            //конвертируем список в таблицу и переносим в excel
+            DataTable reportTable = ToDataTable(_offers);
+            worksheet.Cells["A1"].LoadFromDataTable(reportTable);
 
             //настраиваем отчет согласно принятому ранее порядку отображения столбцов
             worksheet.DeleteColumn(1, 2);

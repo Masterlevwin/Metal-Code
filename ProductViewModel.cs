@@ -6,6 +6,7 @@ using System.IO;
 using System.Runtime.Serialization.Json;
 using Microsoft.Win32;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace Metal_Code
 {
@@ -75,14 +76,15 @@ namespace Metal_Code
             {
                 return saveReportCommand ??= new RelayCommand(obj =>
                   {
+                      
                       try
                       {
                           if (dialogService.SaveFileDialog() == true)
                           {
                               string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
                               + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
-
-                              MainWindow.M.CreateReport(dialogService.FilePaths[0]);
+                              
+                              MainWindow.M.CreateReport(dialogService.FilePaths[0], $"{obj}");
                               MainWindow.M.StatusBegin($"Создан отчёт за {DateTime.Now.Month}");
                           }
                       }

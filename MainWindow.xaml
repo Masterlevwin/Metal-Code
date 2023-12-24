@@ -12,7 +12,10 @@
                 <MenuItem Header="_Новый проект" Click="ClearDetails"/>
                 <MenuItem Header="_Открыть" Command="{Binding OpenCommand}"/>
                 <MenuItem Header="_Сохранить" Command="{Binding SaveCommand}"/>
-                <MenuItem Header="_Получить отчет" Command="{Binding SaveReportCommand}"/>
+                <MenuItem Header="_Получить отчет">
+                    <MenuItem Header="По оплаченным _заказам" Command="{Binding SaveReportCommand}" CommandParameter="По заказам"/>
+                    <MenuItem Header="По выполненным _расчетам" Command="{Binding SaveReportCommand}" CommandParameter="По расчетам"/>
+                </MenuItem>
                 <Separator/>
                 <MenuItem Header="_Выход" Click="Exit"/>
             </MenuItem>
@@ -45,7 +48,7 @@
             <Button x:Name="ResultBtn" Style="{DynamicResource ButtonStyle}" Content="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Right" MinHeight="20" AllowDrop="False" ToolTip="Общая стоимость, нажмите, чтобы обновить" VerticalAlignment="Top" Margin="0,40,55,0" FontSize="14" HorizontalContentAlignment="Stretch" MaxWidth="80" BorderThickness="0,0,0,0" Click="UpdateResult" Height="20"/>
             <GroupBox Header="Ведомость деталей" Grid.Column="1" Grid.Row="1" MinWidth="400" Margin="15,0,15,20">
                 <Grid>
-                    <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" Margin="15,5,15,5" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" CanUserReorderColumns="False" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn"/>
+                    <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" Margin="15,5,15,5" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" CanUserReorderColumns="False" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False"/>
                 </Grid>
             </GroupBox>
             <GroupBox Header="Коммерческое предложение" x:Name="OrderBox" Grid.Column="1" Margin="15,20,15,15" MinWidth="400">
@@ -62,7 +65,7 @@
                     <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="200,65,0,0" Text="раб/дней" VerticalAlignment="Top"/>
                     <TextBox x:Name="Adress" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Margin="15,110,0,0" VerticalAlignment="Top" Width="265" Height="45" ToolTip="Введите адрес доставки" Text="Адрес доставки:" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}"/>
                     <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="15,160,0,0" Text="Ваш менеджер:" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="ManagerDrop" Style="{DynamicResource ComboBoxStyle}" DisplayMemberPath="Name" HorizontalAlignment="Left" Margin="115,160,0,0" VerticalAlignment="Top" Width="165" ToolTip="Выберите менеджера" SelectedIndex="0"/>
+                    <ComboBox x:Name="ManagerDrop" Style="{DynamicResource ComboBoxStyle}" DisplayMemberPath="Name" HorizontalAlignment="Left" Margin="115,160,0,0" VerticalAlignment="Top" Width="165" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged"/>
                     <DatePicker x:Name="datePicker" HorizontalAlignment="Left" Margin="290,60,0,0" VerticalAlignment="Top" FirstDayOfWeek="Monday" SelectedDateChanged="SetDate" ToolTip="Выберите дату изготовления"/>
                     <TextBox x:Name="Delivery" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Margin="200,89,0,0" Text="Стоимость" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите цену доставки" Width="80" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" TextChanged="SetDelivery"/>
                     <TextBlock x:Name="Boss" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,135,0"/>
@@ -73,11 +76,11 @@
                     <TextBox x:Name="PaintRatio" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="19" Width="30" Margin="470,113,0,0" TextChanged="UpdateResult"/>
                     <TextBox x:Name="ConstructRatio" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,138,0,0" TextChanged="UpdateResult"/>
                     <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="470,90,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
-                    <DataGrid x:Name="OffersGrid" CanUserReorderColumns="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,190,15,5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" LoadingRow="OffersDateProduction" MouseLeave="EditOffers">
+                    <DataGrid x:Name="OffersGrid" CanUserReorderColumns="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,190,15,5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" LoadingRow="OffersDateProduction" MouseLeave="EditOffers" CanUserDeleteRows="False" CanUserAddRows="False">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Загрузить" Command="{Binding OpenOfferCommand}"/>
-                                <MenuItem Header="Удалить" Command="{Binding RemoveOfferCommand}"/>
+                                <MenuItem x:Name="DeleteOffer" Header="Удалить" Command="{Binding RemoveOfferCommand}"/>
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                     </DataGrid>

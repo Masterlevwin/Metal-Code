@@ -25,9 +25,15 @@ namespace Metal_Code
             {
                 if (manager.Password == password)
                 {
+                    //отключаем настройки баз для всех, кроме админов
                     if (!manager.IsAdmin) MainWindow.M.Settings.IsEnabled = false;
-                    if (MainWindow.M.ManagerDrop.Items.Contains(manager)) MainWindow.M.ManagerDrop.SelectedItem = manager;
+
+                    //определяем текущего менеджера
                     MainWindow.M.CurrentManager = manager;
+
+                    //устанавливаем менеджера по умолчанию
+                    if (MainWindow.M.ManagerDrop.Items.Contains(manager)) MainWindow.M.ManagerDrop.SelectedItem = manager;
+
                     DialogResult = true;
                 }
                 else MessageBox.Show("Неправильный пароль. Попробуйте еще раз.");
