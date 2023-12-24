@@ -49,6 +49,11 @@ namespace Metal_Code
             }
         }
 
+        public void AddBendControl()
+        {
+            foreach (PartControl p in Parts) p.AddControl(0);
+        }
+
         private void SetProperty(object sender, TextChangedEventArgs e)
         {
             if (Parts.Count > 0 && sender is TextBox tBox)

@@ -232,6 +232,7 @@ namespace Metal_Code
                     WindowParts = new(this, PartList(table));
                     ItemList(table);
                     work.type.MassCalculate();
+                    AddBend();
                 } 
                 else
                 {   // добавляем типовую деталь
@@ -252,9 +253,28 @@ namespace Metal_Code
                     {
                         _cut.WindowParts = new(this, _cut.PartList(table));
                         _cut.ItemList(table);
+                        _cut.AddBend();
                     }
                 }
             }
+        }
+
+        private void AddBend()      //вспомогательный метод добавления блоков гибки, если в имени детали есть "(гиб)"
+        {
+            if (PartDetails.Count > 0)
+                foreach (Part part in PartDetails)
+                    if (part.Title != null && part.Title.Contains("(гиб)"))
+                    {
+                        //добавляем общую "Гибку"
+                        work.type.AddWork();                       
+                        if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка"))
+                            && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка") is Work w)
+                            work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
+
+                        //добавляем по блоку гибки в списке деталей
+                        WindowParts?.AddBendControl();
+                        break;
+                    }
         }
 
         public PartWindow? WindowParts = null;

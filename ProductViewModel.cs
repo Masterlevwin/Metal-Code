@@ -7,6 +7,7 @@ using System.Runtime.Serialization.Json;
 using Microsoft.Win32;
 using System.Windows;
 using System.Windows.Controls;
+using System.Collections.Generic;
 
 namespace Metal_Code
 {
@@ -218,6 +219,7 @@ namespace Metal_Code
     {
         private Action<object?> execute;
         private Func<object?, bool>? canExecute;
+        private KeyGesture? gesture;
 
         public event EventHandler? CanExecuteChanged
         {

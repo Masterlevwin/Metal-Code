@@ -9,9 +9,9 @@
     <Grid x:Name="MenuGrid">
         <Menu VerticalAlignment="Top" RenderTransformOrigin="0.499,-1.337" Grid.ColumnSpan="2" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" Padding="10,0,0,0" FontFamily="Leelawadee UI">
             <MenuItem Header="_Файл">
-                <MenuItem Header="_Новый проект" Click="ClearDetails"/>
-                <MenuItem Header="_Открыть" Command="{Binding OpenCommand}"/>
-                <MenuItem Header="_Сохранить" Command="{Binding SaveCommand}"/>
+                <MenuItem Header="_Новый проект" Click="ClearDetails" InputGestureText="Ctrl+A"/>
+                <MenuItem Header="_Открыть" Command="{Binding OpenCommand}" InputGestureText="Ctrl+S"/>
+                <MenuItem Header="_Сохранить" Command="{Binding SaveCommand}" InputGestureText="Ctrl+D"/>
                 <MenuItem Header="_Получить отчет">
                     <MenuItem Header="По оплаченным _заказам" Command="{Binding SaveReportCommand}" CommandParameter="По заказам"/>
                     <MenuItem Header="По выполненным _расчетам" Command="{Binding SaveReportCommand}" CommandParameter="По расчетам"/>
@@ -114,10 +114,15 @@
                     <TextBlock x:Name="NotifyText" Style="{DynamicResource TextBlockStyle}" />
                 </StackPanel>
             </StatusBar>
-            <Button Content="Нов" Click="ClearDetails" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="400,40,0,0"/>
-            <Button Content="Отк" Command="{Binding OpenCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,40,0,0"/>
-            <Button Content="Сох" Command="{Binding SaveCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="460,40,0,0"/>
-            <Button Content="Отч" Command="{Binding SaveReportCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="490,40,0,0"/>
+            <Button Click="ClearDetails" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="400,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0">
+                <Image Source="Images/new3.png" MaxWidth="20" MaxHeight="20"/>
+            </Button>
+            <Button Command="{Binding OpenCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0">
+                <Image Source="Images/open4.png" MaxWidth="20" MaxHeight="20"/>
+            </Button>
+            <Button Command="{Binding SaveCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="460,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0">
+                <Image Source="Images/save4.png" MaxWidth="20" MaxHeight="20"/>
+            </Button>
         </Grid>
     </Grid>
 </Window>

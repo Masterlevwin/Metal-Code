@@ -13,6 +13,17 @@
   <ItemGroup>
     <None Remove="app_logo.ico" />
     <None Remove="app_logo.jpeg" />
+    <None Remove="Images\new.png" />
+    <None Remove="Images\new2.png" />
+    <None Remove="Images\new3.png" />
+    <None Remove="Images\open.png" />
+    <None Remove="Images\open2.png" />
+    <None Remove="Images\open3.png" />
+    <None Remove="Images\open4.png" />
+    <None Remove="Images\save.png" />
+    <None Remove="Images\save2.png" />
+    <None Remove="Images\save3.png" />
+    <None Remove="Images\save4.png" />
     <None Remove="laser_logo.jpg" />
   </ItemGroup>
 
@@ -39,6 +50,17 @@
     <Resource Include="app_logo.jpeg">
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Images\new.png" />
+    <Resource Include="Images\new2.png" />
+    <Resource Include="Images\new3.png" />
+    <Resource Include="Images\open.png" />
+    <Resource Include="Images\open2.png" />
+    <Resource Include="Images\open3.png" />
+    <Resource Include="Images\open4.png" />
+    <Resource Include="Images\save.png" />
+    <Resource Include="Images\save2.png" />
+    <Resource Include="Images\save3.png" />
+    <Resource Include="Images\save4.png" />
     <Resource Include="laserTheme.xaml" />
     <Resource Include="laser_logo.jpg" />
   </ItemGroup>
