@@ -388,7 +388,7 @@ namespace Metal_Code
             // если наступила дата отгрузки, а закрывающий документ еще не записан,
             // предполагаем, что отгрузка еще не произведена, и окрашиваем такое КП в оранжевый цвет
             // иначе КП окрашиваем в стандартный белый цвет
-            if (offer.EndDate <= DateTime.Now && (offer.Act == null || offer.Act == ""))
+            if (offer.EndDate <= DateTime.Now && offer.Order != null && offer.Order != "" && (offer.Act == null || offer.Act == ""))
                 e.Row.Background = hb;
             else
                 e.Row.Background = nb;
@@ -585,7 +585,8 @@ namespace Metal_Code
             if (CheckPaint.IsChecked != null) product.HasPaint = (bool)CheckPaint.IsChecked;
             if (CheckConstruct.IsChecked != null) product.HasConstruct = (bool)CheckConstruct.IsChecked;
 
-            product.Details = SaveDetails();
+            ProductModel.Product.Details = product.Details = SaveDetails();
+            ProductModel.Product = product;
 
             return product;
         }
