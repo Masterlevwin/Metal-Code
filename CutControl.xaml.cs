@@ -303,7 +303,7 @@ namespace Metal_Code
                                 Accuracy = $"H14/h14 +-IT 14/2"
                             };
 
-                            part.Title = part.Title[..(part.Title.LastIndexOf(' ') + 1)];
+                            part.Title = part.Title[..(part.Title.LastIndexOf(' ') + 1)];       //продумать возможность удаления до пробела перед n!
                             part.Mass = MainWindow.Parser($"{table.Rows[j].ItemArray[4]}") / part.Count;
                             part.Way = MainWindow.Parser($"{table.Rows[j].ItemArray[7]}") / part.Count;
 

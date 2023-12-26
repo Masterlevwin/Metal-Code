@@ -38,6 +38,19 @@ namespace Metal_Code
             }
         }
 
+        // команда создания нового проекта
+        private RelayCommand newProjectCommand;
+        public RelayCommand NewProjectCommand
+        {
+            get
+            {
+                return newProjectCommand ??= new RelayCommand(obj =>
+                {
+                    MainWindow.M.NewProject();
+                });
+            }
+        }
+
         // команда сохранения файла
         private RelayCommand saveCommand;
         public RelayCommand SaveCommand

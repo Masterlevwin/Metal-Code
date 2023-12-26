@@ -6,10 +6,21 @@
     x:Class="Metal_Code.MainWindow"
         mc:Ignorable="d"
         Title="Metal-Code" Style="{DynamicResource WindowStyle}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" d:DesignHeight="805.736" d:DesignWidth="1907.931" Closing="Exit" WindowState="Maximized" Icon="/app_logo.jpeg" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveCaptionTextBrushKey}}">
+    <Window.InputBindings>
+        <KeyBinding Key="A"
+              Modifiers="Control" 
+              Command="{Binding NewProjectCommand}" />
+        <KeyBinding Key="S"
+              Modifiers="Control" 
+              Command="{Binding OpenCommand}" />
+        <KeyBinding Key="D"
+              Modifiers="Control" 
+              Command="{Binding SaveCommand}" />
+    </Window.InputBindings>
     <Grid x:Name="MenuGrid">
         <Menu VerticalAlignment="Top" RenderTransformOrigin="0.499,-1.337" Grid.ColumnSpan="2" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" Padding="10,0,0,0" FontFamily="Leelawadee UI">
             <MenuItem Header="_Файл">
-                <MenuItem Header="_Новый проект" Click="ClearDetails" InputGestureText="Ctrl+A"/>
+                <MenuItem Header="_Новый проект" Command="{Binding NewProjectCommand}" InputGestureText="Ctrl+A"/>
                 <MenuItem Header="_Открыть" Command="{Binding OpenCommand}" InputGestureText="Ctrl+S"/>
                 <MenuItem Header="_Сохранить" Command="{Binding SaveCommand}" InputGestureText="Ctrl+D"/>
                 <MenuItem Header="_Получить отчет">
