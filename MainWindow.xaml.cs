@@ -492,9 +492,7 @@ namespace Metal_Code
         }
         private void ClearDetails(object sender, RoutedEventArgs e)     // метод очищения текущего расчета
         {
-            ClearCalculate();   // очищаем расчет
-            ClearDetails();     // удаляем все детали
-            AddDetail();        // добавляем пустой блок детали
+            NewProject();
         }
         private void ClearDetails()         // метод удаления всех деталей и очищения текущего расчета
         {
