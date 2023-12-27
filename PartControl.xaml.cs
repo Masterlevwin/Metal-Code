@@ -30,6 +30,7 @@ namespace Metal_Code
             if (sender == Controls.Items[0]) AddControl(0);
             else if (sender == Controls.Items[1]) AddControl(1);
             else if (sender == Controls.Items[2]) AddControl(2);
+            //else if (sender == Controls.Items[3]) AddControl(3);
         }
         public void AddControl(int index)
         {
@@ -44,6 +45,9 @@ namespace Metal_Code
                 case 2:
                     AddControl(new PaintControl(this));
                     break;
+                //case 3:
+                //    AddControl(new MillingControl(this));
+                //    break;
             }
         }
         public void AddControl(UserControl uc)

@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Controls;
 
@@ -27,15 +26,24 @@ namespace Metal_Code
             }
         }
 
-        public readonly WorkControl work;
+        public readonly UserControl owner;
 
-        public MillingControl(WorkControl _work)
+        public MillingControl(UserControl _control)
         {
             InitializeComponent();
-            work = _work;
+            owner = _control;
 
-            work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-            work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
+            if (owner is WorkControl work)
+            {
+                work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+                work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
+                //BtnEnable();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
+            }
+            else if (owner is PartControl part)
+            {
+                part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+                //PartBtn.IsEnabled = false;
+            }
         }
 
         private void SetHours(object sender, TextChangedEventArgs e)
@@ -50,6 +58,8 @@ namespace Metal_Code
 
         public void OnPriceChanged()
         {
+            if (owner is not WorkControl work) return;
+
             if (Hours == 0) return;
 
             if (work.WorkDrop.SelectedItem is Work _work) work.SetResult(_work.Price * Hours, false);

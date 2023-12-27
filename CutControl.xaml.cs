@@ -232,8 +232,9 @@ namespace Metal_Code
                     WindowParts = new(this, PartList(table));
                     ItemList(table);
                     work.type.MassCalculate();
-                    AddBend();
-                } 
+                    if (PartDetails.Count > 0)
+                        foreach (Part part in PartDetails) if (part.Title != null) PartTitleAnalysis(part.Title);       //новая функция! надо тестить!
+                }
                 else
                 {   // добавляем типовую деталь
                     work.type.det.AddTypeDetail();
@@ -253,28 +254,61 @@ namespace Metal_Code
                     {
                         _cut.WindowParts = new(this, _cut.PartList(table));
                         _cut.ItemList(table);
-                        _cut.AddBend();
+                        if (PartDetails.Count > 0)
+                            foreach (Part part in PartDetails) if (part.Title != null) PartTitleAnalysis(part.Title);       //новая функция! надо тестить!
                     }
                 }
             }
         }
 
-        private void AddBend()      //вспомогательный метод добавления блоков гибки, если в имени детали есть "(гиб)"
+        private void PartTitleAnalysis(string partTitle)        //метод анализа имени детали, для автоматического создания блоков работ
         {
-            if (PartDetails.Count > 0)
-                foreach (Part part in PartDetails)
-                    if (part.Title != null && part.Title.Contains("(гиб)"))
-                    {
-                        //добавляем общую "Гибку"
-                        work.type.AddWork();                       
-                        if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка"))
-                            && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка") is Work w)
-                            work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
+                // если в наименовании детали есть скобки...
+            if (partTitle.Length > 0 && partTitle.Contains('(') && partTitle.Contains(')'))
+            {
+                // ...получаем массив строк, разделенных пробелами, внутри скобок, и добавляем соответствующие блоки работ
+                string[] nameWorks = GetSubstringByString("(", ")", partTitle).ToLower().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (string str in nameWorks) AddBlockWork(str);
+            }
+        }
 
-                        //добавляем по блоку гибки в списке деталей
-                        WindowParts?.AddBendControl();
-                        break;
-                    }
+        private void AddBlockWork(string nameWork)          //метод добавления блока работы, определяемого именем детали
+        {     
+            switch (nameWork)
+            {
+                case "гиб":
+                    foreach (WorkControl _work in work.type.WorkControls) if (_work.workType is BendControl) return;
+                    work.type.AddWork();
+                    if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка"))
+                        && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка") is Work b)
+                        work.type.WorkControls[^1].WorkDrop.SelectedItem = b;
+                    WindowParts?.AddBlockControl(0);
+                    break;
+                case "свар":
+                    foreach (WorkControl _work in work.type.WorkControls) if (_work.workType is WeldControl) return;
+                    work.type.AddWork();
+                    if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Сварка"))
+                        && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Сварка") is Work w)
+                        work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
+                    WindowParts?.AddBlockControl(1);
+                    break;
+                case "окр":
+                    foreach (WorkControl _work in work.type.WorkControls) if (_work.workType is PaintControl) return;
+                    work.type.AddWork();
+                    if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска"))
+                        && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска") is Work p)
+                        work.type.WorkControls[^1].WorkDrop.SelectedItem = p;
+                    WindowParts?.AddBlockControl(2);
+                    break;
+                //case "рез":
+                //    foreach (WorkControl _work in work.type.WorkControls) if (_work.workType is MillingControl) return;
+                //    work.type.AddWork();
+                //    if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Мех обработка"))
+                //        && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Мех обработка") is Work m)
+                //        work.type.WorkControls[^1].WorkDrop.SelectedItem = m;
+                //    WindowParts?.AddBlockControl(3);
+                //    break;
+            }
         }
 
         public PartWindow? WindowParts = null;
@@ -303,7 +337,6 @@ namespace Metal_Code
                                 Accuracy = $"H14/h14 +-IT 14/2"
                             };
 
-                            part.Title = part.Title[..(part.Title.LastIndexOf(' ') + 1)];       //продумать возможность удаления до пробела перед n!
                             part.Mass = MainWindow.Parser($"{table.Rows[j].ItemArray[4]}") / part.Count;
                             part.Way = MainWindow.Parser($"{table.Rows[j].ItemArray[7]}") / part.Count;
 
@@ -452,6 +485,12 @@ namespace Metal_Code
             work.type.A = MainWindow.Parser(properties[0]);
             work.type.B = MainWindow.Parser(properties[1]);
         }
+
+        public string GetSubstringByString(string a, string b, string c)
+        {
+            return c.Substring(c.IndexOf(a) + a.Length, c.IndexOf(b) - c.IndexOf(a) - a.Length);
+        }
+
     }
 
     [Serializable]

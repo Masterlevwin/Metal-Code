@@ -46,12 +46,13 @@ namespace Metal_Code
                 if (sender == Controls.Items[0]) p.AddControl(0);
                 else if (sender == Controls.Items[1]) p.AddControl(1);
                 else if (sender == Controls.Items[2]) p.AddControl(2);
+                //else if (sender == Controls.Items[3]) p.AddControl(3);
             }
         }
 
-        public void AddBendControl()
+        public void AddBlockControl(int index)
         {
-            foreach (PartControl p in Parts) p.AddControl(0);
+            foreach (PartControl p in Parts) p.AddControl(index);
         }
 
         private void SetProperty(object sender, TextChangedEventArgs e)

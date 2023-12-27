@@ -486,8 +486,8 @@ namespace Metal_Code
 
         public void NewProject()
         {
-            ClearCalculate();   // очищаем расчет
             ClearDetails();     // удаляем все детали
+            ClearCalculate();   // очищаем расчет
             AddDetail();        // добавляем пустой блок детали
         }
         private void ClearDetails(object sender, RoutedEventArgs e)     // метод очищения текущего расчета
@@ -844,11 +844,15 @@ namespace Metal_Code
 
             int row = 8;        //счетчик строк деталей, начинаем с восьмой строки документа
 
-                //если есть нарезанные детали, вычисляем общую стоимость каждой и затем оформляем их в КП
+                //если есть нарезанные детали...
             if (Parts.Count > 0)
             {
-                foreach (Part part in Parts) part.Total = part.Count * part.Price;
-
+                foreach (Part part in Parts)
+                {
+                    if (part.Title != null) part.Title = part.Title[..part.Title.LastIndexOf('s')];     //...обрезаем наименование
+                    part.Total = part.Count * part.Price;                                               //...вычисляем общую стоимость
+                }
+                    //...и затем оформляем их в КП
                 DataTable partTable = ToDataTable(Parts);
                 worksheet.Cells[row, 1].LoadFromDataTable(partTable, false);
                 row += partTable.Rows.Count;

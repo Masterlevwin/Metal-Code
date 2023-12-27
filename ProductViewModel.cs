@@ -232,7 +232,6 @@ namespace Metal_Code
     {
         private Action<object?> execute;
         private Func<object?, bool>? canExecute;
-        private KeyGesture? gesture;
 
         public event EventHandler? CanExecuteChanged
         {
