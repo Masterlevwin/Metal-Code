@@ -175,7 +175,7 @@ namespace Metal_Code
         public int ManagerId { get; set; }
 
         [Browsable(false)]
-        public string? Path { get; set; }
+        public string? Data { get; set; }
 
         public Offer(string? n = null, string? company = null, float amount = 0, float material = 0, float services = 0)
         {

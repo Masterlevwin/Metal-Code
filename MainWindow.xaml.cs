@@ -12,12 +12,10 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using OfficeOpenXml.Style;
 using OfficeOpenXml;
-using System.Windows.Media.Imaging;
-using System.Text;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Data;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using System.Runtime.Serialization.Json;
+using System.Text;
 
 namespace Metal_Code
 {
@@ -102,7 +100,7 @@ namespace Metal_Code
                 if (metal.Name != null && metal.WayPrice != null && metal.PinholePrice != null && metal.MoldPrice != null)
                 {
                     Dictionary<double, (float, float, float)> prices = new();
-                    
+
                     string[] _ways = metal.WayPrice.Split('/');
                     string[] _pinholes = metal.PinholePrice.Split('/');
                     string[] _molds = metal.MoldPrice.Split('/');
@@ -111,7 +109,7 @@ namespace Metal_Code
 
                     MetalDict[metal.Name] = prices;
                 }
-            }           
+            }
         }
 
         private void OpenSettings(object sender, RoutedEventArgs e)
@@ -225,7 +223,7 @@ namespace Metal_Code
         {
             get => count;
             set
-            { 
+            {
                 count = value;
                 OnPropertyChanged(nameof(Count));
             }
@@ -263,10 +261,10 @@ namespace Metal_Code
             if (CheckPaint.IsChecked != false)
             {
                 foreach (DetailControl d in DetailControls) if (!d.Detail.IsComplect)
-                    foreach (TypeDetailControl t in d.TypeDetailControls)
-                        result += 87 * t.L * t.Count / 1000;     // простая формула окраски через пог м типовой детали
+                        foreach (TypeDetailControl t in d.TypeDetailControls)
+                            result += 87 * t.L * t.Count / 1000;     // простая формула окраски через пог м типовой детали
 
-                    // проверяем наличие работы "Окраска" и добавляем её минималку к расчету, если она есть
+                // проверяем наличие работы "Окраска" и добавляем её минималку к расчету, если она есть
                 if (dbWorks.Works.Contains(dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска"))
                         && dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска") is Work work) result += work.Price;
             }
@@ -338,7 +336,7 @@ namespace Metal_Code
                 Phone.Text = "тел:(812)603-45-33";
                 DetailsGrid.ItemsSource = DetailsSource();
             }
-            
+
             DetailsGrid.Columns[0].Header = "Материал";
             DetailsGrid.Columns[1].Header = "Толщина";
             DetailsGrid.Columns[2].Header = "Работы";
@@ -538,7 +536,7 @@ namespace Metal_Code
 
                 for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
                 {
-                        //с помощью повторения символа переноса строки визуализируем дерево деталей и работ
+                    //с помощью повторения символа переноса строки визуализируем дерево деталей и работ
                     if (DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedItem is TypeDetail _type)
                         _detail.Metal += $"{_type.Name}" + string.Join("", Enumerable.Repeat('\n', DetailControls[i].TypeDetailControls[j].WorkControls.Count));
 
@@ -552,12 +550,12 @@ namespace Metal_Code
                     {
                         if (DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedItem is Work work)
                         {
-                                //для окраски уточняем цвет в описании работы
+                            //для окраски уточняем цвет в описании работы
                             if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is PaintControl _paint)
                                 _detail.Description += $"{work.Name} (цвет - {_paint.Ral})\n";
-                                //для доп работы её наименование добавляем к наименованию работы - особый случай
+                            //для доп работы её наименование добавляем к наименованию работы - особый случай
                             else if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is ExtraControl _extra) _detail.Description += $"{_extra.NameExtra}\n";
-                                //в остальных случаях добавляем наименование работы
+                            //в остальных случаях добавляем наименование работы
                             else _detail.Description += $"{work.Name}\n";
                         }
                     }
@@ -583,7 +581,7 @@ namespace Metal_Code
                 IsAgent = IsAgent,
                 HasDelivery = HasDelivery
             };
-            if (int.TryParse(Delivery.Text, out int d))product.Delivery = d;
+            if (int.TryParse(Delivery.Text, out int d)) product.Delivery = d;
 
             if (CheckPaint.IsChecked != null) product.HasPaint = (bool)CheckPaint.IsChecked;
             if (CheckConstruct.IsChecked != null) product.HasConstruct = (bool)CheckConstruct.IsChecked;
@@ -622,7 +620,7 @@ namespace Metal_Code
                         _detail.Metal += $"{_type.Name}" + string.Join("", Enumerable.Repeat('\n', type.WorkControls.Count));
                     _detail.Destiny += $"{type.S}" + string.Join("", Enumerable.Repeat('\n', type.WorkControls.Count));
                     _detail.Accuracy = $"H12/h12 +-IT 12/2";
-                    
+
                     //удаляем крайний перенос строки
                     if (j == det.TypeDetailControls.Count - 1)
                     {
@@ -664,7 +662,7 @@ namespace Metal_Code
                             else if (work.workType is ExtraControl _extra) _detail.Description += $"{_extra.NameExtra}\n";
                             //в остальных случаях добавляем наименование работы
                             else _detail.Description += $"{_work.Name}\n";
-                            
+
                             //удаляем крайний перенос строки
                             if (j == det.TypeDetailControls.Count - 1 && k == type.WorkControls.Count - 1)
                                 _detail.Description = _detail.Description.TrimEnd('\n');
@@ -678,36 +676,45 @@ namespace Metal_Code
             }
             return details;
         }
-        public void SaveOffer(string path)
+        public void SaveOffer()
         {
             foreach (Manager man in dbManagers.Managers.Local.ToObservableCollection()) if (man == ManagerDrop.SelectedItem)
                 {
-                    foreach (Offer of in man.Offers) if (of.Path == path)
-                        {
-                            of.N = Order.Text;
-                            of.Company = Company.Text;
-                            of.Amount = Result;
-                            of.Material = GetMetalPrice();
-                            of.Services = GetServices();
-                            of.EndDate = EndDate();
-                            of.Autor = CurrentManager.Name;
-                            dbManagers.SaveChanges();
-                            OffersGrid.Items.Refresh();
-                            return;
-                        }
-
+                        //сначала создаем новое КП
                     Offer offer = new(Order.Text, Company.Text, Result, GetMetalPrice(), GetServices())
                     {
                         EndDate = EndDate(),
-                        Path = path,
                         Autor = CurrentManager.Name,
-                        Manager = man
+                        Manager = man,
+                        Data = SaveOfferData()      //сериализуем расчет в виде строки json
                     };
+
+                        //затем проверяем новое КП на полное совпадение с базой, чтобы не дублировать
+                    foreach (Offer of in man.Offers) if (of.Data == offer.Data) dbManagers.Offers.Remove(of);
 
                     man.Offers.Add(offer);
                     dbManagers.SaveChanges();
                     break;
                 }
+        }
+
+        public string SaveOfferData()           //метод сохранения расчета в базе данных
+        {
+            using MemoryStream stream = new();
+            DataContractJsonSerializer serializer = new(typeof(Product));
+            serializer.WriteObject(stream, ProductModel.Product);   //сериализуем объект
+
+            return Encoding.UTF8.GetString(stream.ToArray());       //возвращаем строку преобразованного объекта в массив байтов
+        }
+
+        public Product? OpenOfferData(string json)              //метод загрузки расчета из базы данных
+        {
+            byte[] bytes = Encoding.Unicode.GetBytes(json);     //преобразуем строку в массив байтов
+
+            using MemoryStream stream = new(bytes);
+            DataContractJsonSerializer serializer = new(typeof(Product));
+
+            return (Product?)serializer.ReadObject(stream);     //возвращаем десериализованный объект
         }
 
         private void EditOffers(object sender, System.Windows.Input.MouseEventArgs e)       //когда мышь покидает OffersGrid
@@ -844,15 +851,11 @@ namespace Metal_Code
 
             int row = 8;        //счетчик строк деталей, начинаем с восьмой строки документа
 
-                //если есть нарезанные детали...
+                //если есть нарезанные детали, вычисляем их общую стоимость, и оформляем их в КП
             if (Parts.Count > 0)
             {
-                foreach (Part part in Parts)
-                {
-                    if (part.Title != null) part.Title = part.Title[..part.Title.LastIndexOf('s')];     //...обрезаем наименование
-                    part.Total = part.Count * part.Price;                                               //...вычисляем общую стоимость
-                }
-                    //...и затем оформляем их в КП
+                foreach (Part part in Parts) part.Total = part.Count * part.Price;
+
                 DataTable partTable = ToDataTable(Parts);
                 worksheet.Cells[row, 1].LoadFromDataTable(partTable, false);
                 row += partTable.Rows.Count;
@@ -871,11 +874,15 @@ namespace Metal_Code
                     row--;
                 }
 
-                //взависимости от исходящего контрагента добавляем к наименованию детали формулировку услуги или товара
+            //взависимости от исходящего контрагента добавляем к наименованию детали формулировку услуги или товара
             foreach (var cell in worksheet.Cells[8, 5, row + 8, 5])
-                if (cell.Value != null) cell.Value = IsAgent ? $"{cell.Value}".Insert(0, "Изготовление детали ") : $"{cell.Value}".Insert(0, "Деталь ");
+                if (cell.Value != null)
+                {
+                    cell.Value = IsAgent ? $"{cell.Value}".Insert(0, "Изготовление детали ") : $"{cell.Value}".Insert(0, "Деталь ");
+                    cell.Value = $"{cell.Value}"[..$"{cell.Value}".LastIndexOf('s')];     //и обрезаем наименование
+                }
 
-                //оформляем заголовки таблицы
+            //оформляем заголовки таблицы
             for (int col = 0; col < DetailsGrid.Columns.Count; col++)
             {
                 worksheet.Cells[6, col + 1].Value = DetailsGrid.Columns[col].Header;
@@ -947,6 +954,9 @@ namespace Metal_Code
             worksheet.Cells[row + 1, 2].Value = DetailControls[0].TypeDetailControls[0].HasMetal ? "Исполнителя" : "Заказчика";
             worksheet.Cells[row + 1, 2].Style.Font.Bold = true;
             worksheet.Cells[row + 1, 2, row + 1, 3].Merge = true;
+            if (!DetailControls[0].TypeDetailControls[0].HasMetal)
+                worksheet.Cells[row + 1, 4].Value = "Внимание: остатки давальческого материала забираются вместе с заказом, иначе эти остатки утилизируются!";
+            worksheet.Cells[row + 1, 4, row + 1, 8].Merge = true;
 
             worksheet.Cells[row + 2, 1].Value = "Срок изготовления:";
             worksheet.Cells[row + 2, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;

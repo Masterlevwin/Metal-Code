@@ -118,7 +118,7 @@
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="940,70,0,0" Text="Работа" VerticalAlignment="Top" Height="14" Width="39"/>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="1200,70,0,0" Text="Стоимость" VerticalAlignment="Top" Height="14" Width="60"/>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="1155,70,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!" Height="14" Width="30"/>
-            <Button Style="{DynamicResource ButtonStyle}" Margin="70,70,0,0" Content="+" Click="AddDetail" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" IsDefault="True" MinWidth="16" MinHeight="16" Height="16" Width="16"/>
+            <Button Style="{DynamicResource ButtonStyle}" Margin="70,70,0,0" Content="+" Click="AddDetail" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" MinWidth="16" MinHeight="16" Height="16" Width="16" IsDefault="True"/>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Right" Margin="0,43,190,0" TextWrapping="Wrap" Text="Количество изделий" VerticalAlignment="Top" Height="14" Width="118"/>
             <StatusBar x:Name="Status" Grid.Row="1" VerticalAlignment="Bottom" MinHeight="20" Margin="20,0,15,20" BorderThickness="1,1,1,1" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Background="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}">
                 <StackPanel>

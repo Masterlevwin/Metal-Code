@@ -6,8 +6,6 @@ using System.IO;
 using System.Runtime.Serialization.Json;
 using Microsoft.Win32;
 using System.Windows;
-using System.Windows.Controls;
-using System.Collections.Generic;
 
 namespace Metal_Code
 {
@@ -68,8 +66,8 @@ namespace Metal_Code
 
                               _path += $" с материалом {MainWindow.M.GetMetalPrice()}";
 
-                              MainWindow.M.SaveOffer(_path + ".mcm");                           //сохраняем расчет в базе данных
                               fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());     //сохраняем расчет в папке
+                              MainWindow.M.SaveOffer();                                         //сохраняем расчет в базе данных
                               MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);           //формируем КП в формате excel
                               MainWindow.M.StatusBegin($"Расчет сохранен");
                           }
@@ -145,9 +143,9 @@ namespace Metal_Code
                   {
                       try
                       {
-                          if (MainWindow.M.OffersGrid.SelectedItem is Offer offer && offer.Path != null)
+                          if (MainWindow.M.OffersGrid.SelectedItem is Offer offer && offer.Data != null)
                           {
-                              Product = fileService.Open(offer.Path);
+                              Product = MainWindow.M.OpenOfferData(offer.Data);
                               MainWindow.M.LoadProduct();
                               MainWindow.M.StatusBegin($"Расчет загружен");
                           }
