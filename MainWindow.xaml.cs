@@ -446,7 +446,7 @@ namespace Metal_Code
         {
             UpdateResult();
         }
-        private void UpdateResult()         // метод принудительного обновления стоимости
+        public void UpdateResult()         // метод принудительного обновления стоимости
         {
             Paint = PaintResult();
             Construct = ConstructResult();
@@ -1201,5 +1201,6 @@ namespace Metal_Code
 
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
         }
+
     }
 }

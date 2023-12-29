@@ -18,23 +18,21 @@
                     </ItemsPanelTemplate>
                 </ListBox.ItemsPanel>
             </ListBox>
-            <Menu VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,10,0,0" Height="18" Width="96">
-                <MenuItem x:Name="Controls" Header="Добавить всем">
-                    <MenuItem Header="Гибка" Click="AddControl"/>
-                    <MenuItem Header="Сварка" Click="AddControl"/>
-                    <MenuItem Header="Окраска" Click="AddControl"/>
-                </MenuItem>
-            </Menu>
-            <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Center" Text="Общее для всех деталей:" VerticalAlignment="Top" Margin="10,55,10,0"/>
-            <TextBlock Text="Г" Style="{DynamicResource TextBlockStyle}" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" ToolTip="Гибка для всех" Height="16" Width="10" HorizontalAlignment="Left" Margin="10,77,0,0"/>
-            <TextBox x:Name="Bend" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="35" MinHeight="20" MaxWidth="35" MaxHeight="20" TextChanged="SetProperty" ToolTip="Введите количество однотипных гибов" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="20" Width="35" Margin="20,75,0,0"/>
-            <ComboBox x:Name="BendDrop" Style="{DynamicResource ComboBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Height="20" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" SelectedIndex="0" ToolTip="Выберите длину гиба" SelectionChanged="SetType" Width="70" Margin="65,75,0,0"/>
-            <TextBlock Text="С" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="10,102,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" MinWidth="10" MinHeight="10" ToolTip="Сварка для всех"/>
-            <TextBox x:Name="Weld" Style="{DynamicResource TextBoxStyle}" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="20,100,0,0" MaxLines="1" ToolTip="Введите длину свариваемой поверхности, мм" MinHeight="20" MaxHeight="20" MinWidth="55" MaxWidth="55" Height="20" Width="55"/>
-            <ComboBox x:Name="WeldDrop" Style="{DynamicResource ComboBoxStyle}" SelectionChanged="SetType" HorizontalAlignment="Left" Margin="85,100,0,0" VerticalAlignment="Top" Height="20" MinHeight="20" MaxHeight="20" MinWidth="50" MaxWidth="50" ToolTip="Выберите тип расчета" SelectedIndex="0" Width="50"/>
-            <TextBlock Text="О" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="10,127,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Окраска для всех" MinWidth="10" MinHeight="10" Height="16" Width="10"/>
-            <TextBox x:Name="Paint" Style="{DynamicResource TextBoxStyle}" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="55" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Margin="20,125,0,0" MaxWidth="55" MaxHeight="20" MaxLines="1" ToolTip="Введите цвет RAL" Width="55"/>
-            <ComboBox x:Name="PaintDrop" Style="{DynamicResource ComboBoxStyle}" SelectionChanged="SetType" HorizontalAlignment="Left" MinHeight="20" MinWidth="50" Height="20" Margin="85,125,0,0" VerticalAlignment="Top" MaxWidth="50" MaxHeight="20" ToolTip="Выберите тип расчета" SelectedIndex="0" Width="50"/>
+            <TextBlock Style="{DynamicResource TextBlockStyle}" Text="Общее для всех деталей:" Margin="10,75,10,0" VerticalAlignment="Top" HorizontalAlignment="Center"/>
+            <TextBlock Text="Гиб" Style="{DynamicResource TextBlockStyle}" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Гибка для всех" HorizontalAlignment="Left" Margin="10,102,0,0"/>
+            <TextBox x:Name="Bend" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="35" MinHeight="20" MaxWidth="35" MaxHeight="20" TextChanged="SetProperty" ToolTip="Введите количество однотипных гибов" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Height="20" Width="35" Margin="40,100,0,0"/>
+            <ComboBox x:Name="BendDrop" Style="{DynamicResource ComboBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Height="20" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" SelectedIndex="0" ToolTip="Выберите длину гиба" SelectionChanged="SetType" Width="70" Margin="80,100,0,0"/>
+            <TextBlock Text="Свар" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="10,127,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Сварка для всех"/>
+            <TextBox x:Name="Weld" Style="{DynamicResource TextBoxStyle}" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="40,125,0,0" MaxLines="1" ToolTip="Введите длину свариваемой поверхности, мм" MinHeight="20" MaxHeight="20" MinWidth="55" MaxWidth="55" Height="20" Width="55"/>
+            <ComboBox x:Name="WeldDrop" Style="{DynamicResource ComboBoxStyle}" SelectionChanged="SetType" HorizontalAlignment="Left" Margin="100,125,0,0" VerticalAlignment="Top" Height="20" MinHeight="20" MaxHeight="20" MinWidth="50" MaxWidth="50" ToolTip="Выберите тип расчета" SelectedIndex="0" Width="50"/>
+            <TextBlock Text="Окр" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="10,152,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Окраска для всех"/>
+            <TextBox x:Name="Paint" Style="{DynamicResource TextBoxStyle}" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="55" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="20" Margin="40,150,0,0" MaxWidth="55" MaxHeight="20" MaxLines="1" ToolTip="Введите цвет RAL" Width="55"/>
+            <ComboBox x:Name="PaintDrop" Style="{DynamicResource ComboBoxStyle}" SelectionChanged="SetType" HorizontalAlignment="Left" MinHeight="20" MinWidth="50" Height="20" Margin="100,150,0,0" VerticalAlignment="Top" MaxWidth="50" MaxHeight="20" ToolTip="Выберите тип расчета" SelectedIndex="0" Width="50"/>
+            <Button x:Name="BendBtn" Content="Г+" Style="{DynamicResource ButtonStyle}" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="32,50,0,0"/>
+            <Button x:Name="WeldBtn" Content="С+" Style="{DynamicResource ButtonStyle}" ToolTip="Добавить сварку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="56,50,0,0"/>
+            <Button x:Name="PaintBtn" Content="О+" Style="{DynamicResource ButtonStyle}" ToolTip="Добавить окраску" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="81,50,0,0"/>
+            <Button x:Name="MillingBtn" Content="М+" Style="{DynamicResource ButtonStyle}" ToolTip="Добавить мех обработку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="108,50,0,0"/>
+            <TextBlock Style="{DynamicResource TextBlockStyle}" TextWrapping="Wrap" Text="Добавить работу всем деталям" HorizontalAlignment="Center" VerticalAlignment="Top" MaxWidth="100" Margin="0,10,0,0" TextAlignment="Center"/>
         </Grid>
     </ScrollViewer>
 </Window>

@@ -43,10 +43,22 @@ namespace Metal_Code
         {
             foreach (PartControl p in Parts)
             {
-                if (sender == Controls.Items[0]) p.AddControl(0);
-                else if (sender == Controls.Items[1]) p.AddControl(1);
-                else if (sender == Controls.Items[2]) p.AddControl(2);
-                //else if (sender == Controls.Items[3]) p.AddControl(3);
+                if (sender is Button btn)
+                    switch (btn.Name)
+                    {
+                        case "BendBtn":
+                            p.AddControl(0);
+                            break;
+                        case "WeldBtn":
+                            p.AddControl(1);
+                            break;
+                        case "PaintBtn":
+                            p.AddControl(2);
+                            break;
+                            //case "MillingBtn":
+                            //    p.AddControl(3);
+                            //    break;
+                    }
             }
         }
 

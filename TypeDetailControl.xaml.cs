@@ -248,7 +248,7 @@ namespace Metal_Code
             {
                 A = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item1);
                 B = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item2);
-                S = 1;
+                //S = 1;        //если устанавливать толщину по умолчанию, собьется установка раскроя листов в CutControl.SetSheetSize()
 
                 if (TypeDetailDrop.SelectedItem is TypeDetail type && type.Name == "Лист металла") L = 1;
                 else
@@ -303,7 +303,7 @@ namespace Metal_Code
             if (det.Detail.Title == "Комплект деталей" && type.Name == "Лист металла")
             {
                 foreach (UIElement element in TypeDetailGrid.Children)
-                    if (element is not WorkControl && element is not CheckBox) element.IsEnabled = false;
+                    if (element is not WorkControl && element is not CheckBox && element is not Button) element.IsEnabled = false;
 
                 foreach (WorkControl w in WorkControls)
                     if (w.workType is CutControl cut)

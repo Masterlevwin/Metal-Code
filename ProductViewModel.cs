@@ -36,6 +36,19 @@ namespace Metal_Code
             }
         }
 
+        // команда обновления общей стоимости
+        private RelayCommand updateCommand;
+        public RelayCommand UpdateCommand
+        {
+            get
+            {
+                return updateCommand ??= new RelayCommand(obj =>
+                {
+                    MainWindow.M.UpdateResult();
+                });
+            }
+        }
+
         // команда создания нового проекта
         private RelayCommand newProjectCommand;
         public RelayCommand NewProjectCommand

@@ -27,10 +27,22 @@ namespace Metal_Code
 
         private void AddControl(object sender, RoutedEventArgs e)
         {
-            if (sender == Controls.Items[0]) AddControl(0);
-            else if (sender == Controls.Items[1]) AddControl(1);
-            else if (sender == Controls.Items[2]) AddControl(2);
-            //else if (sender == Controls.Items[3]) AddControl(3);
+            if (sender is Button btn)
+                switch (btn.Name)
+                {
+                    case "BendBtn":
+                        AddControl(0);
+                        break;
+                    case "WeldBtn":
+                        AddControl(1);
+                        break;
+                    case "PaintBtn":
+                        AddControl(2);
+                        break;
+                    //case "MillingBtn":
+                    //    AddControl(3);
+                    //    break;
+                }
         }
         public void AddControl(int index)
         {

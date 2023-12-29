@@ -9,13 +9,15 @@
     <Window.InputBindings>
         <KeyBinding Key="A"
               Modifiers="Control" 
-              Command="{Binding NewProjectCommand}" />
+              Command="{Binding NewProjectCommand}"/>
         <KeyBinding Key="S"
               Modifiers="Control" 
-              Command="{Binding OpenCommand}" />
+              Command="{Binding OpenCommand}"/>
         <KeyBinding Key="D"
               Modifiers="Control" 
-              Command="{Binding SaveCommand}" />
+              Command="{Binding SaveCommand}"/>
+        <KeyBinding Key="F5"
+              Command="{Binding UpdateCommand}"/>
     </Window.InputBindings>
     <Grid x:Name="MenuGrid">
         <Menu VerticalAlignment="Top" RenderTransformOrigin="0.499,-1.337" Grid.ColumnSpan="2" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" Padding="10,0,0,0" FontFamily="Leelawadee UI">
@@ -55,8 +57,8 @@
                 </ScrollViewer>
             </GroupBox>
             <TextBox x:Name="ProductName" Text="Изделие" Style="{DynamicResource TextBoxStyle}" AutoWordSelection="True" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" Height="20" VerticalContentAlignment="Center" HorizontalAlignment="Left" Width="330" FontSize="14" AllowDrop="False" />
-            <TextBox Text="{Binding Count, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Style="{DynamicResource TextBoxStyle}" ToolTip="Введите количество требуемых изделий" AllowDrop="False" MaxLines="1" MinWidth="40" HorizontalContentAlignment="Center" Margin="0,40,145,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Right" Height="20" Width="40" MaxLength="4" TextChanged="SetCount" FontSize="14"/>
-            <Button x:Name="ResultBtn" Style="{DynamicResource ButtonStyle}" Content="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Right" MinHeight="20" AllowDrop="False" ToolTip="Общая стоимость, нажмите, чтобы обновить" VerticalAlignment="Top" Margin="0,40,55,0" FontSize="14" HorizontalContentAlignment="Stretch" MaxWidth="80" BorderThickness="0,0,0,0" Click="UpdateResult" Height="20"/>
+            <TextBox Text="{Binding Count, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Style="{DynamicResource TextBoxStyle}" ToolTip="Введите количество требуемых изделий" AllowDrop="False" MaxLines="1" MinWidth="40" HorizontalContentAlignment="Center" Margin="0,40,190,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Right" Height="20" Width="40" MaxLength="4" TextChanged="SetCount" FontSize="14"/>
+            <Button x:Name="ResultBtn" Style="{DynamicResource ButtonStyle}" Content="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Right" MinHeight="20" AllowDrop="False" ToolTip="Общая стоимость, нажмите, чтобы обновить" VerticalAlignment="Top" Margin="0,40,55,0" FontSize="14" HorizontalContentAlignment="Stretch" MaxWidth="80" BorderThickness="0,0,0,0" Click="UpdateResult"/>
             <GroupBox Header="Ведомость деталей" Grid.Column="1" Grid.Row="1" MinWidth="400" Margin="15,0,15,20">
                 <Grid>
                     <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" Margin="15,5,15,5" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" CanUserReorderColumns="False" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False"/>
@@ -118,14 +120,14 @@
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="940,70,0,0" Text="Работа" VerticalAlignment="Top" Height="14" Width="39"/>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="1200,70,0,0" Text="Стоимость" VerticalAlignment="Top" Height="14" Width="60"/>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="1155,70,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!" Height="14" Width="30"/>
-            <Button Style="{DynamicResource ButtonStyle}" Margin="70,70,0,0" Content="+" Click="AddDetail" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" MinWidth="16" MinHeight="16" Height="16" Width="16" IsDefault="True"/>
-            <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Right" Margin="0,43,190,0" TextWrapping="Wrap" Text="Количество изделий" VerticalAlignment="Top" Height="14" Width="118"/>
+            <Button Style="{DynamicResource ButtonStyle}" Margin="70,70,0,0" Content="+" Click="AddDetail" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" MinWidth="16" MinHeight="16" Height="16" Width="16" ToolTip="Добавить деталь" IsDefault="True"/>
+            <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Right" Margin="0,43,240,0" TextWrapping="Wrap" Text="Количество изделий" VerticalAlignment="Top" Height="14" Width="118"/>
             <StatusBar x:Name="Status" Grid.Row="1" VerticalAlignment="Bottom" MinHeight="20" Margin="20,0,15,20" BorderThickness="1,1,1,1" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Background="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}">
                 <StackPanel>
                     <TextBlock x:Name="NotifyText" Style="{DynamicResource TextBlockStyle}" />
                 </StackPanel>
             </StatusBar>
-            <Button Click="ClearDetails" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="400,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0">
+            <Button Command="{Binding NewProjectCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="400,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0">
                 <Image Source="Images/new3.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
             <Button Command="{Binding OpenCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0">
@@ -133,6 +135,9 @@
             </Button>
             <Button Command="{Binding SaveCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="460,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0">
                 <Image Source="Images/save4.png" MaxWidth="20" MaxHeight="20"/>
+            </Button>
+            <Button Command="{Binding UpdateCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,40,160,0" MaxWidth="20" MaxHeight="20" ToolTip="Обновить (F5)" Padding="0,0,0,0" BorderThickness="0,0,0,0">
+                <Image Source="/Images/update.png"/>
             </Button>
         </Grid>
     </Grid>

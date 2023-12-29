@@ -484,6 +484,14 @@ namespace Metal_Code
             string[] properties = _sheetsize.Split('X');
             work.type.A = MainWindow.Parser(properties[0]);
             work.type.B = MainWindow.Parser(properties[1]);
+
+            //алгоритм установки раскроя взависимости от обрезки по ширине листа; если лист будет обрезан по длине, раскрой может быть не верен!
+            foreach (string s in work.type.SortDrop.Items)
+                if (s.Contains($"{work.type.B / 1000}".Replace(',', '.')))
+                {
+                    work.type.SortDrop.SelectedItem = s;
+                    break;
+                }     
         }
 
         public string GetSubstringByString(string a, string b, string c)

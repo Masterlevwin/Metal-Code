@@ -130,12 +130,24 @@ namespace Metal_Code
                     workType = paint;
                     break;
                 case "Труборез":
+                    if (type.det.Detail.IsComplect)
+                    {
+                        MainWindow.M.StatusBegin($"Важно: все работы, кроме гибки, сварки, окраски и мех обработки, определенные в \"Комплекте деталей\", учитываться в КП не будут!");
+                        WorkDrop.SelectedIndex = -1;
+                        return;
+                    }
                     PipeControl pipe = new(this);
                     WorkGrid.Children.Add(pipe);
                     Grid.SetColumn(pipe, 1);
                     workType = pipe;
                     break;
                 case "Доп работа":
+                    if (type.det.Detail.IsComplect)
+                    {
+                        MainWindow.M.StatusBegin($"Важно: все работы, кроме гибки, сварки, окраски и мех обработки, определенные в \"Комплекте деталей\", учитываться в КП не будут!");
+                        WorkDrop.SelectedIndex = -1;
+                        return;
+                    }
                     ExtraControl extra = new(this);
                     WorkGrid.Children.Add(extra);
                     Grid.SetColumn(extra, 1);
@@ -148,6 +160,12 @@ namespace Metal_Code
                     workType = milling;
                     break;
                 default:
+                    if (type.det.Detail.IsComplect)
+                    {
+                        MainWindow.M.StatusBegin($"Важно: все работы, кроме гибки, сварки, окраски и мех обработки, определенные в \"Комплекте деталей\", учитываться в КП не будут!");
+                        WorkDrop.SelectedIndex = -1;
+                        return;
+                    }
                     SetResult(work.Price, false);
                     break;
             }
@@ -195,7 +213,6 @@ namespace Metal_Code
             type.det.PriceResult();
         }
     }
-
 
     public interface IPriceChanged
     {
