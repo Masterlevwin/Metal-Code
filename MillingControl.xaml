@@ -5,9 +5,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="140" Style="{DynamicResource UserControlStyle}" >
+             d:DesignHeight="20" d:DesignWidth="140" Style="{DynamicResource UserControlStyle}" VerticalAlignment="Top" >
     <Grid>
-        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Hours, RelativeSource={RelativeSource AncestorType={x:Type local:MillingControl}, Mode=FindAncestor}}" ToolTip="Введите количество часов работы" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" Margin="100,0,0,0" Width="40" Height="20" MinWidth="40" MinHeight="20" MaxWidth="40" MaxHeight="20" TextChanged="SetHours"/>
-        <TextBlock Style="{DynamicResource TextBlockStyle}" Text="Труд, час" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="40,0,0,0"/>
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Holes, RelativeSource={RelativeSource AncestorType={x:Type local:MillingControl}, Mode=FindAncestor}}" ToolTip="Введите количество отверстий" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" Margin="110,0,0,0" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" TextChanged="SetHoles"/>
+        <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="40,0,0,0" Text="Отверстия"/>
+        <Button x:Name="PartBtn" Style="{DynamicResource ButtonStyle}" Click="ViewPartWindow" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="20" Margin="5,0,0,0" Padding="0,0,0,0" FontFamily="Arial" FontWeight="Bold" Content="..." IsEnabled="False"/>
+        <TextBlock Text="М" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6,-3,0,0" MinWidth="10" MinHeight="10" FontWeight="Bold"/>
     </Grid>
 </UserControl>

@@ -55,9 +55,9 @@ namespace Metal_Code
                         case "PaintBtn":
                             p.AddControl(2);
                             break;
-                            //case "MillingBtn":
-                            //    p.AddControl(3);
-                            //    break;
+                        case "MillingBtn":
+                            p.AddControl(3);
+                            break;
                     }
             }
         }
@@ -84,6 +84,10 @@ namespace Metal_Code
                     case "Paint":
                         foreach (PartControl p in Parts)
                             foreach (PaintControl item in p.UserControls.OfType<PaintControl>()) item.SetRal(tBox.Text);
+                        break;
+                    case "Milling":
+                        foreach (PartControl p in Parts)
+                            foreach (MillingControl item in p.UserControls.OfType<MillingControl>()) item.SetHoles(tBox.Text);
                         break;
                 }
             }

@@ -600,13 +600,6 @@ namespace Metal_Code
                 Detail _detail = det.Detail;
                 _detail.Metal = _detail.Destiny = _detail.Description = "";     //очищаем описания свойств детали
 
-                //int partsCount = 0;     // считаем количество ВСЕХ нарезанных деталей,
-                //                        // чтобы в дальнейшем "размазывать" конструкторские работы в их ценах
-                //foreach (TypeDetailControl t in det.TypeDetailControls)
-                //    foreach (WorkControl w in t.WorkControls)
-                //        if (w.workType is CutControl _cut && _cut.PartDetails.Count > 0)
-                //            partsCount += _cut.PartDetails.Sum(c => c.Count);
-
                 if (_detail.TypeDetails.Count > 0) _detail.TypeDetails.Clear();     //как будто решаем проблему дублирования при пересохранении
 
                 for (int j = 0; j < det.TypeDetailControls.Count; j++)
@@ -984,6 +977,7 @@ namespace Metal_Code
                     if (cell.Value != null && $"{cell.Value}".Contains("Г ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Г ")) worksheet.Cells[row + 5, 2].Value += "Г - Гибка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("С ")) worksheet.Cells[row + 5, 2].Value += "С - Сварка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("О ")) worksheet.Cells[row + 5, 2].Value += "О - Окраска ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("М ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("М ")) worksheet.Cells[row + 5, 2].Value += "М - Мех обработка ";
                 }
                 worksheet.Cells[row + 5, 2, row + 5, 5].Merge = true;
             }

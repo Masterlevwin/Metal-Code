@@ -39,9 +39,9 @@ namespace Metal_Code
                     case "PaintBtn":
                         AddControl(2);
                         break;
-                    //case "MillingBtn":
-                    //    AddControl(3);
-                    //    break;
+                    case "MillingBtn":
+                        AddControl(3);
+                        break;
                 }
         }
         public void AddControl(int index)
@@ -57,9 +57,9 @@ namespace Metal_Code
                 case 2:
                     AddControl(new PaintControl(this));
                     break;
-                //case 3:
-                //    AddControl(new MillingControl(this));
-                //    break;
+                case 3:
+                    AddControl(new MillingControl(this));
+                    break;
             }
         }
         public void AddControl(UserControl uc)
