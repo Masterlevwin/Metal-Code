@@ -872,7 +872,7 @@ namespace Metal_Code
                 if (cell.Value != null)
                 {
                     cell.Value = IsAgent ? $"{cell.Value}".Insert(0, "Изготовление детали ") : $"{cell.Value}".Insert(0, "Деталь ");
-                    cell.Value = $"{cell.Value}"[..$"{cell.Value}".LastIndexOf('s')];     //и обрезаем наименование
+                    if ($"{cell.Value}".ToLower().Contains('s')) cell.Value = $"{cell.Value}"[..$"{cell.Value}".ToLower().LastIndexOf('s')];     //и обрезаем наименование
                 }
 
             //оформляем заголовки таблицы
