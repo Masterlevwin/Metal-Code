@@ -16,29 +16,29 @@ namespace Metal_Code
 
         private void Accept_Click(object sender, RoutedEventArgs e)
         {
-            DialogResult = true;
-            //string login = LoginText.Text;
-            //string password = PasswordText.Password;
+            //DialogResult = true;
+            string login = LoginText.Text;
+            string password = PasswordText.Password;
 
-            //Manager? manager = MainWindow.M.dbManagers.Managers.FirstOrDefault(x => x.Name == login);
-            //if (manager != null)
-            //{
-            //    if (manager.Password == password)
-            //    {
-            //        //отключаем настройки баз для всех, кроме админов
-            //        if (!manager.IsAdmin) MainWindow.M.Settings.IsEnabled = false;
+            Manager? manager = MainWindow.M.dbManagers.Managers.FirstOrDefault(x => x.Name == login);
+            if (manager != null)
+            {
+                if (manager.Password == password)
+                {
+                    //отключаем настройки баз для всех, кроме админов
+                    if (!manager.IsAdmin) MainWindow.M.Settings.IsEnabled = false;
 
-            //        //определяем текущего менеджера
-            //        MainWindow.M.CurrentManager = manager;
+                    //определяем текущего менеджера
+                    MainWindow.M.CurrentManager = manager;
 
-            //        //устанавливаем менеджера по умолчанию
-            //        if (MainWindow.M.ManagerDrop.Items.Contains(manager)) MainWindow.M.ManagerDrop.SelectedItem = manager;
+                    //устанавливаем менеджера по умолчанию
+                    if (MainWindow.M.ManagerDrop.Items.Contains(manager)) MainWindow.M.ManagerDrop.SelectedItem = manager;
 
-            //        DialogResult = true;
-            //    }
-            //    else MessageBox.Show("Неправильный пароль. Попробуйте еще раз.");
-            //}
-            //else MessageBox.Show("Пользователь с таким именем не найден.");
+                    DialogResult = true;
+                }
+                else MessageBox.Show("Неправильный пароль. Попробуйте еще раз.");
+            }
+            else MessageBox.Show("Пользователь с таким именем не найден.");
         }
 
         private void Exit(object sender, RoutedEventArgs e)

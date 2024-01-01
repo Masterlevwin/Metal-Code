@@ -33,4 +33,9 @@
     <Style x:Key="ComboBoxStyle" TargetType="ComboBox">
         <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}"/>
     </Style>
+    <Style x:Key="DataGridStyle" TargetType="DataGrid">
+        <Setter Property="AlternatingRowBackground" Value="#FFC8F0FF"/>
+        <Setter Property="AlternationCount" Value="2"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}"/>
+    </Style>
 </ResourceDictionary>

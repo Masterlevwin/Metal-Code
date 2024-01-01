@@ -1195,6 +1195,5 @@ namespace Metal_Code
 
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
         }
-
     }
 }
