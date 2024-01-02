@@ -161,6 +161,7 @@ namespace Metal_Code
                               Product = MainWindow.M.OpenOfferData(offer.Data);
                               MainWindow.M.LoadProduct();
                               MainWindow.M.StatusBegin($"Расчет загружен");
+                              MainWindow.M.ActiveOffer = offer;
                           }
                       }
                       catch (Exception ex)

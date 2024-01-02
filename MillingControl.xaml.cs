@@ -90,9 +90,9 @@ namespace Metal_Code
                         foreach (MillingControl item in p.UserControls.OfType<MillingControl>())
                             _count += item.Holes * p.Part.Count;
 
-                    work.SetResult((float)Math.Ceiling(_count * _work.Price / 6));
+                    work.SetResult((float)Math.Ceiling(_count * _work.Price / 12));
                 }
-                else work.SetResult((float)Math.Ceiling(Holes * work.type.Count * _work.Price / 6));
+                else work.SetResult((float)Math.Ceiling(Holes * work.type.Count * _work.Price / 12));
             }
         }
 

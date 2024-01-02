@@ -137,6 +137,18 @@ namespace Metal_Code
             }
         }
 
+        private Offer? activeOffer;
+        public Offer? ActiveOffer
+        {
+            get => activeOffer;
+            set
+            {
+                activeOffer = value;
+                OnPropertyChanged(nameof(ActiveOffer));
+                OffersGrid.Items.Refresh();
+            }
+        }
+
         private bool isLaser;
         public bool IsLaser
         {
@@ -376,20 +388,19 @@ namespace Metal_Code
                 if (item.Name == "DeleteOffer") item.IsEnabled = CurrentManager == man;
         }
 
-        private void OffersDateProduction(object sender, DataGridRowEventArgs e)        // при загрузке строк (OffersGrid.LoadingRow="OffersDateProduction")
+        private void OffersFormatting(object sender, DataGridRowEventArgs e)    // при загрузке строк (OffersGrid.LoadingRow="OffersFormatting")
         {
             if (e.Row.DataContext is not Offer offer) return;
 
-            SolidColorBrush hb = new(Colors.Gold);
-            SolidColorBrush nb = new(Colors.White);
+            SolidColorBrush _endDateBrush = new(Colors.Gold);               //цвет расчета, у которого наступила дата отгрузки
+            SolidColorBrush _activeOfferBrush = new(Colors.PaleGreen);      //цвет загруженного расчета
 
             // если наступила дата отгрузки, а закрывающий документ еще не записан,
-            // предполагаем, что отгрузка еще не произведена, и окрашиваем такое КП в оранжевый цвет
-            // иначе КП окрашиваем в стандартный белый цвет
+            // предполагаем, что отгрузка еще не произведена, и окрашиваем такой расчет в золотой цвет
             if (offer.EndDate <= DateTime.Now && offer.Order != null && offer.Order != "" && (offer.Act == null || offer.Act == ""))
-                e.Row.Background = hb;
-            else
-                e.Row.Background = nb;
+                e.Row.Background = _endDateBrush;
+            if (offer == ActiveOffer)                                       // если расчет загружен, окрашиваем его в зеленый цвет
+                e.Row.Background = _activeOfferBrush;
         }
 
         void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
