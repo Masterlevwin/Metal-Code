@@ -399,7 +399,7 @@ namespace Metal_Code
             // предполагаем, что отгрузка еще не произведена, и окрашиваем такой расчет в золотой цвет
             if (offer.EndDate <= DateTime.Now && offer.Order != null && offer.Order != "" && (offer.Act == null || offer.Act == ""))
                 e.Row.Background = _endDateBrush;
-            if (offer == ActiveOffer)                                       // если расчет загружен, окрашиваем его в зеленый цвет
+            if (offer != null && offer == ActiveOffer)                      // если расчет загружен, окрашиваем его в зеленый цвет
                 e.Row.Background = _activeOfferBrush;
         }
 
@@ -697,6 +697,7 @@ namespace Metal_Code
                     foreach (Offer of in man.Offers) if (of.Data == offer.Data) dbManagers.Offers.Remove(of);
 
                     man.Offers.Add(offer);
+                    ActiveOffer = offer;
                     dbManagers.SaveChanges();
                     break;
                 }

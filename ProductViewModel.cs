@@ -72,7 +72,7 @@ namespace Metal_Code
                   {
                       try
                       {
-                          if (dialogService.SaveFileDialog() == true)
+                          if (dialogService.SaveFileDialog() == true && dialogService.FilePaths != null)
                           {
                               string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
                               + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
@@ -104,7 +104,7 @@ namespace Metal_Code
                       
                       try
                       {
-                          if (dialogService.SaveFileDialog() == true)
+                          if (dialogService.SaveFileDialog() == true && dialogService.FilePaths != null)
                           {
                               string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
                               + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
@@ -131,11 +131,12 @@ namespace Metal_Code
                   {
                       try
                       {
-                          if (dialogService.OpenFileDialog() == true)
+                          if (dialogService.OpenFileDialog() == true && dialogService.FilePaths != null)
                           {
                               Product = fileService.Open(dialogService.FilePaths[0]);
                               MainWindow.M.LoadProduct();
                               MainWindow.M.StatusBegin($"Расчет открыт");
+                              MainWindow.M.ActiveOffer = null;
                           }
                       }
                       catch (Exception ex)
