@@ -50,6 +50,32 @@ namespace Metal_Code
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
                 PartBtn.IsEnabled = false;
             }
+            CheckParts();       // тестируем добавление работы в общий список
+        }
+
+        private void CheckParts()       // метод автоматического добавления гибки, в дальнейшем объединить с подпиской на события
+        {
+            if (owner is WorkControl work && Parts.Count == 0)
+            {
+                foreach (WorkControl w in work.type.WorkControls)
+                    if (w.workType != this && w.workType is CutControl cut && cut.PartsControl != null)
+                    {
+                        Parts.AddRange(cut.PartsControl.Parts);
+                        break;
+                    }
+            }
+            else if (owner is PartControl part)
+            {
+                foreach (WorkControl w in part.Cut.work.type.WorkControls)
+                    if (w.workType is BendControl) return;
+
+                part.Cut.work.type.AddWork();
+
+                // добавляем "Гибку" в список общих работ "Комплекта деталей"
+                if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка"))
+                    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка") is Work _w)
+                    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
+            }
         }
 
         private void BtnEnable()

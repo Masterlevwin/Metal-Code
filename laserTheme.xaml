@@ -38,4 +38,10 @@
         <Setter Property="AlternationCount" Value="2"/>
         <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}"/>
     </Style>
+    <Style x:Key="PartControlStyle" TargetType="TabControl">
+        <Setter Property="FontFamily" Value="Century"/>
+        <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}"/>
+        <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
+    </Style>
 </ResourceDictionary>

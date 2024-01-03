@@ -229,8 +229,12 @@ namespace Metal_Code
 
                 if (i == 0)
                 {
-                    WindowParts = new(this, PartList(table));
+                    //WindowParts = new(this, PartList(table));
+
+                    PartsControl = new(this, PartList(table));      // тестируем создание вкладки нарезанных деталей
                     ItemList(table);
+                    CreatePartsTab();                               // добавляем вкладку в "Список нарезанных деталей"
+
                     work.type.MassCalculate();
                     if (PartDetails.Count > 0)
                         foreach (Part part in PartDetails) if (part.Title != null) PartTitleAnalysis(part.Title);       //новая функция! надо тестить!
@@ -253,7 +257,11 @@ namespace Metal_Code
                     if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)
                     {
                         _cut.WindowParts = new(this, _cut.PartList(table));
+
+                        _cut.PartsControl = new(this, PartList(table));
                         _cut.ItemList(table);
+                        _cut.CreatePartsTab();
+
                         if (PartDetails.Count > 0)
                             foreach (Part part in PartDetails) if (part.Title != null) PartTitleAnalysis(part.Title);       //новая функция! надо тестить!
                     }
@@ -300,20 +308,32 @@ namespace Metal_Code
                         work.type.WorkControls[^1].WorkDrop.SelectedItem = p;
                     WindowParts?.AddBlockControl(2);
                     break;
-                //case "рез":
-                //    foreach (WorkControl _work in work.type.WorkControls) if (_work.workType is MillingControl) return;
-                //    work.type.AddWork();
-                //    if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Мех обработка"))
-                //        && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Мех обработка") is Work m)
-                //        work.type.WorkControls[^1].WorkDrop.SelectedItem = m;
-                //    WindowParts?.AddBlockControl(3);
-                //    break;
+                case "рез":
+                    foreach (WorkControl _work in work.type.WorkControls) if (_work.workType is MillingControl) return;
+                    work.type.AddWork();
+                    if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Мех обработка"))
+                        && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Мех обработка") is Work m)
+                        work.type.WorkControls[^1].WorkDrop.SelectedItem = m;
+                    WindowParts?.AddBlockControl(3);
+                    break;
             }
         }
 
         public PartWindow? WindowParts = null;
 
         public List<Part> PartDetails = new();
+
+        public PartsControl? PartsControl = null;
+        public void CreatePartsTab()
+        {
+            // добавление вкладки
+            MainWindow.M.PartsTab.Items.Add(new TabItem
+            {
+                Header = new TextBlock { Text = $"s{work.type.S} {work.type.MetalDrop.Text}" }, // установка заголовка вкладки
+                Content = PartsControl                                                          // установка содержимого вкладки
+            });
+        }
+
         public List<PartControl> PartList(DataTable? table = null)
         {
             List<PartControl> _parts = new();
@@ -396,7 +416,7 @@ namespace Metal_Code
             }
 
             //оформляем заголовок окна деталей в соответствии с толщиной и маркой стали
-            if (WindowParts != null) WindowParts.Title = $"s{work.type.S} {work.type.MetalDrop.Text}";
+            //if (WindowParts != null) WindowParts.Title = $"s{work.type.S} {work.type.MetalDrop.Text}";
 
             //затем считываем значения для каждого листа
             LaserItem? item = null;

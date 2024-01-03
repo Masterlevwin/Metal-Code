@@ -75,8 +75,6 @@ namespace Metal_Code
             if (loginWindow.ShowDialog() == true)
             {
                 IsEnabled = true;
-                Boss.Text = "ООО Провэлд  ";
-                Phone.Text = "тел:(812)603-45-33";
                 AddDetail();
             }
         }
@@ -158,11 +156,15 @@ namespace Metal_Code
                 isLaser = value;
                 if (IsLaser)
                 {
+                    Boss.Text = $"ООО ЛАЗЕРФЛЕКС  ";
+                    Phone.Text = "тел:(812)509-60-11";
                     LaserRadioButton.IsChecked = true;
                     ThemeChange("laserTheme");
                 }
                 else
                 {
+                    Boss.Text = $"ООО ПРОВЭЛД  ";
+                    Phone.Text = "тел:(812)603-45-33";
                     AppRadioButton.IsChecked = true;
                     ThemeChange("appTheme");
                 }
@@ -336,18 +338,8 @@ namespace Metal_Code
         {
             Parts = PartsSource();
 
-            if (IsLaser)
-            {
-                Boss.Text = $"ООО ЛАЗЕРФЛЕКС  ";
-                Phone.Text = "тел:(812)509-60-11";
-                DetailsGrid.ItemsSource = Parts;
-            }
-            else
-            {
-                Boss.Text = $"ООО ПРОВЭЛД  ";
-                Phone.Text = "тел:(812)603-45-33";
-                DetailsGrid.ItemsSource = DetailsSource();
-            }
+            if (IsLaser) DetailsGrid.ItemsSource = Parts;
+            else DetailsGrid.ItemsSource = DetailsSource();
 
             DetailsGrid.Columns[0].Header = "Материал";
             DetailsGrid.Columns[1].Header = "Толщина";
