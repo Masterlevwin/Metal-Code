@@ -62,8 +62,47 @@ namespace Metal_Code
         private void Remove(object sender, RoutedEventArgs e)
         {
             if (type.WorkControls.Count == 1) return;
+            RemoveWorksFromTab();
             Remove();
         }
+
+        private void RemoveWorksFromTab()
+        {
+            if (workType is IPriceChanged _work && _work.Parts == null) return;
+
+            MessageBoxResult response = MessageBox.Show("Удалить эту работу из списка нарезанных деталей?", "Удаление работы",
+                MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+            if (response == MessageBoxResult.No) return;
+
+            switch (workType)
+            {
+                case BendControl block:
+                    if (block.Parts != null)
+                        foreach (PartControl p in block.Parts)
+                            foreach (BendControl item in p.UserControls.OfType<BendControl>().ToList())
+                                item.SetBend($"{0}");
+                    break;
+                case WeldControl block:
+                    if (block.Parts != null)
+                        foreach (PartControl p in block.Parts)
+                            foreach (WeldControl item in p.UserControls.OfType<WeldControl>().ToList())
+                                item.SetWeld($"");
+                    break;
+                case PaintControl block:
+                    if (block.Parts != null)
+                        foreach (PartControl p in block.Parts)
+                            foreach (PaintControl item in p.UserControls.OfType<PaintControl>().ToList())
+                                item.SetRal($"");
+                    break;
+                case MillingControl block:
+                    if (block.Parts != null)
+                        foreach (PartControl p in block.Parts)
+                            foreach (MillingControl item in p.UserControls.OfType<MillingControl>().ToList())
+                                item.SetHoles($"{0}");
+                    break;
+            }
+        }
+
         public void Remove()
         {
             UpdatePosition(false);
@@ -216,6 +255,7 @@ namespace Metal_Code
 
     public interface IPriceChanged
     {
+        List<PartControl>? Parts { get; set; }
         void OnPriceChanged();
     }
 }

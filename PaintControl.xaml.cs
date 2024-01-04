@@ -28,12 +28,25 @@ namespace Metal_Code
             }
         }
 
+        public List<PartControl>? Parts { get; set; }
+
+        public Dictionary<string, float> TypeDict = new()
+        {
+            ["м²"] = 812,
+            ["шт"] = 350,
+            ["пог"] = 87
+        };
+
         public readonly UserControl owner;
         public PaintControl(UserControl _work)
         {
             InitializeComponent();
             owner = _work;
+            Tuning();
+        }
 
+        private void Tuning()               // настройка блока после инициализации
+        {
             // формирование списка типов расчета окраски
             foreach (string s in TypeDict.Keys) TypeDrop.Items.Add(s);
 
@@ -41,29 +54,44 @@ namespace Metal_Code
             {
                 work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
                 work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
-                BtnEnable();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
+
+                foreach (WorkControl w in work.type.WorkControls)
+                    if (w.workType != this && w.workType is CutControl cut && cut.PartsControl != null)
+                    {
+                        Parts = new(cut.PartsControl.Parts);
+                        break;
+                    }
             }
             else if (owner is PartControl part)
             {
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-                PartBtn.IsEnabled = false;
+
+                foreach (WorkControl w in part.Cut.work.type.WorkControls)
+                    if (w.workType is PaintControl) return;
+
+                part.Cut.work.type.AddWork();
+
+                // добавляем "Окраску" в список общих работ "Комплекта деталей"
+                if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска"))
+                    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска") is Work _w)
+                    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
             }
         }
 
-        private void BtnEnable()
-        {
-            if (owner is WorkControl work && work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
-            {
-                foreach (WorkControl w in work.type.WorkControls)
-                    if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
-                    {
-                        if (Parts.Count == 0) CreateParts(cut.WindowParts.Parts);
-                        PartBtn.IsEnabled = true;
-                        break;
-                    }
-            }
-            else PartBtn.IsEnabled = false;
-        }
+        //private void BtnEnable()
+        //{
+        //    if (owner is WorkControl work && work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
+        //    {
+        //        foreach (WorkControl w in work.type.WorkControls)
+        //            if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
+        //            {
+        //                if (Parts.Count == 0) CreateParts(cut.WindowParts.Parts);
+        //                PartBtn.IsEnabled = true;
+        //                break;
+        //            }
+        //    }
+        //    else PartBtn.IsEnabled = false;
+        //}
 
         private void SetRal(object sender, TextChangedEventArgs e)
         {
@@ -75,12 +103,6 @@ namespace Metal_Code
             OnPriceChanged();
         }
 
-        public Dictionary<string, float> TypeDict = new()
-        {
-            ["м²"] = 812,
-            ["шт"] = 350,
-            ["пог"] = 87
-        };
         private void SetType(object sender, SelectionChangedEventArgs e)
         {
             SetType(TypeDrop.SelectedIndex);
@@ -95,10 +117,10 @@ namespace Metal_Code
         {
             if (owner is not WorkControl work) return;
 
-            BtnEnable();
+            //BtnEnable();
             float price = 0;
 
-            if (Parts.Count > 0)
+            if (Parts != null && Parts.Count > 0)
             {
                 foreach (PartControl p in Parts)
                     foreach (PaintControl item in p.UserControls.OfType<PaintControl>())
@@ -109,7 +131,7 @@ namespace Metal_Code
 
                 work.SetResult(price, false);
             }
-            else if (Ral != null && work.type.Mass > 0)
+            else if (Ral != null && Ral != "" && work.type.Mass > 0)
             {
                 foreach (WorkControl w in work.type.WorkControls)
                     if (w != work && w.workType is PipeControl pipe)
@@ -152,7 +174,7 @@ namespace Metal_Code
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + О ")) p.Part.Description += $" + О (цвет - {Ral}) ";
 
                     float price = 0, count = 0;             // переменные для расчета части цены отдельной детали
-                    if (p.Cut.WindowParts != null) foreach (PartControl _p in p.Cut.WindowParts.Parts)
+                    if (p.Cut.PartsControl != null) foreach (PartControl _p in p.Cut.PartsControl.Parts)
                             foreach (PaintControl item in _p.UserControls.OfType<PaintControl>())
                                 if (item.Ral != null)       // перебираем все используемые блоки окраски
                                 {                           // считаем общую стоимость всей окраски этого листа и кол-во окрашиваемых деталей
@@ -185,14 +207,13 @@ namespace Metal_Code
             }
         }
 
-        public List<PartControl> Parts = new();
-        private void ViewPartWindow(object sender, RoutedEventArgs e)
-        {
-            if (owner is not WorkControl work || work.type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail || typeDetail.Name != "Лист металла") return;
+        //private void ViewPartWindow(object sender, RoutedEventArgs e)
+        //{
+        //    if (owner is not WorkControl work || work.type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail || typeDetail.Name != "Лист металла") return;
 
-            foreach (WorkControl w in work.type.WorkControls)
-                if (w != work && w.workType is CutControl cut && cut.WindowParts != null) cut.WindowParts.ShowDialog();
-        }
-        public void CreateParts(List<PartControl> parts) { Parts.AddRange(parts); }     // метод, необходимый для корректной загрузки расчета
+        //    foreach (WorkControl w in work.type.WorkControls)
+        //        if (w != work && w.workType is CutControl cut && cut.WindowParts != null) cut.WindowParts.ShowDialog();
+        //}
+        //public void CreateParts(List<PartControl> parts) { Parts.AddRange(parts); }     // метод, необходимый для корректной загрузки расчета
     }
 }

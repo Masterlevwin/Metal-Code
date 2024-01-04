@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Windows;
 using System.Windows.Controls;
 
 namespace Metal_Code
@@ -30,40 +29,60 @@ namespace Metal_Code
             }
         }
 
-        public readonly UserControl owner;
+        public List<PartControl>? Parts { get; set; }
 
+        public readonly UserControl owner;
         public MillingControl(UserControl _control)
         {
             InitializeComponent();
             owner = _control;
+            Tuning();
+        }
 
+        private void Tuning()               // настройка блока после инициализации
+        {
             if (owner is WorkControl work)
             {
                 work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
                 work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
-                BtnEnable();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
+
+                foreach (WorkControl w in work.type.WorkControls)
+                    if (w.workType != this && w.workType is CutControl cut && cut.PartsControl != null)
+                    {
+                        Parts = new(cut.PartsControl.Parts);
+                        break;
+                    }
             }
             else if (owner is PartControl part)
             {
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-                PartBtn.IsEnabled = false;
+
+                foreach (WorkControl w in part.Cut.work.type.WorkControls)
+                    if (w.workType is MillingControl) return;
+
+                part.Cut.work.type.AddWork();
+
+                // добавляем "Мех обработку" в список общих работ "Комплекта деталей"
+                if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Мех обработка"))
+                    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Мех обработка") is Work _w)
+                    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
             }
         }
 
-        private void BtnEnable()
-        {
-            if (owner is WorkControl work && work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
-            {
-                foreach (WorkControl w in work.type.WorkControls)
-                    if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
-                    {
-                        if (Parts.Count == 0) CreateParts(cut.WindowParts.Parts);
-                        PartBtn.IsEnabled = true;
-                        break;
-                    }
-            }
-            else PartBtn.IsEnabled = false;
-        }
+        //private void BtnEnable()
+        //{
+        //    if (owner is WorkControl work && work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
+        //    {
+        //        foreach (WorkControl w in work.type.WorkControls)
+        //            if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
+        //            {
+        //                if (Parts.Count == 0) CreateParts(cut.WindowParts.Parts);
+        //                PartBtn.IsEnabled = true;
+        //                break;
+        //            }
+        //    }
+        //    else PartBtn.IsEnabled = false;
+        //}
 
         private void SetHoles(object sender, TextChangedEventArgs e)
         {
@@ -79,11 +98,11 @@ namespace Metal_Code
         {
             if (owner is not WorkControl work) return;
 
-            BtnEnable();
+            //BtnEnable();
 
             if (work.WorkDrop.SelectedItem is Work _work)
             {
-                if (Parts.Count > 0)
+                if (Parts != null && Parts.Count > 0)
                 {
                     int _count = 0;
                     foreach (PartControl p in Parts)
@@ -113,8 +132,8 @@ namespace Metal_Code
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + М ")) p.Part.Description += " + М ";                   
 
                     int _count = 0;
-                    if (p.Cut.WindowParts != null)
-                        foreach (PartControl _p in p.Cut.WindowParts.Parts)
+                    if (p.Cut.PartsControl != null)
+                        foreach (PartControl _p in p.Cut.PartsControl.Parts)
                             foreach (MillingControl item in _p.UserControls.OfType<MillingControl>())
                             {
                                 _count += _p.Part.Count;
@@ -139,15 +158,14 @@ namespace Metal_Code
             }
         }
 
-        public List<PartControl> Parts = new();
-        private void ViewPartWindow(object sender, RoutedEventArgs e)
-        {
-            if (owner is not WorkControl work || work.type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail || typeDetail.Name != "Лист металла") return;
+        //private void ViewPartWindow(object sender, RoutedEventArgs e)
+        //{
+        //    if (owner is not WorkControl work || work.type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail || typeDetail.Name != "Лист металла") return;
 
-            foreach (WorkControl w in work.type.WorkControls)
-                if (w != work && w.workType is CutControl cut && cut.WindowParts != null) cut.WindowParts.ShowDialog();
-        }
-        public void CreateParts(List<PartControl> parts) { Parts.AddRange(parts); }     // метод, необходимый для корректной загрузки расчета
+        //    foreach (WorkControl w in work.type.WorkControls)
+        //        if (w != work && w.workType is CutControl cut && cut.WindowParts != null) cut.WindowParts.ShowDialog();
+        //}
+        //public void CreateParts(List<PartControl> parts) { Parts.AddRange(parts); }     // метод, необходимый для корректной загрузки расчета
 
     }
 }

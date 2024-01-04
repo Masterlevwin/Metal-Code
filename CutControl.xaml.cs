@@ -182,13 +182,19 @@ namespace Metal_Code
         }
         public void LoadExcel(string[] paths)
         {
+            if (PartsControl != null)
+            {
+                MainWindow.M.StatusBegin($"Этот лист уже нарезан. Добавьте новый \"Лист металла\"!");
+                return;
+            }
+
             // раскладки можно загрузить только в отдельную деталь Комплект деталей,
             // в которой нет других типовых деталей, кроме Лист металла, и в этом "Листе" должна быть резка...
             // ...это условие необходимо соблюдать для корректного отображения сборных деталей в КП
-            foreach (TypeDetailControl tc in work.type.det.TypeDetailControls)
+            foreach (TypeDetailControl _type in work.type.det.TypeDetailControls)
             {
-                if ((tc.TypeDetailDrop.SelectedItem is TypeDetail _t && _t.Name != "Лист металла")
-                    || (!tc.WorkControls.Contains(tc.WorkControls.FirstOrDefault(w => w.workType is CutControl))))
+                if ((_type.TypeDetailDrop.SelectedItem is TypeDetail _t && _t.Name != "Лист металла")
+                    || (!_type.WorkControls.Contains(_type.WorkControls.FirstOrDefault(w => w.workType is CutControl))))
                 {
                     MainWindow.M.AddDetail();
 
@@ -229,11 +235,9 @@ namespace Metal_Code
 
                 if (i == 0)
                 {
-                    //WindowParts = new(this, PartList(table));
-
                     PartsControl = new(this, PartList(table));      // тестируем создание вкладки нарезанных деталей
                     ItemList(table);
-                    CreatePartsTab();                               // добавляем вкладку в "Список нарезанных деталей"
+                    AddPartsTab();                                  // добавляем вкладку в "Список нарезанных деталей"
 
                     work.type.MassCalculate();
                     if (PartDetails.Count > 0)
@@ -256,14 +260,12 @@ namespace Metal_Code
                     // заполняем эту резку
                     if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)
                     {
-                        _cut.WindowParts = new(this, _cut.PartList(table));
-
-                        _cut.PartsControl = new(this, PartList(table));
+                        _cut.PartsControl = new(this, _cut.PartList(table));
                         _cut.ItemList(table);
-                        _cut.CreatePartsTab();
+                        _cut.AddPartsTab();
 
-                        if (PartDetails.Count > 0)
-                            foreach (Part part in PartDetails) if (part.Title != null) PartTitleAnalysis(part.Title);       //новая функция! надо тестить!
+                        if (_cut.PartDetails.Count > 0)
+                            foreach (Part part in _cut.PartDetails) if (part.Title != null) _cut.PartTitleAnalysis(part.Title);       //новая функция! надо тестить!
                     }
                 }
             }
@@ -290,7 +292,7 @@ namespace Metal_Code
                     if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка"))
                         && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка") is Work b)
                         work.type.WorkControls[^1].WorkDrop.SelectedItem = b;
-                    WindowParts?.AddBlockControl(0);
+                    PartsControl?.AddBlockControl(0);
                     break;
                 case "свар":
                     foreach (WorkControl _work in work.type.WorkControls) if (_work.workType is WeldControl) return;
@@ -298,7 +300,7 @@ namespace Metal_Code
                     if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Сварка"))
                         && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Сварка") is Work w)
                         work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
-                    WindowParts?.AddBlockControl(1);
+                    PartsControl?.AddBlockControl(1);
                     break;
                 case "окр":
                     foreach (WorkControl _work in work.type.WorkControls) if (_work.workType is PaintControl) return;
@@ -306,7 +308,7 @@ namespace Metal_Code
                     if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска"))
                         && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска") is Work p)
                         work.type.WorkControls[^1].WorkDrop.SelectedItem = p;
-                    WindowParts?.AddBlockControl(2);
+                    PartsControl?.AddBlockControl(2);
                     break;
                 case "рез":
                     foreach (WorkControl _work in work.type.WorkControls) if (_work.workType is MillingControl) return;
@@ -314,24 +316,28 @@ namespace Metal_Code
                     if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Мех обработка"))
                         && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Мех обработка") is Work m)
                         work.type.WorkControls[^1].WorkDrop.SelectedItem = m;
-                    WindowParts?.AddBlockControl(3);
+                    PartsControl?.AddBlockControl(3);
                     break;
             }
         }
 
-        public PartWindow? WindowParts = null;
+        public List<PartControl>? Parts { get; set; }
 
         public List<Part> PartDetails = new();
 
         public PartsControl? PartsControl = null;
-        public void CreatePartsTab()
+        readonly TabItem TabItem = new();
+        public void AddPartsTab()                                           //метод добавления вкладки для PartsControl
         {
-            // добавление вкладки
-            MainWindow.M.PartsTab.Items.Add(new TabItem
-            {
-                Header = new TextBlock { Text = $"s{work.type.S} {work.type.MetalDrop.Text}" }, // установка заголовка вкладки
-                Content = PartsControl                                                          // установка содержимого вкладки
-            });
+            TabItem.Header = new TextBlock { Text = $"s{work.type.S} {work.type.MetalDrop.Text}" }; // установка заголовка вкладки
+            TabItem.Content = PartsControl;                                                         // установка содержимого вкладки
+            MainWindow.M.PartsTab.Items.Add(TabItem);
+        }
+
+        private void RemovePartsTab(object sender, RoutedEventArgs e)       //метод удаления вкладки нарезанных деталей этой резки,
+                                                                            //вызывается по событию CutControl.Unloaded
+        {
+            MainWindow.M.PartsTab.Items.Remove(TabItem);
         }
 
         public List<PartControl> PartList(DataTable? table = null)
@@ -398,8 +404,8 @@ namespace Metal_Code
                     foreach (Metal metal in work.type.MetalDrop.Items) if (metal.Name == $"{table.Rows[i].ItemArray[9]}")
                         {
                             work.type.MetalDrop.SelectedItem = metal;
-                            if (WindowParts != null && WindowParts.Parts.Count > 0)
-                                foreach (PartControl p in WindowParts.Parts)
+                            if (PartsControl != null && PartsControl.Parts.Count > 0)
+                                foreach (PartControl p in PartsControl.Parts)
                                     p.Part.Metal = metal.Name;
                             break;
                         }   
@@ -408,8 +414,8 @@ namespace Metal_Code
                 if ($"{table.Rows[i].ItemArray[4]}" == "Толщина (mm)")
                 {
                     work.type.S = MainWindow.Parser($"{table.Rows[i].ItemArray[5]}");
-                    if (WindowParts != null && WindowParts.Parts.Count > 0)
-                        foreach (PartControl p in WindowParts.Parts)
+                    if (PartsControl != null && PartsControl.Parts.Count > 0)
+                        foreach (PartControl p in PartsControl.Parts)
                             p.Part.Destiny = work.type.S;  
                     break;
                 }

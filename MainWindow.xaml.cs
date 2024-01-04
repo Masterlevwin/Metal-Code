@@ -435,8 +435,8 @@ namespace Metal_Code
                 for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
                     for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
                         if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is CutControl _cut)
-                            if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
-                                foreach (PartControl p in _cut.WindowParts.Parts)
+                            if (_cut.PartsControl != null && _cut.PartsControl.Parts.Count > 0)
+                                foreach (PartControl p in _cut.PartsControl.Parts)
                                     parts.Add(p.Part);
             return parts;
         }
@@ -642,8 +642,8 @@ namespace Metal_Code
                                     //p.Price += Construct / partsCount;
                                 }
 
-                                if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
-                                    foreach (PartControl part in _cut.WindowParts.Parts) part.PropertiesChanged?.Invoke(part, true);
+                                if (_cut.PartsControl != null && _cut.PartsControl.Parts.Count > 0)
+                                    foreach (PartControl part in _cut.PartsControl.Parts) part.PropertiesChanged?.Invoke(part, true);
 
                                 _saveWork.Parts = _cut.PartDetails;
                                 _saveWork.Items = _cut.items;
@@ -782,10 +782,11 @@ namespace Metal_Code
                             _cut.SumProperties(_cut.items);
 
                             _cut.PartDetails = details[i].TypeDetails[j].Works[k].Parts;
-                            _cut.WindowParts = new(_cut, _cut.PartList());
+                            _cut.PartsControl = new(_cut, _cut.PartList());
+                            _cut.AddPartsTab();
 
-                            if (_cut.WindowParts != null && _cut.WindowParts.Parts.Count > 0)
-                                foreach (PartControl part in _cut.WindowParts.Parts)
+                            if (_cut.PartsControl != null && _cut.PartsControl.Parts.Count > 0)
+                                foreach (PartControl part in _cut.PartsControl.Parts)
                                 {
                                     if (part.Part.PropsDict.Count > 0)
                                         foreach (int key in  part.Part.PropsDict.Keys)

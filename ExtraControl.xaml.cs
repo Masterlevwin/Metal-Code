@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Controls;
 
@@ -39,6 +40,7 @@ namespace Metal_Code
                 }
             }
         }
+        public List<PartControl>? Parts { get; set; }
 
         public readonly WorkControl work;
 

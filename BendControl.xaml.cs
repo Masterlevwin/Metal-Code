@@ -29,69 +29,7 @@ namespace Metal_Code
             }
         }
 
-        public readonly UserControl owner;
-
-        public BendControl(UserControl _control)
-        {
-            InitializeComponent();
-            owner = _control;
-
-            // формирование списка длин стороны гиба
-            foreach (string s in BendDict[0.5f].Keys) ShelfDrop.Items.Add(s);
-
-            if (owner is WorkControl work)
-            {
-                work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-                work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
-                BtnEnable();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
-            }
-            else if (owner is PartControl part)
-            {
-                part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-                PartBtn.IsEnabled = false;
-            }
-            CheckParts();       // тестируем добавление работы в общий список
-        }
-
-        private void CheckParts()       // метод автоматического добавления гибки, в дальнейшем объединить с подпиской на события
-        {
-            if (owner is WorkControl work && Parts.Count == 0)
-            {
-                foreach (WorkControl w in work.type.WorkControls)
-                    if (w.workType != this && w.workType is CutControl cut && cut.PartsControl != null)
-                    {
-                        Parts.AddRange(cut.PartsControl.Parts);
-                        break;
-                    }
-            }
-            else if (owner is PartControl part)
-            {
-                foreach (WorkControl w in part.Cut.work.type.WorkControls)
-                    if (w.workType is BendControl) return;
-
-                part.Cut.work.type.AddWork();
-
-                // добавляем "Гибку" в список общих работ "Комплекта деталей"
-                if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка"))
-                    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка") is Work _w)
-                    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
-            }
-        }
-
-        private void BtnEnable()
-        {
-            if (owner is WorkControl work && work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
-            {
-                foreach (WorkControl w in work.type.WorkControls)
-                    if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
-                    {
-                        if (Parts.Count == 0) CreateParts(cut.WindowParts.Parts);
-                        PartBtn.IsEnabled = true;
-                        break;
-                    }
-            }
-            else PartBtn.IsEnabled = false;
-        }
+        public List<PartControl>? Parts { get; set; }
 
         public Dictionary<float, Dictionary<string, float>> BendDict = new()
         {
@@ -195,6 +133,62 @@ namespace Metal_Code
             }
         };
 
+        public readonly UserControl owner;
+        public BendControl(UserControl _control)
+        {
+            InitializeComponent();
+            owner = _control;
+            Tuning();
+        }
+
+        private void Tuning()               // настройка блока после инициализации
+        {
+            // формирование списка длин стороны гиба
+            foreach (string s in BendDict[0.5f].Keys) ShelfDrop.Items.Add(s);
+
+            if (owner is WorkControl work)
+            {
+                work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+                work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
+
+                foreach (WorkControl w in work.type.WorkControls)
+                    if (w.workType != this && w.workType is CutControl cut && cut.PartsControl != null)
+                    {
+                        Parts = new(cut.PartsControl.Parts);
+                        break;
+                    }
+            }
+            else if (owner is PartControl part)
+            {
+                part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+
+                foreach (WorkControl w in part.Cut.work.type.WorkControls)
+                    if (w.workType is BendControl) return;
+
+                part.Cut.work.type.AddWork();
+
+                // добавляем "Гибку" в список общих работ "Комплекта деталей"
+                if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка"))
+                    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка") is Work _w)
+                    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
+            }
+        }
+
+        //private void BtnEnable()
+        //{
+        //    if (owner is WorkControl work && work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
+        //    {
+        //        foreach (WorkControl w in work.type.WorkControls)
+        //            if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
+        //            {
+        //                if (Parts.Count == 0) CreateParts(cut.WindowParts.Parts);
+        //                PartBtn.IsEnabled = true;
+        //                break;
+        //            }
+        //    }
+        //    else PartBtn.IsEnabled = false;
+        //}
+
         private void SetBend(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox) SetBend(tBox.Text);
@@ -219,10 +213,10 @@ namespace Metal_Code
         {
             if (owner is not WorkControl work) return;
 
-            BtnEnable();
+            //BtnEnable();
             float price = 0;
 
-            if (Parts.Count > 0)
+            if (Parts != null && Parts.Count > 0)
             {
                 foreach (PartControl p in Parts)
                     foreach (BendControl item in p.UserControls.OfType<BendControl>())
@@ -297,14 +291,25 @@ namespace Metal_Code
             }
         }
 
-        public List<PartControl> Parts = new();
-        private void ViewPartWindow(object sender, RoutedEventArgs e)
-        {
-            if (owner is not WorkControl work || work.type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail || typeDetail.Name != "Лист металла") return;
+
+        //private void ViewPartWindow(object sender, RoutedEventArgs e)
+        //{
+        //    if (owner is not WorkControl work || work.type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail || typeDetail.Name != "Лист металла") return;
             
-            foreach (WorkControl w in work.type.WorkControls)
-                if ( w != work && w.workType is CutControl cut && cut.WindowParts != null) cut.WindowParts.ShowDialog();
-        }
-        public void CreateParts(List<PartControl> parts) { Parts.AddRange(parts); }     // метод, необходимый для корректной загрузки расчета
+        //    foreach (WorkControl w in work.type.WorkControls)
+        //        if ( w != work && w.workType is CutControl cut && cut.WindowParts != null) cut.WindowParts.ShowDialog();
+        //}
+        //public void CreateParts(List<PartControl> parts) { Parts.AddRange(parts); }     // метод, необходимый для корректной загрузки расчета
+
+        //private void ClearBendsFromTab(object sender, RoutedEventArgs e)
+        //{
+        //    if (owner is not WorkControl) return;
+
+        //    MessageBoxResult response = MessageBox.Show("Удалить гибку в деталях?", "Удаление гибки",
+        //                       MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+        //    if (response == MessageBoxResult.No) return;
+
+        //    foreach (PartControl p in Parts) foreach (BendControl bend in p.UserControls.OfType<BendControl>().ToList()) bend.SetBend($"{0}");
+        //}
     }
 }

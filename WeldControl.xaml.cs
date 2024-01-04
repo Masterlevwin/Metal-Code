@@ -28,42 +28,7 @@ namespace Metal_Code
             }
         }
 
-        private readonly UserControl owner;
-        public WeldControl(UserControl _control)
-        {
-            InitializeComponent();
-            owner = _control;
-
-            // формирование списка типов расчета сварки
-            foreach (string s in TypeDict.Keys) TypeDrop.Items.Add(s);
-
-            if (owner is WorkControl work)
-            {
-                work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-                work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
-                BtnEnable();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
-            }
-            else if (owner is PartControl part)
-            {
-                part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-                PartBtn.IsEnabled = false;
-            }
-        }
-
-        private void BtnEnable()
-        {
-            if (owner is WorkControl work && work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
-            {
-                foreach (WorkControl w in work.type.WorkControls)
-                    if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
-                    {
-                        if (Parts.Count == 0) CreateParts(cut.WindowParts.Parts);
-                        PartBtn.IsEnabled = true;
-                        break;
-                    }   
-            }
-            else PartBtn.IsEnabled = false;
-        }
+        public List<PartControl>? Parts { get; set; }
 
         public Dictionary<string, Dictionary<float, float>> WeldDict = new()
         {
@@ -174,6 +139,63 @@ namespace Metal_Code
             }
         };
 
+        private readonly UserControl owner;
+        public WeldControl(UserControl _control)
+        {
+            InitializeComponent();
+            owner = _control;
+            Tuning();
+        }
+
+        private void Tuning()               // настройка блока после инициализации
+        {
+            // формирование списка типов расчета сварки
+            foreach (string s in TypeDict.Keys) TypeDrop.Items.Add(s);
+
+            if (owner is WorkControl work)
+            {
+                work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+                work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
+
+                foreach (WorkControl w in work.type.WorkControls)
+                    if (w.workType != this && w.workType is CutControl cut && cut.PartsControl != null)
+                    {
+                        Parts = new(cut.PartsControl.Parts);
+                        break;
+                    }
+            }
+            else if (owner is PartControl part)
+            {
+                part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+
+                foreach (WorkControl w in part.Cut.work.type.WorkControls)
+                    if (w.workType is WeldControl) return;
+
+                part.Cut.work.type.AddWork();
+
+                // добавляем "Сварку" в список общих работ "Комплекта деталей"
+                if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Сварка"))
+                    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Сварка") is Work _w)
+                    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
+            }
+        }
+
+        //private void BtnEnable()
+        //{
+        //    if (owner is WorkControl work && work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
+        //    {
+        //        foreach (WorkControl w in work.type.WorkControls)
+        //            if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
+        //            {
+        //                if (Parts.Count == 0) CreateParts(cut.WindowParts.Parts);
+        //                PartBtn.IsEnabled = true;
+        //                break;
+        //            }   
+        //    }
+        //    else PartBtn.IsEnabled = false;
+        //}
+
+
         private void SetWeld(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox) SetWeld(tBox.Text);
@@ -203,10 +225,10 @@ namespace Metal_Code
         {
             if (owner is not WorkControl work) return;
 
-            BtnEnable();
+            //BtnEnable();
             float price = 0;
 
-            if (Parts.Count > 0)
+            if (Parts != null && Parts.Count > 0)
             {
                 foreach (PartControl p in Parts)
                     foreach (WeldControl item in p.UserControls.OfType<WeldControl>())
@@ -217,7 +239,7 @@ namespace Metal_Code
 
                 work.SetResult(price, false);
             }
-            else if (Weld != null)
+            else if (Weld != null && Weld != "")
             {
                 if (HasMinPrice()) work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work), false);
                 else work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work));               
@@ -280,7 +302,7 @@ namespace Metal_Code
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + С ")) p.Part.Description += " + С ";
 
                     float price = 0, count = 0;             // переменные для расчета части цены отдельной детали
-                    if (p.Cut.WindowParts != null) foreach (PartControl _p in p.Cut.WindowParts.Parts)
+                    if (p.Cut.PartsControl != null) foreach (PartControl _p in p.Cut.PartsControl.Parts)
                             foreach (WeldControl item in _p.UserControls.OfType<WeldControl>())
                                 if (item.Weld != null)       // перебираем все используемые блоки сварки
                                 {                            // считаем общую стоимость всей сварки этого листа и кол-во свариваемых деталей
@@ -313,15 +335,25 @@ namespace Metal_Code
             }
         }
 
-        public List<PartControl> Parts = new();
-        private void ViewPartWindow(object sender, RoutedEventArgs e)
-        {
-            if (owner is not WorkControl work || work.type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail || typeDetail.Name != "Лист металла") return;
 
-            foreach (WorkControl w in work.type.WorkControls)
-                if (w != work && w.workType is CutControl cut && cut.WindowParts != null) cut.WindowParts.ShowDialog();
-        }
+        //private void ViewPartWindow(object sender, RoutedEventArgs e)
+        //{
+        //    if (owner is not WorkControl work || work.type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail || typeDetail.Name != "Лист металла") return;
 
-        public void CreateParts(List<PartControl> parts) { Parts.AddRange(parts); }     // метод, необходимый для корректной загрузки расчета
+        //    foreach (WorkControl w in work.type.WorkControls)
+        //        if (w != work && w.workType is CutControl cut && cut.WindowParts != null) cut.WindowParts.ShowDialog();
+        //}
+        //public void CreateParts(List<PartControl> parts) { Parts.AddRange(parts); }     // метод, необходимый для корректной загрузки расчета
+
+        //private void ClearWeldsFromTab(object sender, RoutedEventArgs e)
+        //{
+        //    if (owner is not WorkControl) return;
+
+        //    MessageBoxResult response = MessageBox.Show("Удалить сварку в деталях?", "Удаление сварки",
+        //                       MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+        //    if (response == MessageBoxResult.No) return;
+
+        //    foreach (PartControl p in Parts) foreach (WeldControl weld in p.UserControls.OfType<WeldControl>().ToList()) weld.SetWeld($"");
+        //}
     }
 }
