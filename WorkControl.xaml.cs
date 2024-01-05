@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Media;
 
 namespace Metal_Code
@@ -62,45 +63,20 @@ namespace Metal_Code
         private void Remove(object sender, RoutedEventArgs e)
         {
             if (type.WorkControls.Count == 1) return;
-            RemoveWorksFromTab();
-            Remove();
-        }
 
-        private void RemoveWorksFromTab()
-        {
-            if (workType is IPriceChanged _work && _work.Parts == null) return;
-
-            MessageBoxResult response = MessageBox.Show("Удалить эту работу из списка нарезанных деталей?", "Удаление работы",
-                MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-            if (response == MessageBoxResult.No) return;
-
-            switch (workType)
+            if (workType != null && workType is IPriceChanged _work && _work.Parts != null && _work.Parts.Count > 0)
             {
-                case BendControl block:
-                    if (block.Parts != null)
-                        foreach (PartControl p in block.Parts)
-                            foreach (BendControl item in p.UserControls.OfType<BendControl>().ToList())
-                                item.SetBend($"{0}");
-                    break;
-                case WeldControl block:
-                    if (block.Parts != null)
-                        foreach (PartControl p in block.Parts)
-                            foreach (WeldControl item in p.UserControls.OfType<WeldControl>().ToList())
-                                item.SetWeld($"");
-                    break;
-                case PaintControl block:
-                    if (block.Parts != null)
-                        foreach (PartControl p in block.Parts)
-                            foreach (PaintControl item in p.UserControls.OfType<PaintControl>().ToList())
-                                item.SetRal($"");
-                    break;
-                case MillingControl block:
-                    if (block.Parts != null)
-                        foreach (PartControl p in block.Parts)
-                            foreach (MillingControl item in p.UserControls.OfType<MillingControl>().ToList())
-                                item.SetHoles($"{0}");
-                    break;
+                MessageBoxResult response = MessageBox.Show(
+                    "Уверены, что хотите удалить работу?\nВ случае удаления, все блоки этой работы\nбудут удалены из нарезанных деталей",
+                    "Удаление работы", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+
+                if (response == MessageBoxResult.No) return;
+                if (_work.Parts.Count > 0)
+                    foreach (PartControl p in _work.Parts)
+                        foreach (UserControl item in p.UserControls.Where(w => w.GetType() == workType.GetType()).ToList())
+                            p.RemoveControl(item);
             }
+            Remove();
         }
 
         public void Remove()

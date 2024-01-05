@@ -54,6 +54,7 @@ namespace Metal_Code
                 }
             }
         }
+
         public List<PartControl>? Parts { get; set; }
 
         public readonly WorkControl work;

@@ -40,7 +40,7 @@
     </Style>
     <Style x:Key="PartControlStyle" TargetType="TabControl">
         <Setter Property="FontFamily" Value="Century"/>
-        <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}"/>
+        <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}"/>
         <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
     </Style>

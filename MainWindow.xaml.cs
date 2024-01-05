@@ -87,7 +87,7 @@ namespace Metal_Code
             dbWorks.Works.Load();
         }
 
-        private List<double> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25 };
+        private readonly List<double> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25 };
         public Dictionary<string, Dictionary<double, (float, float, float)>> MetalDict = new();
         private void CreateMetalDict()
         {
@@ -510,7 +510,7 @@ namespace Metal_Code
         {
             DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
 
-            int GetBusinessDays(DateTime startD, DateTime endD)
+            static int GetBusinessDays(DateTime startD, DateTime endD)
             {
                 int calcBusinessDays =
                     (int)(1 + ((endD - startD).TotalDays * 5 -
@@ -704,7 +704,7 @@ namespace Metal_Code
             return Encoding.UTF8.GetString(stream.ToArray());       //возвращаем строку преобразованного объекта в массив байтов
         }
 
-        public Product? OpenOfferData(string json)              //метод загрузки расчета из базы данных
+        public static Product? OpenOfferData(string json)              //метод загрузки расчета из базы данных
         {
             byte[] bytes = Encoding.Unicode.GetBytes(json);     //преобразуем строку в массив байтов
 
@@ -978,7 +978,7 @@ namespace Metal_Code
                 worksheet.Cells[row + 5, 2].Value = "";
                 foreach (ExcelRangeBase cell in worksheet.Cells[8, 3, row + 8, 3])
                 {
-                    if (cell.Value != null && $"{cell.Value}".Contains("Л") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Л")) worksheet.Cells[row + 5, 2].Value += "Л - Лазер ";
+                    if (cell.Value != null && $"{cell.Value}".Contains('Л') && !$"{worksheet.Cells[row + 5, 2].Value}".Contains('Л')) worksheet.Cells[row + 5, 2].Value += "Л - Лазер ";
                     if (cell.Value != null && $"{cell.Value}".Contains("Г ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Г ")) worksheet.Cells[row + 5, 2].Value += "Г - Гибка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("С ")) worksheet.Cells[row + 5, 2].Value += "С - Сварка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("О ")) worksheet.Cells[row + 5, 2].Value += "О - Окраска ";
@@ -1141,7 +1141,7 @@ namespace Metal_Code
             Environment.Exit(0);
         }
 
-        private void ThemeChange(string style)
+        private static void ThemeChange(string style)
         {
             // определяем путь к файлу ресурсов
             Uri? uri = new(style + ".xaml", UriKind.Relative);

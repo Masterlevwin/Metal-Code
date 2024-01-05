@@ -6,6 +6,7 @@ using System.IO;
 using System.Runtime.Serialization.Json;
 using Microsoft.Win32;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace Metal_Code
 {
@@ -159,7 +160,7 @@ namespace Metal_Code
                       {
                           if (MainWindow.M.OffersGrid.SelectedItem is Offer offer && offer.Data != null)
                           {
-                              Product = MainWindow.M.OpenOfferData(offer.Data);
+                              Product = MainWindow.OpenOfferData(offer.Data);
                               MainWindow.M.LoadProduct();
                               MainWindow.M.StatusBegin($"Расчет загружен");
                               MainWindow.M.ActiveOffer = offer;
@@ -243,8 +244,8 @@ namespace Metal_Code
 
     public class RelayCommand : ICommand
     {
-        private Action<object?> execute;
-        private Func<object?, bool>? canExecute;
+        private readonly Action<object?> execute;
+        private readonly Func<object?, bool>? canExecute;
 
         public event EventHandler? CanExecuteChanged
         {
@@ -283,8 +284,10 @@ namespace Metal_Code
 
         public bool OpenFileDialog()
         {
-            OpenFileDialog openFileDialog = new();
-            openFileDialog.Filter = "Metal-Code (*.mcm)|*.mcm|All files (*.*)|*.*";
+            OpenFileDialog openFileDialog = new()
+            {
+                Filter = "Metal-Code (*.mcm)|*.mcm|All files (*.*)|*.*"
+            };
             if (openFileDialog.ShowDialog() == true)
             {
                 FilePaths = openFileDialog.FileNames;
@@ -295,8 +298,10 @@ namespace Metal_Code
 
         public bool SaveFileDialog()
         {
-            SaveFileDialog saveFileDialog = new();
-            saveFileDialog.Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*";
+            SaveFileDialog saveFileDialog = new()
+            {
+                Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*"
+            };
             if (saveFileDialog.ShowDialog() == true)
             {
                 FilePaths = saveFileDialog.FileNames;

@@ -71,5 +71,11 @@ namespace Metal_Code
 
             Grid.SetRow(uc, 1);
         }
+
+        public void RemoveControl(UserControl uc)
+        {
+            UserControls.Remove(uc);
+            ControlGrid.Children.Remove(uc);
+        }
     }
 }

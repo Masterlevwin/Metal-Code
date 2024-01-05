@@ -66,6 +66,9 @@ namespace Metal_Code
             {
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
 
+                //PartBtn.Visibility = Visibility.Visible;
+                //PartBtn.Click += (o, e) => { part.RemoveControl(this); };
+
                 foreach (WorkControl w in part.Cut.work.type.WorkControls)
                     if (w.workType is PaintControl) return;
 
@@ -77,21 +80,6 @@ namespace Metal_Code
                     part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
             }
         }
-
-        //private void BtnEnable()
-        //{
-        //    if (owner is WorkControl work && work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
-        //    {
-        //        foreach (WorkControl w in work.type.WorkControls)
-        //            if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
-        //            {
-        //                if (Parts.Count == 0) CreateParts(cut.WindowParts.Parts);
-        //                PartBtn.IsEnabled = true;
-        //                break;
-        //            }
-        //    }
-        //    else PartBtn.IsEnabled = false;
-        //}
 
         private void SetRal(object sender, TextChangedEventArgs e)
         {
@@ -117,7 +105,6 @@ namespace Metal_Code
         {
             if (owner is not WorkControl work) return;
 
-            //BtnEnable();
             float price = 0;
 
             if (Parts != null && Parts.Count > 0)
@@ -168,7 +155,11 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p)       // первый элемент списка {2} - это (MenuItem)PartControl.Controls.Items[2]
                 {
-                    if (Ral == null || Ral == "") return;
+                    if (Ral == null || Ral == "")
+                    {
+                        p.RemoveControl(this);
+                        return;
+                    }
 
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{2}", $"{Ral}", $"{TypeDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + О ")) p.Part.Description += $" + О (цвет - {Ral}) ";
@@ -206,14 +197,5 @@ namespace Metal_Code
                 }
             }
         }
-
-        //private void ViewPartWindow(object sender, RoutedEventArgs e)
-        //{
-        //    if (owner is not WorkControl work || work.type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail || typeDetail.Name != "Лист металла") return;
-
-        //    foreach (WorkControl w in work.type.WorkControls)
-        //        if (w != work && w.workType is CutControl cut && cut.WindowParts != null) cut.WindowParts.ShowDialog();
-        //}
-        //public void CreateParts(List<PartControl> parts) { Parts.AddRange(parts); }     // метод, необходимый для корректной загрузки расчета
     }
 }

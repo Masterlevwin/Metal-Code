@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Controls;
-using System.Windows;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -161,6 +160,9 @@ namespace Metal_Code
             else if (owner is PartControl part)
             {
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+                
+                //PartBtn.Visibility = Visibility.Visible;
+                //PartBtn.Click += (o, e) => { part.RemoveControl(this); };
 
                 foreach (WorkControl w in part.Cut.work.type.WorkControls)
                     if (w.workType is BendControl) return;
@@ -173,21 +175,6 @@ namespace Metal_Code
                     part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
             }
         }
-
-        //private void BtnEnable()
-        //{
-        //    if (owner is WorkControl work && work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name == "Лист металла")
-        //    {
-        //        foreach (WorkControl w in work.type.WorkControls)
-        //            if (w != owner && w.workType is CutControl cut && cut.WindowParts != null)
-        //            {
-        //                if (Parts.Count == 0) CreateParts(cut.WindowParts.Parts);
-        //                PartBtn.IsEnabled = true;
-        //                break;
-        //            }
-        //    }
-        //    else PartBtn.IsEnabled = false;
-        //}
 
         private void SetBend(object sender, TextChangedEventArgs e)
         {
@@ -213,7 +200,6 @@ namespace Metal_Code
         {
             if (owner is not WorkControl work) return;
 
-            //BtnEnable();
             float price = 0;
 
             if (Parts != null && Parts.Count > 0)
@@ -258,9 +244,13 @@ namespace Metal_Code
                     w.propsList.Add($"{Bend}");
                     w.propsList.Add($"{ShelfDrop.SelectedIndex}");
                 }
-                else if (uc is PartControl p)       // первый элемент списка {0} - это (MenuItem)PartControl.Controls.Items[0]
+                else if (uc is PartControl p)
                 {
-                    if (Bend == 0) return;
+                    if (Bend == 0)
+                    {
+                        p.RemoveControl(this);
+                        return;
+                    }
 
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{0}", $"{Bend}", $"{ShelfDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + Г ")) p.Part.Description += " + Г ";
@@ -290,26 +280,5 @@ namespace Metal_Code
                 }
             }
         }
-
-
-        //private void ViewPartWindow(object sender, RoutedEventArgs e)
-        //{
-        //    if (owner is not WorkControl work || work.type.TypeDetailDrop.SelectedItem is not TypeDetail typeDetail || typeDetail.Name != "Лист металла") return;
-            
-        //    foreach (WorkControl w in work.type.WorkControls)
-        //        if ( w != work && w.workType is CutControl cut && cut.WindowParts != null) cut.WindowParts.ShowDialog();
-        //}
-        //public void CreateParts(List<PartControl> parts) { Parts.AddRange(parts); }     // метод, необходимый для корректной загрузки расчета
-
-        //private void ClearBendsFromTab(object sender, RoutedEventArgs e)
-        //{
-        //    if (owner is not WorkControl) return;
-
-        //    MessageBoxResult response = MessageBox.Show("Удалить гибку в деталях?", "Удаление гибки",
-        //                       MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-        //    if (response == MessageBoxResult.No) return;
-
-        //    foreach (PartControl p in Parts) foreach (BendControl bend in p.UserControls.OfType<BendControl>().ToList()) bend.SetBend($"{0}");
-        //}
     }
 }
