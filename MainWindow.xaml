@@ -140,7 +140,7 @@
                 <Image Source="/Images/update.png"/>
             </Button>
             <GroupBox x:Name="PartsBox" Header="Список нарезанных деталей" Grid.Row="1" Margin="20,0,15,50" MinWidth="500" MaxWidth="1280">
-                <TabControl x:Name="PartsTab" Style="{DynamicResource PartControlStyle}"/>
+                <TabControl x:Name="PartsTab" Style="{DynamicResource PartControlStyle}" ToolTip="Область обработки деталей"/>
             </GroupBox>
         </Grid>
     </Grid>

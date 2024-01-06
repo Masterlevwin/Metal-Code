@@ -138,6 +138,11 @@ namespace Metal_Code
                 [100] = 20
             }
         };
+        public Dictionary<string, float> TypeDict = new()
+        {
+            ["одн"] = 1,
+            ["дву"] = 1.7f,
+        };
 
         private readonly UserControl owner;
         public WeldControl(UserControl _control)
@@ -193,11 +198,6 @@ namespace Metal_Code
             OnPriceChanged();
         }
 
-        public Dictionary<string, float> TypeDict = new()
-        {
-            ["дву"] = 1.7f,
-            ["одн"] = 1,
-        };
         private void SetType(object sender, SelectionChangedEventArgs e)
         {
             SetType(TypeDrop.SelectedIndex);
@@ -287,7 +287,6 @@ namespace Metal_Code
                         p.RemoveControl(this);
                         return;
                     }
-                    
 
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{1}", $"{Weld}", $"{TypeDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + С ")) p.Part.Description += " + С ";

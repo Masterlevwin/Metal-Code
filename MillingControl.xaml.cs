@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace Metal_Code
@@ -76,9 +77,9 @@ namespace Metal_Code
         {
             if (sender is TextBox tBox) SetHoles(tBox.Text);
         }
-        public void SetHoles(string _hours)
+        public void SetHoles(string _holes)
         {
-            if (int.TryParse(_hours, out int h)) Holes = h;
+            if (int.TryParse(_holes, out int h)) Holes = h;
             OnPriceChanged();
         }
 
@@ -95,7 +96,12 @@ namespace Metal_Code
                         foreach (MillingControl item in p.UserControls.OfType<MillingControl>())
                             _count += item.Holes * p.Part.Count;
 
-                    work.SetResult((float)Math.Ceiling(_count * _work.Price / 12));
+                    float price = (float)Math.Ceiling(_count * _work.Price / 12);
+
+                    // стоимость данной мех обработки должна быть не ниже минимальной
+                    price = price > 0 && price < _work.Price ? _work.Price : price;
+
+                    work.SetResult(price, false);
                 }
                 else work.SetResult((float)Math.Ceiling(Holes * work.type.Count * _work.Price / 12));
             }

@@ -235,13 +235,16 @@ namespace Metal_Code
 
                 if (i == 0)
                 {
-                    PartsControl = new(this, PartList(table));      // тестируем создание вкладки нарезанных деталей
-                    ItemList(table);
-                    AddPartsTab();                                  // добавляем вкладку в "Список нарезанных деталей"
+                    Parts = PartList(table);            // формируем список PartControl
+                    PartsControl = new(this, Parts);    // создаем форму списка PartControl
+                    ItemList(table);                    // формируем список листов из раскладки
+                    AddPartsTab();                      // добавляем вкладку в "Список нарезанных деталей"
 
-                    work.type.MassCalculate();
-                    if (PartDetails.Count > 0)
-                        foreach (Part part in PartDetails) if (part.Title != null) PartTitleAnalysis(part.Title);       //новая функция! надо тестить!
+                    work.type.MassCalculate();          // обновляем значение массы заготовки
+                    if (Parts.Count > 0)
+                        foreach (PartControl part in Parts)
+                            PartTitleAnalysis(part);    // анализируем наименование каждой детали
+                        
                 }
                 else
                 {   // добавляем типовую деталь
@@ -260,64 +263,45 @@ namespace Metal_Code
                     // заполняем эту резку
                     if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)
                     {
-                        _cut.PartsControl = new(this, _cut.PartList(table));
+                        _cut.Parts = _cut.PartList(table);
+                        _cut.PartsControl = new(this, _cut.Parts);
                         _cut.ItemList(table);
                         _cut.AddPartsTab();
 
-                        if (_cut.PartDetails.Count > 0)
-                            foreach (Part part in _cut.PartDetails) if (part.Title != null) _cut.PartTitleAnalysis(part.Title);       //новая функция! надо тестить!
+                        if (_cut.Parts.Count > 0)
+                            foreach (PartControl part in _cut.Parts)
+                                PartTitleAnalysis(part);
                     }
                 }
             }
         }
 
-        private void PartTitleAnalysis(string partTitle)        //метод анализа имени детали, для автоматического создания блоков работ
+        private void PartTitleAnalysis(PartControl part)        //метод анализа наименования детали, для автоматического создания блоков работ
         {
-                // если в наименовании детали есть скобки...
-            if (partTitle.Length > 0 && partTitle.Contains('(') && partTitle.Contains(')'))
+            // если в наименовании детали есть скобки...
+            if (part.Part.Title != null && part.Part.Title.Length > 0 && part.Part.Title.Contains('(') && part.Part.Title.Contains(')'))
             {
                 // ...получаем массив строк, разделенных пробелами, внутри скобок, и добавляем соответствующие блоки работ
-                string[] nameWorks = GetSubstringByString("(", ")", partTitle).ToLower().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                foreach (string str in nameWorks) AddBlockWork(str);
-            }
-        }
-
-        private void AddBlockWork(string nameWork)          //метод добавления блока работы, определяемого именем детали
-        {     
-            switch (nameWork)
-            {
-                case "гиб":
-                    foreach (WorkControl _work in work.type.WorkControls) if (_work.workType is BendControl) return;
-                    work.type.AddWork();
-                    if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка"))
-                        && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка") is Work b)
-                        work.type.WorkControls[^1].WorkDrop.SelectedItem = b;
-                    PartsControl?.AddBlockControl(0);
-                    break;
-                case "свар":
-                    foreach (WorkControl _work in work.type.WorkControls) if (_work.workType is WeldControl) return;
-                    work.type.AddWork();
-                    if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Сварка"))
-                        && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Сварка") is Work w)
-                        work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
-                    PartsControl?.AddBlockControl(1);
-                    break;
-                case "окр":
-                    foreach (WorkControl _work in work.type.WorkControls) if (_work.workType is PaintControl) return;
-                    work.type.AddWork();
-                    if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска"))
-                        && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска") is Work p)
-                        work.type.WorkControls[^1].WorkDrop.SelectedItem = p;
-                    PartsControl?.AddBlockControl(2);
-                    break;
-                case "рез":
-                    foreach (WorkControl _work in work.type.WorkControls) if (_work.workType is MillingControl) return;
-                    work.type.AddWork();
-                    if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Мех обработка"))
-                        && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Мех обработка") is Work m)
-                        work.type.WorkControls[^1].WorkDrop.SelectedItem = m;
-                    PartsControl?.AddBlockControl(3);
-                    break;
+                string[] nameWorks = GetSubstringByString("(", ")", part.Part.Title).ToLower().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (nameWorks.Length > 0)
+                    foreach (string str in nameWorks)
+                    {
+                        switch (str)
+                        {
+                            case "гиб":
+                                part.AddControl(0);
+                                break;
+                            case "свар":
+                                part.AddControl(1);
+                                break;
+                            case "окр":
+                                part.AddControl(2);
+                                break;
+                            case "рез":
+                                part.AddControl(3);
+                                break;
+                        }
+                    }
             }
         }
 

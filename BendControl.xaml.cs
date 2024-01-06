@@ -3,6 +3,8 @@ using System.Runtime.CompilerServices;
 using System.Windows.Controls;
 using System.Collections.Generic;
 using System.Linq;
+using System;
+using System.Windows;
 
 namespace Metal_Code
 {
@@ -151,7 +153,7 @@ namespace Metal_Code
                 work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
 
                 foreach (WorkControl w in work.type.WorkControls)
-                    if (w.workType != this && w.workType is CutControl cut && cut.PartsControl != null)
+                    if (w.workType is CutControl cut && cut.PartsControl != null)
                     {
                         Parts = new(cut.PartsControl.Parts);
                         break;
@@ -160,7 +162,7 @@ namespace Metal_Code
             else if (owner is PartControl part)
             {
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-                
+
                 //PartBtn.Visibility = Visibility.Visible;
                 //PartBtn.Click += (o, e) => { part.RemoveControl(this); };
 

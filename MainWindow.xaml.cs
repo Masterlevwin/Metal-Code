@@ -782,7 +782,8 @@ namespace Metal_Code
                             _cut.SumProperties(_cut.items);
 
                             _cut.PartDetails = details[i].TypeDetails[j].Works[k].Parts;
-                            _cut.PartsControl = new(_cut, _cut.PartList());
+                            _cut.Parts = _cut.PartList();
+                            _cut.PartsControl = new(_cut, _cut.Parts);
                             _cut.AddPartsTab();
 
                             if (_cut.PartsControl != null && _cut.PartsControl.Parts.Count > 0)

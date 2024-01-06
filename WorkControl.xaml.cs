@@ -71,10 +71,10 @@ namespace Metal_Code
                     "Удаление работы", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
 
                 if (response == MessageBoxResult.No) return;
-                if (_work.Parts.Count > 0)
-                    foreach (PartControl p in _work.Parts)
-                        foreach (UserControl item in p.UserControls.Where(w => w.GetType() == workType.GetType()).ToList())
-                            p.RemoveControl(item);
+
+                foreach (PartControl p in _work.Parts)
+                    foreach (UserControl item in p.UserControls.Where(w => w.GetType() == workType.GetType()).ToList())
+                        p.RemoveControl(item); 
             }
             Remove();
         }
@@ -233,5 +233,6 @@ namespace Metal_Code
     {
         List<PartControl>? Parts { get; set; }
         void OnPriceChanged();
+        void SaveOrLoadProperties(UserControl uc, bool isSaved);
     }
 }

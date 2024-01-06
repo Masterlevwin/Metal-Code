@@ -74,6 +74,7 @@ namespace Metal_Code
 
         public void RemoveControl(UserControl uc)
         {
+            if (uc is IPriceChanged work) PropertiesChanged -= work.SaveOrLoadProperties;
             UserControls.Remove(uc);
             ControlGrid.Children.Remove(uc);
         }
