@@ -39,6 +39,7 @@
                 <MenuItem Header="База материалов" Click="OpenSettings"/>
             </MenuItem>
             <MenuItem Header="О программе">
+                <MenuItem Header="Очень краткое руководство" Click="OpenExample"/>
                 <TextBlock x:Name="Version" Style="{DynamicResource TextBlockStyle}" />
             </MenuItem>
         </Menu>
@@ -115,7 +116,7 @@
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="600,70,0,0" Text="L" VerticalAlignment="Top" Height="14" Width="8"/>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="645,70,0,0" Text="Кол-во" VerticalAlignment="Top" Height="14" Width="39"/>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="700,70,0,0" Text="Материал" VerticalAlignment="Top" Height="14" Width="58"/>
-            <CheckBox Style="{DynamicResource CheckBoxStyle}" HorizontalAlignment="Left" Margin="776,70,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Добавить к расчету стоимость материала ВСЕХ деталей" Height="15" Width="16" Click="SetAllMetal"/>
+            <CheckBox Style="{DynamicResource CheckBoxStyle}" HorizontalAlignment="Left" Margin="776,70,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Добавить к расчету стоимость материала ВСЕХ деталей" Height="15" Width="16" Click="SetAllMetal" IsChecked="True"/>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="810,70,0,0" Text="Стоимость" VerticalAlignment="Top" Height="14" Width="60"/>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="940,70,0,0" Text="Работа" VerticalAlignment="Top" Height="14" Width="39"/>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="1200,70,0,0" Text="Стоимость" VerticalAlignment="Top" Height="14" Width="60"/>

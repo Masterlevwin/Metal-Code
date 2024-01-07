@@ -1,0 +1,18 @@
+﻿<Window x:Class="Metal_Code.ExampleWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Примеры расчетов" Style="{DynamicResource WindowStyle}">
+    <Grid>
+        <TabControl Style="{DynamicResource PartControlStyle}">
+            <TabItem Header="1 пример">
+                <Image Source="/Images/exampe1.png" />
+            </TabItem>
+            <TabItem Header="2 пример">
+                <Image Source="/Images/exampe2.png" />
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

@@ -1201,5 +1201,11 @@ namespace Metal_Code
 
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
         }
+
+        private void OpenExample(object sender, RoutedEventArgs e)
+        {
+            ExampleWindow exampleWindow = new();
+            exampleWindow.Show();
+        }
     }
 }
