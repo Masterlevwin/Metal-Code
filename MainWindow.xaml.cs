@@ -1208,5 +1208,18 @@ namespace Metal_Code
             ExampleWindow exampleWindow = new();
             exampleWindow.Show();
         }
+
+        private void UpdateOffers(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                dbManagers.Managers.Update((Manager)ManagerDrop.SelectedItem);
+                StatusBegin("База обновлена");
+            }
+            catch (Exception ex)
+            {
+                StatusBegin(ex.ToString());
+            }
+        }
     }
 }
