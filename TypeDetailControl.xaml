@@ -11,6 +11,8 @@
             <MenuItem Header="Добавить" Click="AddTypeDetail"></MenuItem>
             <MenuItem Header="Удалить" Click="Remove"></MenuItem>
             <MenuItem Header="Скопировать" Click="CopyTypeDetail"></MenuItem>
+            <Separator/>
+            <MenuItem Header="{Binding Mass}"></MenuItem>
         </ContextMenu>
     </UserControl.ContextMenu>
     <Grid x:Name="TypeDetailGrid">

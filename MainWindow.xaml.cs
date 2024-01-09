@@ -502,7 +502,8 @@ namespace Metal_Code
         private void ClearCalculate()
         {
             SetCount(1);
-            ProductName.Text = Order.Text = Company.Text = DateProduction.Text = Delivery.Text = "";
+            Order.Text = Company.Text = DateProduction.Text = Delivery.Text = "";
+            ProductName.Text = $"Изделие";
             ManagerDrop.SelectedItem = CurrentManager;
         }
 

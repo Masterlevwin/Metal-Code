@@ -7,6 +7,7 @@ using System.Runtime.Serialization.Json;
 using Microsoft.Win32;
 using System.Windows;
 using System.Windows.Controls;
+using System.Linq;
 
 namespace Metal_Code
 {
@@ -165,6 +166,39 @@ namespace Metal_Code
                               MainWindow.M.StatusBegin($"Расчет загружен");
                               MainWindow.M.ActiveOffer = offer;
                           }
+                      }
+                      catch (Exception ex)
+                      {
+                          dialogService.ShowMessage(ex.Message);
+                      }
+                  });
+            }
+        }
+
+        // команда загрузки раскладок Excel
+        private RelayCommand loadExcelCommand;
+        public RelayCommand LoadExcelCommand
+        {
+            get
+            {
+                return loadExcelCommand ??= new RelayCommand(obj =>
+                  {
+                      try
+                      {
+                          MessageBoxResult response = MessageBox.Show(
+                              "Загрузить раскладки?\nЕсли \"Да\", текущий расчет будет очищен!",
+                              "Загрузка раскладок", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+
+                          if (response == MessageBoxResult.No) return;
+
+                          MainWindow.M.NewProject();        // создаем новый расчет
+                          // устанавливаем "Лазерная резка" в работу по умолчанию
+                          if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка"))
+                              && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка") is Work w)
+                              MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+                          // загружаем раскладки, начиная с этой заготовки
+                          if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is CutControl cut)
+                              cut.LoadFiles();
                       }
                       catch (Exception ex)
                       {

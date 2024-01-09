@@ -166,6 +166,10 @@ namespace Metal_Code
 
         private void LoadFiles(object sender, RoutedEventArgs e)
         {
+            LoadFiles();
+        }
+        public void LoadFiles()
+        {
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
             try
@@ -180,6 +184,7 @@ namespace Metal_Code
                 dialogService.ShowMessage(ex.Message);
             }
         }
+
         public void LoadExcel(string[] paths)
         {
             if (PartsControl != null)

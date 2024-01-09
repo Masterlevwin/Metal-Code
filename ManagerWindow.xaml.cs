@@ -76,9 +76,8 @@ namespace Metal_Code
         private void Delete_Click(object sender, RoutedEventArgs e)
         {
             // получаем выделенный объект
-            Manager? manager = typesList.SelectedItem as Manager;
             // если ни одного объекта не выделено, выходим
-            if (manager is null) return;
+            if (typesList.SelectedItem is not Manager manager) return;
             db.Managers.Remove(manager);
             db.SaveChanges();
         }

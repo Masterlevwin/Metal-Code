@@ -29,6 +29,7 @@
     <None Remove="Images\update.jpg" />
     <None Remove="Images\update.png" />
     <None Remove="Images\update2.png" />
+    <None Remove="Images\xlsx_load.png" />
     <None Remove="laser_logo.jpg" />
   </ItemGroup>
 
@@ -69,6 +70,7 @@
     <Resource Include="Images\save3.png" />
     <Resource Include="Images\save4.png" />
     <Resource Include="Images\update.png" />
+    <Resource Include="Images\xlsx_load.png" />
     <Resource Include="laserTheme.xaml" />
     <Resource Include="laser_logo.jpg" />
   </ItemGroup>

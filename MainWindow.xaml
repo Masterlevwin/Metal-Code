@@ -16,6 +16,9 @@
         <KeyBinding Key="D"
               Modifiers="Control" 
               Command="{Binding SaveCommand}"/>
+        <KeyBinding Key="F"
+              Modifiers="Control" 
+              Command="{Binding LoadExcelCommand}"/>
         <KeyBinding Key="F5"
               Command="{Binding UpdateCommand}"/>
     </Window.InputBindings>
@@ -128,14 +131,17 @@
                     <TextBlock x:Name="NotifyText" Style="{DynamicResource TextBlockStyle}" />
                 </StackPanel>
             </StatusBar>
-            <Button Command="{Binding NewProjectCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="400,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0">
+            <Button Command="{Binding NewProjectCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="400,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0" ToolTip="Создать новый расчет">
                 <Image Source="Images/new3.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button Command="{Binding OpenCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0">
+            <Button Command="{Binding OpenCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0" ToolTip="Открыть сохраненный расчет">
                 <Image Source="Images/open4.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button Command="{Binding SaveCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="460,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0">
+            <Button Command="{Binding SaveCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="460,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0" ToolTip="Сохранить расчет">
                 <Image Source="Images/save4.png" MaxWidth="20" MaxHeight="20"/>
+            </Button>
+            <Button Command="{Binding LoadExcelCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="490,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0" ToolTip="Загрузить раскладки">
+                <Image Source="Images/xlsx_load.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
             <Button Command="{Binding UpdateCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,40,160,0" MaxWidth="20" MaxHeight="20" ToolTip="Обновить (F5)" Padding="0,0,0,0" BorderThickness="0,0,0,0">
                 <Image Source="/Images/update.png"/>
