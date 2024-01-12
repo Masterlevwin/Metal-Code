@@ -111,7 +111,7 @@ namespace Metal_Code
             {
                 foreach (PartControl p in Parts)
                     foreach (PaintControl item in p.UserControls.OfType<PaintControl>())
-                        if (item.Ral != null) price += item.Price(p.Part.Mass * p.Part.Count, work);
+                        if (item.Ral != null) price += item.Price(p.Part.Mass, p.Part.Count, work);
 
                 // стоимость данной окраски должна быть не ниже минимальной
                 if (work.WorkDrop.SelectedItem is Work _work) price = price > 0 && price < _work.Price ? _work.Price : price;
@@ -123,22 +123,22 @@ namespace Metal_Code
                 foreach (WorkControl w in work.type.WorkControls)
                     if (w != work && w.workType is PipeControl pipe)
                     {
-                        work.SetResult(Price(pipe.Mold * work.type.Count, work));
+                        work.SetResult(Price(pipe.Mold, work.type.Count, work));
                         return;
                     }
-                work.SetResult(Price(work.type.Mass * work.type.Count, work));
+                work.SetResult(Price(work.type.Mass, work.type.Count, work));
             }
         }
 
-        private float Price(float _count, WorkControl work)
+        private float Price(float _mass, float _count, WorkControl work)
         {
             if (work.type.MetalDrop.SelectedItem is not Metal metal) return 0;
 
             return TypeDrop.SelectedItem switch
             {
-                "м²" => TypeDict[$"{TypeDrop.SelectedItem}"] * _count / work.type.S / metal.Density,
+                "м²" => TypeDict[$"{TypeDrop.SelectedItem}"] * _mass * _count / work.type.S / metal.Density,
                 "шт" => TypeDict[$"{TypeDrop.SelectedItem}"] * _count,
-                "пог" => TypeDict[$"{TypeDrop.SelectedItem}"] * _count,     // здесь нужна формула расчета пог.м
+                "пог" => TypeDict[$"{TypeDrop.SelectedItem}"] * _mass * _count,     // здесь нужна формула расчета пог.м
                 _ => 0,
             };
         }
@@ -169,7 +169,7 @@ namespace Metal_Code
                             foreach (PaintControl item in _p.UserControls.OfType<PaintControl>())
                                 if (item.Ral != null)       // перебираем все используемые блоки окраски
                                 {                           // считаем общую стоимость всей окраски этого листа и кол-во окрашиваемых деталей
-                                    price += item.Price(_p.Part.Mass * _p.Part.Count, p.Cut.work);
+                                    price += item.Price(_p.Part.Mass, _p.Part.Count, p.Cut.work);
                                     count += _p.Part.Count;
                                 }
                     // стоимость всей окраски должна быть не ниже минимальной
@@ -178,7 +178,7 @@ namespace Metal_Code
                         {
                             if (price > 0 && price < _work.Price) p.Part.Price += _work.Price * _w.Ratio / count;  // если расчетная стоимость ниже минимальной,
                                                                             // к цене детали добавляем усредненную часть минималки от общего количества деталей
-                            else p.Part.Price += Price(p.Part.Mass * p.Part.Count, p.Cut.work) * _w.Ratio / p.Part.Count;   // иначе добавляем часть от количества именно этой детали                
+                            else p.Part.Price += Price(p.Part.Mass, p.Part.Count, p.Cut.work) * _w.Ratio / p.Part.Count;   // иначе добавляем часть от количества именно этой детали                
                             break;
                         }
                 }

@@ -296,7 +296,6 @@ namespace Metal_Code
         {
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
 
-            //нужно пересмотреть цены на металлические заготовки, возможно стоит добавить навигационные ссылки на металл в базе
             if (type.Name == "Лист металла" || (type.Name != null && type.Name.Contains("Труба"))) Price = metal.MassPrice;
             else Price = type.Price;
 
@@ -360,8 +359,8 @@ namespace Metal_Code
                         Mass = A * B * S * L * metal.Density / 1000000;
                         break;
                 }
+                MainWindow.M.StatusBegin($"Масса заготовки - {Mass}");
             }
-
             PriceChanged();
         }
 

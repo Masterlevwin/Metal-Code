@@ -219,17 +219,8 @@ namespace Metal_Code
             if (sender is RadioButton radioButton)
             {
                 if (radioButton.Name == "DeliveryRadioButton") HasDelivery = true;
-                else if (radioButton.Name == "PickupRadioButton")
-                {
-                    HasDelivery = false;
-                    Delivery.Text = "";
-                }
+                else if (radioButton.Name == "PickupRadioButton") HasDelivery = false;
             }
-            UpdateResult();
-        }
-        private void SetDelivery(object sender, TextChangedEventArgs e)
-        {
-            if (int.TryParse(Delivery.Text, out _)) TotalResult();
         }
 
         private int count;
@@ -252,6 +243,52 @@ namespace Metal_Code
             if (Count > 0) TotalResult();
         }
 
+        private float delivery;
+        public float Delivery
+        {
+            get => delivery;
+            set
+            {
+                if (value != delivery)
+                {
+                    delivery = value;
+                    OnPropertyChanged(nameof(Delivery));
+                }
+            }
+        }
+        private void SetDelivery(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) if (float.TryParse(tBox.Text, out float d)) SetDelivery(d);
+        }
+        public void SetDelivery(float _delivery)
+        {
+            Delivery = _delivery;
+            if (Delivery > 0 && DeliveryRatio > 0) TotalResult();
+        }
+
+        private float deliveryRatio;
+        public float DeliveryRatio
+        {
+            get => deliveryRatio;
+            set
+            {
+                if (value != deliveryRatio)
+                {
+                    deliveryRatio = value;
+                    OnPropertyChanged(nameof(DeliveryRatio));
+                }
+            }
+        }
+        private void SetDeliveryRatio(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) if (float.TryParse(tBox.Text, out float r)) SetDeliveryRatio(r);
+        }
+        public void SetDeliveryRatio(float _ratio)
+        {
+            DeliveryRatio = _ratio;
+            if (DeliveryRatio > 0 && Delivery > 0) TotalResult();
+        }
+
         private float paint;
         public float Paint
         {
@@ -264,10 +301,6 @@ namespace Metal_Code
                     OnPropertyChanged(nameof(Paint));
                 }
             }
-        }
-        private void SetPaint(object sender, TextChangedEventArgs e)
-        {
-            if (sender is TextBox tBox) if (float.TryParse(tBox.Text, out float p)) Paint = p;
         }
         public float PaintResult()
         {
@@ -328,7 +361,8 @@ namespace Metal_Code
 
             Result *= Count;
 
-            if (int.TryParse(Delivery.Text, out int del)) Result += del;
+            Result += Delivery * DeliveryRatio;
+
             Result = (float)Math.Round(Result, 2);
 
             ViewDetailsGrid();
@@ -502,7 +536,8 @@ namespace Metal_Code
         private void ClearCalculate()
         {
             SetCount(1);
-            Order.Text = Company.Text = DateProduction.Text = Delivery.Text = "";
+            SetDelivery(1);
+            Order.Text = Company.Text = DateProduction.Text = "";
             ProductName.Text = $"Изделие";
             ManagerDrop.SelectedItem = CurrentManager;
         }
@@ -585,7 +620,7 @@ namespace Metal_Code
                 IsAgent = IsAgent,
                 HasDelivery = HasDelivery
             };
-            if (int.TryParse(Delivery.Text, out int d)) product.Delivery = d;
+            //if (int.TryParse(Delivery.Text, out int d)) product.Delivery = d;
 
             if (CheckPaint.IsChecked != null) product.HasPaint = (bool)CheckPaint.IsChecked;
             if (CheckConstruct.IsChecked != null) product.HasConstruct = (bool)CheckConstruct.IsChecked;
@@ -735,7 +770,7 @@ namespace Metal_Code
             IsLaser = ProductModel.Product.IsLaser;
             IsAgent = ProductModel.Product.IsAgent;
             HasDelivery = ProductModel.Product.HasDelivery;
-            Delivery.Text = $"{ProductModel.Product.Delivery}";
+            //Delivery.Text = $"{ProductModel.Product.Delivery}";
 
             LoadDetails(ProductModel.Product.Details);
             UpdateResult();
@@ -910,11 +945,12 @@ namespace Metal_Code
                 row++;
             }
 
-            if (HasDelivery)        //если требуется доставка
+            if (HasDelivery)                            //если требуется доставка
             {
                 worksheet.Cells[row, 5].Value = "Доставка";
-                worksheet.Cells[row, 6].Value = 1;
-                if (int.TryParse(Delivery.Text, out int d)) worksheet.Cells[row, 7].Value = worksheet.Cells[row, 8].Value = d;
+                worksheet.Cells[row, 6].Value = DeliveryRatio;
+                worksheet.Cells[row, 7].Value = Delivery;
+                worksheet.Cells[row, 8].Value = DeliveryRatio * Delivery;
                 row++;
                 worksheet.Cells[row + 4, 2].Value = "Доставка силами Исполнителя по адресу Заказчика.";
             }
@@ -950,13 +986,16 @@ namespace Metal_Code
             worksheet.Cells[8, 7, row, 8].Style.Numberformat.Format = "#,##0.00";
 
             worksheet.Cells[row + 1, 1].Value = "Материал:";
-            worksheet.Cells[row + 1, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+            worksheet.Cells[row + 1, 1, row + 1, 4].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
             worksheet.Cells[row + 1, 2].Value = DetailControls[0].TypeDetailControls[0].HasMetal ? "Исполнителя" : "Заказчика";
             worksheet.Cells[row + 1, 2].Style.Font.Bold = true;
             worksheet.Cells[row + 1, 2, row + 1, 3].Merge = true;
             if (!DetailControls[0].TypeDetailControls[0].HasMetal)
+            {
                 worksheet.Cells[row + 1, 4].Value = "Внимание: остатки давальческого материала забираются вместе с заказом, иначе эти остатки утилизируются!";
-            worksheet.Cells[row + 1, 4, row + 1, 8].Merge = true;
+                worksheet.Cells[row + 1, 4, row + 1, 8].Merge = true;
+                worksheet.Cells[row + 1, 4].Style.WrapText = true;
+            }
 
             worksheet.Cells[row + 2, 1].Value = "Срок изготовления:";
             worksheet.Cells[row + 2, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
@@ -970,8 +1009,7 @@ namespace Metal_Code
             worksheet.Cells[row + 3, 2, row + 3, 5].Merge = true;
 
             worksheet.Cells[row + 4, 1].Value = "Порядок отгрузки:";
-            worksheet.Cells[row + 4, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
-            worksheet.Cells[row + 4, 2].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+            worksheet.Cells[row + 4, 1, row + 4, 2].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
             worksheet.Cells[row + 4, 2, row + 4, 8].Merge = true;
 
             if (Parts.Count > 0)        //в случае с нарезанными деталями, оформляем расшифровку работ
@@ -1001,6 +1039,7 @@ namespace Metal_Code
             worksheet.Cells.AutoFitColumns();
 
             if (worksheet.Rows[row + 4].Height < 35) worksheet.Rows[row + 4].Height = 35;       //оформляем строку, где указан порядок отгрузки
+            if (!DetailControls[0].TypeDetailControls[0].HasMetal && worksheet.Rows[row + 1].Height < 35) worksheet.Rows[row + 1].Height = 35;    //оформляем строку, где указано предупреждение об остатках материала
             if (worksheet.Columns[5].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указано наименование детали
             worksheet.Cells[8, 1, row, 3].Style.WrapText = true;                                //переносим текст при необходимости
             if (IsLaser) worksheet.DeleteRow(4, 2);                                             //удаляем 4 и 5 строки, необходимые только для Провэлда
