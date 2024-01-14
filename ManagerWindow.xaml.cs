@@ -85,7 +85,6 @@ namespace Metal_Code
         private void FocusMainWindow(object sender, EventArgs e)
         {
             MainWindow.M.IsEnabled = true;
-            MainWindow.M.UpdateDataBases();
         }
     }
 }

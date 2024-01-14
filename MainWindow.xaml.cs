@@ -55,7 +55,6 @@ namespace Metal_Code
             dbTypeDetails.Database.EnsureCreated();
             dbTypeDetails.TypeDetails.Load();
 
-            //dbManagers.Database.EnsureDeleted();
             dbManagers.Database.EnsureCreated();
             dbManagers.Managers.Load();
             dbManagers.Offers.Load();
@@ -79,16 +78,10 @@ namespace Metal_Code
             }
         }
 
-        public void UpdateDataBases()
-        {
-            dbManagers.Managers.Load();
-            dbTypeDetails.TypeDetails.Load();
-            dbMetals.Metals.Load();
-            dbWorks.Works.Load();
-        }
-
         private readonly List<double> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25 };
+        private readonly Dictionary<string, float> TempWorks = new();
         public Dictionary<string, Dictionary<double, (float, float, float)>> MetalDict = new();
+
         private void CreateMetalDict()
         {
             List<Metal> metals = new(dbMetals.Metals.Local.ToList());
@@ -178,7 +171,7 @@ namespace Metal_Code
                 if (radioButton.Name == "AppRadioButton") IsLaser = false;
                 else if (radioButton.Name == "LaserRadioButton") IsLaser = true;
             }
-            if (Count > 0) TotalResult();
+            TotalResult();
         }
 
         private bool isAgent;
@@ -219,7 +212,12 @@ namespace Metal_Code
             if (sender is RadioButton radioButton)
             {
                 if (radioButton.Name == "DeliveryRadioButton") HasDelivery = true;
-                else if (radioButton.Name == "PickupRadioButton") HasDelivery = false;
+                else if (radioButton.Name == "PickupRadioButton")
+                {
+                    SetDelivery(0);
+                    SetDeliveryRatio(1);
+                    HasDelivery = false;
+                } 
             }
         }
 
@@ -230,6 +228,7 @@ namespace Metal_Code
             set
             {
                 count = value;
+                if (count <= 0) count = 1;
                 OnPropertyChanged(nameof(Count));
             }
         }
@@ -240,11 +239,11 @@ namespace Metal_Code
         public void SetCount(int _count)
         {
             Count = _count;
-            if (Count > 0) TotalResult();
+            TotalResult();
         }
 
-        private float delivery;
-        public float Delivery
+        private int delivery;
+        public int Delivery
         {
             get => delivery;
             set
@@ -258,16 +257,16 @@ namespace Metal_Code
         }
         private void SetDelivery(object sender, TextChangedEventArgs e)
         {
-            if (sender is TextBox tBox) if (float.TryParse(tBox.Text, out float d)) SetDelivery(d);
+            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int d)) SetDelivery(d);
         }
-        public void SetDelivery(float _delivery)
+        public void SetDelivery(int _delivery)
         {
             Delivery = _delivery;
-            if (Delivery > 0 && DeliveryRatio > 0) TotalResult();
+            TotalResult();
         }
 
-        private float deliveryRatio;
-        public float DeliveryRatio
+        private int deliveryRatio;
+        public int DeliveryRatio
         {
             get => deliveryRatio;
             set
@@ -275,18 +274,19 @@ namespace Metal_Code
                 if (value != deliveryRatio)
                 {
                     deliveryRatio = value;
+                    if (deliveryRatio <= 0) deliveryRatio = 1;
                     OnPropertyChanged(nameof(DeliveryRatio));
                 }
             }
         }
         private void SetDeliveryRatio(object sender, TextChangedEventArgs e)
         {
-            if (sender is TextBox tBox) if (float.TryParse(tBox.Text, out float r)) SetDeliveryRatio(r);
+            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int r)) SetDeliveryRatio(r);
         }
-        public void SetDeliveryRatio(float _ratio)
+        public void SetDeliveryRatio(int _ratio)
         {
             DeliveryRatio = _ratio;
-            if (DeliveryRatio > 0 && Delivery > 0) TotalResult();
+            TotalResult();
         }
 
         private float paint;
@@ -365,7 +365,7 @@ namespace Metal_Code
 
             Result = (float)Math.Round(Result, 2);
 
-            ViewDetailsGrid();
+            if (Result > 0) ViewDetailsGrid();
         }
 
         private void ViewDetailsGrid()
@@ -449,6 +449,14 @@ namespace Metal_Code
             Status.Background.BeginAnimation(SolidColorBrush.ColorProperty, animation);
         }
 
+        private void SetAllMetal(object sender, RoutedEventArgs e)
+        {
+            if (sender is CheckBox cBox)
+                foreach (DetailControl d in DetailControls)
+                    foreach (TypeDetailControl t in d.TypeDetailControls) t.CheckMetal.IsChecked = cBox.IsChecked;
+            UpdateResult(sender, e);
+        }
+
         public float GetMetalPrice()
         {
             float metalprice = 0;
@@ -474,97 +482,6 @@ namespace Metal_Code
                                     parts.Add(p.Part);
             return parts;
         }
-
-        private void UpdateResult(object sender, TextChangedEventArgs e)
-        {
-            UpdateResult();
-        }
-        private void UpdateResult(object sender, RoutedEventArgs e)
-        {
-            UpdateResult();
-        }
-        public void UpdateResult()         // метод принудительного обновления стоимости
-        {
-            Paint = PaintResult();
-            Construct = ConstructResult();
-
-            foreach (DetailControl d in DetailControls)
-                foreach (TypeDetailControl t in d.TypeDetailControls) t.PriceChanged();
-        }
-
-        private void SetAllMetal(object sender, RoutedEventArgs e)
-        {
-            if (sender is CheckBox cBox)
-                foreach (DetailControl d in DetailControls)
-                    foreach (TypeDetailControl t in d.TypeDetailControls) t.CheckMetal.IsChecked = cBox.IsChecked;
-            UpdateResult(sender, e);
-        }
-
-        public List<DetailControl> DetailControls = new();
-        private void AddDetail(object sender, RoutedEventArgs e)
-        {
-            AddDetail();
-        }
-        public void AddDetail()
-        {
-            DetailControl detail = new(new());
-
-            if (DetailControls.Count > 0)
-                detail.Margin = new Thickness(0,
-                    DetailControls[^1].Margin.Top + 25 * DetailControls[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
-
-            DetailControls.Add(detail);
-            ProductGrid.Children.Add(detail);
-
-            detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
-        }
-
-        public void NewProject()
-        {
-            ClearDetails();     // удаляем все детали
-            ClearCalculate();   // очищаем расчет
-            AddDetail();        // добавляем пустой блок детали
-        }
-        private void ClearDetails(object sender, RoutedEventArgs e)     // метод очищения текущего расчета
-        {
-            NewProject();
-        }
-        private void ClearDetails()         // метод удаления всех деталей и очищения текущего расчета
-        {
-            while (DetailControls.Count > 0) DetailControls[^1].Remove();
-        }
-        private void ClearCalculate()
-        {
-            SetCount(1);
-            SetDelivery(1);
-            Order.Text = Company.Text = DateProduction.Text = "";
-            ProductName.Text = $"Изделие";
-            ManagerDrop.SelectedItem = CurrentManager;
-        }
-
-        private void SetDate(object sender, SelectionChangedEventArgs e)
-        {
-            DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
-
-            static int GetBusinessDays(DateTime startD, DateTime endD)
-            {
-                int calcBusinessDays =
-                    (int)(1 + ((endD - startD).TotalDays * 5 -
-                    (startD.DayOfWeek - endD.DayOfWeek) * 2) / 7);
-
-                if (endD.DayOfWeek == DayOfWeek.Saturday) calcBusinessDays--;
-                if (startD.DayOfWeek == DayOfWeek.Sunday) calcBusinessDays--;
-
-                return calcBusinessDays;
-            }
-        }
-
-        private DateTime? EndDate()
-        {
-            if (int.TryParse(DateProduction.Text, out int d)) return DateTime.Now.AddDays(d);
-            else return null;
-        }
-
         private ObservableCollection<Detail> DetailsSource()
         {
             ObservableCollection<Detail> details = new();
@@ -604,6 +521,87 @@ namespace Metal_Code
             return details;
         }
 
+        private void UpdateResult(object sender, TextChangedEventArgs e)
+        {
+            UpdateResult();
+        }
+        private void UpdateResult(object sender, RoutedEventArgs e)
+        {
+            UpdateResult();
+        }
+        public void UpdateResult()         // метод принудительного обновления стоимости
+        {
+            Paint = PaintResult();
+            Construct = ConstructResult();
+
+            foreach (DetailControl d in DetailControls)
+                foreach (TypeDetailControl t in d.TypeDetailControls) t.PriceChanged();
+        }
+
+        public List<DetailControl> DetailControls = new();
+        private void AddDetail(object sender, RoutedEventArgs e)
+        {
+            AddDetail();
+        }
+        public void AddDetail()
+        {
+            DetailControl detail = new(new());
+
+            if (DetailControls.Count > 0)
+                detail.Margin = new Thickness(0,
+                    DetailControls[^1].Margin.Top + 25 * DetailControls[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
+
+            DetailControls.Add(detail);
+            ProductGrid.Children.Add(detail);
+
+            detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
+        }
+
+        public void NewProject()
+        {
+            ClearDetails();     // удаляем все детали
+            ClearCalculate();   // очищаем расчет
+            AddDetail();        // добавляем пустой блок детали
+        }
+        private void ClearDetails(object sender, RoutedEventArgs e)     // метод очищения текущего расчета
+        {
+            NewProject();
+        }
+        private void ClearDetails()         // метод удаления всех деталей и очищения текущего расчета
+        {
+            while (DetailControls.Count > 0) DetailControls[^1].Remove();
+        }
+        private void ClearCalculate()
+        {
+            SetCount(1);
+            HasDelivery = false;
+            Order.Text = Company.Text = DateProduction.Text = "";
+            ProductName.Text = $"Изделие";
+            ManagerDrop.SelectedItem = CurrentManager;
+        }
+
+        private void SetDate(object sender, SelectionChangedEventArgs e)
+        {
+            DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
+
+            static int GetBusinessDays(DateTime startD, DateTime endD)
+            {
+                int calcBusinessDays =
+                    (int)(1 + ((endD - startD).TotalDays * 5 -
+                    (startD.DayOfWeek - endD.DayOfWeek) * 2) / 7);
+
+                if (endD.DayOfWeek == DayOfWeek.Saturday) calcBusinessDays--;
+                if (startD.DayOfWeek == DayOfWeek.Sunday) calcBusinessDays--;
+
+                return calcBusinessDays;
+            }
+        }
+        private DateTime? EndDate()
+        {
+            if (int.TryParse(DateProduction.Text, out int d)) return DateTime.Now.AddDays(d);
+            else return null;
+        }
+
         public Product SaveProduct()
         {
             Product product = new()
@@ -616,11 +614,12 @@ namespace Metal_Code
                 PaintRatio = PaintRatio.Text,
                 ConstructRatio = ConstructRatio.Text,
                 Count = Count,
+                Delivery = Delivery,
+                DeliveryRatio = DeliveryRatio,
                 IsLaser = IsLaser,
                 IsAgent = IsAgent,
                 HasDelivery = HasDelivery
             };
-            //if (int.TryParse(Delivery.Text, out int d)) product.Delivery = d;
 
             if (CheckPaint.IsChecked != null) product.HasPaint = (bool)CheckPaint.IsChecked;
             if (CheckConstruct.IsChecked != null) product.HasConstruct = (bool)CheckConstruct.IsChecked;
@@ -632,6 +631,8 @@ namespace Metal_Code
         }
         public ObservableCollection<Detail> SaveDetails()
         {
+            if (TempWorks.Count > 0) TempWorks.Clear();
+
             ObservableCollection<Detail> details = new();
             for (int i = 0; i < DetailControls.Count; i++)
             {
@@ -666,6 +667,15 @@ namespace Metal_Code
 
                         if (work.WorkDrop.SelectedItem is Work _work)
                         {
+                            if (_work.Name != null && !TempWorks.ContainsKey(_work.Name))
+                            {
+                                TempWorks[_work.Name] = work.Result;
+                            }
+                            else if(_work.Name != null)
+                            {
+                                TempWorks[_work.Name] += work.Result;
+                            }
+
                             SaveWork _saveWork = new(_work.Name, work.Ratio);
 
                             if (Parts.Count > 0 && work.workType is CutControl _cut)
@@ -675,7 +685,6 @@ namespace Metal_Code
                                     p.Description = "Л";
                                     p.Price = 0;
                                     p.PropsDict.Clear();
-                                    //p.Price += Construct / partsCount;
                                 }
 
                                 if (_cut.PartsControl != null && _cut.PartsControl.Parts.Count > 0)
@@ -706,6 +715,13 @@ namespace Metal_Code
                 }
                 details.Add(_detail);
             }
+
+            if (TempWorks.Count > 0 && Paint > 0)
+            {
+                if (TempWorks.ContainsKey("Окраска")) TempWorks["Окраска"] += Paint;
+                else TempWorks["Окраска"] = Paint;
+            }
+
             return details;
         }
         public void SaveOffer()
@@ -721,17 +737,24 @@ namespace Metal_Code
                         Data = SaveOfferData()      //сериализуем расчет в виде строки json
                     };
 
+                    try
+                    {
                         //затем проверяем новое КП на полное совпадение с базой, чтобы не дублировать
-                    foreach (Offer of in man.Offers) if (of.Data == offer.Data) dbManagers.Offers.Remove(of);
+                        foreach (Offer of in man.Offers) if (of.Data == offer.Data) dbManagers.Offers.Remove(of);
 
-                    man.Offers.Add(offer);
-                    ActiveOffer = offer;
-                    dbManagers.SaveChanges();
+                        man.Offers.Add(offer);
+                        dbManagers.SaveChanges();
+                        ActiveOffer = offer;
+                    }
+                    catch
+                    {
+                        StatusBegin($"Попробуйте сохранить расчет еще раз");
+                    }
                     break;
                 }
         }
 
-        public string SaveOfferData()           //метод сохранения расчета в базе данных
+        public string SaveOfferData()                               //метод сохранения расчета в базе данных
         {
             using MemoryStream stream = new();
             DataContractJsonSerializer serializer = new(typeof(Product));
@@ -740,19 +763,59 @@ namespace Metal_Code
             return Encoding.UTF8.GetString(stream.ToArray());       //возвращаем строку преобразованного объекта в массив байтов
         }
 
-        public static Product? OpenOfferData(string json)              //метод загрузки расчета из базы данных
+        public static Product? OpenOfferData(string json)           //метод загрузки расчета из базы данных
         {
-            byte[] bytes = Encoding.Unicode.GetBytes(json);     //преобразуем строку в массив байтов
+            byte[] bytes = Encoding.Unicode.GetBytes(json);         //преобразуем строку в массив байтов
 
             using MemoryStream stream = new(bytes);
             DataContractJsonSerializer serializer = new(typeof(Product));
 
-            return (Product?)serializer.ReadObject(stream);     //возвращаем десериализованный объект
+            return (Product?)serializer.ReadObject(stream);         //возвращаем десериализованный объект
         }
 
         private void EditOffers(object sender, System.Windows.Input.MouseEventArgs e)       //когда мышь покидает OffersGrid
         {
-            dbManagers.SaveChanges();       //сохраняем изменения в базе данных
+            bool saved = false;
+            while (!saved)
+            {
+                try
+                {
+                    // попытаемся сохранить изменения в базе данных
+                    dbManagers.SaveChanges();       
+                    saved = true;
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin($"Конфликт изменения данных.\nПопробуйте еще раз.");
+
+                    foreach (var entry in ex.Entries)
+                    {
+                        if (entry.Entity is Offer)
+                        {
+                            var proposedValues = entry.CurrentValues;
+                            var databaseValues = entry.GetDatabaseValues();
+
+                            foreach (var property in proposedValues.Properties)
+                            {
+                                var proposedValue = proposedValues[property];
+                                var databaseValue = databaseValues[property];
+
+                                // TODO: decide which value should be written to database
+                                // proposedValues[property] = <value to be saved>;
+                            }
+
+                            // Refresh original values to bypass next concurrency check
+                            entry.OriginalValues.SetValues(databaseValues);
+                        }
+                        else
+                        {
+                            throw new NotSupportedException(
+                                "Don't know how to handle concurrency conflicts for "
+                                + entry.Metadata.Name);
+                        }
+                    }
+                }
+            }
         }
 
         public void LoadProduct()
@@ -767,10 +830,11 @@ namespace Metal_Code
             CheckConstruct.IsChecked = ProductModel.Product.HasConstruct;
             ConstructRatio.Text = ProductModel.Product.ConstructRatio;
             SetCount(ProductModel.Product.Count);
+            SetDeliveryRatio(ProductModel.Product.DeliveryRatio);
+            SetDelivery(ProductModel.Product.Delivery);
             IsLaser = ProductModel.Product.IsLaser;
             IsAgent = ProductModel.Product.IsAgent;
             HasDelivery = ProductModel.Product.HasDelivery;
-            //Delivery.Text = $"{ProductModel.Product.Delivery}";
 
             LoadDetails(ProductModel.Product.Details);
             UpdateResult();
@@ -844,14 +908,14 @@ namespace Metal_Code
             }
         }
 
-        public void ExportToExcel(string path)
+        public void ExportToExcel(string path)      // метод оформления КП в формате excel
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
             using var workbook = new ExcelPackage();
             ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("Лист1");
 
-            worksheet.Drawings.AddPicture("A1", IsLaser ? "laser_logo.jpg" : "app_logo.jpg");  // файлы должны быть в директории bin/Debug...
+            worksheet.Drawings.AddPicture("A1", IsLaser ? "laser_logo.jpg" : "app_logo.jpg");  //файлы должны быть в директории bin/Debug...
 
                 //оформляем первую строку КП, где указываем название нашей компании и ее телефон
             worksheet.Cells["A1"].Value = Boss.Text + Phone.Text;
@@ -1039,7 +1103,8 @@ namespace Metal_Code
             worksheet.Cells.AutoFitColumns();
 
             if (worksheet.Rows[row + 4].Height < 35) worksheet.Rows[row + 4].Height = 35;       //оформляем строку, где указан порядок отгрузки
-            if (!DetailControls[0].TypeDetailControls[0].HasMetal && worksheet.Rows[row + 1].Height < 35) worksheet.Rows[row + 1].Height = 35;    //оформляем строку, где указано предупреждение об остатках материала
+            if (!DetailControls[0].TypeDetailControls[0].HasMetal
+                && worksheet.Rows[row + 1].Height < 35) worksheet.Rows[row + 1].Height = 35;    //оформляем строку, где указано предупреждение об остатках материала
             if (worksheet.Columns[5].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указано наименование детали
             worksheet.Cells[8, 1, row, 3].Style.WrapText = true;                                //переносим текст при необходимости
             if (IsLaser) worksheet.DeleteRow(4, 2);                                             //удаляем 4 и 5 строки, необходимые только для Провэлда
@@ -1056,7 +1121,7 @@ namespace Metal_Code
             CreateScore(worksheet, row - 8, path);      //создаем файл для счета на основе полученного КП
         }
 
-        private void CreateScore(ExcelWorksheet worksheet, int row, string _path)
+        private void CreateScore(ExcelWorksheet worksheet, int row, string _path)       // метод создания файла для счета
         {
             ExcelRange extable = worksheet.Cells[IsLaser ? 6 : 8, 5, IsLaser ? row + 5 : row + 7, 7];
 
@@ -1081,13 +1146,54 @@ namespace Metal_Code
             }
             scoresheet.Names.Add("totalOrder", scoresheet.Cells[2, 6, row + 1, 6]);
             scoresheet.Cells[row + 2, 6].Formula = "=SUM(totalOrder)";
-            scoresheet.Cells[row + 2, 6].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            scoresheet.Cells[row + 2, 6, row + 2, 7].Style.Fill.PatternType = ExcelFillStyle.Solid;
             scoresheet.Cells[row + 2, 6].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Yellow);
+            scoresheet.Cells[row + 2, 7].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Honeydew);
+            scoresheet.Cells[row + 2, 7].Value = $"материал: {Math.Round(GetMetalPrice(), 2)}";
 
-            ExcelRange table = scoresheet.Cells[1, 1, row + 1, 5];
+            ExcelRange details = scoresheet.Cells[1, 1, row + 1, 5];
+            details.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+
+            scoresheet.Cells[2, 8].Value = "ПРОВЭЛД";
+            scoresheet.Cells[2, 8, 2, 9].Merge =true;
+            scoresheet.Cells[2, 10].Value = "ЛАЗЕРФЛЕКС";
+            scoresheet.Cells[2, 10, 2, 11].Merge = true;
+            scoresheet.Cells[3, 8].Value = scoresheet.Cells[3, 10].Value = "Работы";
+            scoresheet.Cells[3, 9].Value = scoresheet.Cells[3, 11].Value = "Стоимость";
+
+            int las = 0, pr = 0;
+            if (TempWorks.Count > 0) foreach (string key in TempWorks.Keys)
+                {
+                    if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез")
+                    {
+                        scoresheet.Cells[4 + las, 10].Value = key;
+                        scoresheet.Cells[4 + las, 11].Value = Math.Round(TempWorks[key], 2);
+                        las++;
+                    }
+                    else
+                    {
+                        scoresheet.Cells[4 + pr, 8].Value = key;
+                        scoresheet.Cells[4 + pr, 9].Value = Math.Round(TempWorks[key], 2);
+                        pr++;
+                    }
+                }
+            int tot = pr >= las ? pr : las;
+            scoresheet.Names.Add("totalProweld", scoresheet.Cells[4, 9, 3 + tot, 9]);
+            scoresheet.Cells[4 + tot, 9].Formula = "=SUM(totalProweld)";
+            scoresheet.Names.Add("totalLaserflex", scoresheet.Cells[4, 11, 3 + tot, 11]);
+            scoresheet.Cells[4 + tot, 11].Formula = "=SUM(totalLaserflex)";
+            scoresheet.Cells[4 + tot, 9].Style.Font.Bold = scoresheet.Cells[4 + tot, 11].Style.Font.Bold = true;
+
+            ExcelRange table = scoresheet.Cells[2, 8, 4 + tot, 11];
             table.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
             table.Style.Border.Right.Style = ExcelBorderStyle.Thin;
             table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+            table.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            scoresheet.Cells[2, 8, 4 + tot, 9].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGoldenrodYellow);
+            scoresheet.Cells[2, 10, 4 + tot, 11].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightCyan);
+
             scoresheet.Cells.AutoFitColumns();
 
             workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Файл для счета " + Order.Text + ".xlsx");

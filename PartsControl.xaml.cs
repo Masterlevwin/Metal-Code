@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 namespace Metal_Code
 {
@@ -17,7 +18,7 @@ namespace Metal_Code
         {
             InitializeComponent();
             Cut = _cut;
-            partsList.ItemsSource = Parts = _parts;
+            partsList.ItemsSource = Parts = _parts.OrderBy(p => p.Part.Title).ToList();
 
             BendControl Bend = new(Cut);
             // формирование списка длин стороны гиба
@@ -104,6 +105,37 @@ namespace Metal_Code
                         break;
                 }
             }
+        }
+
+        private void SortDetails(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn)
+                switch (btn.Content)
+                {
+                    case "И>":
+                        partsList.ItemsSource = Parts.OrderBy(p => p.Part.Title).ToList();
+                        break;
+                    case "Г>":
+                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is BendControl))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is BendControl)))).ToList();
+                        break;
+                    case "С>":
+                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is WeldControl))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is WeldControl)))).ToList();
+                        break;
+                    case "О>":
+                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is PaintControl))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is PaintControl)))).ToList();
+                        break;
+                    case "М>":
+                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is MillingControl))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is MillingControl)))).ToList();
+                        break;
+                }
         }
     }
 }

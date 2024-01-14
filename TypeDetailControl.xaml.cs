@@ -282,7 +282,6 @@ namespace Metal_Code
             (7.5f, 2.5f), (7.5f, 2.5f), (8, 2.7f), (8, 2.7f), (9, 3), (9, 3), (10, 3.3f), (12, 4), (12, 4),
             (14, 4.6f), (14, 4.6f), (16, 5.3f)
         };
-
         private List<float> Channels = new()
         {
             4.84f, 5.9f, 7.05f, 8.59f, 10.4f, 12.3f, 14.2f, 15.3f, 16.3f, 17.4f, 18.4f, 21, 24, 27.7f, 31.8f, 36.5f, 41.9f, 48.3f
@@ -359,7 +358,6 @@ namespace Metal_Code
                         Mass = A * B * S * L * metal.Density / 1000000;
                         break;
                 }
-                MainWindow.M.StatusBegin($"Масса заготовки - {Mass}");
             }
             PriceChanged();
         }

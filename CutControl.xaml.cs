@@ -229,7 +229,6 @@ namespace Metal_Code
             if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged();
 
             if (!MainWindow.M.IsLaser) MainWindow.M.IsLaser = true;
-            if (MainWindow.M.Count == 0) MainWindow.M.SetCount(1);
 
             for (int i = 0; i < paths.Length; i++)
             {

@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Metal_Code
 {
@@ -11,7 +10,7 @@ namespace Metal_Code
     public class Product
     {
         public string? Name, Order, Company, Production, Manager, PaintRatio, ConstructRatio;
-        public int Count, Delivery;
+        public int Count, Delivery, DeliveryRatio;
         public bool IsLaser, IsAgent, HasDelivery, HasPaint, HasConstruct;
         public ObservableCollection<Detail> Details { get; set; } = new();
         public Product()
