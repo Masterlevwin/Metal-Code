@@ -658,8 +658,8 @@ namespace Metal_Code
                         (type.SortDrop.SelectedIndex, type.A, type.B, type.S, type.L));
 
                     //с помощью повторения символа переноса строки визуализируем дерево деталей и работ
-                    if (type.TypeDetailDrop.SelectedItem is TypeDetail _type)
-                        _detail.Metal += $"{_type.Name}" + string.Join("", Enumerable.Repeat('\n', type.WorkControls.Count));
+                    if (type.MetalDrop.SelectedItem is Metal _metal)
+                        _detail.Metal += $"{_metal.Name}" + string.Join("", Enumerable.Repeat('\n', type.WorkControls.Count));
                     _detail.Destiny += $"{type.S}" + string.Join("", Enumerable.Repeat('\n', type.WorkControls.Count));
                     _detail.Accuracy = $"H12/h12 +-IT 12/2";
 

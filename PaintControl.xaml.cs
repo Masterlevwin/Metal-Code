@@ -123,7 +123,6 @@ namespace Metal_Code
                 foreach (WorkControl w in work.type.WorkControls)
                     if (w != work && w.workType is PipeControl pipe)
                     {
-                        SetType(2);
                         work.SetResult(Price(pipe.Mold, work.type.Count, work));
                         return;
                     }
