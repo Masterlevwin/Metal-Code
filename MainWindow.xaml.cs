@@ -73,6 +73,15 @@ namespace Metal_Code
             IsEnabled = false;
             if (loginWindow.ShowDialog() == true)
             {
+                if (CurrentManager.IsEngineer)
+                {
+                    SetManagerWindow setManagerWindow = new();
+                    if (setManagerWindow.ShowDialog() == true)
+                    {
+                        if (ManagerDrop.Items.Contains(setManagerWindow.SelectManager)) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
+                        else ManagerDrop.SelectedIndex = 0;
+                    }
+                }
                 IsEnabled = true;
                 AddDetail();
             }

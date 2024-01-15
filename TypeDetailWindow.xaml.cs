@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace Metal_Code
 {
@@ -24,6 +25,9 @@ namespace Metal_Code
             db.TypeDetails.Load();
             // и устанавливаем данные в качестве контекста
             DataContext = db.TypeDetails.Local.ToObservableCollection();
+
+            if (!MainWindow.M.CurrentManager.IsAdmin) foreach (UIElement element in ButtonsStack.Children)
+                    if (element is Button) element.IsEnabled = false;
         }
 
         // добавление

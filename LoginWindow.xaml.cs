@@ -26,7 +26,7 @@ namespace Metal_Code
                 if (manager.Password == password)
                 {
                     //отключаем настройки баз для всех, кроме админов
-                    if (!manager.IsAdmin) MainWindow.M.Settings.IsEnabled = false;
+                    //if (!manager.IsAdmin) MainWindow.M.Settings.IsEnabled = false;     - теперь отключены кнопки "Добавить, Изменить, Удалить" в окнах баз!
 
                     //определяем текущего менеджера
                     MainWindow.M.CurrentManager = manager;

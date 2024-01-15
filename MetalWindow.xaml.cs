@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace Metal_Code
 {
@@ -32,6 +33,9 @@ namespace Metal_Code
             MetalGrid.Columns[4].Header = "Цена за метр";
             MetalGrid.Columns[5].Header = "Цена за прокол";
             MetalGrid.Columns[6].Header = "Цена за пог метр";
+
+            if (!MainWindow.M.CurrentManager.IsAdmin) foreach (UIElement element in ButtonsStack.Children)
+                    if (element is Button) element.IsEnabled = false;
         }
 
         // добавление

@@ -20,7 +20,7 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
+        <StackPanel x:Name="ButtonsStack" Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
             <Button Style="{DynamicResource ButtonStyle}" Content="Добавить" Margin="10" Click="Add_Click" />
             <Button Style="{DynamicResource ButtonStyle}" Content="Изменить" Margin="10" Click="Edit_Click"  />
             <Button Style="{DynamicResource ButtonStyle}" Content="Удалить" Margin="10" Click="Delete_Click"  />
