@@ -135,10 +135,10 @@ namespace Metal_Code
                       {
                           if (dialogService.OpenFileDialog() == true && dialogService.FilePaths != null)
                           {
+                              //MainWindow.M.ActiveOffer = null;
                               Product = fileService.Open(dialogService.FilePaths[0]);
                               MainWindow.M.LoadProduct();
                               MainWindow.M.StatusBegin($"Расчет открыт");
-                              MainWindow.M.ActiveOffer = null;
                           }
                       }
                       catch (Exception ex)
@@ -149,7 +149,7 @@ namespace Metal_Code
             }
         }
 
-        // команда загрузки сохранения
+        // команда загрузки расчета
         private RelayCommand openOfferCommand;
         public RelayCommand OpenOfferCommand
         {
@@ -161,10 +161,10 @@ namespace Metal_Code
                       {
                           if (MainWindow.M.OffersGrid.SelectedItem is Offer offer && offer.Data != null)
                           {
+                              //MainWindow.M.ActiveOffer = offer;
                               Product = MainWindow.OpenOfferData(offer.Data);
                               MainWindow.M.LoadProduct();
                               MainWindow.M.StatusBegin($"Расчет загружен");
-                              MainWindow.M.ActiveOffer = offer;
                           }
                       }
                       catch (Exception ex)

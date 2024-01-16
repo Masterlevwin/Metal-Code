@@ -145,7 +145,7 @@ namespace Metal_Code
             {
                 activeOffer = value;
                 OnPropertyChanged(nameof(ActiveOffer));
-                OffersGrid.Items.Refresh();
+                //OffersGrid.Items.Refresh();
             }
         }
 
@@ -752,8 +752,8 @@ namespace Metal_Code
                         foreach (Offer of in man.Offers) if (of.Data == offer.Data) dbManagers.Offers.Remove(of);
 
                         man.Offers.Add(offer);
-                        dbManagers.SaveChanges();
-                        ActiveOffer = offer;
+                        //ActiveOffer = offer;
+                        dbManagers.SaveChanges(); 
                     }
                     catch
                     {
@@ -828,7 +828,9 @@ namespace Metal_Code
         }
 
         public void LoadProduct()
-        {            
+        {
+            if (ProductModel.Product == null) return;
+
             ProductName.Text = ProductModel.Product.Name;
             Order.Text = ProductModel.Product.Order;
             Company.Text = ProductModel.Product.Company;
