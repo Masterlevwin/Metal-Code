@@ -6,7 +6,6 @@ using System.IO;
 using System.Runtime.Serialization.Json;
 using Microsoft.Win32;
 using System.Windows;
-using System.Windows.Controls;
 using System.Linq;
 
 namespace Metal_Code
@@ -138,7 +137,7 @@ namespace Metal_Code
                               //MainWindow.M.ActiveOffer = null;
                               Product = fileService.Open(dialogService.FilePaths[0]);
                               MainWindow.M.LoadProduct();
-                              MainWindow.M.StatusBegin($"Расчет открыт");
+                              MainWindow.M.StatusBegin($"Файл открыт");
                           }
                       }
                       catch (Exception ex)
@@ -247,13 +246,13 @@ namespace Metal_Code
                   {
                       if (MainWindow.M.OffersGrid.SelectedItem is Offer offer)
                           foreach (Manager man in MainWindow.M.dbManagers.Managers.Local.ToObservableCollection())
-                              if (man == MainWindow.M.CurrentManager)
+                              if (man.Offers.Contains(offer))
                               {
                                   man.Offers.Remove(offer);
-                                  MainWindow.M.dbManagers.SaveChanges();
+                                  MainWindow.M.UpdateOffers();
+                                  MainWindow.M.StatusBegin($"Расчет удален из базы");
                                   break;
                               }
-                      MainWindow.M.StatusBegin($"Расчет удален из базы");
                   });
             }
         }

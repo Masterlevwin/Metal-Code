@@ -419,8 +419,8 @@ namespace Metal_Code
             OffersGrid.FrozenColumnCount = 2;
 
             //если список КП принадлежит текущему менеджеру, разрешаем ему удалять эти КП
-            foreach (MenuItem item in OffersGrid.ContextMenu.Items)
-                if (item.Name == "DeleteOffer") item.IsEnabled = CurrentManager == man;
+            //foreach (MenuItem item in OffersGrid.ContextMenu.Items)
+            //    if (item.Name == "DeleteOffer") item.IsEnabled = CurrentManager == man;
         }
 
         private void OffersFormatting(object sender, DataGridRowEventArgs e)    // при загрузке строк (OffersGrid.LoadingRow="OffersFormatting")
@@ -746,19 +746,12 @@ namespace Metal_Code
                         Data = SaveOfferData()      //сериализуем расчет в виде строки json
                     };
 
-                    try
-                    {
                         //затем проверяем новое КП на полное совпадение с базой, чтобы не дублировать
-                        foreach (Offer of in man.Offers) if (of.Data == offer.Data) dbManagers.Offers.Remove(of);
+                    foreach (Offer of in man.Offers) if (of.Data == offer.Data) dbManagers.Offers.Remove(of);
+ 
+                    man.Offers.Add(offer);          //добавляем созданный расчет в базу этого менеджера
+                    UpdateOffers();                 //пытаемся обновить базу
 
-                        man.Offers.Add(offer);
-                        //ActiveOffer = offer;
-                        dbManagers.SaveChanges(); 
-                    }
-                    catch
-                    {
-                        StatusBegin($"Попробуйте сохранить расчет еще раз");
-                    }
                     break;
                 }
         }
@@ -1292,11 +1285,11 @@ namespace Metal_Code
             MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
                                            MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
             if (response == MessageBoxResult.No) e.Cancel = true;
-            else Environment.Exit(0);
+            else if (UpdateOffers()) Environment.Exit(0);
         }
         public void Exit(object sender, RoutedEventArgs e)
         {
-            Environment.Exit(0);
+            if (UpdateOffers()) Environment.Exit(0);
         }
 
         private static void ThemeChange(string style)
@@ -1365,17 +1358,23 @@ namespace Metal_Code
             exampleWindow.Show();
         }
 
-        private void UpdateOffers(object sender, RoutedEventArgs e)
+        public bool UpdateOffers()     //метод сохранения изменений в базе менеджеров с обработкой ошибок
         {
-            try
+            bool saved = false;
+            while (!saved)
             {
-                dbManagers.Managers.Update((Manager)ManagerDrop.SelectedItem);
-                StatusBegin("База обновлена");
+                try
+                {
+                    dbManagers.SaveChanges();
+                    saved = true;
+                    StatusBegin("Изменения в базе сохранены");
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin($"Конфликт изменения данных.\nПопробуйте еще раз.\n{ex}");
+                }
             }
-            catch (Exception ex)
-            {
-                StatusBegin(ex.ToString());
-            }
+            return saved;
         }
     }
 }
