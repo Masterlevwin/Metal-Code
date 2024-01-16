@@ -756,6 +756,43 @@ namespace Metal_Code
                 }
         }
 
+        //public void UpdateOffer(Manager man, Offer offer)
+        //{
+        //    // Загрузить только идентификатор менеджера
+        //    int id = dbManagers.Managers
+        //        .Where(c => c.Id == man.Id)
+        //        .Select(c => c.Id)
+        //        .FirstOrDefault();
+
+        //    Manager customer = new() { Id = id };
+
+        //    // Загрузить идентификатор и значение внешнего ключа
+        //    // для заказа
+        //    var tempOrder = dbManagers.Offers
+        //        .Where(o => o.Id == offer.Id)
+        //        .Select(o => new {
+        //            id = o.Id,
+        //            o.ManagerId
+        //        })
+        //        .FirstOrDefault();
+
+        //    Offer order = new()
+        //    {
+        //        Id = tempOrder.id,
+        //        ManagerId = tempOrder.ManagerId
+        //    };
+
+        //    // Обновить внешний ключ
+        //    order.ManagerId = customer.Id;
+
+        //    // Прикрепить сущность к контексту и указать, что
+        //    // изменился только внешний ключ
+        //    dbManagers.Offers.Attach(order);
+        //    dbManagers.Entry(order).Property(o => o.ManagerId).IsModified = true;
+
+        //    dbManagers.SaveChanges();
+        //}
+
         public string SaveOfferData()                               //метод сохранения расчета в базе данных
         {
             using MemoryStream stream = new();
