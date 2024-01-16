@@ -1413,5 +1413,10 @@ namespace Metal_Code
             }
             return saved;
         }
+
+        private void UpdateOffers(object sender, RoutedEventArgs e)
+        {
+            UpdateOffers();
+        }
     }
 }

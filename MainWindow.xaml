@@ -101,6 +101,7 @@
                             <ContextMenu>
                                 <MenuItem Header="Загрузить" Command="{Binding OpenOfferCommand}"/>
                                 <MenuItem x:Name="DeleteOffer" Header="Удалить" Command="{Binding RemoveOfferCommand}"/>
+                                <MenuItem Header="Обновить" Click="UpdateOffers"/>
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                     </DataGrid>
