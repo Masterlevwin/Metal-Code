@@ -96,12 +96,12 @@
                     <TextBox x:Name="PaintRatio" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="19" Width="30" Margin="470,113,0,0" TextChanged="UpdateResult"/>
                     <TextBox x:Name="ConstructRatio" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,138,0,0" TextChanged="UpdateResult"/>
                     <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="470,90,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
-                    <DataGrid x:Name="OffersGrid" CanUserReorderColumns="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,190,15,5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False" HeadersVisibility="Column" BorderBrush="Red" EnableRowVirtualization="False">
+                    <DataGrid x:Name="OffersGrid" CanUserReorderColumns="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,190,15,5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False" HeadersVisibility="Column" BorderBrush="Red">
                         <DataGrid.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Загрузить" Command="{Binding OpenOfferCommand}"/>
-                                <MenuItem x:Name="DeleteOffer" Header="Удалить" Command="{Binding RemoveOfferCommand}"/>
-                                <MenuItem Header="Обновить" Click="UpdateOffers"/>
+                                <MenuItem Header="Удалить" x:Name="DeleteOffer" Command="{Binding RemoveOfferCommand}"/>
+                                <MenuItem Header="Сохранить изменения" Click="UpdateOffer"/>
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                     </DataGrid>

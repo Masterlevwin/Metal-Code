@@ -81,8 +81,8 @@ namespace Metal_Code
                               _path += $" с материалом {MainWindow.M.GetMetalPrice()}";
 
                               fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());     //сохраняем расчет в папке
-                              MainWindow.M.SaveOffer();                                         //сохраняем расчет в базе данных
                               MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);           //формируем КП в формате excel
+                              MainWindow.M.SaveOrRemoveOffer(true);                             //сохраняем расчет в базе данных
                               MainWindow.M.StatusBegin($"Расчет сохранен");
                           }
                       }
@@ -158,7 +158,8 @@ namespace Metal_Code
                   {
                       try
                       {
-                          if (MainWindow.M.OffersGrid.SelectedItem is Offer offer && offer.Data != null)
+                          if (MainWindow.M.OffersGrid.SelectedItem is not Offer offer) return;
+                          if (offer.Data != null)
                           {
                               //MainWindow.M.ActiveOffer = offer;
                               Product = MainWindow.OpenOfferData(offer.Data);
@@ -244,15 +245,23 @@ namespace Metal_Code
             {
                 return removeOfferCommand ??= new RelayCommand(obj =>
                   {
-                      if (MainWindow.M.OffersGrid.SelectedItem is Offer offer)
-                          foreach (Manager man in MainWindow.M.dbManagers.Managers.Local.ToObservableCollection())
-                              if (man.Offers.Contains(offer))
-                              {
-                                  man.Offers.Remove(offer);
-                                  MainWindow.M.UpdateOffers();
-                                  MainWindow.M.StatusBegin($"Расчет удален из базы");
-                                  break;
-                              }
+                      if (MainWindow.M.OffersGrid.SelectedItem is not Offer offer) return;
+
+                      MainWindow.M.SaveOrRemoveOffer(false);
+                      MainWindow.M.StatusBegin($"Расчет удален");
+
+                      //if (MainWindow.M.OffersGrid.SelectedItem is Offer offer)
+                      //    foreach (Manager man in MainWindow.M.dbManagers.Managers.Local.ToObservableCollection())
+                      //        if (man.Offers.Contains(offer))
+                      //        {
+                      //            man.Offers.Remove(offer);
+                      //            if (MainWindow.M.UpdateOffers())
+                      //            {
+                      //                MainWindow.M.OffersGrid.Items.Refresh();     //пытаемся сохранить базу и обновить datagrid
+                      //                MainWindow.M.StatusBegin($"Расчет удален из базы");
+                      //                break;
+                      //            }
+                      //        }
                   });
             }
         }

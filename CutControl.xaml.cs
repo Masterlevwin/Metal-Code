@@ -207,12 +207,10 @@ namespace Metal_Code
                     if (MainWindow.M.dbTypeDetails.TypeDetails.Contains(MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла"))
                         && MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла") is TypeDetail t)
                         MainWindow.M.DetailControls[^1].TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
-
                     // устанавливаем "Лазерная резка"
                     if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка"))
                         && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка") is Work w)
                         MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
-
                     // вызываем загрузку раскладок в новой детали
                     if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)
                     {
@@ -258,12 +256,10 @@ namespace Metal_Code
                     if (MainWindow.M.dbTypeDetails.TypeDetails.Contains(MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла"))
                         && MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла") is TypeDetail t)
                         work.type.det.TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
-                    
                     // устанавливаем "Лазерная резка"
                     if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка"))
                         && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка") is Work w)
                         work.type.det.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
-                    
                     // заполняем эту резку
                     if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)
                     {
@@ -290,11 +286,19 @@ namespace Metal_Code
                 if (nameWorks.Length > 0)
                     foreach (string str in nameWorks)
                     {
-                        switch (str)
+                        if (str.Contains("гиб"))    // в случае с гибкой, дополнительно определяем количество разнотипных гибов
                         {
-                            case "гиб":
-                                part.AddControl(0);
-                                break;
+                            // разделяем строку на новый массив, разделенный символом "г"
+                            string[] bends = str.Split(new[] { 'г' }, StringSplitOptions.RemoveEmptyEntries);
+
+                            // если новый массив содержит больше одного элемента, и этот элемент успешно парсится в число...
+                            if (bends.Length > 1 && int.TryParse(bends[0], out int num))
+                                for (int i = 0; i < num; i++) part.AddControl(0);       // ...добавляем такое число блоков гибки
+                            else part.AddControl(0);                                    // иначе просто добавляем один блок гибки
+                        }
+
+                        switch (str)                // далее проверяем строку на наличие других работ
+                        {
                             case "свар":
                                 part.AddControl(1);
                                 break;

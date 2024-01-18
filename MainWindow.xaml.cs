@@ -32,11 +32,13 @@ namespace Metal_Code
 
         public readonly TypeDetailContext dbTypeDetails = new();
         public readonly WorkContext dbWorks = new();
-        public readonly ManagerContext dbManagers = new();
+        //public readonly ManagerContext dbManagers = new();
         public readonly MetalContext dbMetals = new();
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
 
         public Manager CurrentManager = new();
+        public ObservableCollection<Manager>? Managers { get; set; }
+        public ObservableCollection<Offer>? Offers { get; set; }
 
         public MainWindow()
         {
@@ -49,16 +51,11 @@ namespace Metal_Code
 
         private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна
         {
-            dbWorks.Database.EnsureCreated();
-            dbWorks.Works.Load();
-
             dbTypeDetails.Database.EnsureCreated();
             dbTypeDetails.TypeDetails.Load();
 
-            dbManagers.Database.EnsureCreated();
-            dbManagers.Managers.Load();
-            dbManagers.Offers.Load();
-            ManagerDrop.ItemsSource = dbManagers.Managers.Local.ToObservableCollection().Where(m => !m.IsEngineer);
+            dbWorks.Database.EnsureCreated();
+            dbWorks.Works.Load();
 
             dbMetals.Database.EnsureCreated();
             dbMetals.Metals.Load();
@@ -66,6 +63,26 @@ namespace Metal_Code
 
             ViewLoginWindow();
         }
+
+        //private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна
+        //{
+        //    dbWorks.Database.EnsureCreated();
+        //    dbWorks.Works.Load();
+
+        //    dbTypeDetails.Database.EnsureCreated();
+        //    dbTypeDetails.TypeDetails.Load();
+
+        //    dbManagers.Database.EnsureCreated();
+        //    dbManagers.Managers.Load();
+        //    dbManagers.Offers.Load();
+        //    ManagerDrop.ItemsSource = dbManagers.Managers.Local.ToObservableCollection().Where(m => !m.IsEngineer);
+
+        //    dbMetals.Database.EnsureCreated();
+        //    dbMetals.Metals.Load();
+        //    CreateMetalDict();
+
+        //    ViewLoginWindow();
+        //}
 
         private void ViewLoginWindow()
         {
@@ -402,7 +419,14 @@ namespace Metal_Code
 
         private void ViewOffersGrid(Manager man)
         {
-            OffersGrid.ItemsSource = man.Offers;
+            if (Offers != null && Offers.Count > 0) Offers.Clear();
+
+            using ManagerContext db = new();
+            db.Managers.Load();
+            Manager? _man = db.Managers.Where(m => m.Id == man.Id).FirstOrDefault();
+            db.Offers.Load();
+            if (_man != null) Offers = _man.Offers;
+            OffersGrid.ItemsSource = Offers;//...?
 
             OffersGrid.Columns[0].Header = "N";
             OffersGrid.Columns[1].Header = "Компания";
@@ -733,27 +757,65 @@ namespace Metal_Code
 
             return details;
         }
-        public void SaveOffer()
+
+        //public void SaveOffer()
+        //{
+        //    foreach (Manager man in dbManagers.Managers.Local.ToObservableCollection()) if (man == ManagerDrop.SelectedItem)
+        //        {
+        //                //сначала создаем новое КП
+        //            Offer offer = new(Order.Text, Company.Text, Result, GetMetalPrice(), GetServices())
+        //            {
+        //                EndDate = EndDate(),
+        //                Autor = CurrentManager.Name,
+        //                Manager = man,
+        //                Data = SaveOfferData()      //сериализуем расчет в виде строки json
+        //            };
+
+        //                //затем проверяем новое КП на полное совпадение с базой, чтобы не дублировать
+        //            foreach (Offer of in man.Offers) if (of.Data == offer.Data) dbManagers.Offers.Remove(of);
+ 
+        //            man.Offers.Add(offer);          //добавляем созданный расчет в базу этого менеджера
+        //            if (UpdateOffers()) OffersGrid.Items.Refresh();     //пытаемся сохранить базу и обновить datagrid
+
+        //            break;
+        //        }
+        //}
+
+        public void SaveOrRemoveOffer(bool isSave)
         {
-            foreach (Manager man in dbManagers.Managers.Local.ToObservableCollection()) if (man == ManagerDrop.SelectedItem)
+            using ManagerContext db = new();        //подключаемся к базе данных
+            db.Managers.Load();                     //загружаем менеджеров
+            
+            if (ManagerDrop.SelectedItem is Manager man)                                            //получаем выбранного менеджера
+            {
+                Manager? _man = db.Managers.Where(m => m.Id == man.Id).FirstOrDefault();            //ищем его в базе по Id
+
+                if (isSave)     //если метод запущен с параметром true, то есть в режиме сохранения
                 {
-                        //сначала создаем новое КП
-                    Offer offer = new(Order.Text, Company.Text, Result, GetMetalPrice(), GetServices())
+                                //сначала создаем новое КП
+                    Offer _offer = new(Order.Text, Company.Text, Result, GetMetalPrice(), GetServices())
                     {
                         EndDate = EndDate(),
                         Autor = CurrentManager.Name,
-                        Manager = man,
+                        Manager = _man,
                         Data = SaveOfferData()      //сериализуем расчет в виде строки json
                     };
 
-                        //затем проверяем новое КП на полное совпадение с базой, чтобы не дублировать
-                    foreach (Offer of in man.Offers) if (of.Data == offer.Data) dbManagers.Offers.Remove(of);
- 
-                    man.Offers.Add(offer);          //добавляем созданный расчет в базу этого менеджера
-                    UpdateOffers();                 //пытаемся обновить базу
-
-                    break;
+                    _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
                 }
+                else            //если удаляем расчет
+                {
+                    db.Offers.Load();                               //загружаем базу расчетов
+                    if (OffersGrid.SelectedItem is Offer offer)                                     //получаем выбранный расчет
+                    {
+                        Offer? _offer = db.Offers.Where(o => o.Id == offer.Id).FirstOrDefault();    //ищем этот расчет по Id
+                        if (_offer != null) _man?.Offers.Remove(_offer);                            //если находим, то удаляем его из базы
+                    }
+                }
+
+                db.SaveChanges();           //сохраняем изменения в базе данных
+                ViewOffersGrid(man);        //и обновляем локальные списки менеджеров и расчетов
+            }
         }
 
         //public void UpdateOffer(Manager man, Offer offer)
@@ -812,50 +874,50 @@ namespace Metal_Code
             return (Product?)serializer.ReadObject(stream);         //возвращаем десериализованный объект
         }
 
-        private void EditOffers(object sender, System.Windows.Input.MouseEventArgs e)       //когда мышь покидает OffersGrid
-        {
-            bool saved = false;
-            while (!saved)
-            {
-                try
-                {
-                    // попытаемся сохранить изменения в базе данных
-                    dbManagers.SaveChanges();       
-                    saved = true;
-                }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin($"Конфликт изменения данных.\nПопробуйте еще раз.");
+        //private void EditOffers(object sender, System.Windows.Input.MouseEventArgs e)       //когда мышь покидает OffersGrid
+        //{
+        //    bool saved = false;
+        //    while (!saved)
+        //    {
+        //        try
+        //        {
+        //            // попытаемся сохранить изменения в базе данных
+        //            dbManagers.SaveChanges();       
+        //            saved = true;
+        //        }
+        //        catch (DbUpdateConcurrencyException ex)
+        //        {
+        //            StatusBegin($"Конфликт изменения данных.\nПопробуйте еще раз.");
 
-                    foreach (var entry in ex.Entries)
-                    {
-                        if (entry.Entity is Offer)
-                        {
-                            var proposedValues = entry.CurrentValues;
-                            var databaseValues = entry.GetDatabaseValues();
+        //            foreach (var entry in ex.Entries)
+        //            {
+        //                if (entry.Entity is Offer)
+        //                {
+        //                    var proposedValues = entry.CurrentValues;
+        //                    var databaseValues = entry.GetDatabaseValues();
 
-                            foreach (var property in proposedValues.Properties)
-                            {
-                                var proposedValue = proposedValues[property];
-                                var databaseValue = databaseValues[property];
+        //                    foreach (var property in proposedValues.Properties)
+        //                    {
+        //                        var proposedValue = proposedValues[property];
+        //                        var databaseValue = databaseValues[property];
 
-                                // TODO: decide which value should be written to database
-                                // proposedValues[property] = <value to be saved>;
-                            }
+        //                        // TODO: decide which value should be written to database
+        //                        // proposedValues[property] = <value to be saved>;
+        //                    }
 
-                            // Refresh original values to bypass next concurrency check
-                            entry.OriginalValues.SetValues(databaseValues);
-                        }
-                        else
-                        {
-                            throw new NotSupportedException(
-                                "Don't know how to handle concurrency conflicts for "
-                                + entry.Metadata.Name);
-                        }
-                    }
-                }
-            }
-        }
+        //                    // Refresh original values to bypass next concurrency check
+        //                    entry.OriginalValues.SetValues(databaseValues);
+        //                }
+        //                else
+        //                {
+        //                    throw new NotSupportedException(
+        //                        "Don't know how to handle concurrency conflicts for "
+        //                        + entry.Metadata.Name);
+        //                }
+        //            }
+        //        }
+        //    }
+        //}
 
         public void LoadProduct()
         {
@@ -1237,7 +1299,7 @@ namespace Metal_Code
 
             scoresheet.Cells.AutoFitColumns();
 
-            workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Файл для счета " + Order.Text + ".xlsx");
+            workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Файл для счета " + Order.Text + " на сумму " + $"{Result}" + ".xlsx");
         }
 
         public static DataTable ToDataTable<T>(ObservableCollection<T> items)
@@ -1322,11 +1384,11 @@ namespace Metal_Code
             MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
                                            MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
             if (response == MessageBoxResult.No) e.Cancel = true;
-            else if (UpdateOffers()) Environment.Exit(0);
+            else Environment.Exit(0);//if (UpdateOffers()) 
         }
         public void Exit(object sender, RoutedEventArgs e)
         {
-            if (UpdateOffers()) Environment.Exit(0);
+            Environment.Exit(0);//if (UpdateOffers()) 
         }
 
         private static void ThemeChange(string style)
@@ -1359,7 +1421,7 @@ namespace Metal_Code
                 else if (report == "По расчетам")                                               //...по выполненным расчетам инженера
                 {
                     //создаем новый список КП, которые выполнены определенным инженером или менеджером
-                    _offers = new(dbManagers.Offers.Where(a => a.Autor == CurrentManager.Name));    //придумать возможность выбора инженера!
+                    if (Offers != null) _offers = new(Offers.Where(a => a.Autor == CurrentManager.Name));    //придумать возможность выбора инженера!
                 }
             }
 
@@ -1395,28 +1457,46 @@ namespace Metal_Code
             exampleWindow.Show();
         }
 
-        public bool UpdateOffers()     //метод сохранения изменений в базе менеджеров с обработкой ошибок
+        //public bool UpdateOffers()     //метод сохранения изменений в базе менеджеров с обработкой ошибок
+        //{
+        //    bool saved = false;
+        //    while (!saved)
+        //    {
+        //        try
+        //        {
+        //            using ManagerContext db = new();
+        //            db.SaveChanges();
+        //            saved = true;
+        //            StatusBegin("Изменения в базе сохранены");
+        //        }
+        //        catch (DbUpdateConcurrencyException ex)
+        //        {
+        //            StatusBegin($"Конфликт изменения данных.\nПопробуйте еще раз.\n{ex}");
+        //        }
+        //    }
+        //    return saved;
+        //}
+
+        private void UpdateOffer(object sender, RoutedEventArgs e)
         {
-            bool saved = false;
-            while (!saved)
+            using ManagerContext db = new();        //подключаемся к базе данных
+            db.Offers.Load();                       //загружаем расчеты
+
+            if (OffersGrid.SelectedItem is Offer offer)                                     //получаем выбранный расчет
             {
-                try
+                Offer? _offer = db.Offers.Where(o => o.Id == offer.Id).FirstOrDefault();    //ищем этот расчет по Id
+                if (_offer != null)
                 {
-                    dbManagers.SaveChanges();
-                    saved = true;
+                    _offer.Invoice = offer.Invoice;
+                    db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
+                    _offer.Order = offer.Order;
+                    db.Entry(_offer).Property(o => o.Order).IsModified = true;
+                    _offer.Act = offer.Act;
+                    db.Entry(_offer).Property(o => o.Act).IsModified = true;
+                    db.SaveChanges();
                     StatusBegin("Изменения в базе сохранены");
                 }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin($"Конфликт изменения данных.\nПопробуйте еще раз.\n{ex}");
-                }
             }
-            return saved;
-        }
-
-        private void UpdateOffers(object sender, RoutedEventArgs e)
-        {
-            UpdateOffers();
         }
     }
 }

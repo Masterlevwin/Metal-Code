@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
 using System.Windows;
 
@@ -20,14 +21,17 @@ namespace Metal_Code
             string login = LoginText.Text;
             string password = PasswordText.Password;
 
-            Manager? manager = MainWindow.M.dbManagers.Managers.FirstOrDefault(x => x.Name == login);
+            using ManagerContext db = new();
+            db.Database.EnsureCreated();
+            db.Managers.Load();
+            MainWindow.M.Managers = db.Managers.Local.ToObservableCollection();
+            MainWindow.M.ManagerDrop.ItemsSource = MainWindow.M.Managers.Where(m => !m.IsEngineer);
+
+            Manager? manager = MainWindow.M.Managers.FirstOrDefault(x => x.Name == login);
             if (manager != null)
             {
                 if (manager.Password == password)
                 {
-                    //отключаем настройки баз для всех, кроме админов
-                    //if (!manager.IsAdmin) MainWindow.M.Settings.IsEnabled = false;     - теперь отключены кнопки "Добавить, Изменить, Удалить" в окнах баз!
-
                     //определяем текущего менеджера
                     MainWindow.M.CurrentManager = manager;
 

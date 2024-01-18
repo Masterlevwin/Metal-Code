@@ -301,12 +301,16 @@ namespace Metal_Code
             if (det.Detail.Title == "Комплект деталей" && type.Name == "Лист металла")
             {
                 foreach (UIElement element in TypeDetailGrid.Children)
-                    if (element is not WorkControl && element is not CheckBox && element is not Button) element.IsEnabled = false;
+                    if (element is TextBox) element.IsEnabled = false;
 
                 foreach (WorkControl w in WorkControls)
                     if (w.workType is CutControl cut)
                     {
                         Mass = cut.Mass;
+                        //меняем свойство материала у каждой детали при изменении металла
+                        if (cut.PartsControl != null && cut.PartsControl.Parts.Count > 0)
+                            foreach (PartControl p in cut.PartsControl.Parts)
+                                if (p.Part.Metal != metal.Name) p.Part.Metal = metal.Name;
                         break;
                     }
             }
