@@ -16,6 +16,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using Microsoft.VisualBasic.ApplicationServices;
 
 namespace Metal_Code
 {
@@ -419,32 +420,36 @@ namespace Metal_Code
 
         private void ViewOffersGrid(Manager man)
         {
-            if (Offers != null && Offers.Count > 0) Offers.Clear();
-
             using ManagerContext db = new();
-            db.Managers.Load();
-            Manager? _man = db.Managers.Where(m => m.Id == man.Id).FirstOrDefault();
-            db.Offers.Load();
-            if (_man != null) Offers = _man.Offers;
-            OffersGrid.ItemsSource = Offers;//...?
+            bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
+            if (isAvalaible)
+            {
+                    //при смене менеджера загружаем ТОЛЬКО ЕГО и ЕГО коллекцию расчетов
+                Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
+                if (_man != null)
+                {
+                    Offers = _man.Offers;
+                    OffersGrid.ItemsSource = Offers;
 
-            OffersGrid.Columns[0].Header = "N";
-            OffersGrid.Columns[1].Header = "Компания";
-            OffersGrid.Columns[2].Header = "Итого, руб.";
-            OffersGrid.Columns[3].Header = "Материал, руб.";
-            OffersGrid.Columns[4].Header = "Дата создания";
-            (OffersGrid.Columns[4] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
-            OffersGrid.Columns[5].Header = "Дата отгрузки";
-            (OffersGrid.Columns[5] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
-            OffersGrid.Columns[6].Header = "Счёт";
-            OffersGrid.Columns[7].Header = "Заказ";
-            OffersGrid.Columns[8].Header = "УПД / Акт";
-            OffersGrid.Columns[9].Header = "Автор";
-            OffersGrid.FrozenColumnCount = 2;
+                    OffersGrid.Columns[0].Header = "N";
+                    OffersGrid.Columns[1].Header = "Компания";
+                    OffersGrid.Columns[2].Header = "Итого, руб.";
+                    OffersGrid.Columns[3].Header = "Материал, руб.";
+                    OffersGrid.Columns[4].Header = "Дата создания";
+                    (OffersGrid.Columns[4] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
+                    OffersGrid.Columns[5].Header = "Дата отгрузки";
+                    (OffersGrid.Columns[5] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
+                    OffersGrid.Columns[6].Header = "Счёт";
+                    OffersGrid.Columns[7].Header = "Заказ";
+                    OffersGrid.Columns[8].Header = "УПД / Акт";
+                    OffersGrid.Columns[9].Header = "Автор";
+                    OffersGrid.FrozenColumnCount = 2;
 
-            //если список КП принадлежит текущему менеджеру, разрешаем ему удалять эти КП
-            //foreach (MenuItem item in OffersGrid.ContextMenu.Items)
-            //    if (item.Name == "DeleteOffer") item.IsEnabled = CurrentManager == man;
+                    //если список КП принадлежит текущему менеджеру, разрешаем ему удалять эти КП
+                    //foreach (MenuItem item in OffersGrid.ContextMenu.Items)
+                    //    if (item.Name == "DeleteOffer") item.IsEnabled = CurrentManager == man;
+                }
+            }
         }
 
         private void OffersFormatting(object sender, DataGridRowEventArgs e)    // при загрузке строк (OffersGrid.LoadingRow="OffersFormatting")
@@ -783,13 +788,11 @@ namespace Metal_Code
 
         public void SaveOrRemoveOffer(bool isSave)
         {
-            using ManagerContext db = new();        //подключаемся к базе данных
-            db.Managers.Load();                     //загружаем менеджеров
-            
-            if (ManagerDrop.SelectedItem is Manager man)                                            //получаем выбранного менеджера
+            using ManagerContext db = new();                                        //подключаемся к базе данных
+            bool isAvalaible = db.Database.CanConnect();                            //проверяем, свободна ли база для подключения
+            if (isAvalaible && ManagerDrop.SelectedItem is Manager man)             //если база свободна, получаем выбранного менеджера
             {
                 Manager? _man = db.Managers.Where(m => m.Id == man.Id).FirstOrDefault();            //ищем его в базе по Id
-
                 if (isSave)     //если метод запущен с параметром true, то есть в режиме сохранения
                 {
                                 //сначала создаем новое КП
@@ -800,12 +803,11 @@ namespace Metal_Code
                         Manager = _man,
                         Data = SaveOfferData()      //сериализуем расчет в виде строки json
                     };
-
+                    
                     _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
                 }
-                else            //если удаляем расчет
+                else            //если метод запущен с параметром false, то есть в режиме удаления
                 {
-                    db.Offers.Load();                               //загружаем базу расчетов
                     if (OffersGrid.SelectedItem is Offer offer)                                     //получаем выбранный расчет
                     {
                         Offer? _offer = db.Offers.Where(o => o.Id == offer.Id).FirstOrDefault();    //ищем этот расчет по Id
@@ -1249,10 +1251,8 @@ namespace Metal_Code
             }
             scoresheet.Names.Add("totalOrder", scoresheet.Cells[2, 6, row + 1, 6]);
             scoresheet.Cells[row + 2, 6].Formula = "=SUM(totalOrder)";
-            scoresheet.Cells[row + 2, 6, row + 2, 7].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            scoresheet.Cells[row + 2, 6].Style.Fill.PatternType = ExcelFillStyle.Solid;
             scoresheet.Cells[row + 2, 6].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Yellow);
-            scoresheet.Cells[row + 2, 7].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Honeydew);
-            scoresheet.Cells[row + 2, 7].Value = $"материал: {Math.Round(GetMetalPrice(), 2)}";
 
             ExcelRange details = scoresheet.Cells[1, 1, row + 1, 5];
             details.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
@@ -1283,19 +1283,30 @@ namespace Metal_Code
                     }
                 }
             int tot = pr >= las ? pr : las;
+            ExcelRange table = scoresheet.Cells[2, 8, 4 + tot, 11];
+            table.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            scoresheet.Cells[2, 8, 4 + tot, 9].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGoldenrodYellow);
+            scoresheet.Cells[2, 10, 4 + tot, 11].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightCyan);
             scoresheet.Names.Add("totalProweld", scoresheet.Cells[4, 9, 3 + tot, 9]);
             scoresheet.Cells[4 + tot, 9].Formula = "=SUM(totalProweld)";
             scoresheet.Names.Add("totalLaserflex", scoresheet.Cells[4, 11, 3 + tot, 11]);
             scoresheet.Cells[4 + tot, 11].Formula = "=SUM(totalLaserflex)";
             scoresheet.Cells[4 + tot, 9].Style.Font.Bold = scoresheet.Cells[4 + tot, 11].Style.Font.Bold = true;
 
-            ExcelRange table = scoresheet.Cells[2, 8, 4 + tot, 11];
-            table.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-            table.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            ExcelRange material = scoresheet.Cells[6 + tot, 8, 8 + tot, 9];
+            material.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            material.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Lavender);
+            scoresheet.Cells[6 + tot, 8].Value = "Материал: ";
+            scoresheet.Cells[6 + tot, 9].Value = Math.Round(GetMetalPrice(), 2);
+            scoresheet.Cells[7 + tot, 8].Value = "Логистика: ";
+            scoresheet.Cells[7 + tot, 9].Value = Delivery * DeliveryRatio;
+            scoresheet.Cells[8 + tot, 8].Value = "Конструкторские работы: ";
+            scoresheet.Cells[8 + tot, 9].Value = Construct;
+
+            table.Style.Border.Bottom.Style = material.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            table.Style.Border.Right.Style = material.Style.Border.Right.Style = ExcelBorderStyle.Thin;
             table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
-            table.Style.Fill.PatternType = ExcelFillStyle.Solid;
-            scoresheet.Cells[2, 8, 4 + tot, 9].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGoldenrodYellow);
-            scoresheet.Cells[2, 10, 4 + tot, 11].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightCyan);
+            material.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             scoresheet.Cells.AutoFitColumns();
 
@@ -1479,22 +1490,28 @@ namespace Metal_Code
 
         private void UpdateOffer(object sender, RoutedEventArgs e)
         {
-            using ManagerContext db = new();        //подключаемся к базе данных
-            db.Offers.Load();                       //загружаем расчеты
-
-            if (OffersGrid.SelectedItem is Offer offer)                                     //получаем выбранный расчет
+            using ManagerContext db = new();                                    //подключаемся к базе данных
+            bool isAvalaible = db.Database.CanConnect();                        //проверяем, свободна ли база для подключения
+            if (isAvalaible && OffersGrid.SelectedItem is Offer offer)          //если база свободна, получаем выбранный расчет
             {
-                Offer? _offer = db.Offers.Where(o => o.Id == offer.Id).FirstOrDefault();    //ищем этот расчет по Id
-                if (_offer != null)
+                try
                 {
-                    _offer.Invoice = offer.Invoice;
-                    db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
-                    _offer.Order = offer.Order;
-                    db.Entry(_offer).Property(o => o.Order).IsModified = true;
-                    _offer.Act = offer.Act;
-                    db.Entry(_offer).Property(o => o.Act).IsModified = true;
-                    db.SaveChanges();
-                    StatusBegin("Изменения в базе сохранены");
+                    Offer? _offer = db.Offers.Where(o => o.Id == offer.Id).FirstOrDefault();      //ищем этот расчет по Id
+                    if (_offer != null)
+                    {
+                        _offer.Invoice = offer.Invoice;
+                        db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
+                        _offer.Order = offer.Order;
+                        db.Entry(_offer).Property(o => o.Order).IsModified = true;
+                        _offer.Act = offer.Act;
+                        db.Entry(_offer).Property(o => o.Act).IsModified = true;
+                        db.SaveChanges();
+                        StatusBegin("Изменения в базе сохранены");
+                    }
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin(ex.Message);
                 }
             }
         }

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace Metal_Code
 {
@@ -162,8 +163,12 @@ namespace Metal_Code
 
         public DateTime? CreatedDate { get; set; }
         public DateTime? EndDate { get; set; }
+
+        [ConcurrencyCheck]
         public string? Invoice { get; set; }
+        [ConcurrencyCheck]
         public string? Order { get; set; }
+        [ConcurrencyCheck]
         public string? Act { get; set; }
         public string? Autor { get; set; }
 
