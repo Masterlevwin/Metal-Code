@@ -172,9 +172,14 @@ namespace Metal_Code
                 part.Cut.work.type.AddWork();
 
                 // добавляем "Гибку" в список общих работ "Комплекта деталей"
-                if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка"))
-                    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка") is Work _w)
-                    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
+                foreach (Work w in MainWindow.M.Works) if (w.Name == "Гибка")
+                    {
+                        part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
+                        break;
+                    }
+                //if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка"))
+                //    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Гибка") is Work _w)
+                //    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
             }
         }
 

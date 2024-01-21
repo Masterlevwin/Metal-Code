@@ -182,9 +182,15 @@ namespace Metal_Code
                 part.Cut.work.type.AddWork();
 
                 // добавляем "Сварку" в список общих работ "Комплекта деталей"
-                if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Сварка"))
-                    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Сварка") is Work _w)
-                    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
+                foreach (Work w in MainWindow.M.Works) if (w.Name == "Сварка")
+                    {
+                        part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
+                        break;
+                    }
+
+                //if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Сварка"))
+                //    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Сварка") is Work _w)
+                //    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
             }
         }
 
@@ -250,8 +256,7 @@ namespace Metal_Code
             }
             catch
             {
-                //MessageBox.Show("Исправьте длину свариваемой поверхности \nили поставьте 0", "Ошибка",
-                    //MessageBoxButton.OK, MessageBoxImage.Hand);
+                MainWindow.M.StatusBegin("В поле длины свариваемой поверхности должно быть число или математическое выражение");
             }
             return 0;
         }

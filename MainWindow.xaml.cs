@@ -16,7 +16,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Runtime.Serialization.Json;
 using System.Text;
-using Microsoft.VisualBasic.ApplicationServices;
+using System.Drawing;
 
 namespace Metal_Code
 {
@@ -31,15 +31,18 @@ namespace Metal_Code
         public static MainWindow M = new();
         readonly string version = "2.0.0";
 
-        public readonly TypeDetailContext dbTypeDetails = new();
-        public readonly WorkContext dbWorks = new();
-        //public readonly ManagerContext dbManagers = new();
-        public readonly MetalContext dbMetals = new();
+        //public readonly TypeDetailContext dbTypeDetails = new();
+        //public readonly WorkContext dbWorks = new();
+        ////public readonly ManagerContext dbManagers = new();
+        //public readonly MetalContext dbMetals = new();
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
 
         public Manager CurrentManager = new();
-        public ObservableCollection<Manager>? Managers { get; set; }
-        public ObservableCollection<Offer>? Offers { get; set; }
+        public ObservableCollection<Manager> Managers { get; set; } = new();
+        public ObservableCollection<Offer> Offers { get; set; } = new();
+        public ObservableCollection<TypeDetail> TypeDetails { get; set; } = new();
+        public ObservableCollection<Work> Works { get; set; } = new();
+        public ObservableCollection<Metal> Metals { get; set; } = new();
 
         public MainWindow()
         {
@@ -52,14 +55,20 @@ namespace Metal_Code
 
         private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна
         {
-            dbTypeDetails.Database.EnsureCreated();
-            dbTypeDetails.TypeDetails.Load();
+            using TypeDetailContext dbT = new();
+            dbT.Database.EnsureCreated();
+            dbT.TypeDetails.Load();
+            TypeDetails = dbT.TypeDetails.Local.ToObservableCollection();
 
-            dbWorks.Database.EnsureCreated();
-            dbWorks.Works.Load();
+            using WorkContext dbW = new();
+            dbW.Database.EnsureCreated();
+            dbW.Works.Load();
+            Works = dbW.Works.Local.ToObservableCollection();
 
-            dbMetals.Database.EnsureCreated();
-            dbMetals.Metals.Load();
+            using MetalContext dbM = new();
+            dbM.Database.EnsureCreated();
+            dbM.Metals.Load();
+            Metals = dbM.Metals.Local.ToObservableCollection();
             CreateMetalDict();
 
             ViewLoginWindow();
@@ -111,9 +120,7 @@ namespace Metal_Code
 
         private void CreateMetalDict()
         {
-            List<Metal> metals = new(dbMetals.Metals.Local.ToList());
-
-            foreach (Metal metal in metals)
+            foreach (Metal metal in Metals)
             {
                 if (metal.Name != null && metal.WayPrice != null && metal.PinholePrice != null && metal.MoldPrice != null)
                 {
@@ -338,9 +345,12 @@ namespace Metal_Code
                         foreach (TypeDetailControl t in d.TypeDetailControls)
                             result += 87 * t.L * t.Count / 1000;     // простая формула окраски через пог м типовой детали
 
-                // проверяем наличие работы "Окраска" и добавляем её минималку к расчету, если она есть
-                if (dbWorks.Works.Contains(dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска"))
-                        && dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска") is Work work) result += work.Price;
+                // проверяем наличие работы и добавляем её минималку к расчету
+                foreach (Work w in Works) if (w.Name == "Окраска")
+                    {
+                        result += w.Price;
+                        break;
+                    }
             }
             if (float.TryParse(PaintRatio.Text, out float p)) result *= p;
             return result;
@@ -363,9 +373,12 @@ namespace Metal_Code
         {
             float result = 0;
             if (CheckConstruct.IsChecked != false)
-                // проверяем наличие работы "Конструкторские работы" и добавляем её минималку к расчету
-                if (dbWorks.Works.Contains(dbWorks.Works.FirstOrDefault(n => n.Name == "Конструкторские работы"))
-                    && dbWorks.Works.FirstOrDefault(n => n.Name == "Конструкторские работы") is Work work) result += work.Price;
+                // проверяем наличие работы и добавляем её минималку к расчету
+                foreach (Work w in Works) if (w.Name == "Конструкторские работы")
+                    {
+                        result += w.Price;
+                        break;
+                    }
             if (float.TryParse(ConstructRatio.Text, out float c)) result *= c;
             return result;
         }
@@ -417,7 +430,10 @@ namespace Metal_Code
         {
             if (ManagerDrop.SelectedItem is Manager man) ViewOffersGrid(man);
         }
-
+        private void RefreshOffers(object sender, RoutedEventArgs e)
+        {
+            if (ManagerDrop.SelectedItem is Manager man) ViewOffersGrid(man);
+        }
         private void ViewOffersGrid(Manager man)
         {
             using ManagerContext db = new();
@@ -656,11 +672,10 @@ namespace Metal_Code
                 DeliveryRatio = DeliveryRatio,
                 IsLaser = IsLaser,
                 IsAgent = IsAgent,
-                HasDelivery = HasDelivery
+                HasDelivery = HasDelivery,
+                HasConstruct = CheckConstruct.IsChecked,
+                HasPaint = CheckPaint.IsChecked
             };
-
-            if (CheckPaint.IsChecked != null) product.HasPaint = (bool)CheckPaint.IsChecked;
-            if (CheckConstruct.IsChecked != null) product.HasConstruct = (bool)CheckConstruct.IsChecked;
 
             ProductModel.Product.Details = product.Details = SaveDetails();
             ProductModel.Product = product;
@@ -684,7 +699,7 @@ namespace Metal_Code
                 {
                     TypeDetailControl type = det.TypeDetailControls[j];
                     SaveTypeDetail _typeDetail = new(type.TypeDetailDrop.SelectedIndex, type.Count, type.MetalDrop.SelectedIndex, type.HasMetal,
-                        (type.SortDrop.SelectedIndex, type.A, type.B, type.S, type.L));
+                        (type.SortDrop.SelectedIndex, type.A, type.B, type.S, type.L), type.ExtraResult);
 
                     //с помощью повторения символа переноса строки визуализируем дерево деталей и работ
                     if (type.MetalDrop.SelectedItem is Metal _metal)
@@ -721,8 +736,20 @@ namespace Metal_Code
                                 foreach (Part p in _cut.PartDetails)
                                 {
                                     p.Description = "Л";
-                                    p.Price = 0;
                                     p.PropsDict.Clear();
+                                    //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
+                                    p.Price = CheckConstruct.IsChecked == null ? 0
+                                        : Construct /
+                                        DetailControls.Count /
+                                        DetailControls.SingleOrDefault(d => d.Detail.IsComplect).TypeDetailControls.Count /
+                                        _cut.PartDetails.Sum(p => p.Count);
+                                    //"размазываем" доп работы
+                                    foreach (WorkControl w in work.type.WorkControls)
+                                        if (w.workType is ExtraControl)
+                                        {
+                                            p.Price += w.Result / _cut.PartDetails.Sum(p => p.Count);
+                                            break;
+                                        }
                                 }
 
                                 if (_cut.PartsControl != null && _cut.PartsControl.Parts.Count > 0)
@@ -792,31 +819,38 @@ namespace Metal_Code
             bool isAvalaible = db.Database.CanConnect();                            //проверяем, свободна ли база для подключения
             if (isAvalaible && ManagerDrop.SelectedItem is Manager man)             //если база свободна, получаем выбранного менеджера
             {
-                Manager? _man = db.Managers.Where(m => m.Id == man.Id).FirstOrDefault();            //ищем его в базе по Id
-                if (isSave)     //если метод запущен с параметром true, то есть в режиме сохранения
+                try
                 {
-                                //сначала создаем новое КП
-                    Offer _offer = new(Order.Text, Company.Text, Result, GetMetalPrice(), GetServices())
+                    Manager? _man = db.Managers.FirstOrDefault(m => m.Id == man.Id);            //ищем его в базе по Id
+                    if (isSave)     //если метод запущен с параметром true, то есть в режиме сохранения
                     {
-                        EndDate = EndDate(),
-                        Autor = CurrentManager.Name,
-                        Manager = _man,
-                        Data = SaveOfferData()      //сериализуем расчет в виде строки json
-                    };
-                    
-                    _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
-                }
-                else            //если метод запущен с параметром false, то есть в режиме удаления
-                {
-                    if (OffersGrid.SelectedItem is Offer offer)                                     //получаем выбранный расчет
-                    {
-                        Offer? _offer = db.Offers.Where(o => o.Id == offer.Id).FirstOrDefault();    //ищем этот расчет по Id
-                        if (_offer != null) _man?.Offers.Remove(_offer);                            //если находим, то удаляем его из базы
-                    }
-                }
+                        //сначала создаем новое КП
+                        Offer _offer = new(Order.Text, Company.Text, Result, GetMetalPrice(), GetServices())
+                        {
+                            EndDate = EndDate(),
+                            Autor = CurrentManager.Name,
+                            Manager = _man,
+                            Data = SaveOfferData()      //сериализуем расчет в виде строки json
+                        };
 
-                db.SaveChanges();           //сохраняем изменения в базе данных
-                ViewOffersGrid(man);        //и обновляем локальные списки менеджеров и расчетов
+                        _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
+                    }
+                    else            //если метод запущен с параметром false, то есть в режиме удаления
+                    {
+                        if (OffersGrid.SelectedItem is Offer offer)                             //получаем выбранный расчет
+                        {
+                            Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
+                            if (_offer != null) _man?.Offers.Remove(_offer);                    //если находим, то удаляем его из базы
+                        }
+                    }
+
+                    db.SaveChanges();           //сохраняем изменения в базе данных
+                    ViewOffersGrid(man);        //и обновляем datagrid
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin(ex.Message);
+                }
             }
         }
 
@@ -968,6 +1002,7 @@ namespace Metal_Code
                     _type.B = details[i].TypeDetails[j].Tuple.Item3;
                     _type.S = details[i].TypeDetails[j].Tuple.Item4;
                     _type.L = details[i].TypeDetails[j].Tuple.Item5;
+                    _type.ExtraResult = details[i].TypeDetails[j].ExtraResult;
 
                     for (int k = 0; k < details[i].TypeDetails[j].Works.Count; k++)
                     {
@@ -1065,7 +1100,14 @@ namespace Metal_Code
                 row += partTable.Rows.Count;
             }
 
-                //далее оформляем остальные детали и работы
+            //далее оформляем остальные детали и работы
+            if (CheckConstruct.IsChecked == null)       //проверяем, включена ли опция добавления конструкторских работ отдельной строкой
+                foreach (DetailControl d in DetailControls.Where(d => !d.Detail.IsComplect))
+                {
+                    //в этом случае, пересчитываем цену и стоимость деталей, которые НЕ "Комплект деталей" (их цена и стоимость пересчитываются в блоке SaveDetails())
+                    d.Detail.Price -= Construct / DetailControls.Count;
+                    d.Detail.Total = d.Detail.Price * d.Detail.Count;
+                }     
             DataTable detailTable = ToDataTable(ProductModel.Product.Details);
             worksheet.Cells[row, 1].LoadFromDataTable(detailTable, false);
             row += detailTable.Rows.Count;
@@ -1109,8 +1151,9 @@ namespace Metal_Code
             if (CheckConstruct.IsChecked == null)       //если требуется указать конструкторские работы отдельной строкой
             {
                 worksheet.Cells[row, 5].Value = "Конструкторские работы";
-                worksheet.Cells[row, 6].Value = 1;
-                worksheet.Cells[row, 7].Value = worksheet.Cells[row, 8].Value = Construct;
+                if (float.TryParse(ConstructRatio.Text, out float c)) worksheet.Cells[row, 6].Value = c;
+                worksheet.Cells[row, 7].Value = Construct / c;
+                worksheet.Cells[row, 8].Value = Construct;
                 row++;
             }
 
@@ -1255,9 +1298,6 @@ namespace Metal_Code
             scoresheet.Cells[row + 2, 6].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Yellow);
 
             ExcelRange details = scoresheet.Cells[1, 1, row + 1, 5];
-            details.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-            details.Style.Border.Right.Style = ExcelBorderStyle.Thin;
-            details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             scoresheet.Cells[2, 8].Value = "ПРОВЭЛД";
             scoresheet.Cells[2, 8, 2, 9].Merge =true;
@@ -1296,17 +1336,57 @@ namespace Metal_Code
             ExcelRange material = scoresheet.Cells[6 + tot, 8, 8 + tot, 9];
             material.Style.Fill.PatternType = ExcelFillStyle.Solid;
             material.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Lavender);
-            scoresheet.Cells[6 + tot, 8].Value = "Материал: ";
+            scoresheet.Cells[6 + tot, 8].Value = "Материал:";
             scoresheet.Cells[6 + tot, 9].Value = Math.Round(GetMetalPrice(), 2);
-            scoresheet.Cells[7 + tot, 8].Value = "Логистика: ";
+            scoresheet.Cells[7 + tot, 8].Value = "Доставка:";
             scoresheet.Cells[7 + tot, 9].Value = Delivery * DeliveryRatio;
-            scoresheet.Cells[8 + tot, 8].Value = "Конструкторские работы: ";
+            scoresheet.Cells[8 + tot, 8].Value = "Конструкторские работы:";
             scoresheet.Cells[8 + tot, 9].Value = Construct;
 
-            table.Style.Border.Bottom.Style = material.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-            table.Style.Border.Right.Style = material.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            List<string> _headers = new()
+            {
+                "Номер", "Компания", "Менеджер", "Толщина и марка металла", "Гибка", "Комментарии",
+                "Дата отгрузки", "Стоимость резки", "Стоимость гибки"
+            };
+            for (int col = 0; col < _headers.Count; col++) scoresheet.Cells[10 + tot, col + 8].Value = _headers[col];
+
+            DetailControl? complect = DetailControls.SingleOrDefault(d => d.Detail.IsComplect);
+            if (complect != null)
+                for (int i = 0; i < complect.TypeDetailControls.Count; i++)
+                {
+                    scoresheet.Cells[i + 11 + tot, 11].Value = $"s{complect.TypeDetailControls[i].S} {complect.TypeDetailControls[i].MetalDrop.Text}";
+                    foreach (WorkControl w in complect.TypeDetailControls[i].WorkControls)
+                    {
+                        if (w.workType is CutControl)
+                        {
+                            scoresheet.Cells[i + 11 + tot, 8].Value = Order.Text;
+                            scoresheet.Cells[i + 11 + tot, 9].Value = Company.Text;
+                            scoresheet.Cells[i + 11 + tot, 10].Value = ManagerDrop.Text;
+                            if (HasDelivery) scoresheet.Cells[i + 11 + tot, 13].Value = "доставка";
+                            scoresheet.Cells[i + 11 + tot, 14].Value = EndDate();
+                            scoresheet.Cells[i + 11 + tot, 14].Style.Numberformat.Format = "d.MM.y";
+                            scoresheet.Cells[i + 11 + tot, 15].Value = w.Result;
+                        }
+                        if (w.workType is BendControl)
+                        {
+                            scoresheet.Cells[i + 11 + tot, 12].Value = "гибка";
+                            scoresheet.Cells[i + 11 + tot, 16].Value = w.Result;
+                        }
+                    }
+                }
+
+            ExcelRange registry = scoresheet.Cells[10 + tot, 8, 10 + tot, 16];
+            if (complect != null) registry = scoresheet.Cells[10 + tot, 8, complect.TypeDetailControls.Count + 10 + tot, 16];
+            registry.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            registry.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LavenderBlush);
+
+
+            details.Style.Border.Bottom.Style = table.Style.Border.Bottom.Style = material.Style.Border.Bottom.Style = registry.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.Right.Style = table.Style.Border.Right.Style = material.Style.Border.Right.Style = registry.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             material.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+            registry.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             scoresheet.Cells.AutoFitColumns();
 
@@ -1432,7 +1512,7 @@ namespace Metal_Code
                 else if (report == "По расчетам")                                               //...по выполненным расчетам инженера
                 {
                     //создаем новый список КП, которые выполнены определенным инженером или менеджером
-                    if (Offers != null) _offers = new(Offers.Where(a => a.Autor == CurrentManager.Name));    //придумать возможность выбора инженера!
+                    _offers = new(Offers.Where(a => a.Autor == CurrentManager.Name));           //придумать возможность выбора инженера!
                 }
             }
 
@@ -1475,8 +1555,8 @@ namespace Metal_Code
         //    {
         //        try
         //        {
-        //            using ManagerContext db = new();
-        //            db.SaveChanges();
+        //            using ManagerContext dbT = new();
+        //            dbT.SaveChanges();
         //            saved = true;
         //            StatusBegin("Изменения в базе сохранены");
         //        }
@@ -1496,7 +1576,7 @@ namespace Metal_Code
             {
                 try
                 {
-                    Offer? _offer = db.Offers.Where(o => o.Id == offer.Id).FirstOrDefault();      //ищем этот расчет по Id
+                    Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
                     if (_offer != null)
                     {
                         _offer.Invoice = offer.Invoice;
@@ -1505,7 +1585,8 @@ namespace Metal_Code
                         db.Entry(_offer).Property(o => o.Order).IsModified = true;
                         _offer.Act = offer.Act;
                         db.Entry(_offer).Property(o => o.Act).IsModified = true;
-                        db.SaveChanges();
+
+                        db.SaveChanges();                                               //сохраняем изменения в базе данных
                         StatusBegin("Изменения в базе сохранены");
                     }
                 }

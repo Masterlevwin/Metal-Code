@@ -111,10 +111,11 @@ namespace Metal_Code
             }
 
             // добавляем окраску, если она отмечена галочкой или квадратиком
-            if (MainWindow.M.CheckPaint.IsChecked != false && !Detail.IsComplect) Detail.Price += MainWindow.M.Paint / MainWindow.M.DetailControls.Count(d => !d.Detail.IsComplect);
+            if (MainWindow.M.CheckPaint.IsChecked != false && !Detail.IsComplect)
+                Detail.Price += MainWindow.M.Paint / MainWindow.M.DetailControls.Count(d => !d.Detail.IsComplect);
 
-            // добавляем конструкторские работы, если они отмечены галочкой или квадратиком
-            if (MainWindow.M.CheckConstruct.IsChecked != false && !Detail.IsComplect) Detail.Price += MainWindow.M.Construct / MainWindow.M.DetailControls.Count(d => !d.Detail.IsComplect);
+            // добавляем конструкторские работы
+            Detail.Price += MainWindow.M.Construct / MainWindow.M.DetailControls.Count;
 
             Detail.Total = Detail.Price * Detail.Count;
 

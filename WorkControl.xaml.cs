@@ -52,7 +52,7 @@ namespace Metal_Code
         {
             InitializeComponent();
             type = t;
-            WorkDrop.ItemsSource = MainWindow.M.dbWorks.Works.Local.ToObservableCollection();
+            WorkDrop.ItemsSource = MainWindow.M.Works;
         }
 
         private void AddWork(object sender, RoutedEventArgs e)
@@ -157,12 +157,6 @@ namespace Metal_Code
                     workType = pipe;
                     break;
                 case "Доп работа":
-                    if (type.det.Detail.IsComplect)
-                    {
-                        MainWindow.M.StatusBegin($"Важно: все работы, кроме гибки, сварки, окраски и мех обработки, определенные в \"Комплекте деталей\", учитываться в КП не будут!");
-                        WorkDrop.SelectedIndex = -1;
-                        return;
-                    }
                     ExtraControl extra = new(this);
                     WorkGrid.Children.Add(extra);
                     Grid.SetColumn(extra, 1);

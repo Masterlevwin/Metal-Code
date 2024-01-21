@@ -204,13 +204,25 @@ namespace Metal_Code
                     MainWindow.M.AddDetail();
 
                     // устанавливаем "Лист металла"
-                    if (MainWindow.M.dbTypeDetails.TypeDetails.Contains(MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла"))
-                        && MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла") is TypeDetail t)
-                        MainWindow.M.DetailControls[^1].TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
+                    foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Лист металла")
+                        {
+                            MainWindow.M.DetailControls[^1].TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
+                            break;
+                        }
+                    //if (MainWindow.M.dbTypeDetails.TypeDetails.Contains(MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла"))
+                    //    && MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла") is TypeDetail t)
+                    //    MainWindow.M.DetailControls[^1].TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
+
                     // устанавливаем "Лазерная резка"
-                    if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка"))
-                        && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка") is Work w)
-                        MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+                    foreach (Work w in MainWindow.M.Works) if (w.Name == "Лазерная резка")
+                        {
+                            MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+                            break;
+                        }
+                    //if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка"))
+                    //    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка") is Work w)
+                    //    MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+
                     // вызываем загрузку раскладок в новой детали
                     if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)
                     {
@@ -253,13 +265,25 @@ namespace Metal_Code
                     work.type.det.AddTypeDetail();
 
                     // устанавливаем "Лист металла"
-                    if (MainWindow.M.dbTypeDetails.TypeDetails.Contains(MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла"))
-                        && MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла") is TypeDetail t)
-                        work.type.det.TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
+                    foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Лист металла")
+                        {
+                            work.type.det.TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
+                            break;
+                        }
+                    //if (MainWindow.M.dbTypeDetails.TypeDetails.Contains(MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла"))
+                    //    && MainWindow.M.dbTypeDetails.TypeDetails.FirstOrDefault(n => n.Name == "Лист металла") is TypeDetail t)
+                    //    work.type.det.TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
+
                     // устанавливаем "Лазерная резка"
-                    if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка"))
-                        && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка") is Work w)
-                        work.type.det.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+                    foreach (Work w in MainWindow.M.Works) if (w.Name == "Лазерная резка")
+                        {
+                            work.type.det.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+                            break;
+                        }
+                    //if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка"))
+                    //    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка") is Work w)
+                    //    work.type.det.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+
                     // заполняем эту резку
                     if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)
                     {

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
 using System.Runtime.CompilerServices;
 using System.Windows.Controls;
 
@@ -27,8 +28,8 @@ namespace Metal_Code
             }
         }
 
-        private float price;
-        public float Price
+        private string? price;
+        public string? Price
         {
             get => price;
             set
@@ -61,22 +62,35 @@ namespace Metal_Code
         private void SetName(string _name)
         {
             if (_name != null && _name != "") NameExtra = _name;
-            OnPriceChanged();
+            //OnPriceChanged();
         }
 
         private void SetPrice(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox) SetPrice(tBox.Text);
         }
-        private void SetPrice(string _price)
+        public void SetPrice(string _price)
         {
-            if (float.TryParse(_price, out float p)) Price = p;
+            Price = _price;
             OnPriceChanged();
+        }
+        private float ParserPrice(string _price)
+        {
+            try
+            {
+                object result = new DataTable().Compute(_price, null);
+                if (float.TryParse($"{result}", out float f)) return f;
+            }
+            catch
+            {
+                MainWindow.M.StatusBegin("В поле стоимости доп работы должно быть число или математическое выражение");
+            }
+            return 0;
         }
 
         public void OnPriceChanged()
         {
-            work.SetResult(Price * work.type.Count, false);
+            if (Price != null && Price != "") work.SetResult(ParserPrice(Price) * work.type.Count, false);
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)

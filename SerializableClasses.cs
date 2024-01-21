@@ -12,7 +12,8 @@ namespace Metal_Code
     {
         public string? Name, Order, Company, Production, Manager, PaintRatio, ConstructRatio;
         public int Count, Delivery, DeliveryRatio;
-        public bool IsLaser, IsAgent, HasDelivery, HasPaint, HasConstruct;
+        public bool IsLaser, IsAgent, HasDelivery;
+        public bool? HasConstruct, HasPaint;
         public ObservableCollection<Detail> Details { get; set; } = new();
         public Product()
         {
@@ -81,15 +82,17 @@ namespace Metal_Code
         public int Metal { get; set; }
         public bool HasMetal { get; set; }
         public (int, float, float, float, float) Tuple { get; set; }
+        public float ExtraResult { get; set; }
 
         public List<SaveWork> Works = new();
-        public SaveTypeDetail(int _index = 0, int _count = 0, int _metal = 0, bool _hasMetal = true, (int, float, float, float, float) _tuple = default)
+        public SaveTypeDetail(int _index = 0, int _count = 0, int _metal = 0, bool _hasMetal = true, (int, float, float, float, float) _tuple = default, float _extraResult = 0)
         {
             Index = _index;
             Count = _count;
             Metal = _metal;
             HasMetal = _hasMetal;
             Tuple = _tuple;
+            ExtraResult = _extraResult;
         }
     }
     

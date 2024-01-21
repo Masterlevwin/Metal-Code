@@ -193,9 +193,14 @@ namespace Metal_Code
 
                           MainWindow.M.NewProject();        // создаем новый расчет
                           // устанавливаем "Лазерная резка" в работу по умолчанию
-                          if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка"))
-                              && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка") is Work w)
-                              MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+                          foreach (Work w in MainWindow.M.Works) if (w.Name == "Лазерная резка")
+                              {
+                                  MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+                                  break;
+                              }
+                          //if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка"))
+                          //    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка") is Work w)
+                          //    MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
                           // загружаем раскладки, начиная с этой заготовки
                           if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is CutControl cut)
                               cut.LoadFiles();
@@ -245,23 +250,8 @@ namespace Metal_Code
             {
                 return removeOfferCommand ??= new RelayCommand(obj =>
                   {
-                      if (MainWindow.M.OffersGrid.SelectedItem is not Offer offer) return;
-
                       MainWindow.M.SaveOrRemoveOffer(false);
                       MainWindow.M.StatusBegin($"Расчет удален");
-
-                      //if (MainWindow.M.OffersGrid.SelectedItem is Offer offer)
-                      //    foreach (Manager man in MainWindow.M.dbManagers.Managers.Local.ToObservableCollection())
-                      //        if (man.Offers.Contains(offer))
-                      //        {
-                      //            man.Offers.Remove(offer);
-                      //            if (MainWindow.M.UpdateOffers())
-                      //            {
-                      //                MainWindow.M.OffersGrid.Items.Refresh();     //пытаемся сохранить базу и обновить datagrid
-                      //                MainWindow.M.StatusBegin($"Расчет удален из базы");
-                      //                break;
-                      //            }
-                      //        }
                   });
             }
         }

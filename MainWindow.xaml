@@ -82,6 +82,9 @@
                     <TextBox x:Name="Adress" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Margin="15,110,0,0" VerticalAlignment="Top" Width="275" Height="45" ToolTip="Введите адрес доставки" Text="Адрес доставки:" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}"/>
                     <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="15,160,0,0" Text="Ваш менеджер:" VerticalAlignment="Top"/>
                     <ComboBox x:Name="ManagerDrop" Style="{DynamicResource ComboBoxStyle}" DisplayMemberPath="Name" HorizontalAlignment="Left" Margin="115,160,0,0" VerticalAlignment="Top" Width="175" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged"/>
+                    <Button Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,160,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Обновить список расчетов этого менеджера" Padding="0,0,0,0" BorderThickness="0,0,0,0" Click="RefreshOffers">
+                        <Image Source="/Images/update.png"/>
+                    </Button>
                     <RadioButton x:Name="PickupRadioButton" Content="Самовывоз" HorizontalAlignment="Left" Margin="15,90,0,0" VerticalAlignment="Top" Checked="HasDeliveryChanged" IsChecked="True"/>
                     <RadioButton x:Name="DeliveryRadioButton" Content="Доставка" HorizontalAlignment="Left" Margin="110,90,0,0" VerticalAlignment="Top" Checked="HasDeliveryChanged"/>
                     <TextBox Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Margin="190,88,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите цену доставки" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" TextChanged="SetDelivery" MinWidth="60"/>
@@ -140,13 +143,13 @@
                 <Image Source="Images/open4.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
             <Button Command="{Binding SaveCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="460,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0" ToolTip="Сохранить расчет">
-                <Image Source="Images/save4.png" MaxWidth="20" MaxHeight="20"/>
+                <Image Source="Images/save.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
             <Button Command="{Binding LoadExcelCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="490,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0" ToolTip="Загрузить раскладки">
                 <Image Source="Images/xlsx_load.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
             <Button Command="{Binding UpdateCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,40,160,0" MaxWidth="20" MaxHeight="20" ToolTip="Обновить (F5)" Padding="0,0,0,0" BorderThickness="0,0,0,0">
-                <Image Source="/Images/update.png"/>
+                <Image Source="/Images/update4.png"/>
             </Button>
             <GroupBox x:Name="PartsBox" Header="Список нарезанных деталей" Grid.Row="1" Margin="20,0,15,50" MinWidth="500" MaxWidth="1280">
                 <TabControl x:Name="PartsTab" Style="{DynamicResource PartControlStyle}" ToolTip="Область обработки деталей"/>

@@ -66,18 +66,21 @@ namespace Metal_Code
             {
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
 
-                //PartBtn.Visibility = Visibility.Visible;
-                //PartBtn.Click += (o, e) => { part.RemoveControl(this); };
-
                 foreach (WorkControl w in part.Cut.work.type.WorkControls)
                     if (w.workType is PaintControl) return;
 
                 part.Cut.work.type.AddWork();
 
                 // добавляем "Окраску" в список общих работ "Комплекта деталей"
-                if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска"))
-                    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска") is Work _w)
-                    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
+                foreach (Work w in MainWindow.M.Works) if (w.Name == "Окраска")
+                    {
+                        part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
+                        break;
+                    }
+
+                //if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска"))
+                //    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска") is Work _w)
+                //    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
             }
         }
 

@@ -133,6 +133,17 @@ namespace Metal_Code
             }
         }
 
+        private float extraresult;
+        public float ExtraResult
+        {
+            get { return extraresult; }
+            set
+            {
+                extraresult = value;
+                OnPropertyChanged(nameof(ExtraResult));
+            }
+        }
+
         public readonly DetailControl det;
         public List<WorkControl> WorkControls = new();
 
@@ -140,8 +151,8 @@ namespace Metal_Code
         {
             InitializeComponent();
             det = d;
-            TypeDetailDrop.ItemsSource = MainWindow.M.dbTypeDetails.TypeDetails.Local.ToObservableCollection();
-            MetalDrop.ItemsSource = MainWindow.M.dbMetals.Metals.Local.ToObservableCollection();
+            TypeDetailDrop.ItemsSource = MainWindow.M.TypeDetails;
+            MetalDrop.ItemsSource = MainWindow.M.Metals;
             HasMetal = true;
             CreateSort();
         }
@@ -205,6 +216,16 @@ namespace Metal_Code
         public void SetCount(int _count)
         {
             Count = _count;
+            PriceChanged();
+        }
+
+        private void SetExtraResult(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) if (float.TryParse(tBox.Text, out float extra)) SetExtraResult(extra);
+        }
+        public void SetExtraResult(float extra)
+        {
+            ExtraResult = extra;
             PriceChanged();
         }
 
@@ -287,10 +308,18 @@ namespace Metal_Code
             4.84f, 5.9f, 7.05f, 8.59f, 10.4f, 12.3f, 14.2f, 15.3f, 16.3f, 17.4f, 18.4f, 21, 24, 27.7f, 31.8f, 36.5f, 41.9f, 48.3f
         };
 
+        private void ResultTextEnabled(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            ResultText.IsReadOnly = false;
+        }
+
         private void MassCalculate(object sender, SelectionChangedEventArgs e)
         {
+            ExtraResult = 0;
+            ResultText.IsReadOnly = true;
             MassCalculate();
         }
+
         public void MassCalculate()
         {
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
@@ -301,7 +330,7 @@ namespace Metal_Code
             if (det.Detail.Title == "Комплект деталей" && type.Name == "Лист металла")
             {
                 foreach (UIElement element in TypeDetailGrid.Children)
-                    if (element is TextBox) element.IsEnabled = false;
+                    if (element is TextBox tBox) tBox.IsReadOnly = true;
 
                 foreach (WorkControl w in WorkControls)
                     if (w.workType is CutControl cut)
@@ -310,7 +339,8 @@ namespace Metal_Code
                         //меняем свойство материала у каждой детали при изменении металла
                         if (cut.PartsControl != null && cut.PartsControl.Parts.Count > 0)
                             foreach (PartControl p in cut.PartsControl.Parts)
-                                if (p.Part.Metal != metal.Name) p.Part.Metal = metal.Name;
+                                if (p.Part.Metal != metal.Name)
+                                    p.Part.Metal = metal.Name;
                         break;
                     }
             }
@@ -373,7 +403,10 @@ namespace Metal_Code
 
         public void PriceChanged()
         {
-            Result = HasMetal ? (float)Math.Round((det.Detail.Title == "Комплект деталей" ? 1 : Count) * Price * Mass, 2) : 0;
+            Result = HasMetal ? (float)Math.Round(                          //проверяем наличие материала
+                (det.Detail.Title == "Комплект деталей" ? 1 : Count) *      //проверяем количество заготовок
+                (ExtraResult > 0 ? ExtraResult : Price * Mass)              //проверяем наличие стоимости пользователя
+                , 2) : 0;
 
             Priced?.Invoke();
         }
@@ -388,6 +421,7 @@ namespace Metal_Code
             det.TypeDetailControls[^1].S = S;
             det.TypeDetailControls[^1].L = L;
             det.TypeDetailControls[^1].SetCount(Count);
+            det.TypeDetailControls[^1].SetExtraResult(ExtraResult);
             det.TypeDetailControls[^1].MetalDrop.SelectedIndex = MetalDrop.SelectedIndex;
             det.TypeDetailControls[^1].HasMetal = HasMetal;
             det.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedIndex = WorkControls[0].WorkDrop.SelectedIndex;
