@@ -10,6 +10,9 @@
             <Trigger Property="IsFocused" Value="true">
                 <Setter Property="BorderThickness" Value="2" />
             </Trigger>
+            <Trigger Property="IsMouseOver" Value="true">
+                <Setter Property="Foreground" Value="#FFFF7D00"/>
+            </Trigger>
         </Style.Triggers>
     </Style>
     <Style x:Key="WindowStyle" TargetType="Window">

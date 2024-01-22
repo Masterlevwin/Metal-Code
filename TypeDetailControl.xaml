@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="700" VerticalAlignment="Top" Style="{DynamicResource UserControlStyle}" >
+             d:DesignHeight="20" d:DesignWidth="700" VerticalAlignment="Top" Style="{DynamicResource UserControlStyle}">
     <UserControl.ContextMenu>
         <ContextMenu>
             <MenuItem Header="Добавить" Click="AddTypeDetail"></MenuItem>
@@ -27,7 +27,12 @@
         <TextBox x:Name="L_prop" Style="{DynamicResource TextBoxStyle}" Text="{Binding L, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="40" MinHeight="20" MaxWidth="40" MaxHeight="20" HorizontalContentAlignment="Center" MaxLines="1" ToolTip="Длина, мм" TextChanged="SetProperty" MaxLength="5" VerticalContentAlignment="Center" Margin="390,0,0,0"/>
         <ComboBox x:Name="MetalDrop" Style="{DynamicResource ComboBoxStyle}" DisplayMemberPath="Name" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" MaxHeight="20" MinWidth="80" MaxWidth="80" Height="20" Width="70" SelectedIndex="0" ToolTip="Выберите материал" SelectionChanged="MassCalculate" Margin="490,0,0,0" VerticalContentAlignment="Center"/>
         <CheckBox x:Name="CheckMetal" Style="{DynamicResource CheckBoxStyle}" IsChecked="{Binding HasMetal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}" HorizontalAlignment="Left" VerticalAlignment="Top" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" MinHeight="20" Margin="580,0,0,0" MinWidth="20" Height="20" Width="20" Click="HasMetalChanged" ToolTip="Если не отмечено, материал - давальческий"/>
-        <TextBox x:Name="ResultText" Style="{DynamicResource TextBoxStyle}" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" Text="{Binding Result, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" MaxHeight="20" Margin="610,0,0,0" ToolTip="Стоимость заготовки" MaxWidth="50" MinWidth="50" BorderThickness="0,0,0,0" TextChanged="SetExtraResult" MouseDoubleClick="ResultTextEnabled" IsReadOnly="True"/>
+        <TextBox x:Name="ResultText" Style="{DynamicResource TextBoxStyle}" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" Text="{Binding Result, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" MaxHeight="20" Margin="610,0,0,0" MaxWidth="50" MinWidth="50" BorderThickness="0,0,0,0" TextChanged="SetExtraResult" MouseDoubleClick="ResultTextEnabled" IsReadOnly="True" MouseWheel="ViewPopupMass"/>
+        <Popup x:Name="PopupMass" StaysOpen="False" Placement="Mouse" MaxWidth="120" AllowsTransparency="True" PopupAnimation="Slide">
+            <StackPanel Background="Snow">
+                <TextBlock x:Name="MassPrice" Style="{DynamicResource TextBlockStyle}"/>
+            </StackPanel>
+        </Popup>
         <Button Style="{DynamicResource ButtonStyle}" Content="+" Click="AddTypeDetail" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" MinWidth="10" MinHeight="10" ToolTip="Добавить заготовку" Width="10" Height="10" FontSize="8" Margin="5,10,0,0"/>
         <Button Style="{DynamicResource ButtonStyle}" Content="Х" HorizontalAlignment="Right" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" Padding="0,0,0,0" MaxWidth="10" MaxHeight="10" FontSize="8" BorderThickness="0,0,0,0" Height="10" Width="10" Click="Remove" ToolTip="Удалить заготовку"/>
     </Grid>

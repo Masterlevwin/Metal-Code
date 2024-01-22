@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System;
 using System.Diagnostics;
+using System.Windows.Media;
 
 namespace Metal_Code
 {
@@ -425,6 +426,12 @@ namespace Metal_Code
             det.TypeDetailControls[^1].MetalDrop.SelectedIndex = MetalDrop.SelectedIndex;
             det.TypeDetailControls[^1].HasMetal = HasMetal;
             det.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedIndex = WorkControls[0].WorkDrop.SelectedIndex;
+        }
+
+        private void ViewPopupMass(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        {
+            PopupMass.IsOpen = true;
+            MassPrice.Text = $"Масса заготовки\n{Mass} кг";
         }
     }
 }

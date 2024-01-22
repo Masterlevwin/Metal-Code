@@ -55,7 +55,7 @@
                 <ColumnDefinition Width="Auto" MinWidth="1286"/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
-            <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" MinWidth="500" Margin="20,20,15,15" ToolTip="Рабочая область" MaxHeight="500">
+            <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" MinWidth="500" Margin="20,20,15,15" MaxHeight="500">
                 <ScrollViewer VerticalAlignment="Top" Margin="0,55,0,0" VerticalScrollBarVisibility="Auto">
                     <Grid x:Name="ProductGrid" Margin="10,0,10,0"/>
                 </ScrollViewer>

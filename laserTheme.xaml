@@ -1,13 +1,16 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Style x:Key="TextBlockStyle" TargetType="TextBlock">
-        
+
     </Style>
     <Style x:Key="TextBoxStyle" TargetType="TextBox">
         <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}"/>
         <Style.Triggers>
             <Trigger Property="IsFocused" Value="true">
-                <Setter Property="BorderThickness" Value="2" />
+                <Setter Property="BorderThickness" Value="2"/>
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="true">
+                <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}"/>
             </Trigger>
         </Style.Triggers>
     </Style>
