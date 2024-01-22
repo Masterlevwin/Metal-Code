@@ -11,7 +11,7 @@
                 <Setter Property="BorderThickness" Value="2" />
             </Trigger>
             <Trigger Property="IsMouseOver" Value="true">
-                <Setter Property="Foreground" Value="#FFFF7D00"/>
+                <Setter Property="BorderThickness" Value="2" />
             </Trigger>
         </Style.Triggers>
     </Style>
