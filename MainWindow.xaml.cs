@@ -1531,7 +1531,7 @@ namespace Metal_Code
                 if (report == "По заказам" && ManagerDrop.SelectedItem is Manager man)          //...по оплаченнным заказам менеджера
                 {
                     //создаем новый список КП, которые выложены в работу, т.е. оплачены и имеют номер заказа
-                    _offers = new(man.Offers.Where(o => o.Order is not null and not "").ToList());
+                    _offers = new(Offers.Where(o => o.Order is not null and not "").ToList());
                 }
                 else if (report == "По расчетам")                                               //...по выполненным расчетам инженера
                 {
@@ -1540,30 +1540,75 @@ namespace Metal_Code
                 }
             }
 
-            //конвертируем список в таблицу и переносим в excel
-            DataTable reportTable = ToDataTable(_offers);
-            worksheet.Cells["A1"].LoadFromDataTable(reportTable);
+            List<string> _headers = new() { "дата", "№счета", "проект", "№заказа", "работа", "металл", "Итого" };
+            List<Offer> _agentFalse = new();    //ООО
+            List<Offer> _agentTrue = new();     //ИП и ПК
 
-            //настраиваем отчет согласно принятому ранее порядку отображения столбцов
-            worksheet.DeleteColumn(1, 2);
-            worksheet.DeleteColumn(5, 2);
-            worksheet.DeleteColumn(8, 4);
-            worksheet.InsertColumn(1, 1);
-            worksheet.Cells[1, 6, 100, 6].Copy(worksheet.Cells[1, 1, 100, 1]);
-            worksheet.InsertColumn(3, 3);
-            worksheet.Cells[1, 10, 100, 10].Copy(worksheet.Cells[1, 3, 100, 3]);
-            worksheet.Cells[1, 8, 100, 8].Copy(worksheet.Cells[1, 4, 100, 4]);
-            worksheet.Cells[1, 7, 100, 7].Copy(worksheet.Cells[1, 5, 100, 5]);
-            worksheet.DeleteColumn(7, 5);
-            worksheet.InsertRow(1, 1);
-            worksheet.Cells[1, 1].Value = $"Счет";
-            worksheet.Cells[1, 2].Value = $"Проект";
-            worksheet.Cells[1, 3].Value = $"Заказ";
-            worksheet.Cells[1, 4].Value = $"Работа";
-            worksheet.Cells[1, 5].Value = $"Металл";
-            worksheet.Cells[1, 6].Value = $"Итого";
+            foreach (Offer offer in _offers)
+            {
+                if (ExtractAgent(offer) == "f") _agentFalse.Add(offer);
+                else if (ExtractAgent(offer) == "t") _agentTrue.Add(offer);
+            }
+
+            if (_agentFalse.Count > 0)
+            {
+                worksheet.Cells[1, 1].Value = "ООО";
+                worksheet.Cells[1, 1].Style.Font.Bold = true;
+
+                for (int col = 0; col < _headers.Count; col++) worksheet.Cells[2, col + 1].Value = _headers[col];
+                worksheet.Cells[2, 1, 2, _headers.Count].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                worksheet.Cells[2, 1, 2, _headers.Count].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+
+                for (int f = 0; f < _agentFalse.Count; f++)
+                {
+                    worksheet.Cells[f + 3, 1].Value = _agentFalse[f].CreatedDate;
+                    worksheet.Cells[f + 3, 1].Style.Numberformat.Format = "d MMM";
+                    worksheet.Cells[f + 3, 2].Value = _agentFalse[f].Invoice;
+                    worksheet.Cells[f + 3, 3].Value = _agentFalse[f].Company;
+                    worksheet.Cells[f + 3, 4].Value = _agentFalse[f].Order;
+                    worksheet.Cells[f + 3, 5].Value = _agentFalse[f].Services;
+                    worksheet.Cells[f + 3, 6].Value = _agentFalse[f].Material;
+                    worksheet.Cells[f + 3, 7].Value = _agentFalse[f].Amount;
+                }
+
+                worksheet.Names.Add("totalOOO", worksheet.Cells[3, 7, 3 + _agentFalse.Count, 7]);
+                worksheet.Cells[3 + _agentFalse.Count, 7].Formula = "=SUM(totalOOO)";
+                worksheet.Cells[3 + _agentFalse.Count, 7].Style.Font.Bold = true;
+            }
+
+            if (_agentTrue.Count > 0)
+            {
+                worksheet.Cells[4 + _agentFalse.Count, 1].Value = "ИП и ПК";
+                worksheet.Cells[4 + _agentFalse.Count, 1].Style.Font.Bold = true;
+
+                for (int col = 0; col < _headers.Count; col++) worksheet.Cells[5 + _agentFalse.Count, col + 1].Value = _headers[col];
+                worksheet.Cells[5 + _agentFalse.Count, 1, 5 + _agentFalse.Count, _headers.Count].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                worksheet.Cells[5 + _agentFalse.Count, 1, 5 + _agentFalse.Count, _headers.Count].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+
+                for (int t = 0; t < _agentTrue.Count; t++)
+                {
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 1].Value = _agentTrue[t].CreatedDate;
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 1].Style.Numberformat.Format = "d MMM";
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 2].Value = _agentTrue[t].Invoice;
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 3].Value = _agentTrue[t].Company;
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 4].Value = _agentTrue[t].Order;
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 5].Value = _agentTrue[t].Services;
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 6].Value = _agentTrue[t].Material;
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 7].Value = _agentTrue[t].Amount;
+                }
+
+            }
 
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
+        }
+
+        private string ExtractAgent(Offer offer)
+        {
+            string _char = string.Empty;
+            string substring = "\"IsAgent\"";
+            if (offer.Data != null && offer.Data.Contains(substring)) _char = $"{offer.Data[offer.Data.IndexOf(substring) + 10]}";
+
+            return _char;
         }
 
         private void OpenExample(object sender, RoutedEventArgs e)
