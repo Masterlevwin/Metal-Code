@@ -1151,8 +1151,16 @@ namespace Metal_Code
             if (CheckConstruct.IsChecked == null)       //если требуется указать конструкторские работы отдельной строкой
             {
                 worksheet.Cells[row, 5].Value = "Конструкторские работы";
-                if (float.TryParse(ConstructRatio.Text, out float c)) worksheet.Cells[row, 6].Value = c;
-                worksheet.Cells[row, 7].Value = Construct / c;
+                if (float.TryParse(ConstructRatio.Text, out float c) && c > 1)
+                {
+                    worksheet.Cells[row, 6].Value = c;
+                    worksheet.Cells[row, 7].Value = Construct / c;
+                }
+                else
+                {
+                    worksheet.Cells[row, 6].Value = 1;
+                    worksheet.Cells[row, 7].Value = Construct;
+                }
                 worksheet.Cells[row, 8].Value = Construct;
                 row++;
             }
@@ -1345,48 +1353,68 @@ namespace Metal_Code
 
             List<string> _headers = new()
             {
-                "Номер", "Компания", "Менеджер", "Толщина и марка металла", "Гибка", "Комментарии",
-                "Дата отгрузки", "Стоимость резки", "Стоимость гибки"
+                "Приоритет", "Заказ", "Заказчик", "Менеджер", "Толщина и марка металла", "V",
+                "Гибка", "V", "Доп работы", "V", "Комментарий", "Дата сдачи", "Лазер (стоимость услуг)",
+                "Гибка (стоимость услуг)", "Количество материала", "Номер КП"
             };
-            for (int col = 0; col < _headers.Count; col++) scoresheet.Cells[10 + tot, col + 8].Value = _headers[col];
+            for (int col = 0; col < _headers.Count; col++) scoresheet.Cells[row + 4, col + 1].Value = _headers[col];
 
             DetailControl? complect = DetailControls.SingleOrDefault(d => d.Detail.IsComplect);
             if (complect != null)
                 for (int i = 0; i < complect.TypeDetailControls.Count; i++)
                 {
-                    scoresheet.Cells[i + 11 + tot, 11].Value = $"s{complect.TypeDetailControls[i].S} {complect.TypeDetailControls[i].MetalDrop.Text}";
-                    foreach (WorkControl w in complect.TypeDetailControls[i].WorkControls)
+                    //"Толщина и марка металла"
+                    scoresheet.Cells[i + row + 5, 5].Value = $"s{complect.TypeDetailControls[i].S} {complect.TypeDetailControls[i].MetalDrop.Text}";
+                    //"Количество материала"
+                    scoresheet.Cells[i + row + 5, 15].Value = complect.TypeDetailControls[i].Mass;
+
+                    scoresheet.Cells[i + row + 5, 3].Value = Company.Text;      //"Заказчик"
+
+                    scoresheet.Cells[i + row + 5, 4].Value = ManagerDrop.Text switch
                     {
-                        if (w.workType is CutControl)
+                        "Гамолина Светлана" => "с",
+                        "Андрейченко Алексей" => "аа",
+                        "Сергеев Юрий" => "ю",
+                        "Сергеев Алексей" => "ас",
+                        "Серых Михаил" => "мс",
+                        "Мешеронова Мария" => "м",
+                        _ => ""
+                    };
+
+                    if (HasDelivery) scoresheet.Cells[i + row + 5, 9].Value = "Доставка ";
+
+                    scoresheet.Cells[i + row + 5, 12].Value = EndDate();        //"Дата сдачи"
+                    scoresheet.Cells[i + row + 5, 12].Style.Numberformat.Format = "d MMM";
+
+                    scoresheet.Cells[i + row + 5, 16].Value = Order.Text;       //"Номер КП"
+
+                    foreach (WorkControl w in complect.TypeDetailControls[i].WorkControls)              //анализируем работы каждой типовой детали
+                    {
+                        if (w.workType is CutControl) scoresheet.Cells[i + row + 5, 13].Value = w.Result;               //"Лазер (стоимость услуг)"
+                        else if (w.workType is BendControl)
                         {
-                            scoresheet.Cells[i + 11 + tot, 8].Value = Order.Text;
-                            scoresheet.Cells[i + 11 + tot, 9].Value = Company.Text;
-                            scoresheet.Cells[i + 11 + tot, 10].Value = ManagerDrop.Text;
-                            if (HasDelivery) scoresheet.Cells[i + 11 + tot, 13].Value = "доставка";
-                            scoresheet.Cells[i + 11 + tot, 14].Value = EndDate();
-                            scoresheet.Cells[i + 11 + tot, 14].Style.Numberformat.Format = "d.MM.y";
-                            scoresheet.Cells[i + 11 + tot, 15].Value = w.Result;
+                            scoresheet.Cells[i + row + 4, 7].Value = "гибка";
+                            scoresheet.Cells[i + row + 4, 14].Value = w.Result;                                         //"Гибка (стоимость услуг)"
                         }
-                        if (w.workType is BendControl)
-                        {
-                            scoresheet.Cells[i + 11 + tot, 12].Value = "гибка";
-                            scoresheet.Cells[i + 11 + tot, 16].Value = w.Result;
-                        }
+                        else if (w.WorkDrop.SelectedItem is Work work) scoresheet.Cells[i + row + 5, 9].Value += $"{work.Name} ";   //"Доп работы"
                     }
                 }
 
-            ExcelRange registry = scoresheet.Cells[10 + tot, 8, 10 + tot, 16];
-            if (complect != null) registry = scoresheet.Cells[10 + tot, 8, complect.TypeDetailControls.Count + 10 + tot, 16];
-            registry.Style.Fill.PatternType = ExcelFillStyle.Solid;
-            registry.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LavenderBlush);
-
+            ExcelRange registry = scoresheet.Cells[row + 4, 1, row + 4, 16];
+            if (complect != null)
+            {
+                registry = scoresheet.Cells[row + 4, 1, complect.TypeDetailControls.Count + row + 4, 16];
+                scoresheet.Cells[row + 4, 4, complect.TypeDetailControls.Count + row + 4, 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                scoresheet.Cells[row + 4, 12, complect.TypeDetailControls.Count + row + 4, 12].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            }
+            //registry.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            //registry.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LavenderBlush);
 
             details.Style.Border.Bottom.Style = table.Style.Border.Bottom.Style = material.Style.Border.Bottom.Style = registry.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
             details.Style.Border.Right.Style = table.Style.Border.Right.Style = material.Style.Border.Right.Style = registry.Style.Border.Right.Style = ExcelBorderStyle.Thin;
             details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             material.Style.Border.BorderAround(ExcelBorderStyle.Medium);
-            registry.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             scoresheet.Cells.AutoFitColumns();
 
