@@ -1571,9 +1571,16 @@ namespace Metal_Code
                     worksheet.Cells[f + 3, 7].Value = _agentFalse[f].Amount;
                 }
 
-                worksheet.Names.Add("totalOOO", worksheet.Cells[3, 7, 3 + _agentFalse.Count, 7]);
-                worksheet.Cells[3 + _agentFalse.Count, 7].Formula = "=SUM(totalOOO)";
-                worksheet.Cells[3 + _agentFalse.Count, 7].Style.Font.Bold = true;
+                worksheet.Names.Add("totalS1", worksheet.Cells[3, 5, 2 + _agentFalse.Count, 5]);
+                worksheet.Cells[3 + _agentFalse.Count, 5].Formula = "=SUM(totalS1)";
+
+                worksheet.Names.Add("totalM1", worksheet.Cells[3, 6, 2 + _agentFalse.Count, 6]);
+                worksheet.Cells[3 + _agentFalse.Count, 6].Formula = "=SUM(totalM1)";
+
+                worksheet.Names.Add("total1", worksheet.Cells[3, 7, 2 + _agentFalse.Count, 7]);
+                worksheet.Cells[3 + _agentFalse.Count, 7].Formula = "=SUM(total1)";
+
+                worksheet.Cells[3 + _agentFalse.Count, 5, 3 + _agentFalse.Count, 7].Style.Font.Bold = true;
             }
 
             if (_agentTrue.Count > 0)
@@ -1597,6 +1604,16 @@ namespace Metal_Code
                     worksheet.Cells[t + 6 + _agentFalse.Count, 7].Value = _agentTrue[t].Amount;
                 }
 
+                worksheet.Names.Add("totalS2", worksheet.Cells[6 + _agentFalse.Count, 5, 5 + _agentFalse.Count + _agentTrue.Count, 5]);
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 5].Formula = "=SUM(totalS2)";
+
+                worksheet.Names.Add("totalM2", worksheet.Cells[6 + _agentFalse.Count, 6, 5 + _agentFalse.Count + _agentTrue.Count, 6]);
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 6].Formula = "=SUM(totalM2)";
+
+                worksheet.Names.Add("total2", worksheet.Cells[6 + _agentFalse.Count, 7, 5 + _agentFalse.Count + _agentTrue.Count, 7]);
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 7].Formula = "=SUM(total2)";
+
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 5, 6 + _agentFalse.Count + _agentTrue.Count, 7].Style.Font.Bold = true;
             }
 
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
