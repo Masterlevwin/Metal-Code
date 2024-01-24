@@ -431,7 +431,7 @@ namespace Metal_Code
         private void ViewPopupMass(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
             PopupMass.IsOpen = true;
-            MassPrice.Text = $"Масса заготовки\n{Mass} кг";
+            MassPrice.Text = $"Масса заготовки\n{(float)Math.Round(Mass, 2)} кг";
         }
     }
 }

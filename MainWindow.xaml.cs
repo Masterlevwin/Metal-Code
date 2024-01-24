@@ -629,7 +629,7 @@ namespace Metal_Code
         {
             SetCount(1);
             HasDelivery = false;
-            Order.Text = Company.Text = DateProduction.Text = "";
+            Order.Text = Company.Text = DateProduction.Text = Adress.Text = "";
             ProductName.Text = $"Изделие";
             ManagerDrop.SelectedItem = CurrentManager;
         }
@@ -655,6 +655,10 @@ namespace Metal_Code
             if (int.TryParse(DateProduction.Text, out int d)) return DateTime.Now.AddDays(d);
             else return null;
         }
+        private string? DateFormat(DateTime? date)
+        {
+            return date?.ToString("d MMM");
+        }
 
         public Product SaveProduct()
         {
@@ -664,7 +668,8 @@ namespace Metal_Code
                 Order = Order.Text,
                 Company = Company.Text,
                 Production = DateProduction.Text,
-                Manager = ManagerDrop.Text,
+                Manager = Adress.Text,                  //поле "Manager" сохраняет ссылку на адрес доставки;
+                                                        //не менял название поля, чтобы загружались старые сохранения
                 PaintRatio = PaintRatio.Text,
                 ConstructRatio = ConstructRatio.Text,
                 Count = Count,
@@ -963,7 +968,7 @@ namespace Metal_Code
             Order.Text = ProductModel.Product.Order;
             Company.Text = ProductModel.Product.Company;
             DateProduction.Text = ProductModel.Product.Production;
-            ManagerDrop.Text = ProductModel.Product.Manager;
+            Adress.Text = ProductModel.Product.Manager;
             CheckPaint.IsChecked = ProductModel.Product.HasPaint;
             PaintRatio.Text = ProductModel.Product.PaintRatio;
             CheckConstruct.IsChecked = ProductModel.Product.HasConstruct;
@@ -1370,16 +1375,7 @@ namespace Metal_Code
 
                     scoresheet.Cells[i + row + 5, 3].Value = Company.Text;      //"Заказчик"
 
-                    scoresheet.Cells[i + row + 5, 4].Value = ManagerDrop.Text switch
-                    {
-                        "Гамолина Светлана" => "с",
-                        "Андрейченко Алексей" => "аа",
-                        "Сергеев Юрий" => "ю",
-                        "Сергеев Алексей" => "ас",
-                        "Серых Михаил" => "мс",
-                        "Мешеронова Мария" => "м",
-                        _ => ""
-                    };
+                    scoresheet.Cells[i + row + 5, 4].Value = ShortManager();    //"Менеджер"
 
                     if (HasDelivery) scoresheet.Cells[i + row + 5, 9].Value = "Доставка ";
 
@@ -1393,8 +1389,8 @@ namespace Metal_Code
                         if (w.workType is CutControl) scoresheet.Cells[i + row + 5, 13].Value = w.Result;               //"Лазер (стоимость услуг)"
                         else if (w.workType is BendControl)
                         {
-                            scoresheet.Cells[i + row + 4, 7].Value = "гибка";
-                            scoresheet.Cells[i + row + 4, 14].Value = w.Result;                                         //"Гибка (стоимость услуг)"
+                            scoresheet.Cells[i + row + 5, 7].Value = "гибка";
+                            scoresheet.Cells[i + row + 5, 14].Value = w.Result;                                         //"Гибка (стоимость услуг)"
                         }
                         else if (w.WorkDrop.SelectedItem is Work work) scoresheet.Cells[i + row + 5, 9].Value += $"{work.Name} ";   //"Доп работы"
                     }
@@ -1623,6 +1619,47 @@ namespace Metal_Code
                     StatusBegin(ex.Message);
                 }
             }
+        }
+
+        private string ShortManager()       //метод, возвращающий сокращенное имя менеджера
+        {
+            return ManagerDrop.Text switch
+            {
+                "Гамолина Светлана" => "с",
+                "Андрейченко Алексей" => "аа",
+                "Сергеев Юрий" => "ю",
+                "Сергеев Алексей" => "ас",
+                "Серых Михаил" => "мс",
+                "Мешеронова Мария" => "м",
+                _ => ""
+            };
+        }
+
+        private void CreateDelivery(object sender, RoutedEventArgs e)       //метод построения строки запроса в логистику
+        {
+            StringBuilder sb = new(DateFormat(EndDate()));      //инициализируем строку датой отгрузки в формате "d MMM"
+            
+                //если есть номер заказа, добавляем его; иначе добавляем номер КП
+            if (ActiveOffer != null && ActiveOffer.Order != null) sb.Append($", №{ActiveOffer.Order}");
+            else sb.Append($", №{Order.Text}");
+
+            sb.Append($", {Company.Text}({ShortManager()})");   //добавляем заказчика и менеджера в сокращенном виде
+            sb.Append($", примерно {TotalMass()} кг;");         //добавляем массу всех деталей
+            sb.Append($" {Adress.Text}");                       //и, наконец, адрес доставки и контакт
+
+            StatusBegin($"Запрос в логистику: {sb}");
+        }
+
+        private float TotalMass()           //метод расчета общей массы ВСЕХ деталей
+        {
+            float total = 0;
+
+                //если есть нарезанные детали, подсчитываем их массу
+            if (Parts.Count > 0) foreach (Part part in Parts) total += part.Mass * part.Count;
+                //подсчитываем массу всех деталей, если они не "Комплект деталей!
+            foreach (DetailControl det in DetailControls.Where(d => !d.Detail.IsComplect)) total += det.Detail.Mass;
+
+            return (float)Math.Ceiling(total);      //округляем до целого в большую сторону
         }
     }
 }

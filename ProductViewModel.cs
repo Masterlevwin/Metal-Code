@@ -134,7 +134,7 @@ namespace Metal_Code
                       {
                           if (dialogService.OpenFileDialog() == true && dialogService.FilePaths != null)
                           {
-                              //MainWindow.M.ActiveOffer = null;
+                              MainWindow.M.ActiveOffer = null;
                               Product = fileService.Open(dialogService.FilePaths[0]);
                               MainWindow.M.LoadProduct();
                               MainWindow.M.StatusBegin($"Файл открыт");
@@ -161,7 +161,7 @@ namespace Metal_Code
                           if (MainWindow.M.OffersGrid.SelectedItem is not Offer offer) return;
                           if (offer.Data != null)
                           {
-                              //MainWindow.M.ActiveOffer = offer;
+                              MainWindow.M.ActiveOffer = offer;
                               Product = MainWindow.OpenOfferData(offer.Data);
                               MainWindow.M.LoadProduct();
                               MainWindow.M.StatusBegin($"Расчет загружен");

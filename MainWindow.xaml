@@ -79,7 +79,7 @@
                     <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="15,65,0,0" Text="Срок изготовления:" VerticalAlignment="Top"/>
                     <TextBox x:Name="DateProduction" Style="{DynamicResource TextBoxStyle}" Margin="135,65,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50" ToolTip="Введите срок изготовления"/>
                     <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="200,65,0,0" Text="раб/дней" VerticalAlignment="Top"/>
-                    <TextBox x:Name="Adress" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Margin="15,110,0,0" VerticalAlignment="Top" Width="275" Height="45" ToolTip="Введите адрес доставки" Text="Адрес доставки:" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}"/>
+                    <TextBox x:Name="Adress" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Margin="15,110,0,0" VerticalAlignment="Top" Width="275" Height="45" ToolTip="Введите адрес доставки" Text="Адрес доставки:" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" TextWrapping="Wrap"/>
                     <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="15,160,0,0" Text="Ваш менеджер:" VerticalAlignment="Top"/>
                     <ComboBox x:Name="ManagerDrop" Style="{DynamicResource ComboBoxStyle}" DisplayMemberPath="Name" HorizontalAlignment="Left" Margin="115,160,0,0" VerticalAlignment="Top" Width="175" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged"/>
                     <Button Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,160,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Обновить список расчетов этого менеджера" Padding="0,0,0,0" BorderThickness="0,0,0,0" Click="RefreshOffers">
@@ -112,6 +112,9 @@
                     <RadioButton GroupName="Boss" x:Name="LaserRadioButton" HorizontalAlignment="Left" Margin="70,15,0,0" VerticalAlignment="Top" Checked="IsLaserChanged"/>
                     <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет от ООО" HorizontalAlignment="Left" Margin="15,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;"/>
                     <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет от ИП или ПК" HorizontalAlignment="Left" Margin="110,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;"/>
+                    <Button Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,88,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Создать запрос в логистику" Padding="0" BorderThickness="0" Click="CreateDelivery" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}">
+                        <Image Source="/Images/new.png"/>
+                    </Button>
                 </Grid>
             </GroupBox>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Right" Text="руб" VerticalAlignment="Top" Margin="0,40,30,0" Height="14" Width="19"/>
@@ -129,11 +132,11 @@
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="940,70,0,0" Text="Работа" VerticalAlignment="Top" Height="14" Width="39"/>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="1200,70,0,0" Text="Стоимость" VerticalAlignment="Top" Height="14" Width="60"/>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="1155,70,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!" Height="14" Width="30"/>
-            <Button Style="{DynamicResource ButtonStyle}" Margin="70,70,0,0" Content="+" Click="AddDetail" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" MinWidth="16" MinHeight="16" Height="16" Width="16" ToolTip="Добавить деталь" IsDefault="True"/>
+            <Button Style="{DynamicResource ButtonStyle}" Margin="70,70,0,0" Content="+" Click="AddDetail" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" MinWidth="16" MinHeight="16" Height="16" Width="16" ToolTip="Добавить деталь"/>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Right" Margin="0,43,240,0" TextWrapping="Wrap" Text="Количество изделий" VerticalAlignment="Top" Height="14" Width="118"/>
-            <StatusBar x:Name="Status" Grid.Row="1" VerticalAlignment="Bottom" MinHeight="20" Margin="20,0,15,20" BorderThickness="1,1,1,1" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Background="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}">
+            <StatusBar x:Name="Status" Grid.Row="1" VerticalAlignment="Bottom" MinHeight="20" Margin="20,0,15,20" BorderThickness="1,1,1,1" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Background="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}" VerticalContentAlignment="Center">
                 <StackPanel>
-                    <TextBlock x:Name="NotifyText" Style="{DynamicResource TextBlockStyle}" />
+                    <TextBox x:Name="NotifyText" Style="{DynamicResource TextBoxStyle}" BorderThickness="0" Margin="5,0,0,0" Background="{x:Null}"/>
                 </StackPanel>
             </StatusBar>
             <Button Command="{Binding NewProjectCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="400,40,0,0" Padding="0,0,0,0" BorderThickness="0,0,0,0" ToolTip="Создать новый расчет">

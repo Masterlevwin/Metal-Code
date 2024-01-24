@@ -10,7 +10,7 @@ namespace Metal_Code
     [Serializable]
     public class Product
     {
-        public string? Name, Order, Company, Production, Manager, PaintRatio, ConstructRatio;
+        public string? Name, Order, Company, Production, Manager, PaintRatio, ConstructRatio;       //поле "Manager" сохраняет ссылку на адрес доставки
         public int Count, Delivery, DeliveryRatio;
         public bool IsLaser, IsAgent, HasDelivery;
         public bool? HasConstruct, HasPaint;
