@@ -1528,7 +1528,7 @@ namespace Metal_Code
             ObservableCollection<Offer> _offers = new();
             if (report != null)
             {
-                if (report == "По заказам" && ManagerDrop.SelectedItem is Manager man)          //...по оплаченнным заказам менеджера
+                if (report == "По заказам" && ManagerDrop.SelectedItem is Manager)              //...по оплаченнным заказам менеджера
                 {
                     //создаем новый список КП, которые выложены в работу, т.е. оплачены и имеют номер заказа
                     _offers = new(Offers.Where(o => o.Order is not null and not "").ToList());
@@ -1563,6 +1563,7 @@ namespace Metal_Code
                 {
                     worksheet.Cells[f + 3, 1].Value = _agentFalse[f].CreatedDate;
                     worksheet.Cells[f + 3, 1].Style.Numberformat.Format = "d MMM";
+                    worksheet.Cells[f + 3, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
                     worksheet.Cells[f + 3, 2].Value = _agentFalse[f].Invoice;
                     worksheet.Cells[f + 3, 3].Value = _agentFalse[f].Company;
                     worksheet.Cells[f + 3, 4].Value = _agentFalse[f].Order;
@@ -1573,14 +1574,22 @@ namespace Metal_Code
 
                 worksheet.Names.Add("totalS1", worksheet.Cells[3, 5, 2 + _agentFalse.Count, 5]);
                 worksheet.Cells[3 + _agentFalse.Count, 5].Formula = "=SUM(totalS1)";
+                worksheet.Cells[3 + _agentFalse.Count, 9].Formula = "=(SUM(totalS1)-SUM(totalS1)/1.3)/1.2";
 
                 worksheet.Names.Add("totalM1", worksheet.Cells[3, 6, 2 + _agentFalse.Count, 6]);
                 worksheet.Cells[3 + _agentFalse.Count, 6].Formula = "=SUM(totalM1)";
+                worksheet.Cells[3 + _agentFalse.Count, 10].Formula = "=(SUM(totalM1)-SUM(totalM1)/1.15)/1.2";
 
                 worksheet.Names.Add("total1", worksheet.Cells[3, 7, 2 + _agentFalse.Count, 7]);
                 worksheet.Cells[3 + _agentFalse.Count, 7].Formula = "=SUM(total1)";
 
                 worksheet.Cells[3 + _agentFalse.Count, 5, 3 + _agentFalse.Count, 7].Style.Font.Bold = true;
+                worksheet.Cells[3, 1, 3 + _agentFalse.Count, 7].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                worksheet.Cells[3, 1, 3 + _agentFalse.Count, 7].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                worksheet.Cells[3, 1, 3 + _agentFalse.Count, 7].Style.Border.BorderAround(ExcelBorderStyle.Medium);
+
+                worksheet.Cells[3 + _agentFalse.Count, 9, 3 + _agentFalse.Count, 10].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                worksheet.Cells[3 + _agentFalse.Count, 9, 3 + _agentFalse.Count, 10].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGreen);
             }
 
             if (_agentTrue.Count > 0)
@@ -1596,6 +1605,7 @@ namespace Metal_Code
                 {
                     worksheet.Cells[t + 6 + _agentFalse.Count, 1].Value = _agentTrue[t].CreatedDate;
                     worksheet.Cells[t + 6 + _agentFalse.Count, 1].Style.Numberformat.Format = "d MMM";
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
                     worksheet.Cells[t + 6 + _agentFalse.Count, 2].Value = _agentTrue[t].Invoice;
                     worksheet.Cells[t + 6 + _agentFalse.Count, 3].Value = _agentTrue[t].Company;
                     worksheet.Cells[t + 6 + _agentFalse.Count, 4].Value = _agentTrue[t].Order;
@@ -1606,16 +1616,59 @@ namespace Metal_Code
 
                 worksheet.Names.Add("totalS2", worksheet.Cells[6 + _agentFalse.Count, 5, 5 + _agentFalse.Count + _agentTrue.Count, 5]);
                 worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 5].Formula = "=SUM(totalS2)";
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 9].Formula = "=(SUM(totalS2)-SUM(totalS2)/1.3)/1.2";
 
                 worksheet.Names.Add("totalM2", worksheet.Cells[6 + _agentFalse.Count, 6, 5 + _agentFalse.Count + _agentTrue.Count, 6]);
                 worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 6].Formula = "=SUM(totalM2)";
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 10].Formula = "=SUM(totalM2)-SUM(totalM2)/1.15";
 
                 worksheet.Names.Add("total2", worksheet.Cells[6 + _agentFalse.Count, 7, 5 + _agentFalse.Count + _agentTrue.Count, 7]);
                 worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 7].Formula = "=SUM(total2)";
 
                 worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 5, 6 + _agentFalse.Count + _agentTrue.Count, 7].Style.Font.Bold = true;
+                worksheet.Cells[6 + _agentFalse.Count, 1, 6 + _agentFalse.Count + _agentTrue.Count, 7].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                worksheet.Cells[6 + _agentFalse.Count, 1, 6 + _agentFalse.Count + _agentTrue.Count, 7].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                worksheet.Cells[6 + _agentFalse.Count, 1, 6 + _agentFalse.Count + _agentTrue.Count, 7].Style.Border.BorderAround(ExcelBorderStyle.Medium);
+
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 9, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 9, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGreen);
             }
 
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 4].Value = "ИТОГО:";
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 5].Formula = "=SUM(totalS1)+SUM(totalS2)";
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 6].Formula = "=SUM(totalM1)+SUM(totalM2)";
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 7].Formula = "=SUM(total1)+SUM(total2)";
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 4, 8 + _agentFalse.Count + _agentTrue.Count, 7].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 4, 8 + _agentFalse.Count + _agentTrue.Count, 7].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightPink);
+
+            worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Прибыль месяца:";
+            worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 2].Formula =
+                "=(SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15";
+            worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 3].Formula =
+                "=(((SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15)-150000)*0.15";
+
+            worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Доп бонус за ИП и ПК:";
+            worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(total2)*0.2-SUM(total2)/6";
+
+            worksheet.Cells[14 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Оклад:";
+            worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 1].Value = "На карту:";
+            worksheet.Cells[16 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Премия за выполнение плана:";
+            worksheet.Cells[16 + _agentFalse.Count + _agentTrue.Count, 1].Style.WrapText = true;
+            worksheet.Cells[17 + _agentFalse.Count + _agentTrue.Count, 1].Value = "%:";
+            worksheet.Cells[18 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Аванс:";
+
+            worksheet.Cells[20 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Итоговая за месяц:";
+            worksheet.Cells[21 + _agentFalse.Count + _agentTrue.Count, 1].Value = "К доплате:";
+
+            ExcelRange table = worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 1, 21 + _agentFalse.Count + _agentTrue.Count, 3];
+            table.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            table.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+
+            ExcelRange bonus = worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 2, 21 + _agentFalse.Count + _agentTrue.Count, 2];
+            bonus.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            bonus.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightBlue);
+
+            worksheet.Cells.AutoFitColumns();
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
         }
 

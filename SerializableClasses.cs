@@ -239,7 +239,7 @@ namespace Metal_Code
         public DbSet<Offer> Offers { get; set; } = null!;
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            //optionsBuilder.UseSqlite("Data Source=managers.db"); 
+            //optionsBuilder.UseSqlite("Data Source=managers.db");
             optionsBuilder.UseSqlite($"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db");
         }
     }
