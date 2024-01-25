@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+using System.IO;
 
 namespace Metal_Code
 {
@@ -216,7 +218,8 @@ namespace Metal_Code
         public DbSet<TypeDetail> TypeDetails { get; set; } = null!;
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=typedetails.db");
+            //optionsBuilder.UseSqlite("Data Source=typedetails.db");
+            optionsBuilder.UseSqlite($"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db");
         }
     }
 
@@ -225,7 +228,8 @@ namespace Metal_Code
         public DbSet<Work> Works { get; set; } = null!;
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=works.db");
+            //optionsBuilder.UseSqlite("Data Source=works.db");
+            optionsBuilder.UseSqlite($"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db");
         }
     }
 
@@ -235,7 +239,8 @@ namespace Metal_Code
         public DbSet<Offer> Offers { get; set; } = null!;
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=managers.db");
+            //optionsBuilder.UseSqlite("Data Source=managers.db"); 
+            optionsBuilder.UseSqlite($"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db");
         }
     }
     
@@ -244,7 +249,8 @@ namespace Metal_Code
         public DbSet<Metal> Metals { get; set; } = null!;
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=metals.db");
+            //optionsBuilder.UseSqlite("Data Source=metals.db");
+            optionsBuilder.UseSqlite($"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db");
         }
     }
 }
