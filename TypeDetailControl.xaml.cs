@@ -325,7 +325,8 @@ namespace Metal_Code
         {
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
 
-            if (type.Name == "Лист металла" || (type.Name != null && type.Name.Contains("Труба"))) Price = metal.MassPrice;
+            if (type.Name != null && (type.Name.Contains("Лист металла")
+                || type.Name.Contains("Труба") || type.Name.Contains("Швеллер") || type.Name.Contains("Уголок"))) Price = metal.MassPrice;
             else Price = type.Price;
 
             if (det.Detail.Title == "Комплект деталей" && type.Name == "Лист металла")
