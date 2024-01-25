@@ -258,7 +258,7 @@ namespace Metal_Code
                     if (Parts.Count > 0)
                         foreach (PartControl part in Parts)
                             PartTitleAnalysis(part);    // анализируем наименование каждой детали
-                        
+                    PartsValidate();                    //проверяем резку и массу деталей
                 }
                 else
                 {   // добавляем типовую деталь
@@ -295,6 +295,7 @@ namespace Metal_Code
                         if (_cut.Parts.Count > 0)
                             foreach (PartControl part in _cut.Parts)
                                 PartTitleAnalysis(part);
+                        _cut.PartsValidate();                    //проверяем резку и массу деталей
                     }
                 }
             }
@@ -334,6 +335,29 @@ namespace Metal_Code
                                 break;
                         }
                     }
+            }
+        }
+
+        private void PartsValidate()                            //метод анализа общего пути резки и общего веса деталей
+        {
+            if (PartDetails.Count > 0)
+            {
+                float _wayTotal = 0;                            //вычисляем общий путь резки всех деталей
+                foreach (Part part in PartDetails) _wayTotal += part.Way * part.Count;
+
+                if (WayTotal - _wayTotal > 1)                   //если считанный из файла excel общий путь резки отличается от вычисленного
+                {
+                    float _ratio = WayTotal / _wayTotal;        //получаем коэффициент этой разницы и устанавливаем новое значение периметра резки каждой детали
+                                                                //это устраняет проблему, когда резка открытого контура считалась некорректно
+                    foreach (Part part in PartDetails) part.Way *= _ratio;
+                }
+
+                if (MassTotal == Mass)                          //если общий вес деталей совпадает с общим весом листов
+                {                           //переустанавливаем массу каждой детали как среднее арифметическое значение
+                                            //это устраняет проблему, когда вес деталей слишком мал или равен нулю
+                    int _count = PartDetails.Sum(x => x.Count);
+                    foreach (Part part in PartDetails) part.Mass = MassTotal / _count;
+                }
             }
         }
 
@@ -496,6 +520,8 @@ namespace Metal_Code
                 Pinhole += _items[i].pinholes * _items[i].sheets;
                 Mass += _items[i].mass * _items[i].sheets;
             }
+
+            if (MassTotal < 1) MassTotal = Mass;                // общий вес деталей не должен быть меньше 1 кг, иначе возникнет ошибка деления на 0
 
             work.type.SetCount(_items.Sum(s => s.sheets));      // устанавливаем общее количество порезанных листов
 
