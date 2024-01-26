@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -179,7 +180,7 @@ namespace Metal_Code
                     break;
             }
 
-            if (workType is not BendControl && ValidateProp(out int index))
+            if (workType is not BendControl && workType is not ExtraControl && ValidateProp(out int index))
             {
                 if (WorkDrop.Items.Count <= index) MessageBox.Show($"Такая работа уже есть!\nУдалите лишнее!");
                 else WorkDrop.SelectedIndex = index;

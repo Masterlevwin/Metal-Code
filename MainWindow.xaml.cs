@@ -725,13 +725,17 @@ namespace Metal_Code
 
                         if (work.WorkDrop.SelectedItem is Work _work)
                         {
-                            if (_work.Name != null && !TempWorks.ContainsKey(_work.Name))
+                            if (work.workType is ExtraControl extra && extra.NameExtra != null)       //проверяем наличие доп работ
                             {
-                                TempWorks[_work.Name] = work.Result;
+                                //если список еще не содержит доп работу с таким именем, создаем такую запись, иначе просто добавляем стоимость
+                                if (!TempWorks.ContainsKey(extra.NameExtra)) TempWorks[extra.NameExtra] = work.Result;
+                                else TempWorks[extra.NameExtra] += work.Result;
                             }
-                            else if(_work.Name != null)
+                            else if (_work.Name != null)                                                //проверяем все остальные работы
                             {
-                                TempWorks[_work.Name] += work.Result;
+                                //если список еще не содержит работу с таким именем, создаем такую запись, иначе просто добавляем стоимость
+                                if (!TempWorks.ContainsKey(_work.Name)) TempWorks[_work.Name] = work.Result;
+                                else TempWorks[_work.Name] += work.Result;
                             }
 
                             SaveWork _saveWork = new(_work.Name, work.Ratio);
