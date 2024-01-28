@@ -269,6 +269,7 @@ namespace Metal_Code
                             // стоимость данной гибки должна быть не ниже минимальной
                             _price = _price > 0 && _price < _work.Price ? _work.Price * _w.Ratio : _price * _w.Ratio;
                             p.Part.Price += _price / p.Part.Count;
+                            p.Part.Accuracy += $" + {(float)Math.Round(_price / p.Part.Count, 2)}(г)";
                             break;
                         }
                 }

@@ -17,6 +17,7 @@ using System.Windows.Media.Animation;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Drawing;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 namespace Metal_Code
 {
@@ -745,19 +746,22 @@ namespace Metal_Code
                                 foreach (Part p in _cut.PartDetails)
                                 {
                                     p.Description = "Л";
+                                    p.Price = 0;
                                     p.PropsDict.Clear();
                                     //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
-                                    p.Price = CheckConstruct.IsChecked == null ? 0
-                                        : Construct /
-                                        DetailControls.Count /
+                                    if (CheckConstruct.IsChecked != null)
+                                    {
+                                        p.Price += Construct / DetailControls.Count /
                                         DetailControls.SingleOrDefault(d => d.Detail.IsComplect).TypeDetailControls.Count /
                                         _cut.PartDetails.Sum(p => p.Count);
+                                        p.Accuracy += $" + {(float)Math.Round(p.Price, 2)}(к)";
+                                    }
                                     //"размазываем" доп работы
                                     foreach (WorkControl w in work.type.WorkControls)
                                         if (w.workType is ExtraControl)
                                         {
                                             p.Price += w.Result / _cut.PartDetails.Sum(p => p.Count);
-                                            break;
+                                            p.Accuracy += $" + {(float)Math.Round(w.Result / _cut.PartDetails.Sum(p => p.Count), 2)}(д)";
                                         }
                                 }
 
@@ -1099,10 +1103,17 @@ namespace Metal_Code
 
             int row = 8;        //счетчик строк деталей, начинаем с восьмой строки документа
 
+            Dictionary<int, string> TitleAccuracy = new();              //вспомогательный словарь составляющих цены детали
+
                 //если есть нарезанные детали, вычисляем их общую стоимость, и оформляем их в КП
             if (Parts.Count > 0)
             {
-                foreach (Part part in Parts) part.Total = part.Count * part.Price;
+                for (int i = 0; i < Parts.Count; i++)
+                {
+                    Parts[i].Total = Parts[i].Count * Parts[i].Price;
+                    TitleAccuracy[i] = Parts[i].Accuracy?[18..];        //заполняем вспомогательный словарь составляющих цены
+                    Parts[i].Accuracy = Parts[i].Accuracy?[..17];       //обрезаем строку "Точность" до 17 символа
+                }
 
                 DataTable partTable = ToDataTable(Parts);
                 worksheet.Cells[row, 1].LoadFromDataTable(partTable, false);
@@ -1283,10 +1294,10 @@ namespace Metal_Code
 
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем файл .xlsx
 
-            CreateScore(worksheet, row - 8, path);      //создаем файл для счета на основе полученного КП
+            CreateScore(worksheet, row - 8, path, TitleAccuracy);      //создаем файл для счета на основе полученного КП
         }
 
-        private void CreateScore(ExcelWorksheet worksheet, int row, string _path)       // метод создания файла для счета
+        private void CreateScore(ExcelWorksheet worksheet, int row, string _path, Dictionary<int, string> titleAccuracy)       // метод создания файла для счета
         {
             ExcelRange extable = worksheet.Cells[IsLaser ? 6 : 8, 5, IsLaser ? row + 5 : row + 7, 7];
 
@@ -1301,16 +1312,17 @@ namespace Metal_Code
             scoresheet.Cells["D1"].Value = "Цена";
             scoresheet.Cells["E1"].Value = "Ед. изм.";
 
+            float total = 0;
             for (int i = 0; i < row; i++)
             {
                 if (float.TryParse($"{scoresheet.Cells[i + 2, 3].Value}", out float p)) scoresheet.Cells[i + 2, 4].Value = Math.Round(p / 1.2f, 2);
                 scoresheet.Cells[i + 2, 5].Value = "шт";
-                if (float.TryParse($"{scoresheet.Cells[i + 2, 2].Value}", out float f)
-                    && float.TryParse($"{scoresheet.Cells[i + 2, 3].Value}", out float c)) scoresheet.Cells[i + 2, 6].Value = Math.Round(f * c, 2);
+                if (titleAccuracy.ContainsKey(i)) scoresheet.Cells[i + 2, 6].Value = titleAccuracy[i];
 
+                if (float.TryParse($"{scoresheet.Cells[i + 2, 2].Value}", out float f)
+                    && float.TryParse($"{scoresheet.Cells[i + 2, 3].Value}", out float c)) total += f * c;
             }
-            scoresheet.Names.Add("totalOrder", scoresheet.Cells[2, 6, row + 1, 6]);
-            scoresheet.Cells[row + 2, 6].Formula = "=SUM(totalOrder)";
+            scoresheet.Cells[row + 2, 6].Value = Math.Round(total, 2);
             scoresheet.Cells[row + 2, 6].Style.Fill.PatternType = ExcelFillStyle.Solid;
             scoresheet.Cells[row + 2, 6].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Yellow);
 
@@ -1396,6 +1408,8 @@ namespace Metal_Code
                             scoresheet.Cells[i + 11 + tot, 13].Value = "гибка";
                             scoresheet.Cells[i + 11 + tot, 20].Value = w.Result;                                         //"Гибка (стоимость услуг)"
                         }
+                        //для доп работы её наименование добавляем к наименованию работы - особый случай
+                        else if (w.workType is ExtraControl _extra) scoresheet.Cells[i + 11 + tot, 15].Value += $"{_extra.NameExtra} ";
                         else if (w.WorkDrop.SelectedItem is Work work) scoresheet.Cells[i + 11 + tot, 15].Value += $"{work.Name} ";   //"Доп работы"
                     }
                 }

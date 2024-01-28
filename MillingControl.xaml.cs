@@ -144,7 +144,10 @@ namespace Metal_Code
 
                     foreach (WorkControl _w in p.Cut.work.type.WorkControls)    // находим мех обработку среди работ и получаем её общую стоимость
                         if (_w.workType is MillingControl)
+                        {
                             p.Part.Price += _w.Result / _count;                 // добавляем часть от количества именно этой детали
+                            p.Part.Accuracy += $" + {(float)Math.Round(_w.Result / _count, 2)}(м)";
+                        }
                 }
             }
             else
