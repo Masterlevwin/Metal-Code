@@ -30,6 +30,20 @@ namespace Metal_Code
             }
         }
 
+        private float wide;
+        public float Wide
+        {
+            get => wide;
+            set
+            {
+                if (value != wide)
+                {
+                    wide = value;
+                    OnPropertyChanged(nameof(Wide));
+                }
+            }
+        }
+
         public List<PartControl>? Parts { get; set; }
 
         public readonly UserControl owner;
@@ -77,6 +91,17 @@ namespace Metal_Code
                 //    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Мех обработка") is Work _w)
                 //    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
             }
+        }
+
+
+        private void SetWide(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) SetWide(tBox.Text);
+        }
+        private void SetWide(string _wide)
+        {
+            if (int.TryParse(_wide, out int d)) Wide = d;
+            OnPriceChanged();
         }
 
         private void SetHoles(object sender, TextChangedEventArgs e)

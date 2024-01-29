@@ -312,7 +312,7 @@ namespace Metal_Code
                 if (nameWorks.Length > 0)
                     foreach (string str in nameWorks)
                     {
-                        if (str.Contains("гиб"))    // в случае с гибкой, дополнительно определяем количество разнотипных гибов
+                        if (str.Contains("гиб"))    // в случае с гибкой дополнительно определяем количество разнотипных гибов
                         {
                             // разделяем строку на новый массив, разделенный символом "г"
                             string[] bends = str.Split(new[] { 'г' }, StringSplitOptions.RemoveEmptyEntries);
@@ -322,6 +322,22 @@ namespace Metal_Code
                                 for (int i = 0; i < num; i++) part.AddControl(0);       // ...добавляем такое число блоков гибки
                             else part.AddControl(0);                                    // иначе просто добавляем один блок гибки
                         }
+                        else if (str.Contains("рез"))    // в случае с резьбовкой указываем количество отверстий
+                        {
+                            part.AddControl(3);                                         // добавляем блок мех обработки
+                            // разделяем строку на новый массив, разделенный символом "р"
+                            string[] mils = str.Split(new[] { 'р' }, StringSplitOptions.RemoveEmptyEntries);
+
+                            // если новый массив содержит больше одного элемента, и этот элемент успешно парсится в число...
+                            if (mils.Length > 1 && int.TryParse(mils[0], out int num))
+                            {
+                                foreach (UserControl uc in part.UserControls) if (uc is MillingControl milling)
+                                    {
+                                        milling.SetHoles(mils[0]);                      // ...указываем количество отверстий этим числом
+                                        break;
+                                    }
+                            }
+                        }
 
                         switch (str)                // далее проверяем строку на наличие других работ
                         {
@@ -330,9 +346,6 @@ namespace Metal_Code
                                 break;
                             case "окр":
                                 part.AddControl(2);
-                                break;
-                            case "рез":
-                                part.AddControl(3);
                                 break;
                         }
                     }
@@ -346,10 +359,10 @@ namespace Metal_Code
                 float _wayTotal = 0;                            //вычисляем общий путь резки всех деталей
                 foreach (Part part in PartDetails) _wayTotal += part.Way * part.Count;
 
-                if (WayTotal - _wayTotal > 1)                   //если считанный из файла excel общий путь резки отличается от вычисленного
+                if (WayTotal != _wayTotal)                      //если считанный из файла excel общий путь резки отличается от вычисленного
                 {
                     float _ratio = WayTotal / _wayTotal;        //получаем коэффициент этой разницы и устанавливаем новое значение периметра резки каждой детали
-                                                                //это устраняет проблему, когда резка открытого контура считалась некорректно
+                                                                //это устраняет проблему, когда резка открытого контура и общий рез считались некорректно
                     foreach (Part part in PartDetails) part.Way *= _ratio;
                 }
 
