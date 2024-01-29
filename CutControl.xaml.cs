@@ -322,21 +322,15 @@ namespace Metal_Code
                                 for (int i = 0; i < num; i++) part.AddControl(0);       // ...добавляем такое число блоков гибки
                             else part.AddControl(0);                                    // иначе просто добавляем один блок гибки
                         }
-                        else if (str.Contains("рез"))    // в случае с резьбовкой указываем количество отверстий
+                        else if (str.Contains("рез"))    // в случае с резьбовкой дополнительно определяем количество разнотипных отверстий
                         {
-                            part.AddControl(3);                                         // добавляем блок мех обработки
                             // разделяем строку на новый массив, разделенный символом "р"
                             string[] mils = str.Split(new[] { 'р' }, StringSplitOptions.RemoveEmptyEntries);
 
                             // если новый массив содержит больше одного элемента, и этот элемент успешно парсится в число...
                             if (mils.Length > 1 && int.TryParse(mils[0], out int num))
-                            {
-                                foreach (UserControl uc in part.UserControls) if (uc is MillingControl milling)
-                                    {
-                                        milling.SetHoles(mils[0]);                      // ...указываем количество отверстий этим числом
-                                        break;
-                                    }
-                            }
+                                for (int i = 0; i < num; i++) part.AddControl(3);       // ...добавляем такое число блоков резьбовки
+                            else part.AddControl(3);                                    // иначе просто добавляем один блок резьбовки
                         }
 
                         switch (str)                // далее проверяем строку на наличие других работ

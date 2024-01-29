@@ -81,18 +81,13 @@ namespace Metal_Code
                 part.Cut.work.type.AddWork();
 
                 // добавляем "Мех обработку" в список общих работ "Комплекта деталей"
-                foreach (Work w in MainWindow.M.Works) if (w.Name == "Мех обработка")
+                foreach (Work w in MainWindow.M.Works) if (w.Name == "Резьбовка")
                     {
                         part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
                         break;
                     }
-
-                //if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Мех обработка"))
-                //    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Мех обработка") is Work _w)
-                //    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
             }
         }
-
 
         private void SetWide(object sender, TextChangedEventArgs e)
         {
@@ -114,6 +109,7 @@ namespace Metal_Code
             OnPriceChanged();
         }
 
+        private int minute = 1;     // минимальное время изготовления одного изделия, мин
         public void OnPriceChanged()
         {
             if (owner is not WorkControl work) return;
@@ -129,7 +125,7 @@ namespace Metal_Code
 
                     float price = (float)Math.Ceiling(_count * _work.Price / 12);
 
-                    // стоимость данной мех обработки должна быть не ниже минимальной
+                    // стоимость данной резьбовки должна быть не ниже минимальной
                     price = price > 0 && price < _work.Price ? _work.Price : price;
 
                     work.SetResult(price, false);
@@ -156,7 +152,7 @@ namespace Metal_Code
                     }
 
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{3}", $"{Holes}" };
-                    if (p.Part.Description != null && !p.Part.Description.Contains(" + М ")) p.Part.Description += " + М ";                   
+                    if (p.Part.Description != null && !p.Part.Description.Contains(" + Р ")) p.Part.Description += " + Р ";                   
 
                     int _count = 0;
                     if (p.Cut.PartsControl != null)
@@ -167,11 +163,11 @@ namespace Metal_Code
                                 break;
                             }
 
-                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)    // находим мех обработку среди работ и получаем её общую стоимость
+                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)    // находим резьбовку среди работ и получаем её общую стоимость
                         if (_w.workType is MillingControl)
                         {
                             p.Part.Price += _w.Result / _count;                 // добавляем часть от количества именно этой детали
-                            p.Part.Accuracy += $" + {(float)Math.Round(_w.Result / _count, 2)}(м)";
+                            p.Part.Accuracy += $" + {(float)Math.Round(_w.Result / _count, 2)}(р)";
                         }
                 }
             }

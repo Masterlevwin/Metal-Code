@@ -16,8 +16,6 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Runtime.Serialization.Json;
 using System.Text;
-using System.Drawing;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 namespace Metal_Code
 {
@@ -74,26 +72,6 @@ namespace Metal_Code
 
             ViewLoginWindow();
         }
-
-        //private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна
-        //{
-        //    dbWorks.Database.EnsureCreated();
-        //    dbWorks.Works.Load();
-
-        //    dbTypeDetails.Database.EnsureCreated();
-        //    dbTypeDetails.TypeDetails.Load();
-
-        //    dbManagers.Database.EnsureCreated();
-        //    dbManagers.Managers.Load();
-        //    dbManagers.Offers.Load();
-        //    ManagerDrop.ItemsSource = dbManagers.Managers.Local.ToObservableCollection().Where(m => !m.IsEngineer);
-
-        //    dbMetals.Database.EnsureCreated();
-        //    dbMetals.Metals.Load();
-        //    CreateMetalDict();
-
-        //    ViewLoginWindow();
-        //}
 
         private void ViewLoginWindow()
         {
@@ -803,29 +781,6 @@ namespace Metal_Code
             return details;
         }
 
-        //public void SaveOffer()
-        //{
-        //    foreach (Manager man in dbManagers.Managers.Local.ToObservableCollection()) if (man == ManagerDrop.SelectedItem)
-        //        {
-        //                //сначала создаем новое КП
-        //            Offer offer = new(Order.Text, Company.Text, Result, GetMetalPrice(), GetServices())
-        //            {
-        //                EndDate = EndDate(),
-        //                Autor = CurrentManager.Name,
-        //                Manager = man,
-        //                Data = SaveOfferData()      //сериализуем расчет в виде строки json
-        //            };
-
-        //                //затем проверяем новое КП на полное совпадение с базой, чтобы не дублировать
-        //            foreach (Offer of in man.Offers) if (of.Data == offer.Data) dbManagers.Offers.Remove(of);
- 
-        //            man.Offers.Add(offer);          //добавляем созданный расчет в базу этого менеджера
-        //            if (UpdateOffers()) OffersGrid.Items.Refresh();     //пытаемся сохранить базу и обновить datagrid
-
-        //            break;
-        //        }
-        //}
-
         public void SaveOrRemoveOffer(bool isSave)
         {
             using ManagerContext db = new();                                        //подключаемся к базе данных
@@ -1262,7 +1217,7 @@ namespace Metal_Code
                     if (cell.Value != null && $"{cell.Value}".Contains("Г ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Г ")) worksheet.Cells[row + 5, 2].Value += "Г - Гибка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("С ")) worksheet.Cells[row + 5, 2].Value += "С - Сварка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("О ")) worksheet.Cells[row + 5, 2].Value += "О - Окраска ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("М ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("М ")) worksheet.Cells[row + 5, 2].Value += "М - Мех обработка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Р ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Р ")) worksheet.Cells[row + 5, 2].Value += "Р - Резьбовка ";
                 }
                 worksheet.Cells[row + 5, 2, row + 5, 5].Merge = true;
             }
@@ -1517,11 +1472,11 @@ namespace Metal_Code
             MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
                                            MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
             if (response == MessageBoxResult.No) e.Cancel = true;
-            else Environment.Exit(0);//if (UpdateOffers()) 
+            else Environment.Exit(0);
         }
         public void Exit(object sender, RoutedEventArgs e)
         {
-            Environment.Exit(0);//if (UpdateOffers()) 
+            Environment.Exit(0);
         }
 
         private static void ThemeChange(string style)
@@ -1705,26 +1660,6 @@ namespace Metal_Code
             exampleWindow.Show();
         }
 
-        //public bool UpdateOffers()     //метод сохранения изменений в базе менеджеров с обработкой ошибок
-        //{
-        //    bool saved = false;
-        //    while (!saved)
-        //    {
-        //        try
-        //        {
-        //            using ManagerContext dbT = new();
-        //            dbT.SaveChanges();
-        //            saved = true;
-        //            StatusBegin("Изменения в базе сохранены");
-        //        }
-        //        catch (DbUpdateConcurrencyException ex)
-        //        {
-        //            StatusBegin($"Конфликт изменения данных.\nПопробуйте еще раз.\n{ex}");
-        //        }
-        //    }
-        //    return saved;
-        //}
-
         private void UpdateOffer(object sender, RoutedEventArgs e)
         {
             using ManagerContext db = new();                                    //подключаемся к базе данных
@@ -1777,13 +1712,13 @@ namespace Metal_Code
             else sb.Append($", №{Order.Text}");
 
             sb.Append($", {Company.Text}({ShortManager()})");   //добавляем заказчика и менеджера в сокращенном виде
-            sb.Append($", примерно {TotalMass()} кг;");         //добавляем массу всех деталей
+            sb.Append($", примерно {GetTotalMass()} кг;");         //добавляем массу всех деталей
             sb.Append($" {Adress.Text}");                       //и, наконец, адрес доставки и контакт
 
             StatusBegin($"Запрос в логистику: {sb}");
         }
 
-        private float TotalMass()           //метод расчета общей массы ВСЕХ деталей
+        private float GetTotalMass()           //метод расчета общей массы ВСЕХ деталей
         {
             float total = 0;
 
