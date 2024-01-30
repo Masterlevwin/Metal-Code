@@ -57,6 +57,19 @@ namespace Metal_Code
 
         private void Tuning()               // настройка блока после инициализации
         {
+            for (int i = 0; i < MainWindow.M.Destinies.Count; i++)
+            {
+                if (MainWindow.M.Destinies[i] <= 3) WideDict[MainWindow.M.Destinies[i]] = 0;
+                else WideDict[MainWindow.M.Destinies[i]] = (float)Math.Round(0.1f * (i + 2) - 1, 1);
+            }
+
+            for (int j = 0; j < MainWindow.M.Metals.Count; j++)
+            {
+                if (j < 3) MetalRatioDict[MainWindow.M.Metals[j]] = 0;
+                else if (j < 11) MetalRatioDict[MainWindow.M.Metals[j]] = .5f;
+                else MetalRatioDict[MainWindow.M.Metals[j]] = 2;
+            }
+
             if (owner is WorkControl work)
             {
                 work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
@@ -88,22 +101,6 @@ namespace Metal_Code
                         break;
                     }
             }
-
-            string dict = string.Empty;
-            for (int i = 0; i < MainWindow.M.Destinies.Count; i++)
-            {
-                if (MainWindow.M.Destinies[i] <= 3) WideDict[MainWindow.M.Destinies[i]] = 1;
-                else WideDict[MainWindow.M.Destinies[i]] = 0.1f * (i + 2);
-            }
-
-            for (int j = 0; j < MainWindow.M.Metals.Count; j++)
-            {
-                if (j < 3) MetalRatioDict[MainWindow.M.Metals[j]] = 1;
-                else if (j < 11) MetalRatioDict[MainWindow.M.Metals[j]] = 1.5f;
-                else MetalRatioDict[MainWindow.M.Metals[j]] = 3;
-                dict += $"{MainWindow.M.Metals[j]}-{MetalRatioDict[MainWindow.M.Metals[j]]}\n";
-            }
-            MessageBox.Show(dict);
         }
 
         private void SetWide(object sender, TextChangedEventArgs e)
@@ -126,7 +123,11 @@ namespace Metal_Code
             OnPriceChanged();
         }
 
+        Dictionary<double, float> WideDict = new();
+        Dictionary<Metal, float> MetalRatioDict = new();
+
         private int minute = 4;     // минимальное время изготовления одного изделия, мин
+
         //public void OnPriceChanged()
         //{
         //    if (owner is not WorkControl work) return;
@@ -201,35 +202,33 @@ namespace Metal_Code
         //    }
         //}
 
-        Dictionary<double, float> WideDict = new();
-        Dictionary<Metal, float> MetalRatioDict = new();
         public void OnPriceChanged()
         {
-            if (owner is not WorkControl work || work.WorkDrop.SelectedItem is not Work _work || work.type.MetalDrop.SelectedItem is not Metal _metal) return;
+            if (owner is not WorkControl work || work.WorkDrop.SelectedItem is not Work _work) return;
 
             float price = 0;
 
             if (Parts != null && Parts.Count > 0)
             {
                 foreach (PartControl p in Parts)
-                    foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
-                    {
-                        if (WideDict.ContainsKey(work.type.S) && WideDict.ContainsKey(item.Wide))
-                        {
-                            float _time = minute * (WideDict[work.type.S] + WideDict[item.Wide] + MetalRatioDict[_metal] + MainWindow.MassRatio(p.Part.Mass));
-
-                            // стоимость резьбы одного диаметра должна быть не ниже минимальной
-                            price += _work.Price / p.Part.Count + _time * 2000 / 60;
-                        }
-                    }
+                    foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) if (item.Holes > 0)
+                        price += (_work.Price / p.Part.Count / item.Holes + Time(p.Part.Mass, item.Wide, work) * 2000 / 60) * p.Part.Count * item.Holes;
             }
-            else if (WideDict.ContainsKey(work.type.S) && WideDict.ContainsKey(Wide))
+            else if (work.type.Mass > 0)
             {
-                float _time = minute * (WideDict[work.type.S] + WideDict[Wide] + MetalRatioDict[_metal] + MainWindow.MassRatio(work.type.Mass));
+                if (Wide == 0 || Holes == 0) return;
 
-                price = _work.Price / work.type.Count + _time * 2000 / 60;
+                price = (_work.Price / work.type.Count / Holes + Time(work.type.Mass, Wide, work) * 2000 / 60) * work.type.Count * Holes;
             }
             work.SetResult(price, false);
+        }
+
+        private float Time(float _mass, float _wide, WorkControl work)
+        {
+            if (work.type.MetalDrop.SelectedItem is not Metal metal) return 0;
+
+            return WideDict.ContainsKey(work.type.S) && WideDict.ContainsKey(_wide) ?
+                minute * (WideDict[work.type.S] + WideDict[_wide] + MetalRatioDict[metal] + MainWindow.MassRatio(_mass)) : 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
@@ -254,16 +253,12 @@ namespace Metal_Code
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + Р ")) p.Part.Description += " + Р ";
 
                     foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим резьбу среди работ и получаем её минималку
-                        if (_w.workType is ThreadControl && _w.WorkDrop.SelectedItem is Work _work && _w.type.MetalDrop.SelectedItem is Metal _metal)
+                        if (_w.workType is ThreadControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
-                            if (WideDict.ContainsKey(_w.type.S) && WideDict.ContainsKey(Wide))
-                            {
-                                float _time = minute * (WideDict[_w.type.S] + WideDict[Wide] + MetalRatioDict[_metal] + MainWindow.MassRatio(p.Part.Mass));
-
-                                p.Part.Price += _work.Price / p.Part.Count + _time * 2000 / 60;
-                                p.Part.Accuracy += $" + {(float)Math.Round(_work.Price / p.Part.Count + _time * 2000 / 60, 2)}(р)";
-                                break;
-                            }
+                            p.Part.Price += (_work.Price / p.Part.Count / Holes + Time(p.Part.Mass, Wide, p.Cut.work) * 2000 / 60) * Holes * _w.Ratio;
+                            p.Part.Accuracy += $" + {(float)Math.Round((_work.Price / p.Part.Count / Holes
+                                + Time(p.Part.Mass, Wide, p.Cut.work) * 2000 / 60) * Holes * _w.Ratio, 2)}(р)";
+                            break;
                         }
                 }
             }

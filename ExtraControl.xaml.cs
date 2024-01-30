@@ -62,7 +62,6 @@ namespace Metal_Code
         private void SetName(string _name)
         {
             if (_name != null && _name != "") NameExtra = _name;
-            //OnPriceChanged();
         }
 
         private void SetPrice(object sender, TextChangedEventArgs e)

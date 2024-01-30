@@ -309,14 +309,14 @@ namespace Metal_Code
                     foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим сварку среди работ и получаем её минималку
                         if (_w.workType is WeldControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
-                            if (price > 0 && price < _work.Price)
+                            if (price > 0 && price < _work.Price)                   // если расчетная стоимость ниже минимальной,
                             {
-                                p.Part.Price += _work.Price * _w.Ratio / count;  // если расчетная стоимость ниже минимальной,
-                                p.Part.Accuracy += $" + {(float)Math.Round(_work.Price * _w.Ratio / count, 2)}(с)";// к цене детали добавляем усредненную часть минималки от общего количества деталей
+                                p.Part.Price += _work.Price * _w.Ratio / count;     // к цене детали добавляем усредненную часть минималки от общего количества деталей
+                                p.Part.Accuracy += $" + {(float)Math.Round(_work.Price * _w.Ratio / count, 2)}(с)";
                             }
-                            else
+                            else                                                    // иначе добавляем часть от количества именно этой детали
                             {                            
-                                p.Part.Price += Price(ParserWeld(Weld) * p.Part.Count, p.Cut.work) * _w.Ratio / p.Part.Count;   // иначе добавляем часть от количества именно этой детали                
+                                p.Part.Price += Price(ParserWeld(Weld) * p.Part.Count, p.Cut.work) * _w.Ratio / p.Part.Count;
                                 p.Part.Accuracy += $" + {(float)Math.Round(Price(ParserWeld(Weld) * p.Part.Count, p.Cut.work) * _w.Ratio / p.Part.Count, 2)}(с)";
                             }
                             break;

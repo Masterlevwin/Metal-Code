@@ -723,10 +723,11 @@ namespace Metal_Code
                                 foreach (Part p in _cut.PartDetails)
                                 {
                                     p.Description = "Л";
+                                    p.Accuracy = $"H14/h14 +-IT 14/2";
                                     p.Price = 0;
                                     p.PropsDict.Clear();
                                     //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
-                                    if (CheckConstruct.IsChecked != null)
+                                    if (CheckConstruct.IsChecked == true)
                                     {
                                         p.Price += Construct / DetailControls.Count /
                                         DetailControls.SingleOrDefault(d => d.Detail.IsComplect).TypeDetailControls.Count /
