@@ -87,7 +87,7 @@ namespace Metal_Code
                         break;
                     case "Milling":
                         foreach (PartControl p in Parts)
-                            foreach (MillingControl item in p.UserControls.OfType<MillingControl>()) item.SetHoles(tBox.Text);
+                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) item.SetHoles(tBox.Text);
                         break;
                 }
             }

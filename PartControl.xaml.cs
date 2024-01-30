@@ -39,7 +39,7 @@ namespace Metal_Code
                     case "PaintBtn":
                         AddControl(2);
                         break;
-                    case "MillingBtn":
+                    case "ThreadBtn":
                         AddControl(3);
                         break;
                 }
@@ -58,7 +58,7 @@ namespace Metal_Code
                     AddControl(new PaintControl(this));
                     break;
                 case 3:
-                    AddControl(new MillingControl(this));
+                    AddControl(new ThreadControl(this));
                     break;
             }
         }

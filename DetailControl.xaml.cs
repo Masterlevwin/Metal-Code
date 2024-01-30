@@ -84,8 +84,6 @@ namespace Metal_Code
             Detail.IsComplect = true;
             SetName("Комплект деталей");
             DetailName.IsEnabled = false;
-
-            MainWindow.M.StatusBegin($"Важно: все работы, кроме гибки, сварки, окраски и резьбовки, определенные в \"Комплекте деталей\", учитываться в КП не будут!");
         }
 
         private void SetCount(object sender, TextChangedEventArgs e)    // свойство временно не используется, так как заказчик посчитал его ненужным

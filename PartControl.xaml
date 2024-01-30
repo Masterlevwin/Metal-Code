@@ -15,6 +15,6 @@
         <Button x:Name="BendBtn" Content="Г+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="55,68,0,0" VerticalAlignment="Top" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
         <Button x:Name="WeldBtn" Content="С+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="71,68,0,0" VerticalAlignment="Top" ToolTip="Добавить сварку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
         <Button x:Name="PaintBtn" Content="О+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="88,68,0,0" VerticalAlignment="Top" ToolTip="Добавить окраску" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
-        <Button x:Name="MillingBtn" Content="М+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="106,68,0,0" VerticalAlignment="Top" ToolTip="Добавить мех обработку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
+        <Button x:Name="ThreadBtn" Content="Р+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="106,68,0,0" VerticalAlignment="Top" ToolTip="Добавить резьбу" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
     </Grid>
 </UserControl>

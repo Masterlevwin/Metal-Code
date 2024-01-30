@@ -93,10 +93,10 @@ namespace Metal_Code
             }
         }
 
-        private readonly List<double> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25 };
         private readonly Dictionary<string, float> TempWorks = new();
-        public Dictionary<string, Dictionary<double, (float, float, float)>> MetalDict = new();
 
+        public readonly List<double> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25 };
+        public Dictionary<string, Dictionary<double, (float, float, float)>> MetalDict = new();
         private void CreateMetalDict()
         {
             foreach (Metal metal in Metals)
@@ -115,7 +115,6 @@ namespace Metal_Code
                 }
             }
         }
-
         private void OpenSettings(object sender, RoutedEventArgs e)
         {
             IsEnabled = false;
@@ -1217,7 +1216,7 @@ namespace Metal_Code
                     if (cell.Value != null && $"{cell.Value}".Contains("Г ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Г ")) worksheet.Cells[row + 5, 2].Value += "Г - Гибка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("С ")) worksheet.Cells[row + 5, 2].Value += "С - Сварка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("О ")) worksheet.Cells[row + 5, 2].Value += "О - Окраска ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Р ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Р ")) worksheet.Cells[row + 5, 2].Value += "Р - Резьбовка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Р ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Р ")) worksheet.Cells[row + 5, 2].Value += "Р - Резьба ";
                 }
                 worksheet.Cells[row + 5, 2, row + 5, 5].Merge = true;
             }
@@ -1728,6 +1727,20 @@ namespace Metal_Code
             foreach (DetailControl det in DetailControls.Where(d => !d.Detail.IsComplect)) total += det.Detail.Mass;
 
             return (float)Math.Ceiling(total);      //округляем до целого в большую сторону
+        }
+
+        public static float MassRatio(float _mass)
+        {
+            float _massRatio = _mass switch
+            {
+                <= 5 => 1,
+                <= 10 => 1.2f,
+                <= 20 => 1.4f,
+                <= 50 => 1.6f,
+                <= 100 => 2,
+                _ => 3,
+            };
+            return _massRatio;
         }
     }
 }

@@ -46,7 +46,7 @@ namespace Metal_Code
                         case "PaintBtn":
                             p.AddControl(2);
                             break;
-                        case "MillingBtn":
+                        case "ThreadBtn":
                             p.AddControl(3);
                             break;
                     }
@@ -76,9 +76,9 @@ namespace Metal_Code
                         foreach (PartControl p in Parts)
                             foreach (PaintControl item in p.UserControls.OfType<PaintControl>()) item.SetRal(tBox.Text);
                         break;
-                    case "Milling":
+                    case "Holes":
                         foreach (PartControl p in Parts)
-                            foreach (MillingControl item in p.UserControls.OfType<MillingControl>()) item.SetHoles(tBox.Text);
+                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) item.SetHoles(tBox.Text);
                         break;
                 }
             }
@@ -129,10 +129,10 @@ namespace Metal_Code
                             p.UserControls.FirstOrDefault(u => u is PaintControl))).Union(Parts.Where(p => !p.UserControls.Contains(
                             p.UserControls.FirstOrDefault(u => u is PaintControl)))).ToList();
                         break;
-                    case "М>":
+                    case "Р>":
                         partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is MillingControl))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is MillingControl)))).ToList();
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl)))).ToList();
                         break;
                 }
         }

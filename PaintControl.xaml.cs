@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Windows;
 using System.Windows.Controls;
 
 namespace Metal_Code
@@ -77,10 +75,6 @@ namespace Metal_Code
                         part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
                         break;
                     }
-
-                //if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска"))
-                //    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Окраска") is Work _w)
-                //    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
             }
         }
 

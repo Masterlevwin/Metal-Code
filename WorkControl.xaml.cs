@@ -143,11 +143,11 @@ namespace Metal_Code
                     Grid.SetColumn(paint, 1);
                     workType = paint;
                     break;
-                case "Резьбовка":
-                    MillingControl milling = new(this);
-                    WorkGrid.Children.Add(milling);
-                    Grid.SetColumn(milling, 1);
-                    workType = milling;
+                case "Резьба":
+                    ThreadControl thread = new(this);
+                    WorkGrid.Children.Add(thread);
+                    Grid.SetColumn(thread, 1);
+                    workType = thread;
                     break;
                 case "Доп работа":
                     ExtraControl extra = new(this);
@@ -158,7 +158,6 @@ namespace Metal_Code
                 case "Труборез":
                     if (type.det.Detail.IsComplect)
                     {
-                        MainWindow.M.StatusBegin($"Важно: все работы, кроме гибки, сварки, окраски и резьбовки, определенные в \"Комплекте деталей\", учитываться в КП не будут!");
                         WorkDrop.SelectedIndex = -1;
                         return;
                     }
@@ -170,7 +169,6 @@ namespace Metal_Code
                 default:
                     if (type.det.Detail.IsComplect)
                     {
-                        MainWindow.M.StatusBegin($"Важно: все работы, кроме гибки, сварки, окраски и резьбовки, определенные в \"Комплекте деталей\", учитываться в КП не будут!");
                         WorkDrop.SelectedIndex = -1;
                         return;
                     }
@@ -178,7 +176,7 @@ namespace Metal_Code
                     break;
             }
 
-            if (workType is not BendControl && workType is not ExtraControl && workType is not MillingControl && ValidateProp(out int index))
+            if (workType is not BendControl && workType is not ExtraControl && workType is not ThreadControl && ValidateProp(out int index))
             {
                 if (WorkDrop.Items.Count <= index) MessageBox.Show($"Такая работа уже есть!\nУдалите лишнее!");
                 else WorkDrop.SelectedIndex = index;
