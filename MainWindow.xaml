@@ -43,6 +43,10 @@
             </MenuItem>
             <MenuItem Header="О программе">
                 <MenuItem Header="Очень краткое руководство" Click="OpenExample"/>
+                <MenuItem Header="Тетирование">
+                    <TextBox x:Name="Wide" Style="{DynamicResource TextBoxStyle}" ToolTip="Введите диаметр отверстия" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" TextChanged="Test" Text="Ø"/>
+                    <TextBox x:Name="Holes" Style="{DynamicResource TextBoxStyle}" ToolTip="Введите количество отверстий" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" TextChanged="Test" Text="N"/>
+                </MenuItem>
                 <TextBlock x:Name="Version" Style="{DynamicResource TextBlockStyle}" />
             </MenuItem>
         </Menu>

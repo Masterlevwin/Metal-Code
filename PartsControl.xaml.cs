@@ -76,6 +76,10 @@ namespace Metal_Code
                         foreach (PartControl p in Parts)
                             foreach (PaintControl item in p.UserControls.OfType<PaintControl>()) item.SetRal(tBox.Text);
                         break;
+                    case "Wide":
+                        foreach (PartControl p in Parts)
+                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) item.SetWide(tBox.Text);
+                        break;
                     case "Holes":
                         foreach (PartControl p in Parts)
                             foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) item.SetHoles(tBox.Text);

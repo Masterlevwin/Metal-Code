@@ -107,9 +107,9 @@ namespace Metal_Code
         {
             if (sender is TextBox tBox) SetWide(tBox.Text);
         }
-        private void SetWide(string _wide)
+        public void SetWide(string _wide)
         {
-            if (int.TryParse(_wide, out int d)) Wide = d;
+            if (float.TryParse(_wide, out float d)) Wide = d;
             OnPriceChanged();
         }
 
@@ -227,8 +227,8 @@ namespace Metal_Code
         {
             if (work.type.MetalDrop.SelectedItem is not Metal metal) return 0;
 
-            return WideDict.ContainsKey(work.type.S) && WideDict.ContainsKey(_wide) ?
-                minute * (WideDict[work.type.S] + WideDict[_wide] + MetalRatioDict[metal] + MainWindow.MassRatio(_mass)) : 0;
+            return WideDict.ContainsKey(work.type.S) && WideDict.ContainsKey(Math.Round(_wide)) ?
+                minute * (WideDict[work.type.S] + WideDict[Math.Round(_wide)] + MetalRatioDict[metal] + MainWindow.MassRatio(_mass)) : 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)

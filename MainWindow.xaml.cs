@@ -628,14 +628,31 @@ namespace Metal_Code
                 return calcBusinessDays;
             }
         }
-        private DateTime? EndDate()
-        {
-            if (int.TryParse(DateProduction.Text, out int d)) return DateTime.Now.AddDays(d);
-            else return null;
-        }
+
         private string? DateFormat(DateTime? date)
         {
             return date?.ToString("d MMM");
+        }
+
+        private DateTime? EndDate()
+        {
+            if (int.TryParse(DateProduction.Text, out int days))
+            {
+                DateTime _date;
+                int workDays = days;
+
+                for (int i = 0; i <= days; i++)
+                {
+                    _date = DateTime.Now.AddDays(i);
+                    if (_date.DayOfWeek == DayOfWeek.Saturday || _date.DayOfWeek == DayOfWeek.Sunday) workDays++;
+                }
+
+                if (DateTime.Now.AddDays(workDays).DayOfWeek == DayOfWeek.Saturday) workDays++;
+                if (DateTime.Now.AddDays(workDays).DayOfWeek == DayOfWeek.Sunday) workDays++;
+
+                return DateTime.Now.AddDays(workDays);
+            }
+            else return null;
         }
 
         public Product SaveProduct()
@@ -1712,7 +1729,7 @@ namespace Metal_Code
             else sb.Append($", №{Order.Text}");
 
             sb.Append($", {Company.Text}({ShortManager()})");   //добавляем заказчика и менеджера в сокращенном виде
-            sb.Append($", примерно {GetTotalMass()} кг;");         //добавляем массу всех деталей
+            sb.Append($", примерно {GetTotalMass()} кг;");      //добавляем массу всех деталей
             sb.Append($" {Adress.Text}");                       //и, наконец, адрес доставки и контакт
 
             StatusBegin($"Запрос в логистику: {sb}");
@@ -1742,6 +1759,35 @@ namespace Metal_Code
                 _ => 3,
             };
             return _massRatio;
+        }
+
+
+        private void Test(object sender, TextChangedEventArgs e)
+        {
+            if (float.TryParse(Wide.Text, out float wide) && int.TryParse(Holes.Text, out int holes)) Test(wide, holes);
+        }
+        private void Test(float wide, int holes)
+        {
+            NewProject();
+            DetailControls[0].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedIndex = 4;
+            DetailControls[0].TypeDetailControls[^1].A = DetailControls[0].TypeDetailControls[^1].B = 500;
+            for (int i = 0; i < Destinies.Count; i++)
+            {
+                DetailControls[0].TypeDetailControls[^1].A = DetailControls[0].TypeDetailControls[^1].B = 500;
+                DetailControls[0].TypeDetailControls[^1].S = (float)Destinies[i];
+                DetailControls[0].TypeDetailControls[^1].Count = 1;
+                if (DetailControls[0].TypeDetailControls[^1].WorkControls[^1].workType is ThreadControl thread)
+                {
+                    thread.SetWide($"{wide}");
+                    thread.SetHoles($"{holes}");
+                }
+
+                if (DetailControls[0].TypeDetailControls.Count < Destinies.Count)
+                {
+                    DetailControls[0].AddTypeDetail();
+                    DetailControls[0].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedIndex = 4;
+                }
+            }
         }
     }
 }
