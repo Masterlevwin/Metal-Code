@@ -423,7 +423,7 @@ namespace Metal_Code
                 if (_man != null)
                 {
                     Offers = _man.Offers;
-                    OffersGrid.ItemsSource = Offers;
+                    OffersGrid.ItemsSource = Offers.TakeLast(20);       //показываем последние 20 расчетов
 
                     OffersGrid.Columns[0].Header = "N";
                     OffersGrid.Columns[1].Header = "Компания";
@@ -1508,27 +1508,23 @@ namespace Metal_Code
             Application.Current.Resources.MergedDictionaries.Add(resourceDict);
         }
 
-        public void CreateReport(string path, string report)           //метод создания отчета...
+        private void CreateReport(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is Calendar calendar)
+            {
+                StatusBegin($"{calendar.DisplayDate:MM}");
+            }
+        }
+
+        public void CreateReport(string path)           //метод создания отчета...
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
             using var workbook = new ExcelPackage();
             ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("Лист1");
-
-            ObservableCollection<Offer> _offers = new();
-            if (report != null)
-            {
-                if (report == "По заказам" && ManagerDrop.SelectedItem is Manager)              //...по оплаченнным заказам менеджера
-                {
-                    //создаем новый список КП, которые выложены в работу, т.е. оплачены и имеют номер заказа
-                    _offers = new(Offers.Where(o => o.Order is not null and not "").ToList());
-                }
-                else if (report == "По расчетам")                                               //...по выполненным расчетам инженера
-                {
-                    //создаем новый список КП, которые выполнены определенным инженером или менеджером
-                    _offers = new(Offers.Where(a => a.Autor == CurrentManager.Name));           //придумать возможность выбора инженера!
-                }
-            }
+            
+                //создаем новый список КП, которые выложены в работу, т.е. оплачены и имеют номер заказа
+            ObservableCollection<Offer> _offers = new(Offers.Where(o => o.Order is not null and not "").ToList());
 
             List<string> _headers = new() { "дата", "№счета", "проект", "№заказа", "работа", "металл", "Итого" };
             List<Offer> _agentFalse = new();    //ООО

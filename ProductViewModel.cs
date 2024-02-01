@@ -111,7 +111,7 @@ namespace Metal_Code
                               string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
                               + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
                               
-                              MainWindow.M.CreateReport(dialogService.FilePaths[0], $"{obj}");
+                              MainWindow.M.CreateReport(dialogService.FilePaths[0]);
                               MainWindow.M.StatusBegin($"Создан отчёт за {DateTime.Now.Month}");
                           }
                       }

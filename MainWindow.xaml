@@ -23,14 +23,13 @@
               Command="{Binding UpdateCommand}"/>
     </Window.InputBindings>
     <Grid x:Name="MenuGrid">
-        <Menu VerticalAlignment="Top" RenderTransformOrigin="0.499,-1.337" Grid.ColumnSpan="2" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" Padding="10,0,0,0" FontFamily="Leelawadee UI">
+        <Menu VerticalAlignment="Top" Grid.ColumnSpan="2" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" Padding="10,0,0,0" FontFamily="Leelawadee UI">
             <MenuItem Header="_Файл">
                 <MenuItem Header="_Новый проект" Command="{Binding NewProjectCommand}" InputGestureText="Ctrl+A"/>
                 <MenuItem Header="_Открыть" Command="{Binding OpenCommand}" InputGestureText="Ctrl+S"/>
                 <MenuItem Header="_Сохранить" Command="{Binding SaveCommand}" InputGestureText="Ctrl+D"/>
-                <MenuItem Header="_Получить отчет">
-                    <MenuItem Header="По оплаченным _заказам" Command="{Binding SaveReportCommand}" CommandParameter="По заказам"/>
-                    <MenuItem Header="По выполненным _расчетам" Command="{Binding SaveReportCommand}" CommandParameter="По расчетам"/>
+                <MenuItem Header="_Получить отчет за месяц">
+                    <Calendar SelectionMode="SingleRange" SelectedDatesChanged="CreateReport" />
                 </MenuItem>
                 <Separator/>
                 <MenuItem Header="_Выход" Click="Exit"/>
