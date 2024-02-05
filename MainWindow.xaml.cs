@@ -424,8 +424,17 @@ namespace Metal_Code
                 {
                     Offers = _man.Offers;
 
-                    if (!allOffers) OffersGrid.ItemsSource = Offers.TakeLast(count);        //показываем последние "count" расчетов
-                    else OffersGrid.ItemsSource = Offers;                                   //если пользователь хочет увидеть все расчеты
+                    if (!allOffers)
+                    {
+                        OffersGrid.ItemsSource = Offers.TakeLast(count);        //показываем последние "count" расчетов
+                        OffersGrid.IsReadOnly = true;
+                    }
+                    else
+                    {
+                        OffersGrid.ItemsSource = Offers;                                   //если пользователь хочет увидеть все расчеты
+                        OffersGrid.IsReadOnly = false;
+                    }
+                    
 
                     OffersGrid.Columns[0].Header = "N";
                     OffersGrid.Columns[1].Header = "Компания";

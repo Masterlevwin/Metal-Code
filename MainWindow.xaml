@@ -33,7 +33,7 @@
                     <Calendar x:Name="ReportCalendar" SelectionMode="SingleRange" IsTodayHighlighted="False"/>
                     <Button Style="{DynamicResource ButtonStyle}" Content="Подтвердить" Command="{Binding SaveReportCommand}"/>
                 </MenuItem>
-            <Separator/>
+                <Separator/>
                 <MenuItem Header="_Выход" Click="Exit"/>
             </MenuItem>
             <MenuItem x:Name="Settings" Header="Параметры">
@@ -122,9 +122,9 @@
                     </Button>
                     <Expander HorizontalAlignment="Left" VerticalAlignment="Top" Header="Кол-во расчетов" Margin="430,160,0,0" ToolTip="По умолчанию показывается до 20 последних расчетов">
                         <Grid Background="#FFE5E5E5">
-                            <RadioButton Content="Показать" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,5,0,0"/>
+                            <RadioButton x:Name="CountRB" Content="Показать" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,5,0,0"/>
                             <RadioButton Content="Показать все" Margin="10,50,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="ViewAllOffers"/>
-                            <TextBox TextWrapping="Wrap" MinWidth="50" MinHeight="20" IsEnabled="{Binding IsChecked, ElementName=radioButton}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="30,25,0,0" TextChanged="ViewOffers" ToolTip="Укажите, сколько расчетов показать"/>
+                            <TextBox MinWidth="50" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="30,25,0,0" TextChanged="ViewOffers" ToolTip="Укажите, сколько расчетов показать" IsEnabled="{Binding IsChecked, ElementName=CountRB}"/>
                         </Grid>
                     </Expander>
                 </Grid>
