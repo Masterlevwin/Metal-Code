@@ -4,8 +4,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
-using System.IO;
 
 namespace Metal_Code
 {
@@ -166,9 +164,6 @@ namespace Metal_Code
         [Browsable(false)]
         public float Services { get; set; }
 
-        public DateTime? CreatedDate { get; set; }
-        public DateTime? EndDate { get; set; }
-
         [ConcurrencyCheck]
         public string? Invoice { get; set; }
         [ConcurrencyCheck]
@@ -176,6 +171,8 @@ namespace Metal_Code
         [ConcurrencyCheck]
         public string? Act { get; set; }
         public string? Autor { get; set; }
+        public DateTime? CreatedDate { get; set; }
+        public DateTime? EndDate { get; set; }
 
         [Browsable(false)]
         public Manager? Manager { get; set; }

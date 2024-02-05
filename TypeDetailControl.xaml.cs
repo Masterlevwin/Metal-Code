@@ -376,7 +376,7 @@ namespace Metal_Code
                         Mass = A * A * L * metal.Density / 1000000;
                         break;
                     case "Швеллер":
-                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1) Mass = Channels[SortDrop.SelectedIndex];
+                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1) Mass = Channels[SortDrop.SelectedIndex] * L / 1000;
                         break;
                     case "Полиуретан":
                         Mass = A * B * S * 1.2f / 1000000;
@@ -432,7 +432,7 @@ namespace Metal_Code
         private void ViewPopupMass(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
             PopupMass.IsOpen = true;
-            MassPrice.Text = $"Масса заготовки\n{(float)Math.Round(Mass, 2)} кг";
+            MassPrice.Text = $"Масса 1 заготовки\n{(float)Math.Round(Mass, 2)} кг\nОбщая масса\n{(float)Math.Round(Mass * Count, 2)} кг";
         }
     }
 }

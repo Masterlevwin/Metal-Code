@@ -112,7 +112,7 @@ namespace Metal_Code
                               + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
                               
                               MainWindow.M.CreateReport(dialogService.FilePaths[0]);
-                              MainWindow.M.StatusBegin($"Создан отчёт за {DateTime.Now.Month}");
+                              //MainWindow.M.StatusBegin($"Создан отчёт за {DateTime.Now.Month:MM}");
                           }
                       }
                       catch (Exception ex)

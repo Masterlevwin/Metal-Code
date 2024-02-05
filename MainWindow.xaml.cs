@@ -412,7 +412,7 @@ namespace Metal_Code
         {
             if (ManagerDrop.SelectedItem is Manager man) ViewOffersGrid(man);
         }
-        private void ViewOffersGrid(Manager man)
+        private void ViewOffersGrid(Manager man, bool allOffers = false, int count = 20)
         {
             using ManagerContext db = new();
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
@@ -423,20 +423,23 @@ namespace Metal_Code
                 if (_man != null)
                 {
                     Offers = _man.Offers;
-                    OffersGrid.ItemsSource = Offers.TakeLast(20);       //показываем последние 20 расчетов
+
+                    if (!allOffers) OffersGrid.ItemsSource = Offers.TakeLast(count);        //показываем последние "count" расчетов
+                    else OffersGrid.ItemsSource = Offers;                                   //если пользователь хочет увидеть все расчеты
 
                     OffersGrid.Columns[0].Header = "N";
                     OffersGrid.Columns[1].Header = "Компания";
                     OffersGrid.Columns[2].Header = "Итого, руб.";
                     OffersGrid.Columns[3].Header = "Материал, руб.";
-                    OffersGrid.Columns[4].Header = "Дата создания";
-                    (OffersGrid.Columns[4] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
-                    OffersGrid.Columns[5].Header = "Дата отгрузки";
-                    (OffersGrid.Columns[5] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
-                    OffersGrid.Columns[6].Header = "Счёт";
-                    OffersGrid.Columns[7].Header = "Заказ";
-                    OffersGrid.Columns[8].Header = "УПД / Акт";
-                    OffersGrid.Columns[9].Header = "Автор";
+                    OffersGrid.Columns[4].Header = "Счёт";
+                    OffersGrid.Columns[5].Header = "Заказ";
+                    OffersGrid.Columns[6].Header = "УПД / Акт";
+                    OffersGrid.Columns[7].Header = "Автор";
+                    OffersGrid.Columns[8].Header = "Дата создания";
+                    (OffersGrid.Columns[8] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
+                    OffersGrid.Columns[9].Header = "Дата отгрузки";
+                    (OffersGrid.Columns[9] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
+
                     OffersGrid.FrozenColumnCount = 2;
 
                     //если список КП принадлежит текущему менеджеру, разрешаем ему удалять эти КП
@@ -444,6 +447,15 @@ namespace Metal_Code
                     //    if (item.Name == "DeleteOffer") item.IsEnabled = CurrentManager == man;
                 }
             }
+        }
+
+        private void ViewOffers(object sender, TextChangedEventArgs e)      //метод, в котором мы показываем введенное пользователем количество расчетов 
+        {
+            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count) && ManagerDrop.SelectedItem is Manager man) ViewOffersGrid(man, false, count);
+        }
+        private void ViewAllOffers(object sender, RoutedEventArgs e)        //метод, в котором мы показываем все расчеты выбранного менеджера
+        {
+            if (sender is RadioButton rBtn && rBtn.IsChecked == true && ManagerDrop.SelectedItem is Manager man) ViewOffersGrid(man, true);
         }
 
         private void OffersFormatting(object sender, DataGridRowEventArgs e)    // при загрузке строк (OffersGrid.LoadingRow="OffersFormatting")
@@ -1508,23 +1520,16 @@ namespace Metal_Code
             Application.Current.Resources.MergedDictionaries.Add(resourceDict);
         }
 
-        private void CreateReport(object sender, SelectionChangedEventArgs e)
-        {
-            if (sender is Calendar calendar)
-            {
-                StatusBegin($"{calendar.DisplayDate:MM}");
-            }
-        }
-
         public void CreateReport(string path)           //метод создания отчета...
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
             using var workbook = new ExcelPackage();
             ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("Лист1");
-            
+                            
                 //создаем новый список КП, которые выложены в работу, т.е. оплачены и имеют номер заказа
-            ObservableCollection<Offer> _offers = new(Offers.Where(o => o.Order is not null and not "").ToList());
+            List<Offer> _offers = new(Offers.Where(o => o.Order is not null and not ""
+                                                && o.CreatedDate >= ReportCalendar.SelectedDates[0] && o.CreatedDate <= ReportCalendar.SelectedDates[^1]));
 
             List<string> _headers = new() { "дата", "№счета", "проект", "№заказа", "работа", "металл", "Итого" };
             List<Offer> _agentFalse = new();    //ООО

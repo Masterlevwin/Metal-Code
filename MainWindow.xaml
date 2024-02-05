@@ -23,15 +23,17 @@
               Command="{Binding UpdateCommand}"/>
     </Window.InputBindings>
     <Grid x:Name="MenuGrid">
-        <Menu VerticalAlignment="Top" Grid.ColumnSpan="2" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" Padding="10,0,0,0" FontFamily="Leelawadee UI">
+        <Menu VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" Padding="10,0,0,0" FontFamily="Leelawadee UI">
             <MenuItem Header="_Файл">
                 <MenuItem Header="_Новый проект" Command="{Binding NewProjectCommand}" InputGestureText="Ctrl+A"/>
                 <MenuItem Header="_Открыть" Command="{Binding OpenCommand}" InputGestureText="Ctrl+S"/>
                 <MenuItem Header="_Сохранить" Command="{Binding SaveCommand}" InputGestureText="Ctrl+D"/>
-                <MenuItem Header="_Получить отчет за месяц">
-                    <Calendar SelectionMode="SingleRange" SelectedDatesChanged="CreateReport" />
+                <MenuItem Header="_Получить отчет">
+                    <MenuItem Header="Выбрать даты"/>
+                    <Calendar x:Name="ReportCalendar" SelectionMode="SingleRange" IsTodayHighlighted="False"/>
+                    <Button Style="{DynamicResource ButtonStyle}" Content="Подтвердить" Command="{Binding SaveReportCommand}"/>
                 </MenuItem>
-                <Separator/>
+            <Separator/>
                 <MenuItem Header="_Выход" Click="Exit"/>
             </MenuItem>
             <MenuItem x:Name="Settings" Header="Параметры">
@@ -118,6 +120,13 @@
                     <Button Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,88,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Создать запрос в логистику" Padding="0" BorderThickness="0" Click="CreateDelivery" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}">
                         <Image Source="/Images/new.png"/>
                     </Button>
+                    <Expander HorizontalAlignment="Left" VerticalAlignment="Top" Header="Кол-во расчетов" Margin="430,160,0,0" ToolTip="По умолчанию показывается до 20 последних расчетов">
+                        <Grid Background="#FFE5E5E5">
+                            <RadioButton Content="Показать" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,5,0,0"/>
+                            <RadioButton Content="Показать все" Margin="10,50,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="ViewAllOffers"/>
+                            <TextBox TextWrapping="Wrap" MinWidth="50" MinHeight="20" IsEnabled="{Binding IsChecked, ElementName=radioButton}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="30,25,0,0" TextChanged="ViewOffers" ToolTip="Укажите, сколько расчетов показать"/>
+                        </Grid>
+                    </Expander>
                 </Grid>
             </GroupBox>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Right" Text="руб" VerticalAlignment="Top" Margin="0,40,30,0" Height="14" Width="19"/>
