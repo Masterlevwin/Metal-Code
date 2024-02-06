@@ -38,7 +38,7 @@ namespace Metal_Code
 
         public Manager CurrentManager = new();
         public ObservableCollection<Manager> Managers { get; set; } = new();
-        public ObservableCollection<Offer> Offers { get; set; } = new();
+        public List<Offer> Offers { get; set; } = new();
         public ObservableCollection<TypeDetail> TypeDetails { get; set; } = new();
         public ObservableCollection<Work> Works { get; set; } = new();
         public ObservableCollection<Metal> Metals { get; set; } = new();
@@ -422,19 +422,10 @@ namespace Metal_Code
                 Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
                 if (_man != null)
                 {
-                    Offers = _man.Offers;
+                    if (!allOffers) Offers = _man.Offers.TakeLast(count).ToList();  //показываем последние "count" расчетов
+                    else Offers = _man.Offers.ToList();                             //если пользователь хочет увидеть все расчеты
 
-                    if (!allOffers)
-                    {
-                        OffersGrid.ItemsSource = Offers.TakeLast(count);        //показываем последние "count" расчетов
-                        OffersGrid.IsReadOnly = true;
-                    }
-                    else
-                    {
-                        OffersGrid.ItemsSource = Offers;                                   //если пользователь хочет увидеть все расчеты
-                        OffersGrid.IsReadOnly = false;
-                    }
-                    
+                    OffersGrid.ItemsSource = Offers;
 
                     OffersGrid.Columns[0].Header = "N";
                     OffersGrid.Columns[1].Header = "Компания";
@@ -650,7 +641,7 @@ namespace Metal_Code
             }
         }
 
-        private string? DateFormat(DateTime? date)
+        public string? DateFormat(DateTime? date)
         {
             return date?.ToString("d MMM");
         }
@@ -1770,7 +1761,6 @@ namespace Metal_Code
             };
             return _massRatio;
         }
-
 
         private void Test(object sender, TextChangedEventArgs e)
         {
