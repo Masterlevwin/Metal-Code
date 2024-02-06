@@ -144,10 +144,16 @@ namespace Metal_Code
                     workType = paint;
                     break;
                 case "Резьба":
-                    ThreadControl thread = new(this);
+                    ThreadControl thread = new(this, 'Р');
                     WorkGrid.Children.Add(thread);
                     Grid.SetColumn(thread, 1);
                     workType = thread;
+                    break;
+                case "Зенковка":
+                    ThreadControl countersink = new(this, 'З');
+                    WorkGrid.Children.Add(countersink);
+                    Grid.SetColumn(countersink, 1);
+                    workType = countersink;
                     break;
                 case "Доп работа":
                     ExtraControl extra = new(this);

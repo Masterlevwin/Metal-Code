@@ -42,6 +42,9 @@ namespace Metal_Code
                     case "ThreadBtn":
                         AddControl(3);
                         break;
+                    case "CountersinkBtn":
+                        AddControl(4);
+                        break;
                 }
         }
         public void AddControl(int index)
@@ -58,7 +61,10 @@ namespace Metal_Code
                     AddControl(new PaintControl(this));
                     break;
                 case 3:
-                    AddControl(new ThreadControl(this));
+                    AddControl(new ThreadControl(this, 'Р'));
+                    break;
+                case 4:
+                    AddControl(new ThreadControl(this, 'З'));
                     break;
             }
         }

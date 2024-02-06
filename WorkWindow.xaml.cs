@@ -53,7 +53,8 @@ namespace Metal_Code
             {
                 Id = work.Id,
                 Name = work.Name,
-                Price = work.Price
+                Price = work.Price,
+                Time = work.Time
             });
 
             if (WorkSettings.ShowDialog() == true)
@@ -64,6 +65,7 @@ namespace Metal_Code
                 {
                     work.Name = WorkSettings.Work.Name;
                     work.Price = WorkSettings.Work.Price;
+                    work.Time = WorkSettings.Work.Time;
                     db.SaveChanges();
                     typesList.Items.Refresh();
                 }

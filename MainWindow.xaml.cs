@@ -68,7 +68,7 @@ namespace Metal_Code
             dbM.Database.EnsureCreated();
             dbM.Metals.Load();
             Metals = dbM.Metals.Local.ToObservableCollection();
-            CreateMetalDict();
+            InitializeDict();
 
             ViewLoginWindow();
         }
@@ -97,7 +97,10 @@ namespace Metal_Code
 
         public readonly List<double> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25 };
         public Dictionary<string, Dictionary<double, (float, float, float)>> MetalDict = new();
-        private void CreateMetalDict()
+        public Dictionary<double, float> WideDict = new();
+        public Dictionary<Metal, float> MetalRatioDict = new();
+
+        private void InitializeDict()
         {
             foreach (Metal metal in Metals)
             {
@@ -114,7 +117,21 @@ namespace Metal_Code
                     MetalDict[metal.Name] = prices;
                 }
             }
+
+            for (int i = 0; i < Destinies.Count; i++)
+            {
+                if (Destinies[i] <= 3) WideDict[Destinies[i]] = 0;
+                else WideDict[Destinies[i]] = (float)Math.Round(0.1f * (i + 2) - 1, 1);
+            }
+
+            for (int j = 0; j < Metals.Count; j++)
+            {
+                if (j < 3) MetalRatioDict[Metals[j]] = 0;
+                else if (j < 11) MetalRatioDict[Metals[j]] = .5f;
+                else MetalRatioDict[Metals[j]] = 2;
+            }
         }
+
         private void OpenSettings(object sender, RoutedEventArgs e)
         {
             IsEnabled = false;
