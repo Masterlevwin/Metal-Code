@@ -228,7 +228,7 @@ namespace Metal_Code
 
                 work.SetResult(price, false);
             }
-            else if (Weld != null && Weld != "")
+            else if (Weld != null && Weld != "" && work.type.Mass > 0)
             {
                 if (HasMinPrice()) work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work), false);
                 else work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work));               

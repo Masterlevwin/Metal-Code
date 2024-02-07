@@ -314,6 +314,7 @@ namespace Metal_Code
 
         private void ResultTextEnabled(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
+            SetCount(1);
             ResultText.IsReadOnly = false;
         }
 
