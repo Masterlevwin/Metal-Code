@@ -140,8 +140,11 @@ namespace Metal_Code
             get { return extraresult; }
             set
             {
-                extraresult = value;
-                OnPropertyChanged(nameof(ExtraResult));
+                if (value != extraresult)
+                {
+                    extraresult = value;
+                    OnPropertyChanged(nameof(ExtraResult));
+                }
             }
         }
 

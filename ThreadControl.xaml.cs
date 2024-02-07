@@ -92,16 +92,21 @@ namespace Metal_Code
                 //PartBtn.Click += (o, e) => { part.RemoveControl(this); };
 
                 foreach (WorkControl w in part.Cut.work.type.WorkControls)
-                    if (w.workType is ThreadControl) return;
+                    if (w.workType is ThreadControl thread && thread.CharName == CharName) return;
 
                 part.Cut.work.type.AddWork();
 
-                // добавляем "Резьбу" в список общих работ "Комплекта деталей"
-                foreach (Work w in MainWindow.M.Works) if (w.Name == "Резьба")
-                    {
-                        part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
+                // добавляем "Резьбу" или "Зенковку" в список общих работ "Комплекта деталей"
+                switch (CharName)
+                {
+                    case 'Р':
+                        part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Резьба");
                         break;
-                    }
+                    case 'З':
+                        part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Зенковка");
+                        break;
+
+                }
             }
         }
 
@@ -134,7 +139,7 @@ namespace Metal_Code
             if (Parts != null && Parts.Count > 0)
             {
                 foreach (PartControl p in Parts)
-                    foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) if (item.Holes > 0)
+                    foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) if (item.CharName == CharName && item.Holes > 0)
                         price += (_work.Price / p.Part.Count / item.Holes + Time(p.Part.Mass, item.Wide, work) * 2000 / 60) * p.Part.Count * item.Holes;
             }
             else if (work.type.Mass > 0)
@@ -172,15 +177,23 @@ namespace Metal_Code
                         return;
                     }
 
-                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{3}", $"{Wide}", $"{Holes}" };
-                    if (p.Part.Description != null && !p.Part.Description.Contains(" + Р ")) p.Part.Description += " + Р ";
+                    if (CharName == 'Р')
+                    {
+                        p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{3}", $"{Wide}", $"{Holes}" };
+                        if (p.Part.Description != null && !p.Part.Description.Contains(" + Р ")) p.Part.Description += " + Р ";
+                    }
+                    else if (CharName == 'З')
+                    {
+                        p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{4}", $"{Wide}", $"{Holes}" };
+                        if (p.Part.Description != null && !p.Part.Description.Contains(" + З ")) p.Part.Description += " + З ";
+                    }
 
-                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим резьбу среди работ и получаем её минималку
-                        if (_w.workType is ThreadControl && _w.WorkDrop.SelectedItem is Work _work)
+                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим резьбу или зенковку среди работ и получаем её минималку
+                        if (_w.workType is ThreadControl thread && thread.CharName == CharName && _w.WorkDrop.SelectedItem is Work _work)
                         {
-                            p.Part.Price += (_work.Price / p.Part.Count / Holes + Time(p.Part.Mass, Wide, p.Cut.work) * 2000 / 60) * Holes * _w.Ratio;
+                            p.Part.Price += (_work.Price / p.Part.Count / Holes + Time(p.Part.Mass, Wide, _w) * 2000 / 60) * Holes * _w.Ratio;
                             p.Part.Accuracy += $" + {(float)Math.Round((_work.Price / p.Part.Count / Holes
-                                + Time(p.Part.Mass, Wide, p.Cut.work) * 2000 / 60) * Holes * _w.Ratio, 2)}(р)";
+                                + Time(p.Part.Mass, Wide, _w) * 2000 / 60) * Holes * _w.Ratio, 2)}({CharName})";
                             break;
                         }
                 }

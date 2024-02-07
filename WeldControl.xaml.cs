@@ -188,10 +188,6 @@ namespace Metal_Code
                         part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
                         break;
                     }
-
-                //if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Сварка"))
-                //    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Сварка") is Work _w)
-                //    part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = _w;
             }
         }
 
@@ -286,7 +282,7 @@ namespace Metal_Code
                     w.propsList.Add($"{Weld}");
                     w.propsList.Add($"{TypeDrop.SelectedIndex}");
                 }
-                else if (uc is PartControl p)       // первый элемент списка {1} - это (MenuItem)PartControl.Controls.Items[1]
+                else if (uc is PartControl p)
                 {
                     if (Weld == null || Weld == "")
                     {

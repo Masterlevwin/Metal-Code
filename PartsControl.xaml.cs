@@ -49,6 +49,9 @@ namespace Metal_Code
                         case "ThreadBtn":
                             p.AddControl(3);
                             break;
+                        case "CountersinkBtn":
+                            p.AddControl(4);
+                            break;
                     }
             }
         }
@@ -76,13 +79,25 @@ namespace Metal_Code
                         foreach (PartControl p in Parts)
                             foreach (PaintControl item in p.UserControls.OfType<PaintControl>()) item.SetRal(tBox.Text);
                         break;
-                    case "Wide":
+                    case "Wide1":
                         foreach (PartControl p in Parts)
-                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) item.SetWide(tBox.Text);
+                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
+                                if (item.CharName == 'Р') item.SetWide(tBox.Text);
                         break;
-                    case "Holes":
+                    case "Holes1":
                         foreach (PartControl p in Parts)
-                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) item.SetHoles(tBox.Text);
+                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
+                                if (item.CharName == 'Р') item.SetHoles(tBox.Text);
+                        break;
+                    case "Wide2":
+                        foreach (PartControl p in Parts)
+                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
+                                if (item.CharName == 'З') item.SetWide(tBox.Text);
+                        break;
+                    case "Holes2":
+                        foreach (PartControl p in Parts)
+                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
+                                if (item.CharName == 'З') item.SetHoles(tBox.Text);
                         break;
                 }
             }
@@ -135,8 +150,13 @@ namespace Metal_Code
                         break;
                     case "Р>":
                         partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl)))).ToList();
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'Р'))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'Р')))).ToList();
+                        break;
+                    case "З>":
+                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'З'))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'З')))).ToList();
                         break;
                 }
         }

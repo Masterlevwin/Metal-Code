@@ -11,10 +11,11 @@
             <RowDefinition/>
         </Grid.RowDefinitions>
         <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="120" MinWidth="120" MinHeight="60" MaxHeight="60" Height="40" ToolTip="Наименование вырезанной детали"/>
-        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Count}" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinHeight="20" MaxHeight="20" HorizontalAlignment="Left" MaxLines="1" Margin="10,65,0,0" MaxWidth="40" MinWidth="40" Height="20" ToolTip="Количество вырезанных деталей"/>
-        <Button x:Name="BendBtn" Content="Г+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="55,68,0,0" VerticalAlignment="Top" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
-        <Button x:Name="WeldBtn" Content="С+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="71,68,0,0" VerticalAlignment="Top" ToolTip="Добавить сварку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
-        <Button x:Name="PaintBtn" Content="О+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="88,68,0,0" VerticalAlignment="Top" ToolTip="Добавить окраску" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
-        <Button x:Name="ThreadBtn" Content="Р+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="106,68,0,0" VerticalAlignment="Top" ToolTip="Добавить резьбу" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Count}" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinHeight="20" MaxHeight="20" HorizontalAlignment="Left" MaxLines="1" Margin="5,65,0,0" MaxWidth="40" MinWidth="40" Height="20" ToolTip="Количество вырезанных деталей"/>
+        <Button x:Name="BendBtn" Content="Г+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="50,68,0,0" VerticalAlignment="Top" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
+        <Button x:Name="WeldBtn" Content="С+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="64,68,0,0" VerticalAlignment="Top" ToolTip="Добавить сварку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
+        <Button x:Name="PaintBtn" Content="О+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="79,68,0,0" VerticalAlignment="Top" ToolTip="Добавить окраску" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
+        <Button x:Name="ThreadBtn" Content="Р+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="95,68,0,0" VerticalAlignment="Top" ToolTip="Добавить резьбу" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
+        <Button x:Name="CountersinkBtn" Content="З+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="110,68,0,0" VerticalAlignment="Top" ToolTip="Добавить зенковку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
     </Grid>
 </UserControl>

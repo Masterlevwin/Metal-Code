@@ -72,8 +72,8 @@ namespace Metal_Code
                 if (response == MessageBoxResult.No) return;
 
                 foreach (PartControl p in _work.Parts)
-                    foreach (UserControl item in p.UserControls.Where(w => w.GetType() == workType.GetType()).ToList())
-                        p.RemoveControl(item); 
+                    foreach (UserControl item in p.UserControls.Where(w => w.GetType() == workType.GetType()).ToList()) p.RemoveControl(item);
+                    //нужно учесть резьбу и зенковку, пока не знаю как...         
             }
             Remove();
         }
@@ -182,11 +182,11 @@ namespace Metal_Code
                     break;
             }
 
-            if (workType is not BendControl && workType is not ExtraControl && workType is not ThreadControl && ValidateProp(out int index))
-            {
-                if (WorkDrop.Items.Count <= index) MessageBox.Show($"Такая работа уже есть!\nУдалите лишнее!");
-                else WorkDrop.SelectedIndex = index;
-            }
+            //if (workType is not BendControl && workType is not ExtraControl && workType is not ThreadControl && ValidateProp(out int index))
+            //{
+            //    if (WorkDrop.Items.Count <= index) MessageBox.Show($"Такая работа уже есть!\nУдалите лишнее!");
+            //    else WorkDrop.SelectedIndex = index;
+            //}
 
             SetRatio("1");      // запускаем процесс формирования стоимости по умолчанию
         }

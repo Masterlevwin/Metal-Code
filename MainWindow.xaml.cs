@@ -70,7 +70,7 @@ namespace Metal_Code
             Metals = dbM.Metals.Local.ToObservableCollection();
             InitializeDict();
 
-            ViewLoginWindow();
+            //ViewLoginWindow();
         }
 
         private void ViewLoginWindow()
@@ -1264,6 +1264,7 @@ namespace Metal_Code
                     if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("С ")) worksheet.Cells[row + 5, 2].Value += "С - Сварка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("О ")) worksheet.Cells[row + 5, 2].Value += "О - Окраска ";
                     if (cell.Value != null && $"{cell.Value}".Contains("Р ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Р ")) worksheet.Cells[row + 5, 2].Value += "Р - Резьба ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("З ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("З ")) worksheet.Cells[row + 5, 2].Value += "З - Зенковка ";
                 }
                 worksheet.Cells[row + 5, 2, row + 5, 5].Merge = true;
             }
