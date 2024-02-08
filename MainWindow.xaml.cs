@@ -28,7 +28,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.0.0";
+        readonly string version = "2.0.5";
 
         //public readonly TypeDetailContext dbTypeDetails = new();
         //public readonly WorkContext dbWorks = new();
