@@ -636,6 +636,8 @@ namespace Metal_Code
         {
             SetCount(1);
             HasDelivery = false;
+            CheckPaint.IsChecked = false;
+            CheckConstruct.IsChecked = false;
             Order.Text = Company.Text = DateProduction.Text = Adress.Text = "";
             ProductName.Text = $"Изделие";
             ManagerDrop.SelectedItem = CurrentManager;
