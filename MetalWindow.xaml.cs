@@ -19,8 +19,6 @@ namespace Metal_Code
         // при загрузке окна
         private void MetalWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // гарантируем, что база данных создана
-            db.Database.EnsureCreated();
             // загружаем данные из БД
             db.Metals.Load();
             // и устанавливаем данные в качестве контекста
