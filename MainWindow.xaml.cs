@@ -30,10 +30,20 @@ namespace Metal_Code
         public static MainWindow M = new();
         readonly string version = "2.0.5";
 
-        //public readonly TypeDetailContext dbTypeDetails = new();
-        //public readonly WorkContext dbWorks = new();
-        ////public readonly ManagerContext dbManagers = new();
-        //public readonly MetalContext dbMetals = new();
+        public bool isLocal = true;     //запуск локальной версии
+        //public bool isLocal = false;    //запуск стандартной версии
+        public readonly string[] connections =
+        {
+            "Data Source=managers.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            "Data Source=typedetails.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            "Data Source=works.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            "Data Source=metals.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db"
+        };
+
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
 
         public Manager CurrentManager = new();
@@ -54,23 +64,23 @@ namespace Metal_Code
 
         private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна
         {
-            using TypeDetailContext dbT = new();
+            using TypeDetailContext dbT = new(isLocal ? connections[2] : connections[3]);
             dbT.Database.EnsureCreated();
             dbT.TypeDetails.Load();
             TypeDetails = dbT.TypeDetails.Local.ToObservableCollection();
 
-            using WorkContext dbW = new();
+            using WorkContext dbW = new(isLocal ? connections[4] : connections[5]);
             dbW.Database.EnsureCreated();
             dbW.Works.Load();
             Works = dbW.Works.Local.ToObservableCollection();
 
-            using MetalContext dbM = new();
+            using MetalContext dbM = new(isLocal ? connections[6] : connections[7]);
             dbM.Database.EnsureCreated();
             dbM.Metals.Load();
             Metals = dbM.Metals.Local.ToObservableCollection();
             InitializeDict();
 
-            //ViewLoginWindow();
+            ViewLoginWindow();
         }
 
         private void ViewLoginWindow()
@@ -431,7 +441,7 @@ namespace Metal_Code
         }
         private void ViewOffersGrid(Manager man, bool allOffers = false, int count = 20)
         {
-            using ManagerContext db = new();
+            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
             if (isAvalaible)
             {
@@ -831,7 +841,8 @@ namespace Metal_Code
 
         public void SaveOrRemoveOffer(bool isSave)
         {
-            using ManagerContext db = new();                                        //подключаемся к базе данных
+                //подключаемся к базе данных
+            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
             bool isAvalaible = db.Database.CanConnect();                            //проверяем, свободна ли база для подключения
             if (isAvalaible && ManagerDrop.SelectedItem is Manager man)             //если база свободна, получаем выбранного менеджера
             {
@@ -861,7 +872,7 @@ namespace Metal_Code
                     }
 
                     db.SaveChanges();           //сохраняем изменения в базе данных
-                    ViewOffersGrid(man);        //и обновляем datagrid
+                    //ViewOffersGrid(man);        //и обновляем datagrid
                 }
                 catch (DbUpdateConcurrencyException ex)
                 {
@@ -1662,20 +1673,29 @@ namespace Metal_Code
             worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(total2)*0.2-SUM(total2)/6";
 
             worksheet.Cells[14 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Оклад:";
-            worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 1].Value = "На карту:";
-            worksheet.Cells[16 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Премия за выполнение плана:";
-            worksheet.Cells[16 + _agentFalse.Count + _agentTrue.Count, 1].Style.WrapText = true;
-            worksheet.Cells[17 + _agentFalse.Count + _agentTrue.Count, 1].Value = "%:";
+            worksheet.Cells[14 + _agentFalse.Count + _agentTrue.Count, 2].Value = 30000;
+            worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Премия за выполнение плана:";
+            worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 1].Style.WrapText = true;
+            worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 2].Value = 20000;
+            worksheet.Cells[16 + _agentFalse.Count + _agentTrue.Count, 1].Value = "%:";
+
+            worksheet.Names.Add("totalPlus",worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 2, 16 + _agentFalse.Count + _agentTrue.Count, 2]);
+
             worksheet.Cells[18 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Аванс:";
+            worksheet.Cells[19 + _agentFalse.Count + _agentTrue.Count, 1].Value = "На карту:";
 
-            worksheet.Cells[20 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Итоговая за месяц:";
-            worksheet.Cells[21 + _agentFalse.Count + _agentTrue.Count, 1].Value = "К доплате:";
+            worksheet.Names.Add("totalMinus", worksheet.Cells[18 + _agentFalse.Count + _agentTrue.Count, 2, 19 + _agentFalse.Count + _agentTrue.Count, 2]);
 
-            ExcelRange table = worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 1, 21 + _agentFalse.Count + _agentTrue.Count, 3];
+            worksheet.Cells[21 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Итоговая за месяц:";
+            worksheet.Cells[21 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(totalPlus)";
+            worksheet.Cells[22 + _agentFalse.Count + _agentTrue.Count, 1].Value = "К доплате:";
+            worksheet.Cells[22 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(totalPlus)-SUM(totalMinus)";
+
+            ExcelRange table = worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 1, 22 + _agentFalse.Count + _agentTrue.Count, 3];
             table.Style.Fill.PatternType = ExcelFillStyle.Solid;
             table.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
 
-            ExcelRange bonus = worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 2, 21 + _agentFalse.Count + _agentTrue.Count, 2];
+            ExcelRange bonus = worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 2, 22 + _agentFalse.Count + _agentTrue.Count, 2];
             bonus.Style.Fill.PatternType = ExcelFillStyle.Solid;
             bonus.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightBlue);
 
@@ -1700,7 +1720,8 @@ namespace Metal_Code
 
         private void UpdateOffer(object sender, RoutedEventArgs e)
         {
-            using ManagerContext db = new();                                    //подключаемся к базе данных
+                //подключаемся к базе данных
+            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
             bool isAvalaible = db.Database.CanConnect();                        //проверяем, свободна ли база для подключения
             if (isAvalaible && OffersGrid.SelectedItem is Offer offer)          //если база свободна, получаем выбранный расчет
             {

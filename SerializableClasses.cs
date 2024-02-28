@@ -214,20 +214,34 @@ namespace Metal_Code
     public class TypeDetailContext : DbContext
     {
         public DbSet<TypeDetail> TypeDetails { get; set; } = null!;
+
+        public string connectionString;
+        public TypeDetailContext(string connectionString)
+        {
+            this.connectionString = connectionString;   // получаем извне строку подключения
+            Database.EnsureCreated();                   // гарантируем, что база данных создана
+        }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=typedetails.db");
-            //optionsBuilder.UseSqlite($"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db");
+            optionsBuilder.UseSqlite(connectionString);
         }
     }
 
     public class WorkContext : DbContext
     {
         public DbSet<Work> Works { get; set; } = null!;
+
+        public string connectionString;
+        public WorkContext(string connectionString)
+        {
+            this.connectionString = connectionString;   // получаем извне строку подключения
+            Database.EnsureCreated();                   // гарантируем, что база данных создана
+        }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=works.db");
-            //optionsBuilder.UseSqlite($"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db");
+            optionsBuilder.UseSqlite(connectionString);
         }
     }
 
@@ -235,20 +249,34 @@ namespace Metal_Code
     {
         public DbSet<Manager> Managers { get; set; } = null!;
         public DbSet<Offer> Offers { get; set; } = null!;
+
+        public string connectionString;
+        public ManagerContext(string connectionString)
+        {
+            this.connectionString = connectionString;   // получаем извне строку подключения
+            Database.EnsureCreated();                   // гарантируем, что база данных создана
+        }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=managers.db");
-            //optionsBuilder.UseSqlite($"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db");
+            optionsBuilder.UseSqlite(connectionString);
         }
     }
     
     public class MetalContext : DbContext
     {
         public DbSet<Metal> Metals { get; set; } = null!;
+
+        public string connectionString;
+        public MetalContext(string connectionString)
+        {
+            this.connectionString = connectionString;   // получаем извне строку подключения
+            Database.EnsureCreated();                   // гарантируем, что база данных создана
+        }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=metals.db");
-            //optionsBuilder.UseSqlite($"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db");
+            optionsBuilder.UseSqlite(connectionString);
         }
     }
 }

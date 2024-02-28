@@ -9,7 +9,7 @@ namespace Metal_Code
     /// </summary>
     public partial class TypeDetailWindow : Window
     {
-        TypeDetailContext db = new();
+        TypeDetailContext db = new(MainWindow.M.isLocal ? MainWindow.M.connections[2] : MainWindow.M.connections[3]);
         public TypeDetailWindow()
         {
             InitializeComponent();
@@ -19,8 +19,6 @@ namespace Metal_Code
         // при загрузке окна
         private void TypeDetailWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // гарантируем, что база данных создана
-            db.Database.EnsureCreated();
             // загружаем данные из БД
             db.TypeDetails.Load();
             // и устанавливаем данные в качестве контекста

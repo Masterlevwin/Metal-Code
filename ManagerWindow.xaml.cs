@@ -10,7 +10,7 @@ namespace Metal_Code
     /// </summary>
     public partial class ManagerWindow : Window
     {
-        ManagerContext db = new();
+        ManagerContext db = new(MainWindow.M.isLocal ? MainWindow.M.connections[0] : MainWindow.M.connections[1]);
         public ManagerWindow()
         {
             InitializeComponent();
@@ -20,8 +20,6 @@ namespace Metal_Code
         // при загрузке окна
         private void ManagerWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // гарантируем, что база данных создана
-            db.Database.EnsureCreated();
             // загружаем данные из БД
             db.Managers.Load();
             // и устанавливаем данные в качестве контекста

@@ -9,7 +9,7 @@ namespace Metal_Code
     /// </summary>
     public partial class WorkWindow : Window
     {
-        WorkContext db = new();
+        WorkContext db = new(MainWindow.M.isLocal ? MainWindow.M.connections[4] : MainWindow.M.connections[5]);
         public WorkWindow()
         {
             InitializeComponent();
@@ -19,8 +19,6 @@ namespace Metal_Code
         // при загрузке окна
         private void WorkWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // гарантируем, что база данных создана
-            db.Database.EnsureCreated();
             // загружаем данные из БД
             db.Works.Load();
             // и устанавливаем данные в качестве контекста
