@@ -220,6 +220,7 @@ namespace Metal_Code
         {
             this.connectionString = connectionString;   // получаем извне строку подключения
             Database.EnsureCreated();                   // гарантируем, что база данных создана
+            Database.SetCommandTimeout(9000);
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -237,6 +238,7 @@ namespace Metal_Code
         {
             this.connectionString = connectionString;   // получаем извне строку подключения
             Database.EnsureCreated();                   // гарантируем, что база данных создана
+            Database.SetCommandTimeout(9000);
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -255,6 +257,7 @@ namespace Metal_Code
         {
             this.connectionString = connectionString;   // получаем извне строку подключения
             Database.EnsureCreated();                   // гарантируем, что база данных создана
+            Database.SetCommandTimeout(9000);
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -272,6 +275,7 @@ namespace Metal_Code
         {
             this.connectionString = connectionString;   // получаем извне строку подключения
             Database.EnsureCreated();                   // гарантируем, что база данных создана
+            Database.SetCommandTimeout(9000);
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
