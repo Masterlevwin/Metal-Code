@@ -80,6 +80,7 @@ namespace Metal_Code
             Metals = dbM.Metals.Local.ToObservableCollection();
             InitializeDict();
 
+            InsertBtn.IsEnabled = isLocal;      //если запущена локальная версия, делаем кнопку активной для использования
             ViewLoginWindow();
         }
 
@@ -441,6 +442,7 @@ namespace Metal_Code
         }
         private void ViewOffersGrid(Manager man, bool allOffers = false, int count = 20)
         {
+                //подключаемся к базе данных
             using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
             if (isAvalaible)
@@ -872,7 +874,7 @@ namespace Metal_Code
                     }
 
                     db.SaveChanges();           //сохраняем изменения в базе данных
-                    //ViewOffersGrid(man);        //и обновляем datagrid
+                    ViewOffersGrid(man);        //и обновляем datagrid
                 }
                 catch (DbUpdateConcurrencyException ex)
                 {
@@ -1827,6 +1829,62 @@ namespace Metal_Code
                 {
                     DetailControls[0].AddTypeDetail();
                     DetailControls[0].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedIndex = 4;
+                }
+            }
+        }
+
+        private void InsertDatabase(object sender, RoutedEventArgs e)
+        {
+            InsertDatabase();
+        }
+        private void InsertDatabase()
+        {
+            //подключаемся к основной базе данных
+            using ManagerContext db = new(connections[1]);
+            bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
+            if (isAvalaible)
+            {
+                try
+                {
+                    //подключаемся к локальной базе данных
+                    using ManagerContext dbLocal = new(connections[0]);
+
+                    foreach (Manager manLocal in Managers)
+                    {
+                        //ищем менеджера в основной базе по имени соответствующего локальному, при этом загружаем его расчеты
+                        Manager? _man = db.Managers.Where(m => m.Name == manLocal.Name).Include(c => c.Offers).FirstOrDefault();
+
+                        //ищем менеджера в локальной базе по имени соответствующего локальному, при этом загружаем его расчеты
+                        Manager? _manLocal = dbLocal.Managers.Where(m => m.Name == manLocal.Name).Include(c => c.Offers).FirstOrDefault();
+
+                        if (_manLocal?.Offers.Count > 0 && _man?.Name == _manLocal.Name)
+                        {
+                            foreach (Offer offer in _manLocal.Offers)
+                            {
+                                //проверяем наличие идентичного КП в основной базе, если такое уже есть пропускаем копирование
+                                Offer? tempOffer = _man?.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                                if (tempOffer != null) continue;
+
+                                //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
+                                Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
+                                {
+                                    EndDate = offer.EndDate,
+                                    Autor = offer.Autor,
+                                    Manager = _man,         //указываем соответствующего менеджера  
+                                    Data = offer.Data
+                                };
+
+                                db.Offers.Add(_offer);     //переносим расчет в базу этого менеджера
+                            }
+                        }
+                    }
+
+                    db.SaveChanges();                      //сохраняем изменения в основной базе данных
+                    StatusBegin($"Основная база обновлена");
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin(ex.Message);
                 }
             }
         }

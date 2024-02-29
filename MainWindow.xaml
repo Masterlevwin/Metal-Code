@@ -120,13 +120,16 @@
                     <Button Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,88,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Создать запрос в логистику" Padding="0" BorderThickness="0" Click="CreateDelivery" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}">
                         <Image Source="/Images/new.png"/>
                     </Button>
-                    <Expander HorizontalAlignment="Left" VerticalAlignment="Top" Header="Кол-во расчетов" Margin="430,160,0,0" ToolTip="По умолчанию показывается до 20 последних расчетов">
+                    <Expander HorizontalAlignment="Left" VerticalAlignment="Top" Header="Кол-во расчетов" Margin="390,160,0,0" ToolTip="По умолчанию показывается до 20 последних расчетов">
                         <Grid Background="#FFE5E5E5">
                             <RadioButton x:Name="CountRB" Content="Показать" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,5,0,0"/>
                             <RadioButton Content="Показать все" Margin="10,50,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="ViewAllOffers"/>
                             <TextBox MinWidth="50" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="30,25,0,0" TextChanged="ViewOffers" ToolTip="Укажите, сколько расчетов показать" IsEnabled="{Binding IsChecked, ElementName=CountRB}"/>
                         </Grid>
                     </Expander>
+                    <Button x:Name="InsertBtn" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="520,160,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Отправить новые расчеты в основную базу" Padding="0,0,0,0" BorderThickness="0,0,0,0" Click="InsertDatabase" IsEnabled="False">
+                        <Image Source="/Images/save3.png"/>
+                    </Button>
                 </Grid>
             </GroupBox>
             <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Right" Text="руб" VerticalAlignment="Top" Margin="0,40,30,0" Height="14" Width="19"/>
