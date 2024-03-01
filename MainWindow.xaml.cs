@@ -499,47 +499,116 @@ namespace Metal_Code
                     //ищем менеджера в основной базе по имени соответствующего локальному, при этом загружаем его расчеты
                     Manager? _man = db.Managers.Where(m => m.Name == man.Name).Include(c => c.Offers).FirstOrDefault();
 
-                    Offer? offer = _man?.Offers.FirstOrDefault(o => o.N == numberOffer);    //ищем это КП по N
-                    if (offer != null)
+                    List<Offer>? offers = _man?.Offers.Where(o => o.N == numberOffer).ToList();    //ищем все КП согласно введенному номеру
+
+                    if (offers == null || offers.Count == 0)
+                    {
+                        StatusBegin($"Расчетов с таким номером у выбранного менеджера не найдено");
+                        return;
+                    }
+                    else
                     {
                         //подключаемся к локальной базе данных
                         using ManagerContext dbLocal = new(connections[0]);
 
-                        //ищем менеджера в локальной базе по имени найденного менеджера из основной базы
-                        if (_man != null)
+                        //ищем менеджера в локальной базе по индентификатору выбранного менеджера
+                        Manager? _manLocal = dbLocal.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
+
+                        if (_manLocal != null)
                         {
-                            Manager? _manLocal = dbLocal.Managers.FirstOrDefault(m => m.Name == man.Name);
-
-                            //проверяем наличие идентичного КП в локальной базе, если такое уже есть выходим из метода
-                            Offer? tempOffer = _manLocal?.Offers.FirstOrDefault(o => o.Data == offer.Data);
-                            if (tempOffer != null)
+                            foreach (Offer offer in offers)
                             {
-                                StatusBegin($"Такой расчет уже есть");
-                                return;
+                                //проверяем наличие идентичного КП в локальной базе, если такое уже есть, пропускаем копирование
+                                Offer? tempOffer = _manLocal?.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                                if (tempOffer != null)
+                                {
+                                    StatusBegin($"Один или несколько расчетов с таким номером уже есть");
+                                    continue;
+                                }
+                                else
+                                {
+                                    //копируем найденное КП в новое с целью автоматического присваивания Id при вставке в локальную базу
+                                    Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
+                                    {
+                                        Invoice = offer.Invoice,
+                                        Order = offer.Order,
+                                        Act = offer.Act,
+                                        CreatedDate = offer.CreatedDate,
+                                        EndDate = offer.EndDate,
+                                        Autor = offer.Autor,
+                                        Manager = _manLocal,        //указываем локального менеджера  
+                                        Data = offer.Data
+                                    };
+                                    dbLocal.Offers.Add(_offer);     //переносим расчет в локальную базу
+                                }
                             }
-
-                            //копируем найденное КП в новое с целью автоматического присваивания Id при вставке в локальную базу
-                            Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
-                            {
-                                Invoice = offer.Invoice,
-                                Order = offer.Order,
-                                Act = offer.Act,
-                                CreatedDate = offer.CreatedDate,
-                                EndDate = offer.EndDate,
-                                Autor = offer.Autor,
-                                Manager = _manLocal,         //указываем локального менеджера  
-                                Data = offer.Data
-                            };
-
-                            dbLocal.Offers.Add(_offer);     //переносим расчет в локальную базу этого менеджера
 
                             dbLocal.SaveChanges();
                             StatusBegin($"Локальная база обновлена");
 
-                            if (_manLocal != null) ViewOffersGrid(_manLocal);
+                            ViewOffersGrid(_manLocal);      //обновляем представление расчетов выбранного менеджера
                         }
                     }
-                    else StatusBegin($"Расчет не найден");
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin(ex.Message);
+                }
+            }
+        }
+
+        private void InsertDatabase(object sender, RoutedEventArgs e)
+        {
+            InsertDatabase();
+        }
+        private void InsertDatabase()
+        {
+            //подключаемся к основной базе данных
+            using ManagerContext db = new(connections[1]);
+            bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
+            if (isAvalaible)
+            {
+                try
+                {
+                    //подключаемся к локальной базе данных
+                    using ManagerContext dbLocal = new(connections[0]);
+
+                    foreach (Manager manLocal in Managers)
+                    {
+                        //ищем менеджера в основной базе по имени соответствующего локальному, при этом загружаем его расчеты
+                        Manager? _man = db.Managers.Where(m => m.Name == manLocal.Name).Include(c => c.Offers).FirstOrDefault();
+
+                        //ищем менеджера в локальной базе по имени соответствующего локальному, при этом загружаем его расчеты
+                        Manager? _manLocal = dbLocal.Managers.Where(m => m.Name == manLocal.Name).Include(c => c.Offers).FirstOrDefault();
+
+                        if (_manLocal?.Offers.Count > 0 && _man?.Name == _manLocal.Name)
+                        {
+                            foreach (Offer offer in _manLocal.Offers)
+                            {
+                                //проверяем наличие идентичного КП в основной базе, если такое уже есть пропускаем копирование
+                                Offer? tempOffer = _man?.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                                if (tempOffer != null) continue;
+
+                                //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
+                                Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
+                                {
+                                    Invoice = offer.Invoice,
+                                    Order = offer.Order,
+                                    Act = offer.Act,
+                                    CreatedDate = offer.CreatedDate,
+                                    EndDate = offer.EndDate,
+                                    Autor = offer.Autor,
+                                    Manager = _man,         //указываем соответствующего менеджера  
+                                    Data = offer.Data
+                                };
+
+                                db.Offers.Add(_offer);     //переносим расчет в базу этого менеджера
+                            }
+                        }
+                    }
+
+                    db.SaveChanges();                      //сохраняем изменения в основной базе данных
+                    StatusBegin($"Основная база обновлена");
                 }
                 catch (DbUpdateConcurrencyException ex)
                 {
@@ -1890,66 +1959,6 @@ namespace Metal_Code
                 {
                     DetailControls[0].AddTypeDetail();
                     DetailControls[0].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedIndex = 4;
-                }
-            }
-        }
-
-        private void InsertDatabase(object sender, RoutedEventArgs e)
-        {
-            InsertDatabase();
-        }
-        private void InsertDatabase()
-        {
-            //подключаемся к основной базе данных
-            using ManagerContext db = new(connections[1]);
-            bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
-            if (isAvalaible)
-            {
-                try
-                {
-                    //подключаемся к локальной базе данных
-                    using ManagerContext dbLocal = new(connections[0]);
-
-                    foreach (Manager manLocal in Managers)
-                    {
-                        //ищем менеджера в основной базе по имени соответствующего локальному, при этом загружаем его расчеты
-                        Manager? _man = db.Managers.Where(m => m.Name == manLocal.Name).Include(c => c.Offers).FirstOrDefault();
-
-                        //ищем менеджера в локальной базе по имени соответствующего локальному, при этом загружаем его расчеты
-                        Manager? _manLocal = dbLocal.Managers.Where(m => m.Name == manLocal.Name).Include(c => c.Offers).FirstOrDefault();
-
-                        if (_manLocal?.Offers.Count > 0 && _man?.Name == _manLocal.Name)
-                        {
-                            foreach (Offer offer in _manLocal.Offers)
-                            {
-                                //проверяем наличие идентичного КП в основной базе, если такое уже есть пропускаем копирование
-                                Offer? tempOffer = _man?.Offers.FirstOrDefault(o => o.Data == offer.Data);
-                                if (tempOffer != null) continue;
-
-                                //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
-                                Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
-                                {
-                                    Invoice = offer.Invoice,
-                                    Order = offer.Order,
-                                    Act = offer.Act,
-                                    CreatedDate = offer.CreatedDate,
-                                    EndDate = offer.EndDate,
-                                    Autor = offer.Autor,
-                                    Manager = _man,         //указываем соответствующего менеджера  
-                                    Data = offer.Data
-                                };
-
-                                db.Offers.Add(_offer);     //переносим расчет в базу этого менеджера
-                            }
-                        }
-                    }
-
-                    db.SaveChanges();                      //сохраняем изменения в основной базе данных
-                    StatusBegin($"Основная база обновлена");
-                }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin(ex.Message);
                 }
             }
         }
