@@ -90,6 +90,12 @@
                     <Button Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,160,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Обновить список расчетов этого менеджера" Padding="0,0,0,0" BorderThickness="0,0,0,0" Click="RefreshOffers">
                         <Image Source="/Images/update.png"/>
                     </Button>
+                    <RadioButton Content="Все" Margin="340,165,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="ViewAllOffers" ToolTip="Показать все расчеты выбранного менеджера"/>
+                    <RadioButton x:Name="CountRB" Content="Найти" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="390,165,0,0" ToolTip="Найти конкретный расчет"/>
+                    <TextBox MinWidth="50" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="450,163,0,0" ToolTip="Введите номер расчета" IsEnabled="{Binding IsChecked, ElementName=CountRB}" TextChanged="ViewOffers"/>
+                    <Button x:Name="InsertBtn" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="510,160,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Отправить новые расчеты в основную базу" Padding="0,0,0,0" BorderThickness="0,0,0,0" Click="InsertDatabase" IsEnabled="False">
+                        <Image Source="/Images/save3.png"/>
+                    </Button>
                     <RadioButton x:Name="PickupRadioButton" Content="Самовывоз" HorizontalAlignment="Left" Margin="15,90,0,0" VerticalAlignment="Top" Checked="HasDeliveryChanged" IsChecked="True"/>
                     <RadioButton x:Name="DeliveryRadioButton" Content="Доставка" HorizontalAlignment="Left" Margin="110,90,0,0" VerticalAlignment="Top" Checked="HasDeliveryChanged"/>
                     <TextBox Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Margin="190,88,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите цену доставки" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" TextChanged="SetDelivery" MinWidth="60"/>
@@ -119,16 +125,6 @@
                     <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет от ИП или ПК" HorizontalAlignment="Left" Margin="110,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;"/>
                     <Button Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,88,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Создать запрос в логистику" Padding="0" BorderThickness="0" Click="CreateDelivery" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}">
                         <Image Source="/Images/new.png"/>
-                    </Button>
-                    <Expander HorizontalAlignment="Left" VerticalAlignment="Top" Header="Кол-во расчетов" Margin="390,160,0,0" ToolTip="По умолчанию показывается до 20 последних расчетов">
-                        <Grid Background="#FFE5E5E5">
-                            <RadioButton x:Name="CountRB" Content="Показать" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,5,0,0"/>
-                            <RadioButton Content="Показать все" Margin="10,50,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="ViewAllOffers"/>
-                            <TextBox MinWidth="50" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="30,25,0,0" TextChanged="ViewOffers" ToolTip="Укажите, сколько расчетов показать" IsEnabled="{Binding IsChecked, ElementName=CountRB}"/>
-                        </Grid>
-                    </Expander>
-                    <Button x:Name="InsertBtn" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="520,160,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Отправить новые расчеты в основную базу" Padding="0,0,0,0" BorderThickness="0,0,0,0" Click="InsertDatabase" IsEnabled="False">
-                        <Image Source="/Images/save3.png"/>
                     </Button>
                 </Grid>
             </GroupBox>

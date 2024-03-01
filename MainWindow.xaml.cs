@@ -451,7 +451,7 @@ namespace Metal_Code
                 Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
                 if (_man != null)
                 {
-                    if (!allOffers) Offers = _man.Offers.TakeLast(count).ToList();  //показываем последние "count" расчетов
+                    if (!allOffers) Offers = _man.Offers.TakeLast(count).ToList();  //показываем последние "numberOffer" расчетов
                     else Offers = _man.Offers.ToList();                             //если пользователь хочет увидеть все расчеты
 
                     OffersGrid.ItemsSource = Offers;
@@ -477,14 +477,75 @@ namespace Metal_Code
                 }
             }
         }
-
-        private void ViewOffers(object sender, TextChangedEventArgs e)      //метод, в котором мы показываем введенное пользователем количество расчетов 
-        {
-            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count) && ManagerDrop.SelectedItem is Manager man) ViewOffersGrid(man, false, count);
-        }
         private void ViewAllOffers(object sender, RoutedEventArgs e)        //метод, в котором мы показываем все расчеты выбранного менеджера
         {
             if (sender is RadioButton rBtn && rBtn.IsChecked == true && ManagerDrop.SelectedItem is Manager man) ViewOffersGrid(man, true);
+        }
+
+        private void ViewOffers(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) ViewOfferWithDataBase(tBox.Text);
+        }
+        private void ViewOfferWithDataBase(string? numberOffer) //метод, в котором мы добавляем расчет из основной базы в локальную
+                                                                //по введенному пользователем номеру расчета
+        {
+            //подключаемся к основной базе данных
+            using ManagerContext db = new(connections[1]);
+            bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
+            if (isAvalaible && ManagerDrop.SelectedItem is Manager man)
+            {
+                try
+                {
+                    //ищем менеджера в основной базе по имени соответствующего локальному, при этом загружаем его расчеты
+                    Manager? _man = db.Managers.Where(m => m.Name == man.Name).Include(c => c.Offers).FirstOrDefault();
+
+                    Offer? offer = _man?.Offers.FirstOrDefault(o => o.N == numberOffer);    //ищем это КП по N
+                    if (offer != null)
+                    {
+                        //подключаемся к локальной базе данных
+                        using ManagerContext dbLocal = new(connections[0]);
+
+                        //ищем менеджера в локальной базе по имени найденного менеджера из основной базы
+                        if (_man != null)
+                        {
+                            Manager? _manLocal = dbLocal.Managers.FirstOrDefault(m => m.Name == man.Name);
+
+                            //проверяем наличие идентичного КП в локальной базе, если такое уже есть выходим из метода
+                            Offer? tempOffer = _manLocal?.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                            if (tempOffer != null)
+                            {
+                                StatusBegin($"Такой расчет уже есть");
+                                return;
+                            }
+
+                            //копируем найденное КП в новое с целью автоматического присваивания Id при вставке в локальную базу
+                            Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
+                            {
+                                Invoice = offer.Invoice,
+                                Order = offer.Order,
+                                Act = offer.Act,
+                                CreatedDate = offer.CreatedDate,
+                                EndDate = offer.EndDate,
+                                Autor = offer.Autor,
+                                Manager = _manLocal,         //указываем локального менеджера  
+                                Data = offer.Data
+                            };
+
+                            dbLocal.Offers.Add(_offer);     //переносим расчет в локальную базу этого менеджера
+
+                            dbLocal.SaveChanges();
+                            StatusBegin($"Локальная база обновлена");
+
+                            if (_manLocal != null) ViewOffersGrid(_manLocal);
+                        }
+                    }
+                    else StatusBegin($"Расчет не найден");
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin(ex.Message);
+                }
+            }
         }
 
         private void OffersFormatting(object sender, DataGridRowEventArgs e)    // при загрузке строк (OffersGrid.LoadingRow="OffersFormatting")
@@ -1868,6 +1929,10 @@ namespace Metal_Code
                                 //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
                                 Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
                                 {
+                                    Invoice = offer.Invoice,
+                                    Order = offer.Order,
+                                    Act = offer.Act,
+                                    CreatedDate = offer.CreatedDate,
                                     EndDate = offer.EndDate,
                                     Autor = offer.Autor,
                                     Manager = _man,         //указываем соответствующего менеджера  
