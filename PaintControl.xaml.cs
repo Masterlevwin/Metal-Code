@@ -31,7 +31,7 @@ namespace Metal_Code
         public Dictionary<string, float> TypeDict = new()
         {
             ["м²"] = 812,
-            ["шт"] = 350,
+            ["шт"] = 50,
             ["пог"] = 87
         };
 
