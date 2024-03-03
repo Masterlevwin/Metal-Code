@@ -2,16 +2,16 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Metal-Code_Local"
-#define MyAppVersion "2.0.5"
+#define MyAppVersion "2.1.0"
 #define MyAppExeName "Metal-Code.exe"
-#define MyAppAssocName MyAppName + " File"
+#define MyAppAssocName "Metal-Code File"
 #define MyAppAssocExt ".mcm"
 #define MyAppAssocKey StringChange(MyAppAssocName, " ", "") + MyAppAssocExt
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{1310E773-4CE6-4A0D-8FCF-54486F2BC11F}
+AppId={{9449A476-F98F-40B8-8FB5-753F11444337}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}

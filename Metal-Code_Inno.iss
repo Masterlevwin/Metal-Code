@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Metal-Code"
-#define MyAppVersion "1.0.0.0"
+#define MyAppVersion "2.1.0"
 #define MyAppExeName "Metal-Code.exe"
 #define MyAppAssocName MyAppName + " File"
 #define MyAppAssocExt ".mcm"
@@ -11,7 +11,7 @@
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{44DEBD6C-9751-4ED4-82C6-D6620A296AFB}
+AppId={{1B718D9D-D08E-463E-A2C4-6F977ED5B0A8}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
@@ -20,8 +20,8 @@ ChangesAssociations=yes
 DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
-OutputDir=C:\Users\maste\Metal-Code\Images
-OutputBaseFilename=Metal-Code_setup
+OutputDir=C:\Users\maste\OneDrive\Рабочий стол
+OutputBaseFilename=Setup
 SetupIconFile=C:\Users\maste\Metal-Code\app_logo.ico
 Compression=lzma
 SolidCompression=yes
@@ -35,10 +35,11 @@ Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\maste\Metal-Code\bin\Debug\net7.0-windows\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\maste\Metal-Code\bin\Debug\net7.0-windows\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\maste\Metal-Code\bin\Release\net7.0-windows\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\maste\Metal-Code\bin\Release\net7.0-windows\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\Users\maste\Metal-Code\app_logo.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\maste\Metal-Code\app_logo.jpeg"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\maste\Metal-Code\laser_logo.jpg"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
