@@ -404,6 +404,9 @@ namespace Metal_Code
 
                             if (part.Count > 0)
                             {
+                                (float, float) tuple = SizesDetail($"{table.Rows[j].ItemArray[3]}");    //получаем габариты детали
+                                part.PropsDict[100] = new() { $"{tuple.Item1}", $"{tuple.Item2}" };     //записываем их в словарь свойств
+
                                 _parts.Add(new(this, part));
                                 PartDetails.Add(part);
                             }
@@ -556,6 +559,20 @@ namespace Metal_Code
                     work.type.SortDrop.SelectedItem = s;
                     break;
                 }     
+        }
+
+        public (float, float) SizesDetail(string str)       //метод извлечения из строки габаритов детали
+        {
+            //выходим из метода, если строки нет, или она не содержит информацию о размере детали
+            if (str == null || !str.Contains('X')) return (1, 1);
+
+            //создаем и сразу инициализируем массив строк по следующему принципу:
+            //если у детали есть отверстия('Ø'), то сначала обрезаем строку до знака диаметра,
+            //а затем разделяем получившуюся строку на два числовых значения (размеры детали),
+            //иначе сразу разделяем строку на размеры
+            string[] sizes = str.Contains('Ø') ? str[..str.IndexOf('Ø')].Split('X') : str.Split('X');
+
+            return (MainWindow.Parser(sizes[0]), MainWindow.Parser(sizes[1]));
         }
 
         public string GetSubstringByString(string a, string b, string c)

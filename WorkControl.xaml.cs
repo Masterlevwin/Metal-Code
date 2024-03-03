@@ -155,6 +155,12 @@ namespace Metal_Code
                     Grid.SetColumn(countersink, 1);
                     workType = countersink;
                     break;
+                case "Вальцовка":
+                    RollingControl roll = new(this);
+                    WorkGrid.Children.Add(roll);
+                    Grid.SetColumn(roll, 1);
+                    workType = roll;
+                    break;
                 case "Доп работа":
                     ExtraControl extra = new(this);
                     WorkGrid.Children.Add(extra);

@@ -138,7 +138,7 @@ namespace Metal_Code
             for (int j = 0; j < Metals.Count; j++)
             {
                 if (j < 3) MetalRatioDict[Metals[j]] = 0;
-                else if (j < 11) MetalRatioDict[Metals[j]] = .5f;
+                else if (j < 5) MetalRatioDict[Metals[j]] = .5f;
                 else MetalRatioDict[Metals[j]] = 2;
             }
         }
@@ -915,7 +915,12 @@ namespace Metal_Code
                                     p.Description = "Л";
                                     p.Accuracy = $"H14/h14 +-IT 14/2";
                                     p.Price = 0;
-                                    p.PropsDict.Clear();
+
+                                    (string, string) tuple = ("0", "0");
+                                    if (p.PropsDict.ContainsKey(100)) tuple = (p.PropsDict[100][0], p.PropsDict[100][1]);   //получаем габариты детали
+                                    p.PropsDict.Clear();                                                                    //очищаем словарь свойств
+                                    p.PropsDict[100] = new() { tuple.Item1, tuple.Item2 };              //записываем габариты обратно в словарь свойств
+
                                     //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
                                     if (CheckConstruct.IsChecked == true)
                                     {
@@ -1189,7 +1194,7 @@ namespace Metal_Code
                                 foreach (PartControl part in _cut.PartsControl.Parts)
                                 {
                                     if (part.Part.PropsDict.Count > 0)
-                                        foreach (int key in  part.Part.PropsDict.Keys)
+                                        foreach (int key in  part.Part.PropsDict.Keys) if (key != 100)   //ключ "[100]" зарезервирован на габариты детали 
                                             part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
                                             
                                     part.PropertiesChanged?.Invoke(part, false);

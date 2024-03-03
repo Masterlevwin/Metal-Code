@@ -28,6 +28,9 @@ namespace Metal_Code
             PaintControl Paint = new(Cut);
             // формирование списка типов расчета окраски
             foreach (string s in Paint.TypeDict.Keys) PaintDrop.Items.Add(s);
+            RollingControl Roll = new(Cut);
+            // формирование списка сторон расчета вальцовки
+            foreach (string s in Roll.Sides) RollDrop.Items.Add(s);
         }
 
         private void AddControl(object sender, RoutedEventArgs e)
@@ -51,6 +54,9 @@ namespace Metal_Code
                             break;
                         case "CountersinkBtn":
                             p.AddControl(4);
+                            break;
+                        case "RollingBtn":
+                            p.AddControl(5);
                             break;
                     }
             }
@@ -121,6 +127,10 @@ namespace Metal_Code
                         foreach (PartControl p in Parts)
                             foreach (PaintControl item in p.UserControls.OfType<PaintControl>()) item.SetType(cBox.SelectedIndex);
                         break;
+                    case "RollDrop":
+                        foreach (PartControl p in Parts)
+                            foreach (RollingControl item in p.UserControls.OfType<RollingControl>()) item.SetType(cBox.SelectedIndex);
+                        break;
                 }
             }
         }
@@ -157,6 +167,11 @@ namespace Metal_Code
                         partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
                             p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'З'))).Union(Parts.Where(p => !p.UserControls.Contains(
                             p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'З')))).ToList();
+                        break;
+                    case "В>":
+                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is RollingControl))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is RollingControl)))).ToList();
                         break;
                 }
         }

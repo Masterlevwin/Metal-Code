@@ -4,18 +4,19 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="110" d:DesignWidth="130" Style="{DynamicResource UserControlStyle}" >
+             d:DesignHeight="150" d:DesignWidth="130" Style="{DynamicResource UserControlStyle}" >
     <Grid x:Name="ControlGrid">
         <Grid.RowDefinitions>
-            <RowDefinition Height="95"/>
+            <RowDefinition Height="115"/>
             <RowDefinition/>
         </Grid.RowDefinitions>
-        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="120" MinWidth="120" MinHeight="60" MaxHeight="60" Height="40" ToolTip="Наименование вырезанной детали"/>
-        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Count}" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinHeight="20" MaxHeight="20" HorizontalAlignment="Left" MaxLines="1" Margin="5,65,0,0" MaxWidth="40" MinWidth="40" Height="20" ToolTip="Количество вырезанных деталей"/>
-        <Button x:Name="BendBtn" Content="Г+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="50,68,0,0" VerticalAlignment="Top" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
-        <Button x:Name="WeldBtn" Content="С+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="64,68,0,0" VerticalAlignment="Top" ToolTip="Добавить сварку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
-        <Button x:Name="PaintBtn" Content="О+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="79,68,0,0" VerticalAlignment="Top" ToolTip="Добавить окраску" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
-        <Button x:Name="ThreadBtn" Content="Р+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="95,68,0,0" VerticalAlignment="Top" ToolTip="Добавить резьбу" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
-        <Button x:Name="CountersinkBtn" Content="З+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="110,68,0,0" VerticalAlignment="Top" ToolTip="Добавить зенковку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="17"/>
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="120" MinWidth="120" MinHeight="60" MaxHeight="60" Height="60" ToolTip="Наименование вырезанной детали"/>
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Count}" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinHeight="20" MaxHeight="20" HorizontalAlignment="Left" MaxLines="1" Margin="5,65,0,0" MaxWidth="40" MinWidth="40" Height="20" ToolTip="Количество вырезанных деталей" Width="40"/>
+        <Button x:Name="BendBtn" Content="Г+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="5,90,0,0" VerticalAlignment="Top" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" FontSize="8" MinWidth="16" MinHeight="16" MaxWidth="16" MaxHeight="16"/>
+        <Button x:Name="WeldBtn" Content="С+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="21,90,0,0" VerticalAlignment="Top" ToolTip="Добавить сварку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
+        <Button x:Name="PaintBtn" Content="О+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="37,90,0,0" VerticalAlignment="Top" ToolTip="Добавить окраску" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
+        <Button x:Name="ThreadBtn" Content="Р+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="53,90,0,0" VerticalAlignment="Top" ToolTip="Добавить резьбу" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
+        <Button x:Name="CountersinkBtn" Content="З+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="69,90,0,0" VerticalAlignment="Top" ToolTip="Добавить зенковку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
+        <Button x:Name="RollingBtn" Content="В+" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" Margin="85,90,0,0" VerticalAlignment="Top" ToolTip="Добавить вальцовку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
     </Grid>
 </UserControl>

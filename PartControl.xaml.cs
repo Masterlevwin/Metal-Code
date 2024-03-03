@@ -1,4 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -45,6 +48,9 @@ namespace Metal_Code
                     case "CountersinkBtn":
                         AddControl(4);
                         break;
+                    case "RollingBtn":
+                        AddControl(5);
+                        break;
                 }
         }
         public void AddControl(int index)
@@ -65,6 +71,14 @@ namespace Metal_Code
                     break;
                 case 4:
                     AddControl(new ThreadControl(this, 'З'));
+                    break;
+                case 5:
+                    if (UserControls.Count > 0 && UserControls.Contains(UserControls.FirstOrDefault(r => r is RollingControl)))
+                    {
+                        MainWindow.M.StatusBegin("Нельзя добавить больше одной вальцовки на деталь");
+                        return;
+                    }
+                    AddControl(new RollingControl(this));
                     break;
             }
         }
