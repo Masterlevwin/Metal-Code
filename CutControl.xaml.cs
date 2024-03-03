@@ -329,6 +329,9 @@ namespace Metal_Code
                             case "окр":
                                 part.AddControl(2);
                                 break;
+                            case "вальц":
+                                part.AddControl(5);
+                                break;
                         }
                     }
             }

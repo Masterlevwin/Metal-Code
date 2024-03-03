@@ -182,7 +182,7 @@ namespace Metal_Code
                         if (_w.workType is RollingControl roll && _w.WorkDrop.SelectedItem is Work _work)
                             {
                             p.Part.Price += (_work.Price / p.Part.Count + Time(Side, p.Part.Mass, _w) * 2000 / 60) * _w.Ratio;
-                            p.Part.Accuracy += $" + {(float)Math.Round((_work.Price / p.Part.Count + Time(Side, p.Part.Mass, _w) * 2000 / 60) * _w.Ratio, 2)}";   
+                            p.Part.Accuracy += $" + {(float)Math.Round((_work.Price / p.Part.Count + Time(Side, p.Part.Mass, _w) * 2000 / 60) * _w.Ratio, 2)}(в)";   
                             break;
                         }
                 }
