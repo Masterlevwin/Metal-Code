@@ -28,7 +28,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.0.5";
+        readonly string version = "2.1.0";
 
         public bool isLocal = true;     //запуск локальной версии
         //public bool isLocal = false;    //запуск стандартной версии
