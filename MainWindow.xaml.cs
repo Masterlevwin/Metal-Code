@@ -65,17 +65,14 @@ namespace Metal_Code
         private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна
         {
             using TypeDetailContext dbT = new(isLocal ? connections[2] : connections[3]);
-            dbT.Database.EnsureCreated();
             dbT.TypeDetails.Load();
             TypeDetails = dbT.TypeDetails.Local.ToObservableCollection();
 
             using WorkContext dbW = new(isLocal ? connections[4] : connections[5]);
-            dbW.Database.EnsureCreated();
             dbW.Works.Load();
             Works = dbW.Works.Local.ToObservableCollection();
 
             using MetalContext dbM = new(isLocal ? connections[6] : connections[7]);
-            dbM.Database.EnsureCreated();
             dbM.Metals.Load();
             Metals = dbM.Metals.Local.ToObservableCollection();
             InitializeDict();
@@ -489,6 +486,8 @@ namespace Metal_Code
         private void ViewOfferWithDataBase(string? numberOffer) //метод, в котором мы добавляем расчет из основной базы в локальную
                                                                 //по введенному пользователем номеру расчета
         {
+            if (!isLocal) return;                                //если запущена основная база, выходим из метода
+
             //подключаемся к основной базе данных
             using ManagerContext db = new(connections[1]);
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
@@ -561,8 +560,10 @@ namespace Metal_Code
         {
             InsertDatabase();
         }
-        private void InsertDatabase()
+        private void InsertDatabase()                           //метод отправки новых созданных расчетов в основную базу
         {
+            if (!isLocal) return;                               //если запущена основная база, выходим из метода
+
             //подключаемся к основной базе данных
             using ManagerContext db = new(connections[1]);
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
@@ -615,6 +616,137 @@ namespace Metal_Code
                     StatusBegin(ex.Message);
                 }
             }
+        }
+
+        private void UpdateDatabases(object sender, RoutedEventArgs e)
+        {
+            if (!isLocal) return;                               //если запущена основная база, выходим из метода
+
+            //подключаемся к основной базе типовых деталей
+            using TypeDetailContext dbType = new(connections[3]);
+
+            if (dbType.Database.CanConnect())   //проверяем, свободна ли база для подключения
+            {
+                try
+                {
+                    //подключаемся к локальной базе данных
+                    using TypeDetailContext dbLocalType = new(connections[2]);
+
+                    foreach (TypeDetail typeDetail in dbType.TypeDetails)
+                    {
+                        // получаем типовую деталь из локальной базы, совпадающую с типовой деталью из основной базы по имени
+                        TypeDetail? type = dbLocalType.TypeDetails.FirstOrDefault(t => t.Name == typeDetail.Name);
+
+                        if (type != null)       //если такая типовая деталь существует, меняем её второстепенные свойства
+                        {
+                            type.Price = typeDetail.Price;
+                            type.Sort = typeDetail.Sort;
+                        }
+                        else                    //иначе создаем новую типовую деталь и добавляем ее в локальную базу
+                        {
+                            TypeDetail _type = new()
+                            {
+                                Name = typeDetail.Name,
+                                Price = typeDetail.Price,
+                                Sort = typeDetail.Sort
+                            };
+                            dbLocalType.TypeDetails.Add(_type);
+                        }
+                    }
+                    dbLocalType.SaveChanges();  //сохраняем изменения в локальной базе типовых деталей
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin(ex.Message);
+                }
+            }
+
+            //подключаемся к основной базе работ
+            using WorkContext dbWork = new(connections[5]);
+
+            if (dbWork.Database.CanConnect())   //проверяем, свободна ли база для подключения
+            {
+                try
+                {
+                    //подключаемся к локальной базе данных
+                    using WorkContext dbLocalWork = new(connections[4]);
+
+                    foreach (Work w in dbWork.Works)
+                    {
+                        // получаем работу из локальной базы, совпадающую с работой из основной базы по имени
+                        Work? work = dbLocalWork.Works.FirstOrDefault(r => r.Name == w.Name);
+
+                        if (work != null)       //если такая работа существует, меняем её второстепенные свойства
+                        {
+                            work.Price = w.Price;
+                            work.Time = w.Time;
+                        }
+                        else                    //иначе создаем новую работу и добавляем ее в локальную базу
+                        {
+                            Work _work = new()
+                            {
+                                Name = w.Name,
+                                Price = w.Price,
+                                Time = w.Time
+                            };
+                            dbLocalWork.Works.Add(_work);
+                        }
+                    }
+                    dbLocalWork.SaveChanges();
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin(ex.Message);
+                }
+            }
+
+            //подключаемся к основной базе металлов
+            using MetalContext dbMetal = new(connections[7]);
+
+            if (dbMetal.Database.CanConnect())   //проверяем, свободна ли база для подключения
+            {
+                try
+                {
+                    //подключаемся к локальной базе данных
+                    using MetalContext dbLocalMetal = new(connections[6]);
+
+                    foreach (Metal met in dbMetal.Metals)
+                    {
+                        // получаем работу из локальной базы, совпадающую с работой из основной базы по имени
+                        Metal? metal = dbLocalMetal.Metals.FirstOrDefault(m => m.Name == met.Name);
+
+                        if (metal != null)       //если такая работа существует, меняем её второстепенные свойства
+                        {
+                            metal.Density = met.Density;
+                            metal.MassPrice = met.MassPrice;
+                            metal.WayPrice = met.WayPrice;
+                            metal.PinholePrice = met.PinholePrice;
+                            metal.MoldPrice = met.MoldPrice;
+                        }
+                        else                    //иначе создаем новую работу и добавляем ее в локальную базу
+                        {
+                            Metal _metal = new()
+                            {
+                                Name = met.Name,
+                                Density = met.Density,
+                                MassPrice = met.MassPrice,
+                                WayPrice = met.WayPrice,
+                                PinholePrice = met.PinholePrice,
+                                MoldPrice = met.MoldPrice
+                            };
+                            dbLocalMetal.Metals.Add(_metal);
+                        }
+                    }
+                    dbLocalMetal.SaveChanges();
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin(ex.Message);
+                }
+            }
+
+            MessageBox.Show("Локальные базы заготовок, работ и металлов обновлены.\nЧтобы применить изменения, необходимо перезапустить программу.",
+                "Обновление локальных баз", MessageBoxButton.OK, MessageBoxImage.Exclamation);
         }
 
         private void OffersFormatting(object sender, DataGridRowEventArgs e)    // при загрузке строк (OffersGrid.LoadingRow="OffersFormatting")

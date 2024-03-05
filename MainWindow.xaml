@@ -41,6 +41,8 @@
                 <MenuItem Header="База работ" Click="OpenSettings"/>
                 <MenuItem Header="База менеджеров" Click="OpenSettings"/>
                 <MenuItem Header="База материалов" Click="OpenSettings"/>
+                <Separator/>
+                <MenuItem Header="Обновить базы" Click="UpdateDatabases"/>
             </MenuItem>
             <MenuItem Header="О программе">
                 <MenuItem Header="Очень краткое руководство" Click="OpenExample"/>
@@ -84,22 +86,22 @@
                     <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="15,65,0,0" Text="Срок изготовления:" VerticalAlignment="Top"/>
                     <TextBox x:Name="DateProduction" Style="{DynamicResource TextBoxStyle}" Margin="135,65,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50" ToolTip="Введите срок изготовления"/>
                     <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="200,65,0,0" Text="раб/дней" VerticalAlignment="Top"/>
+                    <RadioButton GroupName="Delivery" x:Name="PickupRadioButton" Content="Самовывоз" HorizontalAlignment="Left" Margin="15,90,0,0" VerticalAlignment="Top" Checked="HasDeliveryChanged" IsChecked="True"/>
+                    <RadioButton GroupName="Delivery" x:Name="DeliveryRadioButton" Content="Доставка" HorizontalAlignment="Left" Margin="110,90,0,0" VerticalAlignment="Top" Checked="HasDeliveryChanged"/>
+                    <TextBox Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Margin="190,88,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите цену доставки" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" TextChanged="SetDelivery" MinWidth="60"/>
+                    <TextBox Text="{Binding DeliveryRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MaxLines="1" ToolTip="Коэффициент" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" Margin="260,88,0,0" TextChanged="SetDeliveryRatio"/>
                     <TextBox x:Name="Adress" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Margin="15,110,0,0" VerticalAlignment="Top" Width="275" Height="45" ToolTip="Введите адрес доставки" Text="Адрес доставки:" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" TextWrapping="Wrap"/>
                     <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="15,160,0,0" Text="Ваш менеджер:" VerticalAlignment="Top"/>
                     <ComboBox x:Name="ManagerDrop" Style="{DynamicResource ComboBoxStyle}" DisplayMemberPath="Name" HorizontalAlignment="Left" Margin="115,160,0,0" VerticalAlignment="Top" Width="175" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged"/>
                     <Button Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,160,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Обновить список расчетов этого менеджера" Padding="0,0,0,0" BorderThickness="0,0,0,0" Click="RefreshOffers">
                         <Image Source="/Images/update.png"/>
                     </Button>
-                    <RadioButton Content="Все" Margin="340,165,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="ViewAllOffers" ToolTip="Показать все расчеты выбранного менеджера"/>
-                    <RadioButton x:Name="CountRB" Content="Найти" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="390,165,0,0" ToolTip="Найти конкретный расчет"/>
+                    <RadioButton GroupName="Offers" Content="Все" Margin="340,165,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="ViewAllOffers" ToolTip="Показать все расчеты выбранного менеджера"/>
+                    <RadioButton GroupName="Offers" x:Name="CountRB" Content="Найти" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="390,165,0,0" ToolTip="Найти конкретный расчет"/>
                     <TextBox MinWidth="50" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="450,163,0,0" ToolTip="Введите номер расчета" IsEnabled="{Binding IsChecked, ElementName=CountRB}" TextChanged="ViewOffers"/>
                     <Button x:Name="InsertBtn" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="510,160,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Отправить новые расчеты в основную базу" Padding="0,0,0,0" BorderThickness="0,0,0,0" Click="InsertDatabase" IsEnabled="False">
                         <Image Source="/Images/save3.png"/>
                     </Button>
-                    <RadioButton x:Name="PickupRadioButton" Content="Самовывоз" HorizontalAlignment="Left" Margin="15,90,0,0" VerticalAlignment="Top" Checked="HasDeliveryChanged" IsChecked="True"/>
-                    <RadioButton x:Name="DeliveryRadioButton" Content="Доставка" HorizontalAlignment="Left" Margin="110,90,0,0" VerticalAlignment="Top" Checked="HasDeliveryChanged"/>
-                    <TextBox Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Margin="190,88,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите цену доставки" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" TextChanged="SetDelivery" MinWidth="60"/>
-                    <TextBox Text="{Binding DeliveryRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MaxLines="1" ToolTip="Коэффициент" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" Margin="260,88,0,0" TextChanged="SetDeliveryRatio"/>
                     <DatePicker x:Name="datePicker" HorizontalAlignment="Left" Margin="300,60,0,0" VerticalAlignment="Top" FirstDayOfWeek="Monday" SelectedDateChanged="SetDate" ToolTip="Выберите дату изготовления"/>
                     <TextBlock x:Name="Boss" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,0,0,0"/>
                     <TextBox x:Name="Phone" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Width="120" VerticalAlignment="Top" Margin="430,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите актуальный номер телефона"/>

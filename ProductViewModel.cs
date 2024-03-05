@@ -199,10 +199,6 @@ namespace Metal_Code
                                   MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
                                   break;
                               }
-                          //if (MainWindow.M.dbWorks.Works.Contains(MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка"))
-                          //    && MainWindow.M.dbWorks.Works.FirstOrDefault(n => n.Name == "Лазерная резка") is Work w)
-                          //    MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
-                          // загружаем раскладки, начиная с этой заготовки
                           if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is CutControl cut)
                               cut.LoadFiles();
                       }
@@ -267,8 +263,7 @@ namespace Metal_Code
                   {
                       if (obj is Detail detail)
                       {
-                          //Detail detailCopy = new(detail.Title, detail.Count, detail.Price, detail.Total, detail.Mass);
-                          //Product.Details.Insert(0, detailCopy);
+
                       }
                   });
             }
