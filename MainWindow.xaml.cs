@@ -231,6 +231,48 @@ namespace Metal_Code
                 else if (radioButton.Name == "OOORadioButton") IsAgent = false;
             }
         }
+        
+        private float ratio;
+        public float Ratio
+        {
+            get => ratio;
+            set
+            {
+                ratio = value;
+                if (ratio <= 0) ratio = 1;
+                OnPropertyChanged(nameof(Ratio));
+            }
+        }
+        private void SetRatio(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) if (float.TryParse(tBox.Text, out float r)) SetRatio(r);
+        }
+        public void SetRatio(float _ratio)
+        {
+            Ratio = _ratio;
+            TotalResult();
+        }
+
+        private int count;
+        public int Count
+        {
+            get => count;
+            set
+            {
+                count = value;
+                if (count <= 0) count = 1;
+                OnPropertyChanged(nameof(Count));
+            }
+        }
+        private void SetCount(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int c)) SetCount(c);
+        }
+        public void SetCount(int _count)
+        {
+            Count = _count;
+            TotalResult();
+        }
 
         private bool hasDelivery;
         public bool HasDelivery
@@ -256,27 +298,6 @@ namespace Metal_Code
                     HasDelivery = false;
                 } 
             }
-        }
-
-        private int count;
-        public int Count
-        {
-            get => count;
-            set
-            {
-                count = value;
-                if (count <= 0) count = 1;
-                OnPropertyChanged(nameof(Count));
-            }
-        }
-        private void SetCount(object sender, TextChangedEventArgs e)
-        {
-            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int c)) SetCount(c);
-        }
-        public void SetCount(int _count)
-        {
-            Count = _count;
-            TotalResult();
         }
 
         private int delivery;
@@ -406,7 +427,7 @@ namespace Metal_Code
 
             Result += Delivery * DeliveryRatio;
 
-            Result = (float)Math.Round(Result, 2);
+            Result = (float)Math.Round(Result * Ratio, 2);
 
             if (Result > 0) ViewDetailsGrid();
         }
@@ -915,6 +936,7 @@ namespace Metal_Code
         }
         private void ClearCalculate()
         {
+            SetRatio(1);
             SetCount(1);
             HasDelivery = false;
             CheckPaint.IsChecked = false;
@@ -977,9 +999,10 @@ namespace Metal_Code
                 Production = DateProduction.Text,
                 Manager = Adress.Text,                  //поле "Manager" сохраняет ссылку на адрес доставки;
                                                         //не менял название поля, чтобы загружались старые сохранения
+                Ratio = Ratio,                
+                Count = Count,
                 PaintRatio = PaintRatio.Text,
                 ConstructRatio = ConstructRatio.Text,
-                Count = Count,
                 Delivery = Delivery,
                 DeliveryRatio = DeliveryRatio,
                 IsLaser = IsLaser,
@@ -1271,6 +1294,7 @@ namespace Metal_Code
             PaintRatio.Text = ProductModel.Product.PaintRatio;
             CheckConstruct.IsChecked = ProductModel.Product.HasConstruct;
             ConstructRatio.Text = ProductModel.Product.ConstructRatio;
+            SetRatio(ProductModel.Product.Ratio);
             SetCount(ProductModel.Product.Count);
             SetDeliveryRatio(ProductModel.Product.DeliveryRatio);
             SetDelivery(ProductModel.Product.Delivery);
@@ -1504,6 +1528,17 @@ namespace Metal_Code
                 if (cell.Value != null && $"{cell.Value}".Contains("0,7") || $"{cell.Value}".Contains("0,8") || $"{cell.Value}".Contains("1,2"))
                     cell.Style.Numberformat.Format = "0.0";
 
+                //учитываем общий коэффициент в КП
+            for (int i = 8; i < row; i++)
+            {
+                if (worksheet.Cells[i, 6].Value != null && float.TryParse($"{worksheet.Cells[i, 6].Value}", out float c)
+                    && worksheet.Cells[i, 7].Value != null && float.TryParse($"{worksheet.Cells[i, 7].Value}", out float p))
+                {
+                    worksheet.Cells[i, 7].Value = p * Ratio;
+                    worksheet.Cells[i, 8].Value = c * p * Ratio;
+                }
+            }
+
                 //вычисляем итоговую сумму КП и оформляем соответствующим образом
             worksheet.Cells[row, 7].Value = IsAgent ? "ИТОГО:" : "ИТОГО с НДС:";
             worksheet.Cells[row, 7].Style.Font.Bold = true;
@@ -1667,8 +1702,8 @@ namespace Metal_Code
             List<string> _headers = new()
             {
                 "Заказ", "Заказчик", "Менеджер", "Толщина и марка металла", "V",
-                "Гибка", "V", "Доп работы", "V", "Комментарий", "Дата сдачи", "Лазер (стоимость услуг)",
-                "Гибка (стоимость услуг)", "Количество материала", "Номер КП"
+                "Гибка", "V", "Доп работы", "V", "Комментарий", "Дата сдачи", "Лазер (время работ)",
+                "Гибка (время работ)", "Количество материала", "Номер КП"
             };
             for (int col = 0; col < _headers.Count; col++) scoresheet.Cells[10 + tot, col + 8].Value = _headers[col];
 
@@ -1678,8 +1713,10 @@ namespace Metal_Code
                 {
                     //"Толщина и марка металла"
                     scoresheet.Cells[i + 11 + tot, 11].Value = $"s{complect.TypeDetailControls[i].S} {complect.TypeDetailControls[i].MetalDrop.Text}";
-                    //"Количество материала"
-                    scoresheet.Cells[i + 11 + tot, 21].Value = complect.TypeDetailControls[i].Mass;
+                    //"Количество материала и (его цена за 1 кг)"
+                    if (complect.TypeDetailControls[i].MetalDrop.SelectedItem is Metal met)
+                        scoresheet.Cells[i + 11 + tot, 21].Value = $"{complect.TypeDetailControls[i].Mass}" +
+                            $" ({(complect.TypeDetailControls[i].CheckMetal.IsChecked == true ? met.MassPrice : 0)}р)";
 
                     scoresheet.Cells[i + 11 + tot, 9].Value = Company.Text;       //"Заказчик"
 
@@ -1687,22 +1724,25 @@ namespace Metal_Code
 
                     if (HasDelivery) scoresheet.Cells[i + 11 + tot, 15].Value = "Доставка ";
 
+                    if (complect.TypeDetailControls[i].CheckMetal.IsChecked == false)
+                        scoresheet.Cells[i + 11 + tot, 17].Value = "Давальч ";
+
                     scoresheet.Cells[i + 11 + tot, 18].Value = EndDate();        //"Дата сдачи"
                     scoresheet.Cells[i + 11 + tot, 18].Style.Numberformat.Format = "d MMM";
 
                     scoresheet.Cells[i + 11 + tot, 22].Value = Order.Text;       //"Номер КП"
 
-                    foreach (WorkControl w in complect.TypeDetailControls[i].WorkControls)              //анализируем работы каждой типовой детали
+                    foreach (WorkControl w in complect.TypeDetailControls[i].WorkControls)          //анализируем работы каждой типовой детали
                     {
-                        if (w.workType is CutControl) scoresheet.Cells[i + 11 + tot, 19].Value = w.Result;               //"Лазер (стоимость услуг)"
+                        if (w.workType is CutControl) scoresheet.Cells[i + 11 + tot, 19].Value = Math.Ceiling(w.Result * 0.012f);   //"Лазер (время работ)"
                         else if (w.workType is BendControl)
                         {
                             scoresheet.Cells[i + 11 + tot, 13].Value = "гибка";
-                            scoresheet.Cells[i + 11 + tot, 20].Value = w.Result;                                         //"Гибка (стоимость услуг)"
+                            scoresheet.Cells[i + 11 + tot, 20].Value = Math.Ceiling(w.Result * 0.0085f);                            //"Гибка (время работ)"
                         }
                         //для доп работы её наименование добавляем к наименованию работы - особый случай
                         else if (w.workType is ExtraControl _extra) scoresheet.Cells[i + 11 + tot, 15].Value += $"{_extra.NameExtra} ";
-                        else if (w.WorkDrop.SelectedItem is Work work) scoresheet.Cells[i + 11 + tot, 15].Value += $"{work.Name} ";   //"Доп работы"
+                        else if (w.WorkDrop.SelectedItem is Work work) scoresheet.Cells[i + 11 + tot, 15].Value += $"{work.Name} ";     //"Доп работы"
                     }
                 }
 

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Metal_Code
 {
@@ -14,6 +15,10 @@ namespace Metal_Code
         public int Count, Delivery, DeliveryRatio;
         public bool IsLaser, IsAgent, HasDelivery;
         public bool? HasConstruct, HasPaint;
+
+        [OptionalField]             //атрибут, который позволяет игнорировать это поле при загрузке старых сохранений
+        public float Ratio = 1;
+
         public ObservableCollection<Detail> Details { get; set; } = new();
         public Product()
         {

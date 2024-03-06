@@ -152,8 +152,10 @@ namespace Metal_Code
                 foreach (Part p in PartDetails)
                 {
                     p.Price += (float)Math.Round(work.Result * p.Way / WayTotal, 2);
-                    p.Price += (float)Math.Round(work.type.Result * p.Mass / MassTotal, 2);                    
-                    p.Accuracy += $" + {(float)Math.Round(work.Result * p.Way / WayTotal + work.type.Result * p.Mass / MassTotal, 2)}(л)";
+                    p.Price += (float)Math.Round(work.type.Result * p.Mass / MassTotal, 2);
+
+                    p.Accuracy += $" + {(float)Math.Round(work.type.Result * p.Mass / MassTotal, 2)}(мат)";
+                    p.Accuracy += $" + {(float)Math.Round(work.Result * p.Way / WayTotal, 2)}(л)";
                 }
             }
             else
