@@ -586,9 +586,16 @@ namespace Metal_Code
                         {
                             foreach (Offer offer in _manLocal.Offers)
                             {
-                                //проверяем наличие идентичного КП в основной базе, если такое уже есть пропускаем копирование
+                                //проверяем наличие идентичного КП в основной базе, если такое уже есть,
+                                //изменяем номера счета, заказа и акта, но пропускаем копирование
                                 Offer? tempOffer = _man?.Offers.FirstOrDefault(o => o.Data == offer.Data);
-                                if (tempOffer != null) continue;
+                                if (tempOffer != null)
+                                {
+                                    tempOffer.Invoice = offer.Invoice;
+                                    tempOffer.Order = offer.Order;
+                                    tempOffer.Act = offer.Act;
+                                    continue;
+                                }
 
                                 //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
                                 Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
@@ -618,7 +625,7 @@ namespace Metal_Code
             }
         }
 
-        private void UpdateDatabases(object sender, RoutedEventArgs e)
+        private void UpdateDatabases(object sender, RoutedEventArgs e)      //метод обновления локальных баз
         {
             if (!isLocal) return;                               //если запущена основная база, выходим из метода
 

@@ -131,11 +131,20 @@ namespace Metal_Code
         {
             if (work.type.MetalDrop.SelectedItem is not Metal metal) return 0;
 
+            float _massRatio = _mass switch         //рассчитываем наценку за тяжелые детали
+            {
+                <= 50 => 1,
+                <= 100 => 1.5f,
+                <= 150 => 2,
+                _ => 3,
+            };
+
             return TypeDrop.SelectedItem switch
             {
-                "м²" => TypeDict[$"{TypeDrop.SelectedItem}"] * _mass * _count / work.type.S / metal.Density,
-                "шт" => TypeDict[$"{TypeDrop.SelectedItem}"] * _count,
-                "пог" => TypeDict[$"{TypeDrop.SelectedItem}"] * _mass,     // здесь нужна формула расчета пог.м
+                    //в случае с деталями толщиной 10 мм и больше добавляем наценку 50% за прогрев металла
+                "м²" => TypeDict[$"{TypeDrop.SelectedItem}"] * _mass * _massRatio * _count * (work.type.S >= 10 ? 1.5f : 1) / work.type.S / metal.Density,
+                "шт" => TypeDict[$"{TypeDrop.SelectedItem}"] * _massRatio * _count * (work.type.S >= 10 ? 1.5f : 1),
+                "пог" => TypeDict[$"{TypeDrop.SelectedItem}"] * _mass * _massRatio * _count * (work.type.S >= 10 ? 1.5f : 1),     // здесь нужна формула расчета пог.м
                 _ => 0,
             };
         }
