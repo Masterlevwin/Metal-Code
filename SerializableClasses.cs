@@ -107,14 +107,18 @@ namespace Metal_Code
         public string? NameWork { get; set; }
         public float Ratio { get; set; }
 
+        [OptionalField]
+        public float TechRatio = 1;
+
         public List<string>? PropsList = new();
 
         public List<LaserItem> Items = new();
         public List<Part> Parts = new();
-        public SaveWork(string? _namework, float _ratio = 0)
+        public SaveWork(string? _namework, float _ratio = 0, float _techratio = 0)
         {
             NameWork = _namework;
             Ratio = _ratio;
+            TechRatio = _techratio;
         }
     }
 

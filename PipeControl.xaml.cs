@@ -135,5 +135,29 @@ namespace Metal_Code
                 SetPinhole(w.propsList[2]);
             }
         }
+
+        //private void ViewPopupMold(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        //{
+        //    PopupMold.IsOpen = true;
+
+        //    if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+        //        WayPrice.Text = $"Цена метра резки\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item1} руб";
+        //}
+
+        //private void ViewPopupWay(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        //{
+        //    PopupWay.IsOpen = true;
+
+        //    if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+        //        WayPrice.Text = $"Цена метра резки\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item1} руб";
+        //}
+
+        //private void ViewPopupPinhole(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        //{
+        //    PopupPinhole.IsOpen = true;
+
+        //    if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+        //        PinholePrice.Text = $"Цена прокола\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item2} руб";
+        //}
     }
 }

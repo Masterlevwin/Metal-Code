@@ -46,6 +46,20 @@ namespace Metal_Code
             }
         }
 
+        private float techratio;
+        public float TechRatio
+        {
+            get => techratio;
+            set
+            {
+                if (value != techratio)
+                {
+                    techratio = value;
+                    OnPropertyChanged(nameof(TechRatio));
+                }
+            }
+        }
+
         public readonly TypeDetailControl type;
         public WorkControl(TypeDetailControl t)
         {
@@ -97,11 +111,27 @@ namespace Metal_Code
 
         private void SetRatio(object sender, TextChangedEventArgs e)
         {
-            if (sender is TextBox tBox) SetRatio(tBox.Text);
+            if (sender is TextBox tBox)
+                switch (tBox.Name)
+                {
+                    case "TechRatioText":
+                        SetTechRatio(tBox.Text);
+                        break;
+                    default:
+                        SetRatio(tBox.Text);
+                        break;
+                }
         }
         private void SetRatio(string _ratio)
         {
             if (float.TryParse(_ratio, out float r)) Ratio = r;     // стандартный парсер избавляет от проблемы с запятой
+
+            if (workType != null && workType is IPriceChanged control) control.OnPriceChanged();
+            else if (WorkDrop.SelectedItem is Work work) SetResult(work.Price, false);
+        }
+        private void SetTechRatio(string _ratio)
+        {
+            if (float.TryParse(_ratio, out float r)) TechRatio = r;     // стандартный парсер избавляет от проблемы с запятой
 
             if (workType != null && workType is IPriceChanged control) control.OnPriceChanged();
             else if (WorkDrop.SelectedItem is Work work) SetResult(work.Price, false);
@@ -194,7 +224,9 @@ namespace Metal_Code
             //    else WorkDrop.SelectedIndex = index;
             //}
 
-            SetRatio("1");      // запускаем процесс формирования стоимости по умолчанию
+            // запускаем процесс формирования стоимости по умолчанию
+            SetRatio("1");      
+            SetTechRatio("1");
         }
 
         private bool ValidateProp(out int ndx)
@@ -215,7 +247,7 @@ namespace Metal_Code
         {
             if (WorkDrop.SelectedItem is not Work work) return;
 
-            Result = (float)Math.Round(addMin ? (price + work.Price) * Ratio : price * Ratio, 2);
+            Result = (float)Math.Round(addMin ? (price + work.Price) * Ratio * TechRatio : price * Ratio * TechRatio, 2);
 
             if (addMin)
             {

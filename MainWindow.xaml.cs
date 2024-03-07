@@ -1068,7 +1068,7 @@ namespace Metal_Code
                                 else TempWorks[_work.Name] += work.Result;
                             }
 
-                            SaveWork _saveWork = new(_work.Name, work.Ratio);
+                            SaveWork _saveWork = new(_work.Name, work.Ratio, work.TechRatio);
 
                             if (Parts.Count > 0 && work.workType is CutControl _cut)
                             {
@@ -1367,6 +1367,7 @@ namespace Metal_Code
                         _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
                         _work.PropertiesChanged?.Invoke(_work, false);
                         _work.Ratio = details[i].TypeDetails[j].Works[k].Ratio;
+                        _work.TechRatio = details[i].TypeDetails[j].Works[k].TechRatio;
 
                         if (_type.WorkControls.Count < details[i].TypeDetails[j].Works.Count) _type.AddWork();
                     }

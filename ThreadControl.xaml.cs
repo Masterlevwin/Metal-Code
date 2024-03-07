@@ -191,9 +191,9 @@ namespace Metal_Code
                     foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим резьбу или зенковку среди работ и получаем её минималку
                         if (_w.workType is ThreadControl thread && thread.CharName == CharName && _w.WorkDrop.SelectedItem is Work _work)
                         {
-                            p.Part.Price += (_work.Price / p.Part.Count / Holes + Time(p.Part.Mass, Wide, _w) * 2000 / 60) * Holes * _w.Ratio;
+                            p.Part.Price += (_work.Price / p.Part.Count / Holes + Time(p.Part.Mass, Wide, _w) * 2000 / 60) * Holes * _w.Ratio * _w.TechRatio;
                             p.Part.Accuracy += $" + {(float)Math.Round((_work.Price / p.Part.Count / Holes
-                                + Time(p.Part.Mass, Wide, _w) * 2000 / 60) * Holes * _w.Ratio, 2)}({CharName})";
+                                + Time(p.Part.Mass, Wide, _w) * 2000 / 60) * Holes * _w.Ratio * _w.TechRatio, 2)}({CharName})";
                             break;
                         }
                 }

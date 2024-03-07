@@ -218,7 +218,7 @@ namespace Metal_Code
                 foreach (PartControl p in Parts)
                     foreach (BendControl item in p.UserControls.OfType<BendControl>())
                     {
-                        float _price = item.Price(item.Bend * p.Part.Count, work);
+                        float _price = item.Price(item.Bend * p.Part.Count, work, p.Part.Mass);
 
                         // стоимость данной гибки должна быть не ниже минимальной
                         if (work.WorkDrop.SelectedItem is Work _work) _price = _price > 0 && _price < _work.Price ? _work.Price : _price;
@@ -227,10 +227,10 @@ namespace Metal_Code
                     }
                 work.SetResult(price, false);
             }
-            else work.SetResult(Price(Bend * work.type.Count, work));
+            else work.SetResult(Price(Bend * work.type.Count, work, work.type.Mass));
         }
 
-        private float Price(float _count, WorkControl work)
+        private float Price(float _count, WorkControl work, float _mass)
         {
             float _bendRatio = _count switch
             {
@@ -242,7 +242,7 @@ namespace Metal_Code
             };
 
             return BendDict.ContainsKey(work.type.S) ?
-                _bendRatio * _count * BendDict[work.type.S][$"{ShelfDrop.SelectedItem}"] : 0;
+                _bendRatio * _count * BendDict[work.type.S][$"{ShelfDrop.SelectedItem}"] * MainWindow.MassRatio(_mass): 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
@@ -269,9 +269,9 @@ namespace Metal_Code
                     foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим гибку среди работ и получаем её минималку
                         if (_w.workType is BendControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
-                            float _price = Price(Bend * p.Part.Count, p.Cut.work);
+                            float _price = Price(Bend * p.Part.Count, p.Cut.work, p.Part.Mass);
                             // стоимость данной гибки должна быть не ниже минимальной
-                            _price = _price > 0 && _price < _work.Price ? _work.Price * _w.Ratio : _price * _w.Ratio;
+                            _price = _price > 0 && _price < _work.Price ? _work.Price * _w.Ratio * _w.TechRatio : _price * _w.Ratio * _w.TechRatio;
                             p.Part.Price += _price / p.Part.Count;
                             p.Part.Accuracy += $" + {(float)Math.Round(_price / p.Part.Count, 2)}(г)";
                             break;
