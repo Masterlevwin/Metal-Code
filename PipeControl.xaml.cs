@@ -136,28 +136,28 @@ namespace Metal_Code
             }
         }
 
-        //private void ViewPopupMold(object sender, System.Windows.Input.MouseWheelEventArgs e)
-        //{
-        //    PopupMold.IsOpen = true;
+        private void ViewPopupMold(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        {
+            PopupMold.IsOpen = true;
 
-        //    if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-        //        WayPrice.Text = $"Цена метра резки\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item1} руб";
-        //}
+            if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+                MoldPrice.Text = $"Цена резки пог м\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item3} руб";
+        }
 
-        //private void ViewPopupWay(object sender, System.Windows.Input.MouseWheelEventArgs e)
-        //{
-        //    PopupWay.IsOpen = true;
+        private void ViewPopupWay(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        {
+            PopupWay.IsOpen = true;
 
-        //    if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-        //        WayPrice.Text = $"Цена метра резки\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item1} руб";
-        //}
+            if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+                WayPrice.Text = $"Цена метра резки\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item1} руб";
+        }
 
-        //private void ViewPopupPinhole(object sender, System.Windows.Input.MouseWheelEventArgs e)
-        //{
-        //    PopupPinhole.IsOpen = true;
+        private void ViewPopupPinhole(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        {
+            PopupPinhole.IsOpen = true;
 
-        //    if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-        //        PinholePrice.Text = $"Цена прокола\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item2} руб";
-        //}
+            if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+                PinholePrice.Text = $"Цена прокола\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item2} руб";
+        }
     }
 }

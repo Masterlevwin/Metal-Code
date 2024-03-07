@@ -114,11 +114,10 @@ namespace Metal_Code
 
         public List<LaserItem> Items = new();
         public List<Part> Parts = new();
-        public SaveWork(string? _namework, float _ratio = 0, float _techratio = 0)
+        public SaveWork(string? _namework, float _ratio = 0)
         {
             NameWork = _namework;
             Ratio = _ratio;
-            TechRatio = _techratio;
         }
     }
 

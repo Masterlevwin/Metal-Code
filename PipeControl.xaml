@@ -7,8 +7,23 @@
              mc:Ignorable="d" 
              d:DesignHeight="20" d:DesignWidth="140" Style="{DynamicResource UserControlStyle}" >
     <Grid>
-        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Mold, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetMold" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="45" ToolTip="Длина трубы, пог м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0"/>
-        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetWay" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="45" ToolTip="Длина пути резки, м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="55,0,0,0"/>
-        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetPinhole" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="35" ToolTip="Количество проколов, шт" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="105,0,0,0"/>
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Mold, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetMold" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="45" ToolTip="Длина трубы, пог м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MouseWheel="ViewPopupMold"/>
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetWay" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="45" ToolTip="Длина пути резки, м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="55,0,0,0" MouseWheel="ViewPopupWay"/>
+        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetPinhole" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" MinWidth="35" ToolTip="Количество проколов, шт" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="105,0,0,0" MouseWheel="ViewPopupPinhole"/>
+        <Popup x:Name="PopupMold" StaysOpen="False" Placement="Mouse" MaxWidth="120" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5">
+            <StackPanel Background="Snow">
+                <TextBlock x:Name="MoldPrice" Style="{DynamicResource TextBlockStyle}" TextAlignment="Center" Padding="3,3,3,3"/>
+            </StackPanel>
+        </Popup>
+        <Popup x:Name="PopupWay" StaysOpen="False" Placement="Mouse" MaxWidth="120" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5">
+            <StackPanel Background="Snow">
+                <TextBlock x:Name="WayPrice" Style="{DynamicResource TextBlockStyle}" TextAlignment="Center" Padding="3,3,3,3"/>
+            </StackPanel>
+        </Popup>
+        <Popup x:Name="PopupPinhole" StaysOpen="False" Placement="Mouse" MaxWidth="120" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5">
+            <StackPanel Background="Snow">
+                <TextBlock x:Name="PinholePrice" Style="{DynamicResource TextBlockStyle}" TextAlignment="Center" Padding="3,3,3,3"/>
+            </StackPanel>
+        </Popup>
     </Grid>
 </UserControl>
