@@ -103,8 +103,8 @@ namespace Metal_Code
 
         private readonly Dictionary<string, float> TempWorks = new();
 
-        public readonly List<double> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25 };
-        public Dictionary<string, Dictionary<double, (float, float, float)>> MetalDict = new();
+        public readonly List<float> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25 };
+        public Dictionary<string, Dictionary<float, (float, float, float)>> MetalDict = new();
         public Dictionary<double, float> WideDict = new();
         public Dictionary<Metal, float> MetalRatioDict = new();
 
@@ -114,7 +114,7 @@ namespace Metal_Code
             {
                 if (metal.Name != null && metal.WayPrice != null && metal.PinholePrice != null && metal.MoldPrice != null)
                 {
-                    Dictionary<double, (float, float, float)> prices = new();
+                    Dictionary<float, (float, float, float)> prices = new();
 
                     string[] _ways = metal.WayPrice.Split('/');
                     string[] _pinholes = metal.PinholePrice.Split('/');

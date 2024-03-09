@@ -210,8 +210,11 @@ namespace Metal_Code
         public string? Name { get; set; }
         public float Density {  get; set; }
         public float MassPrice {  get; set; }
+        [Browsable(false)]
         public string? WayPrice { get; set; }
+        [Browsable(false)]
         public string? PinholePrice { get; set; }
+        [Browsable(false)]
         public string? MoldPrice { get; set; }
 
         public Metal()

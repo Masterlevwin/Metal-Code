@@ -147,6 +147,7 @@
                         <TextBox x:Name="PaintRatio" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="19" Width="30" Margin="470,113,0,0" TextChanged="UpdateResult"/>
                         <TextBox x:Name="ConstructRatio" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,138,0,0" TextChanged="UpdateResult"/>
                         <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="470,90,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
+                        
                         <DataGrid x:Name="OffersGrid" CanUserReorderColumns="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,190,15,5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False" HeadersVisibility="Column" BorderBrush="Red" MaxWidth="515">
                             <DataGrid.ContextMenu>
                                 <ContextMenu>
@@ -156,6 +157,7 @@
                                 </ContextMenu>
                             </DataGrid.ContextMenu>
                         </DataGrid>
+                        
                         <RadioButton GroupName="Boss" x:Name="AppRadioButton" HorizontalAlignment="Left" Margin="15,15,0,0" VerticalAlignment="Top" Checked="IsLaserChanged" IsChecked="True"/>
                         <RadioButton GroupName="Boss" x:Name="LaserRadioButton" HorizontalAlignment="Left" Margin="70,15,0,0" VerticalAlignment="Top" Checked="IsLaserChanged"/>
                         <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет от ООО" HorizontalAlignment="Left" Margin="15,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;"/>
