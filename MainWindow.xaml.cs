@@ -911,7 +911,7 @@ namespace Metal_Code
             DetailControl detail = new(new());
 
             if (DetailControls.Count > 0)
-                detail.Margin = new Thickness(0,
+                detail.Margin = new Thickness(0,    //добавил +25, так как увеличился DetailControl
                     DetailControls[^1].Margin.Top + 25 + 25 * DetailControls[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
 
             DetailControls.Add(detail);
@@ -1735,11 +1735,16 @@ namespace Metal_Code
 
                     foreach (WorkControl w in complect.TypeDetailControls[i].WorkControls)          //анализируем работы каждой типовой детали
                     {
-                        if (w.workType is CutControl) scoresheet.Cells[i + 11 + tot, 19].Value = Math.Ceiling(w.Result * 0.012f);   //"Лазер (время работ)"
+                        if (w.workType is CutControl)
+                        {
+                            scoresheet.Cells[i + 11 + tot, 19].Value = Math.Ceiling(w.Result * 0.012f);     //"Лазер (время работ)"
+                            if (w.TechRatio > 1) scoresheet.Cells[i + 11 + tot, 19].Value += $" (x{w.TechRatio})";
+                        } 
                         else if (w.workType is BendControl)
                         {
                             scoresheet.Cells[i + 11 + tot, 13].Value = "гибка";
-                            scoresheet.Cells[i + 11 + tot, 20].Value = Math.Ceiling(w.Result * 0.0085f);                            //"Гибка (время работ)"
+                            scoresheet.Cells[i + 11 + tot, 20].Value = Math.Ceiling(w.Result * 0.0085f);    //"Гибка (время работ)"
+                            if (w.TechRatio > 1) scoresheet.Cells[i + 11 + tot, 20].Value += $" (x{w.TechRatio})";
                         }
                         //для доп работы её наименование добавляем к наименованию работы - особый случай
                         else if (w.workType is ExtraControl _extra) scoresheet.Cells[i + 11 + tot, 15].Value += $"{_extra.NameExtra} ";
