@@ -458,7 +458,7 @@ namespace Metal_Code
         {
             if (ManagerDrop.SelectedItem is Manager man) ViewOffersGrid(man);
         }
-        private void ViewOffersGrid(Manager man, bool allOffers = false, int count = 20)
+        private void ViewOffersGrid(Manager man, bool allOffers = false, int count = 13)
         {
                 //подключаемся к базе данных
             using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
@@ -480,7 +480,7 @@ namespace Metal_Code
                     OffersGrid.Columns[3].Header = "Материал, руб.";
                     OffersGrid.Columns[4].Header = "Счёт";
                     OffersGrid.Columns[5].Header = "Заказ";
-                    OffersGrid.Columns[6].Header = "УПД / Акт";
+                    OffersGrid.Columns[6].Header = "УПД";
                     OffersGrid.Columns[7].Header = "Автор";
                     OffersGrid.Columns[8].Header = "Дата создания";
                     (OffersGrid.Columns[8] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
@@ -912,7 +912,7 @@ namespace Metal_Code
 
             if (DetailControls.Count > 0)
                 detail.Margin = new Thickness(0,
-                    DetailControls[^1].Margin.Top + 25 * DetailControls[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
+                    DetailControls[^1].Margin.Top + 25 + 25 * DetailControls[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
 
             DetailControls.Add(detail);
             ProductGrid.Children.Add(detail);
@@ -1068,8 +1068,7 @@ namespace Metal_Code
                                 else TempWorks[_work.Name] += work.Result;
                             }
 
-                            SaveWork _saveWork = new(_work.Name, work.Ratio);
-                            _saveWork.TechRatio = work.TechRatio;
+                            SaveWork _saveWork = new(_work.Name, work.Ratio, work.TechRatio);
 
                             if (Parts.Count > 0 && work.workType is CutControl _cut)
                             {
@@ -1368,7 +1367,7 @@ namespace Metal_Code
                         _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
                         _work.PropertiesChanged?.Invoke(_work, false);
                         _work.Ratio = details[i].TypeDetails[j].Works[k].Ratio;
-                        //_work.TechRatio = details[i].TypeDetails[j].Works[k].TechRatio;
+                        _work.TechRatio = details[i].TypeDetails[j].Works[k].TechRatio;
 
                         if (_type.WorkControls.Count < details[i].TypeDetails[j].Works.Count) _type.AddWork();
                     }

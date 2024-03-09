@@ -38,7 +38,7 @@ namespace Metal_Code
             type.Priced += MassCalculate;       // подписка на изменение типовой детали для расчета общей массы детали
             DetailGrid.Children.Add(type);
 
-            Grid.SetColumn(type, 2);
+            Grid.SetRow(type, 1);
             
             type.AddWork();   // при добавлении дропа типовой детали добавляем дроп работ
         }

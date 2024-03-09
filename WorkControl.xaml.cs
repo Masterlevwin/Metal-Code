@@ -55,6 +55,7 @@ namespace Metal_Code
                 if (value != techratio)
                 {
                     techratio = value;
+                    if (techratio <= 0) techratio = 1;
                     OnPropertyChanged(nameof(TechRatio));
                 }
             }

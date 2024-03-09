@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="250" VerticalAlignment="Top" Style="{DynamicResource UserControlStyle}">
+             d:DesignHeight="50" d:DesignWidth="200" VerticalAlignment="Top" Style="{DynamicResource UserControlStyle}">
     <UserControl.ContextMenu>
         <ContextMenu>
             <MenuItem Header="Добавить" Click="AddDetail"></MenuItem>
@@ -12,11 +12,15 @@
         </ContextMenu>
     </UserControl.ContextMenu>
     <Grid x:Name="DetailGrid" >
+        <Grid.RowDefinitions>
+            <RowDefinition MinHeight="25"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <TextBox x:Name="DetailName" Style="{DynamicResource TextBoxStyle}" Text="{Binding Title}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="150" MinHeight="20" ToolTip="Введите наименование детали" MaxWidth="150" MaxLines="1" Height="20" HorizontalAlignment="Left" VerticalAlignment="Top" TextChanged="SetName"/>
+        <TextBox x:Name="DetailName" Style="{DynamicResource TextBoxStyle}" Text="{Binding Title}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="150" MinHeight="20" ToolTip="Введите наименование детали" MaxWidth="150" MaxLines="1" HorizontalAlignment="Left" VerticalAlignment="Top" TextChanged="SetName" MaxHeight="20"/>
         <Button Style="{DynamicResource ButtonStyle}" Content="Х" HorizontalAlignment="Left" Margin="150,0,0,0" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" Padding="0,0,0,0" MaxWidth="10" MaxHeight="10" FontSize="8" BorderThickness="0,0,0,0" Height="10" Width="10" Click="Remove" ToolTip="Удалить деталь"/>
     </Grid>
 </UserControl>
