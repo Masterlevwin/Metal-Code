@@ -36,8 +36,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Page Remove="appTheme.xaml" />
-    <Page Remove="laserTheme.xaml" />
+    <Page Remove="Themes\appTheme.xaml" />
+    <Page Remove="Themes\laserTheme.xaml" />
   </ItemGroup>
 
   <ItemGroup>
@@ -53,7 +53,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="appTheme.xaml" />
     <Resource Include="app_logo.ico" />
     <Resource Include="app_logo.jpeg">
       <CopyToOutputDirectory></CopyToOutputDirectory>
@@ -74,8 +73,9 @@
     <Resource Include="Images\update.png" />
     <Resource Include="Images\update4.png" />
     <Resource Include="Images\xlsx_load.png" />
-    <Resource Include="laserTheme.xaml" />
     <Resource Include="laser_logo.jpg" />
+    <Resource Include="Themes\appTheme.xaml" />
+    <Resource Include="Themes\laserTheme.xaml" />
   </ItemGroup>
 
 </Project>

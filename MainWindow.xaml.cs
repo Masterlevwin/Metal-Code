@@ -189,7 +189,7 @@ namespace Metal_Code
                     Boss.Text = $"ООО ЛАЗЕРФЛЕКС  ";
                     Phone.Text = "тел:(812)509-60-11";
                     LaserRadioButton.IsChecked = true;
-                    ThemeChange("laserTheme");
+                    ThemeChange("laserTheme"); 
                 }
                 else
                 {
@@ -1865,7 +1865,7 @@ namespace Metal_Code
         private static void ThemeChange(string style)
         {
             // определяем путь к файлу ресурсов
-            Uri? uri = new(style + ".xaml", UriKind.Relative);
+            Uri? uri = new("Themes/" + style + ".xaml", UriKind.Relative);
             // загружаем словарь ресурсов
             ResourceDictionary? resourceDict = Application.LoadComponent(uri) as ResourceDictionary;
             // очищаем коллекцию ресурсов приложения
