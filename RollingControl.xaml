@@ -5,11 +5,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="140" VerticalAlignment="Top" Style="{DynamicResource UserControlStyle}" >
+             d:DesignHeight="20" d:DesignWidth="140" VerticalAlignment="Top">
     <Grid>
-        <Button x:Name="PartBtn" Style="{DynamicResource ButtonStyle}" Content="Х" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" Padding="0,0,0,0" MaxWidth="10" MaxHeight="10" FontSize="8" BorderThickness="0,0,0,0" Height="10" Width="10" ToolTip="Удалить вальцовку" Margin="15,10,0,0" Visibility="Hidden"/>
-        <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="6,-3,0,0" Text="В" VerticalAlignment="Top" FontWeight="Bold"/>
-        <TextBlock Style="{DynamicResource TextBlockStyle}" Text="{Binding Side, RelativeSource={RelativeSource AncestorType={x:Type local:RollingControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="30,0,0,0" VerticalAlignment="Center"/>
-        <ComboBox x:Name="TypeDrop" Style="{DynamicResource ComboBoxStyle}" SelectionChanged="SetType" HorizontalAlignment="Left" Margin="65,0,0,0" VerticalAlignment="Center" Height="20" MinHeight="20" MaxHeight="20" MinWidth="75" MaxWidth="75" ToolTip="Выберите сторону вальцовки" SelectedIndex="0"/>
+        <Button x:Name="PartBtn" Content="Х" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" Padding="0,0,0,0" MaxWidth="10" MaxHeight="10" FontSize="8" BorderThickness="0,0,0,0" Height="10" Width="10" ToolTip="Удалить вальцовку" Margin="15,10,0,0" Visibility="Hidden"/>
+        <TextBlock HorizontalAlignment="Left" Margin="6,-3,0,0" Text="В" VerticalAlignment="Top" FontWeight="Bold"/>
+        <TextBlock Text="{Binding Side, RelativeSource={RelativeSource AncestorType={x:Type local:RollingControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="30,0,0,0" VerticalAlignment="Center"/>
+        <ComboBox x:Name="TypeDrop" SelectionChanged="SetType" HorizontalAlignment="Left" Margin="65,0,0,0" VerticalAlignment="Center" Height="20" MinHeight="20" MaxHeight="20" MinWidth="75" MaxWidth="75" ToolTip="Выберите сторону вальцовки" SelectedIndex="0"/>
     </Grid>
 </UserControl>

@@ -5,13 +5,13 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="140" Style="{DynamicResource UserControlStyle}" VerticalAlignment="Top" >
+             d:DesignHeight="20" d:DesignWidth="140" VerticalAlignment="Top" >
     <Grid>
-        <TextBlock Text="{Binding CharName, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6,-3,0,0" MinWidth="10" MinHeight="10" FontWeight="Bold"/>
-        <Button x:Name="PartBtn" Style="{DynamicResource ButtonStyle}" Content="Х" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" Padding="0,0,0,0" MaxWidth="10" MaxHeight="10" FontSize="8" BorderThickness="0,0,0,0" Height="10" Width="10" ToolTip="Удалить мех обработку" Margin="15,10,0,0" Visibility="Hidden"/>
+        <TextBlock Text="{Binding CharName, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6,-3,0,0" MinWidth="10" MinHeight="10" FontWeight="Bold"/>
+        <Button x:Name="PartBtn" Content="Х" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" Padding="0,0,0,0" MaxWidth="10" MaxHeight="10" FontSize="8" BorderThickness="0,0,0,0" Height="10" Width="10" ToolTip="Удалить мех обработку" Margin="15,10,0,0" Visibility="Hidden"/>
         <TextBlock Margin="55,0,0,0" Text="Ø" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Wide, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" ToolTip="Введите диаметр отверстия" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" Margin="65,0,0,0" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" TextChanged="SetWide"/>
+        <TextBox Text="{Binding Wide, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" ToolTip="Введите диаметр отверстия" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" Margin="65,0,0,0" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" TextChanged="SetWide"/>
         <TextBlock Margin="100,0,0,0" Text="N" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-        <TextBox Style="{DynamicResource TextBoxStyle}" Text="{Binding Holes, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" ToolTip="Введите количество отверстий" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" Margin="110,0,0,0" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" TextChanged="SetHoles"/>
+        <TextBox Text="{Binding Holes, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" ToolTip="Введите количество отверстий" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" Margin="110,0,0,0" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" TextChanged="SetHoles"/>
     </Grid>
 </UserControl>

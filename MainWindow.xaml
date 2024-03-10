@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:Metal_Code"
         x:Class="Metal_Code.MainWindow"
         mc:Ignorable="d"
-        Title="Metal-Code" Style="{DynamicResource WindowStyle}" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" d:DesignHeight="805.736" d:DesignWidth="1907.931" Closing="Exit" WindowState="Maximized" Icon="/app_logo.jpeg" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveCaptionTextBrushKey}}">
+        Title="Metal-Code" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" d:DesignHeight="805.736" d:DesignWidth="1907.931" Closing="Exit" WindowState="Maximized" Icon="/app_logo.jpeg" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveCaptionTextBrushKey}}">
 
     <Window.InputBindings>
         <KeyBinding Key="A"
@@ -34,7 +34,7 @@
                 <MenuItem Header="_Получить отчет">
                     <MenuItem Header="Выбрать даты"/>
                     <Calendar x:Name="ReportCalendar" SelectionMode="SingleRange" IsTodayHighlighted="False"/>
-                    <Button Content="Подтвердить" Command="{Binding SaveReportCommand}" Style="{DynamicResource ButtonStyle}"/>
+                    <Button Content="Подтвердить" Command="{Binding SaveReportCommand}"/>
                 </MenuItem>
                 <Separator/>
                 <MenuItem Header="_Выход" Click="Exit"/>
@@ -50,10 +50,10 @@
             <MenuItem Header="О программе">
                 <MenuItem Header="Очень краткое руководство" Click="OpenExample"/>
                 <MenuItem Header="Тестирование">
-                    <TextBox x:Name="Wide" ToolTip="Введите диаметр отверстия" Style="{DynamicResource TextBoxStyle}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" TextChanged="Test" Text="Ø"/>
-                    <TextBox x:Name="Holes" ToolTip="Введите количество отверстий" Style="{DynamicResource TextBoxStyle}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" TextChanged="Test" Text="N"/>
+                    <TextBox x:Name="Wide" ToolTip="Введите диаметр отверстия" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" TextChanged="Test" Text="Ø"/>
+                    <TextBox x:Name="Holes" ToolTip="Введите количество отверстий" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" TextChanged="Test" Text="N"/>
                 </MenuItem>
-                <TextBlock x:Name="Version" Style="{DynamicResource TextBlockStyle}" />
+                <TextBlock x:Name="Version"/>
             </MenuItem>
         </Menu>
 
@@ -67,44 +67,44 @@
                 <ColumnDefinition MaxWidth="600"/>
             </Grid.ColumnDefinitions>
 
-            <TextBox x:Name="ProductName" Text="Изделие" Style="{DynamicResource TextBoxStyle}" AutoWordSelection="True" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" HorizontalAlignment="Left" FontSize="14" AllowDrop="False" />
-            <TextBlock Text="Общий коэффициент" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="550,40,0,0" VerticalAlignment="Top"/>
-            <TextBox ToolTip="Введите наценку на всё КП" Text="{Binding Ratio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Style="{DynamicResource TextBoxStyle}" AllowDrop="False" MaxLines="1" MinWidth="40" HorizontalContentAlignment="Center" Margin="680,40,0,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Left" MaxLength="4" FontSize="14" TextChanged="SetRatio" MaxWidth="40" MaxHeight="20"/>
-            <Button x:Name="ResultBtn" ToolTip="Общая стоимость, нажмите, чтобы обновить" Content="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" MinHeight="20" AllowDrop="False" VerticalAlignment="Top" Margin="770,40,0,0" FontSize="14" HorizontalContentAlignment="Stretch" MaxWidth="80" BorderThickness="0" Click="UpdateResult" MinWidth="20"/>
-            <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Text="руб" VerticalAlignment="Top" Margin="850,40,0,0"/>
+            <TextBox x:Name="ProductName" Text="Изделие" AutoWordSelection="True" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" HorizontalAlignment="Left" FontSize="14" AllowDrop="False" />
+            <TextBlock Text="Общий коэффициент" HorizontalAlignment="Left" Margin="550,40,0,0" VerticalAlignment="Top"/>
+            <TextBox ToolTip="Введите наценку на всё КП" Text="{Binding Ratio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" AllowDrop="False" MaxLines="1" MinWidth="40" HorizontalContentAlignment="Center" Margin="680,40,0,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Left" MaxLength="4" FontSize="14" TextChanged="SetRatio" MaxWidth="40" MaxHeight="20"/>
+            <Button x:Name="ResultBtn" ToolTip="Общая стоимость, нажмите, чтобы обновить" Content="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" MinHeight="20" AllowDrop="False" VerticalAlignment="Top" Margin="770,40,0,0" FontSize="14" HorizontalContentAlignment="Stretch" MaxWidth="80" BorderThickness="0" Click="UpdateResult" MinWidth="20"/>
+            <TextBlock HorizontalAlignment="Left" Text="руб" VerticalAlignment="Top" Margin="850,40,0,0"/>
 
-            <Button Command="{Binding NewProjectCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="400,40,0,0" Padding="0" BorderThickness="0" ToolTip="Создать новый расчет" Height="20" Width="20">
+            <Button Command="{Binding NewProjectCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="400,40,0,0" Padding="0" BorderThickness="0" ToolTip="Создать новый расчет" Height="20" Width="20">
                 <Image Source="Images/new3.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button Command="{Binding OpenCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,40,0,0" Padding="0" BorderThickness="0" ToolTip="Открыть сохраненный расчет" Height="20" Width="20">
+            <Button Command="{Binding OpenCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,40,0,0" Padding="0" BorderThickness="0" ToolTip="Открыть сохраненный расчет" Height="20" Width="20">
                 <Image Source="Images/open4.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button Command="{Binding SaveCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="460,40,0,0" Padding="0" BorderThickness="0" ToolTip="Сохранить расчет" Height="20" Width="20">
+            <Button Command="{Binding SaveCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="460,40,0,0" Padding="0" BorderThickness="0" ToolTip="Сохранить расчет" Height="20" Width="20">
                 <Image Source="Images/save.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button Command="{Binding LoadExcelCommand}" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="490,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить раскладки" Height="20" Width="20">
+            <Button Command="{Binding LoadExcelCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="490,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить раскладки" Height="20" Width="20">
                 <Image Source="Images/xlsx_load.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button Command="{Binding UpdateCommand}" Style="{DynamicResource ButtonStyle}" VerticalAlignment="Top" Margin="740,40,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" ToolTip="Обновить (F5)" Height="20" Width="20" HorizontalAlignment="Left">
+            <Button Command="{Binding UpdateCommand}" VerticalAlignment="Top" Margin="740,40,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" ToolTip="Обновить (F5)" Height="20" Width="20" HorizontalAlignment="Left">
                 <Image Source="/Images/update4.png"/>
             </Button>
 
-            <Button Content="+" Style="{DynamicResource ButtonStyle}" Margin="35,75,0,0" Click="AddDetail" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" MinWidth="16" MinHeight="16" ToolTip="Добавить деталь"/>
-            <TextBlock Text="Деталь" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="55,75,0,0" VerticalAlignment="Top" FontFamily="Century" Panel.ZIndex="1"/>
+            <Button Content="+" Margin="35,75,0,0" Click="AddDetail" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" MinWidth="16" MinHeight="16" ToolTip="Добавить деталь"/>
+            <TextBlock Text="Деталь" HorizontalAlignment="Left" Margin="55,75,0,0" VerticalAlignment="Top" FontFamily="Century" Panel.ZIndex="1"/>
 
             <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" Margin="20,20,10,10" MaxHeight="500">
                 <ScrollViewer VerticalAlignment="Top" Margin="0,60,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                     <Grid x:Name="ProductGrid" Margin="10,0,10,0">
-                        <TextBlock Text="Заготовка" Style="{DynamicResource TextBlockStyle}" Margin="170,5,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Panel.ZIndex="1"/>
-                        <TextBlock Text="A" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="265,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <TextBlock Text="B" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="310,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <TextBlock Text="S" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="345,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <TextBlock Text="L" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="385,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <TextBlock Text="Кол-во" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="420,5,0,0" VerticalAlignment="Top" Height="14" Width="39" Panel.ZIndex="1"/>
-                        <TextBlock Text="Материал" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="470,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <CheckBox ToolTip="Добавить к расчету стоимость материала ВСЕХ деталей" Style="{DynamicResource CheckBoxStyle}" HorizontalAlignment="Left" Margin="545,5,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="15" Width="16" Click="SetAllMetal" IsChecked="True" Panel.ZIndex="1"/>
-                        <TextBlock Text="Работа" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Height="14" Width="39" Margin="690,5,0,0" Panel.ZIndex="1"/>
-                        <TextBlock Text="Коэф" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="935,5,0,0" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!" Height="14" Width="30" Panel.ZIndex="1"/>
+                        <TextBlock Text="Заготовка" Margin="170,5,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Panel.ZIndex="1"/>
+                        <TextBlock Text="A" HorizontalAlignment="Left" Margin="265,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
+                        <TextBlock Text="B" HorizontalAlignment="Left" Margin="310,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
+                        <TextBlock Text="S" HorizontalAlignment="Left" Margin="345,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
+                        <TextBlock Text="L" HorizontalAlignment="Left" Margin="385,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
+                        <TextBlock Text="Кол-во" HorizontalAlignment="Left" Margin="420,5,0,0" VerticalAlignment="Top" Height="14" Width="39" Panel.ZIndex="1"/>
+                        <TextBlock Text="Материал" HorizontalAlignment="Left" Margin="470,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
+                        <CheckBox ToolTip="Добавить к расчету стоимость материала ВСЕХ деталей" HorizontalAlignment="Left" Margin="545,5,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="15" Width="16" Click="SetAllMetal" IsChecked="True" Panel.ZIndex="1"/>
+                        <TextBlock Text="Работа" HorizontalAlignment="Left" VerticalAlignment="Top" Height="14" Width="39" Margin="690,5,0,0" Panel.ZIndex="1"/>
+                        <TextBlock Text="Коэф" HorizontalAlignment="Left" Margin="935,5,0,0" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!" Height="14" Width="30" Panel.ZIndex="1"/>
                     </Grid>
                 </ScrollViewer>
             </GroupBox>
@@ -114,39 +114,39 @@
                     <Grid x:Name="OrderGrid">
                         <Image HorizontalAlignment="Left" VerticalAlignment="Top" Height="27" Margin="35,10,0,0" Source="/app_logo.jpeg"/>
                         <Image HorizontalAlignment="Left" Height="27" Margin="90,10,0,0" VerticalAlignment="Top" Source="/laser_logo.jpg"/>
-                        <TextBox x:Name="Order" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Margin="300,22,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40" ToolTip="Введите номер предложения"/>
-                        <TextBox x:Name="Company" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Margin="380,22,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите контрагента" Width="170"/>
-                        <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="260,23,0,0" Text="КП №" VerticalAlignment="Top"/>
-                        <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="350,23,0,0" Text="для" VerticalAlignment="Top"/>
-                        <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="15,65,0,0" Text="Срок изготовления:" VerticalAlignment="Top"/>
-                        <TextBox x:Name="DateProduction" Style="{DynamicResource TextBoxStyle}" Margin="135,65,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50" ToolTip="Введите срок изготовления"/>
-                        <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="200,65,0,0" Text="раб/дней" VerticalAlignment="Top"/>
+                        <TextBox x:Name="Order" HorizontalAlignment="Left" Margin="300,22,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40" ToolTip="Введите номер предложения"/>
+                        <TextBox x:Name="Company" HorizontalAlignment="Left" Margin="380,22,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите контрагента" Width="170"/>
+                        <TextBlock HorizontalAlignment="Left" Margin="260,23,0,0" Text="КП №" VerticalAlignment="Top"/>
+                        <TextBlock HorizontalAlignment="Left" Margin="350,23,0,0" Text="для" VerticalAlignment="Top"/>
+                        <TextBlock HorizontalAlignment="Left" Margin="15,65,0,0" Text="Срок изготовления:" VerticalAlignment="Top"/>
+                        <TextBox x:Name="DateProduction" Margin="135,65,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50" ToolTip="Введите срок изготовления"/>
+                        <TextBlock HorizontalAlignment="Left" Margin="200,65,0,0" Text="раб/дней" VerticalAlignment="Top"/>
                         <RadioButton GroupName="Delivery" x:Name="PickupRadioButton" Content="Самовывоз" HorizontalAlignment="Left" Margin="15,90,0,0" VerticalAlignment="Top" Checked="HasDeliveryChanged" IsChecked="True"/>
                         <RadioButton GroupName="Delivery" x:Name="DeliveryRadioButton" Content="Доставка" HorizontalAlignment="Left" Margin="110,90,0,0" VerticalAlignment="Top" Checked="HasDeliveryChanged"/>
-                        <TextBox Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Margin="190,88,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите цену доставки" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" TextChanged="SetDelivery" MinWidth="60"/>
-                        <TextBox Text="{Binding DeliveryRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MaxLines="1" ToolTip="Коэффициент" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" Margin="260,88,0,0" TextChanged="SetDeliveryRatio"/>
-                        <TextBox x:Name="Adress" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Margin="15,110,0,0" VerticalAlignment="Top" Width="275" Height="45" ToolTip="Введите адрес доставки" Text="Адрес доставки:" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" TextWrapping="Wrap"/>
-                        <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="15,160,0,0" Text="Ваш менеджер:" VerticalAlignment="Top"/>
-                        <ComboBox x:Name="ManagerDrop" Style="{DynamicResource ComboBoxStyle}" DisplayMemberPath="Name" HorizontalAlignment="Left" Margin="115,160,0,0" VerticalAlignment="Top" Width="175" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged"/>
-                        <Button Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,160,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Обновить список расчетов этого менеджера" Padding="0,0,0,0" BorderThickness="0,0,0,0" Click="RefreshOffers">
+                        <TextBox Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="190,88,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите цену доставки" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" TextChanged="SetDelivery" MinWidth="60"/>
+                        <TextBox Text="{Binding DeliveryRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MaxLines="1" ToolTip="Коэффициент" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" Margin="260,88,0,0" TextChanged="SetDeliveryRatio"/>
+                        <TextBox x:Name="Adress" HorizontalAlignment="Left" Margin="15,110,0,0" VerticalAlignment="Top" Width="275" Height="45" ToolTip="Введите адрес доставки" Text="Адрес доставки:" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" TextWrapping="Wrap"/>
+                        <TextBlock Text="Ваш менеджер:" HorizontalAlignment="Left" Margin="15,160,0,0" VerticalAlignment="Top"/>
+                        <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" HorizontalAlignment="Left" Margin="115,160,0,0" VerticalAlignment="Top" Width="175" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged"/>
+                        <Button HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,160,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Обновить список расчетов этого менеджера" Padding="0,0,0,0" BorderThickness="0,0,0,0" Click="RefreshOffers">
                             <Image Source="/Images/update.png"/>
                         </Button>
                         <RadioButton GroupName="Offers" Content="Все" Margin="340,165,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="ViewAllOffers" ToolTip="Показать все расчеты выбранного менеджера"/>
                         <RadioButton GroupName="Offers" x:Name="CountRB" Content="Найти" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="390,165,0,0" ToolTip="Найти конкретный расчет"/>
-                        <TextBox MinWidth="50" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="450,163,0,0" ToolTip="Введите номер расчета" IsEnabled="{Binding IsChecked, ElementName=CountRB}" TextChanged="ViewOffers"/>
-                        <Button x:Name="InsertBtn" Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="510,160,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Отправить новые расчеты в основную базу" Padding="0,0,0,0" BorderThickness="0,0,0,0" Click="InsertDatabase" IsEnabled="False">
+                        <TextBox ToolTip="Введите номер расчета" MinWidth="50" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="450,163,0,0" IsEnabled="{Binding IsChecked, ElementName=CountRB}" TextChanged="ViewOffers"/>
+                        <Button x:Name="InsertBtn" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="510,160,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Отправить новые расчеты в основную базу" Padding="0,0,0,0" BorderThickness="0,0,0,0" Click="InsertDatabase" IsEnabled="False">
                             <Image Source="/Images/save3.png"/>
                         </Button>
                         <DatePicker x:Name="datePicker" HorizontalAlignment="Left" Margin="300,60,0,0" VerticalAlignment="Top" FirstDayOfWeek="Monday" SelectedDateChanged="SetDate" ToolTip="Выберите дату изготовления"/>
-                        <TextBlock x:Name="Boss" Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,0,0,0"/>
-                        <TextBox x:Name="Phone" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" Width="120" VerticalAlignment="Top" Margin="430,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите актуальный номер телефона"/>
-                        <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="305,115,0,0" Text="Окраска" VerticalAlignment="Top" TextWrapping="NoWrap"/>
-                        <CheckBox x:Name="CheckPaint" Style="{DynamicResource CheckBoxStyle}" Content="{Binding Paint, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="390,115,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="False"/>
-                        <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="305,140,0,0" Text="Конструктор" VerticalAlignment="Top" TextWrapping="NoWrap"/>
-                        <CheckBox x:Name="CheckConstruct" Style="{DynamicResource CheckBoxStyle}" Content="{Binding Construct, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="390,140,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="False"/>
-                        <TextBox x:Name="PaintRatio" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="19" Width="30" Margin="470,113,0,0" TextChanged="UpdateResult"/>
-                        <TextBox x:Name="ConstructRatio" Style="{DynamicResource TextBoxStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,138,0,0" TextChanged="UpdateResult"/>
-                        <TextBlock Style="{DynamicResource TextBlockStyle}" HorizontalAlignment="Left" Margin="470,90,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
+                        <TextBlock x:Name="Boss" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,0,0,0"/>
+                        <TextBox x:Name="Phone" HorizontalAlignment="Left" Width="120" VerticalAlignment="Top" Margin="430,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите актуальный номер телефона"/>
+                        <TextBlock HorizontalAlignment="Left" Margin="305,115,0,0" Text="Окраска" VerticalAlignment="Top" TextWrapping="NoWrap"/>
+                        <CheckBox x:Name="CheckPaint" Content="{Binding Paint, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="390,115,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="False"/>
+                        <TextBlock HorizontalAlignment="Left" Margin="305,140,0,0" Text="Конструктор" VerticalAlignment="Top" TextWrapping="NoWrap"/>
+                        <CheckBox x:Name="CheckConstruct" Content="{Binding Construct, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="390,140,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="False"/>
+                        <TextBox x:Name="PaintRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="19" Width="30" Margin="470,113,0,0" TextChanged="UpdateResult"/>
+                        <TextBox x:Name="ConstructRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,138,0,0" TextChanged="UpdateResult"/>
+                        <TextBlock HorizontalAlignment="Left" Margin="470,90,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
                         
                         <DataGrid x:Name="OffersGrid" CanUserReorderColumns="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,190,15,5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False" HeadersVisibility="Column" BorderBrush="Red" MaxWidth="515">
                             <DataGrid.ContextMenu>
@@ -162,7 +162,7 @@
                         <RadioButton GroupName="Boss" x:Name="LaserRadioButton" HorizontalAlignment="Left" Margin="70,15,0,0" VerticalAlignment="Top" Checked="IsLaserChanged"/>
                         <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет от ООО" HorizontalAlignment="Left" Margin="15,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;"/>
                         <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет от ИП или ПК" HorizontalAlignment="Left" Margin="110,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;"/>
-                        <Button Style="{DynamicResource ButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,88,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Создать запрос в логистику" Padding="0" BorderThickness="0" Click="CreateDelivery" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}">
+                        <Button ToolTip="Создать запрос в логистику" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,88,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" Click="CreateDelivery" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}">
                             <Image Source="/Images/new.png"/>
                         </Button>
                     </Grid>
@@ -170,18 +170,18 @@
             </GroupBox>
 
             <GroupBox x:Name="PartsBox" Header="Список нарезанных деталей" Grid.Row="1" Margin="20,0,10,50">
-                <TabControl ToolTip="Область обработки деталей" x:Name="PartsTab" Style="{DynamicResource PartControlStyle}"/>
+                <TabControl ToolTip="Область обработки деталей" x:Name="PartsTab"/>
             </GroupBox>
 
             <StatusBar x:Name="Status" Grid.Row="1" VerticalAlignment="Bottom" MinHeight="20" Margin="20,0,15,20" BorderThickness="1,1,1,1" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Background="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}" VerticalContentAlignment="Center" Height="24">
                 <StackPanel>
-                    <TextBox x:Name="NotifyText" Style="{DynamicResource TextBoxStyle}" BorderThickness="0" Margin="5,0,0,0" Background="{x:Null}"/>
+                    <TextBox x:Name="NotifyText" BorderThickness="0" Margin="5,0,0,0" Background="{x:Null}"/>
                 </StackPanel>
             </StatusBar>
 
             <GroupBox Header="Ведомость деталей" Grid.Column="1" Grid.Row="1" Margin="10,0,10,20">
                 <Grid>
-                    <DataGrid x:Name="DetailsGrid" Style="{DynamicResource DataGridStyle}" VerticalAlignment="Top" Margin="15,5,15,5" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" CanUserReorderColumns="False" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False" HeadersVisibility="Column"/>
+                    <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" Margin="15,5,15,5" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" CanUserReorderColumns="False" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False" HeadersVisibility="Column"/>
                 </Grid>
             </GroupBox>
 

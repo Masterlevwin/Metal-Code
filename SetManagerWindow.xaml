@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" Height="150" Width="300" Style="{DynamicResource WindowStyle}" Topmost="True" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Icon="/app_logo.jpeg" ShowInTaskbar="False" WindowStyle="None" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+        mc:Ignorable="d" Height="150" Width="300" Topmost="True" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Icon="/app_logo.jpeg" ShowInTaskbar="False" WindowStyle="None" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -12,12 +12,12 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
-        <TextBlock Text="Выберите менеджера" Style="{DynamicResource TextBlockStyle}" Foreground="{DynamicResource {x:Static SystemColors.DesktopBrushKey}}" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,14,0,0"/>
+        <TextBlock Text="Выберите менеджера" Foreground="{DynamicResource {x:Static SystemColors.DesktopBrushKey}}" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,14,0,0"/>
         <Rectangle Grid.RowSpan="2" Stroke="#FF009600" StrokeThickness="2"/>
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
-            <Button Style="{DynamicResource ButtonStyle}" Margin="20" IsDefault="True" Click="Accept_Click" Content="OK" MinWidth="60" HorizontalAlignment="Center"/>
-            <Button Style="{DynamicResource ButtonStyle}" Margin="20" Content="Выйти" Click="Exit" MinWidth="60" HorizontalAlignment="Center"/>
+            <Button Margin="20" IsDefault="True" Click="Accept_Click" Content="OK" MinWidth="60" HorizontalAlignment="Center"/>
+            <Button Margin="20" Content="Выйти" Click="Exit" MinWidth="60" HorizontalAlignment="Center"/>
         </StackPanel>
-        <ComboBox x:Name="ManagerDrop" Style="{DynamicResource ComboBoxStyle}" DisplayMemberPath="Name" HorizontalAlignment="Center" VerticalAlignment="Top" Width="175" ToolTip="Выберите менеджера" Margin="0,50,0,5"/>
+        <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" HorizontalAlignment="Center" VerticalAlignment="Top" Width="175" ToolTip="Выберите менеджера" Margin="0,50,0,5"/>
     </Grid>
 </Window>

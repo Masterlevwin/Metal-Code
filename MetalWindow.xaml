@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Список материалов" Width="600" Height="500" Style="{DynamicResource WindowStyle}" Topmost="True" WindowStartupLocation="CenterScreen" Closed="FocusMainWindow" ResizeMode="NoResize" Icon="/app_logo.jpeg">
+        Title="Список материалов" Width="600" Height="500" Topmost="True" WindowStartupLocation="CenterScreen" Closed="FocusMainWindow" ResizeMode="NoResize" Icon="/app_logo.jpeg">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
@@ -15,9 +15,9 @@
             <RowDefinition Height="50"/>
         </Grid.RowDefinitions>
         <StackPanel x:Name="ButtonsStack" Orientation="Horizontal" Grid.ColumnSpan="2" Grid.Row="1" HorizontalAlignment="Center">
-            <Button Style="{DynamicResource ButtonStyle}" Content="Добавить" Margin="10" Click="Add_Click" />
-            <Button Style="{DynamicResource ButtonStyle}" Content="Изменить" Margin="10" Click="Edit_Click"  />
-            <Button Style="{DynamicResource ButtonStyle}" Content="Удалить" Margin="10" Click="Delete_Click"  />
+            <Button Content="Добавить" Margin="10" Click="Add_Click" />
+            <Button Content="Изменить" Margin="10" Click="Edit_Click"  />
+            <Button Content="Удалить" Margin="10" Click="Delete_Click"  />
         </StackPanel>
 
         <DataGrid x:Name="MetalGrid" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" IsReadOnly="True" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserReorderColumns="False" MinColumnWidth="30" HeadersVisibility="Column" SelectionChanged="InsMetal"/>

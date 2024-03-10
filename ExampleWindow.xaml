@@ -4,9 +4,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Примеры расчетов" Style="{DynamicResource WindowStyle}">
+        Title="Примеры расчетов">
     <Grid>
-        <TabControl Style="{DynamicResource PartControlStyle}">
+        <TabControl>
             <TabItem Header="1 пример">
                 <Image Source="/Images/exampe1.png" />
             </TabItem>
