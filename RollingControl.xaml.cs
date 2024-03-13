@@ -175,7 +175,7 @@ namespace Metal_Code
                         return;
                     }
 
-                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{5}", $"{TypeDrop.SelectedIndex}" };
+                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{6}", $"{TypeDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + В ")) p.Part.Description += " + В ";
 
                     foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим вальцовку среди работ и получаем её минималку

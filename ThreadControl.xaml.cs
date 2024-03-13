@@ -105,6 +105,9 @@ namespace Metal_Code
                     case 'З':
                         part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Зенковка");
                         break;
+                    case 'С':
+                        part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Сверловка");
+                        break;
 
                 }
             }
@@ -187,8 +190,13 @@ namespace Metal_Code
                         p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{4}", $"{Wide}", $"{Holes}" };
                         if (p.Part.Description != null && !p.Part.Description.Contains(" + З ")) p.Part.Description += " + З ";
                     }
+                    else if (CharName == 'С')
+                    {
+                        p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{5}", $"{Wide}", $"{Holes}" };
+                        if (p.Part.Description != null && !p.Part.Description.Contains(" + С ")) p.Part.Description += " + С ";
+                    }
 
-                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим резьбу или зенковку среди работ и получаем её минималку
+                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // получаем минималку работы
                         if (_w.workType is ThreadControl thread && thread.CharName == CharName && _w.WorkDrop.SelectedItem is Work _work)
                         {
                             p.Part.Price += (_work.Price / p.Part.Count / Holes + Time(p.Part.Mass, Wide, _w) * 2000 / 60) * Holes * _w.Ratio * _w.TechRatio;

@@ -186,6 +186,12 @@ namespace Metal_Code
                     Grid.SetColumn(countersink, 1);
                     workType = countersink;
                     break;
+                case "Сверловка":
+                    ThreadControl drilling = new(this, 'С');
+                    WorkGrid.Children.Add(drilling);
+                    Grid.SetColumn(drilling, 1);
+                    workType = drilling;
+                    break;
                 case "Вальцовка":
                     RollingControl roll = new(this);
                     WorkGrid.Children.Add(roll);

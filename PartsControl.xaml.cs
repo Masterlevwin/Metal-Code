@@ -55,8 +55,11 @@ namespace Metal_Code
                         case "CountersinkBtn":
                             p.AddControl(4);
                             break;
-                        case "RollingBtn":
+                        case "DrillingBtn":
                             p.AddControl(5);
+                            break;
+                        case "RollingBtn":
+                            p.AddControl(6);
                             break;
                     }
             }
@@ -105,6 +108,16 @@ namespace Metal_Code
                             foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
                                 if (item.CharName == 'З') item.SetHoles(tBox.Text);
                         break;
+                    case "Wide3":
+                        foreach (PartControl p in Parts)
+                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
+                                if (item.CharName == 'С') item.SetWide(tBox.Text);
+                        break;
+                    case "Holes3":
+                        foreach (PartControl p in Parts)
+                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
+                                if (item.CharName == 'С') item.SetHoles(tBox.Text);
+                        break;
                 }
             }
         }
@@ -148,7 +161,7 @@ namespace Metal_Code
                             p.UserControls.FirstOrDefault(u => u is BendControl))).Union(Parts.Where(p => !p.UserControls.Contains(
                             p.UserControls.FirstOrDefault(u => u is BendControl)))).ToList();
                         break;
-                    case "С>":
+                    case "Св>":
                         partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
                             p.UserControls.FirstOrDefault(u => u is WeldControl))).Union(Parts.Where(p => !p.UserControls.Contains(
                             p.UserControls.FirstOrDefault(u => u is WeldControl)))).ToList();
@@ -167,6 +180,11 @@ namespace Metal_Code
                         partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
                             p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'З'))).Union(Parts.Where(p => !p.UserControls.Contains(
                             p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'З')))).ToList();
+                        break;
+                    case "С>":
+                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'С'))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'С')))).ToList();
                         break;
                     case "В>":
                         partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(

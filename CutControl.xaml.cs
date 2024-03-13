@@ -322,6 +322,26 @@ namespace Metal_Code
                                 for (int i = 0; i < num; i++) part.AddControl(3);       // ...добавляем такое число блоков резьбы
                             else part.AddControl(3);                                    // иначе просто добавляем один блок резьбы
                         }
+                        else if (str.Contains("зен"))    // в случае с зенковкой дополнительно определяем количество разнотипных отверстий
+                        {
+                            // разделяем строку на новый массив, разделенный символом "з"
+                            string[] threads = str.Split(new[] { 'з' }, StringSplitOptions.RemoveEmptyEntries);
+
+                            // если новый массив содержит больше одного элемента, и этот элемент успешно парсится в число...
+                            if (threads.Length > 1 && int.TryParse(threads[0], out int num))
+                                for (int i = 0; i < num; i++) part.AddControl(4);       // ...добавляем такое число блоков зенковки
+                            else part.AddControl(4);                                    // иначе просто добавляем один блок зенковки
+                        }
+                        else if (str.Contains("свер"))    // в случае с сверловкой дополнительно определяем количество разнотипных отверстий
+                        {
+                            // разделяем строку на новый массив, разделенный символом "р"
+                            string[] threads = str.Split(new[] { 'с' }, StringSplitOptions.RemoveEmptyEntries);
+
+                            // если новый массив содержит больше одного элемента, и этот элемент успешно парсится в число...
+                            if (threads.Length > 1 && int.TryParse(threads[0], out int num))
+                                for (int i = 0; i < num; i++) part.AddControl(5);       // ...добавляем такое число блоков сверловки
+                            else part.AddControl(5);                                    // иначе просто добавляем один блок сверловки
+                        }
 
                         switch (str)                // далее проверяем строку на наличие других работ
                         {
@@ -332,7 +352,7 @@ namespace Metal_Code
                                 part.AddControl(2);
                                 break;
                             case "вальц":
-                                part.AddControl(5);
+                                part.AddControl(6);
                                 break;
                         }
                     }

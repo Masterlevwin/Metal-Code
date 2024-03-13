@@ -291,7 +291,7 @@ namespace Metal_Code
                     }
 
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{1}", $"{Weld}", $"{TypeDrop.SelectedIndex}" };
-                    if (p.Part.Description != null && !p.Part.Description.Contains(" + С ")) p.Part.Description += " + С ";
+                    if (p.Part.Description != null && !p.Part.Description.Contains(" + Св ")) p.Part.Description += " + Св ";
 
                     float price = 0, count = 0;             // переменные для расчета части цены отдельной детали
                     if (p.Cut.PartsControl != null) foreach (PartControl _p in p.Cut.PartsControl.Parts)
@@ -308,12 +308,12 @@ namespace Metal_Code
                             if (price > 0 && price < _work.Price)                   // если расчетная стоимость ниже минимальной,
                             {
                                 p.Part.Price += _work.Price * _w.Ratio * _w.TechRatio / count;     // к цене детали добавляем усредненную часть минималки от общего количества деталей
-                                p.Part.Accuracy += $" + {(float)Math.Round(_work.Price * _w.Ratio * _w.TechRatio / count, 2)}(с)";
+                                p.Part.Accuracy += $" + {(float)Math.Round(_work.Price * _w.Ratio * _w.TechRatio / count, 2)}(св)";
                             }
                             else                                                    // иначе добавляем часть от количества именно этой детали
                             {                            
                                 p.Part.Price += Price(ParserWeld(Weld) * p.Part.Count, p.Cut.work) * _w.Ratio * _w.TechRatio / p.Part.Count;
-                                p.Part.Accuracy += $" + {(float)Math.Round(Price(ParserWeld(Weld) * p.Part.Count, p.Cut.work) * _w.Ratio * _w.TechRatio / p.Part.Count, 2)}(с)";
+                                p.Part.Accuracy += $" + {(float)Math.Round(Price(ParserWeld(Weld) * p.Part.Count, p.Cut.work) * _w.Ratio * _w.TechRatio / p.Part.Count, 2)}(св)";
                             }
                             break;
                         }

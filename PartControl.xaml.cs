@@ -48,8 +48,11 @@ namespace Metal_Code
                     case "CountersinkBtn":
                         AddControl(4);
                         break;
-                    case "RollingBtn":
+                    case "DrillingBtn":
                         AddControl(5);
+                        break;
+                    case "RollingBtn":
+                        AddControl(6);
                         break;
                 }
         }
@@ -73,6 +76,9 @@ namespace Metal_Code
                     AddControl(new ThreadControl(this, 'З'));
                     break;
                 case 5:
+                    AddControl(new ThreadControl(this, 'С'));
+                    break;
+                case 6:
                     if (UserControls.Count > 0 && UserControls.Contains(UserControls.FirstOrDefault(r => r is RollingControl)))
                     {
                         MainWindow.M.StatusBegin("Нельзя добавить больше одной вальцовки на деталь");
