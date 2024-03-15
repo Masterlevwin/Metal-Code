@@ -424,8 +424,8 @@ namespace Metal_Code
                                 Accuracy = $"H14/h14 +-IT 14/2"
                             };
 
-                            part.Mass = MainWindow.Parser($"{table.Rows[j].ItemArray[4]}") / part.Count;
-                            part.Way = MainWindow.Parser($"{table.Rows[j].ItemArray[7]}") / part.Count;
+                            part.Mass = (float)Math.Round(MainWindow.Parser($"{table.Rows[j].ItemArray[4]}") / part.Count, 3);
+                            part.Way = (float)Math.Round(MainWindow.Parser($"{table.Rows[j].ItemArray[7]}") / part.Count, 3);
 
                             if (part.Count > 0)
                             {

@@ -1714,7 +1714,19 @@ namespace Metal_Code
                 for (int i = 0; i < complect.TypeDetailControls.Count; i++)
                 {
                     //"Толщина и марка металла"
-                    scoresheet.Cells[i + 11 + tot, 11].Value = $"s{complect.TypeDetailControls[i].S} {complect.TypeDetailControls[i].MetalDrop.Text}";
+                    if (complect.TypeDetailControls[i].MetalDrop.Text.Contains("амг2"))
+                        scoresheet.Cells[i + 11 + tot, 11].Value = $"al{complect.TypeDetailControls[i].S}";
+                    else if (complect.TypeDetailControls[i].MetalDrop.Text.Contains("амг") || complect.TypeDetailControls[i].MetalDrop.Text.Contains("д16"))
+                        scoresheet.Cells[i + 11 + tot, 11].Value = $"al{complect.TypeDetailControls[i].S} {complect.TypeDetailControls[i].MetalDrop.Text}";
+                    else if ((complect.TypeDetailControls[i].MetalDrop.Text.Contains("ст") && complect.TypeDetailControls[i].S >= 3) ||
+                        (complect.TypeDetailControls[i].MetalDrop.Text.Contains("хк") && complect.TypeDetailControls[i].S < 3))
+                        scoresheet.Cells[i + 11 + tot, 11].Value = $"s{complect.TypeDetailControls[i].S}";
+                    else if (complect.TypeDetailControls[i].MetalDrop.Text.Contains("латунь"))
+                        scoresheet.Cells[i + 11 + tot, 11].Value = $"br{complect.TypeDetailControls[i].S}";
+                    else if (complect.TypeDetailControls[i].MetalDrop.Text.Contains("медь"))
+                        scoresheet.Cells[i + 11 + tot, 11].Value = $"cu{complect.TypeDetailControls[i].S}";
+                    else scoresheet.Cells[i + 11 + tot, 11].Value = $"s{complect.TypeDetailControls[i].S} {complect.TypeDetailControls[i].MetalDrop.Text}";
+
                     //"Количество материала и (его цена за 1 кг)"
                     if (complect.TypeDetailControls[i].MetalDrop.SelectedItem is Metal met)
                         scoresheet.Cells[i + 11 + tot, 21].Value = $"{complect.TypeDetailControls[i].Mass}" +

@@ -1,7 +1,6 @@
-﻿using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -26,6 +25,16 @@ namespace Metal_Code
             Cut = _cut;
             Part = _part;
             DataContext = Part;
+
+            SetSquare();        //устанавливаем площадь детали
+        }
+
+        private void SetSquare()        //метод определения площади детали
+        {
+            if (!Part.PropsDict.ContainsKey(100)) return;
+
+            if (float.TryParse(Part.PropsDict[100][0], out float h) && float.TryParse(Part.PropsDict[100][1], out float w))
+                Square.Text = $"{Math.Round(h * w / 1000000, 2)} кв м";
         }
 
         private void AddControl(object sender, RoutedEventArgs e)
