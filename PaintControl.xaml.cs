@@ -144,7 +144,7 @@ namespace Metal_Code
                     //в случае с деталями толщиной 10 мм и больше добавляем наценку 50% за прогрев металла
                 "м²" => TypeDict[$"{TypeDrop.SelectedItem}"] * _mass * _massRatio * _count * (work.type.S >= 10 ? 1.5f : 1) / work.type.S / metal.Density,
                 "шт" => TypeDict[$"{TypeDrop.SelectedItem}"] * _massRatio * _count * (work.type.S >= 10 ? 1.5f : 1),
-                "пог" => TypeDict[$"{TypeDrop.SelectedItem}"] * _mass * _massRatio * _count * (work.type.S >= 10 ? 1.5f : 1),     // здесь нужна формула расчета пог.м
+                "пог" => TypeDict[$"{TypeDrop.SelectedItem}"] * _mass * _massRatio * (work.type.S >= 10 ? 1.5f : 1),     // здесь нужна формула расчета пог.м
                 _ => 0,
             };
         }
