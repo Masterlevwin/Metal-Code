@@ -272,8 +272,14 @@ namespace Metal_Code
                             float _price = Price(Bend * p.Part.Count, p.Cut.work, p.Part.Mass);
                             // стоимость данной гибки должна быть не ниже минимальной
                             _price = _price > 0 && _price < _work.Price ? _work.Price * _w.Ratio * _w.TechRatio : _price * _w.Ratio * _w.TechRatio;
-                            p.Part.Price += _price / p.Part.Count;
-                            p.Part.Accuracy += $" + {(float)Math.Round(_price / p.Part.Count, 2)}(г)";
+
+                            float _send = _price / p.Part.Count;
+                            p.Part.Price += _send;
+
+                            if (p.Part.PropsDict.ContainsKey(52) && float.TryParse(p.Part.PropsDict[52][0], out float value))
+                                p.Part.PropsDict[52].Insert(0, $"{value +_send}");  //суммируем гибку, но пока не удаляю предыдущие значения (возможно пригодятся)
+                            else p.Part.PropsDict[52] = new() { $"{_send}" };
+
                             break;
                         }
                 }

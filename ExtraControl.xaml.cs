@@ -89,7 +89,7 @@ namespace Metal_Code
 
         public void OnPriceChanged()
         {
-            if (Price != null && Price != "") work.SetResult(ParserPrice(Price) * work.type.Count, false);
+            if (Price != null && Price != "") work.SetResult(ParserPrice(Price), false);
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)

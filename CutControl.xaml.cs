@@ -151,11 +151,11 @@ namespace Metal_Code
 
                 foreach (Part p in PartDetails)
                 {
-                    p.Price += (float)Math.Round(work.Result * p.Way / WayTotal, 2);
-                    p.Price += (float)Math.Round(work.type.Result * p.Mass / MassTotal, 2);
+                    p.Price += work.type.Result * p.Mass / MassTotal;
+                    p.Price += work.Result * p.Way / WayTotal;
 
-                    p.Accuracy += $" + {(float)Math.Round(work.type.Result * p.Mass / MassTotal, 2)}(мат)";
-                    p.Accuracy += $" + {(float)Math.Round(work.Result * p.Way / WayTotal, 2)}(л)";
+                    p.PropsDict[50] = new() { $"{work.type.Result * p.Mass / MassTotal}" };
+                    p.PropsDict[51] = new() { $"{work.Result * p.Way / WayTotal}" };
                 }
             }
             else
@@ -204,7 +204,8 @@ namespace Metal_Code
                 if ((_type.TypeDetailDrop.SelectedItem is TypeDetail _t && _t.Name != "Лист металла")
                     || (!_type.WorkControls.Contains(_type.WorkControls.FirstOrDefault(w => w.workType is CutControl))))
                 {
-                    MainWindow.M.AddDetail();
+                    // добавляем типовую деталь
+                    work.type.det.AddTypeDetail();
 
                     // устанавливаем "Лист металла"
                     foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Лист металла")

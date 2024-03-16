@@ -180,28 +180,36 @@ namespace Metal_Code
                         return;
                     }
 
+                    int key = -1;
                     if (CharName == 'Р')
                     {
                         p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{3}", $"{Wide}", $"{Holes}" };
                         if (p.Part.Description != null && !p.Part.Description.Contains(" + Р ")) p.Part.Description += " + Р ";
+                        key = 55;
                     }
                     else if (CharName == 'З')
                     {
                         p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{4}", $"{Wide}", $"{Holes}" };
                         if (p.Part.Description != null && !p.Part.Description.Contains(" + З ")) p.Part.Description += " + З ";
+                        key = 56;
                     }
                     else if (CharName == 'С')
                     {
                         p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{5}", $"{Wide}", $"{Holes}" };
                         if (p.Part.Description != null && !p.Part.Description.Contains(" + С ")) p.Part.Description += " + С ";
+                        key = 57;
                     }
 
                     foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // получаем минималку работы
                         if (_w.workType is ThreadControl thread && thread.CharName == CharName && _w.WorkDrop.SelectedItem is Work _work)
                         {
-                            p.Part.Price += (_work.Price / p.Part.Count / Holes + Time(p.Part.Mass, Wide, _w) * 2000 / 60) * Holes * _w.Ratio * _w.TechRatio;
-                            p.Part.Accuracy += $" + {(float)Math.Round((_work.Price / p.Part.Count / Holes
-                                + Time(p.Part.Mass, Wide, _w) * 2000 / 60) * Holes * _w.Ratio * _w.TechRatio, 2)}({CharName})";
+                            float _send = (_work.Price / p.Part.Count / Holes + Time(p.Part.Mass, Wide, _w) * 2000 / 60) * Holes * _w.Ratio * _w.TechRatio;
+                            p.Part.Price += _send;
+
+                            if (p.Part.PropsDict.ContainsKey(key) && float.TryParse(p.Part.PropsDict[key][0], out float value))
+                                p.Part.PropsDict[key].Insert(0, $"{value + _send}"); //блоков резьбы, зенковки или сверловки может быть несколько
+                            else p.Part.PropsDict[key] = new() { $"{_send}" };
+
                             break;
                         }
                 }

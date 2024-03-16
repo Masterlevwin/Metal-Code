@@ -163,11 +163,6 @@ namespace Metal_Code
 
         private void AddTypeDetail(object sender, RoutedEventArgs e)
         {
-            if (det.Detail.IsComplect)
-            {
-                MainWindow.M.StatusBegin($"Нельзя добавить заготовку в \"Комплект деталей\". Сначала добавьте новую деталь!");
-                return;
-            }
             det.AddTypeDetail();
         }
 
@@ -234,8 +229,15 @@ namespace Metal_Code
         }
 
         Dictionary<string, (string, string)> Kinds = new();
+
         private void CreateSort(object sender, SelectionChangedEventArgs e)
         {
+            if (det.Detail.IsComplect)
+            {
+                MainWindow.M.StatusBegin($"В \"Комплекте деталей\" могут быть только \"Листы металла\". Чтобы добавить другую заготовку, сначала добавьте новую деталь!");
+                TypeDetailDrop.SelectedIndex = 0;
+                return;
+            }
             CreateSort();
         }
         public void CreateSort(int ndx = 0)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Controls;
@@ -179,10 +180,12 @@ namespace Metal_Code
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + В ")) p.Part.Description += " + В ";
 
                     foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим вальцовку среди работ и получаем её минималку
-                        if (_w.workType is RollingControl roll && _w.WorkDrop.SelectedItem is Work _work)
-                            {
-                            p.Part.Price += (_work.Price / p.Part.Count + Time(Side, p.Part.Mass, _w) * 2000 / 60) * _w.Ratio * _w.TechRatio;
-                            p.Part.Accuracy += $" + {(float)Math.Round((_work.Price / p.Part.Count + Time(Side, p.Part.Mass, _w) * 2000 / 60) * _w.Ratio * _w.TechRatio, 2)}(в)";   
+                        if (_w.workType is RollingControl && _w.WorkDrop.SelectedItem is Work _work)
+                        {
+                            float _send = (_work.Price / p.Part.Count + Time(Side, p.Part.Mass, _w) * 2000 / 60) * _w.Ratio * _w.TechRatio;
+                            p.Part.Price += _send;
+                            p.Part.PropsDict[58] = new() { $"{_send}" };
+
                             break;
                         }
                 }
