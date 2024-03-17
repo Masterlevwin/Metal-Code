@@ -1,5 +1,7 @@
 ﻿using ExcelDataReader;
 using Microsoft.Win32;
+using OfficeOpenXml.Drawing;
+using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -9,6 +11,8 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 
 namespace Metal_Code
 {
@@ -247,8 +251,9 @@ namespace Metal_Code
 
                 if (i == 0)
                 {
-                    Parts = PartList(table);            // формируем список PartControl
-                    PartsControl = new(this, Parts);    // создаем форму списка PartControl
+                    Parts = PartList(table);            // формируем список элементов PartControl
+                    SetImagesForParts(stream);          // устанавливаем поле Part.ImageBytes для каждой детали
+                    PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
                     ItemList(table);                    // формируем список листов из раскладки
                     AddPartsTab();                      // добавляем вкладку в "Список нарезанных деталей"
 
@@ -280,6 +285,7 @@ namespace Metal_Code
                     if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)
                     {
                         _cut.Parts = _cut.PartList(table);
+                        _cut.SetImagesForParts(stream);
                         _cut.PartsControl = new(this, _cut.Parts);
                         _cut.ItemList(table);
                         _cut.AddPartsTab();
@@ -446,6 +452,21 @@ namespace Metal_Code
             else if (PartDetails.Count > 0) foreach (Part part in PartDetails) _parts.Add(new(this, part));
 
             return _parts;
+        }
+
+        public void SetImagesForParts(FileStream stream)        //метод извлечения картинок из файла и установки их для каждой детали в виде массива байтов
+        {
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var workbook = new ExcelPackage(stream);                      //получаем книгу Excel из потока
+            ExcelWorksheet worksheet = workbook.Workbook.Worksheets[0];
+
+            //извлекаем все изображения на листе в список картинок
+            List<ExcelPicture> pictures = worksheet.Drawings.Where(x => x.DrawingType == eDrawingType.Picture).Select(x => x.As.Picture).ToList();
+
+            if (Parts?.Count > 0)
+                for (int i = 0; i < Parts.Count; i++)
+                    Parts[i].Part.ImageBytes = pictures[i].Image.ImageBytes;    //для каждой детали записываем массив байтов соответствующей картинки
         }
 
         public List<LaserItem> items = new();

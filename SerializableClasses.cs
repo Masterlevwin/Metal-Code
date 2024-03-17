@@ -1,10 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Drawing;
 using System.Runtime.Serialization;
+using System.Windows.Media.Imaging;
 
 namespace Metal_Code
 {
@@ -68,6 +71,9 @@ namespace Metal_Code
         public float Mass { get; set; }
         [Browsable(false)]
         public float Way { get; set; }
+
+        [OptionalField]
+        public byte[]? ImageBytes;
 
         public Dictionary<int, List<string>> PropsDict = new();
 

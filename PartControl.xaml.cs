@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
 
 namespace Metal_Code
 {
@@ -34,7 +36,7 @@ namespace Metal_Code
             if (!Part.PropsDict.ContainsKey(100)) return;
 
             if (float.TryParse(Part.PropsDict[100][0], out float h) && float.TryParse(Part.PropsDict[100][1], out float w))
-                Square.Text = $"{Math.Round(h * w / 1000000, 2)} кв м";
+                Square.Text = $"{Math.Round(h * w / 1000000, 3)} кв м";
         }
 
         private void AddControl(object sender, RoutedEventArgs e)
@@ -112,6 +114,22 @@ namespace Metal_Code
             if (uc is IPriceChanged work) PropertiesChanged -= work.SaveOrLoadProperties;
             UserControls.Remove(uc);
             ControlGrid.Children.Remove(uc);
+        }
+
+        private void SetPicture(object sender, RoutedEventArgs e)       //метод вызывается при загрузке элемента Image (Image.Loaded) 
+        {
+            if (Part.ImageBytes != null) Picture.Source = CreateBitmap(Part.ImageBytes);
+        }
+
+        private static BitmapImage CreateBitmap(byte[] imageBytes)      //метод преобразования массива байтов в изображение BitmapImage
+        {
+            BitmapImage? image = new();
+            image.BeginInit();
+            image.StreamSource = new MemoryStream(imageBytes);
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.EndInit();
+            image.Freeze();
+            return image;
         }
     }
 }

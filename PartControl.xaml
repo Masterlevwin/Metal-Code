@@ -4,13 +4,14 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="150" d:DesignWidth="140">
+             d:DesignHeight="150" d:DesignWidth="165">
     <Grid x:Name="ControlGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" MinHeight="130"/>
             <RowDefinition/>
         </Grid.RowDefinitions>
-        <TextBox Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="120" MinWidth="120" MinHeight="60" MaxHeight="60" Height="60" ToolTip="Наименование вырезанной детали"/>
+        <TextBox Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="90" MinWidth="90" MinHeight="60" MaxHeight="60" ToolTip="Наименование вырезанной детали" HorizontalAlignment="Left" Margin="5,0,0,0"/>
+        <Image x:Name="Picture" HorizontalAlignment="Left" Margin="100,0,0,0" VerticalAlignment="Top" Width="60" Height="60" Loaded="SetPicture"/>
         <TextBox Text="{Binding Count}" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinHeight="20" MaxHeight="20" HorizontalAlignment="Left" MaxLines="1" Margin="5,65,0,0" MaxWidth="40" MinWidth="40" Height="20" ToolTip="Количество вырезанных деталей" Width="40"/>
         <TextBlock x:Name="Square" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="60,65,0,0" ToolTip="Площадь детали" MaxWidth="70"/>
         <TextBlock Text="{Binding Mass}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="60,80,0,0" ToolTip="Масса детали" MaxWidth="50"/>

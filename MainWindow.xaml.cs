@@ -16,7 +16,6 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Runtime.Serialization.Json;
 using System.Text;
-using System.Drawing.Drawing2D;
 
 namespace Metal_Code
 {
@@ -29,7 +28,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.2.1";
+        readonly string version = "2.3.0";
 
         public bool isLocal = true;     //запуск локальной версии
         //public bool isLocal = false;    //запуск стандартной версии
