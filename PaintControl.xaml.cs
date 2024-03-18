@@ -85,6 +85,15 @@ namespace Metal_Code
         public void SetRal(string _ral)
         {
             Ral = _ral;
+
+            if (owner is PartControl part)
+                foreach (WorkControl work in part.Cut.work.type.WorkControls)
+                    if (work.workType is PaintControl paint)
+                    {
+                        paint.SetRal(Ral);
+                        break;
+                    }
+
             OnPriceChanged();
         }
 

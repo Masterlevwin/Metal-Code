@@ -36,7 +36,7 @@ namespace Metal_Code
             if (!Part.PropsDict.ContainsKey(100)) return;
 
             if (float.TryParse(Part.PropsDict[100][0], out float h) && float.TryParse(Part.PropsDict[100][1], out float w))
-                Square.Text = $"{Math.Round(h * w / 1000000, 3)} кв м";
+                Square.Text = $"{Math.Round(h * w / 500000, 3)} кв м";
         }
 
         private void AddControl(object sender, RoutedEventArgs e)
