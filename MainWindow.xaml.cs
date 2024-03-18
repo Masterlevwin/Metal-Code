@@ -1663,8 +1663,8 @@ namespace Metal_Code
 
             // ----- таблица разбивки цены детали по работам (Лист1 - "Счет") -----
 
-                                        //      50      51      52      53      54      55        56      57        58      59      60
-            List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы", "Констр" };
+                                        //      50      51      52      53      54      55        56      57        58      59      60          61
+            List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы", "Констр", "Доставка" };
 
             if (Parts.Count > 0)
             {
@@ -1695,7 +1695,7 @@ namespace Metal_Code
                 }
             }
 
-            ExcelRange sends = scoresheet.Cells[1, 7, row + 3, 17];
+            ExcelRange sends = scoresheet.Cells[1, 7, row + 3, 18];
 
 
             // ----- таблица общих сумм работ, выполняемых подразделениями (Лист2 - "Реестр") -----
@@ -1862,12 +1862,12 @@ namespace Metal_Code
                     }
                     else statsheet.Cells[14 + tot, 3].Value = key;                                                  //"Наименование изделия / вид работы"
 
-                    if (Parts.Count > 0)
+                    //if (Parts.Count > 0)
                         for (int col = 0; col < _heads.Count; col++)
                         {
                             if (key.Contains(_heads[col]))
                                 statsheet.Cells[14 + tot, 4].Value = scoresheet.Cells[row + 2, col + 7].Value;      //"Кол-во"
-                            else statsheet.Cells[14 + tot, 4].Value = scoresheet.Cells[row + 2, 16].Value;
+                            //else statsheet.Cells[14 + tot, 4].Value = scoresheet.Cells[row + 2, 16].Value;
                         }
 
                     statsheet.Cells[14 + tot, 5].Value = "шт";                                                      //"ед изм."
