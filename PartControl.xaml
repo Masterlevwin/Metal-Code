@@ -4,24 +4,24 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="150" d:DesignWidth="165">
+             d:DesignHeight="165" d:DesignWidth="165">
     <Grid x:Name="ControlGrid">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" MinHeight="130"/>
+            <RowDefinition Height="Auto" MinHeight="145"/>
             <RowDefinition/>
         </Grid.RowDefinitions>
         <TextBox Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="90" MinWidth="90" MinHeight="60" MaxHeight="60" ToolTip="Наименование вырезанной детали" HorizontalAlignment="Left" Margin="5,0,0,0"/>
         <Image x:Name="Picture" HorizontalAlignment="Left" Margin="100,0,0,0" VerticalAlignment="Top" Width="60" Height="60" Loaded="SetPicture"/>
         <TextBox Text="{Binding Count}" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinHeight="20" MaxHeight="20" HorizontalAlignment="Left" MaxLines="1" Margin="5,65,0,0" MaxWidth="40" MinWidth="40" Height="20" ToolTip="Количество вырезанных деталей" Width="40"/>
-        <TextBlock x:Name="Square" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="60,65,0,0" ToolTip="Площадь детали" MaxWidth="70"/>
-        <TextBlock Text="{Binding Mass}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="60,80,0,0" ToolTip="Масса детали" MaxWidth="50"/>
-        <TextBlock Text="кг" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="100,80,0,0"/>
-        <Button x:Name="BendBtn" Content="Г+" HorizontalAlignment="Left" Margin="5,100,0,0" VerticalAlignment="Top" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" FontSize="8" MinWidth="16" MinHeight="16" MaxWidth="16" MaxHeight="16"/>
-        <Button x:Name="WeldBtn" Content="Св+" HorizontalAlignment="Left" Margin="21,100,0,0" VerticalAlignment="Top" ToolTip="Добавить сварку" Click="AddControl" FontWeight="Bold" FontSize="8" MinHeight="16" MaxHeight="16" MinWidth="20" MaxWidth="20"/>
-        <Button x:Name="PaintBtn" Content="О+" HorizontalAlignment="Left" Margin="41,100,0,0" VerticalAlignment="Top" ToolTip="Добавить окраску" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
-        <Button x:Name="ThreadBtn" Content="Р+" HorizontalAlignment="Left" Margin="57,100,0,0" VerticalAlignment="Top" ToolTip="Добавить резьбу" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
-        <Button x:Name="CountersinkBtn" Content="З+" HorizontalAlignment="Left" Margin="73,100,0,0" VerticalAlignment="Top" ToolTip="Добавить зенковку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
-        <Button x:Name="DrillingBtn" Content="С+" HorizontalAlignment="Left" Margin="89,100,0,0" VerticalAlignment="Top" ToolTip="Добавить сверловку" Click="AddControl" FontWeight="Bold" FontSize="8" MinHeight="16" MaxHeight="16" MinWidth="16" MaxWidth="16"/>
-        <Button x:Name="RollingBtn" Content="В+" HorizontalAlignment="Left" Margin="105,100,0,0" VerticalAlignment="Top" ToolTip="Добавить вальцовку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
+        <TextBlock x:Name="Square" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="60,67,0,0" ToolTip="Площадь детали" MaxWidth="90"/>
+        <TextBlock Text="{Binding Mass}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="60,93,0,0" ToolTip="Масса детали" MaxWidth="70"/>
+        <TextBlock Text="кг" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="100,93,0,0"/>
+        <Button x:Name="BendBtn" Content="Г+" HorizontalAlignment="Left" Margin="5,120,0,0" VerticalAlignment="Top" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" FontSize="8" MinWidth="16" MinHeight="16" MaxWidth="16" MaxHeight="16"/>
+        <Button x:Name="WeldBtn" Content="Св+" HorizontalAlignment="Left" Margin="21,120,0,0" VerticalAlignment="Top" ToolTip="Добавить сварку" Click="AddControl" FontWeight="Bold" FontSize="8" MinHeight="16" MaxHeight="16" MinWidth="20" MaxWidth="20"/>
+        <Button x:Name="PaintBtn" Content="О+" HorizontalAlignment="Left" Margin="41,120,0,0" VerticalAlignment="Top" ToolTip="Добавить окраску" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
+        <Button x:Name="ThreadBtn" Content="Р+" HorizontalAlignment="Left" Margin="57,120,0,0" VerticalAlignment="Top" ToolTip="Добавить резьбу" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
+        <Button x:Name="CountersinkBtn" Content="З+" HorizontalAlignment="Left" Margin="73,120,0,0" VerticalAlignment="Top" ToolTip="Добавить зенковку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
+        <Button x:Name="DrillingBtn" Content="С+" HorizontalAlignment="Left" Margin="89,120,0,0" VerticalAlignment="Top" ToolTip="Добавить сверловку" Click="AddControl" FontWeight="Bold" FontSize="8" MinHeight="16" MaxHeight="16" MinWidth="16" MaxWidth="16"/>
+        <Button x:Name="RollingBtn" Content="В+" HorizontalAlignment="Left" Margin="105,120,0,0" VerticalAlignment="Top" ToolTip="Добавить вальцовку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
     </Grid>
 </UserControl>

@@ -1862,13 +1862,9 @@ namespace Metal_Code
                     }
                     else statsheet.Cells[14 + tot, 3].Value = key;                                                  //"Наименование изделия / вид работы"
 
-                    //if (Parts.Count > 0)
-                        for (int col = 0; col < _heads.Count; col++)
-                        {
-                            if (key.Contains(_heads[col]))
-                                statsheet.Cells[14 + tot, 4].Value = scoresheet.Cells[row + 2, col + 7].Value;      //"Кол-во"
-                            //else statsheet.Cells[14 + tot, 4].Value = scoresheet.Cells[row + 2, 16].Value;
-                        }
+                    for (int col = 0; col < _heads.Count; col++)
+                        if (key.Contains(_heads[col]))
+                            statsheet.Cells[14 + tot, 4].Value = scoresheet.Cells[row + 2, col + 7].Value;          //"Кол-во"
 
                     statsheet.Cells[14 + tot, 5].Value = "шт";                                                      //"ед изм."
                     statsheet.Cells[14 + tot, 6].Value = Boss.Text;                                                 //"Подразделение"

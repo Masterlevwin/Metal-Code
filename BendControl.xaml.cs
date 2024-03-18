@@ -242,7 +242,7 @@ namespace Metal_Code
             };
 
             return BendDict.ContainsKey(work.type.S) ?
-                _bendRatio * _count * BendDict[work.type.S][$"{ShelfDrop.SelectedItem}"] * MainWindow.MassRatio(_mass) * 2: 0;
+                _bendRatio * _count * BendDict[work.type.S][$"{ShelfDrop.SelectedItem}"] * MainWindow.MassRatio(_mass) * MainWindow.MassRatio(_mass) : 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
