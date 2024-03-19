@@ -1808,7 +1808,7 @@ namespace Metal_Code
                             else if (w.workType is BendControl)
                             {
                                 statsheet.Cells[i + 11 + tot, 6].Value = "гибка";
-                                statsheet.Cells[i + 11 + tot, 13].Value = Math.Ceiling(w.Result * 0.0085f);    //"Гибка (время работ)"
+                                statsheet.Cells[i + 11 + tot, 13].Value = Math.Ceiling(w.Result * 0.018f);     //"Гибка (время работ)"
                             }
                             //для доп работы её наименование добавляем к наименованию работы - особый случай
                             else if (w.workType is ExtraControl _extra) statsheet.Cells[i + 11 + tot, 8].Value += $"{_extra.NameExtra} ";
