@@ -1727,31 +1727,32 @@ namespace Metal_Code
                     }
                 }
 
-            int tot = pr >= las ? pr : las;     //ограничиваем таблицу тем количеством строк, которых получилось больше
+            int temp = pr >= las ? pr : las;     //ограничиваем таблицу тем количеством строк, которых получилось больше
 
-            ExcelRange table = statsheet.Cells[1, 2, 3 + tot, 5];
+            ExcelRange table = statsheet.Cells[1, 2, 3 + temp, 5];
             table.Style.Fill.PatternType = ExcelFillStyle.Solid;
-            statsheet.Cells[1, 2, 3 + tot, 3].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGoldenrodYellow);
-            statsheet.Cells[1, 4, 3 + tot, 5].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightCyan);
-            statsheet.Names.Add("totalProweld", statsheet.Cells[3, 3, 2 + tot, 3]);
-            statsheet.Cells[3 + tot, 3].Formula = "=SUM(totalProweld)";
-            statsheet.Names.Add("totalLaserflex", statsheet.Cells[3, 5, 2 + tot, 5]);
-            statsheet.Cells[3 + tot, 5].Formula = "=SUM(totalLaserflex)";
-            statsheet.Cells[3 + tot, 3].Style.Font.Bold = statsheet.Cells[3 + tot, 5].Style.Font.Bold = true;
+            statsheet.Cells[1, 2, 3 + temp, 3].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGoldenrodYellow);
+            statsheet.Cells[1, 4, 3 + temp, 5].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightCyan);
+            statsheet.Names.Add("totalProweld", statsheet.Cells[3, 3, 2 + temp, 3]);
+            statsheet.Cells[3 + temp, 3].Formula = "=SUM(totalProweld)";
+            statsheet.Names.Add("totalLaserflex", statsheet.Cells[3, 5, 2 + temp, 5]);
+            statsheet.Cells[3 + temp, 5].Formula = "=SUM(totalLaserflex)";
+            statsheet.Cells[3 + temp, 3].Style.Font.Bold = statsheet.Cells[3 + temp, 5].Style.Font.Bold = true;
 
 
             // ----- таблица стоимости материала, доставки и конструкторских работ (Лист2 - "Реестр") -----
 
-            ExcelRange material = statsheet.Cells[5 + tot, 2, 7 + tot, 3];
+            ExcelRange material = statsheet.Cells[5 + temp, 2, 7 + temp, 3];
             material.Style.Fill.PatternType = ExcelFillStyle.Solid;
             material.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Lavender);
-            statsheet.Cells[5 + tot, 2].Value = "Материал:";
-            statsheet.Cells[5 + tot, 3].Value = Math.Round(GetMetalPrice(), 2);
-            statsheet.Cells[6 + tot, 2].Value = "Доставка:";
-            statsheet.Cells[6 + tot, 3].Value = Delivery * DeliveryRatio;
-            statsheet.Cells[7 + tot, 2].Value = "Конструкторские работы:";
-            statsheet.Cells[7 + tot, 3].Value = Construct;
+            statsheet.Cells[5 + temp, 2].Value = "Материал:";
+            statsheet.Cells[5 + temp, 3].Value = Math.Round(GetMetalPrice(), 2);
+            statsheet.Cells[6 + temp, 2].Value = "Доставка:";
+            statsheet.Cells[6 + temp, 3].Value = Delivery * DeliveryRatio;
+            statsheet.Cells[7 + temp, 2].Value = "Конструкторские работы:";
+            statsheet.Cells[7 + temp, 3].Value = Construct;
 
+            temp += 10;
 
             // ----- реестр Лазерфлекс (Лист2 - "Реестр") -----
 
@@ -1761,7 +1762,7 @@ namespace Metal_Code
                 "Гибка", "V", "Доп работы", "V", "Комментарий", "Дата сдачи", "Лазер (время работ)",
                 "Гибка (время работ)", "Количество материала", "Номер КП", "Статус", "Комментарий менеджера", "КК", "ПК"
             };
-            for (int col = 0; col < _headersL.Count; col++) statsheet.Cells[10 + tot, col + 1].Value = _headersL[col];
+            for (int col = 0; col < _headersL.Count; col++) statsheet.Cells[temp, col + 1].Value = _headersL[col];
 
             DetailControl? complect = DetailControls.SingleOrDefault(d => d.Detail.IsComplect);
             if (complect != null)
@@ -1769,71 +1770,114 @@ namespace Metal_Code
                 {
                     //"Толщина и марка металла"
                     if (complect.TypeDetailControls[i].MetalDrop.Text.Contains("амг2"))
-                        statsheet.Cells[i + 11 + tot, 4].Value = $"al{complect.TypeDetailControls[i].S}";
+                        statsheet.Cells[i + 11 + temp, 4].Value = $"al{complect.TypeDetailControls[i].S}";
                     else if (complect.TypeDetailControls[i].MetalDrop.Text.Contains("амг") || complect.TypeDetailControls[i].MetalDrop.Text.Contains("д16"))
-                        statsheet.Cells[i + 11 + tot, 4].Value = $"al{complect.TypeDetailControls[i].S} {complect.TypeDetailControls[i].MetalDrop.Text}";
+                        statsheet.Cells[i + 11 + temp, 4].Value = $"al{complect.TypeDetailControls[i].S} {complect.TypeDetailControls[i].MetalDrop.Text}";
                     else if ((complect.TypeDetailControls[i].MetalDrop.Text.Contains("ст") && complect.TypeDetailControls[i].S >= 3) ||
                         (complect.TypeDetailControls[i].MetalDrop.Text.Contains("хк") && complect.TypeDetailControls[i].S < 3))
-                        statsheet.Cells[i + 11 + tot, 4].Value = $"s{complect.TypeDetailControls[i].S}";
+                        statsheet.Cells[i + 11 + temp, 4].Value = $"s{complect.TypeDetailControls[i].S}";
                     else if (complect.TypeDetailControls[i].MetalDrop.Text.Contains("латунь"))
-                        statsheet.Cells[i + 11 + tot, 4].Value = $"br{complect.TypeDetailControls[i].S}";
+                        statsheet.Cells[i + 11 + temp, 4].Value = $"br{complect.TypeDetailControls[i].S}";
                     else if (complect.TypeDetailControls[i].MetalDrop.Text.Contains("медь"))
-                        statsheet.Cells[i + 11 + tot, 4].Value = $"cu{complect.TypeDetailControls[i].S}";
-                    else statsheet.Cells[i + 11 + tot, 4].Value = $"s{complect.TypeDetailControls[i].S} {complect.TypeDetailControls[i].MetalDrop.Text}";
+                        statsheet.Cells[i + 11 + temp, 4].Value = $"cu{complect.TypeDetailControls[i].S}";
+                    else statsheet.Cells[i + 11 + temp, 4].Value = $"s{complect.TypeDetailControls[i].S} {complect.TypeDetailControls[i].MetalDrop.Text}";
 
                     //"Количество материала и (его цена за 1 кг)"
                     if (complect.TypeDetailControls[i].MetalDrop.SelectedItem is Metal met)
-                        statsheet.Cells[i + 11 + tot, 14].Value = $"{complect.TypeDetailControls[i].Mass}" +
+                        statsheet.Cells[i + 11 + temp, 14].Value = $"{complect.TypeDetailControls[i].Mass}" +
                             $" ({(complect.TypeDetailControls[i].CheckMetal.IsChecked == true ? met.MassPrice : 0)}р)";
 
-                    statsheet.Cells[i + 11 + tot, 2].Value = Company.Text;      //"Заказчик"
+                    statsheet.Cells[i + 11 + temp, 2].Value = Company.Text;      //"Заказчик"
 
-                    statsheet.Cells[i + 11 + tot, 3].Value = ShortManager();    //"Менеджер"
+                    statsheet.Cells[i + 11 + temp, 3].Value = ShortManager();    //"Менеджер"
 
-                    if (HasDelivery) statsheet.Cells[i + 11 + tot, 8].Value = "Доставка ";
+                    if (HasDelivery) statsheet.Cells[i + 11 + temp, 8].Value = "Доставка ";
 
                     if (complect.TypeDetailControls[i].CheckMetal.IsChecked == false)
-                        statsheet.Cells[i + 11 + tot, 10].Value = "Давальч ";
+                        statsheet.Cells[i + 11 + temp, 10].Value = "Давальч ";
 
-                    statsheet.Cells[i + 11 + tot, 11].Value = EndDate();        //"Дата сдачи"
-                    statsheet.Cells[i + 11 + tot, 11].Style.Numberformat.Format = "d MMM";
+                    statsheet.Cells[i + 11 + temp, 11].Value = EndDate();        //"Дата сдачи"
+                    statsheet.Cells[i + 11 + temp, 11].Style.Numberformat.Format = "d MMM";
 
-                    statsheet.Cells[i + 11 + tot, 15].Value = Order.Text;       //"Номер КП"
+                    statsheet.Cells[i + 11 + temp, 15].Value = Order.Text;       //"Номер КП"
 
                     foreach (WorkControl w in complect.TypeDetailControls[i].WorkControls)          //анализируем работы каждой типовой детали
                     {
                         if (w.Result > 0)
                             if (w.workType is CutControl)
-                                statsheet.Cells[i + 11 + tot, 12].Value = Math.Ceiling(w.Result * 0.012f);     //"Лазер (время работ)"
+                                statsheet.Cells[i + 11 + temp, 12].Value = Math.Ceiling(w.Result * 0.012f);     //"Лазер (время работ)"
                             else if (w.workType is BendControl)
                             {
-                                statsheet.Cells[i + 11 + tot, 6].Value = "гибка";
-                                statsheet.Cells[i + 11 + tot, 13].Value = Math.Ceiling(w.Result * 0.018f);     //"Гибка (время работ)"
+                                statsheet.Cells[i + 11 + temp, 6].Value = "гибка";
+                                statsheet.Cells[i + 11 + temp, 13].Value = Math.Ceiling(w.Result * 0.018f);     //"Гибка (время работ)"
                             }
                             //для доп работы её наименование добавляем к наименованию работы - особый случай
-                            else if (w.workType is ExtraControl _extra) statsheet.Cells[i + 11 + tot, 8].Value += $"{_extra.NameExtra} ";
-                            else if (w.WorkDrop.SelectedItem is Work work) statsheet.Cells[i + 11 + tot, 8].Value += $"{work.Name} ";     //"Доп работы"
+                            else if (w.workType is ExtraControl _extra) statsheet.Cells[i + 11 + temp, 8].Value += $"{_extra.NameExtra} ";
+                            else if (w.WorkDrop.SelectedItem is Work work) statsheet.Cells[i + 11 + temp, 8].Value += $"{work.Name} ";     //"Доп работы"
 
                         if (w.Ratio != 1)
-                            if (float.TryParse($"{statsheet.Cells[i + 11 + tot, 16].Value}", out float r))
-                                statsheet.Cells[i + 11 + tot, 18].Value = Math.Round(r * w.Ratio, 2);
-                            else statsheet.Cells[i + 11 + tot, 18].Value = Math.Round(w.Ratio, 2);
+                            if (float.TryParse($"{statsheet.Cells[i + 11 + temp, 16].Value}", out float r))
+                                statsheet.Cells[i + 11 + temp, 18].Value = Math.Round(r * w.Ratio, 2);
+                            else statsheet.Cells[i + 11 + temp, 18].Value = Math.Round(w.Ratio, 2);
                         if (w.TechRatio > 1)
-                            if (float.TryParse($"{statsheet.Cells[i + 11 + tot, 17].Value}", out float r))
-                                statsheet.Cells[i + 11 + tot, 19].Value = Math.Round(r * w.TechRatio, 2);
-                            else statsheet.Cells[i + 11 + tot, 19].Value = Math.Round(w.TechRatio, 2);
+                            if (float.TryParse($"{statsheet.Cells[i + 11 + temp, 17].Value}", out float r))
+                                statsheet.Cells[i + 11 + temp, 19].Value = Math.Round(r * w.TechRatio, 2);
+                            else statsheet.Cells[i + 11 + temp, 19].Value = Math.Round(w.TechRatio, 2);
                     }
+
+                    temp += complect.TypeDetailControls.Count;
                 }
 
-            ExcelRange registryL = statsheet.Cells[10 + tot, 1, 10 + tot, 19];
+            foreach (DetailControl det in DetailControls)
+            {
+                if (!det.Detail.IsComplect)
+                    for (int i = 0; i < det.TypeDetailControls.Count; i++)
+                    {
+                        TypeDetailControl type = det.TypeDetailControls[i];
+
+                        //"Толщина и марка металла"
+                        statsheet.Cells[i + 11 + temp, 4].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+
+                        //"Количество материала и (его цена за 1 кг)"
+                        if (type.MetalDrop.SelectedItem is Metal met)
+                            statsheet.Cells[i + 11 + temp, 14].Value = $"{type.Mass}" +
+                                $" ({(type.CheckMetal.IsChecked == true ? met.MassPrice : 0)}р)";
+
+                        statsheet.Cells[i + 11 + temp, 2].Value = Company.Text;      //"Заказчик"
+
+                        statsheet.Cells[i + 11 + temp, 3].Value = ShortManager();    //"Менеджер"
+
+                        if (HasDelivery) statsheet.Cells[i + 11 + temp, 8].Value = "Доставка ";
+
+                        if (type.CheckMetal.IsChecked == false)
+                            statsheet.Cells[i + 11 + temp, 10].Value = "Давальч ";
+
+                        statsheet.Cells[i + 11 + temp, 11].Value = EndDate();        //"Дата сдачи"
+                        statsheet.Cells[i + 11 + temp, 11].Style.Numberformat.Format = "d MMM";
+
+                        statsheet.Cells[i + 11 + temp, 15].Value = Order.Text;       //"Номер КП"
+
+                        foreach (WorkControl w in type.WorkControls)          //анализируем работы каждой типовой детали
+                        {
+                            if (w.Result > 0)
+                                //для доп работы её наименование добавляем к наименованию работы - особый случай
+                                if (w.workType is ExtraControl _extra) statsheet.Cells[i + 11 + temp, 8].Value += $"{_extra.NameExtra} ";
+                                else if (w.WorkDrop.SelectedItem is Work work && work.Name != "Труборез") statsheet.Cells[i + 11 + temp, 8].Value += $"{work.Name} ";     //"Доп работы"
+                        }
+
+                        temp += det.TypeDetailControls.Count;
+                    }
+            }
+
+            ExcelRange registryL = statsheet.Cells[10 + temp, 1, 10 + temp, 19];
             if (complect != null)
             {
-                registryL = statsheet.Cells[10 + tot, 1, complect.TypeDetailControls.Count + 10 + tot, 19];
-                statsheet.Cells[10 + tot, 4, complect.TypeDetailControls.Count + 10 + tot, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;      //"Толщина и марка металла"
-                statsheet.Cells[10 + tot, 11, complect.TypeDetailControls.Count + 10 + tot, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;    //"Дата сдачи"
-                statsheet.Cells[10 + tot, 15, complect.TypeDetailControls.Count + 10 + tot, 19].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;     //"Номер КП"
+                registryL = statsheet.Cells[10 + temp, 1, complect.TypeDetailControls.Count + 10 + temp, 19];
+                statsheet.Cells[10 + temp, 4, complect.TypeDetailControls.Count + 10 + temp, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;      //"Толщина и марка металла"
+                statsheet.Cells[10 + temp, 11, complect.TypeDetailControls.Count + 10 + temp, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;    //"Дата сдачи"
+                statsheet.Cells[10 + temp, 15, complect.TypeDetailControls.Count + 10 + temp, 19].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;     //"Номер КП"
                 
-                tot += complect.TypeDetailControls.Count;       //увеличиваем счетчик строки на количество строк реестра Лазерфлекс
+                temp += complect.TypeDetailControls.Count;       //увеличиваем счетчик строки на количество строк реестра Лазерфлекс
             }
 
 
@@ -1841,14 +1885,14 @@ namespace Metal_Code
 
             List<string> _headersP = new()
             {
-                "Дата", "№ и в покраску", "Наименование изделия / вид работы", "Кол-во", "ед изм.",
+                "Дата", "№ и в покраску", "Наименование изделия\n/вид работы", "Кол-во", "ед изм.",
                 "Подразделение", "Компания", "Мастер", "Менеджер", "Инженер", "КД", "№ Лазера",
                 "№ трубореза", "Дата отгрузки", "Готово к отгрузке", "Готово \"V\"", "Цвет/цинк",
                 "Примечание", "Ход проекта", "ОТГРУЗКИ _ дата и количество", "Стоимость работ"
             };
-            for (int col = 0; col < _headersP.Count; col++) statsheet.Cells[13 + tot, col + 1].Value = _headersP[col];
+            for (int col = 0; col < _headersP.Count; col++) statsheet.Cells[13 + temp, col + 1].Value = _headersP[col];
 
-            int temp = 13 + tot;
+            //int temp = 13 + temp;
 
             if (TempWorks.Count > 0)
                 foreach (string key in TempWorks.Keys)
@@ -1857,28 +1901,28 @@ namespace Metal_Code
 
                     if (key.Contains("Окраска"))
                     {
-                        statsheet.Cells[14 + tot, 3].Value = key.Remove(7);
-                        statsheet.Cells[14 + tot, 17].Value = key.Substring(14);
+                        statsheet.Cells[14 + temp, 3].Value = key.Remove(7);
+                        statsheet.Cells[14 + temp, 17].Value = key.Substring(14);
                     }
-                    else statsheet.Cells[14 + tot, 3].Value = key;                                                  //"Наименование изделия / вид работы"
+                    else statsheet.Cells[14 + temp, 3].Value = key;                                                  //"Наименование изделия / вид работы"
 
                     for (int col = 0; col < _heads.Count; col++)
                         if (key.Contains(_heads[col]))
-                            statsheet.Cells[14 + tot, 4].Value = scoresheet.Cells[row + 2, col + 7].Value;          //"Кол-во"
+                            statsheet.Cells[14 + temp, 4].Value = scoresheet.Cells[row + 2, col + 7].Value;          //"Кол-во"
 
-                    statsheet.Cells[14 + tot, 5].Value = "шт";                                                      //"ед изм."
-                    statsheet.Cells[14 + tot, 6].Value = Boss.Text;                                                 //"Подразделение"
-                    statsheet.Cells[14 + tot, 7].Value = Company.Text;                                              //"Компания"
-                    statsheet.Cells[14 + tot, 9].Value = statsheet.Cells[14 + tot, 10].Value = ManagerDrop.Text;    //"Менеджер", "Инженер"
+                    statsheet.Cells[14 + temp, 5].Value = "шт";                                                      //"ед изм."
+                    statsheet.Cells[14 + temp, 6].Value = Boss.Text;                                                 //"Подразделение"
+                    statsheet.Cells[14 + temp, 7].Value = Company.Text;                                              //"Компания"
+                    statsheet.Cells[14 + temp, 9].Value = statsheet.Cells[14 + temp, 10].Value = ManagerDrop.Text;    //"Менеджер", "Инженер"
 
-                    statsheet.Cells[14 + tot, 14].Value = EndDate();                                                //"Дата отгрузки"
-                    statsheet.Cells[14 + tot, 14].Style.Numberformat.Format = "d MMM";
+                    statsheet.Cells[14 + temp, 14].Value = EndDate();                                                //"Дата отгрузки"
+                    statsheet.Cells[14 + temp, 14].Style.Numberformat.Format = "d MMM";
 
-                    statsheet.Cells[14 + tot, 21].Value = Math.Round(TempWorks[key], 2);                            //"Стоимость работ"
-                    tot++;
+                    statsheet.Cells[14 + temp, 21].Value = Math.Round(TempWorks[key], 2);                            //"Стоимость работ"
+                    temp++;
                 }
 
-            ExcelRange registryP = statsheet.Cells[temp, 1, 13 + tot, 21];
+            ExcelRange registryP = statsheet.Cells[temp, 1, 13 + temp, 21];
 
 
             // ----- обводка границ и авторастягивание столбцов -----
