@@ -1836,10 +1836,10 @@ namespace Metal_Code
                 temp += det.TypeDetailControls.Count;
             }
 
-            ExcelRange registryL = statsheet.Cells[beginL, 1, temp, 19];
-            statsheet.Cells[beginL, 4, temp, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;      //"Толщина и марка металла"
-            statsheet.Cells[beginL, 11, temp, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;    //"Дата сдачи"
-            statsheet.Cells[beginL, 15, temp, 19].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;     //"Номер КП"
+            ExcelRange registryL = statsheet.Cells[beginL, 1, temp - 1, 19];
+            statsheet.Cells[beginL, 4, temp - 1, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;      //"Толщина и марка металла"
+            statsheet.Cells[beginL, 11, temp - 1, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;    //"Дата сдачи"
+            statsheet.Cells[beginL, 15, temp - 1, 19].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;     //"Номер КП"
 
 
             // ----- реестр Провэлд (Лист2 - "Реестр") -----
@@ -1885,7 +1885,7 @@ namespace Metal_Code
                     temp++;
                 }
 
-            ExcelRange registryP = statsheet.Cells[beginP, 1, temp, 21];
+            ExcelRange registryP = statsheet.Cells[beginP, 1, temp - 1, 21];
 
 
             // ----- обводка границ и авторастягивание столбцов -----
