@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 using System.Windows;
+using System.Diagnostics;
 
 namespace Metal_Code
 {
@@ -209,7 +210,7 @@ namespace Metal_Code
 
         public void OnPriceChanged()
         {
-            if (owner is not WorkControl work) return;
+            if (owner is not WorkControl work || work.WorkDrop.SelectedItem is not Work _work) return;
 
             float price = 0;
 
@@ -221,10 +222,14 @@ namespace Metal_Code
                         float _price = item.Price(item.Bend * p.Part.Count, work, p.Part.Mass);
 
                         // стоимость данной гибки должна быть не ниже минимальной
-                        if (work.WorkDrop.SelectedItem is Work _work) _price = _price > 0 && _price < _work.Price ? _work.Price : _price;
+                        _price = _price > 0 && _price < _work.Price ? _work.Price : _price;
 
                         price += _price;
                     }
+
+                // стоимость всей гибки должна быть не ниже 3-x минималок
+                price = price > 0 && price < _work.Price * 3 ? _work.Price : price;
+
                 work.SetResult(price, false);
             }
             else work.SetResult(Price(Bend * work.type.Count, work, work.type.Mass));
@@ -272,6 +277,9 @@ namespace Metal_Code
                             float _price = Price(Bend * p.Part.Count, p.Cut.work, p.Part.Mass);
                             // стоимость данной гибки должна быть не ниже минимальной
                             _price = _price > 0 && _price < _work.Price ? _work.Price * _w.Ratio * _w.TechRatio : _price * _w.Ratio * _w.TechRatio;
+
+                            // стоимость всей гибки должна быть не ниже 3-x минималок
+                            if (_w.Result > 0 && _w.Result < _work.Price * 3) _price = _work.Price * 3;
 
                             float _send = _price / p.Part.Count;
                             p.Part.Price += _send;
