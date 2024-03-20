@@ -228,7 +228,7 @@ namespace Metal_Code
                     }
 
                 // стоимость всей гибки должна быть не ниже 3-x минималок
-                price = price > 0 && price < _work.Price * 3 ? _work.Price : price;
+                price = price > 0 && price < _work.Price * 3 ? _work.Price * 3 : price;
 
                 work.SetResult(price, false);
             }
@@ -277,9 +277,6 @@ namespace Metal_Code
                             float _price = Price(Bend * p.Part.Count, p.Cut.work, p.Part.Mass);
                             // стоимость данной гибки должна быть не ниже минимальной
                             _price = _price > 0 && _price < _work.Price ? _work.Price * _w.Ratio * _w.TechRatio : _price * _w.Ratio * _w.TechRatio;
-
-                            // стоимость всей гибки должна быть не ниже 3-x минималок
-                            if (_w.Result > 0 && _w.Result < _work.Price * 3) _price = _work.Price * 3;
 
                             float _send = _price / p.Part.Count;
                             p.Part.Price += _send;
