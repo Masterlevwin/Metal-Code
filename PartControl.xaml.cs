@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
@@ -11,8 +13,25 @@ namespace Metal_Code
     /// <summary>
     /// Логика взаимодействия для PartControl.xaml
     /// </summary>
-    public partial class PartControl : UserControl
+    public partial class PartControl : UserControl, INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        private float square;
+        public float Square
+        {
+            get => square;
+            set
+            {
+                if (value != square)
+                {
+                    square = value;
+                    OnPropertyChanged(nameof(Square));
+                }
+            }
+        }
+
         public delegate void PropsChanged(UserControl uc, bool b);
         public PropsChanged? PropertiesChanged;
 
@@ -36,7 +55,7 @@ namespace Metal_Code
             if (!Part.PropsDict.ContainsKey(100)) return;
 
             if (float.TryParse(Part.PropsDict[100][0], out float h) && float.TryParse(Part.PropsDict[100][1], out float w))
-                Square.Text = $"{Math.Round(h * w / 500000, 3)} кв м";
+                Square = (float)Math.Round(h * w / 500000, 3);
         }
 
         private void AddControl(object sender, RoutedEventArgs e)
