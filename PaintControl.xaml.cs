@@ -30,9 +30,9 @@ namespace Metal_Code
 
         public Dictionary<string, float> TypeDict = new()
         {
-            ["м²"] = 812,
+            ["м²"] = 900,
             ["шт"] = 50,
-            ["пог"] = 87
+            ["пог"] = 100
         };
 
         public readonly UserControl owner;
@@ -179,20 +179,18 @@ namespace Metal_Code
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{2}", $"{Ral}", $"{TypeDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + О ")) p.Part.Description += $" + О (цвет - {Ral}) ";
 
-                    float price = 0, count = 0;             // переменные для расчета части цены отдельной детали
+                    int count = 0;      //счетчик общего количества деталей
+
                     if (p.Cut.PartsControl != null) foreach (PartControl _p in p.Cut.PartsControl.Parts)
                             foreach (PaintControl item in _p.UserControls.OfType<PaintControl>())
-                                if (item.Ral != null)       // перебираем все используемые блоки окраски
-                                {                           // считаем общую стоимость всей окраски этого листа и кол-во окрашиваемых деталей
-                                    price += item.Price(_p.Part.Mass, _p.Part.Count, p.Cut.work);
-                                    count += _p.Part.Count;
-                                }
-                    // стоимость всей окраски должна быть не ниже минимальной
-                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим окраску среди работ и получаем её минималку
+                                if (item.Ral != null) count += _p.Part.Count;
+
+                    // стоимость всей работы должна быть не ниже минимальной
+                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)            // находим окраску среди работ и получаем её минималку
                         if (_w.workType is PaintControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
                             float _send;
-                            if (price > 0 && price < _work.Price)                       // если расчетная стоимость ниже минимальной, к цене детали добавляем
+                            if (_w.Result > 0 && _w.Result <= _work.Price)              // если стоимость работы ниже минимальной, к цене детали добавляем
                                 _send = _work.Price * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
                             else                                                        // иначе добавляем часть от количества именно этой детали
                                 _send = Price(p.Part.Mass, p.Part.Count, p.Cut.work) * _w.Ratio * _w.TechRatio / p.Part.Count;

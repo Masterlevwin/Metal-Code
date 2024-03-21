@@ -817,7 +817,7 @@ namespace Metal_Code
             if (sender is CheckBox cBox)
                 foreach (DetailControl d in DetailControls)
                     foreach (TypeDetailControl t in d.TypeDetailControls) t.CheckMetal.IsChecked = cBox.IsChecked;
-            UpdateResult(sender, e);
+            UpdateResult();
         }
 
         public float GetMetalPrice()
@@ -1332,12 +1332,12 @@ namespace Metal_Code
                     _type.TypeDetailDrop.SelectedIndex = details[i].TypeDetails[j].Index;
                     _type.Count = details[i].TypeDetails[j].Count;
                     _type.MetalDrop.SelectedIndex = details[i].TypeDetails[j].Metal;
-                    _type.HasMetal = details[i].TypeDetails[j].HasMetal;
                     _type.SortDrop.SelectedIndex = details[i].TypeDetails[j].Tuple.Item1;
                     _type.A = details[i].TypeDetails[j].Tuple.Item2;
                     _type.B = details[i].TypeDetails[j].Tuple.Item3;
                     _type.S = details[i].TypeDetails[j].Tuple.Item4;
                     _type.L = details[i].TypeDetails[j].Tuple.Item5;
+                    _type.HasMetal = details[i].TypeDetails[j].HasMetal;
                     _type.ExtraResult = details[i].TypeDetails[j].ExtraResult;
 
                     for (int k = 0; k < details[i].TypeDetails[j].Works.Count; k++)
@@ -1365,8 +1365,8 @@ namespace Metal_Code
                             if (_cut.PartsControl != null && _cut.PartsControl.Parts.Count > 0)
                                 foreach (PartControl part in _cut.PartsControl.Parts)
                                 {
-                                    if (part.Part.PropsDict.Count > 0)
-                                        foreach (int key in  part.Part.PropsDict.Keys) if (key != 100)   //ключ "[100]" зарезервирован на габариты детали 
+                                    if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
+                                        foreach (int key in  part.Part.PropsDict.Keys) if (key < 50)
                                             part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
                                             
                                     part.PropertiesChanged?.Invoke(part, false);

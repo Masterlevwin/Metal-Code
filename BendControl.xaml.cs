@@ -271,14 +271,29 @@ namespace Metal_Code
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{0}", $"{Bend}", $"{ShelfDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + Г ")) p.Part.Description += " + Г ";
 
-                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим гибку среди работ и получаем её минималку
+                    int count = 0;      //счетчик общего количества деталей
+
+                    if (p.Cut.PartsControl != null) foreach (PartControl _p in p.Cut.PartsControl.Parts)
+                            foreach (BendControl item in _p.UserControls.OfType<BendControl>())
+                                if (item.Bend > 0) count += _p.Part.Count;
+
+                    // стоимость всей работы должна быть не ниже минимальной
+                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)                // находим гибку среди работ и получаем её минималку
                         if (_w.workType is BendControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
-                            float _price = Price(Bend * p.Part.Count, p.Cut.work, p.Part.Mass);
-                            // стоимость данной гибки должна быть не ниже минимальной
-                            _price = _price > 0 && _price < _work.Price ? _work.Price * _w.Ratio * _w.TechRatio : _price * _w.Ratio * _w.TechRatio;
+                            float _send;
+                            if (_w.Result > 0 && _w.Result <= _work.Price * 3)              // если стоимость работы ниже 3-x минималок, к цене детали добавляем
+                                _send = _work.Price * 3 * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
+                            else                                                            // иначе добавляем часть от количества именно этой детали
+                            {
+                                float _price = Price(Bend * p.Part.Count, p.Cut.work, p.Part.Mass);
+                                
+                                // стоимость данной гибки должна быть не ниже минимальной
+                                _price = _price > 0 && _price < _work.Price ? _work.Price * _w.Ratio * _w.TechRatio : _price * _w.Ratio * _w.TechRatio;
 
-                            float _send = _price / p.Part.Count;
+                                _send = _price / p.Part.Count;
+                            }                                                       
+
                             p.Part.Price += _send;
 
                             if (p.Part.PropsDict.ContainsKey(52) && float.TryParse(p.Part.PropsDict[52][0], out float value))

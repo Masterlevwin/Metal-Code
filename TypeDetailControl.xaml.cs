@@ -232,7 +232,7 @@ namespace Metal_Code
 
         private void CreateSort(object sender, SelectionChangedEventArgs e)
         {
-            if (det.Detail.IsComplect)
+            if (det.Detail.IsComplect && TypeDetailDrop.SelectedIndex != 0)
             {
                 MainWindow.M.StatusBegin($"В \"Комплекте деталей\" могут быть только \"Листы металла\". Чтобы добавить другую заготовку, сначала добавьте новую деталь!");
                 TypeDetailDrop.SelectedIndex = 0;
