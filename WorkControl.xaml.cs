@@ -106,7 +106,7 @@ namespace Metal_Code
             int numW = type.WorkControls.IndexOf(this);
             if (type.WorkControls.Count > 1) for (int i = numW + 1; i < type.WorkControls.Count; i++)
                     type.WorkControls[i].Margin = new Thickness(0,
-                        direction ? type.WorkControls[i].Margin.Top + 25 : type.WorkControls[i].Margin.Top - 25, 0, 0);
+                        direction ? type.WorkControls[i].Margin.Top + 30 : type.WorkControls[i].Margin.Top - 30, 0, 0);
             type.UpdatePosition(direction);
         }
 

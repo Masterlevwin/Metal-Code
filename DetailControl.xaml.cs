@@ -32,7 +32,7 @@ namespace Metal_Code
 
             if (TypeDetailControls.Count > 0)
                 type.Margin = new Thickness(0,
-                    TypeDetailControls[^1].Margin.Top + 25 * TypeDetailControls[^1].WorkControls.Count, 0, 0);
+                    TypeDetailControls[^1].Margin.Top + 30 * TypeDetailControls[^1].WorkControls.Count, 0, 0);
 
             TypeDetailControls.Add(type);
             type.Priced += MassCalculate;       // подписка на изменение типовой детали для расчета общей массы детали
@@ -63,7 +63,7 @@ namespace Metal_Code
                 for (int i = num + 1; i < MainWindow.M.DetailControls.Count; i++)
                 {
                     MainWindow.M.DetailControls[i].Margin = new Thickness(0,
-                        direction ? MainWindow.M.DetailControls[i].Margin.Top + 25 : MainWindow.M.DetailControls[i].Margin.Top - 25, 0, 0);
+                        direction ? MainWindow.M.DetailControls[i].Margin.Top + 30 : MainWindow.M.DetailControls[i].Margin.Top - 30, 0, 0);
                 }
             }
         }

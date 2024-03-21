@@ -170,7 +170,7 @@ namespace Metal_Code
         {
             WorkControl work = new(this);
 
-            if (WorkControls.Count > 0) work.Margin = new Thickness(0, WorkControls[^1].Margin.Top + 25, 0, 0);
+            if (WorkControls.Count > 0) work.Margin = new Thickness(0, WorkControls[^1].Margin.Top + 30, 0, 0);
 
             WorkControls.Add(work);
             TypeDetailGrid.Children.Add(work);
@@ -200,7 +200,7 @@ namespace Metal_Code
                 for (int i = numT + 1; i < det.TypeDetailControls.Count; i++)
                 {
                     det.TypeDetailControls[i].Margin = new Thickness(0,
-                        direction ? det.TypeDetailControls[i].Margin.Top + 25 : det.TypeDetailControls[i].Margin.Top - 25, 0, 0);
+                        direction ? det.TypeDetailControls[i].Margin.Top + 30 : det.TypeDetailControls[i].Margin.Top - 30, 0, 0);
                 }
             }
             det.UpdatePosition(direction);

@@ -101,7 +101,7 @@ namespace Metal_Code
         }
         public void AddControl(UserControl uc)
         {
-            if (UserControls.Count > 0) uc.Margin = new Thickness(0, UserControls[^1].Margin.Top + 25, 0, 0);
+            if (UserControls.Count > 0) uc.Margin = new Thickness(0, UserControls[^1].Margin.Top + 30, 0, 0);
 
             UserControls.Add(uc);
             ControlGrid.Children.Add(uc);

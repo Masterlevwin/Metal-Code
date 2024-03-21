@@ -28,7 +28,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.3.0";
+        readonly string version = "2.3.2";
 
         public bool isLocal = true;     //запуск локальной версии
         //public bool isLocal = false;    //запуск стандартной версии
@@ -103,7 +103,7 @@ namespace Metal_Code
 
         private readonly Dictionary<string, float> TempWorks = new();
 
-        public readonly List<float> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25 };
+        public readonly List<float> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25, 30 };
         public Dictionary<string, Dictionary<float, (float, float, float)>> MetalDict = new();
         public Dictionary<double, float> WideDict = new();
         public Dictionary<Metal, float> MetalRatioDict = new();
@@ -911,8 +911,8 @@ namespace Metal_Code
             DetailControl detail = new(new());
 
             if (DetailControls.Count > 0)
-                detail.Margin = new Thickness(0,    //добавил +25, так как увеличился DetailControl
-                    DetailControls[^1].Margin.Top + 25 + 25 * DetailControls[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
+                detail.Margin = new Thickness(0,    //добавил +30, так как увеличился DetailControl
+                    DetailControls[^1].Margin.Top + 30 + 30 * DetailControls[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
 
             DetailControls.Add(detail);
             ProductGrid.Children.Add(detail);
