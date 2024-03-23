@@ -58,16 +58,18 @@ namespace Metal_Code
         public List<PartControl>? Parts { get; set; }
 
         public readonly WorkControl work;
+        readonly IDialogService dialogService;
 
-        public PipeControl(WorkControl _work)
+        public PipeControl(WorkControl _work, IDialogService _dialogService)
         {
             InitializeComponent();
             work = _work;
+            dialogService = _dialogService;
 
             work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
             work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
 
-            SetMold($"{work.type.L * work.type.Count * 0.95f/ 1000}");      //переносим погонные метры из типовой детали
+            SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");      //переносим погонные метры из типовой детали
         }
 
         private void SetMold(object sender, TextChangedEventArgs e)

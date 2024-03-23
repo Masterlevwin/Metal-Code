@@ -1060,8 +1060,17 @@ namespace Metal_Code
                             if (work.workType is ExtraControl extra && extra.NameExtra != null)         //проверяем наличие доп работ
                             {
                                 //если список еще не содержит доп работу с таким именем, создаем такую запись, иначе просто добавляем стоимость
-                                if (!TempWorks.ContainsKey(extra.NameExtra)) TempWorks[extra.NameExtra] = work.Result;
-                                else TempWorks[extra.NameExtra] += work.Result;
+                                if (_work.Name == "Доп работа П")
+                                {
+                                    if (!TempWorks.ContainsKey($"{extra.NameExtra} (П)")) TempWorks[$"{extra.NameExtra} (П)"] = work.Result;
+                                    else TempWorks[$"{extra.NameExtra} (П)"] += work.Result;
+                                }
+
+                                if (_work.Name == "Доп работа Л")
+                                {
+                                    if (!TempWorks.ContainsKey($"{extra.NameExtra} (Л)")) TempWorks[$"{extra.NameExtra} (Л)"] = work.Result;
+                                    else TempWorks[$"{extra.NameExtra} (Л)"] += work.Result;
+                                }
                             }
                             else if (work.workType is PaintControl paint && paint.Ral != null)          //проверяем наличие окраски
                             {
@@ -1097,7 +1106,7 @@ namespace Metal_Code
                                         p.Price += Construct / DetailControls.Count /
                                         DetailControls.SingleOrDefault(d => d.Detail.IsComplect).TypeDetailControls.Count /
                                         _cut.PartDetails.Sum(p => p.Count);
-                                        p.PropsDict[60] = new() { $"{p.Price}" };
+                                        p.PropsDict[62] = new() { $"{p.Price}" };
                                     }
                                     //"размазываем" доп работы
                                     foreach (WorkControl w in work.type.WorkControls)
@@ -1105,7 +1114,9 @@ namespace Metal_Code
                                         {
                                             float _send = w.Result / _cut.PartDetails.Sum(p => p.Count);
                                             p.Price += _send;
-                                            p.PropsDict[59] = new() { $"{_send}" };
+
+                                            if (w.WorkDrop.SelectedItem is Work _extra && _extra.Name == "Доп работа П") p.PropsDict[59] = new() { $"{_send}" };
+                                            else p.PropsDict[60] = new() { $"{_send}" };
                                         }
                                 }
 
@@ -1663,19 +1674,19 @@ namespace Metal_Code
 
             // ----- таблица разбивки цены детали по работам (Лист1 - "Счет") -----
 
-                                        //      50      51      52      53      54      55        56      57        58      59      60          61
-            List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы", "Констр", "Доставка", "Площадь, кв м" };
+                                        //      50      51      52      53      54      55        56      57        58      59      60          61          62          63
+            List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "Площадь, кв м" };
 
             if (Parts.Count > 0)
             {
                 //сначала заполняем ячейки по каждой детали и работе
                 for (int i = 0; i < Parts.Count; i++)
-                    for (int j = 0; j < 11; j++)        //пробегаемся по ключам от 50 до 61, которые зарезервированы под конкретные работы
+                    for (int j = 0; j < 20; j++)        //пробегаемся по ключам от 50 до 70, которые зарезервированы под конкретные работы
                         if (Parts[i].PropsDict.ContainsKey(j + 50) && float.TryParse(Parts[i].PropsDict[j + 50][0], out float value))
                         {
                             scoresheet.Cells[i + 2, j + 7].Value = Math.Round(value, 2);
                                                                                                             //площадь окраски для каждой детали
-                            if (j == 4 && float.TryParse(Parts[i].PropsDict[j + 50][1], out float square)) scoresheet.Cells[i + 2, 19].Value = square;
+                            if (j == 4 && float.TryParse(Parts[i].PropsDict[j + 50][1], out float square)) scoresheet.Cells[i + 2, 21].Value = square;
                         }
                             
 
@@ -1700,7 +1711,7 @@ namespace Metal_Code
                 }
             }
 
-            ExcelRange sends = scoresheet.Cells[1, 7, row + 3, 18];
+            ExcelRange sends = scoresheet.Cells[1, 7, row + 3, 20];
 
 
             // ----- таблица общих сумм работ, выполняемых подразделениями (Лист2 - "Реестр") -----
@@ -1718,7 +1729,7 @@ namespace Metal_Code
 
             if (TempWorks.Count > 0) foreach (string key in TempWorks.Keys)
                 {
-                    if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез")
+                    if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key.Contains("(Л)"))
                     {
                         statsheet.Cells[3 + las, 4].Value = key;
                         statsheet.Cells[3 + las, 5].Value = Math.Round(TempWorks[key], 2);
@@ -1865,7 +1876,7 @@ namespace Metal_Code
             if (TempWorks.Count > 0)
                 foreach (string key in TempWorks.Keys)
                 {
-                    if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез") continue;
+                    if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key.Contains("(Л)")) continue;
 
                     if (key.Contains("Окраска"))
                     {
@@ -1879,14 +1890,14 @@ namespace Metal_Code
                         {
                             statsheet.Cells[temp, 4].Value = scoresheet.Cells[row + 2, col + 7].Value;          //"Кол-во"
 
-                            if (_heads[col] == "Окраска") statsheet.Cells[temp, 17].Value += $" ({scoresheet.Cells[row + 2, col + 7].Value} кв м)";
+                            if (_heads[col] == "Окраска") statsheet.Cells[temp, 21].Value += $" ({scoresheet.Cells[row + 2, col + 7].Value} кв м)";
                         }
 
                     statsheet.Cells[temp, 5].Value = "шт";                                                      //"ед изм."
-                    statsheet.Cells[temp, 6].Value = Boss.Text;                                                 //"Подразделение"
+                    statsheet.Cells[temp, 6].Value = Boss.Text.Substring(4);                                    //"Подразделение"
                     statsheet.Cells[temp, 7].Value = Company.Text;                                              //"Компания"
-                    statsheet.Cells[temp, 9].Value = statsheet.Cells[temp, 10].Value = ManagerDrop.Text;        //"Менеджер", "Инженер"
-
+                    statsheet.Cells[temp, 9].Value = ManagerDrop.Text;                                          //"Менеджер"
+                    statsheet.Cells[temp, 10].Value = CurrentManager.Name;                                      //"Инженер"
                     statsheet.Cells[temp, 14].Value = EndDate();                                                //"Дата отгрузки"
                     statsheet.Cells[temp, 14].Style.Numberformat.Format = "d MMM";
 

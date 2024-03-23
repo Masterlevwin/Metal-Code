@@ -162,17 +162,16 @@ namespace Metal_Code
                     Grid.SetColumn(bend, 1);
                     workType = bend;
                     break;
-                case "Сварка":
-                    WeldControl weld = new(this);
-                    WorkGrid.Children.Add(weld);
-                    Grid.SetColumn(weld, 1);
-                    workType = weld;
-                    break;
-                case "Окраска":
-                    PaintControl paint = new(this);
-                    WorkGrid.Children.Add(paint);
-                    Grid.SetColumn(paint, 1);
-                    workType = paint;
+                case "Труборез":
+                    if (type.det.Detail.IsComplect)
+                    {
+                        WorkDrop.SelectedIndex = -1;
+                        return;
+                    }
+                    PipeControl pipe = new(this, new ExcelDialogService());
+                    WorkGrid.Children.Add(pipe);
+                    Grid.SetColumn(pipe, 1);
+                    workType = pipe;
                     break;
                 case "Резьба":
                     ThreadControl thread = new(this, 'Р');
@@ -198,22 +197,29 @@ namespace Metal_Code
                     Grid.SetColumn(roll, 1);
                     workType = roll;
                     break;
-                case "Доп работа":
-                    ExtraControl extra = new(this);
-                    WorkGrid.Children.Add(extra);
-                    Grid.SetColumn(extra, 1);
-                    workType = extra;
+                case "Сварка":
+                    WeldControl weld = new(this);
+                    WorkGrid.Children.Add(weld);
+                    Grid.SetColumn(weld, 1);
+                    workType = weld;
                     break;
-                case "Труборез":
-                    if (type.det.Detail.IsComplect)
-                    {
-                        WorkDrop.SelectedIndex = -1;
-                        return;
-                    }
-                    PipeControl pipe = new(this);
-                    WorkGrid.Children.Add(pipe);
-                    Grid.SetColumn(pipe, 1);
-                    workType = pipe;
+                case "Окраска":
+                    PaintControl paint = new(this);
+                    WorkGrid.Children.Add(paint);
+                    Grid.SetColumn(paint, 1);
+                    workType = paint;
+                    break;
+                case "Доп работа П":
+                    ExtraControl extraP = new(this);
+                    WorkGrid.Children.Add(extraP);
+                    Grid.SetColumn(extraP, 1);
+                    workType = extraP;
+                    break;
+                case "Доп работа Л":
+                    ExtraControl extraL = new(this);
+                    WorkGrid.Children.Add(extraL);
+                    Grid.SetColumn(extraL, 1);
+                    workType = extraL;
                     break;
                 default:
                     if (type.det.Detail.IsComplect)
