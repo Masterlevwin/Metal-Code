@@ -78,9 +78,9 @@ namespace Metal_Code
                 work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
 
                 foreach (WorkControl w in work.type.WorkControls)
-                    if (w.workType != this && w.workType is CutControl cut && cut.PartsControl != null)
+                    if (w.workType != this && w.workType is IWorktype _cut && _cut.PartsControl != null)
                     {
-                        Parts = new(cut.PartsControl.Parts);
+                        Parts = new(_cut.PartsControl.Parts);
                         break;
                     }
             }
@@ -91,22 +91,22 @@ namespace Metal_Code
                 //PartBtn.Visibility = Visibility.Visible;
                 //PartBtn.Click += (o, e) => { part.RemoveControl(this); };
 
-                foreach (WorkControl w in part.Cut.work.type.WorkControls)
+                foreach (WorkControl w in part.work.type.WorkControls)
                     if (w.workType is ThreadControl thread && thread.CharName == CharName) return;
 
-                part.Cut.work.type.AddWork();
+                part.work.type.AddWork();
 
                 // добавляем "Резьбу" или "Зенковку" в список общих работ "Комплекта деталей"
                 switch (CharName)
                 {
                     case 'Р':
-                        part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Резьба");
+                        part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Резьба");
                         break;
                     case 'З':
-                        part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Зенковка");
+                        part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Зенковка");
                         break;
                     case 'С':
-                        part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Сверловка");
+                        part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Сверловка");
                         break;
 
                 }
@@ -208,7 +208,7 @@ namespace Metal_Code
                         key = 57;
                     }
 
-                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // получаем минималку работы
+                    foreach (WorkControl _w in p.work.type.WorkControls)        // получаем минималку работы
                         if (_w.workType is ThreadControl thread && thread.CharName == CharName && _w.WorkDrop.SelectedItem is Work _work)
                         {
                             float _send = (_work.Price / p.Part.Count / Holes + Time(p.Part.Mass, Wide, _w) * 2000 / 60) * Holes * _w.Ratio * _w.TechRatio;

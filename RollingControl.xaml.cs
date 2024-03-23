@@ -69,9 +69,9 @@ namespace Metal_Code
                 work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
 
                 foreach (WorkControl w in work.type.WorkControls)
-                    if (w.workType != this && w.workType is CutControl cut && cut.PartsControl != null)
+                    if (w.workType != this && w.workType is IWorktype _cut && _cut.PartsControl != null)
                     {
-                        Parts = new(cut.PartsControl.Parts);
+                        Parts = new(_cut.PartsControl.Parts);
                         break;
                     }
             }
@@ -82,15 +82,15 @@ namespace Metal_Code
                 //PartBtn.Visibility = Visibility.Visible;
                 //PartBtn.Click += (o, e) => { part.RemoveControl(this); };
 
-                foreach (WorkControl w in part.Cut.work.type.WorkControls)
+                foreach (WorkControl w in part.work.type.WorkControls)
                     if (w.workType is RollingControl roll) return;
 
-                part.Cut.work.type.AddWork();
+                part.work.type.AddWork();
 
                 // добавляем "Вальцовку" в список общих работ "Комплекта деталей"
                 foreach (Work w in MainWindow.M.Works) if (w.Name == "Вальцовка")
                     {
-                        part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
+                        part.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
                         break;
                     }
             }
@@ -179,7 +179,7 @@ namespace Metal_Code
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{6}", $"{TypeDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + В ")) p.Part.Description += " + В ";
 
-                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)        // находим вальцовку среди работ и получаем её минималку
+                    foreach (WorkControl _w in p.work.type.WorkControls)        // находим вальцовку среди работ и получаем её минималку
                         if (_w.workType is RollingControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
                             float _send = (_work.Price / p.Part.Count + Time(Side, p.Part.Mass, _w) * 2000 / 60) * _w.Ratio * _w.TechRatio;

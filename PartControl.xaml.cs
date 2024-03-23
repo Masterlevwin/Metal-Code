@@ -35,15 +35,17 @@ namespace Metal_Code
         public delegate void PropsChanged(UserControl uc, bool b);
         public PropsChanged? PropertiesChanged;
 
-        public readonly CutControl Cut;
+        public readonly UserControl owner;
+        public readonly WorkControl work;
         public Part Part { get; set; }
 
         public List<UserControl> UserControls = new();
 
-        public PartControl(CutControl _cut, Part _part)
+        public PartControl(UserControl _owner, WorkControl _work, Part _part)
         {
             InitializeComponent();
-            Cut = _cut;
+            owner = _owner;
+            work = _work;
             Part = _part;
             DataContext = Part;
 
@@ -150,5 +152,10 @@ namespace Metal_Code
             image.Freeze();
             return image;
         }
+    }
+
+    public interface IWorktype
+    {
+        public PartsControl? PartsControl { get; set; }
     }
 }

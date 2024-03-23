@@ -839,7 +839,7 @@ namespace Metal_Code
             for (int i = 0; i < DetailControls.Count; i++)
                 for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
                     for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
-                        if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is CutControl _cut)
+                        if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is IWorktype _cut)
                             if (_cut.PartsControl != null && _cut.PartsControl.Parts.Count > 0)
                                 foreach (PartControl p in _cut.PartsControl.Parts)
                                     parts.Add(p.Part);
@@ -1460,9 +1460,9 @@ namespace Metal_Code
             worksheet.Cells[row, 1].LoadFromDataTable(detailTable, false);
             row += detailTable.Rows.Count;
 
-                //в деталях нам не нужно повторно учитывать "Комплект деталей"
+                //в деталях нам не нужно повторно учитывать "Комплекты"
             for (int i = 8; i < row; i++)
-                if (Parts.Count > 0 && worksheet.Cells[i, 5].Value != null && $"{worksheet.Cells[i, 5].Value}".Contains("Комплект деталей"))
+                if (Parts.Count > 0 && worksheet.Cells[i, 5].Value != null && $"{worksheet.Cells[i, 5].Value}".Contains("Комплект"))
                 {
                     worksheet.DeleteRow(i);
                     row--;

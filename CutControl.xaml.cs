@@ -19,7 +19,7 @@ namespace Metal_Code
     /// <summary>
     /// Логика взаимодействия для CutControl.xaml
     /// </summary>
-    public partial class CutControl : UserControl, INotifyPropertyChanged, IPriceChanged
+    public partial class CutControl : UserControl, INotifyPropertyChanged, IPriceChanged, IWorktype
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
@@ -393,8 +393,10 @@ namespace Metal_Code
 
         public List<Part> PartDetails = new();
 
-        public PartsControl? PartsControl = null;
+        public PartsControl? PartsControl { get; set; }
+
         readonly TabItem TabItem = new();
+
         public void AddPartsTab()                                           //метод добавления вкладки для PartsControl
         {
             TabItem.Header = new TextBlock { Text = $"s{work.type.S} {work.type.MetalDrop.Text}" }; // установка заголовка вкладки
@@ -439,7 +441,7 @@ namespace Metal_Code
                                 (float, float) tuple = SizesDetail($"{table.Rows[j].ItemArray[3]}");    //получаем габариты детали
                                 part.PropsDict[100] = new() { $"{tuple.Item1}", $"{tuple.Item2}" };     //записываем их в словарь свойств
 
-                                _parts.Add(new(this, part));
+                                _parts.Add(new(this, work, part));
                                 PartDetails.Add(part);
                             }
 
@@ -449,7 +451,7 @@ namespace Metal_Code
                     }
                 }
             }
-            else if (PartDetails.Count > 0) foreach (Part part in PartDetails) _parts.Add(new(this, part));
+            else if (PartDetails.Count > 0) foreach (Part part in PartDetails) _parts.Add(new(this, work, part));
 
             return _parts;
         }

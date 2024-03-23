@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -54,9 +53,9 @@ namespace Metal_Code
                 work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
 
                 foreach (WorkControl w in work.type.WorkControls)
-                    if (w.workType != this && w.workType is CutControl cut && cut.PartsControl != null)
+                    if (w.workType != this && w.workType is IWorktype _cut && _cut.PartsControl != null)
                     {
-                        Parts = new(cut.PartsControl.Parts);
+                        Parts = new(_cut.PartsControl.Parts);
                         break;
                     }
             }
@@ -64,15 +63,15 @@ namespace Metal_Code
             {
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
 
-                foreach (WorkControl w in part.Cut.work.type.WorkControls)
+                foreach (WorkControl w in part.work.type.WorkControls)
                     if (w.workType is PaintControl) return;
 
-                part.Cut.work.type.AddWork();
+                part.work.type.AddWork();
 
                 // добавляем "Окраску" в список общих работ "Комплекта деталей"
                 foreach (Work w in MainWindow.M.Works) if (w.Name == "Окраска")
                     {
-                        part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
+                        part.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
                         break;
                     }
             }
@@ -87,7 +86,7 @@ namespace Metal_Code
             Ral = _ral;
 
             if (owner is PartControl part)
-                foreach (WorkControl work in part.Cut.work.type.WorkControls)
+                foreach (WorkControl work in part.work.type.WorkControls)
                     if (work.workType is PaintControl paint)
                     {
                         paint.SetRal(Ral);
@@ -181,19 +180,19 @@ namespace Metal_Code
 
                     int count = 0;      //счетчик общего количества деталей
 
-                    if (p.Cut.PartsControl != null) foreach (PartControl _p in p.Cut.PartsControl.Parts)
+                    if (p.owner is IWorktype _cut && _cut.PartsControl != null) foreach (PartControl _p in _cut.PartsControl.Parts)
                             foreach (PaintControl item in _p.UserControls.OfType<PaintControl>())
                                 if (item.Ral != null) count += _p.Part.Count;
 
                     // стоимость всей работы должна быть не ниже минимальной
-                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)            // находим окраску среди работ и получаем её минималку
+                    foreach (WorkControl _w in p.work.type.WorkControls)            // находим окраску среди работ и получаем её минималку
                         if (_w.workType is PaintControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
                             float _send;
                             if (_w.Result > 0 && _w.Result <= _work.Price)              // если стоимость работы ниже минимальной, к цене детали добавляем
                                 _send = _work.Price * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
                             else                                                        // иначе добавляем часть от количества именно этой детали
-                                _send = Price(p.Part.Mass, p.Part.Count, p.Cut.work) * _w.Ratio * _w.TechRatio / p.Part.Count;
+                                _send = Price(p.Part.Mass, p.Part.Count, p.work) * _w.Ratio * _w.TechRatio / p.Part.Count;
 
                             p.Part.Price += _send;
                             p.Part.PropsDict[54] = new() { $"{_send}", $"{p.Square}" };

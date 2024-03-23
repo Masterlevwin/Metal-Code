@@ -168,9 +168,9 @@ namespace Metal_Code
                 work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
 
                 foreach (WorkControl w in work.type.WorkControls)
-                    if (w.workType is CutControl cut && cut.PartsControl != null)
+                    if (w.workType != this && w.workType is IWorktype _cut && _cut.PartsControl != null)
                     {
-                        Parts = new(cut.PartsControl.Parts);
+                        Parts = new(_cut.PartsControl.Parts);
                         break;
                     }
             }
@@ -181,15 +181,15 @@ namespace Metal_Code
                 //PartBtn.Visibility = Visibility.Visible;
                 //PartBtn.Click += (o, e) => { part.RemoveControl(this); };
 
-                foreach (WorkControl w in part.Cut.work.type.WorkControls)
+                foreach (WorkControl w in part.work.type.WorkControls)
                     if (w.workType is BendControl) return;
 
-                part.Cut.work.type.AddWork();
+                part.work.type.AddWork();
 
                 // добавляем "Гибку" в список общих работ "Комплекта деталей"
                 foreach (Work w in MainWindow.M.Works) if (w.Name == "Гибка")
                     {
-                        part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
+                        part.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
                         break;
                     }
             }
@@ -280,12 +280,12 @@ namespace Metal_Code
 
                     int count = 0;      //счетчик общего количества деталей
 
-                    if (p.Cut.PartsControl != null) foreach (PartControl _p in p.Cut.PartsControl.Parts)
+                    if (p.owner is IWorktype _cut && _cut.PartsControl != null) foreach (PartControl _p in _cut.PartsControl.Parts)
                             foreach (BendControl item in _p.UserControls.OfType<BendControl>())
                                 if (item.Bend > 0) count += _p.Part.Count;
 
                     // стоимость всей работы должна быть не ниже минимальной
-                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)                // находим гибку среди работ и получаем её минималку
+                    foreach (WorkControl _w in p.work.type.WorkControls)                // находим гибку среди работ и получаем её минималку
                         if (_w.workType is BendControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
                             float _send;
@@ -293,7 +293,7 @@ namespace Metal_Code
                                 _send = _work.Price * 3 * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
                             else                                                            // иначе добавляем часть от количества именно этой детали
                             {
-                                float _price = Price(Bend * p.Part.Count, p.Cut.work, p.Part.Mass);
+                                float _price = Price(Bend * p.Part.Count, p.work, p.Part.Mass);
                                 
                                 // стоимость данной гибки должна быть не ниже минимальной
                                 _price = _price > 0 && _price < _work.Price ? _work.Price * _w.Ratio * _w.TechRatio : _price * _w.Ratio * _w.TechRatio;

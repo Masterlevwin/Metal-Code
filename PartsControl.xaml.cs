@@ -10,25 +10,25 @@ namespace Metal_Code
     /// </summary>
     public partial class PartsControl : UserControl
     {
-        public CutControl Cut { get; set; }
+        public readonly UserControl owner;
         public List<PartControl> Parts { get; set; }
 
-        public PartsControl(CutControl _cut, List<PartControl> _parts)
+        public PartsControl(UserControl _owner, List<PartControl> _parts)
         {
             InitializeComponent();
-            Cut = _cut;
+            owner = _owner;
             partsList.ItemsSource = Parts = _parts.OrderBy(p => p.Part.Title).ToList();
 
-            BendControl Bend = new(Cut);
+            BendControl Bend = new(owner);
             // формирование списка длин стороны гиба
             foreach (string s in Bend.BendDict[0.5f].Keys) BendDrop.Items.Add(s);
-            WeldControl Weld = new(Cut);
+            WeldControl Weld = new(owner);
             // формирование списка типов расчета сварки
             foreach (string s in Weld.TypeDict.Keys) WeldDrop.Items.Add(s);
-            PaintControl Paint = new(Cut);
+            PaintControl Paint = new(owner);
             // формирование списка типов расчета окраски
             foreach (string s in Paint.TypeDict.Keys) PaintDrop.Items.Add(s);
-            RollingControl Roll = new(Cut);
+            RollingControl Roll = new(owner);
             // формирование списка сторон расчета вальцовки
             foreach (string s in Roll.Sides) RollDrop.Items.Add(s);
         }

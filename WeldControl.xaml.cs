@@ -164,9 +164,9 @@ namespace Metal_Code
                 work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
 
                 foreach (WorkControl w in work.type.WorkControls)
-                    if (w.workType != this && w.workType is CutControl cut && cut.PartsControl != null)
+                    if (w.workType != this && w.workType is IWorktype _cut && _cut.PartsControl != null)
                     {
-                        Parts = new(cut.PartsControl.Parts);
+                        Parts = new(_cut.PartsControl.Parts);
                         break;
                     }
             }
@@ -177,15 +177,15 @@ namespace Metal_Code
                 //PartBtn.Visibility = Visibility.Visible;
                 //PartBtn.Click += (o, e) => { part.RemoveControl(this); };
 
-                foreach (WorkControl w in part.Cut.work.type.WorkControls)
+                foreach (WorkControl w in part.work.type.WorkControls)
                     if (w.workType is WeldControl) return;
 
-                part.Cut.work.type.AddWork();
+                part.work.type.AddWork();
 
                 // добавляем "Сварку" в список общих работ "Комплекта деталей"
                 foreach (Work w in MainWindow.M.Works) if (w.Name == "Сварка")
                     {
-                        part.Cut.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
+                        part.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
                         break;
                     }
             }
@@ -295,19 +295,19 @@ namespace Metal_Code
 
                     int count = 0;      //счетчик общего количества деталей
 
-                    if (p.Cut.PartsControl != null) foreach (PartControl _p in p.Cut.PartsControl.Parts)
+                    if (p.owner is IWorktype _cut && _cut.PartsControl != null) foreach (PartControl _p in _cut.PartsControl.Parts)
                             foreach (WeldControl item in _p.UserControls.OfType<WeldControl>())
                                 if (item.Weld != null) count += _p.Part.Count;
 
                     // стоимость всей работы должна быть не ниже минимальной
-                    foreach (WorkControl _w in p.Cut.work.type.WorkControls)            // находим сварку среди работ и получаем её минималку
+                    foreach (WorkControl _w in p.work.type.WorkControls)            // находим сварку среди работ и получаем её минималку
                         if (_w.workType is WeldControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
                             float _send;
                             if (_w.Result > 0 && _w.Result <= _work.Price)              // если стоимость работы ниже минимальной, к цене детали добавляем
                                 _send = _work.Price * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
                             else                                                        // иначе добавляем часть от количества именно этой детали
-                                _send = Price(ParserWeld(Weld) * p.Part.Count, p.Cut.work) * _w.Ratio * _w.TechRatio / p.Part.Count;
+                                _send = Price(ParserWeld(Weld) * p.Part.Count, p.work) * _w.Ratio * _w.TechRatio / p.Part.Count;
 
                             p.Part.Price += _send;
                             p.Part.PropsDict[53] = new() { $"{_send}" };
