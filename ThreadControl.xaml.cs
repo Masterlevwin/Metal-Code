@@ -158,8 +158,16 @@ namespace Metal_Code
         {
             if (work.WorkDrop.SelectedItem is not Work _work || work.type.MetalDrop.SelectedItem is not Metal metal) return 0;
 
-            return MainWindow.M.WideDict.ContainsKey(work.type.S) && MainWindow.M.WideDict.ContainsKey(Math.Round(_wide)) ?
-                _work.Time * (MainWindow.M.WideDict[work.type.S] + MainWindow.M.WideDict[Math.Round(_wide)] + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass)) : 0;
+            if (_wide > 30) return 0;                                       //условие выхода из рекурсии
+
+            if (!MainWindow.M.WideDict.ContainsKey(Math.Ceiling(_wide)))    //если диаметр отверстия, округленный до большего целого,                                                                
+            {                                                               //не соответствует возможной толщине,
+                _wide++;                                                    //увеличиваем диаметр на единицу
+                Time(_mass, _wide, work);                                   //и запускаем метод заново (рекурсия)
+            }
+
+            return MainWindow.M.WideDict.ContainsKey(work.type.S) ?
+                _work.Time * (MainWindow.M.WideDict[work.type.S] + MainWindow.M.WideDict[Math.Ceiling(_wide)] + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass)) : 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
