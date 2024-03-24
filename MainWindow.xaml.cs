@@ -1403,7 +1403,8 @@ namespace Metal_Code
                     }
                     if (_det.TypeDetailControls.Count < details[i].TypeDetails.Count) _det.AddTypeDetail();
                 }
-                if (_det.Detail.Title == "Комплект деталей") _det.IsComplectChanged();       //если деталь является Комплектом деталей, запускаем ограничения
+                //если деталь является Комплектом, запускаем ограничения
+                if (_det.Detail.Title != null && _det.Detail.Title.Contains("Комплект")) _det.IsComplectChanged();
             }
         }
 
@@ -1472,14 +1473,6 @@ namespace Metal_Code
             DataTable detailTable = ToDataTable(_details);
             worksheet.Cells[row, 1].LoadFromDataTable(detailTable, false);
             row += detailTable.Rows.Count;
-
-            //    //в деталях нам не нужно повторно учитывать "Комплекты"
-            //for (int i = 8; i < row; i++)
-            //    if (Parts.Count > 0 && worksheet.Cells[i, 5].Value != null && $"{worksheet.Cells[i, 5].Value}".Contains("Комплект"))
-            //    {
-            //        worksheet.DeleteRow(i);
-            //        row--;
-            //    }
 
             //взависимости от исходящего контрагента добавляем к наименованию детали формулировку услуги или товара
             foreach (var cell in worksheet.Cells[8, 5, row + 8, 5])
@@ -1618,6 +1611,7 @@ namespace Metal_Code
                     if (cell.Value != null && $"{cell.Value}".Contains("З ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("З ")) worksheet.Cells[row + 5, 2].Value += "З - Зенковка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("С ")) worksheet.Cells[row + 5, 2].Value += "С - Сверловка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("В ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("В ")) worksheet.Cells[row + 5, 2].Value += "В - Вальцовка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("ТР ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("ТР ")) worksheet.Cells[row + 5, 2].Value += "ТР - Труборез ";
                 }
                 worksheet.Cells[row + 5, 2, row + 5, 5].Merge = true;
             }
@@ -1639,7 +1633,7 @@ namespace Metal_Code
             if (worksheet.Columns[5].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указано наименование детали
             worksheet.Cells[8, 1, row, 3].Style.WrapText = true;                                //переносим текст при необходимости
             if (IsLaser) worksheet.DeleteRow(4, 2);                                             //удаляем 4 и 5 строки, необходимые только для Провэлда
-            if (Parts.Count == 0) worksheet.DeleteRow(row + 5, 1);       //удаляем строку, где указана расшифровка работ, если нет нарезанных деталей
+            //if (Parts.Count == 0) worksheet.DeleteRow(row + 5, 1);       //удаляем строку, где указана расшифровка работ, если нет нарезанных деталей
                 
             //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
             worksheet.PrinterSettings.FitToPage = true;
@@ -1820,6 +1814,8 @@ namespace Metal_Code
 
                     foreach (WorkControl w in type.WorkControls)            //анализируем работы каждой типовой детали
                     {
+                        if (w.Result == 0) continue;                        //пропускаем добавление нулевых работ
+
                         if (w.workType is CutControl)
                         {
                             //"Толщина и марка металла"

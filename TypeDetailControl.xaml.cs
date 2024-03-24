@@ -232,12 +232,16 @@ namespace Metal_Code
 
         private void CreateSort(object sender, SelectionChangedEventArgs e)
         {
-            //if (det.Detail.IsComplect && TypeDetailDrop.SelectedIndex != 0)
-            //{
-            //    MainWindow.M.StatusBegin($"В \"Комплекте деталей\" могут быть только \"Листы металла\". Чтобы добавить другую заготовку, сначала добавьте новую деталь!");
-            //    TypeDetailDrop.SelectedIndex = 0;
-            //    return;
-            //}
+            if (det.Detail.Title == "Комплект деталей" && TypeDetailDrop.SelectedItem is TypeDetail _t && _t.Name != "Лист металла")
+            {
+                foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Лист металла")
+                    {
+                        TypeDetailDrop.SelectedItem = t;
+                        break;
+                    }
+                MainWindow.M.StatusBegin($"В \"Комплекте деталей\" могут быть только \"Листы металла\". Чтобы добавить другую заготовку, сначала добавьте новую деталь!");
+                return;
+            }
             CreateSort();
         }
         public void CreateSort(int ndx = 0)

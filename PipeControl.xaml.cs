@@ -10,6 +10,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Runtime.InteropServices.JavaScript;
 
 namespace Metal_Code
 {
@@ -152,7 +153,7 @@ namespace Metal_Code
                         p.Price += work.Result / count;
 
                         p.PropsDict[50] = new() { $"{work.type.Result / count}" };
-                        p.PropsDict[51] = new() { $"{work.Result / count}" };
+                        p.PropsDict[61] = new() { $"{work.Result / count}" };
                     }
                 }
             }
@@ -217,13 +218,20 @@ namespace Metal_Code
                 return;
             }
 
+            if (work.type.TypeDetailDrop.SelectedItem is TypeDetail _t && _t.Name != null && !_t.Name.Contains("Труба"))
+                foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба профильная")
+                    {
+                        work.type.TypeDetailDrop.SelectedItem = t;
+                        break;
+                    }
+
             // раскладки можно загрузить только в отдельную деталь Комплект деталей,
             // в которой нет других типовых деталей, кроме Лист металла, и в этом "Листе" должна быть резка...
             // ...это условие необходимо соблюдать для корректного отображения сборных деталей в КП
             //foreach (TypeDetailControl _type in work.type.det.TypeDetailControls)
             //{
             //    if (_type.TypeDetailDrop.SelectedIndex != 1) //|| !_type.WorkControls.Contains(_type.WorkControls.FirstOrDefault(w => w.workType is PipeControl)))
-                    
+
             //    {
             //        _type.TypeDetailDrop.SelectedIndex = 1;
 
@@ -308,7 +316,7 @@ namespace Metal_Code
             }
 
             //определяем деталь, в которой загрузили раскладки, как комплект деталей
-            if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged();
+            if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged("Комплект труб");
         }
 
         public void AddPartsTab()                                           //метод добавления вкладки для PartsControl
@@ -344,7 +352,7 @@ namespace Metal_Code
                             {
                                 Title = $"{table.Rows[j].ItemArray[2]}",
                                 Count = (int)MainWindow.Parser($"{table.Rows[j].ItemArray[3].ToString().Remove(2)}"),
-                                Description = "ТР",
+                                Description = "ТР ",
                                 Accuracy = $"H12/h12 +-IT 12/2"
                             };
 

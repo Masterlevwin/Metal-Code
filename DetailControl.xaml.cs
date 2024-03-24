@@ -78,11 +78,11 @@ namespace Metal_Code
             Detail.Title = DetailName.Text = name;
         }
 
-        public void IsComplectChanged()     // метод, в котором эта деталь определяется как Комплект деталей
-                                            // и устанавливаются ограничения на изменение полей типовых деталей
+        public void IsComplectChanged(string _complect = "")    // метод, в котором эта деталь определяется как Комплект деталей
+                                                                // и устанавливаются ограничения на изменение полей типовых деталей
         {
             Detail.IsComplect = true;
-            SetName("Комплект деталей");
+            if (_complect != "") SetName(_complect);
             DetailName.IsEnabled = false;
         }
 

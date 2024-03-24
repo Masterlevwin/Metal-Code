@@ -207,6 +207,13 @@ namespace Metal_Code
                 return;
             }
 
+            if (work.type.TypeDetailDrop.SelectedItem is TypeDetail _t && _t.Name != "Лист металла")
+                foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Лист металла")
+                    {
+                        work.type.TypeDetailDrop.SelectedItem = t;
+                        break;
+                    }
+
             // раскладки можно загрузить только в отдельную деталь Комплект деталей,
             // в которой нет других типовых деталей, кроме Лист металла, и в этом "Листе" должна быть резка...
             // ...это условие необходимо соблюдать для корректного отображения сборных деталей в КП
@@ -243,6 +250,9 @@ namespace Metal_Code
             //        return;
             //    }
             //}
+
+            //определяем деталь, в которой загрузили раскладки, как комплект деталей
+            if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged("Комплект деталей");
 
             if (!MainWindow.M.IsLaser) MainWindow.M.IsLaser = true;
 
@@ -302,9 +312,6 @@ namespace Metal_Code
                     }
                 }
             }
-
-            //определяем деталь, в которой загрузили раскладки, как комплект деталей
-            if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged();
         }
 
         private void PartTitleAnalysis(PartControl part)        //метод анализа наименования детали, для автоматического создания блоков работ

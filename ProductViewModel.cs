@@ -84,7 +84,7 @@ namespace Metal_Code
                               fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());     //сохраняем расчет в папке
                               MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);           //формируем КП в формате excel
                               MainWindow.M.SaveOrRemoveOffer(true);                             //сохраняем расчет в базе данных
-                              //MainWindow.M.StatusBegin($"Расчет сохранен");
+                              MainWindow.M.StatusBegin($"Расчет сохранен");
                           }
                       }
                       catch (Exception ex)
@@ -165,7 +165,7 @@ namespace Metal_Code
                               MainWindow.M.ActiveOffer = offer;
                               Product = MainWindow.OpenOfferData(offer.Data);
                               MainWindow.M.LoadProduct();
-                              //MainWindow.M.StatusBegin($"Расчет загружен");
+                              MainWindow.M.StatusBegin($"Расчет загружен");
                           }
                       }
                       catch (Exception ex)
