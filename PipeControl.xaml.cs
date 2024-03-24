@@ -16,7 +16,7 @@ namespace Metal_Code
     /// <summary>
     /// Логика взаимодействия для PipeControl.xaml
     /// </summary>
-    public partial class PipeControl : UserControl, INotifyPropertyChanged, IPriceChanged, IWorktype
+    public partial class PipeControl : UserControl, INotifyPropertyChanged, IPriceChanged, ICut
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
@@ -64,6 +64,10 @@ namespace Metal_Code
         }
 
         public List<PartControl>? Parts { get; set; }
+        public PartsControl? PartsControl { get; set; }
+        public List<Part>? PartDetails { get; set; } = new();   //свойство интерфейса ICut, в коде нигде не инициализируется, поэтому это делаем здесь
+
+        readonly TabItem TabItem = new();
 
         public readonly WorkControl work;
         readonly IDialogService dialogService;
@@ -138,15 +142,18 @@ namespace Metal_Code
                 w.propsList.Add($"{Way}");
                 w.propsList.Add($"{Pinhole}");
 
-                int count = PartDetails.Sum(p => p.Count);
-
-                foreach (Part p in PartDetails)
+                if (PartDetails?.Count > 0)
                 {
-                    p.Price += work.type.Result / count;
-                    p.Price += work.Result / count;
+                    int count = PartDetails.Sum(p => p.Count);
 
-                    p.PropsDict[50] = new() { $"{work.type.Result / count}" };
-                    p.PropsDict[51] = new() { $"{work.Result / count}" };
+                    foreach (Part p in PartDetails)
+                    {
+                        p.Price += work.type.Result / count;
+                        p.Price += work.Result / count;
+
+                        p.PropsDict[50] = new() { $"{work.type.Result / count}" };
+                        p.PropsDict[51] = new() { $"{work.Result / count}" };
+                    }
                 }
             }
             else
@@ -213,42 +220,41 @@ namespace Metal_Code
             // раскладки можно загрузить только в отдельную деталь Комплект деталей,
             // в которой нет других типовых деталей, кроме Лист металла, и в этом "Листе" должна быть резка...
             // ...это условие необходимо соблюдать для корректного отображения сборных деталей в КП
-            foreach (TypeDetailControl _type in work.type.det.TypeDetailControls)
-            {
-                if ((_type.TypeDetailDrop.SelectedItem is TypeDetail _t && _t.Name != "Труба профильная")
-                    || !_type.WorkControls.Contains(_type.WorkControls.FirstOrDefault(w => w.workType is PipeControl)))
-                {
-                    // добавляем типовую деталь
-                    work.type.det.AddTypeDetail();
+            //foreach (TypeDetailControl _type in work.type.det.TypeDetailControls)
+            //{
+            //    if (_type.TypeDetailDrop.SelectedIndex != 1) //|| !_type.WorkControls.Contains(_type.WorkControls.FirstOrDefault(w => w.workType is PipeControl)))
+                    
+            //    {
+            //        _type.TypeDetailDrop.SelectedIndex = 1;
 
-                    // устанавливаем по умолчанию "Труба профильная"
-                    foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба профильная")
-                        {
-                            MainWindow.M.DetailControls[^1].TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
-                            break;
-                        }
+            //        // добавляем типовую деталь
+            //        work.type.det.AddTypeDetail();
 
-                    // устанавливаем "Труборез"
-                    foreach (Work w in MainWindow.M.Works) if (w.Name == "Труборез")
-                        {
-                            MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
-                            break;
-                        }
+            //        // устанавливаем по умолчанию "Труба профильная"
+            //        foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба профильная")
+            //            {
+            //                MainWindow.M.DetailControls[^1].TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
+            //                break;
+            //            }
 
-                    // вызываем загрузку раскладок в новой детали
-                    if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is PipeControl _pipe)
-                    {
-                        _pipe.LoadExcel(paths);
-                        MainWindow.M.StatusBegin($"Раскрой загружен в новую деталь \"Комплект деталей\"");
-                    }
+            //        // устанавливаем "Труборез"
+            //        foreach (Work w in MainWindow.M.Works) if (w.Name == "Труборез")
+            //            {
+            //                MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+            //                break;
+            //            }
 
-                    work.type.Remove();      // удаляем типовую деталь с этой работой
-                    return;
-                }
-            }
+            //        // вызываем загрузку раскладок в новой детали
+            //        if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is PipeControl _pipe)
+            //        {
+            //            _pipe.LoadExcel(paths);
+            //            MainWindow.M.StatusBegin($"Раскрой загружен в новую деталь \"Комплект деталей\"");
+            //        }
 
-            //определяем деталь, в которой загрузили раскладки, как комплект деталей
-            if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged();
+            //        work.Remove();      // удаляем типовую деталь с этой работой
+            //        return;
+            //    }
+            //}
 
             if (!MainWindow.M.IsLaser) MainWindow.M.IsLaser = true;     //внедрить свойство Компании и убрать переключение
 
@@ -264,9 +270,11 @@ namespace Metal_Code
                     Parts = PartList(table);            // формируем список элементов PartControl
                     SetImagesForParts(stream);          // устанавливаем поле Part.ImageBytes для каждой детали
                     PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
+
+                    SetupProperties();                  //временный метод для теста
+
                     AddPartsTab();                      // добавляем вкладку в "Список нарезанных деталей"
-                    SetupProperties();
-                    //work.type.MassCalculate();          // обновляем значение массы заготовки
+                    
                 }
                 else
                 {   // добавляем типовую деталь
@@ -293,17 +301,15 @@ namespace Metal_Code
                         _pipe.SetImagesForParts(stream);
                         _pipe.PartsControl = new(this, _pipe.Parts);
                         _pipe.AddPartsTab();
-                        _pipe.SetupProperties();
+                        
+                        //_pipe.SetupProperties();
                     }
                 }
             }
+
+            //определяем деталь, в которой загрузили раскладки, как комплект деталей
+            if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged();
         }
-
-        public List<Part> PartDetails = new();
-
-        public PartsControl? PartsControl { get; set; }
-
-        readonly TabItem TabItem = new();
 
         public void AddPartsTab()                                           //метод добавления вкладки для PartsControl
         {
@@ -324,7 +330,8 @@ namespace Metal_Code
 
             if (table != null)
             {
-                PartDetails.Clear();
+                PartDetails?.Clear();
+
                 for (int i = 0; i < table.Rows.Count; i++)
                 {
                     if (table.Rows[i] == null) continue;
@@ -348,7 +355,7 @@ namespace Metal_Code
                             if (part.Count > 0)
                             {
                                 _parts.Add(new(this, work, part));
-                                PartDetails.Add(part);
+                                PartDetails?.Add(part);
                             }
 
                             if ($"{table.Rows[j].ItemArray[2]}" == " ") break;
@@ -357,7 +364,7 @@ namespace Metal_Code
                     }
                 }
             }
-            else if (PartDetails.Count > 0) foreach (Part part in PartDetails) _parts.Add(new(this, work, part));
+            else if (PartDetails?.Count > 0) foreach (Part part in PartDetails) _parts.Add(new(this, work, part));
 
             return _parts;
         }
@@ -372,10 +379,13 @@ namespace Metal_Code
 
             SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");      //переносим погонные метры из типовой детали
 
-            if (PartDetails.Count > 0) foreach (Part part in PartDetails)
+            if (PartDetails?.Count > 0) foreach (Part part in PartDetails)
                 {
                     Way += (float)Math.Ceiling(part.Way);
                     Pinhole += part.Count * 2;
+
+                    part.Destiny = work.type.S;
+                    part.Metal = work.type.MetalDrop.Text;
                 }
 
             work.type.MassCalculate();
@@ -391,9 +401,9 @@ namespace Metal_Code
             //извлекаем все изображения на листе в список картинок
             List<ExcelPicture> pictures = worksheet.Drawings.Where(x => x.DrawingType == eDrawingType.Picture).Select(x => x.As.Picture).ToList();
 
-            if (Parts?.Count > 0 && pictures.Count > 0)
-                for (int i = 0; i < Parts.Count; i++)
-                    Parts[i].Part.ImageBytes = pictures[i].Image.ImageBytes;    //для каждой детали записываем массив байтов соответствующей картинки
+            if (PartDetails?.Count > 0 && pictures.Count > 0)
+                for (int i = 0; i < PartDetails.Count; i++)
+                    PartDetails[i].ImageBytes = pictures[i].Image.ImageBytes;    //для каждой детали записываем массив байтов соответствующей картинки
         }
     }
 }

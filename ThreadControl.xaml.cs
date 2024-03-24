@@ -78,7 +78,7 @@ namespace Metal_Code
                 work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
 
                 foreach (WorkControl w in work.type.WorkControls)
-                    if (w.workType != this && w.workType is IWorktype _cut && _cut.PartsControl != null)
+                    if (w.workType != this && w.workType is ICut _cut && _cut.PartsControl != null)
                     {
                         Parts = new(_cut.PartsControl.Parts);
                         break;

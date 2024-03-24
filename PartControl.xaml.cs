@@ -154,8 +154,9 @@ namespace Metal_Code
         }
     }
 
-    public interface IWorktype
+    public interface ICut
     {
         public PartsControl? PartsControl { get; set; }
+        public List<Part>? PartDetails {  get; set; }
     }
 }

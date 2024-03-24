@@ -168,7 +168,7 @@ namespace Metal_Code
                 work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
 
                 foreach (WorkControl w in work.type.WorkControls)
-                    if (w.workType != this && w.workType is IWorktype _cut && _cut.PartsControl != null)
+                    if (w.workType != this && w.workType is ICut _cut && _cut.PartsControl != null)
                     {
                         Parts = new(_cut.PartsControl.Parts);
                         break;
@@ -280,7 +280,7 @@ namespace Metal_Code
 
                     int count = 0;      //счетчик общего количества деталей
 
-                    if (p.owner is IWorktype _cut && _cut.PartsControl != null) foreach (PartControl _p in _cut.PartsControl.Parts)
+                    if (p.owner is ICut _cut && _cut.PartsControl != null) foreach (PartControl _p in _cut.PartsControl.Parts)
                             foreach (BendControl item in _p.UserControls.OfType<BendControl>())
                                 if (item.Bend > 0) count += _p.Part.Count;
 

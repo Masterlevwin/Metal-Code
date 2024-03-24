@@ -16,6 +16,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 namespace Metal_Code
 {
@@ -839,7 +840,7 @@ namespace Metal_Code
             for (int i = 0; i < DetailControls.Count; i++)
                 for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
                     for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
-                        if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is IWorktype _cut)
+                        if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is ICut _cut)
                             if (_cut.PartsControl != null && _cut.PartsControl.Parts.Count > 0)
                                 foreach (PartControl p in _cut.PartsControl.Parts)
                                     parts.Add(p.Part);
@@ -1087,12 +1088,12 @@ namespace Metal_Code
 
                             SaveWork _saveWork = new(_work.Name, work.Ratio, work.TechRatio);
 
-                            if (Parts.Count > 0 && work.workType is CutControl _cut)
+                            if (work.workType is ICut _cut && _cut.PartDetails?.Count > 0)
                             {
                                 foreach (Part p in _cut.PartDetails)
                                 {
-                                    p.Description = "Л";
-                                    p.Accuracy = $"H14/h14 +-IT 14/2";
+                                    //p.Description = "Л";
+                                    //p.Accuracy = $"H14/h14 +-IT 14/2";
                                     p.Price = 0;
 
                                     (string, string) tuple = ("0", "0");
@@ -1120,11 +1121,11 @@ namespace Metal_Code
                                         }
                                 }
 
-                                if (_cut.PartsControl != null && _cut.PartsControl.Parts.Count > 0)
+                                if (_cut.PartsControl?.Parts.Count > 0)
                                     foreach (PartControl part in _cut.PartsControl.Parts) part.PropertiesChanged?.Invoke(part, true);
 
                                 _saveWork.Parts = _cut.PartDetails;
-                                _saveWork.Items = _cut.items;
+                                if (_cut is CutControl cut) _saveWork.Items = cut.items;
                             }
 
                             work.PropertiesChanged?.Invoke(work, true);
@@ -1334,7 +1335,6 @@ namespace Metal_Code
                 AddDetail();
                 DetailControl _det = DetailControls[i];
                 _det.Detail.Title = details[i].Title;
-                if (_det.Detail.Title == "Комплект деталей") _det.IsComplectChanged();       //если деталь является Комплектом деталей, запускаем ограничения
                 _det.Detail.Count = details[i].Count;
 
                 for (int j = 0; j < details[i].TypeDetails.Count; j++)
@@ -1363,25 +1363,35 @@ namespace Metal_Code
                                 break;
                             }
 
-                        if (_work.workType is CutControl _cut && details[i].TypeDetails[j].Works[k].Parts.Count > 0)
-                        {                            
-                            _cut.items = details[i].TypeDetails[j].Works[k].Items;
-                            _cut.SumProperties(_cut.items);
+                        if (_work.workType is ICut _cut && details[i].TypeDetails[j].Works[k].Parts.Count > 0)
+                        {
+                            if (_cut is CutControl cut)
+                            {
+                                cut.items = details[i].TypeDetails[j].Works[k].Items;
+                                cut.SumProperties(cut.items);
+                                cut.PartDetails = details[i].TypeDetails[j].Works[k].Parts;
+                                cut.Parts = cut.PartList();
+                                cut.PartsControl = new(cut, cut.Parts);
+                                cut.AddPartsTab();
+                            }
+                            else if (_cut is PipeControl pipe)
+                            {
+                                pipe.PartDetails = details[i].TypeDetails[j].Works[k].Parts;
+                                pipe.Parts = pipe.PartList();
+                                pipe.PartsControl = new(pipe, pipe.Parts);
+                                pipe.AddPartsTab();
+                            }
 
-                            _cut.PartDetails = details[i].TypeDetails[j].Works[k].Parts;
-                            _cut.Parts = _cut.PartList();
-                            _cut.PartsControl = new(_cut, _cut.Parts);
-                            _cut.AddPartsTab();
+                            if (_cut.PartsControl?.Parts.Count > 0)
+                                    foreach (PartControl part in _cut.PartsControl.Parts)
+                                    {
+                                        if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
+                                            foreach (int key in part.Part.PropsDict.Keys) if (key < 50)
+                                                    part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
 
-                            if (_cut.PartsControl != null && _cut.PartsControl.Parts.Count > 0)
-                                foreach (PartControl part in _cut.PartsControl.Parts)
-                                {
-                                    if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
-                                        foreach (int key in  part.Part.PropsDict.Keys) if (key < 50)
-                                            part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
-                                            
-                                    part.PropertiesChanged?.Invoke(part, false);
-                                }
+                                        part.PropertiesChanged?.Invoke(part, false);
+                                    }
+
                         }
 
                         _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
@@ -1393,6 +1403,7 @@ namespace Metal_Code
                     }
                     if (_det.TypeDetailControls.Count < details[i].TypeDetails.Count) _det.AddTypeDetail();
                 }
+                if (_det.Detail.Title == "Комплект деталей") _det.IsComplectChanged();       //если деталь является Комплектом деталей, запускаем ограничения
             }
         }
 
@@ -1455,18 +1466,20 @@ namespace Metal_Code
                     //в этом случае, пересчитываем цену и стоимость деталей, которые НЕ "Комплект деталей" (их цена и стоимость пересчитываются в блоке SaveDetails())
                     d.Detail.Price -= Construct / DetailControls.Count;
                     d.Detail.Total = d.Detail.Price * d.Detail.Count;
-                }     
-            DataTable detailTable = ToDataTable(ProductModel.Product.Details);
+                }
+
+            ObservableCollection<Detail> _details = new(ProductModel.Product.Details.Where(d => !d.IsComplect));
+            DataTable detailTable = ToDataTable(_details);
             worksheet.Cells[row, 1].LoadFromDataTable(detailTable, false);
             row += detailTable.Rows.Count;
 
-                //в деталях нам не нужно повторно учитывать "Комплекты"
-            for (int i = 8; i < row; i++)
-                if (Parts.Count > 0 && worksheet.Cells[i, 5].Value != null && $"{worksheet.Cells[i, 5].Value}".Contains("Комплект"))
-                {
-                    worksheet.DeleteRow(i);
-                    row--;
-                }
+            //    //в деталях нам не нужно повторно учитывать "Комплекты"
+            //for (int i = 8; i < row; i++)
+            //    if (Parts.Count > 0 && worksheet.Cells[i, 5].Value != null && $"{worksheet.Cells[i, 5].Value}".Contains("Комплект"))
+            //    {
+            //        worksheet.DeleteRow(i);
+            //        row--;
+            //    }
 
             //взависимости от исходящего контрагента добавляем к наименованию детали формулировку услуги или товара
             foreach (var cell in worksheet.Cells[8, 5, row + 8, 5])

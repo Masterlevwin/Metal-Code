@@ -281,7 +281,7 @@ namespace Metal_Code
                 else
                 {
                     A_prop.IsEnabled = B_prop.IsEnabled = false;
-                    L = 1000;
+                    L = 6000;
                 }
             }
             MassCalculate();
@@ -345,10 +345,9 @@ namespace Metal_Code
                     {
                         Mass = cut.Mass;
                         //меняем свойство материала у каждой детали при изменении металла
-                        if (cut.PartsControl != null && cut.PartsControl.Parts.Count > 0)
-                            foreach (PartControl p in cut.PartsControl.Parts)
-                                if (p.Part.Metal != metal.Name)
-                                    p.Part.Metal = metal.Name;
+                        if (cut.PartDetails?.Count > 0)
+                            foreach (Part part in cut.PartDetails)
+                                if (part.Metal != metal.Name) part.Metal = metal.Name;
                         break;
                     }
             }
