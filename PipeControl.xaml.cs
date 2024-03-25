@@ -271,11 +271,12 @@ namespace Metal_Code
                 using FileStream stream = File.Open(paths[i], FileMode.Open, FileAccess.Read);
                 using IExcelDataReader reader = ExcelReaderFactory.CreateReader(stream);
                 DataSet result = reader.AsDataSet();
-                DataTable table = result.Tables[0];
+                //DataTable table = result.Tables[0];
+                DataTableCollection tables = result.Tables;
 
                 if (i == 0)
                 {
-                    Parts = PartList(table);            // формируем список элементов PartControl
+                    Parts = PartList(tables);            // формируем список элементов PartControl
                     SetImagesForParts(stream);          // устанавливаем поле Part.ImageBytes для каждой детали
                     PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
 
@@ -305,12 +306,11 @@ namespace Metal_Code
                     // заполняем эту резку
                     if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is PipeControl _pipe)
                     {
-                        _pipe.Parts = _pipe.PartList(table);
+                        _pipe.Parts = _pipe.PartList(tables);
                         _pipe.SetImagesForParts(stream);
                         _pipe.PartsControl = new(this, _pipe.Parts);
+                        _pipe.SetupProperties();
                         _pipe.AddPartsTab();
-                        
-                        //_pipe.SetupProperties();
                     }
                 }
             }
@@ -332,33 +332,31 @@ namespace Metal_Code
             MainWindow.M.PartsTab.Items.Remove(TabItem);
         }
 
-        public List<PartControl> PartList(DataTable? table = null)
+        public List<PartControl> PartList(DataTableCollection? tables = null)
         {
             List<PartControl> _parts = new();
 
-            if (table != null)
+            if (tables != null)
             {
                 PartDetails?.Clear();
 
-                for (int i = 0; i < table.Rows.Count; i++)
+                for (int i = 0; i < tables[0].Rows.Count; i++)
                 {
-                    if (table.Rows[i] == null) continue;
+                    if (tables[0].Rows[i] == null) continue;
 
-                    if (table.Rows[i].ItemArray[2]?.ToString() == "Название деталей")
+                    if (tables[0].Rows[i].ItemArray[2]?.ToString() == "Название деталей")
                     {
-                        for (int j = i + 1; j < table.Rows.Count; j++)
+                        for (int j = i + 1; j < tables[0].Rows.Count; j++)
                         {
                             Part part = new()
                             {
-                                Title = $"{table.Rows[j].ItemArray[2]}",
-                                Count = (int)MainWindow.Parser($"{table.Rows[j].ItemArray[3].ToString().Remove(2)}"),
+                                Title = $"{tables[0].Rows[j].ItemArray[2]}",
                                 Description = "ТР ",
                                 Accuracy = $"H12/h12 +-IT 12/2"
                             };
 
-                            //part.Mass = (float)Math.Round(MainWindow.Parser($"{table.Rows[j].ItemArray[4]}") / part.Count, 3);
-
-                            if (float.TryParse($"{table.Rows[j].ItemArray[4]}", out float _way)) part.Way = _way / 1000;
+                            string? str = tables[0].Rows[j].ItemArray[3]?.ToString();
+                            if (str != null && str.Contains('/')) part.Count = (int)MainWindow.Parser(str.Split('/')[0]);
 
                             if (part.Count > 0)
                             {
@@ -366,9 +364,19 @@ namespace Metal_Code
                                 PartDetails?.Add(part);
                             }
 
-                            if ($"{table.Rows[j].ItemArray[2]}" == " ") break;
+                            if ($"{tables[0].Rows[j].ItemArray[2]}" == " ") break;
                         }
                         break;
+                    }
+                }
+
+                for (int j = 0; j < tables[2].Rows.Count; j++)
+                {
+                    if (tables[2].Rows[j] == null) continue;
+
+                    if (tables[2].Rows[j].ItemArray[2]?.ToString() == "Кол. сечений")
+                    {
+                        work.type.SetCount((int)MainWindow.Parser(tables[2].Rows[j + 1].ItemArray[2].ToString()));
                     }
                 }
             }
@@ -383,7 +391,6 @@ namespace Metal_Code
             work.type.B = 30;
             work.type.S = 4;
             work.type.L = 6000;
-            work.type.Count = 1;
 
             SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");      //переносим погонные метры из типовой детали
 
