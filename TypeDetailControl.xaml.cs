@@ -252,7 +252,11 @@ namespace Metal_Code
             if (TypeDetailDrop.SelectedItem is not TypeDetail type) return;
 
             if (type.Name == "Лист металла") L = 1;
-            else L = 6000;
+            else
+            {
+                A = B = S = 0;
+                L = 6000;
+            }
 
             if (type.Sort is not null && type.Sort != "")
             {

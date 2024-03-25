@@ -378,6 +378,16 @@ namespace Metal_Code
                     {
                         work.type.SetCount((int)MainWindow.Parser(tables[2].Rows[j + 1].ItemArray[2].ToString()));
                     }
+
+                    if (tables[2].Rows[j].ItemArray[3]?.ToString() == "Контур")
+                    {
+                        SetPinhole(tables[2].Rows[j + 1].ItemArray[3].ToString());
+                    }
+
+                    if (tables[2].Rows[j].ItemArray[4]?.ToString() == "Длина резки сечения(mm)")
+                    {
+                        if (float.TryParse(tables[2].Rows[j + 1].ItemArray[4].ToString(), out float w)) Way = (float)Math.Ceiling(w / 1000);
+                    }
                 }
             }
             else if (PartDetails?.Count > 0) foreach (Part part in PartDetails) _parts.Add(new(this, work, part));
@@ -395,9 +405,6 @@ namespace Metal_Code
 
             if (PartDetails?.Count > 0) foreach (Part part in PartDetails)
                 {
-                    Way += (float)Math.Ceiling(part.Way);
-                    Pinhole += part.Count * 2;
-
                     part.Destiny = work.type.S;
                     part.Metal = work.type.MetalDrop.Text;
                 }
