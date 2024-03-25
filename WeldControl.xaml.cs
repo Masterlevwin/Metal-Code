@@ -260,16 +260,19 @@ namespace Metal_Code
 
         private float Price(float _count, WorkControl work)
         {
-            var sideRatio = _count switch
-            {
-                < 1000 => 1,
-                < 3000 => 3,
-                < 10000 => 10,
-                _ => 100,
-            };
+            //var sideRatio = (_count / 10) switch
+            //{
+            //    < 1000 => 1,
+            //    < 3000 => 3,
+            //    < 10000 => 10,
+            //    _ => 100,
+            //};
+
+            //return work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && WeldDict.ContainsKey(metal.Name) ?
+            //    WeldDict[metal.Name][sideRatio] * _count / 10 * TypeDict[$"{TypeDrop.SelectedItem}"] : 0;
 
             return work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && WeldDict.ContainsKey(metal.Name) ?
-                WeldDict[metal.Name][sideRatio] * _count / 10 * TypeDict[$"{TypeDrop.SelectedItem}"] : 0;
+                WeldDict[metal.Name][1] * 1.5f * _count / 10 * TypeDict[$"{TypeDrop.SelectedItem}"] : 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
