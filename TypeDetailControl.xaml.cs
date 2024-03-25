@@ -261,9 +261,11 @@ namespace Metal_Code
 
                 foreach (string s in Kinds.Keys) SortDrop.Items.Add(s);
 
+                if (type.Name != "Лист металла") A_prop.IsReadOnly = B_prop.IsReadOnly = true;
                 SortDrop.SelectedIndex = ndx;
                 ChangeSort();
             }
+            else A_prop.IsReadOnly = B_prop.IsReadOnly = false;
         }
 
         private void ChangeSort(object sender, SelectionChangedEventArgs e)
