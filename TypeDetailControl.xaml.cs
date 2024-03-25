@@ -249,24 +249,21 @@ namespace Metal_Code
             Kinds.Clear();
             SortDrop.Items.Clear();
 
-            if (TypeDetailDrop.SelectedItem is not TypeDetail type || type.Sort == null)
-            {
-                SortDrop.SelectedIndex = -1;
-                A = B = S = L = 0;
-                A_prop.IsEnabled = B_prop.IsEnabled = true;
-                return;
-            }
+            if (TypeDetailDrop.SelectedItem is not TypeDetail type) return;
 
-            if (type.Sort != "")
+            if (type.Name == "Лист металла") L = 1;
+            else L = 6000;
+
+            if (type.Sort is not null && type.Sort != "")
             {
                 string[] strings = type.Sort.Split(',');
                 for (int i = 0; i < strings.Length; i += 3) Kinds[strings[i]] = (strings[i + 1], strings[i + 2]);
+
+                foreach (string s in Kinds.Keys) SortDrop.Items.Add(s);
+
+                SortDrop.SelectedIndex = ndx;
+                ChangeSort();
             }
-
-            foreach (string s in Kinds.Keys) SortDrop.Items.Add(s);
-
-            SortDrop.SelectedIndex = ndx;
-            ChangeSort();
         }
 
         private void ChangeSort(object sender, SelectionChangedEventArgs e)
@@ -280,13 +277,6 @@ namespace Metal_Code
                 A = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item1);
                 B = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item2);
                 //S = 1;        //если устанавливать толщину по умолчанию, собьется установка раскроя листов в CutControl.SetSheetSize()
-
-                if (TypeDetailDrop.SelectedItem is TypeDetail type && type.Name == "Лист металла") L = 1;
-                else
-                {
-                    A_prop.IsEnabled = B_prop.IsEnabled = false;
-                    L = 6000;
-                }
             }
             MassCalculate();
         }

@@ -390,7 +390,6 @@ namespace Metal_Code
             work.type.A = 60;
             work.type.B = 30;
             work.type.S = 4;
-            work.type.L = 6000;
 
             SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");      //переносим погонные метры из типовой детали
 
