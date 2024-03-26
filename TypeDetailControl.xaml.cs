@@ -335,7 +335,20 @@ namespace Metal_Code
                 || type.Name.Contains("Труба") || type.Name.Contains("Швеллер") || type.Name.Contains("Уголок"))) Price = metal.MassPrice;
             else Price = type.Price;
 
-            if (det.Detail.Title == "Комплект деталей" && type.Name == "Лист металла")
+            if (det.Detail.Title == "Комплект труб")
+            {
+                foreach (WorkControl w in WorkControls)
+                    if (w.workType is PipeControl cut)
+                    {
+                        //меняем свойство материала у каждой детали при изменении металла
+                        if (cut.PartDetails?.Count > 0)
+                            foreach (Part part in cut.PartDetails)
+                                if (part.Metal != metal.Name) part.Metal = metal.Name;
+                        break;
+                    }
+            }
+
+            if (det.Detail.Title == "Комплект деталей")
             {
                 foreach (UIElement element in TypeDetailGrid.Children)
                     if (element is TextBox tBox) tBox.IsReadOnly = true;
@@ -437,7 +450,7 @@ namespace Metal_Code
         private void ViewPopupMass(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
             PopupMass.IsOpen = true;
-            MassPrice.Text = $"Масса 1 заготовки\n{(float)Math.Round(Mass, 2)} кг\nОбщая масса\n{(det.Detail.IsComplect ? (float)Math.Round(Mass, 2) : (float)Math.Round(Mass * Count, 2))} кг";
+            MassPrice.Text = $"Масса 1 заготовки\n{(float)Math.Round(Mass, 2)} кг\nОбщая масса\n{(det.Detail.Title == "Комплект деталей" ? (float)Math.Round(Mass, 2) : (float)Math.Round(Mass * Count, 2))} кг";
         }
     }
 }

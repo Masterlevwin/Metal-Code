@@ -276,7 +276,7 @@ namespace Metal_Code
                     if (Parts.Count > 0)
                         foreach (PartControl part in Parts)
                             PartTitleAnalysis(part);    // анализируем наименование каждой детали
-                    PartsValidate();                    //проверяем резку и массу деталей
+                    PartsValidate();                    // проверяем резку и массу деталей
                 }
                 else
                 {   // добавляем типовую деталь
@@ -307,8 +307,8 @@ namespace Metal_Code
 
                         if (_cut.Parts.Count > 0)
                             foreach (PartControl part in _cut.Parts)
-                                PartTitleAnalysis(part);
-                        _cut.PartsValidate();                    //проверяем резку и массу деталей
+                                _cut.PartTitleAnalysis(part);
+                        _cut.PartsValidate();
                     }
                 }
             }

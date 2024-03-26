@@ -10,7 +10,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Runtime.InteropServices.JavaScript;
+using System.Text.RegularExpressions;
 
 namespace Metal_Code
 {
@@ -276,14 +276,10 @@ namespace Metal_Code
 
                 if (i == 0)
                 {
-                    Parts = PartList(tables);            // формируем список элементов PartControl
+                    Parts = PartList(tables);           // формируем список элементов PartControl
                     SetImagesForParts(stream);          // устанавливаем поле Part.ImageBytes для каждой детали
                     PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
-
-                    SetupProperties();                  //временный метод для теста
-
-                    AddPartsTab();                      // добавляем вкладку в "Список нарезанных деталей"
-                    
+                    AddPartsTab();                      // добавляем вкладку в "Список нарезанных деталей" 
                 }
                 else
                 {   // добавляем типовую деталь
@@ -309,7 +305,6 @@ namespace Metal_Code
                         _pipe.Parts = _pipe.PartList(tables);
                         _pipe.SetImagesForParts(stream);
                         _pipe.PartsControl = new(this, _pipe.Parts);
-                        _pipe.SetupProperties();
                         _pipe.AddPartsTab();
                     }
                 }
@@ -340,39 +335,44 @@ namespace Metal_Code
             {
                 PartDetails?.Clear();
 
-                for (int i = 0; i < tables[0].Rows.Count; i++)
-                {
-                    if (tables[0].Rows[i] == null) continue;
-
-                    if (tables[0].Rows[i].ItemArray[2]?.ToString() == "Название деталей")
-                    {
-                        for (int j = i + 1; j < tables[0].Rows.Count; j++)
-                        {
-                            Part part = new()
-                            {
-                                Title = $"{tables[0].Rows[j].ItemArray[2]}",
-                                Description = "ТР ",
-                                Accuracy = $"H12/h12 +-IT 12/2"
-                            };
-
-                            string? str = tables[0].Rows[j].ItemArray[3]?.ToString();
-                            if (str != null && str.Contains('/')) part.Count = (int)MainWindow.Parser(str.Split('/')[0]);
-
-                            if (part.Count > 0)
-                            {
-                                _parts.Add(new(this, work, part));
-                                PartDetails?.Add(part);
-                            }
-
-                            if ($"{tables[0].Rows[j].ItemArray[2]}" == " ") break;
-                        }
-                        break;
-                    }
-                }
-
                 for (int j = 0; j < tables[2].Rows.Count; j++)
                 {
                     if (tables[2].Rows[j] == null) continue;
+
+                    if (tables[2].Rows[j].ItemArray[1]?.ToString() == "Имя сечения")
+                    {
+                        string str = $"{tables[2].Rows[j + 1].ItemArray[1]}";
+
+                        Regex rect = new(@"[+-]?((\d+\.?\d*)|(\.\d+))");
+
+                        List<Match> matches = rect.Matches(str).ToList();
+
+                        if (matches.Count > 0)
+                        {
+                            if (str.Contains("Rect tube"))
+                            {
+                                work.type.A = MainWindow.Parser(matches[0].Value);
+                                work.type.B = MainWindow.Parser(matches[1].Value);
+                            }
+                            else if (str.Contains("Round tube"))
+                            {
+                                foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба круглая")
+                                    {
+                                        work.type.TypeDetailDrop.SelectedItem = t;
+                                        break;
+                                    }
+                                work.type.A = work.type.B = MainWindow.Parser(matches[0].Value) * 2;
+                            }
+                            else if (str.Contains("Square tube"))
+                            {
+                                work.type.A = work.type.B = MainWindow.Parser(matches[0].Value);
+                            }
+                        }
+                        else
+                        {
+                            MainWindow.M.StatusBegin("Не удалось определить размеры трубы");
+                        }
+                    }
 
                     if (tables[2].Rows[j].ItemArray[2]?.ToString() == "Кол. сечений")
                     {
@@ -389,27 +389,53 @@ namespace Metal_Code
                         if (float.TryParse(tables[2].Rows[j + 1].ItemArray[4].ToString(), out float w)) Way = (float)Math.Ceiling(w / 1000);
                     }
                 }
+
+                for (int i = 0; i < tables[0].Rows.Count; i++)
+                {
+                    if (tables[0].Rows[i] == null) continue;
+
+                    if (tables[0].Rows[i].ItemArray[2]?.ToString() == "Название деталей")
+                    {
+                        for (int j = i + 1; j < tables[0].Rows.Count; j++)
+                        {
+                            Part part = new()
+                            {
+                                Title = $"{tables[0].Rows[j].ItemArray[2]}",
+                                Description = "Т",
+                                Accuracy = $"H12/h12 +-IT 12/2"
+                            };
+
+
+                            string ? str = tables[0].Rows[j].ItemArray[3]?.ToString();
+
+                            if (str != null && str.Contains('/')) part.Count = (int)MainWindow.Parser(str.Split('/')[0]);
+
+                            if (part.Count > 0)
+                            {
+                                _parts.Add(new(this, work, part));
+                                PartDetails?.Add(part);
+
+                                //устанавливаем толщину заготовки
+                                Regex destiny = new(@"(\w*s\w*)[+-]?((\d+\.?\d*)|(\.\d+))");
+
+                                List<Match> matches = destiny.Matches(part.Title).ToList();
+
+                                if (matches.Count > 0 && work.type.S == 0) work.type.S = MainWindow.Parser(matches[0].Value.Trim('s'));
+                                part.Destiny = work.type.S;
+                                part.Metal = work.type.MetalDrop.Text;
+                            }
+
+                            if ($"{tables[0].Rows[j].ItemArray[2]}" == " ") break;
+                        }
+                        break;
+                    }
+                }
+
+                SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");      //переносим погонные метры из типовой детали
             }
             else if (PartDetails?.Count > 0) foreach (Part part in PartDetails) _parts.Add(new(this, work, part));
 
             return _parts;
-        }
-
-        public void SetupProperties()
-        {
-            work.type.A = 60;
-            work.type.B = 30;
-            work.type.S = 4;
-
-            SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");      //переносим погонные метры из типовой детали
-
-            if (PartDetails?.Count > 0) foreach (Part part in PartDetails)
-                {
-                    part.Destiny = work.type.S;
-                    part.Metal = work.type.MetalDrop.Text;
-                }
-
-            work.type.MassCalculate();
         }
 
         public void SetImagesForParts(FileStream stream)        //метод извлечения картинок из файла и установки их для каждой детали в виде массива байтов
