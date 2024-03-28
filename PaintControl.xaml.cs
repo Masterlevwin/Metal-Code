@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Controls;
@@ -116,7 +117,12 @@ namespace Metal_Code
             {
                 foreach (PartControl p in Parts)
                     foreach (PaintControl item in p.UserControls.OfType<PaintControl>())
-                        if (item.Ral != null) price += item.Price(p.Part.Mass, p.Part.Count, work);
+                        if (item.Ral != null)
+                        {
+                            price += item.Price(p.Part.Mass, p.Part.Count, work);
+                            if (p.Square > 0 && p.Square < .25f) price += TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 20;
+                        }
+                
 
                 // стоимость данной окраски должна быть не ниже минимальной
                 if (work.WorkDrop.SelectedItem is Work _work) price = price > 0 && price < _work.Price ? _work.Price : price;
@@ -192,7 +198,8 @@ namespace Metal_Code
                             if (_w.Result > 0 && _w.Result <= _work.Price)              // если стоимость работы ниже минимальной, к цене детали добавляем
                                 _send = _work.Price * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
                             else                                                        // иначе добавляем часть от количества именно этой детали
-                                _send = Price(p.Part.Mass, p.Part.Count, p.work) * _w.Ratio * _w.TechRatio / p.Part.Count;
+                                _send = (Price(p.Part.Mass, p.Part.Count, p.work) + (p.Square > 0 && p.Square < .25f ?
+                                    TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 20 : 0)) * _w.Ratio * _w.TechRatio / p.Part.Count;
 
                             p.Part.Price += _send;
                             p.Part.PropsDict[54] = new() { $"{_send}", $"{p.Square}" };

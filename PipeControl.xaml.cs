@@ -420,11 +420,7 @@ namespace Metal_Code
 
                                 List<Match> matches = destiny.Matches(part.Title).ToList();
 
-                                if (matches.Count > 0 && work.type.S == 0)
-                                {
-                                    if (matches.Count > 1) work.type.S = MainWindow.Parser(matches[1].Value.Trim('х'));
-                                    else work.type.S = MainWindow.Parser(matches[0].Value.Trim('х'));
-                                }
+                                if (matches.Count > 0 && work.type.S == 0) work.type.S = MainWindow.Parser(matches[^1].Value.Trim('х'));
 
                                 part.Destiny = work.type.S;
                                 part.Metal = work.type.MetalDrop.Text;
