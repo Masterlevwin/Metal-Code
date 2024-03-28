@@ -1091,8 +1091,8 @@ namespace Metal_Code
                             {
                                 foreach (Part p in _cut.PartDetails)
                                 {
-                                    //p.Description = "Л";
-                                    //p.Accuracy = $"H14/h14 +-IT 14/2";
+                                    p.Description = _cut is CutControl ? "Л" : "ТР";
+                                    p.Accuracy = _cut is CutControl ? $"H14/h14 +-IT 14/2" : $"H12/h12 +-IT 12/2";
                                     p.Price = 0;
 
                                     (string, string) tuple = ("0", "0");
@@ -1610,7 +1610,7 @@ namespace Metal_Code
                     if (cell.Value != null && $"{cell.Value}".Contains("З ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("З ")) worksheet.Cells[row + 5, 2].Value += "З - Зенковка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("С ")) worksheet.Cells[row + 5, 2].Value += "С - Сверловка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("В ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("В ")) worksheet.Cells[row + 5, 2].Value += "В - Вальцовка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains('Т') && !$"{worksheet.Cells[row + 5, 2].Value}".Contains('Т')) worksheet.Cells[row + 5, 2].Value += "Т - Труборез ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("ТР") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("ТР")) worksheet.Cells[row + 5, 2].Value += "ТР - Труборез ";
                 }
                 worksheet.Cells[row + 5, 2, row + 5, 5].Merge = true;
             }

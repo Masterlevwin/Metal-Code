@@ -339,41 +339,6 @@ namespace Metal_Code
                 {
                     if (tables[2].Rows[j] == null) continue;
 
-                    if (tables[2].Rows[j].ItemArray[1]?.ToString() == "Имя сечения")
-                    {
-                        string str = $"{tables[2].Rows[j + 1].ItemArray[1]}";
-
-                        Regex rect = new(@"[+-]?((\d+\.?\d*)|(\.\d+))");
-
-                        List<Match> matches = rect.Matches(str).ToList();
-
-                        if (matches.Count > 0)
-                        {
-                            if (str.Contains("Rect tube"))
-                            {
-                                work.type.A = MainWindow.Parser(matches[0].Value);
-                                work.type.B = MainWindow.Parser(matches[1].Value);
-                            }
-                            else if (str.Contains("Round tube"))
-                            {
-                                foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба круглая")
-                                    {
-                                        work.type.TypeDetailDrop.SelectedItem = t;
-                                        break;
-                                    }
-                                work.type.A = work.type.B = MainWindow.Parser(matches[0].Value) * 2;
-                            }
-                            else if (str.Contains("Square tube"))
-                            {
-                                work.type.A = work.type.B = MainWindow.Parser(matches[0].Value);
-                            }
-                        }
-                        else
-                        {
-                            MainWindow.M.StatusBegin("Не удалось определить размеры трубы");
-                        }
-                    }
-
                     if (tables[2].Rows[j].ItemArray[2]?.ToString() == "Кол. сечений")
                     {
                         work.type.SetCount((int)MainWindow.Parser(tables[2].Rows[j + 1].ItemArray[2].ToString()));
@@ -394,6 +359,42 @@ namespace Metal_Code
                 {
                     if (tables[0].Rows[i] == null) continue;
 
+                    if (tables[0].Rows[i].ItemArray[1]?.ToString() == "Имя сечения")
+                    {
+                        string _tube = $"{tables[0].Rows[i + 1].ItemArray[1]}";
+
+                        Regex rect = new(@"[+-]?((\d+\.?\d*)|(\.\d+))");
+
+                        List<Match> matches = rect.Matches(_tube).ToList();
+
+                        if (matches.Count > 0)
+                        {
+                            if (_tube.Contains("Rect tube"))
+                            {
+                                work.type.A = MainWindow.Parser(matches[0].Value);
+                                work.type.B = MainWindow.Parser(matches[1].Value);
+                            }
+                            else if (_tube.Contains("Round tube"))
+                            {
+                                foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба круглая")
+                                    {
+                                        work.type.TypeDetailDrop.SelectedItem = t;
+                                        break;
+                                    }
+                                work.type.A = work.type.B = MainWindow.Parser(matches[0].Value) * 2;
+                            }
+                            else if (_tube.Contains("Square tube"))
+                            {
+                                work.type.A = work.type.B = MainWindow.Parser(matches[0].Value);
+                            }
+                        }
+                        else
+                        {
+                            MainWindow.M.StatusBegin("Не удалось определить размеры трубы");
+                        }
+                        continue;
+                    }
+
                     if (tables[0].Rows[i].ItemArray[2]?.ToString() == "Название деталей")
                     {
                         for (int j = i + 1; j < tables[0].Rows.Count; j++)
@@ -401,14 +402,13 @@ namespace Metal_Code
                             Part part = new()
                             {
                                 Title = $"{tables[0].Rows[j].ItemArray[2]}",
-                                Description = "Т",
+                                Description = "ТР",
                                 Accuracy = $"H12/h12 +-IT 12/2"
                             };
 
+                            string? _count = tables[0].Rows[j].ItemArray[3]?.ToString();
 
-                            string ? str = tables[0].Rows[j].ItemArray[3]?.ToString();
-
-                            if (str != null && str.Contains('/')) part.Count = (int)MainWindow.Parser(str.Split('/')[0]);
+                            if (_count != null && _count.Contains('/')) part.Count = (int)MainWindow.Parser(_count.Split('/')[0]);
 
                             if (part.Count > 0)
                             {
@@ -416,11 +416,16 @@ namespace Metal_Code
                                 PartDetails?.Add(part);
 
                                 //устанавливаем толщину заготовки
-                                Regex destiny = new(@"(\w*s\w*)[+-]?((\d+\.?\d*)|(\.\d+))");
+                                Regex destiny = new(@"х[+-]?((\d+\.?\d*)|(\.\d+))");
 
                                 List<Match> matches = destiny.Matches(part.Title).ToList();
 
-                                if (matches.Count > 0 && work.type.S == 0) work.type.S = MainWindow.Parser(matches[0].Value.Trim('s'));
+                                if (matches.Count > 0 && work.type.S == 0)
+                                {
+                                    if (matches.Count > 1) work.type.S = MainWindow.Parser(matches[1].Value.Trim('х'));
+                                    else work.type.S = MainWindow.Parser(matches[0].Value.Trim('х'));
+                                }
+
                                 part.Destiny = work.type.S;
                                 part.Metal = work.type.MetalDrop.Text;
                             }
