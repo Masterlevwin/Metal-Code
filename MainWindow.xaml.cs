@@ -1412,7 +1412,7 @@ namespace Metal_Code
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
             using var workbook = new ExcelPackage();
-            ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("Лист1");
+            ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("КП");
 
             worksheet.Drawings.AddPicture("A1", IsLaser ? "laser_logo.jpg" : "app_logo.jpg");  //файлы должны быть в директории bin/Debug...
 
@@ -1632,7 +1632,7 @@ namespace Metal_Code
             if (worksheet.Columns[5].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указано наименование детали
             worksheet.Cells[8, 1, row, 3].Style.WrapText = true;                                //переносим текст при необходимости
             if (IsLaser) worksheet.DeleteRow(4, 2);                                             //удаляем 4 и 5 строки, необходимые только для Провэлда
-            //if (Parts.Count == 0) worksheet.DeleteRow(row + 5, 1);       //удаляем строку, где указана расшифровка работ, если нет нарезанных деталей
+            if (Parts.Count == 0) worksheet.DeleteRow(row + 5, 1);       //удаляем строку, где указана расшифровка работ, если нет нарезанных деталей
                 
             //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
             worksheet.PrinterSettings.FitToPage = true;
@@ -1640,21 +1640,15 @@ namespace Metal_Code
             worksheet.PrinterSettings.FitToHeight = 0;
             worksheet.PrinterSettings.HorizontalCentered = true;
 
-            workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем файл .xlsx
 
-            CreateScore(worksheet, row - 8, path);      //создаем файл для счета на основе полученного КП
-        }
 
-        private void CreateScore(ExcelWorksheet worksheet, int row, string _path)       // метод создания файла для счета
-        {
-            // ----- основная таблица деталей для экспорта в 1С (Лист1 - "Счет") -----
+            // ----- основная таблица деталей для экспорта в 1С (Лист2 - "Счет") -----
 
-            ExcelRange extable = worksheet.Cells[IsLaser ? 6 : 8, 5, IsLaser ? row + 5 : row + 7, 7];
+            ExcelRange extable = worksheet.Cells[IsLaser ? 6 : 8, 5, row - 2, 7];
 
-            using var workbook = new ExcelPackage();
             ExcelWorksheet scoresheet = workbook.Workbook.Worksheets.Add("Счет");
 
-            extable.Copy(scoresheet.Cells["A2"]);       //копируем список деталей из КП в файл для счета
+            extable.Copy(scoresheet.Cells["A2"]);       //копируем список деталей из КП в Счет
 
             scoresheet.Cells["A1"].Value = "Наименование";
             scoresheet.Cells["B1"].Value = "Кол-во";
@@ -1662,25 +1656,23 @@ namespace Metal_Code
             scoresheet.Cells["D1"].Value = "Цена";
             scoresheet.Cells["E1"].Value = "Ед. изм.";
 
-            float total = 0;
-            for (int i = 0; i < row; i++)
+            extable = scoresheet.Cells[2, 1, extable.Rows, 5];
+
+            for (int i = 0; i < extable.Rows; i++)
             {
                 if (float.TryParse($"{scoresheet.Cells[i + 2, 3].Value}", out float p)) scoresheet.Cells[i + 2, 4].Value = Math.Round(p / 1.2f, 2);
                 scoresheet.Cells[i + 2, 5].Value = "шт";
-
-                if (float.TryParse($"{scoresheet.Cells[i + 2, 2].Value}", out float f)
-                    && float.TryParse($"{scoresheet.Cells[i + 2, 3].Value}", out float c)) total += f * c;
             }
-            scoresheet.Cells[row + 2, 6].Value = Math.Round(total, 2);
-            scoresheet.Cells[row + 2, 6].Style.Fill.PatternType = ExcelFillStyle.Solid;
-            scoresheet.Cells[row + 2, 6].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Yellow);
+            //scoresheet.Cells[row + 2, 6].Value = Math.Round(total, 2);
+            //scoresheet.Cells[row + 2, 6].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            //scoresheet.Cells[row + 2, 6].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Yellow);
 
-            ExcelRange details = scoresheet.Cells[1, 1, row + 1, 5];
+            ExcelRange details = scoresheet.Cells[1, 1, extable.Rows, 5];
 
 
-            // ----- таблица разбивки цены детали по работам (Лист1 - "Счет") -----
+            // ----- таблица разбивки цены детали по работам (Лист2 - "Счет") -----
 
-                                        //      50      51      52      53      54      55        56      57        58      59      60          61          62          63
+            //      50      51      52      53      54      55        56      57        58      59      60          61          62          63
             List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "Площадь, кв м" };
 
             if (Parts.Count > 0)
@@ -1691,10 +1683,10 @@ namespace Metal_Code
                         if (Parts[i].PropsDict.ContainsKey(j + 50) && float.TryParse(Parts[i].PropsDict[j + 50][0], out float value))
                         {
                             scoresheet.Cells[i + 2, j + 7].Value = Math.Round(value, 2);
-                                                                                                            //площадь окраски для каждой детали
+                            //площадь окраски для каждой детали
                             if (j == 4 && float.TryParse(Parts[i].PropsDict[j + 50][1], out float square)) scoresheet.Cells[i + 2, 21].Value = square;
                         }
-                            
+
 
                 //затем оформляем заголовки таблицы и подсчитываем общую стоимость и количество деталей для каждой работы
                 float workTotal = 0, workCount = 0;
@@ -1709,7 +1701,7 @@ namespace Metal_Code
                         {
                             workTotal += w * c;
                             workCount += c;
-                        }          
+                        }
                     }
                     scoresheet.Cells[row + 2, col + 7].Value = Math.Round(workCount, 2);                    //получаем общее количество деталей, участвующих в работе
                     scoresheet.Cells[row + 3, col + 7].Value = Math.Round(workTotal, 2);                    //получаем общую стоимость работы
@@ -1720,12 +1712,12 @@ namespace Metal_Code
             ExcelRange sends = scoresheet.Cells[1, 7, row + 3, 20];
 
 
-            // ----- таблица общих сумм работ, выполняемых подразделениями (Лист2 - "Реестр") -----
+            // ----- таблица общих сумм работ, выполняемых подразделениями (Лист3 - "Реестр") -----
 
             ExcelWorksheet statsheet = workbook.Workbook.Worksheets.Add("Реестр");
 
             statsheet.Cells[1, 2].Value = "ПРОВЭЛД";
-            statsheet.Cells[1, 2, 1, 3].Merge =true;
+            statsheet.Cells[1, 2, 1, 3].Merge = true;
             statsheet.Cells[1, 4].Value = "ЛАЗЕРФЛЕКС";
             statsheet.Cells[1, 4, 1, 5].Merge = true;
             statsheet.Cells[2, 2].Value = statsheet.Cells[2, 4].Value = "Работы";
@@ -1751,8 +1743,8 @@ namespace Metal_Code
 
             int temp = pr >= las ? pr : las;     //ограничиваем таблицу тем количеством строк, которых получилось больше
 
-            ExcelRange table = statsheet.Cells[1, 2, 3 + temp, 5];
-            table.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            ExcelRange restable = statsheet.Cells[1, 2, 3 + temp, 5];
+            restable.Style.Fill.PatternType = ExcelFillStyle.Solid;
             statsheet.Cells[1, 2, 3 + temp, 3].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGoldenrodYellow);
             statsheet.Cells[1, 4, 3 + temp, 5].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightCyan);
             statsheet.Names.Add("totalProweld", statsheet.Cells[3, 3, 2 + temp, 3]);
@@ -1762,7 +1754,7 @@ namespace Metal_Code
             statsheet.Cells[3 + temp, 3].Style.Font.Bold = statsheet.Cells[3 + temp, 5].Style.Font.Bold = true;
 
 
-            // ----- таблица стоимости материала, доставки и конструкторских работ (Лист2 - "Реестр") -----
+            // ----- таблица стоимости материала, доставки и конструкторских работ (Лист3 - "Реестр") -----
 
             ExcelRange material = statsheet.Cells[5 + temp, 2, 7 + temp, 3];
             material.Style.Fill.PatternType = ExcelFillStyle.Solid;
@@ -1775,7 +1767,7 @@ namespace Metal_Code
             statsheet.Cells[7 + temp, 3].Value = Construct;
 
 
-            // ----- реестр Лазерфлекс (Лист2 - "Реестр") -----
+            // ----- реестр Лазерфлекс (Лист3 - "Реестр") -----
 
             int beginL = temp += 10;
 
@@ -1786,7 +1778,7 @@ namespace Metal_Code
                 "Гибка (время работ)", "Количество материала", "Номер КП", "Статус", "Комментарий менеджера", "КК", "ПК"
             };
             for (int col = 0; col < _headersL.Count; col++) statsheet.Cells[temp, col + 1].Value = _headersL[col];
-            
+
             temp++;
 
             foreach (DetailControl det in DetailControls)
@@ -1823,7 +1815,7 @@ namespace Metal_Code
                             else if (type.MetalDrop.Text.Contains("амг2"))
                                 statsheet.Cells[i + temp, 4].Value = $"al{type.S}";
                             else if (type.MetalDrop.Text.Contains("амг") || type.MetalDrop.Text.Contains("д16"))
-                                statsheet.Cells[i + temp, 4].Value = $"al{type.S} {type.MetalDrop.Text}";  
+                                statsheet.Cells[i + temp, 4].Value = $"al{type.S} {type.MetalDrop.Text}";
                             else if (type.MetalDrop.Text.Contains("латунь"))
                                 statsheet.Cells[i + temp, 4].Value = $"br{type.S}";
                             else if (type.MetalDrop.Text.Contains("медь"))
@@ -1831,7 +1823,7 @@ namespace Metal_Code
                             else statsheet.Cells[i + temp, 4].Value = $"s{type.S} {type.MetalDrop.Text}";
 
                             statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f);     //"Лазер (время работ)"
-                        }   
+                        }
                         else if (w.workType is BendControl)
                         {
                             statsheet.Cells[i + temp, 6].Value = "гибка";
@@ -1866,7 +1858,7 @@ namespace Metal_Code
             statsheet.Cells[beginL, 15, temp - 1, 19].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;     //"Номер КП"
 
 
-            // ----- реестр Провэлд (Лист2 - "Реестр") -----
+            // ----- реестр Провэлд (Лист3 - "Реестр") -----
 
             int beginP = temp += 3;
 
@@ -1918,11 +1910,11 @@ namespace Metal_Code
 
             // ----- обводка границ и авторастягивание столбцов -----
 
-            details.Style.Border.Bottom.Style = sends.Style.Border.Bottom.Style = table.Style.Border.Bottom.Style = material.Style.Border.Bottom.Style = registryL.Style.Border.Bottom.Style = registryP.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-            details.Style.Border.Right.Style = sends.Style.Border.Right.Style = table.Style.Border.Right.Style = material.Style.Border.Right.Style = registryL.Style.Border.Right.Style = registryP.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.Bottom.Style = sends.Style.Border.Bottom.Style = restable.Style.Border.Bottom.Style = material.Style.Border.Bottom.Style = registryL.Style.Border.Bottom.Style = registryP.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.Right.Style = sends.Style.Border.Right.Style = restable.Style.Border.Right.Style = material.Style.Border.Right.Style = registryL.Style.Border.Right.Style = registryP.Style.Border.Right.Style = ExcelBorderStyle.Thin;
             details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             sends.Style.Border.BorderAround(ExcelBorderStyle.Medium);
-            table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+            restable.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             material.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             registryL.Style.Border.BorderAround(ExcelBorderStyle.Thin);
             registryP.Style.Border.BorderAround(ExcelBorderStyle.Thin);
@@ -1933,8 +1925,341 @@ namespace Metal_Code
 
             // ----- сохраняем книгу в файл Excel -----
 
+            //workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Реестр " + Order.Text + ".xlsx");
+
+            //CreateRegistry(workbook, row - 8, path);                           //создаем второй лист для реестра
+
+            workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем файл .xlsx
+
+            CreateScore(worksheet, row - 8, path);      //создаем файл для счета на основе полученного КП
+        }
+
+        private void CreateScore(ExcelWorksheet worksheet, int row, string _path)       // метод создания файла для счета
+        {
+            // ----- основная таблица деталей для экспорта в 1С (Лист1 - "Счет") -----
+
+            ExcelRange extable = worksheet.Cells[IsLaser ? 6 : 8, 5, IsLaser ? row + 5 : row + 7, 7];
+
+            using var workbook = new ExcelPackage();
+            ExcelWorksheet scoresheet = workbook.Workbook.Worksheets.Add("Счет");
+
+            extable.Copy(scoresheet.Cells["A2"]);       //копируем список деталей из КП в файл для счета
+
+            scoresheet.Cells["A1"].Value = "Наименование";
+            scoresheet.Cells["B1"].Value = "Кол-во";
+            scoresheet.Cells["C1"].Value = "Цена";
+            scoresheet.Cells["D1"].Value = "Цена";
+            scoresheet.Cells["E1"].Value = "Ед. изм.";
+
+            for (int i = 0; i < row; i++)
+            {
+                if (float.TryParse($"{scoresheet.Cells[i + 2, 3].Value}", out float p)) scoresheet.Cells[i + 2, 4].Value = Math.Round(p / 1.2f, 2);
+                scoresheet.Cells[i + 2, 5].Value = "шт";
+            }
+            ExcelRange details = scoresheet.Cells[1, 1, row + 1, 5];
+
+            // ----- обводка границ и авторастягивание столбцов -----
+
+            details.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+
+            scoresheet.Cells.AutoFitColumns();
+
+            // ----- сохраняем книгу в файл Excel -----
+
             workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Файл для счета " + Order.Text + " на сумму " + $"{Result}" + ".xlsx");
         }
+
+        //private void CreateRegistry(ExcelPackage workbook, int row, string _path)       // метод создания реестра
+        //{
+        //    // ----- основная таблица деталей для экспорта в 1С (Лист1 - "Счет") -----
+
+        //    ExcelRange extable = workbook.worksheet.Cells[IsLaser ? 6 : 8, 5, IsLaser ? row + 5 : row + 7, 7];
+
+        //    ExcelWorksheet scoresheet = workbook.Workbook.Worksheets.Add("Счет");
+
+        //    extable.Copy(scoresheet.Cells["A2"]);       //копируем список деталей из КП в файл для счета
+
+        //    scoresheet.Cells["A1"].Value = "Наименование";
+        //    scoresheet.Cells["B1"].Value = "Кол-во";
+        //    scoresheet.Cells["C1"].Value = "Цена";
+        //    scoresheet.Cells["D1"].Value = "Цена";
+        //    scoresheet.Cells["E1"].Value = "Ед. изм.";
+
+        //    float total = 0;
+        //    for (int i = 0; i < row; i++)
+        //    {
+        //        if (float.TryParse($"{scoresheet.Cells[i + 2, 3].Value}", out float p)) scoresheet.Cells[i + 2, 4].Value = Math.Round(p / 1.2f, 2);
+        //        scoresheet.Cells[i + 2, 5].Value = "шт";
+
+        //        if (float.TryParse($"{scoresheet.Cells[i + 2, 2].Value}", out float f)
+        //            && float.TryParse($"{scoresheet.Cells[i + 2, 3].Value}", out float c)) total += f * c;
+        //    }
+        //    scoresheet.Cells[row + 2, 6].Value = Math.Round(total, 2);
+        //    scoresheet.Cells[row + 2, 6].Style.Fill.PatternType = ExcelFillStyle.Solid;
+        //    scoresheet.Cells[row + 2, 6].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Yellow);
+
+        //    ExcelRange details = scoresheet.Cells[1, 1, row + 1, 5];
+
+
+        //    // ----- таблица разбивки цены детали по работам (Лист1 - "Счет") -----
+
+        //                                //      50      51      52      53      54      55        56      57        58      59      60          61          62          63
+        //    List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "Площадь, кв м" };
+
+        //    if (Parts.Count > 0)
+        //    {
+        //        //сначала заполняем ячейки по каждой детали и работе
+        //        for (int i = 0; i < Parts.Count; i++)
+        //            for (int j = 0; j < 20; j++)        //пробегаемся по ключам от 50 до 70, которые зарезервированы под конкретные работы
+        //                if (Parts[i].PropsDict.ContainsKey(j + 50) && float.TryParse(Parts[i].PropsDict[j + 50][0], out float value))
+        //                {
+        //                    scoresheet.Cells[i + 2, j + 7].Value = Math.Round(value, 2);
+        //                                                                                                    //площадь окраски для каждой детали
+        //                    if (j == 4 && float.TryParse(Parts[i].PropsDict[j + 50][1], out float square)) scoresheet.Cells[i + 2, 21].Value = square;
+        //                }
+                            
+
+        //        //затем оформляем заголовки таблицы и подсчитываем общую стоимость и количество деталей для каждой работы
+        //        float workTotal = 0, workCount = 0;
+        //        for (int col = 0; col < _heads.Count; col++)
+        //        {
+        //            scoresheet.Cells[1, col + 7].Value = _heads[col];       //заполняем заголовки из списка
+
+        //            for (int i = 0; i < row; i++)       //пробегаем по каждой детали и получаем стоимость работы с учетом количества деталей
+        //            {
+        //                if (float.TryParse($"{scoresheet.Cells[i + 2, col + 7].Value}", out float w)        //кусочек цены работы за 1 шт
+        //                    && float.TryParse($"{scoresheet.Cells[i + 2, 2].Value}", out float c))          //количество деталей
+        //                {
+        //                    workTotal += w * c;
+        //                    workCount += c;
+        //                }          
+        //            }
+        //            scoresheet.Cells[row + 2, col + 7].Value = Math.Round(workCount, 2);                    //получаем общее количество деталей, участвующих в работе
+        //            scoresheet.Cells[row + 3, col + 7].Value = Math.Round(workTotal, 2);                    //получаем общую стоимость работы
+        //            workTotal = workCount = 0;                                                              //обнуляем переменные для следующей работы
+        //        }
+        //    }
+
+        //    ExcelRange sends = scoresheet.Cells[1, 7, row + 3, 20];
+
+
+        //    // ----- таблица общих сумм работ, выполняемых подразделениями (Лист2 - "Реестр") -----
+
+        //    ExcelWorksheet statsheet = workbook.Workbook.Worksheets.Add("Реестр");
+
+        //    statsheet.Cells[1, 2].Value = "ПРОВЭЛД";
+        //    statsheet.Cells[1, 2, 1, 3].Merge =true;
+        //    statsheet.Cells[1, 4].Value = "ЛАЗЕРФЛЕКС";
+        //    statsheet.Cells[1, 4, 1, 5].Merge = true;
+        //    statsheet.Cells[2, 2].Value = statsheet.Cells[2, 4].Value = "Работы";
+        //    statsheet.Cells[2, 3].Value = statsheet.Cells[2, 5].Value = "Стоимость";
+
+        //    int las = 0, pr = 0;        //количество видов работ Лазерфлекс / Провэлд
+
+        //    if (TempWorks.Count > 0) foreach (string key in TempWorks.Keys)
+        //        {
+        //            if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key.Contains("(Л)"))
+        //            {
+        //                statsheet.Cells[3 + las, 4].Value = key;
+        //                statsheet.Cells[3 + las, 5].Value = Math.Round(TempWorks[key], 2);
+        //                las++;
+        //            }
+        //            else
+        //            {
+        //                statsheet.Cells[3 + pr, 2].Value = key;
+        //                statsheet.Cells[3 + pr, 3].Value = Math.Round(TempWorks[key], 2);
+        //                pr++;
+        //            }
+        //        }
+
+        //    int temp = pr >= las ? pr : las;     //ограничиваем таблицу тем количеством строк, которых получилось больше
+
+        //    ExcelRange restable = statsheet.Cells[1, 2, 3 + temp, 5];
+        //    restable.Style.Fill.PatternType = ExcelFillStyle.Solid;
+        //    statsheet.Cells[1, 2, 3 + temp, 3].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGoldenrodYellow);
+        //    statsheet.Cells[1, 4, 3 + temp, 5].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightCyan);
+        //    statsheet.Names.Add("totalProweld", statsheet.Cells[3, 3, 2 + temp, 3]);
+        //    statsheet.Cells[3 + temp, 3].Formula = "=SUM(totalProweld)";
+        //    statsheet.Names.Add("totalLaserflex", statsheet.Cells[3, 5, 2 + temp, 5]);
+        //    statsheet.Cells[3 + temp, 5].Formula = "=SUM(totalLaserflex)";
+        //    statsheet.Cells[3 + temp, 3].Style.Font.Bold = statsheet.Cells[3 + temp, 5].Style.Font.Bold = true;
+
+
+        //    // ----- таблица стоимости материала, доставки и конструкторских работ (Лист2 - "Реестр") -----
+
+        //    ExcelRange material = statsheet.Cells[5 + temp, 2, 7 + temp, 3];
+        //    material.Style.Fill.PatternType = ExcelFillStyle.Solid;
+        //    material.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Lavender);
+        //    statsheet.Cells[5 + temp, 2].Value = "Материал:";
+        //    statsheet.Cells[5 + temp, 3].Value = Math.Round(GetMetalPrice(), 2);
+        //    statsheet.Cells[6 + temp, 2].Value = "Доставка:";
+        //    statsheet.Cells[6 + temp, 3].Value = Delivery * DeliveryRatio;
+        //    statsheet.Cells[7 + temp, 2].Value = "Конструкторские работы:";
+        //    statsheet.Cells[7 + temp, 3].Value = Construct;
+
+
+        //    // ----- реестр Лазерфлекс (Лист2 - "Реестр") -----
+
+        //    int beginL = temp += 10;
+
+        //    List<string> _headersL = new()
+        //    {
+        //        "Заказ", "Заказчик", "Менеджер", "Толщина и марка металла", "V",
+        //        "Гибка", "V", "Доп работы", "V", "Комментарий", "Дата сдачи", "Лазер (время работ)",
+        //        "Гибка (время работ)", "Количество материала", "Номер КП", "Статус", "Комментарий менеджера", "КК", "ПК"
+        //    };
+        //    for (int col = 0; col < _headersL.Count; col++) statsheet.Cells[temp, col + 1].Value = _headersL[col];
+            
+        //    temp++;
+
+        //    foreach (DetailControl det in DetailControls)
+        //    {
+        //        for (int i = 0; i < det.TypeDetailControls.Count; i++)
+        //        {
+        //            TypeDetailControl type = det.TypeDetailControls[i];
+
+        //            statsheet.Cells[i + temp, 2].Value = Company.Text;      //"Заказчик"
+        //            statsheet.Cells[i + temp, 3].Value = ShortManager();    //"Менеджер"
+
+        //            if (HasDelivery) statsheet.Cells[i + temp, 8].Value = "Доставка ";
+        //            if (type.CheckMetal.IsChecked == false)
+        //                statsheet.Cells[i + temp, 10].Value = "Давальч ";
+
+        //            statsheet.Cells[i + temp, 11].Value = EndDate();        //"Дата сдачи"
+        //            statsheet.Cells[i + temp, 11].Style.Numberformat.Format = "d MMM";
+
+        //            statsheet.Cells[i + temp, 15].Value = Order.Text;       //"Номер КП"
+
+        //            if (type.MetalDrop.SelectedItem is Metal met)           //"Количество материала и (его цена за 1 кг)"
+        //                statsheet.Cells[i + temp, 14].Value = $"{type.Mass}" +
+        //                    $" ({(type.CheckMetal.IsChecked == true ? met.MassPrice : 0)}р)";
+
+        //            foreach (WorkControl w in type.WorkControls)            //анализируем работы каждой типовой детали
+        //            {
+        //                if (w.Result == 0) continue;                        //пропускаем добавление нулевых работ
+
+        //                if (w.workType is CutControl)
+        //                {
+        //                    //"Толщина и марка металла"
+        //                    if ((type.MetalDrop.Text.Contains("ст") && type.S >= 3) || (type.MetalDrop.Text.Contains("хк") && type.S < 3))
+        //                        statsheet.Cells[i + temp, 4].Value = $"s{type.S}";
+        //                    else if (type.MetalDrop.Text.Contains("амг2"))
+        //                        statsheet.Cells[i + temp, 4].Value = $"al{type.S}";
+        //                    else if (type.MetalDrop.Text.Contains("амг") || type.MetalDrop.Text.Contains("д16"))
+        //                        statsheet.Cells[i + temp, 4].Value = $"al{type.S} {type.MetalDrop.Text}";  
+        //                    else if (type.MetalDrop.Text.Contains("латунь"))
+        //                        statsheet.Cells[i + temp, 4].Value = $"br{type.S}";
+        //                    else if (type.MetalDrop.Text.Contains("медь"))
+        //                        statsheet.Cells[i + temp, 4].Value = $"cu{type.S}";
+        //                    else statsheet.Cells[i + temp, 4].Value = $"s{type.S} {type.MetalDrop.Text}";
+
+        //                    statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f);     //"Лазер (время работ)"
+        //                }   
+        //                else if (w.workType is BendControl)
+        //                {
+        //                    statsheet.Cells[i + temp, 6].Value = "гибка";
+        //                    statsheet.Cells[i + temp, 13].Value = Math.Ceiling(w.Result * 0.018f);     //"Гибка (время работ)"
+        //                }
+        //                else if (w.workType is PipeControl)
+        //                {
+        //                    //"Толщина и марка металла"
+        //                    statsheet.Cells[i + temp, 4].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+        //                }
+        //                //для доп работы её наименование добавляем к наименованию работы - особый случай
+        //                else if (w.workType is ExtraControl _extra) statsheet.Cells[i + temp, 8].Value += $"{_extra.NameExtra} ";
+        //                else if (w.WorkDrop.SelectedItem is Work work) statsheet.Cells[i + temp, 8].Value += $"{work.Name} ";     //"Доп работы"
+
+        //                //проверяем наличие коэффициентов
+        //                if (w.Ratio != 1)
+        //                    if (float.TryParse($"{statsheet.Cells[i + temp, 16].Value}", out float r))
+        //                        statsheet.Cells[i + temp, 18].Value = Math.Round(r * w.Ratio, 2);
+        //                    else statsheet.Cells[i + temp, 18].Value = Math.Round(w.Ratio, 2);
+        //                if (w.TechRatio > 1)
+        //                    if (float.TryParse($"{statsheet.Cells[i + temp, 17].Value}", out float r))
+        //                        statsheet.Cells[i + temp, 19].Value = Math.Round(r * w.TechRatio, 2);
+        //                    else statsheet.Cells[i + temp, 19].Value = Math.Round(w.TechRatio, 2);
+        //            }
+        //        }
+        //        temp += det.TypeDetailControls.Count;
+        //    }
+
+        //    ExcelRange registryL = statsheet.Cells[beginL, 1, temp - 1, 19];
+        //    statsheet.Cells[beginL, 4, temp - 1, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;      //"Толщина и марка металла"
+        //    statsheet.Cells[beginL, 11, temp - 1, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;    //"Дата сдачи"
+        //    statsheet.Cells[beginL, 15, temp - 1, 19].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;     //"Номер КП"
+
+
+        //    // ----- реестр Провэлд (Лист2 - "Реестр") -----
+
+        //    int beginP = temp += 3;
+
+        //    List<string> _headersP = new()
+        //    {
+        //        "Дата", "№ и в покраску", "Наименование изделия\n/вид работы", "Кол-во", "ед изм.",
+        //        "Подразделение", "Компания", "Мастер", "Менеджер", "Инженер", "КД", "№ Лазера",
+        //        "№ трубореза", "Дата отгрузки", "Готово к отгрузке", "Готово \"V\"", "Цвет/цинк",
+        //        "Примечание", "Ход проекта", "ОТГРУЗКИ _ дата и количество", "Стоимость работ"
+        //    };
+        //    for (int col = 0; col < _headersP.Count; col++) statsheet.Cells[temp, col + 1].Value = _headersP[col];
+
+        //    temp++;
+
+        //    if (TempWorks.Count > 0)
+        //        foreach (string key in TempWorks.Keys)
+        //        {
+        //            if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key.Contains("(Л)")) continue;
+
+        //            if (key.Contains("Окраска"))
+        //            {
+        //                statsheet.Cells[temp, 3].Value = key.Remove(7);
+        //                statsheet.Cells[temp, 17].Value = key.Substring(14);
+        //            }
+        //            else statsheet.Cells[temp, 3].Value = key;                                                  //"Наименование изделия / вид работы"
+
+        //            for (int col = 0; col < _heads.Count; col++)
+        //                if (key.Contains(_heads[col]))
+        //                {
+        //                    statsheet.Cells[temp, 4].Value = scoresheet.Cells[row + 2, col + 7].Value;          //"Кол-во"
+
+        //                    if (_heads[col] == "Окраска") statsheet.Cells[temp, 21].Value += $" ({scoresheet.Cells[row + 2, col + 7].Value} кв м)";
+        //                }
+
+        //            statsheet.Cells[temp, 5].Value = "шт";                                                      //"ед изм."
+        //            statsheet.Cells[temp, 6].Value = Boss.Text.Substring(4);                                    //"Подразделение"
+        //            statsheet.Cells[temp, 7].Value = Company.Text;                                              //"Компания"
+        //            statsheet.Cells[temp, 9].Value = ManagerDrop.Text;                                          //"Менеджер"
+        //            statsheet.Cells[temp, 10].Value = CurrentManager.Name;                                      //"Инженер"
+        //            statsheet.Cells[temp, 14].Value = EndDate();                                                //"Дата отгрузки"
+        //            statsheet.Cells[temp, 14].Style.Numberformat.Format = "d MMM";
+
+        //            statsheet.Cells[temp, 21].Value = Math.Round(TempWorks[key], 2);                            //"Стоимость работ"
+        //            temp++;
+        //        }
+
+        //    ExcelRange registryP = statsheet.Cells[beginP, 1, temp - 1, 21];
+
+
+        //    // ----- обводка границ и авторастягивание столбцов -----
+
+        //    details.Style.Border.Bottom.Style = sends.Style.Border.Bottom.Style = restable.Style.Border.Bottom.Style = material.Style.Border.Bottom.Style = registryL.Style.Border.Bottom.Style = registryP.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+        //    details.Style.Border.Right.Style = sends.Style.Border.Right.Style = restable.Style.Border.Right.Style = material.Style.Border.Right.Style = registryL.Style.Border.Right.Style = registryP.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+        //    details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+        //    sends.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+        //    restable.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+        //    material.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+        //    registryL.Style.Border.BorderAround(ExcelBorderStyle.Thin);
+        //    registryP.Style.Border.BorderAround(ExcelBorderStyle.Thin);
+
+        //    scoresheet.Cells.AutoFitColumns();
+        //    statsheet.Cells.AutoFitColumns();
+
+
+        //    // ----- сохраняем книгу в файл Excel -----
+
+        //    workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Реестр " + Order.Text + ".xlsx");
+        //}
 
         public static DataTable ToDataTable<T>(ObservableCollection<T> items)
         {
