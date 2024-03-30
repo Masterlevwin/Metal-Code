@@ -64,6 +64,30 @@ namespace Metal_Code
             }
         }
 
+        private float massTotal;
+        public float MassTotal
+        {
+            get => massTotal;
+            set => massTotal = value;
+        }
+
+        private float wayTotal;
+        public float WayTotal
+        {
+            get => wayTotal;
+            set => wayTotal = value;
+        }
+
+        public enum TubeType
+        {
+            rect,
+            round,
+            square,
+            channel,
+            corner
+        }
+
+        public TubeType Tube { get; set; }
         public List<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
         public List<Part>? PartDetails { get; set; } = new();   //свойство интерфейса ICut, в коде нигде не инициализируется, поэтому это делаем здесь
@@ -143,17 +167,19 @@ namespace Metal_Code
                 w.propsList.Add($"{Way}");
                 w.propsList.Add($"{Pinhole}");
 
+                SetTotalProperties();       //определяем общую массу и общую длину нарезанных труб
+
                 if (PartDetails?.Count > 0)
                 {
                     int count = PartDetails.Sum(p => p.Count);
 
                     foreach (Part p in PartDetails)
                     {
-                        p.Price += work.type.Result / count;
-                        p.Price += work.Result / count;
+                        p.Price += work.type.Result * p.Mass / MassTotal;
+                        p.Price += work.Result * p.Way / WayTotal;
 
-                        p.PropsDict[50] = new() { $"{work.type.Result / count}" };
-                        p.PropsDict[61] = new() { $"{work.Result / count}" };
+                        p.PropsDict[50] = new() { $"{work.type.Result * p.Mass / MassTotal}" };
+                        p.PropsDict[61] = new() { $"{work.Result * p.Way / WayTotal}" };
                     }
                 }
             }
@@ -225,45 +251,6 @@ namespace Metal_Code
                         break;
                     }
 
-            // раскладки можно загрузить только в отдельную деталь Комплект деталей,
-            // в которой нет других типовых деталей, кроме Лист металла, и в этом "Листе" должна быть резка...
-            // ...это условие необходимо соблюдать для корректного отображения сборных деталей в КП
-            //foreach (TypeDetailControl _type in work.type.det.TypeDetailControls)
-            //{
-            //    if (_type.TypeDetailDrop.SelectedIndex != 1) //|| !_type.WorkControls.Contains(_type.WorkControls.FirstOrDefault(w => w.workType is PipeControl)))
-
-            //    {
-            //        _type.TypeDetailDrop.SelectedIndex = 1;
-
-            //        // добавляем типовую деталь
-            //        work.type.det.AddTypeDetail();
-
-            //        // устанавливаем по умолчанию "Труба профильная"
-            //        foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба профильная")
-            //            {
-            //                MainWindow.M.DetailControls[^1].TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
-            //                break;
-            //            }
-
-            //        // устанавливаем "Труборез"
-            //        foreach (Work w in MainWindow.M.Works) if (w.Name == "Труборез")
-            //            {
-            //                MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
-            //                break;
-            //            }
-
-            //        // вызываем загрузку раскладок в новой детали
-            //        if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is PipeControl _pipe)
-            //        {
-            //            _pipe.LoadExcel(paths);
-            //            MainWindow.M.StatusBegin($"Раскрой загружен в новую деталь \"Комплект деталей\"");
-            //        }
-
-            //        work.Remove();      // удаляем типовую деталь с этой работой
-            //        return;
-            //    }
-            //}
-
             if (!MainWindow.M.IsLaser) MainWindow.M.IsLaser = true;     //внедрить свойство Компании и убрать переключение
 
             for (int i = 0; i < paths.Length; i++)
@@ -271,7 +258,6 @@ namespace Metal_Code
                 using FileStream stream = File.Open(paths[i], FileMode.Open, FileAccess.Read);
                 using IExcelDataReader reader = ExcelReaderFactory.CreateReader(stream);
                 DataSet result = reader.AsDataSet();
-                //DataTable table = result.Tables[0];
                 DataTableCollection tables = result.Tables;
 
                 if (i == 0)
@@ -369,12 +355,13 @@ namespace Metal_Code
 
                         if (matches.Count > 0)
                         {
-                            if (_tube.Contains("Rect tube"))
+                            if (_tube.Contains("Rect tube"))            //профильная труба
                             {
                                 work.type.A = MainWindow.Parser(matches[0].Value);
                                 work.type.B = MainWindow.Parser(matches[1].Value);
+                                Tube = TubeType.rect;
                             }
-                            else if (_tube.Contains("Round tube"))
+                            else if (_tube.Contains("Round tube"))      //круглая труба
                             {
                                 foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба круглая")
                                     {
@@ -382,10 +369,32 @@ namespace Metal_Code
                                         break;
                                     }
                                 work.type.A = work.type.B = MainWindow.Parser(matches[0].Value) * 2;
+                                Tube = TubeType.round;
                             }
-                            else if (_tube.Contains("Square tube"))
+                            else if (_tube.Contains("Square tube"))     //квадратная труба
                             {
                                 work.type.A = work.type.B = MainWindow.Parser(matches[0].Value);
+                                Tube = TubeType.square;
+                            }
+                            else if (_tube.Contains("U tube"))          //швеллер
+                            {
+                                foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Швеллер")
+                                    {
+                                        work.type.TypeDetailDrop.SelectedItem = t;
+
+                                        string _match = $"{MainWindow.Parser(matches[0].Value) / 10}".Replace(',', '.');
+
+                                        foreach (string s in work.type.SortDrop.Items)
+                                            if (s == _match)
+                                            {
+                                                {
+                                                    work.type.SortDrop.SelectedItem = s;
+                                                    break;
+                                                }
+                                            }
+                                        break;
+                                    }
+                                Tube = TubeType.channel;
                             }
                         }
                         else
@@ -412,9 +421,6 @@ namespace Metal_Code
 
                             if (part.Count > 0)
                             {
-                                _parts.Add(new(this, work, part));
-                                PartDetails?.Add(part);
-
                                 //устанавливаем толщину заготовки
                                 Regex destiny = new(@"х[+-]?((\d+\.?\d*)|(\.\d+))");
 
@@ -424,6 +430,21 @@ namespace Metal_Code
 
                                 part.Destiny = work.type.S;
                                 part.Metal = work.type.MetalDrop.Text;
+
+                                part.Way = (float)Math.Round(MainWindow.Parser($"{tables[0].Rows[j].ItemArray[4]}"), 3);
+                                if (work.type.MetalDrop.SelectedItem is Metal metal)
+                                    part.Mass = Tube switch
+                                    {
+                                        TubeType.rect => (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * part.Way * metal.Density / 7850, 3),
+                                        TubeType.round => (float)Math.Round(Math.PI * work.type.S * (work.type.A - work.type.S) * part.Way * metal.Density / 1000000, 3),
+                                        TubeType.square => (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * part.Way * metal.Density / 7850, 3),
+                                        TubeType.channel => (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * part.Way / 1000, 3),
+                                        TubeType.corner => (float)Math.Round((work.type.S * (work.type.A + work.type.B - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3),
+                                        _ => 1
+                                    };
+
+                                _parts.Add(new(this, work, part));
+                                PartDetails?.Add(part);
                             }
 
                             if ($"{tables[0].Rows[j].ItemArray[2]}" == " ") break;
@@ -437,6 +458,17 @@ namespace Metal_Code
             else if (PartDetails?.Count > 0) foreach (Part part in PartDetails) _parts.Add(new(this, work, part));
 
             return _parts;
+        }
+
+        public void SetTotalProperties()
+        {
+            MassTotal = WayTotal = 0;
+
+            if (PartDetails?.Count > 0) foreach (Part part in PartDetails)
+                {
+                    MassTotal += part.Mass * part.Count;
+                    WayTotal += part.Way * part.Count;
+                }
         }
 
         public void SetImagesForParts(FileStream stream)        //метод извлечения картинок из файла и установки их для каждой детали в виде массива байтов
