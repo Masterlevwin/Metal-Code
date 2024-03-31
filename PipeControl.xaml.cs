@@ -432,16 +432,34 @@ namespace Metal_Code
                                 part.Metal = work.type.MetalDrop.Text;
 
                                 part.Way = (float)Math.Round(MainWindow.Parser($"{tables[0].Rows[j].ItemArray[4]}"), 3);
+
                                 if (work.type.MetalDrop.SelectedItem is Metal metal)
-                                    part.Mass = Tube switch
+                                    switch (Tube)
                                     {
-                                        TubeType.rect => (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * part.Way * metal.Density / 7850, 3),
-                                        TubeType.round => (float)Math.Round(Math.PI * work.type.S * (work.type.A - work.type.S) * part.Way * metal.Density / 1000000, 3),
-                                        TubeType.square => (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * part.Way * metal.Density / 7850, 3),
-                                        TubeType.channel => (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * part.Way / 1000, 3),
-                                        TubeType.corner => (float)Math.Round((work.type.S * (work.type.A + work.type.B - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3),
-                                        _ => 1
-                                    };
+                                        case TubeType.rect:
+                                            part.Mass = (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * part.Way * metal.Density / 7850, 3);
+                                            part.PropsDict[100] = new() { $"{part.Way * (work.type.A + work.type.B) * 2 / 1000000}", "" };
+                                            break;
+                                        case TubeType.round:
+                                            part.Mass = (float)Math.Round(Math.PI * work.type.S * (work.type.A - work.type.S) * part.Way * metal.Density / 1000000, 3);
+                                            part.PropsDict[100] = new() { $"{part.Way * work.type.A * Math.PI / 1000000}", "" };
+                                            break;
+                                        case TubeType.square:
+                                            part.Mass = (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * part.Way * metal.Density / 7850, 3);
+                                            part.PropsDict[100] = new() { $"{part.Way * (work.type.A + work.type.B) * 2 / 1000000}", "" };
+                                            break;
+                                        case TubeType.channel:
+                                            part.Mass = (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * part.Way / 1000, 3);
+                                            part.PropsDict[100] = new() { $"{work.type.ChannelsSquare[work.type.SortDrop.SelectedIndex] * part.Mass / 1000}", "" };
+                                            break;
+                                        case TubeType.corner:
+                                            part.Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.B - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
+                                                * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
+                                                * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
+                                            part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.B - work.type.S) / 1000000}", "" };
+                                            break;
+
+                                    }
 
                                 _parts.Add(new(this, work, part));
                                 PartDetails?.Add(part);

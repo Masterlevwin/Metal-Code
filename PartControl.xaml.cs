@@ -54,15 +54,11 @@ namespace Metal_Code
 
         private void SetSquare()        //метод определения площади детали
         {
-            if (owner is PipeControl)
-            {
-                SquareText.Text = "мм";
-                Square = Part.Way;
-            }
+            if (!Part.PropsDict.ContainsKey(100)) return;
+
+            if (owner is PipeControl && float.TryParse(Part.PropsDict[100][0], out float l)) Square = (float)Math.Round(l, 3);
             else
             {
-                if (!Part.PropsDict.ContainsKey(100)) return;
-
                 if (float.TryParse(Part.PropsDict[100][0], out float h) && float.TryParse(Part.PropsDict[100][1], out float w))
                     Square = (float)Math.Round(h * w / 500000, 3);
             }

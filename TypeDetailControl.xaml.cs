@@ -313,6 +313,10 @@ namespace Metal_Code
         {
             4.84f, 5.9f, 7.05f, 8.59f, 10.4f, 12.3f, 14.2f, 15.3f, 16.3f, 17.4f, 18.4f, 21, 24, 27.7f, 31.8f, 36.5f, 41.9f, 48.3f
         };
+        public List<float> ChannelsSquare = new()
+        {
+            47.1f, 46.4f, 45.4f, 44.7f, 43.1f, 41.6f, 40.5f, 38.7f, 39.3f, 37.7f, 38.3f, 36.6f, 35, 33.2f, 31, 29.6f, 27.7f, 26.1f
+        };
 
         private void ResultTextEnabled(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {

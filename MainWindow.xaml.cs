@@ -28,7 +28,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.4.1";
+        readonly string version = "2.4.2";
 
         public bool isLocal = true;     //запуск локальной версии
         //public bool isLocal = false;    //запуск стандартной версии
@@ -1818,7 +1818,7 @@ namespace Metal_Code
                     statsheet.Cells[i + temp, 15].Value = Order.Text;       //"Номер КП"
 
                     if (type.MetalDrop.SelectedItem is Metal met)           //"Количество материала и (его цена за 1 кг)"
-                        statsheet.Cells[i + temp, 14].Value = $"{type.Mass}" +
+                        statsheet.Cells[i + temp, 14].Value = $"{Math.Ceiling(type.Mass)}" +
                             $" ({(type.CheckMetal.IsChecked == true ? met.MassPrice : 0)}р)";
 
                     foreach (WorkControl w in type.WorkControls)            //анализируем работы каждой типовой детали
@@ -1909,12 +1909,13 @@ namespace Metal_Code
                             if ($"{scoresheet.Cells[i + 2, 20].Value}" != "" && $"{key.Substring(14)}".Contains($"{scoresheet.Cells[i + 2, 20].Value}"))
                             {
                                 _count += (int)Parser($"{scoresheet.Cells[i + 2, 2].Value}");
-                                _square += Parser($"{scoresheet.Cells[i + 2, 19].Value}") * Parser($"{scoresheet.Cells[i + 2, 2].Value}");
-                            } 
+                                if (float.TryParse($"{scoresheet.Cells[i + 2, 19].Value}", out float s))
+                                    _square += s * Parser($"{scoresheet.Cells[i + 2, 2].Value}");
+                            }
                         }
 
                         statsheet.Cells[temp, 4].Value = _count;
-                        statsheet.Cells[temp, 17].Value = $"{key.Substring(14)} ({Math.Round(_square / 1000, 3)} кв м)";
+                        statsheet.Cells[temp, 17].Value = $"{key.Substring(14)} ({Math.Round(_square, 3)} кв м)";
                     }
                     else statsheet.Cells[temp, 3].Value = key;                                                  //"Наименование изделия / вид работы"
 
