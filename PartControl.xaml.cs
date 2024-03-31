@@ -56,7 +56,7 @@ namespace Metal_Code
         {
             if (owner is PipeControl)
             {
-                SquareText.Text = "м";
+                SquareText.Text = "мм";
                 Square = Part.Way;
             }
             else
