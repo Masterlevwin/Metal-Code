@@ -202,7 +202,7 @@ namespace Metal_Code
                                     TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 20 : 0)) * _w.Ratio * _w.TechRatio / p.Part.Count;
 
                             p.Part.Price += _send;
-                            p.Part.PropsDict[54] = new() { $"{_send}", $"{p.Square}" };
+                            p.Part.PropsDict[54] = new() { $"{_send}", $"{p.Square}", $"{Ral}" };
 
                             break;
                         }

@@ -1677,7 +1677,7 @@ namespace Metal_Code
             // ----- таблица разбивки цены детали по работам (Лист3 - "Статистика") -----
 
                                         //      50      51      52      53      54      55        56      57        58      59      60          61          62
-            List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "Площадь, кв м" };
+            List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "Подробности" };
 
             if (Parts.Count > 0)
             {
@@ -1687,8 +1687,13 @@ namespace Metal_Code
                         if (Parts[i].PropsDict.ContainsKey(j + 50) && float.TryParse(Parts[i].PropsDict[j + 50][0], out float value))
                         {
                             scoresheet.Cells[i + 2, j + 5].Value = Math.Round(value, 2);
-                            //площадь окраски для каждой детали
-                            if (j == 4 && float.TryParse(Parts[i].PropsDict[j + 50][1], out float square)) scoresheet.Cells[i + 2, 19].Value = square;
+                            
+                            //подробности окраски для каждой детали
+                            if (j == 4)
+                            {
+                                if (float.TryParse(Parts[i].PropsDict[j + 50][1], out float square)) scoresheet.Cells[i + 2, 19].Value = Math.Round(square, 3);    //площадь
+                                if (Parts[i].PropsDict[j + 50][2] != null) scoresheet.Cells[i + 2, 20].Value = Parts[i].PropsDict[j + 50][2];                      //цвет
+                            }
                         }
 
                 //затем оформляем заголовки таблицы и подсчитываем общую стоимость и количество деталей для каждой работы
@@ -1696,6 +1701,8 @@ namespace Metal_Code
                 for (int col = 0; col < _heads.Count; col++)
                 {
                     scoresheet.Cells[1, col + 5].Value = _heads[col];       //заполняем заголовки из списка
+
+                    if (col == 14) scoresheet.Cells[1, col + 5, 1, col + 6].Merge = true;
 
                     for (int i = 0; i < Parts.Count; i++)       //пробегаем по каждой детали и получаем стоимость работы с учетом количества деталей
                     {
@@ -1722,7 +1729,7 @@ namespace Metal_Code
             totals.Style.Fill.PatternType = ExcelFillStyle.Solid;
             totals.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.PowderBlue);
 
-            ExcelRange sends = scoresheet.Cells[1, 5, Parts.Count + 3, 19];
+            ExcelRange sends = scoresheet.Cells[1, 5, Parts.Count + 3, 20];
 
 
             // ----- таблица общих сумм работ, выполняемых подразделениями (Лист2 - "Реестр") -----
@@ -1892,12 +1899,27 @@ namespace Metal_Code
                     if (key.Contains("Окраска"))
                     {
                         statsheet.Cells[temp, 3].Value = key.Remove(7);
-                        statsheet.Cells[temp, 17].Value = $"{key.Substring(14)} ({scoresheet.Cells[Parts.Count + 3, 19].Value} кв м)";
+
+                        int _count = 0;
+                        float _square = 0;
+
+                        for (int i = 0; i < Parts.Count; i++)
+                        {
+                            //если в "Подробностях" цвета не пусто, и данная окраска соответствует по RAL, считаем кол-во и площадь таких деталей
+                            if ($"{scoresheet.Cells[i + 2, 20].Value}" != "" && $"{key.Substring(14)}".Contains($"{scoresheet.Cells[i + 2, 20].Value}"))
+                            {
+                                _count += (int)Parser($"{scoresheet.Cells[i + 2, 2].Value}");
+                                _square += Parser($"{scoresheet.Cells[i + 2, 19].Value}") * Parser($"{scoresheet.Cells[i + 2, 2].Value}");
+                            } 
+                        }
+
+                        statsheet.Cells[temp, 4].Value = _count;
+                        statsheet.Cells[temp, 17].Value = $"{key.Substring(14)} ({Math.Round(_square / 1000, 3)} кв м)";
                     }
                     else statsheet.Cells[temp, 3].Value = key;                                                  //"Наименование изделия / вид работы"
 
                     for (int col = 0; col < _heads.Count; col++)
-                        if (key.Contains(_heads[col]))
+                        if (key.Contains(_heads[col]) && _heads[col] != "Окр")
                             statsheet.Cells[temp, 4].Value = scoresheet.Cells[Parts.Count + 2, col + 5].Value;  //"Кол-во"
 
                     statsheet.Cells[temp, 5].Value = "шт";                                                      //"ед изм."
