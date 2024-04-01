@@ -162,7 +162,7 @@
                         <RadioButton GroupName="Boss" x:Name="LaserRadioButton" HorizontalAlignment="Left" Margin="70,15,0,0" VerticalAlignment="Top" Checked="IsLaserChanged"/>
                         <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет от ООО" HorizontalAlignment="Left" Margin="15,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;"/>
                         <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет от ИП или ПК" HorizontalAlignment="Left" Margin="110,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;"/>
-                        <Button ToolTip="Создать запрос в логистику" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,88,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" Click="Compile" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}">
+                        <Button ToolTip="Создать запрос в логистику" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,88,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" Click="CreateDelivery" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}">
                             <Image Source="/Images/new.png"/>
                         </Button>
                     </Grid>
