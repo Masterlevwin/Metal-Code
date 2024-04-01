@@ -16,6 +16,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using Flee.PublicTypes;
 
 namespace Metal_Code
 {
@@ -2377,6 +2378,33 @@ namespace Metal_Code
                     DetailControls[0].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedIndex = 4;
                 }
             }
+        }
+
+        private double Compile(string _formula)
+        {
+            // Define the context of our expression
+            ExpressionContext context = new ExpressionContext();
+            // Allow the expression to use all static public methods of System.Math
+            context.Imports.AddType(typeof(Math));
+
+            // Define an int variable
+            context.Variables["A"] = DetailControls[0].TypeDetailControls[0].A;
+
+            // Create a generic expression that evaluates to a double
+            IGenericExpression<double> eGeneric = context.CompileGeneric<double>(_formula);
+
+            // Evaluate the expressions
+            result = (float)eGeneric.Evaluate();
+
+            // Update the value of our variable
+            //context.Variables["a"] = 144;
+
+            return result;
+        }
+
+        private void Compile(object sender, RoutedEventArgs e)
+        {
+            StatusBegin($"{Compile(Adress.Text)}");
         }
     }
 }
