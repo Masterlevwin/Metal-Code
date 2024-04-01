@@ -1851,6 +1851,8 @@ namespace Metal_Code
                         {
                             //"Толщина и марка металла"
                             statsheet.Cells[i + temp, 4].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+
+                            statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f);     //"Лазер (время работ)"
                         }
                         //для доп работы её наименование добавляем к наименованию работы - особый случай
                         else if (w.workType is ExtraControl _extra) statsheet.Cells[i + temp, 8].Value += $"{_extra.NameExtra} ";
