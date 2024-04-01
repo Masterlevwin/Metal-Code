@@ -1,4 +1,5 @@
 ﻿using ExcelDataReader;
+using Microsoft.Win32;
 using OfficeOpenXml.Drawing;
 using OfficeOpenXml;
 using System;
@@ -396,6 +397,26 @@ namespace Metal_Code
                                     }
                                 Tube = TubeType.channel;
                             }
+                            else if (_tube.Contains("L tube(L)"))       //уголок равнополочный
+                            {
+                                foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Уголок равнополочный")
+                                    {
+                                        work.type.TypeDetailDrop.SelectedItem = t;
+
+                                        string _match = $"{MainWindow.Parser(matches[0].Value)}".Replace(',', '.');
+
+                                        foreach (string s in work.type.SortDrop.Items)
+                                            if (s == _match)
+                                            {
+                                                {
+                                                    work.type.SortDrop.SelectedItem = s;
+                                                    break;
+                                                }
+                                            }
+                                        break;
+                                    }
+                                Tube = TubeType.corner;
+                            }
                         }
                         else
                         {
@@ -431,7 +452,7 @@ namespace Metal_Code
                                 part.Destiny = work.type.S;
                                 part.Metal = work.type.MetalDrop.Text;
 
-                                part.Way = (float)Math.Round(MainWindow.Parser($"{tables[0].Rows[j].ItemArray[4]}"), 3);
+                                if (float.TryParse($"{tables[0].Rows[j].ItemArray[4]}", out float w)) part.Way = (float)Math.Round(w, 3);
 
                                 if (work.type.MetalDrop.SelectedItem is Metal metal)
                                     switch (Tube)
@@ -502,6 +523,34 @@ namespace Metal_Code
             if (PartDetails?.Count > 0 && pictures.Count > 0)
                 for (int i = 0; i < PartDetails.Count; i++)
                     PartDetails[i].ImageBytes = pictures[i].Image.ImageBytes;    //для каждой детали записываем массив байтов соответствующей картинки
+        }
+    }
+
+    public class ExcelPipeDialogService : IDialogService
+    {
+        public string[]? FilePaths { get; set; }
+
+        public bool OpenFileDialog()
+        {
+            OpenFileDialog openFileDialog = new();
+            openFileDialog.Filter = "Excel (*.xls)|*.xls|All files (*.*)|*.*";
+            openFileDialog.Multiselect = true;
+            if (openFileDialog.ShowDialog() == true)
+            {
+                FilePaths = openFileDialog.FileNames;
+                return true;
+            }
+            return false;
+        }
+
+        public bool SaveFileDialog()
+        {
+            return false;
+        }
+
+        public void ShowMessage(string message)
+        {
+            MessageBox.Show(message);
         }
     }
 }

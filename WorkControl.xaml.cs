@@ -168,7 +168,7 @@ namespace Metal_Code
                         WorkDrop.SelectedIndex = -1;
                         return;
                     }
-                    PipeControl pipe = new(this, new ExcelDialogService());
+                    PipeControl pipe = new(this, new ExcelPipeDialogService());
                     WorkGrid.Children.Add(pipe);
                     Grid.SetColumn(pipe, 1);
                     workType = pipe;

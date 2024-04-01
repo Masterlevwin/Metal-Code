@@ -344,10 +344,13 @@ namespace Metal_Code
                 foreach (WorkControl w in WorkControls)
                     if (w.workType is PipeControl cut)
                     {
-                        //меняем свойство материала у каждой детали при изменении металла
+                        //меняем свойство материала у каждой детали при изменении металла, и толщину при изменении толщины
                         if (cut.PartDetails?.Count > 0)
                             foreach (Part part in cut.PartDetails)
+                            {
                                 if (part.Metal != metal.Name) part.Metal = metal.Name;
+                                if (part.Destiny != S) part.Destiny = S;
+                            }   
                         break;
                     }
             }
