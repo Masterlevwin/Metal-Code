@@ -120,7 +120,8 @@ namespace Metal_Code
                         if (item.Ral != null)
                         {
                             price += item.Price(p.Part.Mass, p.Part.Count, work);
-                            if (p.Square > 0 && p.Square < .25f) price += TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 20;
+                            if (p.Square > 0 && p.Square < .05f) p.Square = .05f;
+                            if (p.Square > .05f && p.Square < .2f) price += TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 20;
                         }
                 
 
@@ -198,7 +199,7 @@ namespace Metal_Code
                             if (_w.Result > 0 && _w.Result <= _work.Price)              // если стоимость работы ниже минимальной, к цене детали добавляем
                                 _send = _work.Price * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
                             else                                                        // иначе добавляем часть от количества именно этой детали
-                                _send = (Price(p.Part.Mass, p.Part.Count, p.work) + (p.Square > 0 && p.Square < .25f ?
+                                _send = (Price(p.Part.Mass, p.Part.Count, p.work) + (p.Square > 0 && p.Square < .2f ?
                                     TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 20 : 0)) * _w.Ratio * _w.TechRatio / p.Part.Count;
 
                             p.Part.Price += _send;
