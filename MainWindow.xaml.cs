@@ -480,13 +480,12 @@ namespace Metal_Code
                     OffersGrid.Columns[2].Header = "Итого, руб.";
                     OffersGrid.Columns[3].Header = "Материал, руб.";
                     OffersGrid.Columns[4].Header = "Счёт";
-                    OffersGrid.Columns[5].Header = "Заказ";
-                    OffersGrid.Columns[6].Header = "УПД";
+                    OffersGrid.Columns[5].Header = "Дата создания";
+                    (OffersGrid.Columns[5] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
+                    OffersGrid.Columns[6].Header = "Заказ";
                     OffersGrid.Columns[7].Header = "Автор";
-                    OffersGrid.Columns[8].Header = "Дата создания";
+                    OffersGrid.Columns[8].Header = "Дата отгрузки";
                     (OffersGrid.Columns[8] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
-                    OffersGrid.Columns[9].Header = "Дата отгрузки";
-                    (OffersGrid.Columns[9] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
 
                     OffersGrid.FrozenColumnCount = 2;
 
@@ -1191,8 +1190,9 @@ namespace Metal_Code
                         }
                     }
 
-                    db.SaveChanges();           //сохраняем изменения в базе данных
-                    ViewOffersGrid(man);        //и обновляем datagrid
+                    db.SaveChanges();                   //сохраняем изменения в базе данных
+                    if (isSave) ViewOffersGrid(man);    //и обновляем datagrid, если появился новый расчет
+                    else ViewOffersGrid(man, true);
                 }
                 catch (DbUpdateConcurrencyException ex)
                 {
@@ -2278,13 +2278,13 @@ namespace Metal_Code
                 {
                     Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
                     if (_offer != null)
-                    {
+                    {                               //менять можно только номер счета, номер заказа и дату создания
                         _offer.Invoice = offer.Invoice;
                         db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
                         _offer.Order = offer.Order;
                         db.Entry(_offer).Property(o => o.Order).IsModified = true;
-                        _offer.Act = offer.Act;
-                        db.Entry(_offer).Property(o => o.Act).IsModified = true;
+                        _offer.CreatedDate = offer.CreatedDate;
+                        db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
 
                         db.SaveChanges();                                               //сохраняем изменения в базе данных
                         StatusBegin("Изменения в базе сохранены");

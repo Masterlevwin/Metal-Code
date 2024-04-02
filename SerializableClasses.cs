@@ -174,25 +174,24 @@ namespace Metal_Code
         public float Amount { get; set; }
         public float Material { get; set; }
 
-        [Browsable(false)]
-        public float Services { get; set; }
-
         [ConcurrencyCheck]
         public string? Invoice { get; set; }
         [ConcurrencyCheck]
-        public string? Order { get; set; }
-        [ConcurrencyCheck]
-        public string? Act { get; set; }
-        public string? Autor { get; set; }
         public DateTime? CreatedDate { get; set; }
+        [ConcurrencyCheck]
+        public string? Order { get; set; }
+
+        public string? Autor { get; set; }
         public DateTime? EndDate { get; set; }
 
         [Browsable(false)]
+        public float Services { get; set; }
+        [Browsable(false)]
+        public string? Act { get; set; }
+        [Browsable(false)]
         public Manager? Manager { get; set; }
-
         [Browsable(false)]
         public int ManagerId { get; set; }
-
         [Browsable(false)]
         public string? Data { get; set; }
 
