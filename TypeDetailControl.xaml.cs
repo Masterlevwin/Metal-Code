@@ -228,11 +228,11 @@ namespace Metal_Code
             PriceChanged();
         }
 
-        Dictionary<string, (string, string)> Kinds = new();
+        public Dictionary<string, (string, string)> Kinds = new();
 
         private void CreateSort(object sender, SelectionChangedEventArgs e)
         {
-            if (det.Detail.Title == "Комплект деталей" && TypeDetailDrop.SelectedItem is TypeDetail _t && _t.Name != "Лист металла")
+            if (det.Detail.Title == "Комплект деталей" && TypeDetailDrop.SelectedItem is TypeDetail _c && _c.Name != "Лист металла")
             {
                 foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Лист металла")
                     {
@@ -303,19 +303,27 @@ namespace Metal_Code
             MassCalculate();
         }
 
-        public List<(float, float)> Corners = new()
+        public List<(float, float)> Corners = new()     //размеры полок уголка
         {
             (3.5f, 1.2f), (3.5f, 1.2f), (4, 1.3f), (4, 1.3f), (5, 1.7f), (5.5f, 1.8f), (6, 2), (7, 2.3f),
             (7.5f, 2.5f), (7.5f, 2.5f), (8, 2.7f), (8, 2.7f), (9, 3), (9, 3), (10, 3.3f), (12, 4), (12, 4),
             (14, 4.6f), (14, 4.6f), (16, 5.3f)
         };
-        public List<float> Channels = new()
+        public List<float> Channels = new()             //масса 1 кг типоразмера швеллера
         {
             4.84f, 5.9f, 7.05f, 8.59f, 10.4f, 12.3f, 14.2f, 15.3f, 16.3f, 17.4f, 18.4f, 21, 24, 27.7f, 31.8f, 36.5f, 41.9f, 48.3f
         };
-        public List<float> ChannelsSquare = new()
+        public List<float> ChannelsSquare = new()       //суммарная площадь поверхности со всех сторон 1 тонны горячекатаных  швеллеров, м2
         {
             47.1f, 46.4f, 45.4f, 44.7f, 43.1f, 41.6f, 40.5f, 38.7f, 39.3f, 37.7f, 38.3f, 36.6f, 35, 33.2f, 31, 29.6f, 27.7f, 26.1f
+        };
+
+        public Dictionary<string, List<(float, float)>> BeamDict = new()
+        {
+            ["Двутавр"] = new() { (9.46f, 44.4f), (11.5f, 43.1f), (13.7f, 41.8f), (15.9f, 40.5f), (18.4f, 39.1f), (21, 38.1f), (24, 36.7f), (27.3f, 34.4f), (31.5f, 33), (36.5f, 31.2f) },
+            ["Двутавр парал"] = new() { (8.1f, 49.4f), (8.7f, 54.3f), (10.4f, 45.7f), (10.5f, 52.1f), (12.9f, 42.7f), (12.7f, 48.7f), (15.8f, 39.4f), (15.4f, 45.1f), (18, 37.1f), (22.4f, 31.3f) },
+            ["Двутавр широк"] = new() { (30.6f, 33.8f), (36.2f, 30.9f), (42.7f, 28.6f), (49.2f, 25.9f), (53.6f, 26), (61, 23.4f), (68.3f, 21.1f), (75.1f, 22.7f), (82.2f, 20.8f), (91.3f, 19.1f) },
+            ["Двутавр колон"] = new() { (41.5f, 29.6f), (46.9f, 26.1f), (52.2f, 27.5f), (59.5f, 25.7f), (65.2f, 26.1f), (73.2f, 23.3f), (83.1f, 20.9f), (84.8f, 21.4f), (93.6f, 19.9f), (108.9f, 18.3f) }
         };
 
         private void ResultTextEnabled(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -336,14 +344,18 @@ namespace Metal_Code
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
 
             if (type.Name != null && (type.Name.Contains("Лист металла")
-                || type.Name.Contains("Труба") || type.Name.Contains("Швеллер") || type.Name.Contains("Уголок"))) Price = metal.MassPrice;
+                || type.Name.Contains("Труба") || type.Name.Contains("Швеллер") || type.Name.Contains("Уголок") || type.Name.Contains("Двутавр"))) Price = metal.MassPrice;
             else Price = type.Price;
 
-            if (det.Detail.Title == "Комплект труб")
+            if (det.Detail.IsComplect)
             {
+                //foreach (UIElement element in TypeDetailGrid.Children)
+                //    if (element is TextBox tBox) tBox.IsReadOnly = true;
+
                 foreach (WorkControl w in WorkControls)
-                    if (w.workType is PipeControl cut)
+                    if (w.workType is ICut cut)
                     {
+                        Mass = cut.Mass;
                         //меняем свойство материала у каждой детали при изменении металла, и толщину при изменении толщины
                         if (cut.PartDetails?.Count > 0)
                             foreach (Part part in cut.PartDetails)
@@ -351,23 +363,6 @@ namespace Metal_Code
                                 if (part.Metal != metal.Name) part.Metal = metal.Name;
                                 if (part.Destiny != S) part.Destiny = S;
                             }   
-                        break;
-                    }
-            }
-
-            if (det.Detail.Title == "Комплект деталей")
-            {
-                foreach (UIElement element in TypeDetailGrid.Children)
-                    if (element is TextBox tBox) tBox.IsReadOnly = true;
-
-                foreach (WorkControl w in WorkControls)
-                    if (w.workType is CutControl cut)
-                    {
-                        Mass = cut.Mass;
-                        //меняем свойство материала у каждой детали при изменении металла
-                        if (cut.PartDetails?.Count > 0)
-                            foreach (Part part in cut.PartDetails)
-                                if (part.Metal != metal.Name) part.Metal = metal.Name;
                         break;
                     }
             }
@@ -391,7 +386,7 @@ namespace Metal_Code
                         break;
                     case "Уголок равнополочный":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
-                            Mass = (S * (A + B - S) + 0.2146f * (Corners[SortDrop.SelectedIndex].Item1 * Corners[SortDrop.SelectedIndex].Item1
+                            Mass = (S * (A + A - S) + 0.2146f * (Corners[SortDrop.SelectedIndex].Item1 * Corners[SortDrop.SelectedIndex].Item1
                                 - 2 * Corners[SortDrop.SelectedIndex].Item2 * Corners[SortDrop.SelectedIndex].Item2)) * L * metal.Density / 1000000;
                         break;
                     case "Круг":
@@ -431,7 +426,7 @@ namespace Metal_Code
         public void PriceChanged()
         {
             Result = HasMetal ? (float)Math.Round(                          //проверяем наличие материала
-                (det.Detail.Title == "Комплект деталей" ? 1 : Count) *      //проверяем количество заготовок
+                (det.Detail.IsComplect ? 1 : Count) *                       //проверяем количество заготовок
                 (ExtraResult > 0 ? ExtraResult : Price * Mass)              //проверяем наличие стоимости пользователя
                 , 2) : 0;
 
@@ -457,7 +452,7 @@ namespace Metal_Code
         private void ViewPopupMass(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
             PopupMass.IsOpen = true;
-            MassPrice.Text = $"Масса 1 заготовки\n{(float)Math.Round(Mass, 2)} кг\nОбщая масса\n{(det.Detail.Title == "Комплект деталей" ? (float)Math.Round(Mass, 2) : (float)Math.Round(Mass * Count, 2))} кг";
+            MassPrice.Text = $"Масса 1 заготовки\n{(float)Math.Round(Mass, 2)} кг\nОбщая масса\n{(det.Detail.IsComplect ? (float)Math.Round(Mass, 2) : (float)Math.Round(Mass * Count, 2))} кг";
         }
     }
 }

@@ -162,5 +162,6 @@ namespace Metal_Code
     {
         public PartsControl? PartsControl { get; set; }
         public List<Part>? PartDetails {  get; set; }
+        public float Mass {  get; set; }
     }
 }

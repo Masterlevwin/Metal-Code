@@ -249,7 +249,7 @@ namespace Metal_Code
             try
             {
                 object result = new DataTable().Compute(_weld, null);
-                if (float.TryParse($"{result}", out float f)) return f;
+                if (float.TryParse($"{result}", out float f)) return f / 10;
             }
             catch
             {
@@ -272,7 +272,7 @@ namespace Metal_Code
             //    WeldDict[metal.Name][sideRatio] * _count / 10 * TypeDict[$"{TypeDrop.SelectedItem}"] : 0;
 
             return work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && WeldDict.ContainsKey(metal.Name) ?
-                WeldDict[metal.Name][1] * 1.5f * _count / 10 * TypeDict[$"{TypeDrop.SelectedItem}"] : 0;
+                WeldDict[metal.Name][1] * 1.5f * _count * TypeDict[$"{TypeDrop.SelectedItem}"] : 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)

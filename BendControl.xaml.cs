@@ -289,7 +289,7 @@ namespace Metal_Code
                         if (_w.workType is BendControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
                             float _send;
-                            if (_w.Result > 0 && _w.Result <= _work.Price * 3)              // если стоимость работы ниже 3-x минималок, к цене детали добавляем
+                            if (_w.Result > 0 && _w.Result <= _work.Price * 3 * _w.Ratio * _w.TechRatio)    // если стоимость работы ниже 3-x минималок, к цене детали добавляем
                                 _send = _work.Price * 3 * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
                             else                                                            // иначе добавляем часть от количества именно этой детали
                             {

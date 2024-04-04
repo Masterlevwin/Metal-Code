@@ -163,11 +163,6 @@ namespace Metal_Code
                     workType = bend;
                     break;
                 case "Труборез":
-                    if (type.det.Detail.IsComplect)
-                    {
-                        WorkDrop.SelectedIndex = -1;
-                        return;
-                    }
                     PipeControl pipe = new(this, new ExcelPipeDialogService());
                     WorkGrid.Children.Add(pipe);
                     Grid.SetColumn(pipe, 1);

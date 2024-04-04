@@ -166,7 +166,7 @@ namespace Metal_Code
                 Time(_mass, _wide, work);                                   //и запускаем метод заново (рекурсия)
             }
 
-            return MainWindow.M.WideDict.ContainsKey(work.type.S) ?
+            return MainWindow.M.WideDict.ContainsKey(work.type.S) && MainWindow.M.WideDict.ContainsKey(Math.Ceiling(_wide)) ?
                 _work.Time * (MainWindow.M.WideDict[work.type.S] + MainWindow.M.WideDict[Math.Ceiling(_wide)] + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass)) : 0;
         }
 

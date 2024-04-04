@@ -65,11 +65,11 @@ namespace Metal_Code
             }
         }
 
-        private float massTotal;
-        public float MassTotal
+        private float mass;
+        public float Mass
         {
-            get => massTotal;
-            set => massTotal = value;
+            get => mass;
+            set => mass = value;
         }
 
         private float wayTotal;
@@ -85,7 +85,8 @@ namespace Metal_Code
             round,
             square,
             channel,
-            corner
+            corner,
+            hbeam
         }
 
         public TubeType Tube { get; set; }
@@ -106,6 +107,8 @@ namespace Metal_Code
 
             work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
             work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
+
+            BtnEnabled();       // проверяем типовую деталь: если не труба или балка, делаем кнопку неактивной и наоборот
 
             SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");      //переносим погонные метры из типовой детали
         }
@@ -142,6 +145,8 @@ namespace Metal_Code
 
         public void OnPriceChanged()
         {
+            BtnEnabled();
+
             if (Mold == 0 || Way == 0 || Pinhole == 0) return;
             if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
@@ -158,6 +163,12 @@ namespace Metal_Code
             work.SetResult(price, false);
         }
 
+        private void BtnEnabled()
+        {
+            if (work.type.TypeDetailDrop.SelectedItem is TypeDetail type && type.Name == "Лист металла") CutBtn.IsEnabled = false;
+            else CutBtn.IsEnabled = true;
+        }
+
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
         {
             if (uc is not WorkControl w) return;
@@ -168,18 +179,16 @@ namespace Metal_Code
                 w.propsList.Add($"{Way}");
                 w.propsList.Add($"{Pinhole}");
 
-                SetTotalProperties();       //определяем общую массу и общую длину нарезанных труб
-
                 if (PartDetails?.Count > 0)
                 {
                     int count = PartDetails.Sum(p => p.Count);
 
                     foreach (Part p in PartDetails)
                     {
-                        p.Price += work.type.Result * p.Mass / MassTotal;
+                        p.Price += work.type.Result * p.Mass / Mass;
                         p.Price += work.Result * p.Way / WayTotal;
 
-                        p.PropsDict[50] = new() { $"{work.type.Result * p.Mass / MassTotal}" };
+                        p.PropsDict[50] = new() { $"{work.type.Result * p.Mass / Mass}" };
                         p.PropsDict[61] = new() { $"{work.Result * p.Way / WayTotal}" };
                     }
                 }
@@ -254,6 +263,9 @@ namespace Metal_Code
 
             if (!MainWindow.M.IsLaser) MainWindow.M.IsLaser = true;     //внедрить свойство Компании и убрать переключение
 
+            //определяем деталь, в которой загрузили раскладки, как комплект деталей
+            if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged("Комплект труб");
+
             for (int i = 0; i < paths.Length; i++)
             {
                 using FileStream stream = File.Open(paths[i], FileMode.Open, FileAccess.Read);
@@ -266,7 +278,8 @@ namespace Metal_Code
                     Parts = PartList(tables);           // формируем список элементов PartControl
                     SetImagesForParts(stream);          // устанавливаем поле Part.ImageBytes для каждой детали
                     PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
-                    AddPartsTab();                      // добавляем вкладку в "Список нарезанных деталей" 
+                    AddPartsTab();                      // добавляем вкладку в "Список нарезанных деталей"
+                    SetTotalProperties();               //определяем общую массу и общую длину нарезанных труб
                 }
                 else
                 {   // добавляем типовую деталь
@@ -293,12 +306,10 @@ namespace Metal_Code
                         _pipe.SetImagesForParts(stream);
                         _pipe.PartsControl = new(this, _pipe.Parts);
                         _pipe.AddPartsTab();
+                        _pipe.SetTotalProperties();
                     }
                 }
             }
-
-            //определяем деталь, в которой загрузили раскладки, как комплект деталей
-            if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged("Комплект труб");
         }
 
         public void AddPartsTab()                                           //метод добавления вкладки для PartsControl
@@ -417,6 +428,34 @@ namespace Metal_Code
                                     }
                                 Tube = TubeType.corner;
                             }
+                            else if (_tube.Contains("H-beam"))       //двутавр парал
+                            {
+                                foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Двутавр парал")
+                                    {
+                                        work.type.TypeDetailDrop.SelectedItem = t;
+
+                                        //в данном случае берем matches[1].Value за основу для анализа сорта двутавра
+                                        string _match = $"{MainWindow.Parser(matches[1].Value)}".Replace(',', '.');
+
+                                        foreach (string str in work.type.Kinds.Keys)
+                                        {
+                                            if (work.type.Kinds[str].Item1.Contains(_match))    //проверяем первый итем словаря сортов
+                                            {                                                   //если находим совпадение, устанавливаем сорт заготовки
+                                                foreach (string s in work.type.SortDrop.Items)
+                                                    if (s == str)
+                                                    {
+                                                        {
+                                                            work.type.SortDrop.SelectedItem = s;
+                                                            break;
+                                                        }
+                                                    }
+                                                break;
+                                            }
+                                        }
+                                        break;
+                                    }
+                                Tube = TubeType.hbeam;
+                            }
                         }
                         else
                         {
@@ -471,13 +510,17 @@ namespace Metal_Code
                                             break;
                                         case TubeType.channel:
                                             part.Mass = (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * part.Way / 1000, 3);
-                                            part.PropsDict[100] = new() { $"{work.type.ChannelsSquare[work.type.SortDrop.SelectedIndex] * part.Mass / 1000}", "" };
+                                            part.PropsDict[100] = new() { $"{work.type.ChannelsSquare[work.type.SortDrop.SelectedIndex] * part.Mass / 1000}", "" };     //площадь окрашиваемой поверхности
                                             break;
                                         case TubeType.corner:
                                             part.Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.B - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
                                                 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
                                                 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
                                             part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.B - work.type.S) / 1000000}", "" };
+                                            break;
+                                        case TubeType.hbeam:
+                                            part.Mass = (float)Math.Round(work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item1 * part.Way / 1000, 3);
+                                            part.PropsDict[100] = new() { $"{work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000}", "" };     //площадь окрашиваемой поверхности
                                             break;
 
                                     }
@@ -501,13 +544,15 @@ namespace Metal_Code
 
         public void SetTotalProperties()
         {
-            MassTotal = WayTotal = 0;
+            Mass = WayTotal = 0;
 
             if (PartDetails?.Count > 0) foreach (Part part in PartDetails)
                 {
-                    MassTotal += part.Mass * part.Count;
+                    Mass += part.Mass * part.Count;
                     WayTotal += part.Way * part.Count;
                 }
+
+            work.type.MassCalculate();          // обновляем значение массы заготовки
         }
 
         public void SetImagesForParts(FileStream stream)        //метод извлечения картинок из файла и установки их для каждой детали в виде массива байтов

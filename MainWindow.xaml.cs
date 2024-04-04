@@ -1186,13 +1186,19 @@ namespace Metal_Code
                         if (OffersGrid.SelectedItem is Offer offer)                             //получаем выбранный расчет
                         {
                             Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
-                            if (_offer != null) _man?.Offers.Remove(_offer);                    //если находим, то удаляем его из базы
+                            if (_offer != null)
+                            {
+                                //DataGridRow? row = OffersGrid.SelectedItem as DataGridRow;
+                                //SolidColorBrush _endDateBrush = new(Colors.Gold);
+                                //if (row != null) row.Background = _endDateBrush;
+                                _man?.Offers.Remove(_offer);                    //если находим, то удаляем его из базы
+                            }
+                            
                         }
                     }
 
                     db.SaveChanges();                   //сохраняем изменения в базе данных
                     if (isSave) ViewOffersGrid(man);    //и обновляем datagrid, если появился новый расчет
-                    else ViewOffersGrid(man, true);
                 }
                 catch (DbUpdateConcurrencyException ex)
                 {
@@ -1380,6 +1386,7 @@ namespace Metal_Code
                                 pipe.Parts = pipe.PartList();
                                 pipe.PartsControl = new(pipe, pipe.Parts);
                                 pipe.AddPartsTab();
+                                pipe.SetTotalProperties();
                             }
 
                             if (_cut.PartsControl?.Parts.Count > 0)
@@ -1819,8 +1826,11 @@ namespace Metal_Code
                     statsheet.Cells[i + temp, 15].Value = Order.Text;       //"Номер КП"
 
                     if (type.MetalDrop.SelectedItem is Metal met)           //"Количество материала и (его цена за 1 кг)"
-                        statsheet.Cells[i + temp, 14].Value = $"{Math.Ceiling(type.Mass)}" +
+                    {
+                        statsheet.Cells[i + temp, 14].Value = $"{Math.Ceiling(det.Detail.IsComplect ? type.Mass : type.Mass * type.Count)}" +
                             $" ({(type.CheckMetal.IsChecked == true ? met.MassPrice : 0)}р)";
+
+                    }
 
                     foreach (WorkControl w in type.WorkControls)            //анализируем работы каждой типовой детали
                     {
