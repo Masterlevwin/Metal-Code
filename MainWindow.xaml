@@ -20,6 +20,9 @@
         <KeyBinding Key="F"
               Modifiers="Control" 
               Command="{Binding LoadExcelCommand}"/>
+        <KeyBinding Key="T"
+              Modifiers="Control" 
+              Command="{Binding LoadTubeCommand}"/>
         <KeyBinding Key="F5"
               Command="{Binding UpdateCommand}"/>
     </Window.InputBindings>
@@ -73,17 +76,20 @@
             <Button x:Name="ResultBtn" ToolTip="Общая стоимость, нажмите, чтобы обновить" Content="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" MinHeight="20" AllowDrop="False" VerticalAlignment="Top" Margin="770,40,0,0" FontSize="14" HorizontalContentAlignment="Stretch" MaxWidth="80" BorderThickness="0" Click="UpdateResult" MinWidth="20"/>
             <TextBlock HorizontalAlignment="Left" Text="руб" VerticalAlignment="Top" Margin="850,40,0,0"/>
 
-            <Button Command="{Binding NewProjectCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="400,40,0,0" Padding="0" BorderThickness="0" ToolTip="Создать новый расчет" Height="20" Width="20">
+            <Button Command="{Binding NewProjectCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="380,40,0,0" Padding="0" BorderThickness="0" ToolTip="Создать новый расчет" Height="20" Width="20">
                 <Image Source="Images/new3.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button Command="{Binding OpenCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,40,0,0" Padding="0" BorderThickness="0" ToolTip="Открыть сохраненный расчет" Height="20" Width="20">
+            <Button Command="{Binding OpenCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="410,40,0,0" Padding="0" BorderThickness="0" ToolTip="Открыть сохраненный расчет" Height="20" Width="20">
                 <Image Source="Images/open4.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button Command="{Binding SaveCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="460,40,0,0" Padding="0" BorderThickness="0" ToolTip="Сохранить расчет" Height="20" Width="20">
+            <Button Command="{Binding SaveCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="440,40,0,0" Padding="0" BorderThickness="0" ToolTip="Сохранить расчет" Height="20" Width="20">
                 <Image Source="Images/save.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button Command="{Binding LoadExcelCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="490,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить раскладки" Height="20" Width="20">
+            <Button Command="{Binding LoadExcelCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="470,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить раскладки" Height="20" Width="20">
                 <Image Source="Images/xlsx_load.png" MaxWidth="20" MaxHeight="20"/>
+            </Button>
+            <Button Command="{Binding LoadTubeCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="500,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить отчеты труб" Height="20" Width="20">
+                <Image Source="Images/xls_load.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
             <Button Command="{Binding UpdateCommand}" VerticalAlignment="Top" Margin="740,40,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" ToolTip="Обновить (F5)" Height="20" Width="20" HorizontalAlignment="Left">
                 <Image Source="/Images/update4.png"/>

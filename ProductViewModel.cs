@@ -209,6 +209,45 @@ namespace Metal_Code
             }
         }
 
+        // команда загрузки отчетов труб
+        private RelayCommand loadTubeCommand;
+        public RelayCommand LoadTubeCommand
+        {
+            get
+            {
+                return loadTubeCommand ??= new RelayCommand(obj =>
+                  {
+                      try
+                      {
+                          MessageBoxResult response = MessageBox.Show(
+                              "Загрузить отчеты труб?\nЕсли \"Да\", текущий расчет будет очищен!",
+                              "Загрузка отчетов труб", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+
+                          if (response == MessageBoxResult.No) return;
+
+                          MainWindow.M.NewProject();        // создаем новый расчет
+                          // устанавливаем "Труба профильная" в заготовке по умолчанию
+                          foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба профильная")
+                              {
+                                  MainWindow.M.DetailControls[^1].TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
+                                  foreach (Work w in MainWindow.M.Works) if (w.Name == "Труборез")
+                                      {
+                                          MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+                                          break;
+                                      }
+                                  break;
+                              }
+                          if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is PipeControl pipe)
+                              pipe.LoadFiles();
+                      }
+                      catch (Exception ex)
+                      {
+                          dialogService.ShowMessage(ex.Message);
+                      }
+                  });
+            }
+        }
+
         // команда добавления нового объекта
         private RelayCommand addCommand;
         public RelayCommand AddCommand

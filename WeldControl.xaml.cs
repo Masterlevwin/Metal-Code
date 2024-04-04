@@ -221,7 +221,7 @@ namespace Metal_Code
             {
                 foreach (PartControl p in Parts)
                     foreach (WeldControl item in p.UserControls.OfType<WeldControl>())
-                        if (item.Weld != null) price += item.Price(ParserWeld(item.Weld) * p.Part.Count, work);
+                        if (item.Weld != null && Weld != "") price += item.Price(ParserWeld(item.Weld) * p.Part.Count, work);
 
                 // стоимость данной сварки должна быть не ниже минимальной
                 if (work.WorkDrop.SelectedItem is Work _work) price = price > 0 && price < _work.Price ? _work.Price : price;
@@ -260,19 +260,16 @@ namespace Metal_Code
 
         private float Price(float _count, WorkControl work)
         {
-            //var sideRatio = (_count / 10) switch
-            //{
-            //    < 1000 => 1,
-            //    < 3000 => 3,
-            //    < 10000 => 10,
-            //    _ => 100,
-            //};
-
-            //return work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && WeldDict.ContainsKey(metal.Name) ?
-            //    WeldDict[metal.Name][sideRatio] * _count / 10 * TypeDict[$"{TypeDrop.SelectedItem}"] : 0;
+            var sideRatio = _count switch
+            {
+                < 1000 => 1,
+                < 3000 => 3,
+                < 10000 => 10,
+                _ => 100,
+            };
 
             return work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && WeldDict.ContainsKey(metal.Name) ?
-                WeldDict[metal.Name][1] * 1.5f * _count * TypeDict[$"{TypeDrop.SelectedItem}"] : 0;
+                WeldDict[metal.Name][sideRatio] * 1.5f * _count * TypeDict[$"{TypeDrop.SelectedItem}"] : 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
