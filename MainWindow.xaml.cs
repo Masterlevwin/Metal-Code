@@ -29,7 +29,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.4.2";
+        readonly string version = "2.4.3";
 
         public bool isLocal = true;     //запуск локальной версии
         //public bool isLocal = false;    //запуск стандартной версии
@@ -1188,9 +1188,10 @@ namespace Metal_Code
                             Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
                             if (_offer != null)
                             {
-                                //DataGridRow? row = OffersGrid.SelectedItem as DataGridRow;
-                                //SolidColorBrush _endDateBrush = new(Colors.Gold);
-                                //if (row != null) row.Background = _endDateBrush;
+                                DataGridRow row = (DataGridRow)OffersGrid.ItemContainerGenerator.ContainerFromIndex(OffersGrid.SelectedIndex);
+                                SolidColorBrush _deleteBrush = new(Colors.Gray);
+                                row.Background = _deleteBrush;
+
                                 _man?.Offers.Remove(_offer);                    //если находим, то удаляем его из базы
                             }
                             
