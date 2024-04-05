@@ -30,7 +30,7 @@ namespace Metal_Code
 
         public Dictionary<string, float> TypeDict = new()
         {
-            ["м²"] = 900,
+            ["м²"] = 450,
             ["шт"] = 50,
             ["пог"] = 100
         };
@@ -121,7 +121,7 @@ namespace Metal_Code
                         {
                             price += item.Price(p.Part.Mass, p.Part.Count, work);
                             if (p.Square > 0 && p.Square < .05f) p.Square = .05f;
-                            if (p.Square > .05f && p.Square < .2f) price += TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 20;
+                            if (p.Square >= .05f && p.Square < .2f) price += TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 10;      //45 руб за подвес
                         }
                 
 
@@ -130,15 +130,13 @@ namespace Metal_Code
 
                 work.SetResult(price, false);
             }
-            else if (Ral != null && Ral != "" && work.type.Mass > 0)
+            else if (Ral != null && Ral != "" && work.type.Mass > 0 && work.type.Square > 0)
             {
-                foreach (WorkControl w in work.type.WorkControls)
-                    if (w != work && w.workType is PipeControl pipe)
-                    {
-                        work.SetResult(Price(pipe.Mold, work.type.Count, work));
-                        return;
-                    }
-                work.SetResult(Price(work.type.Mass, work.type.Count, work));
+                if (work.type.Square > 0 && work.type.Square < .05f) work.type.Square = .05f;
+
+                work.SetResult((work.type.Square >= .05f && work.type.Square < .2f) ?
+                    Price(work.type.Mass, work.type.Count, work) + TypeDict[$"{TypeDrop.SelectedItem}"] * work.type.Count / 10 :
+                    Price(work.type.Mass, work.type.Count, work));
             }
         }
 
@@ -159,7 +157,7 @@ namespace Metal_Code
                     //в случае с деталями толщиной 10 мм и больше добавляем наценку 50% за прогрев металла
                 "м²" => TypeDict[$"{TypeDrop.SelectedItem}"] * _mass * _massRatio * _count * (work.type.S >= 10 ? 1.5f : 1) / work.type.S / metal.Density,
                 "шт" => TypeDict[$"{TypeDrop.SelectedItem}"] * _massRatio * _count * (work.type.S >= 10 ? 1.5f : 1),
-                "пог" => TypeDict[$"{TypeDrop.SelectedItem}"] * _mass * _massRatio * (work.type.S >= 10 ? 1.5f : 1),        //здесь в _mass передаются пог м
+                //"пог" => TypeDict[$"{TypeDrop.SelectedItem}"] * _mass * _massRatio * (work.type.S >= 10 ? 1.5f : 1),        //здесь в _mass передаются пог м
                 _ => 0,
             };
         }
