@@ -396,19 +396,24 @@ namespace Metal_Code
                         Mass = A * A * L * metal.Density / 1000000;
                         break;
                     case "Швеллер":
-                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1) Mass = Channels[SortDrop.SelectedIndex] * L / 1000;
+                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                            Mass = Channels[SortDrop.SelectedIndex] * L / 1000;
                         break;
-                    case "Полиуретан":
-                        Mass = A * B * S * 1.2f / 1000000;
+                    case "Двутавр":
+                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                            Mass = BeamDict[type.Name][SortDrop.SelectedIndex].Item1 * L / 1000;
                         break;
-                    case "Фторопласт":
-                        Mass = A * B * S * 2.2f / 1000000;
+                    case "Двутавр парал":
+                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                            Mass = BeamDict[type.Name][SortDrop.SelectedIndex].Item1 * L / 1000;
                         break;
-                    case "Капролон":
-                        Mass = A * B * S * 1.2f / 1000000;
+                    case "Двутавр широк":
+                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                            Mass = BeamDict[type.Name][SortDrop.SelectedIndex].Item1 * L / 1000;
                         break;
-                    case "ЛДСП":
-                        Mass = 680 * S / 1000;      //680*F56*0,001 плюс дичь в формировании цены! сомнительная позиция...
+                    case "Двутавр колон":
+                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                            Mass = BeamDict[type.Name][SortDrop.SelectedIndex].Item1 * L / 1000;
                         break;
                     default:
                         Mass = A * B * S * L * metal.Density / 1000000;

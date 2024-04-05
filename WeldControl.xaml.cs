@@ -249,7 +249,7 @@ namespace Metal_Code
             try
             {
                 object result = new DataTable().Compute(_weld, null);
-                if (float.TryParse($"{result}", out float f)) return f / 10;
+                if (float.TryParse($"{result}", out float f)) return f / 10;    //возвращаем длину свариваемой поверхности в см
             }
             catch
             {

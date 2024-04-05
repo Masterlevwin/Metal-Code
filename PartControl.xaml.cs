@@ -32,6 +32,20 @@ namespace Metal_Code
             }
         }
 
+        private string? dimensions;
+        public string? Dimensions
+        {
+            get => dimensions;
+            set
+            {
+                if (value != dimensions)
+                {
+                    dimensions = value;
+                    OnPropertyChanged(nameof(Dimensions));
+                }
+            }
+        }
+
         public delegate void PropsChanged(UserControl uc, bool b);
         public PropsChanged? PropertiesChanged;
 
@@ -49,10 +63,10 @@ namespace Metal_Code
             Part = _part;
             DataContext = Part;
 
-            SetSquare();        //устанавливаем площадь детали
+            SetProperties();        //устанавливаем свойства нарезанной детали
         }
 
-        private void SetSquare()        //метод определения площади детали
+        private void SetProperties()        //метод определения свойств детали
         {
             if (!Part.PropsDict.ContainsKey(100)) return;
 
@@ -61,7 +75,14 @@ namespace Metal_Code
             {
                 if (float.TryParse(Part.PropsDict[100][0], out float h) && float.TryParse(Part.PropsDict[100][1], out float w))
                     Square = (float)Math.Round(h * w / 500000, 3);
+                if (Part.PropsDict[100][2] != null) Dimensions = Part.PropsDict[100][2];
+                MainWindow.M.StatusBegin(Dimensions);
             }
+        }
+
+        private void ViewPopupDimensions(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        {
+            PopupDimensions.IsOpen = true;
         }
 
         private void AddControl(object sender, RoutedEventArgs e)

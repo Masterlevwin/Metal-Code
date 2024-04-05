@@ -498,29 +498,29 @@ namespace Metal_Code
                                     {
                                         case TubeType.rect:
                                             part.Mass = (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * part.Way * metal.Density / 7850, 3);
-                                            part.PropsDict[100] = new() { $"{part.Way * (work.type.A + work.type.B) * 2 / 1000000}", "" };
+                                            part.PropsDict[100] = new() { $"{part.Way * (work.type.A + work.type.B) * 2 / 1000000}", "", "" };
                                             break;
                                         case TubeType.round:
                                             part.Mass = (float)Math.Round(Math.PI * work.type.S * (work.type.A - work.type.S) * part.Way * metal.Density / 1000000, 3);
-                                            part.PropsDict[100] = new() { $"{part.Way * work.type.A * Math.PI / 1000000}", "" };
+                                            part.PropsDict[100] = new() { $"{part.Way * work.type.A * Math.PI / 1000000}", "", "" };
                                             break;
                                         case TubeType.square:
                                             part.Mass = (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * part.Way * metal.Density / 7850, 3);
-                                            part.PropsDict[100] = new() { $"{part.Way * (work.type.A + work.type.B) * 2 / 1000000}", "" };
+                                            part.PropsDict[100] = new() { $"{part.Way * (work.type.A + work.type.B) * 2 / 1000000}", "", "" };
                                             break;
                                         case TubeType.channel:
                                             part.Mass = (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * part.Way / 1000, 3);
-                                            part.PropsDict[100] = new() { $"{work.type.ChannelsSquare[work.type.SortDrop.SelectedIndex] * part.Mass / 1000}", "" };     //площадь окрашиваемой поверхности
+                                            part.PropsDict[100] = new() { $"{work.type.ChannelsSquare[work.type.SortDrop.SelectedIndex] * part.Mass / 1000}", "", "" };     //площадь окрашиваемой поверхности
                                             break;
                                         case TubeType.corner:
                                             part.Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.B - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
                                                 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
                                                 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
-                                            part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.B - work.type.S) / 1000000}", "" };
+                                            part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.B - work.type.S) / 1000000}", "", "" };
                                             break;
                                         case TubeType.hbeam:
                                             part.Mass = (float)Math.Round(work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item1 * part.Way / 1000, 3);
-                                            part.PropsDict[100] = new() { $"{work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000}", "" };     //площадь окрашиваемой поверхности
+                                            part.PropsDict[100] = new() { $"{work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000}", "", "" };     //площадь окрашиваемой поверхности
                                             break;
 
                                     }

@@ -12,7 +12,12 @@
             <RowDefinition/>
         </Grid.RowDefinitions>
         <TextBox Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="90" MinWidth="90" MinHeight="60" MaxHeight="60" ToolTip="Наименование вырезанной детали" HorizontalAlignment="Left" Margin="5,0,0,0"/>
-        <Image x:Name="Picture" HorizontalAlignment="Left" Margin="100,0,0,0" VerticalAlignment="Top" Width="60" Height="60" Loaded="SetPicture"/>
+        <Image x:Name="Picture" MouseWheel="ViewPopupDimensions" HorizontalAlignment="Left" Margin="100,0,0,0" VerticalAlignment="Top" Width="60" Height="60" Loaded="SetPicture"/>
+        <Popup x:Name="PopupDimensions" StaysOpen="False" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5">
+            <StackPanel Background="Lavender">
+                <TextBlock Text="{Binding Dimensions, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" TextAlignment="Center" Padding="3"/>
+            </StackPanel>
+        </Popup>
         <TextBox Text="{Binding Count}" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinHeight="20" MaxHeight="20" HorizontalAlignment="Left" MaxLines="1" Margin="5,65,0,0" MaxWidth="40" MinWidth="40" Height="20" ToolTip="Количество вырезанных деталей" Width="40"/>
         <TextBlock Text="{Binding Square, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" ToolTip="Площадь детали" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="60,67,0,0" MaxWidth="70"/>
         <TextBlock Text="кв м" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="105,67,0,0"/>

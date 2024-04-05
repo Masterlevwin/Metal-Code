@@ -447,7 +447,8 @@ namespace Metal_Code
                             if (part.Count > 0)
                             {
                                 (float, float) tuple = SizesDetail($"{table.Rows[j].ItemArray[3]}");    //получаем габариты детали
-                                part.PropsDict[100] = new() { $"{tuple.Item1}", $"{tuple.Item2}" };     //записываем их в словарь свойств
+                                //записываем полученные габариты и саму строку для их отображения в словарь свойств
+                                part.PropsDict[100] = new() { $"{tuple.Item1}", $"{tuple.Item2}", $"{table.Rows[j].ItemArray[3]}" };
 
                                 _parts.Add(new(this, work, part));
                                 PartDetails?.Add(part);

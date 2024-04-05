@@ -1095,10 +1095,10 @@ namespace Metal_Code
                                     p.Accuracy = _cut is CutControl ? $"H14/h14 +-IT 14/2" : $"H12/h12 +-IT 12/2";
                                     p.Price = 0;
 
-                                    (string, string) tuple = ("0", "0");
-                                    if (p.PropsDict.ContainsKey(100)) tuple = (p.PropsDict[100][0], p.PropsDict[100][1]);   //получаем габариты детали
-                                    p.PropsDict.Clear();                                                                    //очищаем словарь свойств
-                                    p.PropsDict[100] = new() { tuple.Item1, tuple.Item2 };              //записываем габариты обратно в словарь свойств
+                                    (string, string, string) tuple = ("0", "0", "0");                   //получаем габариты детали
+                                    if (p.PropsDict.ContainsKey(100)) tuple = (p.PropsDict[100][0], p.PropsDict[100][1], p.PropsDict[100][2]);
+                                    p.PropsDict.Clear();                                                //очищаем словарь свойств
+                                    p.PropsDict[100] = new() { tuple.Item1, tuple.Item2, tuple.Item3 }; //записываем габариты обратно в словарь свойств
 
                                     //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
                                     if (CheckConstruct.IsChecked == true)
