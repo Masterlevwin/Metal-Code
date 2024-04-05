@@ -75,8 +75,9 @@ namespace Metal_Code
             {
                 if (float.TryParse(Part.PropsDict[100][0], out float h) && float.TryParse(Part.PropsDict[100][1], out float w))
                     Square = (float)Math.Round(h * w / 500000, 3);
-                if (Part.PropsDict[100][2] != null) Dimensions = Part.PropsDict[100][2];
-                MainWindow.M.StatusBegin(Dimensions);
+
+                if (Part.PropsDict[100].Count > 2) Dimensions = Part.PropsDict[100][2];     //если присутствует строка размеров, показать ее
+                //данной проверкой мы избегаем исключения по индексу в случае, если загружаются старые расчеты (элемент PropsDict[100][2] был добавлен позже)
             }
         }
 

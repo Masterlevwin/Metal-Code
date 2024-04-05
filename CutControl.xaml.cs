@@ -399,7 +399,7 @@ namespace Metal_Code
                 {                           //переустанавливаем массу каждой детали как среднее арифметическое значение
                                             //это устраняет проблему, когда вес деталей слишком мал или равен нулю
                     int _count = PartDetails.Sum(x => x.Count);
-                    foreach (Part part in PartDetails) part.Mass = MassTotal / _count;
+                    foreach (Part part in PartDetails) part.Mass = (float)Math.Round(MassTotal / _count, 3);
                 }
             }
         }

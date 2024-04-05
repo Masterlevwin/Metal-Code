@@ -6,6 +6,8 @@ using System.Runtime.CompilerServices;
 using System;
 using System.Diagnostics;
 using System.Windows.Media;
+using System.Runtime.Serialization;
+using System.Linq;
 
 namespace Metal_Code
 {
@@ -144,6 +146,21 @@ namespace Metal_Code
                 {
                     extraresult = value;
                     OnPropertyChanged(nameof(ExtraResult));
+                }
+            }
+        }
+
+        [OptionalField]
+        private float square;
+        public float Square
+        {
+            get => square;
+            set
+            {
+                if (value != square)
+                {
+                    square = value;
+                    OnPropertyChanged(nameof(Square));
                 }
             }
         }
@@ -356,6 +373,12 @@ namespace Metal_Code
                     if (w.workType is ICut cut)
                     {
                         Mass = cut.Mass;
+
+                        Square = 0;
+                        if (cut.PartsControl != null && cut.PartsControl.Parts.Count > 0)
+                            foreach (PartControl p in cut.PartsControl.Parts)
+                                Square += p.Square * p.Part.Count;
+
                         //меняем свойство материала у каждой детали при изменении металла, и толщину при изменении толщины
                         if (cut.PartDetails?.Count > 0)
                             foreach (Part part in cut.PartDetails)
@@ -372,51 +395,78 @@ namespace Metal_Code
                 {
                     case "Труба профильная":
                         Mass = 0.0157f * S * (A + B - 2.86f * S) * L * metal.Density / 7850;
+                        Square = L * (A + B) * 2 / 1000000;
                         break;
                     case "Труба круглая":
                         Mass = (float)Math.PI * S * (A - S) * L * metal.Density / 1000000;
+                        Square = L * A * (float)Math.PI / 1000000;
                         break;
                     case "Труба круглая ВГП":
                         Mass = (float)Math.PI * S * (A - S) * L * metal.Density / 1000000;
+                        Square = L * A * (float)Math.PI / 1000000;
                         break;
                     case "Уголок неравнополочный":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                        {
                             Mass = (S * (A + B - S) + 0.2146f * (Corners[SortDrop.SelectedIndex].Item1 * Corners[SortDrop.SelectedIndex].Item1
                                 - 2 * Corners[SortDrop.SelectedIndex].Item2 * Corners[SortDrop.SelectedIndex].Item2)) * L * metal.Density / 1000000;
+                            Square = L * S * (A + B - S) / 1000000;
+                        }  
                         break;
                     case "Уголок равнополочный":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                        {
                             Mass = (S * (A + A - S) + 0.2146f * (Corners[SortDrop.SelectedIndex].Item1 * Corners[SortDrop.SelectedIndex].Item1
                                 - 2 * Corners[SortDrop.SelectedIndex].Item2 * Corners[SortDrop.SelectedIndex].Item2)) * L * metal.Density / 1000000;
+                            Square = L * S * (A + A - S) / 1000000;
+                        }
                         break;
                     case "Круг":
                         Mass = (float)Math.PI * A * A * L / 4 * metal.Density / 1000000;
+                        Square = 2 * (float)Math.PI * A * L / 1000000;
                         break;
                     case "Квадрат":
                         Mass = A * A * L * metal.Density / 1000000;
+                        Square = 2 * (A * L + B * L + A * B) / 1000000;
                         break;
                     case "Швеллер":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                        {
                             Mass = Channels[SortDrop.SelectedIndex] * L / 1000;
+                            Square = ChannelsSquare[SortDrop.SelectedIndex] * L / 1000;
+                        }
                         break;
                     case "Двутавр":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                        {
                             Mass = BeamDict[type.Name][SortDrop.SelectedIndex].Item1 * L / 1000;
+                            Square = BeamDict[type.Name][SortDrop.SelectedIndex].Item2 * Mass / 1000;
+                        }
                         break;
                     case "Двутавр парал":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                        {
                             Mass = BeamDict[type.Name][SortDrop.SelectedIndex].Item1 * L / 1000;
+                            Square = BeamDict[type.Name][SortDrop.SelectedIndex].Item2 * Mass / 1000;
+                        }
                         break;
                     case "Двутавр широк":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                        {
                             Mass = BeamDict[type.Name][SortDrop.SelectedIndex].Item1 * L / 1000;
+                            Square = BeamDict[type.Name][SortDrop.SelectedIndex].Item2 * Mass / 1000;
+                        }
                         break;
                     case "Двутавр колон":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                        {
                             Mass = BeamDict[type.Name][SortDrop.SelectedIndex].Item1 * L / 1000;
+                            Square = BeamDict[type.Name][SortDrop.SelectedIndex].Item2 * Mass / 1000;
+                        }
                         break;
                     default:
                         Mass = A * B * S * L * metal.Density / 1000000;
+                        Square = L * (A + B) * 2 / 1000;                //для "Лист металла" (при L = 1)
                         break;
                 }
             }
@@ -457,7 +507,10 @@ namespace Metal_Code
         private void ViewPopupMass(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
             PopupMass.IsOpen = true;
-            MassPrice.Text = $"Масса 1 заготовки\n{(float)Math.Round(Mass, 2)} кг\nОбщая масса\n{(det.Detail.IsComplect ? (float)Math.Round(Mass, 2) : (float)Math.Round(Mass * Count, 2))} кг";
+            MassPrice.Text = $"Масса одной/всех заготовок\n{(det.Detail.IsComplect ? 0 : (float)Math.Round(Mass, 2))} кг /" +
+                $" {(det.Detail.IsComplect ? (float)Math.Round(Mass, 2) : (float)Math.Round(Mass * Count, 2))} кг\n" +
+                $"Площадь одной/всех заготовок\n{(det.Detail.IsComplect ? 0 : (float)Math.Round(Square, 2))} кв м / " +
+                $" {(det.Detail.IsComplect ? (float)Math.Round(Square, 2) : (float)Math.Round(Square * Count, 2))} кв м";
         }
     }
 }
