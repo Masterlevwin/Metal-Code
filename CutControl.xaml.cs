@@ -11,6 +11,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace Metal_Code
 {
@@ -406,7 +407,7 @@ namespace Metal_Code
 
         public void AddPartsTab()                                           //метод добавления вкладки для PartsControl
         {
-            TabItem.Header = new TextBlock { Text = $"s{work.type.S} {work.type.MetalDrop.Text}" }; // установка заголовка вкладки
+            TabItem.Header = new TextBlock { Text = $"s{work.type.S} {work.type.MetalDrop.Text} ({PartDetails?.Sum(x => x.Count)} шт)" }; // установка заголовка вкладки
             TabItem.Content = PartsControl;                                                         // установка содержимого вкладки
             MainWindow.M.PartsTab.Items.Add(TabItem);
         }
@@ -635,7 +636,7 @@ namespace Metal_Code
             return c.Substring(c.IndexOf(a) + a.Length, c.IndexOf(b) - c.IndexOf(a) - a.Length);
         }
 
-        private void ViewPopupWay(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        private void ViewPopupWay(object sender, MouseWheelEventArgs e)
         {
             PopupWay.IsOpen = true;
 
@@ -643,7 +644,7 @@ namespace Metal_Code
                 WayPrice.Text = $"Цена метра резки\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item1} руб";
         }
 
-        private void ViewPopupPinhole(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        private void ViewPopupPinhole(object sender, MouseWheelEventArgs e)
         {
             PopupPinhole.IsOpen = true;
 

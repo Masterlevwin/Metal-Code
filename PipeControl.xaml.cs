@@ -12,6 +12,8 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Text.RegularExpressions;
+using System.Windows.Input;
+
 
 namespace Metal_Code
 {
@@ -201,7 +203,7 @@ namespace Metal_Code
             }
         }
 
-        private void ViewPopupMold(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        private void ViewPopupMold(object sender, MouseWheelEventArgs e)
         {
             PopupMold.IsOpen = true;
 
@@ -209,7 +211,7 @@ namespace Metal_Code
                 MoldPrice.Text = $"Цена резки пог м\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item3} руб";
         }
 
-        private void ViewPopupWay(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        private void ViewPopupWay(object sender, MouseWheelEventArgs e)
         {
             PopupWay.IsOpen = true;
 
@@ -217,7 +219,7 @@ namespace Metal_Code
                 WayPrice.Text = $"Цена метра резки\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item1} руб";
         }
 
-        private void ViewPopupPinhole(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        private void ViewPopupPinhole(object sender, MouseWheelEventArgs e)
         {
             PopupPinhole.IsOpen = true;
 
@@ -314,7 +316,7 @@ namespace Metal_Code
 
         public void AddPartsTab()                                           //метод добавления вкладки для PartsControl
         {
-            TabItem.Header = new TextBlock { Text = $"(ТР) s{work.type.S} {work.type.MetalDrop.Text}" };    // установка заголовка вкладки
+            TabItem.Header = new TextBlock { Text = $"(ТР) s{work.type.S} {work.type.MetalDrop.Text} ({PartDetails?.Sum(x => x.Count)} шт)" };    // установка заголовка вкладки
             TabItem.Content = PartsControl;                                                                 // установка содержимого вкладки
             MainWindow.M.PartsTab.Items.Add(TabItem);
         }

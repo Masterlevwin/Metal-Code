@@ -507,9 +507,9 @@ namespace Metal_Code
         private void ViewPopupMass(object sender, System.Windows.Input.MouseWheelEventArgs e)
         {
             PopupMass.IsOpen = true;
-            MassPrice.Text = $"Масса одной/всех заготовок\n{(det.Detail.IsComplect ? 0 : (float)Math.Round(Mass, 2))} кг /" +
+            MassPrice.Text = $"Масса одной / всех заготовок\n{(det.Detail.IsComplect ? 0 : (float)Math.Round(Mass, 2))} кг /" +
                 $" {(det.Detail.IsComplect ? (float)Math.Round(Mass, 2) : (float)Math.Round(Mass * Count, 2))} кг\n" +
-                $"Площадь одной/всех заготовок\n{(det.Detail.IsComplect ? 0 : (float)Math.Round(Square, 2))} кв м / " +
+                $"Площадь одной / всех заготовок\n{(det.Detail.IsComplect ? 0 : (float)Math.Round(Square, 2))} кв м / " +
                 $" {(det.Detail.IsComplect ? (float)Math.Round(Square, 2) : (float)Math.Round(Square * Count, 2))} кв м";
         }
     }
