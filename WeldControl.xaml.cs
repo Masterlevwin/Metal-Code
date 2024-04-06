@@ -267,7 +267,7 @@ namespace Metal_Code
                 < 10000 => 10,
                 _ => 100,
             };
-
+                                                //коэф "1.5" добавляется за зачистку от сварки
             return work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && WeldDict.ContainsKey(metal.Name) ?
                 WeldDict[metal.Name][sideRatio] * 1.5f * _count * TypeDict[$"{TypeDrop.SelectedItem}"] : 0;
         }

@@ -32,7 +32,6 @@ namespace Metal_Code
         {
             ["м²"] = 450,
             ["шт"] = 50,
-            ["пог"] = 100
         };
 
         public readonly UserControl owner;
@@ -104,6 +103,15 @@ namespace Metal_Code
         public void SetType(int ndx = 0)
         {
             TypeDrop.SelectedIndex = ndx;
+
+            if (owner is PartControl part)
+                foreach (WorkControl work in part.work.type.WorkControls)
+                    if (work.workType is PaintControl paint)
+                    {
+                        paint.SetType(ndx);
+                        break;
+                    }
+
             OnPriceChanged();
         }
 
@@ -117,33 +125,32 @@ namespace Metal_Code
             {
                 foreach (PartControl p in Parts)
                     foreach (PaintControl item in p.UserControls.OfType<PaintControl>())
-                        if (item.Ral != null)
+                        if (item.Ral != null && item.Ral != "")
                         {
-                            price += item.Price(p.Part.Mass, p.Part.Count, work);
-                            if (p.Square > 0 && p.Square < .05f) p.Square = .05f;
-                            if (p.Square >= .05f && p.Square < .2f) price += TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 10;      //45 руб за подвес
+                            if (p.Square > 0 && p.Square < .05f) p.Square = .05f;       //расчетная площадь окраски должна быть не меньше 0,05 кв м
+                                                                        //к деталям площадью менее 0,2 кв м добавляем стоимость 0,1 кв м за подвес
+                            if (p.Square >= .05f && p.Square < .2f) price += TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 10;
+
+                            price += item.Price(p.Square, p.Part.Mass, p.Part.Count, work);
                         }
-                
+
 
                 // стоимость данной окраски должна быть не ниже минимальной
                 if (work.WorkDrop.SelectedItem is Work _work) price = price > 0 && price < _work.Price ? _work.Price : price;
 
                 work.SetResult(price, false);
             }
-            else if (Ral != null && Ral != "" && work.type.Mass > 0 && work.type.Square > 0)
+            else if (Ral != null && Ral != "" && work.type.Square > 0 && work.type.Mass > 0)
             {
                 if (work.type.Square > 0 && work.type.Square < .05f) work.type.Square = .05f;
+                if (work.type.Square >= .05f && work.type.Square < .2f) price += TypeDict[$"{TypeDrop.SelectedItem}"] * work.type.Count / 10;
 
-                work.SetResult((work.type.Square >= .05f && work.type.Square < .2f) ?
-                    Price(work.type.Mass, work.type.Count, work) + TypeDict[$"{TypeDrop.SelectedItem}"] * work.type.Count / 10 :
-                    Price(work.type.Mass, work.type.Count, work));
+                work.SetResult(price + Price(work.type.Square, work.type.Mass, work.type.Count, work));
             }
         }
 
-        private float Price(float _mass, float _count, WorkControl work)
+        private float Price(float _square, float _mass, float _count, WorkControl work)
         {
-            if (work.type.MetalDrop.SelectedItem is not Metal metal) return 0;
-
             float _massRatio = _mass switch         //рассчитываем наценку за тяжелые детали
             {
                 <= 50 => 1,
@@ -155,9 +162,8 @@ namespace Metal_Code
             return TypeDrop.SelectedItem switch
             {
                     //в случае с деталями толщиной 10 мм и больше добавляем наценку 50% за прогрев металла
-                "м²" => TypeDict[$"{TypeDrop.SelectedItem}"] * _mass * _massRatio * _count * (work.type.S >= 10 ? 1.5f : 1) / work.type.S / metal.Density,
+                "м²" => TypeDict[$"{TypeDrop.SelectedItem}"] * _square * _massRatio * _count * (work.type.S >= 10 ? 1.5f : 1),
                 "шт" => TypeDict[$"{TypeDrop.SelectedItem}"] * _massRatio * _count * (work.type.S >= 10 ? 1.5f : 1),
-                //"пог" => TypeDict[$"{TypeDrop.SelectedItem}"] * _mass * _massRatio * (work.type.S >= 10 ? 1.5f : 1),        //здесь в _mass передаются пог м
                 _ => 0,
             };
         }
@@ -187,7 +193,7 @@ namespace Metal_Code
 
                     if (p.owner is ICut _cut && _cut.PartsControl != null) foreach (PartControl _p in _cut.PartsControl.Parts)
                             foreach (PaintControl item in _p.UserControls.OfType<PaintControl>())
-                                if (item.Ral != null) count += _p.Part.Count;
+                                if (item.Ral != null && item.Ral != "") count += _p.Part.Count;
 
                     // стоимость всей работы должна быть не ниже минимальной
                     foreach (WorkControl _w in p.work.type.WorkControls)            // находим окраску среди работ и получаем её минималку
@@ -197,8 +203,8 @@ namespace Metal_Code
                             if (_w.Result > 0 && _w.Result <= _work.Price)              // если стоимость работы ниже минимальной, к цене детали добавляем
                                 _send = _work.Price * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
                             else                                                        // иначе добавляем часть от количества именно этой детали
-                                _send = (Price(p.Part.Mass, p.Part.Count, p.work) + (p.Square > 0 && p.Square < .2f ?
-                                    TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 20 : 0)) * _w.Ratio * _w.TechRatio / p.Part.Count;
+                                _send = (Price(p.Square, p.Part.Mass, p.Part.Count, p.work) + (p.Square >= .05f && p.Square < .2f ?
+                                    TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 10 : 0)) * _w.Ratio * _w.TechRatio / p.Part.Count;
 
                             p.Part.Price += _send;
                             p.Part.PropsDict[54] = new() { $"{_send}", $"{p.Square}", $"{Ral}" };
