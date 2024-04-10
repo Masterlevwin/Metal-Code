@@ -495,7 +495,7 @@ namespace Metal_Code
 
                                 if (float.TryParse($"{tables[0].Rows[j].ItemArray[4]}", out float w)) part.Way = (float)Math.Round(w, 3);
 
-                                if (work.type.MetalDrop.SelectedItem is Metal metal)
+                                if (work.type.MetalDrop.SelectedItem is Metal metal && work.type.S > 0)
                                     switch (Tube)
                                     {
                                         case TubeType.rect:
@@ -526,6 +526,7 @@ namespace Metal_Code
                                             break;
 
                                     }
+                                else MainWindow.M.StatusBegin("Не удалось определить массу и размеры деталей. Возможно в названии деталей не указана толщина!");
 
                                 _parts.Add(new(this, work, part));
                                 PartDetails?.Add(part);

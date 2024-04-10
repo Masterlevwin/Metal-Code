@@ -2111,7 +2111,7 @@ namespace Metal_Code
             Application.Current.Resources.MergedDictionaries.Add(resourceDict);
         }
 
-        public void CreateReport(string path)           //метод создания отчета...
+        public void CreateReport(string path)           //метод создания отчета
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
