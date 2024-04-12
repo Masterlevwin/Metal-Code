@@ -1104,7 +1104,7 @@ namespace Metal_Code
                                     if (CheckConstruct.IsChecked == true)
                                     {
                                         p.Price += Construct / DetailControls.Count /
-                                        DetailControls.SingleOrDefault(d => d.Detail.IsComplect).TypeDetailControls.Count /
+                                        DetailControls.FirstOrDefault(d => d.Detail.IsComplect).TypeDetailControls.Count /
                                         _cut.PartDetails.Sum(p => p.Count);
                                         p.PropsDict[62] = new() { $"{p.Price}" };
                                     }
