@@ -200,7 +200,8 @@ namespace Metal_Code
                         if (_w.workType is PaintControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
                             float _send;
-                            if (_w.Result > 0 && _w.Result <= _work.Price)              // если стоимость работы ниже минимальной, к цене детали добавляем
+                            // если чистая стоимость работы ниже минимальной, к цене детали добавляем
+                            if (_w.Result / _w.Ratio / _w.TechRatio > 0 && _w.Result / _w.Ratio / _w.TechRatio <= _work.Price)
                                 _send = _work.Price * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
                             else                                                        // иначе добавляем часть от количества именно этой детали
                                 _send = (Price(p.Square, p.Part.Mass, p.Part.Count, p.work) + (p.Square >= .05f && p.Square < .2f ?

@@ -217,21 +217,21 @@ namespace Metal_Code
 
             float price = 0;
 
-            if (Parts != null && Parts.Count > 0)
+            if (Parts?.Count > 0)
             {
                 foreach (PartControl p in Parts)
                     foreach (WeldControl item in p.UserControls.OfType<WeldControl>())
-                        if (item.Weld != null && Weld != "") price += item.Price(ParserWeld(item.Weld) * p.Part.Count, work);
+                        if (item.Weld != null && item.Weld != "") price += item.Price(ParserWeld(item.Weld) * p.Part.Count, work);
 
                 // стоимость данной сварки должна быть не ниже минимальной
                 if (work.WorkDrop.SelectedItem is Work _work) price = price > 0 && price < _work.Price ? _work.Price : price;
-
                 work.SetResult(price, false);
             }
             else if (Weld != null && Weld != "" && work.type.Mass > 0)
             {
+                work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work));
                 if (HasMinPrice()) work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work), false);
-                else work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work));               
+                else work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work));
             }
         }
 
@@ -304,7 +304,8 @@ namespace Metal_Code
                         if (_w.workType is WeldControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
                             float _send;
-                            if (_w.Result > 0 && _w.Result <= _work.Price)              // если стоимость работы ниже минимальной, к цене детали добавляем
+                            // если чистая стоимость работы ниже минимальной, к цене детали добавляем
+                            if (_w.Result / _w.Ratio / _w.TechRatio > 0 && _w.Result / _w.Ratio / _w.TechRatio <= _work.Price)
                                 _send = _work.Price * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
                             else                                                        // иначе добавляем часть от количества именно этой детали
                                 _send = Price(ParserWeld(Weld) * p.Part.Count, p.work) * _w.Ratio * _w.TechRatio / p.Part.Count;
