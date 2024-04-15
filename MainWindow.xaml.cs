@@ -366,16 +366,9 @@ namespace Metal_Code
             float result = 0;
             if (CheckPaint.IsChecked != false)
             {
-                foreach (DetailControl d in DetailControls) if (!d.Detail.IsComplect)
-                        foreach (TypeDetailControl t in d.TypeDetailControls)
-                            result += 87 * t.L * t.Count / 1000;     // простая формула окраски через пог м типовой детали
-
-                // проверяем наличие работы и добавляем её минималку к расчету
-                foreach (Work w in Works) if (w.Name == "Окраска")
-                    {
-                        result += w.Price;
-                        break;
-                    }
+                foreach (DetailControl d in DetailControls)
+                    foreach (TypeDetailControl t in d.TypeDetailControls)
+                        result += 450 * (t.S >= 10 ? 1.5f : 1) * (d.Detail.IsComplect ? t.Square : t.Square * t.Count); //примерный расчет окраски всех заготовок  
             }
             if (float.TryParse(PaintRatio.Text, out float p)) result *= p;
             return result;
