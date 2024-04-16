@@ -36,10 +36,14 @@
                 <MenuItem Header="_Сохранить" Command="{Binding SaveCommand}" InputGestureText="Ctrl+D"/>
                 <MenuItem Header="_Получить отчет">
                     <MenuItem Header="Выбрать даты"/>
-                    <Calendar x:Name="ReportCalendar" SelectionMode="SingleRange" IsTodayHighlighted="False"/>
+                    <Calendar x:Name="ReportCalendar" SelectionMode="SingleRange" IsTodayHighlighted="False" SelectedDate="{Binding DisplayDate, ElementName=ReportCalendar}"/>
                     <StackPanel>
-                        <Button Content="по заказам" Click="CreateReport" Margin="0,5,0,0"/>
-                        <Button Content="по расчетам" Click="CreateReport" Margin="0,5,0,0"/>
+                        <ComboBox x:Name="UserDrop" DisplayMemberPath="Name" SelectedIndex="0" Margin="0,5,0,5"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="по заказам" Click="CreateReport"/>
+                            <TextBox x:Name="Plan" MinWidth="50" Margin="15,0,0,0" ToolTip="Введите плановую сумму"/>
+                        </StackPanel>
+                        <Button Content="по расчетам" Click="CreateReport" Margin="0,5,0,5"/>
                     </StackPanel>
                 </MenuItem>
                 <Separator/>

@@ -24,7 +24,9 @@ namespace Metal_Code
             using ManagerContext db = new(MainWindow.M.isLocal ? MainWindow.M.connections[0] : MainWindow.M.connections[1]);
             db.Managers.Load();
             MainWindow.M.Managers = db.Managers.Local.ToObservableCollection();
-            MainWindow.M.ManagerDrop.ItemsSource = MainWindow.M.Managers.Where(m => !m.IsEngineer);
+
+            MainWindow.M.ManagerDrop.ItemsSource = MainWindow.M.Managers.Where(m => !m.IsEngineer);     //список ТОЛЬКО менеджеров (для выставления КП)
+            MainWindow.M.UserDrop.ItemsSource = MainWindow.M.Managers;                                  //список ВСЕХ пользователей (для отчетов)
 
             Manager? manager = MainWindow.M.Managers.FirstOrDefault(x => x.Name == login);
             if (manager != null)

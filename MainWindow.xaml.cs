@@ -16,6 +16,9 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using System.Windows.Media.Imaging;
+using System.Drawing;
+using OfficeOpenXml.Drawing;
 
 namespace Metal_Code
 {
@@ -1251,51 +1254,6 @@ namespace Metal_Code
             return (Product?)serializer.ReadObject(stream);         //возвращаем десериализованный объект
         }
 
-        //private void EditOffers(object sender, System.Windows.Input.MouseEventArgs e)       //когда мышь покидает OffersGrid
-        //{
-        //    bool saved = false;
-        //    while (!saved)
-        //    {
-        //        try
-        //        {
-        //            // попытаемся сохранить изменения в базе данных
-        //            dbManagers.SaveChanges();       
-        //            saved = true;
-        //        }
-        //        catch (DbUpdateConcurrencyException ex)
-        //        {
-        //            StatusBegin($"Конфликт изменения данных.\nПопробуйте еще раз.");
-
-        //            foreach (var entry in ex.Entries)
-        //            {
-        //                if (entry.Entity is Offer)
-        //                {
-        //                    var proposedValues = entry.CurrentValues;
-        //                    var databaseValues = entry.GetDatabaseValues();
-
-        //                    foreach (var property in proposedValues.Properties)
-        //                    {
-        //                        var proposedValue = proposedValues[property];
-        //                        var databaseValue = databaseValues[property];
-
-        //                        // TODO: decide which value should be written to database
-        //                        // proposedValues[property] = <value to be saved>;
-        //                    }
-
-        //                    // Refresh original values to bypass next concurrency check
-        //                    entry.OriginalValues.SetValues(databaseValues);
-        //                }
-        //                else
-        //                {
-        //                    throw new NotSupportedException(
-        //                        "Don't know how to handle concurrency conflicts for "
-        //                        + entry.Metadata.Name);
-        //                }
-        //            }
-        //        }
-        //    }
-        //}
-
         public void LoadProduct()
         {
             if (ProductModel.Product == null) return;
@@ -1641,7 +1599,7 @@ namespace Metal_Code
             ExcelWorksheet statsheet = workbook.Workbook.Worksheets.Add("Реестр");
 
 
-            // ----- таблица статистики по нарезанных деталям (Лист3 - "Статистика") -----
+            // ----- таблица статистики по нарезанным деталям (Лист3 - "Статистика") -----
 
             ExcelRange extable = worksheet.Cells[IsLaser ? 6 : 8, 5, IsLaser ? row - 3 : row - 1, 7];
             extable.Style.Border.BorderAround(ExcelBorderStyle.None);
@@ -1719,7 +1677,13 @@ namespace Metal_Code
             scoresheet.Cells[extable.Rows + 2, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
             scoresheet.Cells[extable.Rows + 2, 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             scoresheet.Cells[extable.Rows + 2, 1].Style.Font.Bold = scoresheet.Cells[extable.Rows + 2, 2].Style.Font.Bold = true;
-            scoresheet.Cells[extable.Rows + 2, 2].Value = scoresheet.Cells[extable.Rows + 2, 5].Value;
+            if (HasDelivery)
+            {
+                scoresheet.Cells[extable.Rows + 2, 2].Value = scoresheet.Cells[extable.Rows + 1, 5].Value;
+                scoresheet.Cells[extable.Rows + 1, 18].Value = scoresheet.Cells[extable.Rows + 1, 2].Value;
+                scoresheet.Cells[extable.Rows + 2, 18].Value = scoresheet.Cells[extable.Rows + 1, 3].Value;
+            }
+            else scoresheet.Cells[extable.Rows + 2, 2].Value = scoresheet.Cells[extable.Rows + 2, 5].Value;
 
             ExcelRange totals = scoresheet.Cells[Parts.Count + 2, 5, Parts.Count + 3, 18];
             totals.Style.Fill.PatternType = ExcelFillStyle.Solid;
@@ -1958,6 +1922,7 @@ namespace Metal_Code
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем файл .xlsx
 
             CreateScore(worksheet, row - 8, path);      //создаем файл для счета на основе полученного КП
+            if (Parts.Count > 0) CreateComplect(path);  //создаем файл комплектации
         }
 
         private void CreateScore(ExcelWorksheet worksheet, int row, string _path)       // метод создания файла для счета
@@ -1995,6 +1960,61 @@ namespace Metal_Code
             // ----- сохраняем книгу в файл Excel -----
 
             workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Файл для счета " + Order.Text + " на сумму " + $"{Result}" + ".xlsx");
+        }
+
+        private void CreateComplect(string _path)   // метод создания файла для комплектации
+        {
+            using var workbook = new ExcelPackage();
+            ExcelWorksheet complectsheet = workbook.Workbook.Worksheets.Add("Комплектация");
+
+            complectsheet.Cells[1, 1].Value = Order.Text;
+            complectsheet.Cells[1, 8].Value = Company.Text;
+            complectsheet.Row(1).Style.Font.Bold = true;
+
+            List<string> _heads = new() { "№", "Изображение", "Название детали", "Размеры детали", "Вес, кг", "Кол-во", "Материал", "Толщина" };
+            for (int head = 0; head < _heads.Count; head++) complectsheet.Cells[2, head + 1].Value = _heads[head];
+
+            if (Parts.Count > 0)
+                for (int i = 0; i < Parts.Count; i++)
+                {
+                    complectsheet.Cells[i + 3, 1].Value = i + 1;
+
+                    ExcelImage excelImage = new(Parts[i].ImageBytes, ePictureType.Bmp);
+                    complectsheet.Drawings.AddPicture($"{i}", excelImage);
+
+                    complectsheet.Cells[i + 3, 2].Value = Parts[i].ImageBytes;
+                    complectsheet.Cells[i + 3, 3].Value = Parts[i].Title;
+                    if (Parts[i].PropsDict[100].Count > 2) complectsheet.Cells[i + 3, 4].Value = Parts[i].PropsDict[100][2];
+                    complectsheet.Cells[i + 3, 5].Value = Parts[i].Mass;
+                    complectsheet.Cells[i + 3, 6].Value = Parts[i].Count;
+                    complectsheet.Cells[i + 3, 7].Value = Parts[i].Metal;
+                    complectsheet.Cells[i + 3, 8].Value = Parts[i].Destiny;
+                }
+
+            ExcelRange details = complectsheet.Cells[2, 1, Parts.Count + 2, 8];
+
+            // ----- обводка границ и авторастягивание столбцов -----
+
+            details.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+
+            complectsheet.Cells.AutoFitColumns();
+
+            // ----- сохраняем книгу в файл Excel -----
+
+            workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Комплектация " + Order.Text + ".xlsx");
+        }
+
+        private static BitmapImage CreateBitmap(byte[] imageBytes)      //метод преобразования массива байтов в изображение BitmapImage
+        {
+            BitmapImage? image = new();
+            image.BeginInit();
+            image.StreamSource = new MemoryStream(imageBytes);
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.EndInit();
+            image.Freeze();
+            return image;
         }
 
         public static DataTable ToDataTable<T>(ObservableCollection<T> items)
@@ -2106,6 +2126,12 @@ namespace Metal_Code
             {
                 if (ProductModel.dialogService.SaveFileDialog() == true && ProductModel.dialogService.FilePaths != null)
                 {
+                    if (ReportCalendar.SelectedDates.Count < 2)
+                    {
+                        StatusBegin("Выберите даты, по которым следует сформировать отчет");
+                        return;
+                    }
+
                     string _path = Path.GetDirectoryName(ProductModel.dialogService.FilePaths[0])
                     + "\\" + Path.GetFileNameWithoutExtension(ProductModel.dialogService.FilePaths[0]);
 
@@ -2120,7 +2146,7 @@ namespace Metal_Code
                                 EngineerReport(ProductModel.dialogService.FilePaths[0]);
                                 break;
                         }
-                        StatusBegin($"Создан отчёт {btn.Content} за {ReportCalendar.SelectedDates[^1]:MMM}");
+                        StatusBegin($"Создан отчёт {btn.Content} за {ReportCalendar.SelectedDates[^1]:MMMM}");
                     }
                 }
             }
@@ -2136,10 +2162,24 @@ namespace Metal_Code
 
             using var workbook = new ExcelPackage();
             ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("Лист1");
-                            
-                //создаем новый список КП, которые выложены в работу, т.е. оплачены и имеют номер заказа
-            List<Offer> _offers = new(Offers.Where(o => o.Order is not null and not ""
-                                                && o.CreatedDate >= ReportCalendar.SelectedDates[0] && o.CreatedDate <= ReportCalendar.SelectedDates[^1]));
+
+            List<Offer> _offers = new();
+
+            //подключаемся к базе данных
+            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
+            bool isAvalaible = db.Database.CanConnect();                    //проверяем, свободна ли база для подключения
+            if (isAvalaible && UserDrop.SelectedItem is Manager man)        //если база свободна, получаем выбранного менеджера
+            {
+                try
+                {   //получаем список КП за выбранный период, которые выложены в работу, т.е. оплачены и имеют номер заказа
+                    _offers = db.Offers.Where(o => o.ManagerId == man.Id && o.Order != null && o.Order != "" &&
+                    o.CreatedDate >= ReportCalendar.SelectedDates[0] && o.CreatedDate <= ReportCalendar.SelectedDates[ReportCalendar.SelectedDates.Count - 1]).ToList();                    
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin(ex.Message);
+                }
+            }
 
             List<string> _headers = new() { "дата", "№счета", "проект", "№заказа", "работа", "металл", "Итого" };
             List<Offer> _agentFalse = new();    //ООО
@@ -2168,9 +2208,9 @@ namespace Metal_Code
                     worksheet.Cells[f + 3, 2].Value = _agentFalse[f].Invoice;
                     worksheet.Cells[f + 3, 3].Value = _agentFalse[f].Company;
                     worksheet.Cells[f + 3, 4].Value = _agentFalse[f].Order;
-                    worksheet.Cells[f + 3, 5].Value = _agentFalse[f].Services;
-                    worksheet.Cells[f + 3, 6].Value = _agentFalse[f].Material;
-                    worksheet.Cells[f + 3, 7].Value = _agentFalse[f].Amount;
+                    worksheet.Cells[f + 3, 5].Value = Math.Round(_agentFalse[f].Services, 2);
+                    worksheet.Cells[f + 3, 6].Value = Math.Round(_agentFalse[f].Material, 2);
+                    worksheet.Cells[f + 3, 7].Value = Math.Round(_agentFalse[f].Amount, 2);
                 }
 
                 worksheet.Names.Add("totalS1", worksheet.Cells[3, 5, 2 + _agentFalse.Count, 5]);
@@ -2210,9 +2250,9 @@ namespace Metal_Code
                     worksheet.Cells[t + 6 + _agentFalse.Count, 2].Value = _agentTrue[t].Invoice;
                     worksheet.Cells[t + 6 + _agentFalse.Count, 3].Value = _agentTrue[t].Company;
                     worksheet.Cells[t + 6 + _agentFalse.Count, 4].Value = _agentTrue[t].Order;
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 5].Value = _agentTrue[t].Services;
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 6].Value = _agentTrue[t].Material;
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 7].Value = _agentTrue[t].Amount;
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 5].Value = Math.Round(_agentTrue[t].Services, 2);
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 6].Value = Math.Round(_agentTrue[t].Material, 2);
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 7].Value = Math.Round(_agentTrue[t].Amount, 2);
                 }
 
                 worksheet.Names.Add("totalS2", worksheet.Cells[6 + _agentFalse.Count, 5, 5 + _agentFalse.Count + _agentTrue.Count, 5]);
@@ -2242,11 +2282,14 @@ namespace Metal_Code
             worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 4, 8 + _agentFalse.Count + _agentTrue.Count, 7].Style.Fill.PatternType = ExcelFillStyle.Solid;
             worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 4, 8 + _agentFalse.Count + _agentTrue.Count, 7].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightPink);
 
+            int plan = 150000;                                              //план по умолчанию
+            if (int.TryParse(Plan.Text, out int salary)) plan = salary;     //введенный план
+
             worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Прибыль месяца:";
             worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 2].Formula =
                 "=(SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15";
             worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 3].Formula =
-                "=(((SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15)-150000)*0.15";
+                $"=(((SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15)-{plan})*0.15";
 
             worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Доп бонус за ИП и ПК:";
             worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(total2)*0.2-SUM(total2)/6";
@@ -2298,8 +2341,23 @@ namespace Metal_Code
             using var workbook = new ExcelPackage();
             ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("Лист1");
 
-            //создаем новый список расчетов, которые выполнены выбранным инженером или менеджером
-            List<Offer> _offers = new(Offers.Where(o => o.CreatedDate >= ReportCalendar.SelectedDates[0] && o.CreatedDate <= ReportCalendar.SelectedDates[^1]));
+            List<Offer> _offers = new();
+
+            //подключаемся к базе данных
+            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
+            bool isAvalaible = db.Database.CanConnect();                    //проверяем, свободна ли база для подключения
+            if (isAvalaible && UserDrop.SelectedItem is Manager man)        //если база свободна, получаем выбранного сотрудника
+            {
+                try
+                {   //получаем список расчетов за выбранный период, автором которых является выбранный сотрудник
+                    _offers = db.Offers.Where(o => o.Autor == man.Name &&
+                    o.CreatedDate >= ReportCalendar.SelectedDates[0] && o.CreatedDate <= ReportCalendar.SelectedDates[ReportCalendar.SelectedDates.Count - 1]).ToList();
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin(ex.Message);
+                }
+            }
             
             (int, int) _count;
 
@@ -2312,7 +2370,7 @@ namespace Metal_Code
                     worksheet.Cells[i + 2, 1].Style.Numberformat.Format = "d MMM";
                     worksheet.Cells[i + 2, 2].Value = _offers[i].N;
                     worksheet.Cells[i + 2, 3].Value = _offers[i].Company;
-                    worksheet.Cells[i + 2, 4].Value = _offers[i].Amount;
+                    worksheet.Cells[i + 2, 4].Value = Math.Round(_offers[i].Amount, 2);
                     worksheet.Cells[i + 2, 5].Value = _count.Item1;
                     worksheet.Cells[i + 2, 6].Value = _count.Item2;
                 }
