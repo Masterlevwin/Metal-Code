@@ -6,13 +6,14 @@ using System.IO;
 using System.Runtime.Serialization.Json;
 using Microsoft.Win32;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace Metal_Code
 {
     public class ProductViewModel : INotifyPropertyChanged
     {
         readonly IFileService fileService;
-        readonly IDialogService dialogService;
+        public readonly IDialogService dialogService;
 
         public ProductViewModel(IDialogService _dialogService, IFileService _fileService, Product product)
         {
@@ -84,34 +85,6 @@ namespace Metal_Code
                               MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);           //формируем КП в формате excel
                               MainWindow.M.SaveOrRemoveOffer(true);                             //сохраняем расчет в базе данных
                               MainWindow.M.StatusBegin($"Расчет сохранен");
-                          }
-                      }
-                      catch (Exception ex)
-                      {
-                          dialogService.ShowMessage(ex.Message);
-                      }
-                  });
-            }
-        }
-
-        // команда сохранения отчета
-        private RelayCommand saveReportCommand;
-        public RelayCommand SaveReportCommand
-        {
-            get
-            {
-                return saveReportCommand ??= new RelayCommand(obj =>
-                  {
-                      
-                      try
-                      {
-                          if (dialogService.SaveFileDialog() == true && dialogService.FilePaths != null)
-                          {
-                              string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
-                              + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
-                              
-                              MainWindow.M.CreateReport(dialogService.FilePaths[0]);
-                              MainWindow.M.StatusBegin($"Создан отчёт за {MainWindow.M.ReportCalendar.SelectedDates[^1]: MMM}");
                           }
                       }
                       catch (Exception ex)

@@ -16,7 +16,6 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Runtime.Serialization.Json;
 using System.Text;
-using Flee.PublicTypes;
 
 namespace Metal_Code
 {
@@ -1151,6 +1150,38 @@ namespace Metal_Code
             return details;
         }
 
+        //-----------Подключения к базе расчетов------------------//
+
+        private void UpdateOffer(object sender, RoutedEventArgs e)
+        {
+            //подключаемся к базе данных
+            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
+            bool isAvalaible = db.Database.CanConnect();                        //проверяем, свободна ли база для подключения
+            if (isAvalaible && OffersGrid.SelectedItem is Offer offer)          //если база свободна, получаем выбранный расчет
+            {
+                try
+                {
+                    Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
+                    if (_offer != null)
+                    {                               //менять можно только номер счета, номер заказа и дату создания
+                        _offer.Invoice = offer.Invoice;
+                        db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
+                        _offer.Order = offer.Order;
+                        db.Entry(_offer).Property(o => o.Order).IsModified = true;
+                        _offer.CreatedDate = offer.CreatedDate;
+                        db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
+
+                        db.SaveChanges();                                               //сохраняем изменения в базе данных
+                        StatusBegin("Изменения в базе сохранены");
+                    }
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin(ex.Message);
+                }
+            }
+        }
+
         public void SaveOrRemoveOffer(bool isSave)
         {
                 //подключаемся к базе данных
@@ -1200,43 +1231,6 @@ namespace Metal_Code
                 }
             }
         }
-
-        //public void UpdateOffer(Manager man, Offer offer)
-        //{
-        //    // Загрузить только идентификатор менеджера
-        //    int id = dbManagers.Managers
-        //        .Where(c => c.Id == man.Id)
-        //        .Select(c => c.Id)
-        //        .FirstOrDefault();
-
-        //    Manager customer = new() { Id = id };
-
-        //    // Загрузить идентификатор и значение внешнего ключа
-        //    // для заказа
-        //    var tempOrder = dbManagers.Offers
-        //        .Where(o => o.Id == offer.Id)
-        //        .Select(o => new {
-        //            id = o.Id,
-        //            o.ManagerId
-        //        })
-        //        .FirstOrDefault();
-
-        //    Offer order = new()
-        //    {
-        //        Id = tempOrder.id,
-        //        ManagerId = tempOrder.ManagerId
-        //    };
-
-        //    // Обновить внешний ключ
-        //    order.ManagerId = customer.Id;
-
-        //    // Прикрепить сущность к контексту и указать, что
-        //    // изменился только внешний ключ
-        //    dbManagers.Offers.Attach(order);
-        //    dbManagers.Entry(order).Property(o => o.ManagerId).IsModified = true;
-
-        //    dbManagers.SaveChanges();
-        //}
 
         public string SaveOfferData()                               //метод сохранения расчета в базе данных
         {
@@ -2104,7 +2098,39 @@ namespace Metal_Code
             Application.Current.Resources.MergedDictionaries.Add(resourceDict);
         }
 
-        public void CreateReport(string path)           //метод создания отчета
+        //-------------Отчеты-----------------//
+
+        private void CreateReport(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (ProductModel.dialogService.SaveFileDialog() == true && ProductModel.dialogService.FilePaths != null)
+                {
+                    string _path = Path.GetDirectoryName(ProductModel.dialogService.FilePaths[0])
+                    + "\\" + Path.GetFileNameWithoutExtension(ProductModel.dialogService.FilePaths[0]);
+
+                    if (sender is Button btn)
+                    {
+                        switch (btn.Content)
+                        {
+                            case "по заказам":
+                                ManagerReport(ProductModel.dialogService.FilePaths[0]);
+                                break;
+                            case "по расчетам":
+                                EngineerReport(ProductModel.dialogService.FilePaths[0]);
+                                break;
+                        }
+                        StatusBegin($"Создан отчёт {btn.Content} за {ReportCalendar.SelectedDates[^1]:MMM}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ProductModel.dialogService.ShowMessage(ex.Message);
+            }
+        }
+
+        public void ManagerReport(string path)          //метод создания отчета по заказам
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
@@ -2256,7 +2282,7 @@ namespace Metal_Code
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
         }
 
-        private string ExtractAgent(Offer offer)
+        private static string ExtractAgent(Offer offer)
         {
             string _char = string.Empty;
             string substring = "\"IsAgent\"";
@@ -2265,41 +2291,88 @@ namespace Metal_Code
             return _char;
         }
 
+        public void EngineerReport(string path)         //метод создания отчета по выполненным расчетам
+        {
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var workbook = new ExcelPackage();
+            ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("Лист1");
+
+            //создаем новый список расчетов, которые выполнены выбранным инженером или менеджером
+            List<Offer> _offers = new(Offers.Where(o => o.CreatedDate >= ReportCalendar.SelectedDates[0] && o.CreatedDate <= ReportCalendar.SelectedDates[^1]));
+            
+            (int, int) _count;
+
+            if (_offers.Count > 0 )
+                for (int i = 0; i < _offers.Count; i++)
+                {
+                    _count = TypesAndWorks(_offers[i]);
+
+                    worksheet.Cells[i + 2, 1].Value = _offers[i].CreatedDate;
+                    worksheet.Cells[i + 2, 1].Style.Numberformat.Format = "d MMM";
+                    worksheet.Cells[i + 2, 2].Value = _offers[i].N;
+                    worksheet.Cells[i + 2, 3].Value = _offers[i].Company;
+                    worksheet.Cells[i + 2, 4].Value = _offers[i].Amount;
+                    worksheet.Cells[i + 2, 5].Value = _count.Item1;
+                    worksheet.Cells[i + 2, 6].Value = _count.Item2;
+                }
+
+            List<string> _headers = new() { "дата", "№ расчета", "проект", "сумма, руб", "заготовок", "работ", "моделей", "сборок" };
+
+            for (int col = 0; col < _headers.Count; col++) worksheet.Cells[1, col + 1].Value = _headers[col];
+            worksheet.Cells[1, 1, 1, _headers.Count].Style.Font.Bold = true;
+            worksheet.Cells[1, 1, 1, _headers.Count].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            worksheet.Cells[1, 1, 1, _headers.Count].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+
+            ExcelRange table = worksheet.Cells[1, 1, _offers.Count + 2, _headers.Count];
+            table.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            table.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+
+            worksheet.Names.Add("totalT", worksheet.Cells[2, 5, _offers.Count + 1, 5]);
+            worksheet.Cells[_offers.Count + 2, 5].Formula = "=SUM(totalT)";
+            worksheet.Names.Add("totalW", worksheet.Cells[2, 6, _offers.Count + 1, 6]);
+            worksheet.Cells[_offers.Count + 2, 6].Formula = "=SUM(totalW)";
+
+            ExcelRange row = worksheet.Cells[_offers.Count + 2, 1, _offers.Count + 2, _headers.Count];
+            row.Style.Font.Bold = true;
+            row.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+
+            worksheet.Cells.AutoFitColumns();
+            workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
+        }
+
+        private (int, int) TypesAndWorks(Offer offer)
+        {
+            if (offer.Data is null) return (0, 0);
+
+            int types = 0; int works = 0;
+
+            ProductModel.Product = OpenOfferData(offer.Data);
+            if (ProductModel.Product is not null && ProductModel.Product.Details.Count > 0)
+            {
+                foreach (Detail det in ProductModel.Product.Details)
+                    foreach (SaveTypeDetail type in det.TypeDetails)
+                    {
+                        types++;
+                        foreach (SaveWork work in type.Works)
+                            works++;
+                    }
+            }
+
+            return (types, works);
+        }
+
+
+        //------------Краткое руководство-------------------------//
+
         private void OpenExample(object sender, RoutedEventArgs e)
         {
             ExampleWindow exampleWindow = new();
             exampleWindow.Show();
         }
 
-        private void UpdateOffer(object sender, RoutedEventArgs e)
-        {
-                //подключаемся к базе данных
-            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
-            bool isAvalaible = db.Database.CanConnect();                        //проверяем, свободна ли база для подключения
-            if (isAvalaible && OffersGrid.SelectedItem is Offer offer)          //если база свободна, получаем выбранный расчет
-            {
-                try
-                {
-                    Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
-                    if (_offer != null)
-                    {                               //менять можно только номер счета, номер заказа и дату создания
-                        _offer.Invoice = offer.Invoice;
-                        db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
-                        _offer.Order = offer.Order;
-                        db.Entry(_offer).Property(o => o.Order).IsModified = true;
-                        _offer.CreatedDate = offer.CreatedDate;
-                        db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
-
-                        db.SaveChanges();                                               //сохраняем изменения в базе данных
-                        StatusBegin("Изменения в базе сохранены");
-                    }
-                }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin(ex.Message);
-                }
-            }
-        }
+        //-----------Вспомогательные методы-----------------------//
 
         private string ShortManager()       //метод, возвращающий сокращенное имя менеджера
         {
@@ -2354,61 +2427,6 @@ namespace Metal_Code
                 _ => 3,
             };
             return _massRatio;
-        }
-
-        private void Test(object sender, TextChangedEventArgs e)
-        {
-            if (float.TryParse(Wide.Text, out float wide) && int.TryParse(Holes.Text, out int holes)) Test(wide, holes);
-        }
-        private void Test(float wide, int holes)
-        {
-            NewProject();
-            DetailControls[0].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedIndex = 4;
-            DetailControls[0].TypeDetailControls[^1].A = DetailControls[0].TypeDetailControls[^1].B = 500;
-            for (int i = 0; i < Destinies.Count; i++)
-            {
-                DetailControls[0].TypeDetailControls[^1].A = DetailControls[0].TypeDetailControls[^1].B = 500;
-                DetailControls[0].TypeDetailControls[^1].S = (float)Destinies[i];
-                DetailControls[0].TypeDetailControls[^1].Count = 1;
-                if (DetailControls[0].TypeDetailControls[^1].WorkControls[^1].workType is ThreadControl thread)
-                {
-                    thread.SetWide($"{wide}");
-                    thread.SetHoles($"{holes}");
-                }
-
-                if (DetailControls[0].TypeDetailControls.Count < Destinies.Count)
-                {
-                    DetailControls[0].AddTypeDetail();
-                    DetailControls[0].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedIndex = 4;
-                }
-            }
-        }
-
-        private double Compile(string _formula)
-        {
-            // Define the context of our expression
-            ExpressionContext context = new ExpressionContext();
-            // Allow the expression to use all static public methods of System.Math
-            context.Imports.AddType(typeof(Math));
-
-            // Define an int variable
-            context.Variables["A"] = DetailControls[0].TypeDetailControls[0].A;
-
-            // Create a generic expression that evaluates to a double
-            IGenericExpression<double> eGeneric = context.CompileGeneric<double>(_formula);
-
-            // Evaluate the expressions
-            result = (float)eGeneric.Evaluate();
-
-            // Update the value of our variable
-            //context.Variables["a"] = 144;
-
-            return result;
-        }
-
-        private void Compile(object sender, RoutedEventArgs e)
-        {
-            StatusBegin($"{Compile(Adress.Text)}");
         }
     }
 }

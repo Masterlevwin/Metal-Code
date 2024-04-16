@@ -37,7 +37,10 @@
                 <MenuItem Header="_Получить отчет">
                     <MenuItem Header="Выбрать даты"/>
                     <Calendar x:Name="ReportCalendar" SelectionMode="SingleRange" IsTodayHighlighted="False"/>
-                    <Button Content="Подтвердить" Command="{Binding SaveReportCommand}"/>
+                    <StackPanel>
+                        <Button Content="по заказам" Click="CreateReport" Margin="0,5,0,0"/>
+                        <Button Content="по расчетам" Click="CreateReport" Margin="0,5,0,0"/>
+                    </StackPanel>
                 </MenuItem>
                 <Separator/>
                 <MenuItem Header="_Выход" Click="Exit"/>
@@ -52,10 +55,6 @@
             </MenuItem>
             <MenuItem Header="О программе">
                 <MenuItem Header="Очень краткое руководство" Click="OpenExample"/>
-                <MenuItem Header="Тестирование">
-                    <TextBox x:Name="Wide" ToolTip="Введите диаметр отверстия" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" TextChanged="Test" Text="Ø"/>
-                    <TextBox x:Name="Holes" ToolTip="Введите количество отверстий" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" MaxLength="4" MaxLines="1" HorizontalAlignment="Left" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" TextChanged="Test" Text="N"/>
-                </MenuItem>
                 <TextBlock x:Name="Version"/>
             </MenuItem>
         </Menu>
@@ -153,7 +152,7 @@
                         <TextBox x:Name="PaintRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="19" Width="30" Margin="470,113,0,0" TextChanged="UpdateResult"/>
                         <TextBox x:Name="ConstructRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,138,0,0" TextChanged="UpdateResult"/>
                         <TextBlock HorizontalAlignment="Left" Margin="470,90,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
-                        
+
                         <DataGrid x:Name="OffersGrid" CanUserReorderColumns="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,190,15,5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False" HeadersVisibility="Column" BorderBrush="Red" MaxWidth="515" ClipboardCopyMode="IncludeHeader">
                             <DataGrid.ContextMenu>
                                 <ContextMenu>
@@ -163,7 +162,7 @@
                                 </ContextMenu>
                             </DataGrid.ContextMenu>
                         </DataGrid>
-                        
+
                         <RadioButton GroupName="Boss" x:Name="AppRadioButton" HorizontalAlignment="Left" Margin="15,15,0,0" VerticalAlignment="Top" Checked="IsLaserChanged" IsChecked="True"/>
                         <RadioButton GroupName="Boss" x:Name="LaserRadioButton" HorizontalAlignment="Left" Margin="70,15,0,0" VerticalAlignment="Top" Checked="IsLaserChanged"/>
                         <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет от ООО" HorizontalAlignment="Left" Margin="15,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;"/>
