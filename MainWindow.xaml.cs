@@ -1978,11 +1978,14 @@ namespace Metal_Code
                 for (int i = 0; i < Parts.Count; i++)
                 {
                     complectsheet.Cells[i + 3, 1].Value = i + 1;
+                    
+                    complectsheet.Row(i + 3).Height = 32;
 
-                    ExcelImage excelImage = new(Parts[i].ImageBytes, ePictureType.Bmp);
-                    complectsheet.Drawings.AddPicture($"{i}", excelImage);
+                    Stream stream = new MemoryStream(Parts[i].ImageBytes);
+                    ExcelPicture pic = complectsheet.Drawings.AddPicture($"{Parts[i].Title}", stream);
+                    pic.SetPosition((i + 1) * 43, 100);
+                    pic.SetSize(32, 32);
 
-                    complectsheet.Cells[i + 3, 2].Value = Parts[i].ImageBytes;
                     complectsheet.Cells[i + 3, 3].Value = Parts[i].Title;
                     if (Parts[i].PropsDict[100].Count > 2) complectsheet.Cells[i + 3, 4].Value = Parts[i].PropsDict[100][2];
                     complectsheet.Cells[i + 3, 5].Value = Parts[i].Mass;
