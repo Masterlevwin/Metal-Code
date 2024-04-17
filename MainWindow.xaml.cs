@@ -1490,7 +1490,7 @@ namespace Metal_Code
 
                 //приводим float-значения типа 0,699999993 к формату 0,7
             foreach (var cell in worksheet.Cells[8, 2, row, 2])
-                if (cell.Value != null && $"{cell.Value}".Contains("0,7") || $"{cell.Value}".Contains("0,8") || $"{cell.Value}".Contains("1,2"))
+                if (cell.Value != null && $"{cell.Value}".Contains("0,7") || $"{cell.Value}".Contains("0,8") || $"{cell.Value}".Contains("1,2") || $"{cell.Value}".Contains("3,2"))
                     cell.Style.Numberformat.Format = "0.0";
 
                 //учитываем общий коэффициент в КП
@@ -1968,10 +1968,14 @@ namespace Metal_Code
             ExcelWorksheet complectsheet = workbook.Workbook.Worksheets.Add("Комплектация");
 
             complectsheet.Cells[1, 1].Value = Order.Text;
-            complectsheet.Cells[1, 8].Value = Company.Text;
+            complectsheet.Cells[1, 1, 1, 2].Merge = true;
+            complectsheet.Cells[1, 4].Value = Company.Text;
+            complectsheet.Cells[1, 4, 1, 8].Merge = true;
+            complectsheet.Row(1).Style.Font.Size = 16;
             complectsheet.Row(1).Style.Font.Bold = true;
+            complectsheet.Row(1).Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
-            List<string> _heads = new() { "№", "Изображение", "Название детали", "Размеры детали", "Вес, кг", "Кол-во", "Материал", "Толщина" };
+            List<string> _heads = new() { "№", "Вид", "Название детали", "Кол-во", "Размеры детали", "Вес, кг", "Материал", "Толщина" };
             for (int head = 0; head < _heads.Count; head++) complectsheet.Cells[2, head + 1].Value = _heads[head];
 
             if (Parts.Count > 0)
@@ -1979,45 +1983,75 @@ namespace Metal_Code
                 {
                     complectsheet.Cells[i + 3, 1].Value = i + 1;
                     
-                    complectsheet.Row(i + 3).Height = 32;
-
-                    Stream stream = new MemoryStream(Parts[i].ImageBytes);
-                    ExcelPicture pic = complectsheet.Drawings.AddPicture($"{Parts[i].Title}", stream);
-                    pic.SetPosition((i + 1) * 43, 100);
-                    pic.SetSize(32, 32);
+                    byte[]? bytes = Parts[i].ImageBytes;
+                    if (bytes is not null)
+                    {
+                        Stream? stream = new MemoryStream(bytes);
+                        ExcelPicture pic = complectsheet.Drawings.AddPicture($"{Parts[i].Title}", stream);
+                        complectsheet.Row(i + 3).Height = 28;
+                        pic.SetSize(32, 32);
+                        pic.SetPosition(i + 2, 2, 1, 2);
+                    }
 
                     complectsheet.Cells[i + 3, 3].Value = Parts[i].Title;
-                    if (Parts[i].PropsDict[100].Count > 2) complectsheet.Cells[i + 3, 4].Value = Parts[i].PropsDict[100][2];
-                    complectsheet.Cells[i + 3, 5].Value = Parts[i].Mass;
-                    complectsheet.Cells[i + 3, 6].Value = Parts[i].Count;
+
+                    complectsheet.Cells[i + 3, 4].Value = Parts[i].Count;
+                    complectsheet.Cells[i + 3, 4].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+
+                    if (Parts[i].PropsDict[100].Count > 2) complectsheet.Cells[i + 3, 5].Value = Parts[i].PropsDict[100][2];
+                    complectsheet.Cells[i + 3, 5].Style.WrapText = true;
+
+                    complectsheet.Cells[i + 3, 6].Value = Math.Round(Parts[i].Mass, 1);
                     complectsheet.Cells[i + 3, 7].Value = Parts[i].Metal;
+
                     complectsheet.Cells[i + 3, 8].Value = Parts[i].Destiny;
+                    if (complectsheet.Cells[i + 2, 8].Value != null && $"{complectsheet.Cells[i + 2, 8].Value}" != $"{complectsheet.Cells[i + 3, 8].Value}")
+                        complectsheet.Cells[i + 2, 1, i + 2, 8].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
+                    else complectsheet.Cells[i + 2, 1, i + 2, 8].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
                 }
+
+            //приводим float-значения типа 0,699999993 к формату 0,7
+            foreach (var cell in complectsheet.Cells[3, 8, Parts.Count + 2, 8])
+                if (cell.Value != null && $"{cell.Value}".Contains("0,7") || $"{cell.Value}".Contains("0,8") || $"{cell.Value}".Contains("1,2") || $"{cell.Value}".Contains("3,2"))
+                    cell.Style.Numberformat.Format = "0.0";
+            
+            complectsheet.Cells[Parts.Count + 3, 3].Value = "всего деталей:";
+            complectsheet.Cells[Parts.Count + 3, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            complectsheet.Names.Add("totalCount", complectsheet.Cells[3, 4, Parts.Count + 2, 4]);
+            complectsheet.Cells[Parts.Count + 3, 4].Formula = "=SUM(totalCount)";
+            complectsheet.Cells[Parts.Count + 3, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+            complectsheet.Cells[Parts.Count + 3, 5].Value = "общий вес:";
+            complectsheet.Cells[Parts.Count + 3, 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            complectsheet.Names.Add("totalMass", complectsheet.Cells[3, 6, Parts.Count + 2, 6]);
+            complectsheet.Cells[Parts.Count + 3, 6].Formula = "=SUM(totalMass)";
+            complectsheet.Cells[Parts.Count + 3, 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+            complectsheet.Row(Parts.Count + 3).Style.Font.Bold = true;
+
+            complectsheet.Cells[1, 1, 1, 8].Copy(complectsheet.Cells[Parts.Count + 4, 1, Parts.Count + 4, 8]);
+            complectsheet.Cells[1, 1, 1, 8].CopyStyles(complectsheet.Cells[Parts.Count + 4, 1, Parts.Count + 4, 8]);
 
             ExcelRange details = complectsheet.Cells[2, 1, Parts.Count + 2, 8];
 
             // ----- обводка границ и авторастягивание столбцов -----
 
-            details.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            details.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            details.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
             details.Style.Border.Right.Style = ExcelBorderStyle.Thin;
             details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             complectsheet.Cells.AutoFitColumns();
 
+            //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
+            complectsheet.PrinterSettings.FitToPage = true;
+            complectsheet.PrinterSettings.FitToWidth = 1;
+            complectsheet.PrinterSettings.FitToHeight = 0;
+            complectsheet.PrinterSettings.HorizontalCentered = true;
+
             // ----- сохраняем книгу в файл Excel -----
 
-            workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Комплектация " + Order.Text + ".xlsx");
-        }
-
-        private static BitmapImage CreateBitmap(byte[] imageBytes)      //метод преобразования массива байтов в изображение BitmapImage
-        {
-            BitmapImage? image = new();
-            image.BeginInit();
-            image.StreamSource = new MemoryStream(imageBytes);
-            image.CacheOption = BitmapCacheOption.OnLoad;
-            image.EndInit();
-            image.Freeze();
-            return image;
+            workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + Order.Text + " Комплектация" + ".xlsx");
         }
 
         public static DataTable ToDataTable<T>(ObservableCollection<T> items)
