@@ -1361,6 +1361,7 @@ namespace Metal_Code
             }
         }
 
+        //-------------Выходные файлы----------//
         public void ExportToExcel(string path)      // метод оформления КП в формате excel
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
@@ -1966,73 +1967,86 @@ namespace Metal_Code
         {
             using var workbook = new ExcelPackage();
             ExcelWorksheet complectsheet = workbook.Workbook.Worksheets.Add("Комплектация");
+            
+            complectsheet.Cells[1, 1, 1, 3].Merge = true;
+            complectsheet.Cells[1, 1].Value = Order.Text;           //Номер КП
+            complectsheet.Cells[1, 1].Style.Font.Size = 72;
 
-            complectsheet.Cells[1, 1].Value = Order.Text;
-            complectsheet.Cells[1, 1, 1, 2].Merge = true;
-            complectsheet.Cells[1, 4].Value = Company.Text;
-            complectsheet.Cells[1, 4, 1, 8].Merge = true;
-            complectsheet.Row(1).Style.Font.Size = 16;
+            complectsheet.Cells[1, 4, 1, 9].Merge = true;
+            complectsheet.Cells[1, 4].Value = Company.Text;         //Компания
+            complectsheet.Cells[1, 4].Style.Font.Size = 36;
+
+                //выделяем и центрируем первую строку
             complectsheet.Row(1).Style.Font.Bold = true;
             complectsheet.Row(1).Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
-            List<string> _heads = new() { "№", "Вид", "Название детали", "Кол-во", "Размеры детали", "Вес, кг", "Материал", "Толщина" };
+                //устанавливаем заголовки таблицы
+            List<string> _heads = new() { "№", "Вид", "Название детали", "Маршрут", "Кол-во", "Размеры детали", "Вес, кг", "Материал", "Толщина" };
             for (int head = 0; head < _heads.Count; head++) complectsheet.Cells[2, head + 1].Value = _heads[head];
 
-            if (Parts.Count > 0)
+            if (Parts.Count > 0)        //перебираем нарезанные детали
                 for (int i = 0; i < Parts.Count; i++)
                 {
-                    complectsheet.Cells[i + 3, 1].Value = i + 1;
+                    complectsheet.Cells[i + 3, 1].Value = i + 1;    //номер по порядку
                     
-                    byte[]? bytes = Parts[i].ImageBytes;
+                    byte[]? bytes = Parts[i].ImageBytes;            //получаем изображение детали, если оно есть
                     if (bytes is not null)
                     {
                         Stream? stream = new MemoryStream(bytes);
                         ExcelPicture pic = complectsheet.Drawings.AddPicture($"{Parts[i].Title}", stream);
-                        complectsheet.Row(i + 3).Height = 28;
+                        complectsheet.Row(i + 3).Height = 32;       //увеличиваем высоту строки, чтобы вмещалось изображение
                         pic.SetSize(32, 32);
-                        pic.SetPosition(i + 2, 2, 1, 2);
+                        pic.SetPosition(i + 2, 5, 1, 5);            //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
                     }
 
-                    complectsheet.Cells[i + 3, 3].Value = Parts[i].Title;
+                    complectsheet.Cells[i + 3, 3].Value = Parts[i].Title;           //наименование детали
 
-                    complectsheet.Cells[i + 3, 4].Value = Parts[i].Count;
-                    complectsheet.Cells[i + 3, 4].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    complectsheet.Cells[i + 3, 4].Value = Parts[i].Description;     //маршрут изготовления
+                    complectsheet.Cells[i + 3, 4].Style.WrapText = true;
 
-                    if (Parts[i].PropsDict[100].Count > 2) complectsheet.Cells[i + 3, 5].Value = Parts[i].PropsDict[100][2];
-                    complectsheet.Cells[i + 3, 5].Style.WrapText = true;
+                    complectsheet.Cells[i + 3, 5].Value = Parts[i].Count;           //количество деталей
+                    complectsheet.Cells[i + 3, 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    complectsheet.Cells[i + 3, 5].Style.Font.Bold = true;
 
-                    complectsheet.Cells[i + 3, 6].Value = Math.Round(Parts[i].Mass, 1);
-                    complectsheet.Cells[i + 3, 7].Value = Parts[i].Metal;
+                    if (Parts[i].PropsDict[100].Count > 2)                          //габаритные размеры детали без отверстий
+                    {
+                        if (Parts[i].PropsDict[100][2].Contains('Ø'))
+                            complectsheet.Cells[i + 3, 6].Value = Parts[i].PropsDict[100][2].Remove(Parts[i].PropsDict[100][2].IndexOf('Ø'));
+                        else complectsheet.Cells[i + 3, 6].Value = Parts[i].PropsDict[100][2];
+                    }
 
-                    complectsheet.Cells[i + 3, 8].Value = Parts[i].Destiny;
-                    if (complectsheet.Cells[i + 2, 8].Value != null && $"{complectsheet.Cells[i + 2, 8].Value}" != $"{complectsheet.Cells[i + 3, 8].Value}")
-                        complectsheet.Cells[i + 2, 1, i + 2, 8].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
-                    else complectsheet.Cells[i + 2, 1, i + 2, 8].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                    complectsheet.Cells[i + 3, 7].Value = Math.Round(Parts[i].Mass, 1);     //масса детали
+                    complectsheet.Cells[i + 3, 8].Value = Parts[i].Metal;                   //материал
+
+                    complectsheet.Cells[i + 3, 9].Value = Parts[i].Destiny;                 //толщина
+                    if (complectsheet.Cells[i + 2, 9].Value != null && $"{complectsheet.Cells[i + 2, 9].Value}" != $"{complectsheet.Cells[i + 3, 9].Value}")
+                        complectsheet.Cells[i + 2, 1, i + 2, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
+                    else complectsheet.Cells[i + 2, 1, i + 2, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
                 }
 
             //приводим float-значения типа 0,699999993 к формату 0,7
-            foreach (var cell in complectsheet.Cells[3, 8, Parts.Count + 2, 8])
+            foreach (var cell in complectsheet.Cells[3, 9, Parts.Count + 2, 9])
                 if (cell.Value != null && $"{cell.Value}".Contains("0,7") || $"{cell.Value}".Contains("0,8") || $"{cell.Value}".Contains("1,2") || $"{cell.Value}".Contains("3,2"))
                     cell.Style.Numberformat.Format = "0.0";
             
-            complectsheet.Cells[Parts.Count + 3, 3].Value = "всего деталей:";
-            complectsheet.Cells[Parts.Count + 3, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
-            complectsheet.Names.Add("totalCount", complectsheet.Cells[3, 4, Parts.Count + 2, 4]);
-            complectsheet.Cells[Parts.Count + 3, 4].Formula = "=SUM(totalCount)";
-            complectsheet.Cells[Parts.Count + 3, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            complectsheet.Cells[Parts.Count + 3, 4].Value = "всего деталей:";
+            complectsheet.Cells[Parts.Count + 3, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            complectsheet.Names.Add("totalCount", complectsheet.Cells[3, 5, Parts.Count + 2, 5]);
+            complectsheet.Cells[Parts.Count + 3, 5].Formula = "=SUM(totalCount)";
+            complectsheet.Cells[Parts.Count + 3, 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
-            complectsheet.Cells[Parts.Count + 3, 5].Value = "общий вес:";
-            complectsheet.Cells[Parts.Count + 3, 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
-            complectsheet.Names.Add("totalMass", complectsheet.Cells[3, 6, Parts.Count + 2, 6]);
-            complectsheet.Cells[Parts.Count + 3, 6].Formula = "=SUM(totalMass)";
-            complectsheet.Cells[Parts.Count + 3, 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            complectsheet.Cells[Parts.Count + 3, 6].Value = "общий вес:";
+            complectsheet.Cells[Parts.Count + 3, 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            complectsheet.Names.Add("totalMass", complectsheet.Cells[3, 7, Parts.Count + 2, 7]);
+            complectsheet.Cells[Parts.Count + 3, 7].Formula = "=SUM(totalMass)";
+            complectsheet.Cells[Parts.Count + 3, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
-            complectsheet.Row(Parts.Count + 3).Style.Font.Bold = true;
+            complectsheet.Row(Parts.Count + 3).Style.Font.Bold = true;      //выделяем жирным шрифтом подсчитанные кол-во и вес
 
-            complectsheet.Cells[1, 1, 1, 8].Copy(complectsheet.Cells[Parts.Count + 4, 1, Parts.Count + 4, 8]);
-            complectsheet.Cells[1, 1, 1, 8].CopyStyles(complectsheet.Cells[Parts.Count + 4, 1, Parts.Count + 4, 8]);
+            complectsheet.Cells[1, 1, 1, 9].Copy(complectsheet.Cells[Parts.Count + 4, 1, Parts.Count + 4, 9]);          //копируем первую строку
+            complectsheet.Cells[1, 1, 1, 9].CopyStyles(complectsheet.Cells[Parts.Count + 4, 1, Parts.Count + 4, 9]);    //копируем стиль первой строки
 
-            ExcelRange details = complectsheet.Cells[2, 1, Parts.Count + 2, 8];
+            ExcelRange details = complectsheet.Cells[2, 1, Parts.Count + 2, 9];     //получаем таблицу деталей для оформления
 
             // ----- обводка границ и авторастягивание столбцов -----
 
@@ -2042,6 +2056,7 @@ namespace Metal_Code
             details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             complectsheet.Cells.AutoFitColumns();
+            complectsheet.View.ZoomScale = 150;         //увеличиваем масштаб книги
 
             //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
             complectsheet.PrinterSettings.FitToPage = true;
@@ -2110,25 +2125,6 @@ namespace Metal_Code
             if (float.TryParse(data, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands,
                 System.Globalization.CultureInfo.InvariantCulture, out float f)) return f;
             else return 0;
-        }
-
-        public static float SizeDetail(string str)
-        {
-            //выходим из метода, если строки нет, или она не содержит информацию о размере детали
-            if (str == null || !str.Contains('X')) return 0;
-
-            float size = 1;
-
-            //создаем и сразу инициализируем массив строк по следующему принципу:
-            //если у детали есть отверстия('Ø'), то сначала обрезаем строку до знака диаметра,
-            //а затем разделяем получившуюся строку на два числовых значения (размеры детали),
-            //иначе сразу разделяем строку на размеры
-            string[] sizes = str.Contains('Ø') ? str[..str.IndexOf('Ø')].Split('X') : str.Split('X');
-
-            //перемножаем размеры детали, получая её площадь (это нужно для расчета окраски)
-            foreach (string s in sizes) size *= Parser(s);
-
-            return size;
         }
 
         private void Exit(object sender, CancelEventArgs e)

@@ -215,43 +215,6 @@ namespace Metal_Code
                         break;
                     }
 
-            // раскладки можно загрузить только в отдельную деталь Комплект деталей,
-            // в которой нет других типовых деталей, кроме Лист металла, и в этом "Листе" должна быть резка...
-            // ...это условие необходимо соблюдать для корректного отображения сборных деталей в КП
-            //foreach (TypeDetailControl _type in work.type.det.TypeDetailControls)
-            //{
-            //    if ((_type.TypeDetailDrop.SelectedItem is TypeDetail _t && _t.Name != "Лист металла")
-            //        || (!_type.WorkControls.Contains(_type.WorkControls.FirstOrDefault(w => w.workType is CutControl))))
-            //    {
-            //        // добавляем типовую деталь
-            //        work.type.det.AddTypeDetail();
-
-            //        // устанавливаем "Лист металла"
-            //        foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Лист металла")
-            //            {
-            //                MainWindow.M.DetailControls[^1].TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
-            //                break;
-            //            }
-
-            //        // устанавливаем "Лазерная резка"
-            //        foreach (Work w in MainWindow.M.Works) if (w.Name == "Лазерная резка")
-            //            {
-            //                MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
-            //                break;
-            //            }
-
-            //        // вызываем загрузку раскладок в новой детали
-            //        if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)
-            //        {
-            //            _cut.LoadExcel(paths);
-            //            MainWindow.M.StatusBegin($"Раскладки загружены в новую деталь \"Комплект деталей\"");
-            //        }
-
-            //        work.Remove();      // удаляем типовую деталь с этой работой
-            //        return;
-            //    }
-            //}
-
             //определяем деталь, в которой загрузили раскладки, как комплект деталей
             if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged("Комплект деталей");
 
