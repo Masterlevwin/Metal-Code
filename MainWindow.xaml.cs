@@ -90,6 +90,7 @@ namespace Metal_Code
             IsEnabled = false;
             if (loginWindow.ShowDialog() == true)
             {
+                UserDrop.SelectedItem = CurrentManager;
                 if (CurrentManager.IsEngineer)
                 {
                     SetManagerWindow setManagerWindow = new();
@@ -2155,6 +2156,12 @@ namespace Metal_Code
 
         private void CreateReport(object sender, RoutedEventArgs e)
         {
+            if (!CurrentManager.IsAdmin && UserDrop.SelectedItem is Manager user && user != CurrentManager)
+            {
+                StatusBegin("Нельзя получить отчет другого менеджера или инженера! Выберите себя.");
+                return;
+            }
+            
             try
             {
                 if (ProductModel.dialogService.SaveFileDialog() == true && ProductModel.dialogService.FilePaths != null)
@@ -2170,16 +2177,19 @@ namespace Metal_Code
 
                     if (sender is Button btn)
                     {
+                        bool _report = false;
+
                         switch (btn.Content)
                         {
                             case "по заказам":
-                                ManagerReport(ProductModel.dialogService.FilePaths[0]);
+                                _report = ManagerReport(ProductModel.dialogService.FilePaths[0]);
                                 break;
                             case "по расчетам":
-                                EngineerReport(ProductModel.dialogService.FilePaths[0]);
+                                _report = EngineerReport(ProductModel.dialogService.FilePaths[0]);
                                 break;
                         }
-                        StatusBegin($"Создан отчёт {btn.Content} за {ReportCalendar.SelectedDates[^1]:MMMM}");
+                        if (_report) StatusBegin($"Создан отчёт {btn.Content} за {ReportCalendar.SelectedDates[^1]:MMMM}");
+                        else StatusBegin($"Нет расчетов за выбранный период");
                     }
                 }
             }
@@ -2189,7 +2199,7 @@ namespace Metal_Code
             }
         }
 
-        public void ManagerReport(string path)          //метод создания отчета по заказам
+        public bool ManagerReport(string path)          //метод создания отчета по заказам
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
@@ -2206,7 +2216,9 @@ namespace Metal_Code
                 try
                 {   //получаем список КП за выбранный период, которые выложены в работу, т.е. оплачены и имеют номер заказа
                     _offers = db.Offers.Where(o => o.ManagerId == man.Id && o.Order != null && o.Order != "" &&
-                    o.CreatedDate >= ReportCalendar.SelectedDates[0] && o.CreatedDate <= ReportCalendar.SelectedDates[ReportCalendar.SelectedDates.Count - 1]).ToList();                    
+                    o.CreatedDate >= ReportCalendar.SelectedDates[0] && o.CreatedDate <= ReportCalendar.SelectedDates[ReportCalendar.SelectedDates.Count - 1]).ToList();
+
+                    if (_offers.Count == 0) return false;
                 }
                 catch (DbUpdateConcurrencyException ex)
                 {
@@ -2218,10 +2230,13 @@ namespace Metal_Code
             List<Offer> _agentFalse = new();    //ООО
             List<Offer> _agentTrue = new();     //ИП и ПК
 
-            foreach (Offer offer in _offers)
+            if (_offers.Count > 0)
             {
-                if (ExtractAgent(offer) == "f") _agentFalse.Add(offer);
-                else if (ExtractAgent(offer) == "t") _agentTrue.Add(offer);
+                foreach (Offer offer in _offers)
+                {
+                    if (ExtractAgent(offer) == "f") _agentFalse.Add(offer);
+                    else if (ExtractAgent(offer) == "t") _agentTrue.Add(offer);
+                }
             }
 
             if (_agentFalse.Count > 0)
@@ -2315,14 +2330,11 @@ namespace Metal_Code
             worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 4, 8 + _agentFalse.Count + _agentTrue.Count, 7].Style.Fill.PatternType = ExcelFillStyle.Solid;
             worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 4, 8 + _agentFalse.Count + _agentTrue.Count, 7].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightPink);
 
-            int plan = 150000;                                              //план по умолчанию
-            if (int.TryParse(Plan.Text, out int salary)) plan = salary;     //введенный план
-
             worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Прибыль месяца:";
             worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 2].Formula =
                 "=(SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15";
             worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 3].Formula =
-                $"=(((SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15)-{plan})*0.15";
+                $"=(((SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15)-150000)*0.15";
 
             worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Доп бонус за ИП и ПК:";
             worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(total2)*0.2-SUM(total2)/6";
@@ -2356,6 +2368,8 @@ namespace Metal_Code
 
             worksheet.Cells.AutoFitColumns();
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
+
+            return true;
         }
 
         private static string ExtractAgent(Offer offer)
@@ -2367,7 +2381,7 @@ namespace Metal_Code
             return _char;
         }
 
-        public void EngineerReport(string path)         //метод создания отчета по выполненным расчетам
+        public bool EngineerReport(string path)         //метод создания отчета по выполненным расчетам
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
@@ -2385,6 +2399,8 @@ namespace Metal_Code
                 {   //получаем список расчетов за выбранный период, автором которых является выбранный сотрудник
                     _offers = db.Offers.Where(o => o.Autor == man.Name &&
                     o.CreatedDate >= ReportCalendar.SelectedDates[0] && o.CreatedDate <= ReportCalendar.SelectedDates[ReportCalendar.SelectedDates.Count - 1]).ToList();
+
+                    if (_offers.Count == 0) return false;
                 }
                 catch (DbUpdateConcurrencyException ex)
                 {
@@ -2431,6 +2447,8 @@ namespace Metal_Code
 
             worksheet.Cells.AutoFitColumns();
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
+
+            return true;
         }
 
         private (int, int) TypesAndWorks(Offer offer)
