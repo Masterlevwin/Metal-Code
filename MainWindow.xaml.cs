@@ -2380,7 +2380,7 @@ namespace Metal_Code
         {
             if (offer.Data is null) return (0, 0);
 
-            int types = 0; int works = 0;
+            int types = 0; int works = 0; int count = 0; int bends = 0;
 
             ProductModel.Product = OpenOfferData(offer.Data);
             if (ProductModel.Product is not null && ProductModel.Product.Details.Count > 0)
@@ -2391,10 +2391,17 @@ namespace Metal_Code
                         types++;
                         foreach (SaveWork work in type.Works)
                         {
-                            if (work is ICut _cut && _cut.PartsControl != null) foreach (PartControl _p in _cut.PartsControl.Parts)
-                                    foreach (BendControl item in _p.UserControls.OfType<BendControl>())
-                                        if (item.Bend > 0) count += _p.Part.Count;
+                            foreach (Work w in Works)
+                            {
+                                if (w.Name == "Лазерная резка" && work.NameWork == w.Name)
+                                {
+                                    count += work.Parts.Count;
 
+                                    foreach (Part part in work.Parts)
+                                        foreach (List<string> list in part.PropsDict.Values)
+                                            if (list.Count > 0 && list[0] == "0") bends++;
+                                }
+                            } 
                         }
                         works++;
                     }
