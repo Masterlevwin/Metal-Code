@@ -1362,6 +1362,7 @@ namespace Metal_Code
             }
         }
 
+
         //-------------Выходные файлы----------//
         public void ExportToExcel(string path)      // метод оформления КП в формате excel
         {
@@ -2070,87 +2071,6 @@ namespace Metal_Code
             workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + Order.Text + " Комплектация" + ".xlsx");
         }
 
-        public static DataTable ToDataTable<T>(ObservableCollection<T> items)
-        {
-            var tb = new DataTable(typeof(T).Name);
-
-            PropertyInfo[] props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
-
-            foreach (PropertyInfo prop in props)
-            {
-                Type t = GetCoreType(prop.PropertyType);
-                tb.Columns.Add(prop.Name, t);
-            }
-
-
-            foreach (T item in items)
-            {
-                var values = new object[props.Length];
-
-                for (int i = 0; i < props.Length; i++)
-                {
-                    values[i] = props[i].GetValue(item, null);
-                }
-
-                tb.Rows.Add(values);
-            }
-            return tb;
-        }
-
-        public static bool IsNullable(Type t)
-        {
-            return !t.IsValueType || (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>));
-        }
-
-        public static Type GetCoreType(Type t)
-        {
-            if (t != null && IsNullable(t))
-            {
-                if (!t.IsValueType)
-                {
-                    return t;
-                }
-                else
-                {
-                    return Nullable.GetUnderlyingType(t);
-                }
-            }
-            else
-            {
-                return t;
-            }
-        }
-
-        public static float Parser(string data)        //обёртка для парсинга float-значений
-        {
-            if (float.TryParse(data, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands,
-                System.Globalization.CultureInfo.InvariantCulture, out float f)) return f;
-            else return 0;
-        }
-
-        private void Exit(object sender, CancelEventArgs e)
-        {
-            MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
-                                           MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-            if (response == MessageBoxResult.No) e.Cancel = true;
-            else Environment.Exit(0);
-        }
-        public void Exit(object sender, RoutedEventArgs e)
-        {
-            Environment.Exit(0);
-        }
-
-        private static void ThemeChange(string style)
-        {
-            // определяем путь к файлу ресурсов
-            Uri? uri = new("Themes/" + style + ".xaml", UriKind.Relative);
-            // загружаем словарь ресурсов
-            ResourceDictionary? resourceDict = Application.LoadComponent(uri) as ResourceDictionary;
-            // очищаем коллекцию ресурсов приложения
-            Application.Current.Resources.Clear();
-            // добавляем загруженный словарь ресурсов
-            Application.Current.Resources.MergedDictionaries.Add(resourceDict);
-        }
 
         //-------------Отчеты-----------------//
 
@@ -2481,6 +2401,21 @@ namespace Metal_Code
             exampleWindow.Show();
         }
 
+
+        //------------Смена темы----------------------------------//
+        private static void ThemeChange(string style)
+        {
+            // определяем путь к файлу ресурсов
+            Uri? uri = new("Themes/" + style + ".xaml", UriKind.Relative);
+            // загружаем словарь ресурсов
+            ResourceDictionary? resourceDict = Application.LoadComponent(uri) as ResourceDictionary;
+            // очищаем коллекцию ресурсов приложения
+            Application.Current.Resources.Clear();
+            // добавляем загруженный словарь ресурсов
+            Application.Current.Resources.MergedDictionaries.Add(resourceDict);
+        }
+
+
         //-----------Вспомогательные методы-----------------------//
 
         private string ShortManager()       //метод, возвращающий сокращенное имя менеджера
@@ -2537,5 +2472,79 @@ namespace Metal_Code
             };
             return _massRatio;
         }
+
+        public static DataTable ToDataTable<T>(ObservableCollection<T> items)
+        {
+            var tb = new DataTable(typeof(T).Name);
+
+            PropertyInfo[] props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+            foreach (PropertyInfo prop in props)
+            {
+                Type t = GetCoreType(prop.PropertyType);
+                tb.Columns.Add(prop.Name, t);
+            }
+
+
+            foreach (T item in items)
+            {
+                var values = new object[props.Length];
+
+                for (int i = 0; i < props.Length; i++)
+                {
+                    values[i] = props[i].GetValue(item, null);
+                }
+
+                tb.Rows.Add(values);
+            }
+            return tb;
+        }
+
+        public static bool IsNullable(Type t)
+        {
+            return !t.IsValueType || (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>));
+        }
+
+        public static Type GetCoreType(Type t)
+        {
+            if (t != null && IsNullable(t))
+            {
+                if (!t.IsValueType)
+                {
+                    return t;
+                }
+                else
+                {
+                    return Nullable.GetUnderlyingType(t);
+                }
+            }
+            else
+            {
+                return t;
+            }
+        }
+
+        public static float Parser(string data)        //обёртка для парсинга float-значений
+        {
+            if (float.TryParse(data, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands,
+                System.Globalization.CultureInfo.InvariantCulture, out float f)) return f;
+            else return 0;
+        }
+
+
+        //-------------Выход из программы------------------------//
+
+        private void Exit(object sender, CancelEventArgs e)
+        {
+            MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
+                                           MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+            if (response == MessageBoxResult.No) e.Cancel = true;
+            else Environment.Exit(0);
+        }
+        public void Exit(object sender, RoutedEventArgs e)
+        {
+            Environment.Exit(0);
+        }
+
     }
 }
