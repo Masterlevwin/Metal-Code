@@ -1969,20 +1969,22 @@ namespace Metal_Code
         {
             using var workbook = new ExcelPackage();
             ExcelWorksheet complectsheet = workbook.Workbook.Worksheets.Add("Комплектация");
-            
+
             complectsheet.Cells[1, 1, 1, 3].Merge = true;
             complectsheet.Cells[1, 1].Value = Order.Text;           //Номер КП
-            complectsheet.Cells[1, 1].Style.Font.Size = 72;
+            complectsheet.Cells[1, 1].Style.Font.Size = 60;
+            complectsheet.Cells[1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
 
             complectsheet.Cells[1, 4, 1, 9].Merge = true;
             complectsheet.Cells[1, 4].Value = Company.Text;         //Компания
             complectsheet.Cells[1, 4].Style.Font.Size = 36;
+            complectsheet.Cells[1, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
 
-                //выделяем и центрируем первую строку
+            //оформляем первую строку
             complectsheet.Row(1).Style.Font.Bold = true;
-            complectsheet.Row(1).Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            complectsheet.Row(1).Height = 60;
 
-                //устанавливаем заголовки таблицы
+            //устанавливаем заголовки таблицы
             List<string> _heads = new() { "№", "Вид", "Название детали", "Маршрут", "Кол-во", "Размеры детали", "Вес, кг", "Материал", "Толщина" };
             for (int head = 0; head < _heads.Count; head++) complectsheet.Cells[2, head + 1].Value = _heads[head];
 
@@ -2048,9 +2050,6 @@ namespace Metal_Code
 
             complectsheet.Row(Parts.Count + 3).Style.Font.Bold = true;      //выделяем жирным шрифтом подсчитанные кол-во и вес
 
-            complectsheet.Cells[1, 1, 1, 9].Copy(complectsheet.Cells[Parts.Count + 4, 1, Parts.Count + 4, 9]);          //копируем первую строку
-            complectsheet.Cells[1, 1, 1, 9].CopyStyles(complectsheet.Cells[Parts.Count + 4, 1, Parts.Count + 4, 9]);    //копируем стиль первой строки
-
             ExcelRange details = complectsheet.Cells[2, 1, Parts.Count + 2, 9];     //получаем таблицу деталей для оформления
 
             // ----- обводка границ и авторастягивание столбцов -----
@@ -2061,7 +2060,7 @@ namespace Metal_Code
             details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             complectsheet.Cells.AutoFitColumns();
-            complectsheet.View.ZoomScale = 150;         //увеличиваем масштаб книги
+            //complectsheet.View.ZoomScale = 150;         //увеличиваем масштаб книги
 
             //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
             complectsheet.PrinterSettings.FitToPage = true;
@@ -2069,9 +2068,12 @@ namespace Metal_Code
             complectsheet.PrinterSettings.FitToHeight = 0;
             complectsheet.PrinterSettings.HorizontalCentered = true;
 
+            //устанавливаем колонтитул (в данном случае будет подчеркнутое название файла)
+            complectsheet.HeaderFooter.OddFooter.RightAlignedText = $"&24&U&\"Arial Rounded MT Bold\" {ExcelHeaderFooter.FileName}";
+
             // ----- сохраняем книгу в файл Excel -----
 
-            workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + Order.Text + " Комплектация" + ".xlsx");
+            workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {Company.Text} - комплектация.xlsx");
         }
 
 
@@ -2388,7 +2390,13 @@ namespace Metal_Code
                     {
                         types++;
                         foreach (SaveWork work in type.Works)
-                            works++;
+                        {
+                            if (work is ICut _cut && _cut.PartsControl != null) foreach (PartControl _p in _cut.PartsControl.Parts)
+                                    foreach (BendControl item in _p.UserControls.OfType<BendControl>())
+                                        if (item.Bend > 0) count += _p.Part.Count;
+
+                        }
+                        works++;
                     }
             }
 
