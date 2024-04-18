@@ -1986,6 +1986,8 @@ namespace Metal_Code
             List<string> _heads = new() { "№", "Вид", "Название детали", "Маршрут", "Кол-во", "Размеры детали", "Вес, кг", "Материал", "Толщина" };
             for (int head = 0; head < _heads.Count; head++) complectsheet.Cells[2, head + 1].Value = _heads[head];
 
+            float _totalMass = 0;       //счетчик общего веса деталей
+
             if (Parts.Count > 0)        //перебираем нарезанные детали
                 for (int i = 0; i < Parts.Count; i++)
                 {
@@ -2018,6 +2020,8 @@ namespace Metal_Code
                     }
 
                     complectsheet.Cells[i + 3, 7].Value = Math.Round(Parts[i].Mass, 1);     //масса детали
+                    _totalMass += Parts[i].Mass * Parts[i].Count;                           //дополнительно считаем общий вес
+
                     complectsheet.Cells[i + 3, 8].Value = Parts[i].Metal;                   //материал
 
                     complectsheet.Cells[i + 3, 9].Value = Parts[i].Destiny;                 //толщина
@@ -2039,8 +2043,7 @@ namespace Metal_Code
 
             complectsheet.Cells[Parts.Count + 3, 6].Value = "общий вес:";
             complectsheet.Cells[Parts.Count + 3, 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
-            complectsheet.Names.Add("totalMass", complectsheet.Cells[3, 7, Parts.Count + 2, 7]);
-            complectsheet.Cells[Parts.Count + 3, 7].Formula = "=SUM(totalMass)";
+            complectsheet.Cells[Parts.Count + 3, 7].Value = Math.Ceiling(_totalMass);
             complectsheet.Cells[Parts.Count + 3, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
             complectsheet.Row(Parts.Count + 3).Style.Font.Bold = true;      //выделяем жирным шрифтом подсчитанные кол-во и вес
