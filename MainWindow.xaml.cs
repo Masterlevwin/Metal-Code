@@ -2333,25 +2333,27 @@ namespace Metal_Code
                 }
             }
             
-            (int, int) _count;
+            (int, int, int, int) _values;
 
             if (_offers.Count > 0 )
                 for (int i = 0; i < _offers.Count; i++)
                 {
-                    _count = TypesAndWorks(_offers[i]);
+                    _values = TypesAndWorks(_offers[i]);
 
                     worksheet.Cells[i + 2, 1].Value = _offers[i].CreatedDate;
                     worksheet.Cells[i + 2, 1].Style.Numberformat.Format = "d MMM";
                     worksheet.Cells[i + 2, 2].Value = _offers[i].N;
                     worksheet.Cells[i + 2, 3].Value = _offers[i].Company;
                     worksheet.Cells[i + 2, 4].Value = Math.Round(_offers[i].Amount, 2);
-                    worksheet.Cells[i + 2, 5].Value = _count.Item1;
-                    worksheet.Cells[i + 2, 6].Value = _count.Item2;
+                    worksheet.Cells[i + 2, 5].Value = _values.Item1;
+                    worksheet.Cells[i + 2, 6].Value = _values.Item2;
+                    worksheet.Cells[i + 2, 7].Value = _values.Item3;
+                    worksheet.Cells[i + 2, 8].Value = _values.Item4;
                 }
 
-            List<string> _headers = new() { "дата", "№ расчета", "проект", "сумма, руб", "заготовок", "работ", "моделей", "сборок" };
-
+            List<string> _headers = new() { "дата", "№ расчета", "проект", "сумма, руб", "заготовок", "работ", "позиций", "блоков гибки", "моделей", "сборок" };
             for (int col = 0; col < _headers.Count; col++) worksheet.Cells[1, col + 1].Value = _headers[col];
+
             worksheet.Cells[1, 1, 1, _headers.Count].Style.Font.Bold = true;
             worksheet.Cells[1, 1, 1, _headers.Count].Style.Fill.PatternType = ExcelFillStyle.Solid;
             worksheet.Cells[1, 1, 1, _headers.Count].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
@@ -2365,6 +2367,10 @@ namespace Metal_Code
             worksheet.Cells[_offers.Count + 2, 5].Formula = "=SUM(totalT)";
             worksheet.Names.Add("totalW", worksheet.Cells[2, 6, _offers.Count + 1, 6]);
             worksheet.Cells[_offers.Count + 2, 6].Formula = "=SUM(totalW)";
+            worksheet.Names.Add("totalP", worksheet.Cells[2, 7, _offers.Count + 1, 7]);
+            worksheet.Cells[_offers.Count + 2, 7].Formula = "=SUM(totalP)";
+            worksheet.Names.Add("totalB", worksheet.Cells[2, 8, _offers.Count + 1, 8]);
+            worksheet.Cells[_offers.Count + 2, 8].Formula = "=SUM(totalB)";
 
             ExcelRange row = worksheet.Cells[_offers.Count + 2, 1, _offers.Count + 2, _headers.Count];
             row.Style.Font.Bold = true;
@@ -2376,9 +2382,9 @@ namespace Metal_Code
             return true;
         }
 
-        private (int, int) TypesAndWorks(Offer offer)
+        private (int, int, int, int) TypesAndWorks(Offer offer)
         {
-            if (offer.Data is null) return (0, 0);
+            if (offer.Data is null) return (0, 0, 0, 0);
 
             int types = 0; int works = 0; int count = 0; int bends = 0;
 
@@ -2391,23 +2397,26 @@ namespace Metal_Code
                         types++;
                         foreach (SaveWork work in type.Works)
                         {
-                            foreach (Work w in Works)
+                            if (work.NameWork == "Лазерная резка")
                             {
-                                if (w.Name == "Лазерная резка" && work.NameWork == w.Name)
-                                {
-                                    count += work.Parts.Count;
+                                count += work.Parts.Count;
 
-                                    foreach (Part part in work.Parts)
-                                        foreach (List<string> list in part.PropsDict.Values)
-                                            if (list.Count > 0 && list[0] == "0") bends++;
-                                }
-                            } 
+                                foreach (Part part in work.Parts)
+                                    foreach (List<string> list in part.PropsDict.Values)
+                                        if (list.Count > 2 && list[0] == "0" && part.Description.Contains(" + Г ")) bends++;
+                                break;
+                            }
+                            else if (work.NameWork == "Труборез")
+                            {
+                                count += work.Parts.Count;
+                                break;
+                            }
                         }
-                        works++;
+                        works += type.Works.Count;
                     }
             }
 
-            return (types, works);
+            return (types, works, count, bends);
         }
 
 

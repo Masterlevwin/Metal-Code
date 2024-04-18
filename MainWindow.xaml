@@ -36,7 +36,7 @@
                 <MenuItem Header="_Сохранить" Command="{Binding SaveCommand}" InputGestureText="Ctrl+D"/>
                 <MenuItem Header="_Получить отчет">
                     <MenuItem Header="Выбрать даты"/>
-                    <Calendar x:Name="ReportCalendar" SelectionMode="SingleRange" IsTodayHighlighted="False" SelectedDate="{Binding DisplayDate, ElementName=ReportCalendar}"/>
+                    <Calendar x:Name="ReportCalendar" IsTodayHighlighted="False" SelectedDate="{Binding DisplayDate, ElementName=ReportCalendar}" SelectionMode="SingleRange"/>
                     <StackPanel>
                         <ComboBox x:Name="UserDrop" DisplayMemberPath="Name" SelectedIndex="0" Margin="0,5,0,5"/>
                         <Button Content="по заказам" Click="CreateReport" Margin="0,5,0,5"/>
