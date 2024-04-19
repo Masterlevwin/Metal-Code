@@ -2546,7 +2546,11 @@ namespace Metal_Code
             MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
                                            MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
             if (response == MessageBoxResult.No) e.Cancel = true;
-            else Environment.Exit(0);
+            else
+            {
+                InsertDatabase();
+                Environment.Exit(0);
+            }
         }
         public void Exit(object sender, RoutedEventArgs e)
         {
