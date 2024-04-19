@@ -30,7 +30,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.4.3";
+        readonly string version = "2.4.4";
 
         public bool isLocal = true;     //запуск локальной версии
         //public bool isLocal = false;    //запуск стандартной версии
@@ -448,7 +448,7 @@ namespace Metal_Code
                 Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
                 if (_man != null)
                 {
-                    if (!allOffers) Offers = _man.Offers.TakeLast(count).ToList();  //показываем последние "numberOffer" расчетов
+                    if (!allOffers) Offers = _man.Offers.TakeLast(count).ToList();  //показываем последние "select" расчетов
                     else Offers = _man.Offers.ToList();                             //если пользователь хочет увидеть все расчеты
 
                     OffersGrid.ItemsSource = Offers;
@@ -478,10 +478,10 @@ namespace Metal_Code
         {
             if (e.Key == Key.Add && sender is TextBox tBox) ViewOfferWithDataBase(tBox.Text);
         }
-        private void ViewOfferWithDataBase(string? numberOffer)             //метод, в котором мы добавляем расчет из основной базы в локальную
-                                                                //по введенному пользователем номеру расчета
+        private void ViewOfferWithDataBase(string? select)       //метод, в котором мы добавляем расчет из основной базы в локальную
+                                                                 //по введенному пользователем номеру расчета или названию компании
         {
-            if (!isLocal) return;                                //если запущена основная база, выходим из метода
+            if (!isLocal || select is null) return;              //если запущена основная база или строка пустая, выходим из метода
 
             //подключаемся к основной базе данных
             using ManagerContext db = new(connections[1]);
@@ -493,7 +493,8 @@ namespace Metal_Code
                     //ищем менеджера в основной базе по имени соответствующего локальному, при этом загружаем его расчеты
                     Manager? _man = db.Managers.Where(m => m.Name == man.Name).Include(c => c.Offers).FirstOrDefault();
 
-                    List<Offer>? offers = _man?.Offers.Where(o => o.N == numberOffer).ToList();    //ищем все КП согласно введенному номеру
+                    //ищем все КП согласно введенному номеру расчета или названию компании
+                    List<Offer>? offers = _man?.Offers.Where(o => o.N.Contains(select) || o.Company.Contains(select.ToLower())).ToList();
 
                     if (offers == null || offers.Count == 0)
                     {
@@ -540,7 +541,7 @@ namespace Metal_Code
                             dbLocal.SaveChanges();
                             StatusBegin($"Локальная база обновлена");
 
-                            ViewOffersGrid(_manLocal);      //обновляем представление расчетов выбранного менеджера
+                            if (_manLocal != null) ViewOffersGrid(_manLocal);      //обновляем представление расчетов выбранного менеджера
                         }
                     }
                 }
@@ -819,6 +820,7 @@ namespace Metal_Code
                                     parts.Add(p.Part);
             return parts;
         }
+        
         //private ObservableCollection<Detail> DetailsSource()
         //{
         //    ObservableCollection<Detail> details = new();
@@ -2548,7 +2550,7 @@ namespace Metal_Code
             if (response == MessageBoxResult.No) e.Cancel = true;
             else
             {
-                InsertDatabase();
+                //InsertDatabase();
                 Environment.Exit(0);
             }
         }
