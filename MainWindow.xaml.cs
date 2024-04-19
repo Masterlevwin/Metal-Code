@@ -16,8 +16,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Runtime.Serialization.Json;
 using System.Text;
-using System.Windows.Media.Imaging;
-using System.Drawing;
+using System.Windows.Input;
 using OfficeOpenXml.Drawing;
 
 namespace Metal_Code
@@ -414,6 +413,7 @@ namespace Metal_Code
                 OnPropertyChanged(nameof(Result));
             }
         }
+
         public void TotalResult()
         {
             Result = 0;
@@ -426,25 +426,7 @@ namespace Metal_Code
 
             Result = (float)Math.Round(Result * Ratio, 2);
 
-            if (Result > 0) ViewDetailsGrid();
-        }
-
-        private void ViewDetailsGrid()
-        {
-            Parts = PartsSource();
-
-            if (IsLaser) DetailsGrid.ItemsSource = Parts;
-            else DetailsGrid.ItemsSource = DetailsSource();
-
-            DetailsGrid.Columns[0].Header = "Материал";
-            DetailsGrid.Columns[1].Header = "Толщина";
-            DetailsGrid.Columns[2].Header = "Работы";
-            DetailsGrid.Columns[3].Header = "Точность";
-            DetailsGrid.Columns[4].Header = "Наименование";
-            DetailsGrid.Columns[5].Header = "Кол-во, шт";
-            DetailsGrid.Columns[6].Header = "Цена за шт, руб";
-            DetailsGrid.Columns[7].Header = "Стоимость, руб";
-            DetailsGrid.FrozenColumnCount = 1;
+            if (Result > 0) Parts = PartsSource();
         }
 
         private void ManagerChanged(object sender, SelectionChangedEventArgs e)
@@ -455,7 +437,7 @@ namespace Metal_Code
         {
             if (ManagerDrop.SelectedItem is Manager man) ViewOffersGrid(man);
         }
-        private void ViewOffersGrid(Manager man, bool allOffers = false, int count = 13)
+        private void ViewOffersGrid(Manager man, bool allOffers = false, int count = 24)
         {
                 //подключаемся к базе данных
             using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
@@ -484,10 +466,6 @@ namespace Metal_Code
                     (OffersGrid.Columns[8] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
 
                     OffersGrid.FrozenColumnCount = 2;
-
-                    //если список КП принадлежит текущему менеджеру, разрешаем ему удалять эти КП
-                    //foreach (MenuItem item in OffersGrid.ContextMenu.Items)
-                    //    if (item.Name == "DeleteOffer") item.IsEnabled = CurrentManager == man;
                 }
             }
         }
@@ -496,11 +474,11 @@ namespace Metal_Code
             if (sender is RadioButton rBtn && rBtn.IsChecked == true && ManagerDrop.SelectedItem is Manager man) ViewOffersGrid(man, true);
         }
 
-        private void ViewOffers(object sender, TextChangedEventArgs e)
+        private void ViewOffers(object sender, KeyEventArgs e)              //на клавишу "+", которая в блоке Num, добавляем расчет из основной базы
         {
-            if (sender is TextBox tBox) ViewOfferWithDataBase(tBox.Text);
+            if (e.Key == Key.Add && sender is TextBox tBox) ViewOfferWithDataBase(tBox.Text);
         }
-        private void ViewOfferWithDataBase(string? numberOffer) //метод, в котором мы добавляем расчет из основной базы в локальную
+        private void ViewOfferWithDataBase(string? numberOffer)             //метод, в котором мы добавляем расчет из основной базы в локальную
                                                                 //по введенному пользователем номеру расчета
         {
             if (!isLocal) return;                                //если запущена основная база, выходим из метода
@@ -577,7 +555,7 @@ namespace Metal_Code
         {
             InsertDatabase();
         }
-        private void InsertDatabase()                           //метод отправки новых созданных расчетов в основную базу
+        private void InsertDatabase()                                       //метод отправки новых созданных расчетов в основную базу
         {
             if (!isLocal) return;                               //если запущена основная база, выходим из метода
 
@@ -773,20 +751,20 @@ namespace Metal_Code
                 "Обновление локальных баз", MessageBoxButton.OK, MessageBoxImage.Exclamation);
         }
 
-        private void OffersFormatting(object sender, DataGridRowEventArgs e)    // при загрузке строк (OffersGrid.LoadingRow="OffersFormatting")
-        {
-            if (e.Row.DataContext is not Offer offer) return;
+        //private void OffersFormatting(object sender, DataGridRowEventArgs e)    // при загрузке строк (OffersGrid.LoadingRow="OffersFormatting")
+        //{
+        //    if (e.Row.DataContext is not Offer offer) return;
 
-            SolidColorBrush _endDateBrush = new(Colors.Gold);               //цвет расчета, у которого наступила дата отгрузки
-            SolidColorBrush _activeOfferBrush = new(Colors.PaleGreen);      //цвет загруженного расчета
+        //    SolidColorBrush _endDateBrush = new(Colors.Gold);               //цвет расчета, у которого наступила дата отгрузки
+        //    SolidColorBrush _activeOfferBrush = new(Colors.PaleGreen);      //цвет загруженного расчета
 
-            // если наступила дата отгрузки, а закрывающий документ еще не записан,
-            // предполагаем, что отгрузка еще не произведена, и окрашиваем такой расчет в золотой цвет
-            if (offer.EndDate <= DateTime.Now && offer.Order != null && offer.Order != "" && (offer.Act == null || offer.Act == ""))
-                e.Row.Background = _endDateBrush;
-            if (offer != null && offer == ActiveOffer)                      // если расчет загружен, окрашиваем его в зеленый цвет
-                e.Row.Background = _activeOfferBrush;
-        }
+        //    // если наступила дата отгрузки, а закрывающий документ еще не записан,
+        //    // предполагаем, что отгрузка еще не произведена, и окрашиваем такой расчет в золотой цвет
+        //    if (offer.EndDate <= DateTime.Now && offer.Order != null && offer.Order != "" && (offer.Act == null || offer.Act == ""))
+        //        e.Row.Background = _endDateBrush;
+        //    if (offer != null && offer == ActiveOffer)                      // если расчет загружен, окрашиваем его в зеленый цвет
+        //        e.Row.Background = _activeOfferBrush;
+        //}
 
         void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
@@ -841,44 +819,44 @@ namespace Metal_Code
                                     parts.Add(p.Part);
             return parts;
         }
-        private ObservableCollection<Detail> DetailsSource()
-        {
-            ObservableCollection<Detail> details = new();
-            for (int i = 0; i < DetailControls.Count; i++)
-            {
-                Detail _detail = DetailControls[i].Detail;
-                _detail.Metal = _detail.Destiny = _detail.Description = "";     //очищаем описания свойств детали
+        //private ObservableCollection<Detail> DetailsSource()
+        //{
+        //    ObservableCollection<Detail> details = new();
+        //    for (int i = 0; i < DetailControls.Count; i++)
+        //    {
+        //        Detail _detail = DetailControls[i].Detail;
+        //        _detail.Metal = _detail.Destiny = _detail.Description = "";     //очищаем описания свойств детали
 
-                for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
-                {
-                    //с помощью повторения символа переноса строки визуализируем дерево деталей и работ
-                    if (DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedItem is TypeDetail _type)
-                        _detail.Metal += $"{_type.Name}" + string.Join("", Enumerable.Repeat('\n', DetailControls[i].TypeDetailControls[j].WorkControls.Count));
+        //        for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
+        //        {
+        //            //с помощью повторения символа переноса строки визуализируем дерево деталей и работ
+        //            if (DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedItem is TypeDetail _type)
+        //                _detail.Metal += $"{_type.Name}" + string.Join("", Enumerable.Repeat('\n', DetailControls[i].TypeDetailControls[j].WorkControls.Count));
 
-                    _detail.Destiny += $"{DetailControls[i].TypeDetailControls[j].S}"
-                        + string.Join("", Enumerable.Repeat('\n', DetailControls[i].TypeDetailControls[j].WorkControls.Count));
+        //            _detail.Destiny += $"{DetailControls[i].TypeDetailControls[j].S}"
+        //                + string.Join("", Enumerable.Repeat('\n', DetailControls[i].TypeDetailControls[j].WorkControls.Count));
 
-                    _detail.Accuracy = $"H12/h12 +-IT 12/2"
-                        + string.Join("", Enumerable.Repeat('\n', DetailControls[i].TypeDetailControls[j].WorkControls.Count));
+        //            _detail.Accuracy = $"H12/h12 +-IT 12/2"
+        //                + string.Join("", Enumerable.Repeat('\n', DetailControls[i].TypeDetailControls[j].WorkControls.Count));
 
-                    for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
-                    {
-                        if (DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedItem is Work work)
-                        {
-                            //для окраски уточняем цвет в описании работы
-                            if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is PaintControl _paint)
-                                _detail.Description += $"{work.Name} (цвет - {_paint.Ral})\n";
-                            //для доп работы её наименование добавляем к наименованию работы - особый случай
-                            else if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is ExtraControl _extra) _detail.Description += $"{_extra.NameExtra}\n";
-                            //в остальных случаях добавляем наименование работы
-                            else _detail.Description += $"{work.Name}\n";
-                        }
-                    }
-                }
-                details.Add(_detail);
-            }
-            return details;
-        }
+        //            for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
+        //            {
+        //                if (DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedItem is Work work)
+        //                {
+        //                    //для окраски уточняем цвет в описании работы
+        //                    if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is PaintControl _paint)
+        //                        _detail.Description += $"{work.Name} (цвет - {_paint.Ral})\n";
+        //                    //для доп работы её наименование добавляем к наименованию работы - особый случай
+        //                    else if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is ExtraControl _extra) _detail.Description += $"{_extra.NameExtra}\n";
+        //                    //в остальных случаях добавляем наименование работы
+        //                    else _detail.Description += $"{work.Name}\n";
+        //                }
+        //            }
+        //        }
+        //        details.Add(_detail);
+        //    }
+        //    return details;
+        //}
 
         private void UpdateResult(object sender, TextChangedEventArgs e)
         {
@@ -1439,16 +1417,17 @@ namespace Metal_Code
                 }
 
             //оформляем заголовки таблицы
-            for (int col = 0; col < DetailsGrid.Columns.Count; col++)
+            List<string> _headersD = new() { "Материал", "Толщина", "Работы", "Точность", "Наименование", "Кол-во, шт", "Цена за шт, руб", "Стоимость, руб" };
+            for (int col = 0; col < _headersD.Count; col++)
             {
-                worksheet.Cells[6, col + 1].Value = DetailsGrid.Columns[col].Header;
+                worksheet.Cells[6, col + 1].Value = _headersD[col];
+                worksheet.Cells[6, col + 1].Style.WrapText = true;
                 worksheet.Cells[6, col + 1, 7, col + 1].Merge = true;
                 worksheet.Cells[6, col + 1, 7, col + 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
                 worksheet.Cells[6, col + 1, 7, col + 1].Style.Fill.BackgroundColor.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
-                worksheet.Cells[6, col + 1].Style.WrapText = true;
             }
-            worksheet.Columns[9].Hidden = true;
-            worksheet.Columns[10].Hidden = true;
+            worksheet.Column(9).Hidden = true;
+            worksheet.Column(10).Hidden = true;
 
             if (CheckPaint.IsChecked == null)           //если требуется указать окраску отдельной строкой
             {
@@ -1678,15 +1657,16 @@ namespace Metal_Code
 
             scoresheet.Cells[extable.Rows + 2, 1].Value = "общее кол-во:";
             scoresheet.Cells[extable.Rows + 2, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            scoresheet.Names.Add("totalDetails", scoresheet.Cells[2, 2, extable.Rows + 1, 2]);
+            scoresheet.Cells[extable.Rows + 2, 2].Formula = "=SUM(totalDetails)";
             scoresheet.Cells[extable.Rows + 2, 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             scoresheet.Cells[extable.Rows + 2, 1].Style.Font.Bold = scoresheet.Cells[extable.Rows + 2, 2].Style.Font.Bold = true;
+
             if (HasDelivery)
             {
-                scoresheet.Cells[extable.Rows + 2, 2].Value = scoresheet.Cells[extable.Rows + 1, 5].Value;
                 scoresheet.Cells[extable.Rows + 1, 18].Value = scoresheet.Cells[extable.Rows + 1, 2].Value;
                 scoresheet.Cells[extable.Rows + 2, 18].Value = scoresheet.Cells[extable.Rows + 1, 3].Value;
             }
-            else scoresheet.Cells[extable.Rows + 2, 2].Value = scoresheet.Cells[extable.Rows + 2, 5].Value;
 
             ExcelRange totals = scoresheet.Cells[Parts.Count + 2, 5, Parts.Count + 3, 18];
             totals.Style.Fill.PatternType = ExcelFillStyle.Solid;
@@ -2572,6 +2552,5 @@ namespace Metal_Code
         {
             Environment.Exit(0);
         }
-
     }
 }

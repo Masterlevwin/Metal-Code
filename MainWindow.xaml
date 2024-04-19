@@ -115,7 +115,17 @@
                 </ScrollViewer>
             </GroupBox>
 
-            <GroupBox Header="Коммерческое предложение" x:Name="OrderBox" Grid.Column="1" Margin="10,20,10,10">
+            <GroupBox x:Name="PartsBox" Header="Список нарезанных деталей" Grid.Row="1" Margin="20,0,10,50">
+                <TabControl x:Name="PartsTab"/>
+            </GroupBox>
+
+            <StatusBar x:Name="Status" Grid.Row="1" VerticalAlignment="Bottom" MinHeight="20" Margin="20,0,15,20" BorderThickness="1,1,1,1" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Background="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}" VerticalContentAlignment="Center" Height="24">
+                <StackPanel>
+                    <TextBox x:Name="NotifyText" BorderThickness="0" Margin="5,0,0,0" Background="{x:Null}"/>
+                </StackPanel>
+            </StatusBar>
+
+            <GroupBox Header="Коммерческое предложение" x:Name="OrderBox" Grid.Column="1" Margin="10,20,20,10">
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                     <Grid x:Name="OrderGrid">
                         <Image HorizontalAlignment="Left" VerticalAlignment="Top" Height="27" Margin="35,10,0,0" Source="/app_logo.jpeg"/>
@@ -139,7 +149,7 @@
                         </Button>
                         <RadioButton GroupName="Offers" Content="Все" Margin="340,165,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="ViewAllOffers" ToolTip="Показать все расчеты выбранного менеджера"/>
                         <RadioButton GroupName="Offers" x:Name="CountRB" Content="Найти" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="390,165,0,0" ToolTip="Найти конкретный расчет"/>
-                        <TextBox ToolTip="Введите номер расчета" MinWidth="50" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="450,163,0,0" IsEnabled="{Binding IsChecked, ElementName=CountRB}" TextChanged="ViewOffers"/>
+                        <TextBox ToolTip="Введите номер расчета" MinWidth="50" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="450,163,0,0" IsEnabled="{Binding IsChecked, ElementName=CountRB}" KeyDown="ViewOffers"/>
                         <Button x:Name="InsertBtn" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="510,160,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Отправить новые расчеты в основную базу" Padding="0,0,0,0" BorderThickness="0,0,0,0" Click="InsertDatabase" IsEnabled="False">
                             <Image Source="/Images/save3.png"/>
                         </Button>
@@ -154,16 +164,6 @@
                         <TextBox x:Name="ConstructRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,138,0,0" TextChanged="UpdateResult"/>
                         <TextBlock HorizontalAlignment="Left" Margin="470,90,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
 
-                        <DataGrid x:Name="OffersGrid" CanUserReorderColumns="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,190,15,5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False" HeadersVisibility="Column" BorderBrush="Red" MaxWidth="515" ClipboardCopyMode="IncludeHeader">
-                            <DataGrid.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="Загрузить" Command="{Binding OpenOfferCommand}"/>
-                                    <MenuItem Header="Удалить" x:Name="DeleteOffer" Command="{Binding RemoveOfferCommand}"/>
-                                    <MenuItem Header="Сохранить изменения" Click="UpdateOffer"/>
-                                </ContextMenu>
-                            </DataGrid.ContextMenu>
-                        </DataGrid>
-
                         <RadioButton GroupName="Boss" x:Name="AppRadioButton" HorizontalAlignment="Left" Margin="15,15,0,0" VerticalAlignment="Top" Checked="IsLaserChanged" IsChecked="True"/>
                         <RadioButton GroupName="Boss" x:Name="LaserRadioButton" HorizontalAlignment="Left" Margin="70,15,0,0" VerticalAlignment="Top" Checked="IsLaserChanged"/>
                         <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет от ООО" HorizontalAlignment="Left" Margin="15,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;"/>
@@ -175,19 +175,17 @@
                 </ScrollViewer>
             </GroupBox>
 
-            <GroupBox x:Name="PartsBox" Header="Список нарезанных деталей" Grid.Row="1" Margin="20,0,10,50">
-                <TabControl x:Name="PartsTab"/>
-            </GroupBox>
-
-            <StatusBar x:Name="Status" Grid.Row="1" VerticalAlignment="Bottom" MinHeight="20" Margin="20,0,15,20" BorderThickness="1,1,1,1" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Background="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}" VerticalContentAlignment="Center" Height="24">
-                <StackPanel>
-                    <TextBox x:Name="NotifyText" BorderThickness="0" Margin="5,0,0,0" Background="{x:Null}"/>
-                </StackPanel>
-            </StatusBar>
-
-            <GroupBox Header="Ведомость деталей" Grid.Column="1" Grid.Row="1" Margin="10,0,10,20">
+            <GroupBox Header="Список расчетов" Grid.Column="1" Margin="10,0,20,20" Grid.Row="1">
                 <Grid>
-                    <DataGrid x:Name="DetailsGrid" VerticalAlignment="Top" Margin="15,5,15,5" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" CanUserReorderColumns="False" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False" HeadersVisibility="Column"/>
+                    <DataGrid x:Name="OffersGrid" CanUserReorderColumns="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,5,10,5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False" HeadersVisibility="Column" BorderBrush="Red" ClipboardCopyMode="IncludeHeader">
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Загрузить" Command="{Binding OpenOfferCommand}"/>
+                                <MenuItem Header="Удалить" x:Name="DeleteOffer" Command="{Binding RemoveOfferCommand}"/>
+                                <MenuItem Header="Сохранить изменения" Click="UpdateOffer"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                    </DataGrid>
                 </Grid>
             </GroupBox>
 
