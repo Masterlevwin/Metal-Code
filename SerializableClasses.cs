@@ -19,6 +19,9 @@ namespace Metal_Code
         [OptionalField]             //атрибут, который позволяет игнорировать это поле при загрузке старых сохранений
         public float Ratio = 1;
 
+        [OptionalField]
+        public bool HasAssembly = false;
+
         public ObservableCollection<Detail> Details { get; set; } = new();
         public Product()
         {
@@ -71,6 +74,9 @@ namespace Metal_Code
 
         [OptionalField]
         public byte[]? ImageBytes;
+
+        [OptionalField]
+        public bool MakeModel;
 
         public Dictionary<int, List<string>> PropsDict = new();
 

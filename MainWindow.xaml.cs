@@ -30,7 +30,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.4.4";
+        readonly string version = "2.4.5";
 
         public bool isLocal = true;     //запуск локальной версии
         //public bool isLocal = false;    //запуск стандартной версии
@@ -401,6 +401,17 @@ namespace Metal_Code
                     }
             if (float.TryParse(ConstructRatio.Text, out float c)) result *= c;
             return result;
+        }
+
+        private bool hasAssembly;
+        public bool HasAssembly
+        {
+            get => hasAssembly;
+            set
+            {
+                hasAssembly = value;
+                OnPropertyChanged(nameof(HasAssembly));
+            }
         }
 
         private float result;
@@ -921,6 +932,7 @@ namespace Metal_Code
             HasDelivery = false;
             CheckPaint.IsChecked = false;
             CheckConstruct.IsChecked = false;
+            HasAssembly = false;
             Order.Text = Company.Text = DateProduction.Text = Adress.Text = "";
             ProductName.Text = $"Изделие";
         }
@@ -988,7 +1000,8 @@ namespace Metal_Code
                 IsAgent = IsAgent,
                 HasDelivery = HasDelivery,
                 HasConstruct = CheckConstruct.IsChecked,
-                HasPaint = CheckPaint.IsChecked
+                HasPaint = CheckPaint.IsChecked,
+                HasAssembly = HasAssembly
             };
 
             ProductModel.Product.Details = product.Details = SaveDetails();
@@ -1258,6 +1271,7 @@ namespace Metal_Code
             IsLaser = ProductModel.Product.IsLaser;
             IsAgent = ProductModel.Product.IsAgent;
             HasDelivery = ProductModel.Product.HasDelivery;
+            HasAssembly = ProductModel.Product.HasAssembly;
 
             LoadDetails(ProductModel.Product.Details);
             UpdateResult();
@@ -2318,7 +2332,7 @@ namespace Metal_Code
                 }
             }
             
-            (int, int, int, int) _values;
+            (int, int, int, int, int, int) _values;
 
             if (_offers.Count > 0 )
                 for (int i = 0; i < _offers.Count; i++)
@@ -2334,6 +2348,8 @@ namespace Metal_Code
                     worksheet.Cells[i + 2, 6].Value = _values.Item2;
                     worksheet.Cells[i + 2, 7].Value = _values.Item3;
                     worksheet.Cells[i + 2, 8].Value = _values.Item4;
+                    worksheet.Cells[i + 2, 9].Value = _values.Item5;
+                    worksheet.Cells[i + 2, 10].Value = _values.Item6;
                 }
 
             List<string> _headers = new() { "дата", "№ расчета", "проект", "сумма, руб", "заготовок", "работ", "позиций", "блоков гибки", "моделей", "сборок" };
@@ -2356,6 +2372,10 @@ namespace Metal_Code
             worksheet.Cells[_offers.Count + 2, 7].Formula = "=SUM(totalP)";
             worksheet.Names.Add("totalB", worksheet.Cells[2, 8, _offers.Count + 1, 8]);
             worksheet.Cells[_offers.Count + 2, 8].Formula = "=SUM(totalB)";
+            worksheet.Names.Add("totalM", worksheet.Cells[2, 9, _offers.Count + 1, 9]);
+            worksheet.Cells[_offers.Count + 2, 9].Formula = "=SUM(totalM)";
+            worksheet.Names.Add("totalA", worksheet.Cells[2, 10, _offers.Count + 1, 10]);
+            worksheet.Cells[_offers.Count + 2, 10].Formula = "=SUM(totalA)";
 
             ExcelRange row = worksheet.Cells[_offers.Count + 2, 1, _offers.Count + 2, _headers.Count];
             row.Style.Font.Bold = true;
@@ -2367,13 +2387,16 @@ namespace Metal_Code
             return true;
         }
 
-        private (int, int, int, int) TypesAndWorks(Offer offer)
+        private (int, int, int, int, int, int) TypesAndWorks(Offer offer)
         {
-            if (offer.Data is null) return (0, 0, 0, 0);
+            if (offer.Data is null) return (0, 0, 0, 0, 0 ,0);
 
-            int types = 0; int works = 0; int count = 0; int bends = 0;
+            int types = 0; int works = 0; int count = 0; int bends = 0; int models = 0; int assemblies = 0;
 
             ProductModel.Product = OpenOfferData(offer.Data);
+
+            if (ProductModel.Product != null && ProductModel.Product.HasAssembly) assemblies++;
+
             if (ProductModel.Product is not null && ProductModel.Product.Details.Count > 0)
             {
                 foreach (Detail det in ProductModel.Product.Details)
@@ -2385,10 +2408,11 @@ namespace Metal_Code
                             if (work.NameWork == "Лазерная резка")
                             {
                                 count += work.Parts.Count;
+                                models += work.Parts.Where(p => p.MakeModel).Count();
 
                                 foreach (Part part in work.Parts)
                                     foreach (List<string> list in part.PropsDict.Values)
-                                        if (list.Count > 2 && list[0] == "0" && part.Description.Contains(" + Г ")) bends++;
+                                        if (list.Count > 2 && list[0] == "0" && part.Description != null && part.Description.Contains(" + Г ")) bends++;
                                 break;
                             }
                             else if (work.NameWork == "Труборез")
@@ -2401,7 +2425,7 @@ namespace Metal_Code
                     }
             }
 
-            return (types, works, count, bends);
+            return (types, works, count, bends, models, assemblies);
         }
 
 

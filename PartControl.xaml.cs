@@ -46,6 +46,16 @@ namespace Metal_Code
             }
         }
 
+        public bool MakeModel           //отрисована ли деталь инженером
+        {                               //это свойство ссылается на аналогичное поле в детали
+            get => Part.MakeModel;
+            set
+            {
+                Part.MakeModel = value;
+                OnPropertyChanged(nameof(MakeModel));
+            }
+        }
+
         public delegate void PropsChanged(UserControl uc, bool b);
         public PropsChanged? PropertiesChanged;
 
