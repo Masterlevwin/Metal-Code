@@ -1,7 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace Metal_Code
 {
@@ -25,6 +28,9 @@ namespace Metal_Code
             // и устанавливаем данные в качестве контекста
             DataContext = db.Managers.Local.ToObservableCollection();
 
+            LaserList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => x.IsLaser);
+            AppList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => !x.IsLaser);
+
             if (!MainWindow.M.CurrentManager.IsAdmin) foreach (UIElement element in ButtonsStack.Children)
                     if (element is Button) element.IsEnabled = false;
         }
@@ -38,13 +44,19 @@ namespace Metal_Code
                 Manager Manager = ManagerSettings.Manager;
                 db.Managers.Add(Manager);
                 db.SaveChanges();
+
+                LaserList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => x.IsLaser);
+                AppList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => !x.IsLaser);
             }
         }
         // редактирование
-        private void Edit_Click(object sender, RoutedEventArgs e)
+        private void Edit_DoubleClick(object sender, MouseButtonEventArgs e)
         {
+            if (sender is not ListBox list) return;
+
             // получаем выделенный объект
-            Manager? manager = typesList.SelectedItem as Manager;
+            Manager? manager = list.SelectedItem as Manager;
+
             // если ни одного объекта не выделено, выходим
             if (manager is null) return;
 
@@ -72,18 +84,32 @@ namespace Metal_Code
                     manager.IsEngineer = ManagerSettings.Manager.IsEngineer;
                     manager.IsLaser = ManagerSettings.Manager.IsLaser;
                     db.SaveChanges();
-                    typesList.Items.Refresh();
+
+                    LaserList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => x.IsLaser);
+                    AppList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => !x.IsLaser);
                 }
             }
         }
+
         // удаление
-        private void Delete_Click(object sender, RoutedEventArgs e)
+        private void DeleteLaser_Click(object sender, RoutedEventArgs e)
         {
             // получаем выделенный объект
             // если ни одного объекта не выделено, выходим
-            if (typesList.SelectedItem is not Manager manager) return;
+            if (LaserList.SelectedItem is not Manager manager) return;
             db.Managers.Remove(manager);
             db.SaveChanges();
+            LaserList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => x.IsLaser);
+        }
+
+        private void DeleteApp_Click(object sender, RoutedEventArgs e)
+        {
+            // получаем выделенный объект
+            // если ни одного объекта не выделено, выходим
+            if (AppList.SelectedItem is not Manager manager) return;
+            db.Managers.Remove(manager);
+            db.SaveChanges();
+            AppList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => !x.IsLaser);
         }
 
         private void FocusMainWindow(object sender, EventArgs e)

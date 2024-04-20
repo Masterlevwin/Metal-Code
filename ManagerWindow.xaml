@@ -6,27 +6,46 @@
         mc:Ignorable="d"
         Title="Список менеджеров" Height="450" Width="450" Topmost="True" WindowStartupLocation="CenterScreen" Closed="FocusMainWindow" ResizeMode="NoResize" Icon="/app_logo.jpeg">
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <RowDefinition Height="30" />
             <RowDefinition />
             <RowDefinition Height="50" />
         </Grid.RowDefinitions>
-        <ListBox x:Name="typesList" ItemsSource="{Binding}">
+
+        <TextBlock Text="Лазерфлекс" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" Foreground="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}"/>
+        <TextBlock Text="Провэлд" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" Foreground="#FFFF7D00"/>
+
+        <ListBox x:Name="LaserList" Grid.Row="1" ItemsSource="{Binding DataContext, ElementName=LaserList}" MouseDoubleClick="Edit_DoubleClick">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Name}" FontSize="16" Margin="10,0,0,0" />
-                            <TextBlock Text="{Binding Contact}" FontSize="16" Margin="10,0,0,0" />
-                            <CheckBox Content="Лазерфлекс" IsChecked="{Binding IsLaser}" IsEnabled="False" Margin="10,0,0,0" />
-                        </StackPanel>
+                        <TextBlock Text="{Binding Name}" FontSize="16" />
+                        <TextBlock Text="{Binding Contact}" FontSize="16" />
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <StackPanel x:Name="ButtonsStack" Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
-            <Button Content="Добавить" Margin="10" Click="Add_Click" />
-            <Button Content="Изменить" Margin="10" Click="Edit_Click"  />
-            <Button Content="Удалить" Margin="10" Click="Delete_Click"  />
+
+        <ListBox x:Name="AppList" Grid.Row="1" Grid.Column="1" ItemsSource="{Binding DataContext, ElementName=AppList}" MouseDoubleClick="Edit_DoubleClick">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel>
+                        <TextBlock Text="{Binding Name}" FontSize="16" />
+                        <TextBlock Text="{Binding Contact}" FontSize="16" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <StackPanel x:Name="ButtonsStack" Orientation="Horizontal" Grid.ColumnSpan="2" Grid.Row="2" HorizontalAlignment="Center">
+            <Button Content="Удалить из Лазерфлекса" Margin="10" Click="DeleteLaser_Click" BorderBrush="Red"/>
+            <Button Content="Добавить" Margin="10" Click="Add_Click" MinWidth="100" BorderBrush="#FF00B400" />
+            <Button Content="Удалить из Провэлда" Margin="10" Click="DeleteApp_Click" BorderBrush="Red"/>
         </StackPanel>
+
     </Grid>
 </Window>
