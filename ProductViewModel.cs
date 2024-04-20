@@ -71,40 +71,26 @@ namespace Metal_Code
             {
                 return saveCommand ??= new RelayCommand(obj =>
                   {
-                      MainWindow.M.UpdateResult();
-                      if (dialogService.SaveFileDialog() == true && dialogService.FilePaths != null)
+                      try
                       {
-                          string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
-                          + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
+                          MainWindow.M.UpdateResult();
+                          if (dialogService.SaveFileDialog() == true && dialogService.FilePaths != null)
+                          {
+                              string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
+                              + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
 
-                          _path += $" с материалом {MainWindow.M.GetMetalPrice()}";
+                              _path += $" с материалом {MainWindow.M.GetMetalPrice()}";
 
-                          fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());     //сохраняем расчет в папке
-                          MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);           //формируем КП в формате excel
-                          MainWindow.M.SaveOrRemoveOffer(true);                             //сохраняем расчет в базе данных
-                          MainWindow.M.StatusBegin($"Расчет сохранен");
+                              fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());     //сохраняем расчет в папке
+                              MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);           //формируем КП в формате excel
+                              MainWindow.M.SaveOrRemoveOffer(true);                             //сохраняем расчет в базе данных
+                              MainWindow.M.StatusBegin($"Расчет сохранен");
+                          }
                       }
-
-                      //try
-                      //{
-                      //    MainWindow.M.UpdateResult();
-                      //    if (dialogService.SaveFileDialog() == true && dialogService.FilePaths != null)
-                      //    {
-                      //        string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
-                      //        + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
-
-                      //        _path += $" с материалом {MainWindow.M.GetMetalPrice()}";
-
-                      //        fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());     //сохраняем расчет в папке
-                      //        MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);           //формируем КП в формате excel
-                      //        MainWindow.M.SaveOrRemoveOffer(true);                             //сохраняем расчет в базе данных
-                      //        MainWindow.M.StatusBegin($"Расчет сохранен");
-                      //    }
-                      //}
-                      //catch (Exception ex)
-                      //{
-                      //    dialogService.ShowMessage(ex.Message);
-                      //}
+                      catch (Exception ex)
+                      {
+                          dialogService.ShowMessage(ex.Message);
+                      }
                   });
             }
         }

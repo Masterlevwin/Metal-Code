@@ -128,36 +128,34 @@
             <GroupBox Header="Коммерческое предложение" x:Name="OrderBox" Grid.Column="1" Margin="10,20,20,10">
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                     <Grid x:Name="OrderGrid">
-                        <Image HorizontalAlignment="Left" VerticalAlignment="Top" Height="27" Margin="35,10,0,0" Source="/app_logo.jpeg"/>
-                        <Image HorizontalAlignment="Left" Height="27" Margin="90,10,0,0" VerticalAlignment="Top" Source="/laser_logo.jpg"/>
+                        
+                        <Image Source="/app_logo.jpeg" HorizontalAlignment="Left" VerticalAlignment="Top" Height="27" Margin="35,10,0,0"/>
+                        <Image Source="/laser_logo.jpg" HorizontalAlignment="Left" Height="27" Margin="90,10,0,0" VerticalAlignment="Top"/>
+                        <TextBlock x:Name="Boss" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,0,0,0"/>
+                        <TextBox x:Name="Phone" HorizontalAlignment="Left" Width="120" VerticalAlignment="Top" Margin="430,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите актуальный номер телефона"/>
+                        <RadioButton GroupName="Boss" x:Name="AppRadioButton" HorizontalAlignment="Left" Margin="15,15,0,0" VerticalAlignment="Top" Checked="IsLaserChanged" IsChecked="True"/>
+                        <RadioButton GroupName="Boss" x:Name="LaserRadioButton" HorizontalAlignment="Left" Margin="70,15,0,0" VerticalAlignment="Top" Checked="IsLaserChanged"/>
+                        <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет от ООО" HorizontalAlignment="Left" Margin="15,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;"/>
+                        <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет от ИП или ПК" HorizontalAlignment="Left" Margin="110,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;"/>
+
+                        <TextBlock Text="КП №" HorizontalAlignment="Left" Margin="260,23,0,0" VerticalAlignment="Top"/>
                         <TextBox x:Name="Order" HorizontalAlignment="Left" Margin="300,22,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40" ToolTip="Введите номер предложения"/>
+                        <TextBlock Text="для" HorizontalAlignment="Left" Margin="350,23,0,0" VerticalAlignment="Top"/>
                         <TextBox x:Name="Company" HorizontalAlignment="Left" Margin="380,22,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите контрагента" Width="170"/>
-                        <TextBlock HorizontalAlignment="Left" Margin="260,23,0,0" Text="КП №" VerticalAlignment="Top"/>
-                        <TextBlock HorizontalAlignment="Left" Margin="350,23,0,0" Text="для" VerticalAlignment="Top"/>
-                        <TextBlock HorizontalAlignment="Left" Margin="15,65,0,0" Text="Срок изготовления:" VerticalAlignment="Top"/>
-                        <TextBox x:Name="DateProduction" Margin="135,65,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50" ToolTip="Введите срок изготовления"/>
-                        <TextBlock HorizontalAlignment="Left" Margin="200,65,0,0" Text="раб/дней" VerticalAlignment="Top"/>
+
+                        <TextBlock Text="Срок изготовления:" HorizontalAlignment="Left" Margin="15,65,0,0" VerticalAlignment="Top"/>
+                        <TextBox ToolTip="Введите срок изготовления" x:Name="DateProduction" Margin="135,65,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50"/>
+                        <TextBlock Text="раб/дней" HorizontalAlignment="Left" Margin="200,65,0,0" VerticalAlignment="Top"/>
+                        <DatePicker x:Name="datePicker" HorizontalAlignment="Left" Margin="300,60,0,0" VerticalAlignment="Top" FirstDayOfWeek="Monday" SelectedDateChanged="SetDate" ToolTip="Выберите дату изготовления"/>
+
                         <RadioButton GroupName="Delivery" x:Name="PickupRadioButton" Content="Самовывоз" HorizontalAlignment="Left" Margin="15,90,0,0" VerticalAlignment="Top" Checked="HasDeliveryChanged" IsChecked="True"/>
                         <RadioButton GroupName="Delivery" x:Name="DeliveryRadioButton" Content="Доставка" HorizontalAlignment="Left" Margin="110,90,0,0" VerticalAlignment="Top" Checked="HasDeliveryChanged"/>
                         <TextBox Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="190,88,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите цену доставки" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" TextChanged="SetDelivery" MinWidth="60"/>
                         <TextBox Text="{Binding DeliveryRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MaxLines="1" ToolTip="Коэффициент" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" Margin="260,88,0,0" TextChanged="SetDeliveryRatio"/>
                         <TextBox x:Name="Adress" HorizontalAlignment="Left" Margin="15,110,0,0" VerticalAlignment="Top" Width="275" Height="45" ToolTip="Введите адрес доставки" Text="Адрес доставки:" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" TextWrapping="Wrap"/>
-                        <TextBlock Text="Ваш менеджер:" HorizontalAlignment="Left" Margin="15,160,0,0" VerticalAlignment="Top"/>
-                        <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" HorizontalAlignment="Left" Margin="115,160,0,0" VerticalAlignment="Top" Width="175" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged"/>
-                        <Button HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,300,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Обновить список расчетов этого менеджера" Padding="0,0,0,0" BorderThickness="0,0,0,0" Click="RefreshOffers">
-                            <Image Source="/Images/update.png"/>
+                        <Button ToolTip="Создать запрос в логистику" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,88,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" Click="CreateDelivery" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}">
+                            <Image Source="/Images/new.png"/>
                         </Button>
-
-                        <RadioButton GroupName="Offers" Content="Все" Margin="325,303,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="ViewAllOffers" ToolTip="Показать все расчеты выбранного менеджера"/>
-                        <RadioButton GroupName="Offers" x:Name="CountRB" Content="Найти" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="380,303,0,0" ToolTip="Найти конкретный расчет"/>
-                        <TextBox ToolTip="Введите номер расчета" MinWidth="50" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="450,300,0,0" IsEnabled="{Binding IsChecked, ElementName=CountRB}" KeyDown="ViewOffers"/>
-                        <Button x:Name="InsertBtn" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="510,300,0,0" MaxWidth="20" MaxHeight="20" ToolTip="Отправить новые расчеты в основную базу" Padding="0,0,0,0" BorderThickness="0,0,0,0" Click="InsertDatabase" IsEnabled="False">
-                            <Image Source="/Images/save3.png"/>
-                        </Button>
-
-                        <DatePicker x:Name="datePicker" HorizontalAlignment="Left" Margin="300,60,0,0" VerticalAlignment="Top" FirstDayOfWeek="Monday" SelectedDateChanged="SetDate" ToolTip="Выберите дату изготовления"/>
-                        <TextBlock x:Name="Boss" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,0,0,0"/>
-                        <TextBox x:Name="Phone" HorizontalAlignment="Left" Width="120" VerticalAlignment="Top" Margin="430,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите актуальный номер телефона"/>
 
                         <TextBlock Text="Окраска" HorizontalAlignment="Left" Margin="305,115,0,0" VerticalAlignment="Top" TextWrapping="NoWrap"/>
                         <CheckBox x:Name="CheckPaint" Content="{Binding Paint, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="390,115,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="False"/>
@@ -169,15 +167,20 @@
 
                         <TextBlock Text="Сборка" HorizontalAlignment="Left" Margin="305,165,0,0" VerticalAlignment="Top"/>
                         <CheckBox HorizontalAlignment="Left" Margin="390,165,0,0" VerticalAlignment="Top" IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"/>
-                        <TextBlock HorizontalAlignment="Left" Margin="470,90,0,0" Text="Коэф" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
-
-                        <RadioButton GroupName="Boss" x:Name="AppRadioButton" HorizontalAlignment="Left" Margin="15,15,0,0" VerticalAlignment="Top" Checked="IsLaserChanged" IsChecked="True"/>
-                        <RadioButton GroupName="Boss" x:Name="LaserRadioButton" HorizontalAlignment="Left" Margin="70,15,0,0" VerticalAlignment="Top" Checked="IsLaserChanged"/>
-                        <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет от ООО" HorizontalAlignment="Left" Margin="15,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;"/>
-                        <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет от ИП или ПК" HorizontalAlignment="Left" Margin="110,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;"/>
-                        <Button ToolTip="Создать запрос в логистику" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,88,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" Click="CreateDelivery" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}">
-                            <Image Source="/Images/new.png"/>
+                        <TextBlock Text="Коэф" HorizontalAlignment="Left" Margin="470,90,0,0" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
+                  
+                        <TextBlock Text="Ваш менеджер:" HorizontalAlignment="Left" Margin="15,160,0,0" VerticalAlignment="Top"/>
+                        <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" HorizontalAlignment="Left" Margin="115,160,0,0" VerticalAlignment="Top" Width="175" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged"/>
+                        <Button ToolTip="Обновить список расчетов этого менеджера" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,200,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" Click="RefreshOffers">
+                            <Image Source="/Images/update.png"/>
                         </Button>
+                        <RadioButton GroupName="Offers" Content="Все" Margin="60,203,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="ViewAllOffers" ToolTip="Показать все расчеты выбранного менеджера"/>
+                        <RadioButton GroupName="Offers" Content="Найти" x:Name="CountRB" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="120,203,0,0" ToolTip="Найти конкретный расчет"/>
+                        <TextBox ToolTip="Введите номер расчета или название компании" MinWidth="100" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="190,200,0,0" IsEnabled="{Binding IsChecked, ElementName=CountRB}" KeyDown="ViewOffers"/>
+                        <Button ToolTip="Отправить новые расчеты в основную базу" x:Name="InsertBtn" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="510,200,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0,0,0,0" Click="InsertDatabase" IsEnabled="False">
+                            <Image Source="/Images/save3.png"/>
+                        </Button>
+
                     </Grid>
                 </ScrollViewer>
             </GroupBox>

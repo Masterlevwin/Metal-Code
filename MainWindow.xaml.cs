@@ -996,7 +996,6 @@ namespace Metal_Code
                 ConstructRatio = ConstructRatio.Text,
                 Delivery = Delivery,
                 DeliveryRatio = DeliveryRatio,
-                IsLaser = IsLaser,
                 IsAgent = IsAgent,
                 HasDelivery = HasDelivery,
                 HasConstruct = CheckConstruct.IsChecked,
@@ -1268,7 +1267,6 @@ namespace Metal_Code
             SetCount(ProductModel.Product.Count);
             SetDeliveryRatio(ProductModel.Product.DeliveryRatio);
             SetDelivery(ProductModel.Product.Delivery);
-            IsLaser = ProductModel.Product.IsLaser;
             IsAgent = ProductModel.Product.IsAgent;
             HasDelivery = ProductModel.Product.HasDelivery;
             HasAssembly = ProductModel.Product.HasAssembly;
@@ -2067,7 +2065,7 @@ namespace Metal_Code
             complectsheet.PrinterSettings.FitToHeight = 0;
             complectsheet.PrinterSettings.HorizontalCentered = true;
 
-            //устанавливаем колонтитул (в данном случае будет подчеркнутое название файла)
+            //устанавливаем колонтитул (в данном случае будет подчеркнутое название файла)            
             complectsheet.HeaderFooter.OddFooter.RightAlignedText = $"&24&U&\"Arial Rounded MT Bold\" {ExcelHeaderFooter.FileName}";
 
             // ----- сохраняем книгу в файл Excel -----
