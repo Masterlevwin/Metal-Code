@@ -55,7 +55,8 @@ namespace Metal_Code
                 Contact = manager.Contact,
                 Password = manager.Password,
                 IsAdmin = manager.IsAdmin,
-                IsEngineer = manager.IsEngineer
+                IsEngineer = manager.IsEngineer,
+                IsLaser = manager.IsLaser
             });
 
             if (ManagerSettings.ShowDialog() == true)
@@ -69,6 +70,7 @@ namespace Metal_Code
                     manager.Password = ManagerSettings.Manager.Password;
                     manager.IsAdmin = ManagerSettings.Manager.IsAdmin;
                     manager.IsEngineer = ManagerSettings.Manager.IsEngineer;
+                    manager.IsLaser = ManagerSettings.Manager.IsLaser;
                     db.SaveChanges();
                     typesList.Items.Refresh();
                 }

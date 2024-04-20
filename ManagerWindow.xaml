@@ -14,8 +14,11 @@
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel>
-                        <TextBlock Text="{Binding Name}" FontSize="16" />
-                        <TextBlock Text="{Binding Contact}" FontSize="16" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Name}" FontSize="16" Margin="10,0,0,0" />
+                            <TextBlock Text="{Binding Contact}" FontSize="16" Margin="10,0,0,0" />
+                            <CheckBox Content="Лазерфлекс" IsChecked="{Binding IsLaser}" IsEnabled="False" Margin="10,0,0,0" />
+                        </StackPanel>
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>

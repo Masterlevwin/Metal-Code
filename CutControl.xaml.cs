@@ -218,8 +218,6 @@ namespace Metal_Code
             //определяем деталь, в которой загрузили раскладки, как комплект деталей
             if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged("Комплект деталей");
 
-            if (!MainWindow.M.IsLaser) MainWindow.M.IsLaser = true;
-
             for (int i = 0; i < paths.Length; i++)
             {
                 using FileStream stream = File.Open(paths[i], FileMode.Open, FileAccess.Read);

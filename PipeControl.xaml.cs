@@ -263,8 +263,6 @@ namespace Metal_Code
                         break;
                     }
 
-            if (!MainWindow.M.IsLaser) MainWindow.M.IsLaser = true;     //внедрить свойство Компании и убрать переключение
-
             //определяем деталь, в которой загрузили раскладки, как комплект деталей
             if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged("Комплект труб");
 

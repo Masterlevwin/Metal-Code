@@ -431,7 +431,11 @@ namespace Metal_Code
 
         private void ManagerChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ManagerDrop.SelectedItem is Manager man) ViewOffersGrid(man);
+            if (ManagerDrop.SelectedItem is Manager man)
+            {
+                IsLaser = man.IsLaser;
+                ViewOffersGrid(man);
+            }
         }
         private void RefreshOffers(object sender, RoutedEventArgs e)
         {
@@ -919,7 +923,6 @@ namespace Metal_Code
             CheckConstruct.IsChecked = false;
             Order.Text = Company.Text = DateProduction.Text = Adress.Text = "";
             ProductName.Text = $"Изделие";
-            ManagerDrop.SelectedItem = CurrentManager;
         }
 
         private void SetDate(object sender, SelectionChangedEventArgs e)

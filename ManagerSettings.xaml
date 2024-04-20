@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Менеджер" Height="250" Width="300" Topmost="True" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Icon="/app_logo.jpeg">
+        Title="Менеджер" Height="300" Width="300" Topmost="True" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Icon="/app_logo.jpeg">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition />
@@ -16,17 +16,24 @@
             <ColumnDefinition Width="100" />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
+
         <TextBlock Text="Фамилия и Имя" TextWrapping="Wrap" Margin="8" />
         <TextBox Text="{Binding Name}" Margin="8" Grid.Column="1" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" />
-        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Grid.Row="3" Grid.Column="1">
-            <Button Margin="8" IsDefault="True" Click="Accept_Click" MinWidth="60" >OK</Button>
-            <Button Margin="8" IsCancel="True" MinWidth="60" >Отмена</Button>
-        </StackPanel>
-        <TextBlock Margin="8" Grid.Row="1" Text="Контактные данные" TextWrapping="Wrap" />
+        <TextBlock Text="Контактные данные" TextWrapping="Wrap" Margin="8" Grid.Row="1"/>
         <TextBox Text="{Binding Contact}" Grid.Column="1" SpellCheck.IsEnabled="True" Language="ru-ru" Margin="8" Grid.Row="1" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" />
-        <TextBlock Margin="8" Grid.Row="2" Text="Пароль" TextWrapping="Wrap" />
-        <PasswordBox Grid.Row="2" Grid.Column="1" Margin="8" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" PasswordChanged="SetPassword"/>
-        <CheckBox IsChecked="{Binding IsAdmin}" Content="Админ" HorizontalAlignment="Left" Grid.Row="3" VerticalAlignment="Top" Margin="8,10,0,0"/>
-        <CheckBox IsChecked="{Binding IsEngineer}" Content="Инженер" HorizontalAlignment="Left" Grid.Row="3" VerticalAlignment="Top" Margin="8,33,0,0"/>
+        <TextBlock Text="Пароль" TextWrapping="Wrap" Margin="8" Grid.Row="2"/>
+        <PasswordBox PasswordChanged="SetPassword" Grid.Row="2" Grid.Column="1" Margin="8" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+
+        <StackPanel Grid.Row="3">
+            <CheckBox Content="Админ" IsChecked="{Binding IsAdmin}" Grid.Row="3" Margin="10,5,0,0"/>
+            <CheckBox Content="Инженер" IsChecked="{Binding IsEngineer}" Grid.Row="3" Margin="10,5,0,0"/>
+            <CheckBox Content="Лазерфлекс" IsChecked="{Binding IsLaser}" Grid.Row="3" Margin="10,5,0,0"/>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Center">
+            <Button Margin="15" IsDefault="True" Click="Accept_Click" MinWidth="60" >OK</Button>
+            <Button Margin="15" IsCancel="True" MinWidth="60" >Отмена</Button>
+        </StackPanel>
+
     </Grid>
 </Window>

@@ -157,6 +157,7 @@ namespace Metal_Code
         public string? Password {  get; set; }
         public bool IsAdmin {  get; set; }
         public bool IsEngineer {  get; set; }
+        public bool IsLaser{  get; set; }
         public ObservableCollection<Offer> Offers { get; set; } = new();
         public Manager()
         {
@@ -270,7 +271,8 @@ namespace Metal_Code
         public ManagerContext(string connectionString)
         {
             this.connectionString = connectionString;   // получаем извне строку подключения
-            Database.EnsureCreated();                   // гарантируем, что база данных создана
+            //Database.EnsureCreated();                   // гарантируем, что база данных создана
+            Database.Migrate();                         //вместо создания базы используем миграции
             Database.SetCommandTimeout(9000);
         }
 
