@@ -128,7 +128,7 @@
             <GroupBox Header="Коммерческое предложение" x:Name="OrderBox" Grid.Column="1" Margin="10,20,20,10">
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                     <Grid x:Name="OrderGrid">
-                        
+
                         <Image Source="/app_logo.jpeg" HorizontalAlignment="Left" VerticalAlignment="Top" Height="27" Margin="35,10,0,0"/>
                         <Image Source="/laser_logo.jpg" HorizontalAlignment="Left" Height="27" Margin="90,10,0,0" VerticalAlignment="Top"/>
                         <TextBlock x:Name="Boss" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,0,0,0"/>
@@ -168,18 +168,27 @@
                         <TextBlock Text="Сборка" HorizontalAlignment="Left" Margin="305,165,0,0" VerticalAlignment="Top"/>
                         <CheckBox HorizontalAlignment="Left" Margin="390,165,0,0" VerticalAlignment="Top" IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"/>
                         <TextBlock Text="Коэф" HorizontalAlignment="Left" Margin="470,90,0,0" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
-                  
+
                         <TextBlock Text="Ваш менеджер:" HorizontalAlignment="Left" Margin="15,160,0,0" VerticalAlignment="Top"/>
-                        <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" HorizontalAlignment="Left" Margin="115,160,0,0" VerticalAlignment="Top" Width="175" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged"/>
-                        <Button ToolTip="Обновить список расчетов этого менеджера" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,200,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" Click="RefreshOffers">
+                        <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged" HorizontalAlignment="Left" Margin="115,160,0,0" VerticalAlignment="Top" Width="175"/>
+
+                        <Button ToolTip="Получить новые расчеты из основной базы" Click="RefreshOffers" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,200,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0">
                             <Image Source="/Images/update.png"/>
                         </Button>
-                        <RadioButton GroupName="Offers" Content="Все" Margin="60,203,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="ViewAllOffers" ToolTip="Показать все расчеты выбранного менеджера"/>
-                        <RadioButton GroupName="Offers" Content="Найти" x:Name="CountRB" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="120,203,0,0" ToolTip="Найти конкретный расчет"/>
-                        <TextBox ToolTip="Введите номер расчета или название компании" MinWidth="100" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="190,200,0,0" IsEnabled="{Binding IsChecked, ElementName=CountRB}" KeyDown="ViewOffers"/>
-                        <Button ToolTip="Отправить новые расчеты в основную базу" x:Name="InsertBtn" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="510,200,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0,0,0,0" Click="InsertDatabase" IsEnabled="False">
+                        <TextBlock Text="Обновить" HorizontalAlignment="Left" Margin="50,203,0,0" VerticalAlignment="Top"/>
+
+                        <TextBox x:Name="Search" ToolTip="Введите номер расчета или название компании" MinWidth="230" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="115,200,0,0"/>
+                        <TextBlock Text="от" HorizontalAlignment="Left" Margin="120,230,0,0" VerticalAlignment="Top"/>
+                        <DatePicker x:Name="Start" HorizontalAlignment="Left" Margin="140,225,0,0" VerticalAlignment="Top"/>
+                        <TextBlock Text="до" HorizontalAlignment="Left" Margin="250,230,0,0" VerticalAlignment="Top"/>
+                        <DatePicker x:Name="End" HorizontalAlignment="Left" Margin="270,225,0,0" VerticalAlignment="Top"/>
+                        <Button Content="Фильтр" Click="SearchOffers" HorizontalAlignment="Left" Margin="360,200,0,0" VerticalAlignment="Top" MinWidth="40" MinHeight="20" BorderBrush="#FF00C800"/>
+
+                        <Button ToolTip="Отправить новые расчеты в основную базу" x:Name="InsertBtn" Click="InsertDatabase" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,200,0,0" Padding="0" BorderThickness="0" IsEnabled="False" MaxWidth="20" MaxHeight="20">
                             <Image Source="/Images/save3.png"/>
                         </Button>
+                        <TextBlock Text="Отправить" HorizontalAlignment="Left" Margin="460,203,0,0" VerticalAlignment="Top"/>
+                        <Button Content="Х" HorizontalAlignment="Left" Margin="385,228,0,0" VerticalAlignment="Top" MinWidth="20" MinHeight="20" Click="ResetDates" BorderBrush="#FFFF0046" ToolTip="Сбросить даты"/>
 
                     </Grid>
                 </ScrollViewer>

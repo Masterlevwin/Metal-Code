@@ -167,7 +167,10 @@ namespace Metal_Code
                 metalWindow.Show();
             }
         }
+        
 
+        //----------Свойства и их основные методы---------//
+        #region
         private Offer? activeOffer;
         public Offer? ActiveOffer
         {
@@ -413,7 +416,10 @@ namespace Metal_Code
                 OnPropertyChanged(nameof(HasAssembly));
             }
         }
+        #endregion
 
+
+        //---------Общий результат расчета и его обновление-------//
         private float result;
         public float Result
         {
@@ -424,7 +430,6 @@ namespace Metal_Code
                 OnPropertyChanged(nameof(Result));
             }
         }
-
         public void TotalResult()
         {
             Result = 0;
@@ -440,6 +445,43 @@ namespace Metal_Code
             if (Result > 0) Parts = PartsSource();
         }
 
+        private void UpdateResult(object sender, TextChangedEventArgs e)
+        {
+            UpdateResult();
+        }
+        private void UpdateResult(object sender, RoutedEventArgs e)
+        {
+            UpdateResult();
+        }
+        public void UpdateResult()         // метод принудительного обновления стоимости
+        {
+            Paint = PaintResult();
+            Construct = ConstructResult();
+
+            foreach (DetailControl d in DetailControls)
+                foreach (TypeDetailControl t in d.TypeDetailControls) t.PriceChanged();
+        }
+
+
+        //-----------Формирование списка нарезанных деталей-------//
+        public ObservableCollection<Part> Parts = new();
+        private ObservableCollection<Part> PartsSource()
+        {
+            ObservableCollection<Part> parts = new();
+
+            for (int i = 0; i < DetailControls.Count; i++)
+                for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
+                    for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
+                        if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is ICut _cut)
+                            if (_cut.PartsControl != null && _cut.PartsControl.Parts.Count > 0)
+                                foreach (PartControl p in _cut.PartsControl.Parts)
+                                    parts.Add(p.Part);
+            return parts;
+        }
+        
+        
+        //-----------Подключения к базе расчетов------------------//
+        #region
         private void ManagerChanged(object sender, SelectionChangedEventArgs e)
         {
             if (ManagerDrop.SelectedItem is Manager man)
@@ -448,116 +490,132 @@ namespace Metal_Code
                 ViewOffersGrid(man);
             }
         }
-        private void RefreshOffers(object sender, RoutedEventArgs e)
+
+        private void ViewOffersGrid(Manager man, List<Offer>? offers = null, int count = 24)
         {
-            if (ManagerDrop.SelectedItem is Manager man) ViewOffersGrid(man);
-        }
-        private void ViewOffersGrid(Manager man, bool allOffers = false, int count = 24)
-        {
-                //подключаемся к базе данных
-            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
-            bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
-            if (isAvalaible)
+            if (offers?.Count > 0) Offers = offers;
+            else
             {
-                    //при смене менеджера загружаем ТОЛЬКО ЕГО и ЕГО коллекцию расчетов
-                Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
-                if (_man != null)
+                using ManagerContext db = new(isLocal ? connections[0] : connections[1]);   //подключаемся к базе данных
+                bool isAvalaible = db.Database.CanConnect();                                //проверяем, свободна ли база для подключения
+                if (isAvalaible)
                 {
-                    if (!allOffers) Offers = _man.Offers.TakeLast(count).ToList();  //показываем последние "select" расчетов
-                    else Offers = _man.Offers.ToList();                             //если пользователь хочет увидеть все расчеты
-
-                    OffersGrid.ItemsSource = Offers;
-
-                    OffersGrid.Columns[0].Header = "N";
-                    OffersGrid.Columns[1].Header = "Компания";
-                    OffersGrid.Columns[2].Header = "Итого, руб.";
-                    OffersGrid.Columns[3].Header = "Материал, руб.";
-                    OffersGrid.Columns[4].Header = "Счёт";
-                    OffersGrid.Columns[5].Header = "Дата создания";
-                    (OffersGrid.Columns[5] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
-                    OffersGrid.Columns[6].Header = "Заказ";
-                    OffersGrid.Columns[7].Header = "Автор";
-                    OffersGrid.Columns[8].Header = "Дата отгрузки";
-                    (OffersGrid.Columns[8] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
-
-                    OffersGrid.FrozenColumnCount = 2;
+                    //при смене менеджера загружаем ТОЛЬКО ЕГО и ЕГО коллекцию расчетов
+                    Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
+                    if (_man != null) Offers = _man.Offers.TakeLast(count).ToList();        //показываем последние "count" расчетов
                 }
             }
-        }
-        private void ViewAllOffers(object sender, RoutedEventArgs e)        //метод, в котором мы показываем все расчеты выбранного менеджера
-        {
-            if (sender is RadioButton rBtn && rBtn.IsChecked == true && ManagerDrop.SelectedItem is Manager man) ViewOffersGrid(man, true);
+
+            if (Offers?.Count > 0)
+            {
+                OffersGrid.ItemsSource = Offers;
+
+                OffersGrid.Columns[0].Header = "N";
+                OffersGrid.Columns[1].Header = "Компания";
+                OffersGrid.Columns[2].Header = "Итого, руб.";
+                OffersGrid.Columns[3].Header = "Материал, руб.";
+                OffersGrid.Columns[4].Header = "Счёт";
+                OffersGrid.Columns[5].Header = "Дата создания";
+                (OffersGrid.Columns[5] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
+                OffersGrid.Columns[6].Header = "Заказ";
+                OffersGrid.Columns[7].Header = "Автор";
+                OffersGrid.Columns[8].Header = "Дата отгрузки";
+                (OffersGrid.Columns[8] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
+
+                OffersGrid.FrozenColumnCount = 2;
+            }
         }
 
-        private void ViewOffers(object sender, KeyEventArgs e)              //на клавишу "+", которая в блоке Num, добавляем расчет из основной базы
+        private void RefreshOffers(object sender, RoutedEventArgs e)        //метод загрузки расчетов из основной базы в локальную
         {
-            if (e.Key == Key.Add && sender is TextBox tBox) ViewOfferWithDataBase(tBox.Text);
-        }
-        private void ViewOfferWithDataBase(string? select)       //метод, в котором мы добавляем расчет из основной базы в локальную
-                                                                 //по введенному пользователем номеру расчета или названию компании
-        {
-            if (!isLocal || select is null) return;              //если запущена основная база или строка пустая, выходим из метода
+            if (!isLocal) return;
 
-            //подключаемся к основной базе данных
-            using ManagerContext db = new(connections[1]);
+            using ManagerContext db = new(connections[1]);      //подключаемся к основной базе данных
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
             if (isAvalaible && ManagerDrop.SelectedItem is Manager man)
             {
                 try
                 {
-                    //ищем менеджера в основной базе по имени соответствующего локальному, при этом загружаем его расчеты
-                    Manager? _man = db.Managers.Where(m => m.Name == man.Name).Include(c => c.Offers).FirstOrDefault();
+                    //подключаемся к локальной базе данных
+                    using ManagerContext dbLocal = new(connections[0]);
 
-                    //ищем все КП согласно введенному номеру расчета или названию компании
-                    List<Offer>? offers = _man?.Offers.Where(o => o.N.Contains(select) || o.Company.Contains(select.ToLower())).ToList();
+                    foreach (Manager manLocal in Managers)
+                    {
+                        //ищем менеджера в основной базе по имени соответствующего локальному, при этом загружаем его расчеты
+                        Manager? _man = db.Managers.Where(m => m.Name == manLocal.Name).Include(c => c.Offers).FirstOrDefault();
+
+                        //ищем менеджера в локальной базе по имени соответствующего локальному, при этом загружаем его расчеты
+                        Manager? _manLocal = dbLocal.Managers.Where(m => m.Name == manLocal.Name).Include(c => c.Offers).FirstOrDefault();
+
+                        if (_man?.Offers.Count > 0 && _man.Name == _manLocal?.Name)
+                        {
+                            foreach (Offer offer in _man.Offers)
+                            {
+                                //проверяем наличие идентичного КП в основной базе, если такое уже есть,
+                                //изменяем номера счета, заказа и акта, но пропускаем копирование
+                                Offer? tempOffer = _manLocal?.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                                if (tempOffer != null) continue;
+
+                                //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
+                                Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
+                                {
+                                    Invoice = offer.Invoice,
+                                    Order = offer.Order,
+                                    Act = offer.Act,
+                                    CreatedDate = offer.CreatedDate,
+                                    EndDate = offer.EndDate,
+                                    Autor = offer.Autor,
+                                    Manager = _manLocal,        //указываем соответствующего менеджера  
+                                    Data = offer.Data
+                                };
+
+                                dbLocal.Offers.Add(_offer);     //переносим расчет в базу этого менеджера
+                            }
+                        }
+                    }
+
+                    dbLocal.SaveChanges();                      //сохраняем изменения в локальной базе данных
+                    StatusBegin($"Локальная база обновлена");
+
+                    ViewOffersGrid(man);
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin(ex.Message);
+                }
+            }
+        }
+
+        private void SearchOffers(object sender, RoutedEventArgs e)         //метод фильтра расчетов по номеру, компании или диапазону дат
+        {
+            if (!isLocal) return;
+
+            using ManagerContext db = new(connections[0]);      //подключаемся к локальной базе данных
+            bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
+
+            if (isAvalaible && ManagerDrop.SelectedItem is Manager man)
+            {
+                try
+                {
+                    //ищем менеджера по имени соответствующего выбранному, при этом загружаем его расчеты
+                    Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
+
+                    List<Offer>? offers = _man?.Offers.ToList();        //сначала получаем все расчеты менеджера
+
+                    //затем ищем все КП согласно введенному номеру расчета или названию компании
+                    if (Search.Text is not null && Search.Text != "") offers = offers?.Where(o => o.N.Contains(Search.Text)|| o.Company.Contains(Search.Text)).ToList();
+                    //наконец, выполняем выборку расчетов по дате или диапазону
+                    if (Start.SelectedDate != null) offers = offers?.Where(o => o.CreatedDate >= Start.SelectedDate).ToList();
+                    if (End.SelectedDate != null) offers = offers?.Where(o => o.CreatedDate <= End.SelectedDate).ToList();
 
                     if (offers == null || offers.Count == 0)
                     {
-                        StatusBegin($"Расчетов с таким номером у выбранного менеджера не найдено");
+                        StatusBegin($"Расчетов по выбранным параметрам не найдено");
                         return;
                     }
                     else
                     {
-                        //подключаемся к локальной базе данных
-                        using ManagerContext dbLocal = new(connections[0]);
-
-                        //ищем менеджера в локальной базе по индентификатору выбранного менеджера
-                        Manager? _manLocal = dbLocal.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
-
-                        if (_manLocal != null)
-                        {
-                            foreach (Offer offer in offers)
-                            {
-                                //проверяем наличие идентичного КП в локальной базе, если такое уже есть, пропускаем копирование
-                                Offer? tempOffer = _manLocal?.Offers.FirstOrDefault(o => o.Data == offer.Data);
-                                if (tempOffer != null)
-                                {
-                                    StatusBegin($"Один или несколько расчетов с таким номером уже есть");
-                                    continue;
-                                }
-                                else
-                                {
-                                    //копируем найденное КП в новое с целью автоматического присваивания Id при вставке в локальную базу
-                                    Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
-                                    {
-                                        Invoice = offer.Invoice,
-                                        Order = offer.Order,
-                                        Act = offer.Act,
-                                        CreatedDate = offer.CreatedDate,
-                                        EndDate = offer.EndDate,
-                                        Autor = offer.Autor,
-                                        Manager = _manLocal,        //указываем локального менеджера  
-                                        Data = offer.Data
-                                    };
-                                    dbLocal.Offers.Add(_offer);     //переносим расчет в локальную базу
-                                }
-                            }
-
-                            dbLocal.SaveChanges();
-                            StatusBegin($"Локальная база обновлена");
-
-                            if (_manLocal != null) ViewOffersGrid(_manLocal);      //обновляем представление расчетов выбранного менеджера
-                        }
+                        ViewOffersGrid(man, offers);
                     }
                 }
                 catch (DbUpdateConcurrencyException ex)
@@ -565,6 +623,15 @@ namespace Metal_Code
                     StatusBegin(ex.Message);
                 }
             }
+
+        }
+
+        private void ResetDates(object sender, RoutedEventArgs e)           //метод сброса дат на начало текущего месяца до начала дня
+        {
+            DateTime date = DateTime.UtcNow;
+            Start.SelectedDate = new DateTime(date.Year, date.Month, 1);
+
+            End.SelectedDate = DateTime.UtcNow;
         }
 
         private void InsertDatabase(object sender, RoutedEventArgs e)
@@ -634,6 +701,105 @@ namespace Metal_Code
                     StatusBegin(ex.Message);
                 }
             }
+        }
+
+        private void UpdateOffer(object sender, RoutedEventArgs e)          //метод сохранения изменений в расчете
+        {
+            //подключаемся к базе данных
+            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
+            bool isAvalaible = db.Database.CanConnect();                        //проверяем, свободна ли база для подключения
+            if (isAvalaible && OffersGrid.SelectedItem is Offer offer)          //если база свободна, получаем выбранный расчет
+            {
+                try
+                {
+                    Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
+                    if (_offer != null)
+                    {                               //менять можно только номер счета, номер заказа и дату создания
+                        _offer.Invoice = offer.Invoice;
+                        db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
+                        _offer.Order = offer.Order;
+                        db.Entry(_offer).Property(o => o.Order).IsModified = true;
+                        _offer.CreatedDate = offer.CreatedDate;
+                        db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
+
+                        db.SaveChanges();                                               //сохраняем изменения в базе данных
+                        StatusBegin("Изменения в базе сохранены");
+                    }
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin(ex.Message);
+                }
+            }
+        }
+
+        public void SaveOrRemoveOffer(bool isSave)                          //метод сохранения и удаления расчета
+        {
+            //подключаемся к базе данных
+            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
+            bool isAvalaible = db.Database.CanConnect();                            //проверяем, свободна ли база для подключения
+            if (isAvalaible && ManagerDrop.SelectedItem is Manager man)             //если база свободна, получаем выбранного менеджера
+            {
+                try
+                {
+                    Manager? _man = db.Managers.FirstOrDefault(m => m.Id == man.Id);            //ищем его в базе по Id
+                    if (isSave)     //если метод запущен с параметром true, то есть в режиме сохранения
+                    {
+                        //сначала создаем новое КП
+                        Offer _offer = new(Order.Text, Company.Text, Result, GetMetalPrice(), GetServices())
+                        {
+                            EndDate = EndDate(),
+                            Autor = CurrentManager.Name,
+                            Manager = _man,
+                            Data = SaveOfferData()      //сериализуем расчет в виде строки json
+                        };
+
+                        _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
+                    }
+                    else            //если метод запущен с параметром false, то есть в режиме удаления
+                    {
+                        if (OffersGrid.SelectedItem is Offer offer)                             //получаем выбранный расчет
+                        {
+                            Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
+                            if (_offer != null)
+                            {
+                                DataGridRow row = (DataGridRow)OffersGrid.ItemContainerGenerator.ContainerFromIndex(OffersGrid.SelectedIndex);
+                                SolidColorBrush _deleteBrush = new(Colors.Gray);
+                                row.Background = _deleteBrush;
+
+                                _man?.Offers.Remove(_offer);                    //если находим, то удаляем его из базы
+                            }
+
+                        }
+                    }
+
+                    db.SaveChanges();                   //сохраняем изменения в базе данных
+                    if (isSave) ViewOffersGrid(man);    //и обновляем datagrid, если появился новый расчет
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    StatusBegin(ex.Message);
+                }
+            }
+        }
+
+        public string SaveOfferData()                               //метод сериализации расчета
+        {
+            using MemoryStream stream = new();
+            DataContractJsonSerializer serializer = new(typeof(Product));
+            serializer.WriteObject(stream, ProductModel.Product);   //сериализуем объект
+
+            return Encoding.UTF8.GetString(stream.ToArray());       //возвращаем строку преобразованного объекта в массив байтов
+        }
+
+        public static Product? OpenOfferData(string json)           //метод десериализации расчета
+        {
+            byte[] bytes = Encoding.Unicode.GetBytes(json);         //преобразуем строку в массив байтов
+
+            using MemoryStream stream = new(bytes);
+            DataContractJsonSerializer serializer = new(typeof(Product));
+
+            return (Product?)serializer.ReadObject(stream);         //возвращаем десериализованный объект
         }
 
         private void UpdateDatabases(object sender, RoutedEventArgs e)      //метод обновления локальных баз
@@ -767,150 +933,15 @@ namespace Metal_Code
                 "Обновление локальных баз", MessageBoxButton.OK, MessageBoxImage.Exclamation);
         }
 
-        //private void OffersFormatting(object sender, DataGridRowEventArgs e)    // при загрузке строк (OffersGrid.LoadingRow="OffersFormatting")
-        //{
-        //    if (e.Row.DataContext is not Offer offer) return;
-
-        //    SolidColorBrush _endDateBrush = new(Colors.Gold);               //цвет расчета, у которого наступила дата отгрузки
-        //    SolidColorBrush _activeOfferBrush = new(Colors.PaleGreen);      //цвет загруженного расчета
-
-        //    // если наступила дата отгрузки, а закрывающий документ еще не записан,
-        //    // предполагаем, что отгрузка еще не произведена, и окрашиваем такой расчет в золотой цвет
-        //    if (offer.EndDate <= DateTime.Now && offer.Order != null && offer.Order != "" && (offer.Act == null || offer.Act == ""))
-        //        e.Row.Background = _endDateBrush;
-        //    if (offer != null && offer == ActiveOffer)                      // если расчет загружен, окрашиваем его в зеленый цвет
-        //        e.Row.Background = _activeOfferBrush;
-        //}
-
         void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
             if (((PropertyDescriptor)e.PropertyDescriptor).IsBrowsable == false) e.Cancel = true;   //скрываем свойства с атрибутом [IsBrowsable]
             if (e.PropertyName == "Autor") e.Column.IsReadOnly = true;                              //запрещаем редактировать автора расчета
         }
+        #endregion
 
-        public void StatusBegin(string? notify = null)
-        {
-            if (notify != null) NotifyText.Text = notify;
-            ColorAnimation animation = new()
-            {
-                From = Colors.White,
-                To = Colors.Red,
-                Duration = new Duration(TimeSpan.FromSeconds(1)),
-                AutoReverse = true
-            };
-            Status.Background = new SolidColorBrush(Colors.White);
-            Status.Background.BeginAnimation(SolidColorBrush.ColorProperty, animation);
-        }
 
-        private void SetAllMetal(object sender, RoutedEventArgs e)
-        {
-            if (sender is CheckBox cBox)
-                foreach (DetailControl d in DetailControls)
-                    foreach (TypeDetailControl t in d.TypeDetailControls) t.CheckMetal.IsChecked = cBox.IsChecked;
-            UpdateResult();
-        }
-
-        public float GetMetalPrice()
-        {
-            float metalprice = 0;
-            foreach (DetailControl d in DetailControls)
-                foreach (TypeDetailControl t in d.TypeDetailControls) metalprice += t.Result;
-
-            return (float)Math.Round(metalprice, 2);
-        }
-
-        public float GetServices() => (float)Math.Round(Result - GetMetalPrice(), 2);
-
-        public ObservableCollection<Part> Parts = new();
-        private ObservableCollection<Part> PartsSource()
-        {
-            ObservableCollection<Part> parts = new();
-
-            for (int i = 0; i < DetailControls.Count; i++)
-                for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
-                    for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
-                        if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is ICut _cut)
-                            if (_cut.PartsControl != null && _cut.PartsControl.Parts.Count > 0)
-                                foreach (PartControl p in _cut.PartsControl.Parts)
-                                    parts.Add(p.Part);
-            return parts;
-        }
-        
-        //private ObservableCollection<Detail> DetailsSource()
-        //{
-        //    ObservableCollection<Detail> details = new();
-        //    for (int i = 0; i < DetailControls.Count; i++)
-        //    {
-        //        Detail _detail = DetailControls[i].Detail;
-        //        _detail.Metal = _detail.Destiny = _detail.Description = "";     //очищаем описания свойств детали
-
-        //        for (int j = 0; j < DetailControls[i].TypeDetailControls.Count; j++)
-        //        {
-        //            //с помощью повторения символа переноса строки визуализируем дерево деталей и работ
-        //            if (DetailControls[i].TypeDetailControls[j].TypeDetailDrop.SelectedItem is TypeDetail _type)
-        //                _detail.Metal += $"{_type.Name}" + string.Join("", Enumerable.Repeat('\n', DetailControls[i].TypeDetailControls[j].WorkControls.Count));
-
-        //            _detail.Destiny += $"{DetailControls[i].TypeDetailControls[j].S}"
-        //                + string.Join("", Enumerable.Repeat('\n', DetailControls[i].TypeDetailControls[j].WorkControls.Count));
-
-        //            _detail.Accuracy = $"H12/h12 +-IT 12/2"
-        //                + string.Join("", Enumerable.Repeat('\n', DetailControls[i].TypeDetailControls[j].WorkControls.Count));
-
-        //            for (int k = 0; k < DetailControls[i].TypeDetailControls[j].WorkControls.Count; k++)
-        //            {
-        //                if (DetailControls[i].TypeDetailControls[j].WorkControls[k].WorkDrop.SelectedItem is Work work)
-        //                {
-        //                    //для окраски уточняем цвет в описании работы
-        //                    if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is PaintControl _paint)
-        //                        _detail.Description += $"{work.Name} (цвет - {_paint.Ral})\n";
-        //                    //для доп работы её наименование добавляем к наименованию работы - особый случай
-        //                    else if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is ExtraControl _extra) _detail.Description += $"{_extra.NameExtra}\n";
-        //                    //в остальных случаях добавляем наименование работы
-        //                    else _detail.Description += $"{work.Name}\n";
-        //                }
-        //            }
-        //        }
-        //        details.Add(_detail);
-        //    }
-        //    return details;
-        //}
-
-        private void UpdateResult(object sender, TextChangedEventArgs e)
-        {
-            UpdateResult();
-        }
-        private void UpdateResult(object sender, RoutedEventArgs e)
-        {
-            UpdateResult();
-        }
-        public void UpdateResult()         // метод принудительного обновления стоимости
-        {
-            Paint = PaintResult();
-            Construct = ConstructResult();
-
-            foreach (DetailControl d in DetailControls)
-                foreach (TypeDetailControl t in d.TypeDetailControls) t.PriceChanged();
-        }
-
-        public List<DetailControl> DetailControls = new();
-        private void AddDetail(object sender, RoutedEventArgs e)
-        {
-            AddDetail();
-        }
-        public void AddDetail()
-        {
-            DetailControl detail = new(new());
-
-            if (DetailControls.Count > 0)
-                detail.Margin = new Thickness(0,    //добавил +30, так как увеличился DetailControl
-                    DetailControls[^1].Margin.Top + 30 + 30 * DetailControls[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
-
-            DetailControls.Add(detail);
-            ProductGrid.Children.Add(detail);
-
-            detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
-        }
-
+        //-------------Создание нового проекта-----------//
         public void NewProject()
         {
             ClearDetails();     // удаляем все детали
@@ -937,6 +968,29 @@ namespace Metal_Code
             ProductName.Text = $"Изделие";
         }
 
+
+        //-----------Добавление контрола детали----------//
+        public List<DetailControl> DetailControls = new();
+        private void AddDetail(object sender, RoutedEventArgs e)
+        {
+            AddDetail();
+        }
+        public void AddDetail()
+        {
+            DetailControl detail = new(new());
+
+            if (DetailControls.Count > 0)
+                detail.Margin = new Thickness(0,    //добавил +30, так как увеличился DetailControl
+                    DetailControls[^1].Margin.Top + 30 + 30 * DetailControls[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
+
+            DetailControls.Add(detail);
+            ProductGrid.Children.Add(detail);
+
+            detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
+        }
+
+
+        //-------------Установка дат-----------//
         private void SetDate(object sender, SelectionChangedEventArgs e)
         {
             DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
@@ -980,6 +1034,8 @@ namespace Metal_Code
             else return null;
         }
 
+
+        //---------Сохранение и загрузка контролов расчета--------//
         public Product SaveProduct()
         {
             Product product = new()
@@ -1147,107 +1203,6 @@ namespace Metal_Code
             }
 
             return details;
-        }
-
-        //-----------Подключения к базе расчетов------------------//
-
-        private void UpdateOffer(object sender, RoutedEventArgs e)
-        {
-            //подключаемся к базе данных
-            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
-            bool isAvalaible = db.Database.CanConnect();                        //проверяем, свободна ли база для подключения
-            if (isAvalaible && OffersGrid.SelectedItem is Offer offer)          //если база свободна, получаем выбранный расчет
-            {
-                try
-                {
-                    Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
-                    if (_offer != null)
-                    {                               //менять можно только номер счета, номер заказа и дату создания
-                        _offer.Invoice = offer.Invoice;
-                        db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
-                        _offer.Order = offer.Order;
-                        db.Entry(_offer).Property(o => o.Order).IsModified = true;
-                        _offer.CreatedDate = offer.CreatedDate;
-                        db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
-
-                        db.SaveChanges();                                               //сохраняем изменения в базе данных
-                        StatusBegin("Изменения в базе сохранены");
-                    }
-                }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin(ex.Message);
-                }
-            }
-        }
-
-        public void SaveOrRemoveOffer(bool isSave)
-        {
-                //подключаемся к базе данных
-            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
-            bool isAvalaible = db.Database.CanConnect();                            //проверяем, свободна ли база для подключения
-            if (isAvalaible && ManagerDrop.SelectedItem is Manager man)             //если база свободна, получаем выбранного менеджера
-            {
-                try
-                {
-                    Manager? _man = db.Managers.FirstOrDefault(m => m.Id == man.Id);            //ищем его в базе по Id
-                    if (isSave)     //если метод запущен с параметром true, то есть в режиме сохранения
-                    {
-                        //сначала создаем новое КП
-                        Offer _offer = new(Order.Text, Company.Text, Result, GetMetalPrice(), GetServices())
-                        {
-                            EndDate = EndDate(),
-                            Autor = CurrentManager.Name,
-                            Manager = _man,
-                            Data = SaveOfferData()      //сериализуем расчет в виде строки json
-                        };
-
-                        _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
-                    }
-                    else            //если метод запущен с параметром false, то есть в режиме удаления
-                    {
-                        if (OffersGrid.SelectedItem is Offer offer)                             //получаем выбранный расчет
-                        {
-                            Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
-                            if (_offer != null)
-                            {
-                                DataGridRow row = (DataGridRow)OffersGrid.ItemContainerGenerator.ContainerFromIndex(OffersGrid.SelectedIndex);
-                                SolidColorBrush _deleteBrush = new(Colors.Gray);
-                                row.Background = _deleteBrush;
-
-                                _man?.Offers.Remove(_offer);                    //если находим, то удаляем его из базы
-                            }
-                            
-                        }
-                    }
-
-                    db.SaveChanges();                   //сохраняем изменения в базе данных
-                    if (isSave) ViewOffersGrid(man);    //и обновляем datagrid, если появился новый расчет
-                }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin(ex.Message);
-                }
-            }
-        }
-
-        public string SaveOfferData()                               //метод сохранения расчета в базе данных
-        {
-            using MemoryStream stream = new();
-            DataContractJsonSerializer serializer = new(typeof(Product));
-            serializer.WriteObject(stream, ProductModel.Product);   //сериализуем объект
-
-            return Encoding.UTF8.GetString(stream.ToArray());       //возвращаем строку преобразованного объекта в массив байтов
-        }
-
-        public static Product? OpenOfferData(string json)           //метод загрузки расчета из базы данных
-        {
-            byte[] bytes = Encoding.Unicode.GetBytes(json);         //преобразуем строку в массив байтов
-
-            using MemoryStream stream = new(bytes);
-            DataContractJsonSerializer serializer = new(typeof(Product));
-
-            return (Product?)serializer.ReadObject(stream);         //возвращаем десериализованный объект
         }
 
         public void LoadProduct()
@@ -2075,7 +2030,6 @@ namespace Metal_Code
 
 
         //-------------Отчеты-----------------//
-
         private void CreateReport(object sender, RoutedEventArgs e)
         {
             if (!CurrentManager.IsAdmin && UserDrop.SelectedItem is Manager user && user != CurrentManager)
@@ -2428,7 +2382,6 @@ namespace Metal_Code
 
 
         //------------Краткое руководство-------------------------//
-
         private void OpenExample(object sender, RoutedEventArgs e)
         {
             ExampleWindow exampleWindow = new();
@@ -2451,6 +2404,39 @@ namespace Metal_Code
 
 
         //-----------Вспомогательные методы-----------------------//
+        #region
+        public void StatusBegin(string? notify = null)
+        {
+            if (notify != null) NotifyText.Text = notify;
+            ColorAnimation animation = new()
+            {
+                From = Colors.White,
+                To = Colors.Red,
+                Duration = new Duration(TimeSpan.FromSeconds(1)),
+                AutoReverse = true
+            };
+            Status.Background = new SolidColorBrush(Colors.White);
+            Status.Background.BeginAnimation(SolidColorBrush.ColorProperty, animation);
+        }
+
+        private void SetAllMetal(object sender, RoutedEventArgs e)
+        {
+            if (sender is CheckBox cBox)
+                foreach (DetailControl d in DetailControls)
+                    foreach (TypeDetailControl t in d.TypeDetailControls) t.CheckMetal.IsChecked = cBox.IsChecked;
+            UpdateResult();
+        }
+
+        public float GetMetalPrice()
+        {
+            float metalprice = 0;
+            foreach (DetailControl d in DetailControls)
+                foreach (TypeDetailControl t in d.TypeDetailControls) metalprice += t.Result;
+
+            return (float)Math.Round(metalprice, 2);
+        }
+
+        public float GetServices() => (float)Math.Round(Result - GetMetalPrice(), 2);
 
         private string ShortManager()       //метод, возвращающий сокращенное имя менеджера
         {
@@ -2564,10 +2550,10 @@ namespace Metal_Code
                 System.Globalization.CultureInfo.InvariantCulture, out float f)) return f;
             else return 0;
         }
+        #endregion
 
 
         //-------------Выход из программы------------------------//
-
         private void Exit(object sender, CancelEventArgs e)
         {
             MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
