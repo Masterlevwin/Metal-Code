@@ -590,8 +590,8 @@ namespace Metal_Code
         {
             if (!isLocal) return;
 
-            using ManagerContext db = new(connections[0]);      //подключаемся к локальной базе данных
-            bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
+            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);       //подключаемся к базе данных
+            bool isAvalaible = db.Database.CanConnect();                                    //проверяем, свободна ли база для подключения
 
             if (isAvalaible && ManagerDrop.SelectedItem is Manager man)
             {
