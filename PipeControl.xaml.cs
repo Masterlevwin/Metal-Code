@@ -263,7 +263,7 @@ namespace Metal_Code
                         break;
                     }
 
-            //определяем деталь, в которой загрузили раскладки, как комплект деталей
+            //определяем деталь, в которой загрузили раскладки, как комплект труб
             if (!work.type.det.Detail.IsComplect) work.type.det.IsComplectChanged("Комплект труб");
 
             for (int i = 0; i < paths.Length; i++)
@@ -401,6 +401,15 @@ namespace Metal_Code
                                             {
                                                 {
                                                     work.type.SortDrop.SelectedItem = s;
+                                                    if (int.TryParse(_match, out int destiny))
+                                                    {
+                                                        work.type.S = destiny switch
+                                                        {
+                                                            <= 22 => 5,
+                                                            <= 30 => 6,
+                                                            _ => 8
+                                                        };
+                                                    }
                                                     break;
                                                 }
                                             }
