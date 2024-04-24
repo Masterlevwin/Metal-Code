@@ -299,7 +299,14 @@ namespace Metal_Code
             {
                 A = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item1);
                 B = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item2);
-                //S = 1;        //если устанавливать толщину по умолчанию, собьется установка раскроя листов в CutControl.SetSheetSize()
+
+                if (TypeDetailDrop.SelectedItem is TypeDetail type && type.Name == "Швеллер")
+                    S = (A / 10) switch
+                    {
+                        <= 22 => 5,
+                        <= 30 => 6,
+                        _ => 8
+                    };
             }
             MassCalculate();
         }
