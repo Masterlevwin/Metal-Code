@@ -16,7 +16,6 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Runtime.Serialization.Json;
 using System.Text;
-using System.Windows.Input;
 using OfficeOpenXml.Drawing;
 
 namespace Metal_Code
@@ -43,7 +42,7 @@ namespace Metal_Code
             "Data Source=works.db",
             $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
             "Data Source=metals.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db"
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -724,6 +723,8 @@ namespace Metal_Code
 
                         db.SaveChanges();                                               //сохраняем изменения в базе данных
                         StatusBegin("Изменения в базе сохранены");
+
+                        //if (Parts.Count > 0) CreateComplect(connections[8], _offer);    //создаем файл комплектации
                     }
                 }
                 catch (DbUpdateConcurrencyException ex)
@@ -1917,18 +1918,20 @@ namespace Metal_Code
             workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Файл для счета " + Order.Text + " на сумму " + $"{Result}" + ".xlsx");
         }
 
-        private void CreateComplect(string _path)   // метод создания файла для комплектации
+        private void CreateComplect(string _path, Offer? offer = null)                  // метод создания файла для комплектации
         {
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
             using var workbook = new ExcelPackage();
             ExcelWorksheet complectsheet = workbook.Workbook.Worksheets.Add("Комплектация");
 
             complectsheet.Cells[1, 1, 1, 3].Merge = true;
-            complectsheet.Cells[1, 1].Value = Order.Text;           //Номер КП
+            complectsheet.Cells[1, 1].Value = offer != null ? offer.Order : Order.Text;     //Номер КП
             complectsheet.Cells[1, 1].Style.Font.Size = 60;
             complectsheet.Cells[1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
 
             complectsheet.Cells[1, 4, 1, 9].Merge = true;
-            complectsheet.Cells[1, 4].Value = Company.Text;         //Компания
+            complectsheet.Cells[1, 4].Value = Company.Text;                                 //Компания
             complectsheet.Cells[1, 4].Style.Font.Size = 36;
             complectsheet.Cells[1, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
 
@@ -1966,7 +1969,7 @@ namespace Metal_Code
                     complectsheet.Cells[i + 3, 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
                     complectsheet.Cells[i + 3, 5].Style.Font.Bold = true;
 
-                    if (Parts[i].PropsDict[100].Count > 2)                          //габаритные размеры детали без отверстий
+                    if (Parts[i].PropsDict.ContainsKey(100) && Parts[i].PropsDict[100].Count > 2)   //габаритные размеры детали без отверстий
                     {
                         if (Parts[i].PropsDict[100][2].Contains('Ø'))
                             complectsheet.Cells[i + 3, 6].Value = Parts[i].PropsDict[100][2].Remove(Parts[i].PropsDict[100][2].IndexOf('Ø'));
@@ -2007,7 +2010,7 @@ namespace Metal_Code
             complectsheet.Cells[Parts.Count + 5, 1, Parts.Count + 5, 2].Merge = true;
             complectsheet.Cells[Parts.Count + 5, 3].Value = Boss.Text;
             complectsheet.Cells[Parts.Count + 5, 4].Value = Phone.Text;
-            complectsheet.Cells[Parts.Count + 6, 1].Value = Order.Text;
+            complectsheet.Cells[Parts.Count + 6, 1].Value = offer != null ? offer.Order : Order.Text;
             complectsheet.Cells[Parts.Count + 6, 1, Parts.Count + 6, 2].Merge = true;
             complectsheet.Cells[Parts.Count + 6, 1].Style.Font.Size = 28;
             complectsheet.Cells[Parts.Count + 6, 1].Style.Font.Bold = true;
@@ -2024,8 +2027,7 @@ namespace Metal_Code
             ExcelRange label = complectsheet.Cells[Parts.Count + 5, 1, Parts.Count + 7, 4];     //получаем этикетку для оформления
             ExcelRange details = complectsheet.Cells[2, 1, Parts.Count + 2, 9];                 //получаем таблицу деталей для оформления
 
-            // ----- обводка границ и авторастягивание столбцов -----
-
+            //обводка границ и авторастягивание столбцов
             details.Style.HorizontalAlignment = label.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             details.Style.VerticalAlignment = label.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
             details.Style.Border.Right.Style = label.Style.Border.Right.Style = ExcelBorderStyle.Thin;
@@ -2045,9 +2047,8 @@ namespace Metal_Code
             //устанавливаем колонтитул (в данном случае будет подчеркнутое название файла)            
             complectsheet.HeaderFooter.OddFooter.RightAlignedText = $"&24&U&\"Arial Rounded MT Bold\" {Path.GetFileNameWithoutExtension(ExcelHeaderFooter.FileName)}";
 
-            // ----- сохраняем книгу в файл Excel -----
-
-            workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {Company.Text} - комплектация.xlsx");
+            //сохраняем книгу в файл Excel
+            workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{(offer != null ? offer.Order : Order.Text)} {Company.Text} - комплектация.xlsx");
         }
 
 
