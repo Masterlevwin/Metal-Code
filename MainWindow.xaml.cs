@@ -512,10 +512,10 @@ namespace Metal_Code
 
                 OffersGrid.Columns[0].Header = "N";
                 OffersGrid.Columns[1].Header = "Компания";
-                OffersGrid.Columns[2].Header = "Итого, руб.";
-                OffersGrid.Columns[3].Header = "Материал, руб.";
+                OffersGrid.Columns[2].Header = "Итого";
+                OffersGrid.Columns[3].Header = "Материал";
                 OffersGrid.Columns[4].Header = "Счёт";
-                OffersGrid.Columns[5].Header = "Дата создания";
+                OffersGrid.Columns[5].Header = "Создан";
                 (OffersGrid.Columns[5] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
                 OffersGrid.Columns[6].Header = "Заказ";
                 OffersGrid.Columns[7].Header = "Автор";
@@ -2002,14 +2002,36 @@ namespace Metal_Code
 
             complectsheet.Row(Parts.Count + 3).Style.Font.Bold = true;      //выделяем жирным шрифтом подсчитанные кол-во и вес
 
-            ExcelRange details = complectsheet.Cells[2, 1, Parts.Count + 2, 9];     //получаем таблицу деталей для оформления
+            //создаем этикетку
+            complectsheet.Cells[Parts.Count + 5, 1].Value = "ЭТИКЕТКА";
+            complectsheet.Cells[Parts.Count + 5, 1, Parts.Count + 5, 2].Merge = true;
+            complectsheet.Cells[Parts.Count + 5, 3].Value = Boss.Text;
+            complectsheet.Cells[Parts.Count + 5, 4].Value = Phone.Text;
+            complectsheet.Cells[Parts.Count + 6, 1].Value = Order.Text;
+            complectsheet.Cells[Parts.Count + 6, 1, Parts.Count + 6, 2].Merge = true;
+            complectsheet.Cells[Parts.Count + 6, 1].Style.Font.Size = 28;
+            complectsheet.Cells[Parts.Count + 6, 1].Style.Font.Bold = true;
+            complectsheet.Cells[Parts.Count + 6, 3].Value = Company.Text;
+            complectsheet.Cells[Parts.Count + 6, 3, Parts.Count + 6, 4].Merge = true;
+            complectsheet.Cells[Parts.Count + 6, 3].Style.Font.Size = 16;
+            complectsheet.Cells[Parts.Count + 6, 3].Style.Font.Bold = true;
+            complectsheet.Cells[Parts.Count + 7, 1].Value = "ОБЩЕЕ КОЛ-ВО ДЕТАЛЕЙ:";
+            complectsheet.Cells[Parts.Count + 7, 1, Parts.Count + 7, 3].Merge = true;
+            complectsheet.Cells[Parts.Count + 7, 4].Formula = "=SUM(totalCount)";
+            complectsheet.Cells[Parts.Count + 7, 4].Style.Font.Size = 16;
+            complectsheet.Cells[Parts.Count + 7, 4].Style.Font.Bold = true;
+
+            ExcelRange label = complectsheet.Cells[Parts.Count + 5, 1, Parts.Count + 7, 4];     //получаем этикетку для оформления
+            ExcelRange details = complectsheet.Cells[2, 1, Parts.Count + 2, 9];                 //получаем таблицу деталей для оформления
 
             // ----- обводка границ и авторастягивание столбцов -----
 
-            details.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            details.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            details.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            details.Style.HorizontalAlignment = label.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            details.Style.VerticalAlignment = label.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            details.Style.Border.Right.Style = label.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            label.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
             details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+            label.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             complectsheet.Cells.AutoFitColumns();
             //complectsheet.View.ZoomScale = 150;         //увеличиваем масштаб книги
@@ -2021,7 +2043,7 @@ namespace Metal_Code
             complectsheet.PrinterSettings.HorizontalCentered = true;
 
             //устанавливаем колонтитул (в данном случае будет подчеркнутое название файла)            
-            complectsheet.HeaderFooter.OddFooter.RightAlignedText = $"&24&U&\"Arial Rounded MT Bold\" {ExcelHeaderFooter.FileName}";
+            complectsheet.HeaderFooter.OddFooter.RightAlignedText = $"&24&U&\"Arial Rounded MT Bold\" {Path.GetFileNameWithoutExtension(ExcelHeaderFooter.FileName)}";
 
             // ----- сохраняем книгу в файл Excel -----
 
