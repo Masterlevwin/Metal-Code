@@ -757,6 +757,7 @@ namespace Metal_Code
 
                         _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
                         ActiveOffer = _offer;
+                        StatusBegin($"Расчет {_offer.N} сохранен");
                     }
                     else            //если метод запущен с параметром false, то есть в режиме удаления
                     {
@@ -770,8 +771,8 @@ namespace Metal_Code
                                 row.Background = _deleteBrush;
 
                                 _man?.Offers.Remove(_offer);                    //если находим, то удаляем его из базы
+                                StatusBegin($"Расчет {_offer.N} удален");
                             }
-
                         }
                     }
 
@@ -1560,6 +1561,7 @@ namespace Metal_Code
 
             ExcelRange extable = worksheet.Cells[IsLaser ? 6 : 8, 5, IsLaser ? row - 3 : row - 1, 7];
             extable.Style.Border.BorderAround(ExcelBorderStyle.None);
+            worksheet.Cells[IsLaser ? 6 : 8, 7, IsLaser ? row - 3 : row - 1, 7].Style.Border.Right.Style = ExcelBorderStyle.Thin;
 
             ExcelWorksheet scoresheet = workbook.Workbook.Worksheets.Add("Статистика");
 
@@ -1922,10 +1924,10 @@ namespace Metal_Code
 
         private void CreateComplect(string _path, Offer? offer = null)                  // метод создания файла для комплектации
         {
-            if (offer?.Order is null || offer?.Order?.Length < 4)
+            if (offer != null && (offer.Order is null || offer?.Order?.Length < 4))
             {
                 StatusBegin($"Изменения в базе сохранены. Но файл комплектации не создан, так как номер заказа короче 4-х цифр");
-                return;       //если передан расчет и номер его заказа, но этот номер короче 4х цифр, выходим из метода
+                return;
             }
 
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
@@ -2011,39 +2013,44 @@ namespace Metal_Code
             complectsheet.Cells[Parts.Count + 3, 7].Value = Math.Ceiling(_totalMass);
             complectsheet.Cells[Parts.Count + 3, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
-            complectsheet.Row(Parts.Count + 3).Style.Font.Bold = true;      //выделяем жирным шрифтом подсчитанные кол-во и вес
+            complectsheet.Row(Parts.Count + 3).Style.Font.Bold = true;              //выделяем жирным шрифтом подсчитанные кол-во и вес
+            
+            ExcelRange details = complectsheet.Cells[2, 1, Parts.Count + 2, 9];     //получаем таблицу деталей для оформления
 
             //создаем этикетку
-            complectsheet.Cells[Parts.Count + 5, 1].Value = "ЭТИКЕТКА";
-            complectsheet.Cells[Parts.Count + 5, 1, Parts.Count + 5, 2].Merge = true;
-            complectsheet.Cells[Parts.Count + 5, 3].Value = Boss.Text;
-            complectsheet.Cells[Parts.Count + 5, 4].Value = Phone.Text;
-            complectsheet.Cells[Parts.Count + 6, 1].Value = offer != null ? offer.Order : Order.Text;
-            complectsheet.Cells[Parts.Count + 6, 1, Parts.Count + 6, 2].Merge = true;
-            complectsheet.Cells[Parts.Count + 6, 1].Style.Font.Size = 28;
-            complectsheet.Cells[Parts.Count + 6, 1].Style.Font.Bold = true;
-            complectsheet.Cells[Parts.Count + 6, 3].Value = Company.Text;
-            complectsheet.Cells[Parts.Count + 6, 3, Parts.Count + 6, 4].Merge = true;
-            complectsheet.Cells[Parts.Count + 6, 3].Style.Font.Size = 16;
-            complectsheet.Cells[Parts.Count + 6, 3].Style.Font.Bold = true;
-            complectsheet.Cells[Parts.Count + 7, 1].Value = "ОБЩЕЕ КОЛ-ВО ДЕТАЛЕЙ:";
-            complectsheet.Cells[Parts.Count + 7, 1, Parts.Count + 7, 3].Merge = true;
-            complectsheet.Cells[Parts.Count + 7, 4].Formula = "=SUM(totalCount)";
-            complectsheet.Cells[Parts.Count + 7, 4].Style.Font.Size = 16;
-            complectsheet.Cells[Parts.Count + 7, 4].Style.Font.Bold = true;
+            ExcelWorksheet labelsheet = workbook.Workbook.Worksheets.Add("Этикетка");
+            labelsheet.Drawings.AddPicture("A1", IsLaser ? "laser_logo.jpg" : "app_logo.jpg");  //файлы должны быть в директории bin/Debug...
+            labelsheet.Row(1).Height = labelsheet.Row(5).Height = 35.25f;
+            labelsheet.Cells[1, 1, 1, 2].Merge = true;
+            labelsheet.Cells[2, 1].Value = offer != null ? offer.Order : Order.Text;
+            labelsheet.Cells[2, 1].Style.Font.Size = 48;
+            labelsheet.Cells[2, 1].Style.Font.Bold = true;
+            labelsheet.Cells[2, 1, 2, 2].Merge = true;
+            labelsheet.Cells[3, 1].Value = Company.Text;
+            labelsheet.Cells[3, 1].Style.Font.Size = 16;
+            labelsheet.Cells[3, 1].Style.Font.Bold = true;
+            labelsheet.Cells[3, 1, 3, 2].Merge = true;
+            labelsheet.Cells[4, 1].Value = $"ОБЩЕЕ КОЛ-ВО ДЕТАЛЕЙ:";
+            labelsheet.Names.Add("totalCount", complectsheet.Cells[3, 5, Parts.Count + 2, 5]);
+            labelsheet.Cells[4, 2].Formula = "=SUM(totalCount)";
+            labelsheet.Cells[4, 2].Style.Font.Size = 16;
+            labelsheet.Cells[4, 2].Style.Font.Bold = true;
+            labelsheet.Cells[5, 1].Value = Phone.Text;
+            labelsheet.Cells[5, 1, 5, 2].Merge = true;
 
-            ExcelRange label = complectsheet.Cells[Parts.Count + 5, 1, Parts.Count + 7, 4];     //получаем этикетку для оформления
-            ExcelRange details = complectsheet.Cells[2, 1, Parts.Count + 2, 9];                 //получаем таблицу деталей для оформления
+            ExcelRange label = labelsheet.Cells[1, 1, 5, 2];                        //получаем этикетку для оформления
+            labelsheet.Column(1).Width = 45;
+            labelsheet.Row(2).Height = labelsheet.Row(3).Height = labelsheet.Row(4).Height = 45;
 
             //обводка границ и авторастягивание столбцов
             details.Style.HorizontalAlignment = label.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             details.Style.VerticalAlignment = label.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            details.Style.Border.Right.Style = label.Style.Border.Right.Style = ExcelBorderStyle.Thin;
-            label.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.Right.Style = label.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
             details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             label.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             complectsheet.Cells.AutoFitColumns();
+            //labelsheet.Cells.AutoFitColumns();
             //complectsheet.View.ZoomScale = 150;         //увеличиваем масштаб книги
 
             //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
@@ -2056,7 +2063,7 @@ namespace Metal_Code
             complectsheet.HeaderFooter.OddFooter.RightAlignedText = $"&24&U&\"Arial Rounded MT Bold\" {Path.GetFileNameWithoutExtension(ExcelHeaderFooter.FileName)}";
 
             //сохраняем книгу в файл Excel
-            if (offer is not null && offer.Order is not null && Directory.Exists(_path))           //если в параметре передан расчет, подразумевается, что заказ создан
+            if (offer is not null && offer.Order is not null && Directory.Exists(_path))    //если в параметре передан расчет, подразумевается, что заказ создан
             {                                                           //и файл комплектации нужно сохранить в папке заказа
                 string[] dirs = Directory.GetDirectories(_path);        //для этого получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
                 foreach (string s in dirs)
