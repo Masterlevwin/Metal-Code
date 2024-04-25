@@ -1165,7 +1165,7 @@ namespace Metal_Code
                                         {
                                             float _send = w.Result / _cut.PartDetails.Sum(p => p.Count);
                                             p.Price += _send;
-                                            p.Description += " + Доп";
+                                            p.Description += " + Доп ";
                                             if (w.WorkDrop.SelectedItem is Work _extra && _extra.Name == "Доп работа П") p.PropsDict[59] = new() { $"{_send}" };
                                             else p.PropsDict[60] = new() { $"{_send}" };
                                         }
