@@ -179,7 +179,6 @@ namespace Metal_Code
             {
                 activeOffer = value;
                 OnPropertyChanged(nameof(ActiveOffer));
-                //OffersGrid.Items.Refresh();
             }
         }
 
@@ -725,7 +724,7 @@ namespace Metal_Code
                         db.SaveChanges();                                               //сохраняем изменения в базе данных
                         StatusBegin("Изменения в базе сохранены");
 
-                        if (Parts.Count > 0) CreateComplect(connections[8], _offer);    //создаем файл комплектации
+                        if (ActiveOffer?.Data == _offer.Data && Parts.Count > 0) CreateComplect(connections[8], _offer);    //создаем файл комплектации
                     }
                 }
                 catch (DbUpdateConcurrencyException ex)
@@ -757,6 +756,7 @@ namespace Metal_Code
                         };
 
                         _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
+                        ActiveOffer = _offer;
                     }
                     else            //если метод запущен с параметром false, то есть в режиме удаления
                     {
@@ -968,6 +968,7 @@ namespace Metal_Code
             HasAssembly = false;
             Order.Text = Company.Text = DateProduction.Text = Adress.Text = "";
             ProductName.Text = $"Изделие";
+            ActiveOffer = null;
         }
 
 
@@ -1921,6 +1922,12 @@ namespace Metal_Code
 
         private void CreateComplect(string _path, Offer? offer = null)                  // метод создания файла для комплектации
         {
+            if (offer?.Order is null || offer?.Order?.Length < 4)
+            {
+                StatusBegin($"Изменения в базе сохранены. Но файл комплектации не создан, так как номер заказа короче 4-х цифр");
+                return;       //если передан расчет и номер его заказа, но этот номер короче 4х цифр, выходим из метода
+            }
+
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
             using var workbook = new ExcelPackage();
@@ -2049,16 +2056,16 @@ namespace Metal_Code
             complectsheet.HeaderFooter.OddFooter.RightAlignedText = $"&24&U&\"Arial Rounded MT Bold\" {Path.GetFileNameWithoutExtension(ExcelHeaderFooter.FileName)}";
 
             //сохраняем книгу в файл Excel
-            if (offer != null && Directory.Exists(_path))       //если в параметре передан расчет, подразумевается, что заказ создан
-            {                                                   //и файл комплектации нужно сохранить в папке заказа
+            if (offer is not null && offer.Order is not null && Directory.Exists(_path))           //если в параметре передан расчет, подразумевается, что заказ создан
+            {                                                           //и файл комплектации нужно сохранить в папке заказа
                 string[] dirs = Directory.GetDirectories(_path);        //для этого получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
                 foreach (string s in dirs)
                 {
-                    if (s.Contains(offer?.Order))                       //ищем подкаталог с номером заказа
+                    if (s.Contains(offer.Order))                        //ищем подкаталог с номером заказа
                     {
                         string[] files = Directory.GetFiles(s);         //получаем все файлы в папке заказа, чтобы сохранить файл комплектации в директории этих файлов
                         workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {Company.Text} - комплектация.xlsx");
-                        StatusBegin($"Изменения в базе сохранены. Кроме того создан файл комплектации в папке {connections[8]}\\{offer.Order}...");
+                        StatusBegin($"Изменения в базе сохранены. Кроме того создан файл комплектации в папке {Path.GetDirectoryName(files[0])}");
                         break;
                     }
                 }
