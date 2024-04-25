@@ -29,7 +29,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.4.5";
+        readonly string version = "2.4.6";
 
         public bool isLocal = true;     //запуск локальной версии
         //public bool isLocal = false;    //запуск стандартной версии
@@ -43,6 +43,7 @@ namespace Metal_Code
             $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
             "Data Source=metals.db",
             $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
+            $"Y:\\Производство\\Laser rezka\\В работу"
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -724,7 +725,7 @@ namespace Metal_Code
                         db.SaveChanges();                                               //сохраняем изменения в базе данных
                         StatusBegin("Изменения в базе сохранены");
 
-                        //if (Parts.Count > 0) CreateComplect(connections[8], _offer);    //создаем файл комплектации
+                        if (Parts.Count > 0) CreateComplect(connections[8], _offer);    //создаем файл комплектации
                     }
                 }
                 catch (DbUpdateConcurrencyException ex)
@@ -2048,7 +2049,21 @@ namespace Metal_Code
             complectsheet.HeaderFooter.OddFooter.RightAlignedText = $"&24&U&\"Arial Rounded MT Bold\" {Path.GetFileNameWithoutExtension(ExcelHeaderFooter.FileName)}";
 
             //сохраняем книгу в файл Excel
-            workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{(offer != null ? offer.Order : Order.Text)} {Company.Text} - комплектация.xlsx");
+            if (offer != null && Directory.Exists(_path))       //если в параметре передан расчет, подразумевается, что заказ создан
+            {                                                   //и файл комплектации нужно сохранить в папке заказа
+                string[] dirs = Directory.GetDirectories(_path);        //для этого получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
+                foreach (string s in dirs)
+                {
+                    if (s.Contains(offer?.Order))                       //ищем подкаталог с номером заказа
+                    {
+                        string[] files = Directory.GetFiles(s);         //получаем все файлы в папке заказа, чтобы сохранить файл комплектации в директории этих файлов
+                        workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {Company.Text} - комплектация.xlsx");
+                        StatusBegin($"Изменения в базе сохранены. Кроме того создан файл комплектации в папке {connections[8]}\\{offer.Order}...");
+                        break;
+                    }
+                }
+            }
+            else workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {Company.Text} - комплектация.xlsx");
         }
 
 
