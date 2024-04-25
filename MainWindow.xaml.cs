@@ -1165,7 +1165,7 @@ namespace Metal_Code
                                         {
                                             float _send = w.Result / _cut.PartDetails.Sum(p => p.Count);
                                             p.Price += _send;
-
+                                            p.Description += " + Доп";
                                             if (w.WorkDrop.SelectedItem is Work _extra && _extra.Name == "Доп работа П") p.PropsDict[59] = new() { $"{_send}" };
                                             else p.PropsDict[60] = new() { $"{_send}" };
                                         }
@@ -1523,6 +1523,7 @@ namespace Metal_Code
                     if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("С ")) worksheet.Cells[row + 5, 2].Value += "С - Сверловка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("В ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("В ")) worksheet.Cells[row + 5, 2].Value += "В - Вальцовка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("ТР") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("ТР")) worksheet.Cells[row + 5, 2].Value += "ТР - Труборез ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Доп ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Доп ")) worksheet.Cells[row + 5, 2].Value += "Доп - Дополнительные работы ";
                 }
                 worksheet.Cells[row + 5, 2, row + 5, 5].Merge = true;
             }
