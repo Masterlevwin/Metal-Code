@@ -1766,14 +1766,14 @@ namespace Metal_Code
 
                             statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f);     //"Лазер (время работ)"
 
-                            if (w.Ratio != 1)
-                                if (float.TryParse($"{statsheet.Cells[i + temp, 16].Value}", out float r))
-                                    statsheet.Cells[i + temp, 18].Value = Math.Round(r * w.Ratio, 2);
-                                else statsheet.Cells[i + temp, 18].Value = Math.Round(w.Ratio, 2);
-                            if (w.TechRatio > 1)
-                                if (float.TryParse($"{statsheet.Cells[i + temp, 17].Value}", out float r))
-                                    statsheet.Cells[i + temp, 19].Value = Math.Round(r * w.TechRatio, 2);
-                                else statsheet.Cells[i + temp, 19].Value = Math.Round(w.TechRatio, 2);
+                            //if (w.Ratio != 1)
+                            //    if (float.TryParse($"{statsheet.Cells[i + temp, 16].Value}", out float r))
+                            //        statsheet.Cells[i + temp, 18].Value = Math.Round(r * w.Ratio, 2);
+                            //    else statsheet.Cells[i + temp, 18].Value = Math.Round(w.Ratio, 2);
+                            //if (w.TechRatio > 1)
+                            //    if (float.TryParse($"{statsheet.Cells[i + temp, 17].Value}", out float r))
+                            //        statsheet.Cells[i + temp, 19].Value = Math.Round(r * w.TechRatio, 2);
+                            //    else statsheet.Cells[i + temp, 19].Value = Math.Round(w.TechRatio, 2);
                         }
                         else if (w.workType is BendControl)
                         {
