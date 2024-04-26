@@ -513,13 +513,14 @@ namespace Metal_Code
                 OffersGrid.Columns[1].Header = "Компания";
                 OffersGrid.Columns[2].Header = "Итого";
                 OffersGrid.Columns[3].Header = "Материал";
-                OffersGrid.Columns[4].Header = "Счёт";
-                OffersGrid.Columns[5].Header = "Создан";
-                (OffersGrid.Columns[5] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
-                OffersGrid.Columns[6].Header = "Заказ";
-                OffersGrid.Columns[7].Header = "Автор";
-                OffersGrid.Columns[8].Header = "Дата отгрузки";
-                (OffersGrid.Columns[8] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
+                OffersGrid.Columns[4].Header = "Нал";
+                OffersGrid.Columns[5].Header = "Счёт";
+                OffersGrid.Columns[6].Header = "Создан";
+                (OffersGrid.Columns[6] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
+                OffersGrid.Columns[7].Header = "Заказ";
+                OffersGrid.Columns[8].Header = "Автор";
+                OffersGrid.Columns[9].Header = "Дата отгрузки";
+                (OffersGrid.Columns[9] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
 
                 OffersGrid.FrozenColumnCount = 2;
             }
@@ -601,6 +602,22 @@ namespace Metal_Code
 
                     List<Offer>? offers = _man?.Offers.ToList();        //сначала получаем все расчеты менеджера
 
+
+                    //временная инструкция для переноса значений в расчеты
+                    if (offers?.Count > 0)
+                    {
+                        foreach (Offer offer in offers)
+                            if (ExtractAgent(offer) == "t")
+                            {
+                                offer.Agent = true;
+                                db.Entry(offer).Property(o => o.Agent).IsModified = true;
+                            }
+
+                        db.SaveChanges();                               //сохраняем изменения в базе данных
+                        StatusBegin("Изменения в локальной базе сохранены");
+                    }
+
+
                     //затем ищем все КП согласно введенному номеру расчета или названию компании
                     if (Search.Text is not null && Search.Text != "") offers = offers?.Where(o => o.N.Contains(Search.Text)|| o.Company.Contains(Search.Text)).ToList();
                     //наконец, выполняем выборку расчетов по дате или диапазону
@@ -622,7 +639,6 @@ namespace Metal_Code
                     StatusBegin(ex.Message);
                 }
             }
-
         }
 
         private void ResetDates(object sender, RoutedEventArgs e)           //метод сброса дат на начало текущего месяца до начала дня
@@ -713,7 +729,9 @@ namespace Metal_Code
                 {
                     Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
                     if (_offer != null)
-                    {                               //менять можно только номер счета, номер заказа и дату создания
+                    {                               //менять можно только агента, номер счета, номер заказа и дату создания
+                        _offer.Agent = offer.Agent;
+                        db.Entry(_offer).Property(o => o.Agent).IsModified = true;
                         _offer.Invoice = offer.Invoice;
                         db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
                         _offer.Order = offer.Order;
@@ -749,6 +767,7 @@ namespace Metal_Code
                         //сначала создаем новое КП
                         Offer _offer = new(Order.Text, Company.Text, Result, GetMetalPrice(), GetServices())
                         {
+                            Agent = IsAgent,
                             EndDate = EndDate(),
                             Autor = CurrentManager.Name,
                             Manager = _man,
@@ -2174,11 +2193,8 @@ namespace Metal_Code
 
             if (_offers.Count > 0)
             {
-                foreach (Offer offer in _offers)
-                {
-                    if (ExtractAgent(offer) == "f") _agentFalse.Add(offer);
-                    else if (ExtractAgent(offer) == "t") _agentTrue.Add(offer);
-                }
+                _agentFalse = _offers.Where(o => o.Agent == false).ToList();
+                _agentTrue = _offers.Where(o => o.Agent == true).ToList();
             }
 
             if (_agentFalse.Count > 0)
@@ -2314,7 +2330,7 @@ namespace Metal_Code
             return true;
         }
 
-        private static string ExtractAgent(Offer offer)
+        public static string ExtractAgent(Offer offer)
         {
             string _char = string.Empty;
             string substring = "\"IsAgent\"";

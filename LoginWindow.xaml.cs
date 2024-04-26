@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 
@@ -38,6 +40,25 @@ namespace Metal_Code
 
                     //устанавливаем менеджера по умолчанию
                     if (MainWindow.M.ManagerDrop.Items.Contains(manager)) MainWindow.M.ManagerDrop.SelectedItem = manager;
+
+                    if(manager.Name == "Серых Михаил")
+                    {
+                        db.Offers.Load();
+                        List<Offer>? offers = new(db.Offers.Local);
+
+                        if (offers?.Count > 0)
+                        {
+                            foreach (Offer offer in offers)
+                                if (MainWindow.ExtractAgent(offer) == "t")
+                                {
+                                    offer.Agent = true;
+                                    db.Entry(offer).Property(o => o.Agent).IsModified = true;
+                                }
+
+                            db.SaveChanges();                               //сохраняем изменения в базе данных
+                            MainWindow.M.StatusBegin("Изменения в базе сохранены");
+                        }
+                    }
 
                     DialogResult = true;
                 }

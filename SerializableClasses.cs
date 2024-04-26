@@ -182,6 +182,8 @@ namespace Metal_Code
         public float Material { get; set; }
 
         [ConcurrencyCheck]
+        public bool Agent { get; set; }
+        [ConcurrencyCheck]
         public string? Invoice { get; set; }
         [ConcurrencyCheck]
         public DateTime? CreatedDate { get; set; }
