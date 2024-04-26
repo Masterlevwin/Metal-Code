@@ -1720,6 +1720,9 @@ namespace Metal_Code
 
             temp++;
 
+            float _lkk, _lpk, _bkk, _bpk;          //счетчики коэффициентов лазера и гибки
+            _lkk = _lpk = _bkk = _bpk = 1;
+
             foreach (DetailControl det in DetailControls)
             {
                 for (int i = 0; i < det.TypeDetailControls.Count; i++)
@@ -1766,19 +1769,16 @@ namespace Metal_Code
 
                             statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f);     //"Лазер (время работ)"
 
-                            //if (w.Ratio != 1)
-                            //    if (float.TryParse($"{statsheet.Cells[i + temp, 16].Value}", out float r))
-                            //        statsheet.Cells[i + temp, 18].Value = Math.Round(r * w.Ratio, 2);
-                            //    else statsheet.Cells[i + temp, 18].Value = Math.Round(w.Ratio, 2);
-                            //if (w.TechRatio > 1)
-                            //    if (float.TryParse($"{statsheet.Cells[i + temp, 17].Value}", out float r))
-                            //        statsheet.Cells[i + temp, 19].Value = Math.Round(r * w.TechRatio, 2);
-                            //    else statsheet.Cells[i + temp, 19].Value = Math.Round(w.TechRatio, 2);
+                            if (w.Ratio != 1) _lkk *= w.Ratio;
+                            if (w.TechRatio > 1) _lpk *= w.TechRatio;
                         }
                         else if (w.workType is BendControl)
                         {
                             statsheet.Cells[i + temp, 6].Value = "гибка";
                             statsheet.Cells[i + temp, 13].Value = Math.Ceiling(w.Result * 0.018f);     //"Гибка (время работ)"
+
+                            if (w.Ratio != 1) _bkk *= w.Ratio;
+                            if (w.TechRatio > 1) _bpk *= w.TechRatio;
                         }
                         else if (w.workType is PipeControl)
                         {
@@ -1810,6 +1810,11 @@ namespace Metal_Code
             statsheet.Cells[beginL, 11, temp - 1, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;    //"Дата сдачи"
             statsheet.Cells[beginL, 15, temp - 1, 19].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;     //"Номер КП"
 
+            if (_lkk != 1) statsheet.Cells[temp, 12].Value = $"КК-{_lkk}";
+            if (_lpk > 1) statsheet.Cells[temp + 1, 12].Value = $"ПК-{_lpk}";
+            if (_bkk != 1) statsheet.Cells[temp, 13].Value = $"КК-{_bkk}";
+            if (_bpk > 1) statsheet.Cells[temp + 1, 13].Value = $"ПК-{_bpk}";
+            if (Ratio != 1) statsheet.Cells[temp, 15].Value = $"ОК-{Ratio}";
 
             // ----- реестр Провэлд (Лист2 - "Реестр") -----
 
