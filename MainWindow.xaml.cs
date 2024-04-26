@@ -1765,6 +1765,15 @@ namespace Metal_Code
                             else statsheet.Cells[i + temp, 4].Value = $"s{type.S} {type.MetalDrop.Text}";
 
                             statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f);     //"Лазер (время работ)"
+
+                            if (w.Ratio != 1)
+                                if (float.TryParse($"{statsheet.Cells[i + temp, 16].Value}", out float r))
+                                    statsheet.Cells[i + temp, 18].Value = Math.Round(r * w.Ratio, 2);
+                                else statsheet.Cells[i + temp, 18].Value = Math.Round(w.Ratio, 2);
+                            if (w.TechRatio > 1)
+                                if (float.TryParse($"{statsheet.Cells[i + temp, 17].Value}", out float r))
+                                    statsheet.Cells[i + temp, 19].Value = Math.Round(r * w.TechRatio, 2);
+                                else statsheet.Cells[i + temp, 19].Value = Math.Round(w.TechRatio, 2);
                         }
                         else if (w.workType is BendControl)
                         {
@@ -2020,8 +2029,9 @@ namespace Metal_Code
 
             //создаем этикетку
             ExcelWorksheet labelsheet = workbook.Workbook.Worksheets.Add("Этикетка");
-            labelsheet.Drawings.AddPicture("A1", IsLaser ? "laser_logo.jpg" : "app_logo.jpg");  //файлы должны быть в директории bin/Debug...
-            labelsheet.Row(1).Height = labelsheet.Row(5).Height = 35.25f;
+            var logo = labelsheet.Drawings.AddPicture("A1", IsLaser ? "laser_logo.jpg" : "app_logo.jpg");  //файлы должны быть в директории bin/Debug...
+            logo.SetPosition(0, 5, 0, 20);
+
             labelsheet.Cells[1, 1, 1, 2].Merge = true;
             labelsheet.Cells[2, 1].Value = offer != null ? offer.Order : Order.Text;
             labelsheet.Cells[2, 1].Style.Font.Size = 48;
@@ -2031,17 +2041,15 @@ namespace Metal_Code
             labelsheet.Cells[3, 1].Style.Font.Size = 16;
             labelsheet.Cells[3, 1].Style.Font.Bold = true;
             labelsheet.Cells[3, 1, 3, 2].Merge = true;
-            labelsheet.Cells[4, 1].Value = $"ОБЩЕЕ КОЛ-ВО ДЕТАЛЕЙ:";
+            labelsheet.Cells[4, 1].Value = $"общее кол-во деталей:";
             labelsheet.Names.Add("totalCount", complectsheet.Cells[3, 5, Parts.Count + 2, 5]);
             labelsheet.Cells[4, 2].Formula = "=SUM(totalCount)";
-            labelsheet.Cells[4, 2].Style.Font.Size = 16;
-            labelsheet.Cells[4, 2].Style.Font.Bold = true;
+            labelsheet.Cells[4, 1, 4, 2].Style.Font.Size = 16;
+            labelsheet.Cells[4, 1, 4, 2].Style.Font.Bold = true;
             labelsheet.Cells[5, 1].Value = Phone.Text;
             labelsheet.Cells[5, 1, 5, 2].Merge = true;
 
             ExcelRange label = labelsheet.Cells[1, 1, 5, 2];                        //получаем этикетку для оформления
-            labelsheet.Column(1).Width = 45;
-            labelsheet.Row(2).Height = labelsheet.Row(3).Height = labelsheet.Row(4).Height = 45;
 
             //обводка границ и авторастягивание столбцов
             details.Style.HorizontalAlignment = label.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
@@ -2051,8 +2059,8 @@ namespace Metal_Code
             label.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             complectsheet.Cells.AutoFitColumns();
-            //labelsheet.Cells.AutoFitColumns();
-            //complectsheet.View.ZoomScale = 150;         //увеличиваем масштаб книги
+            labelsheet.DefaultRowHeight = 40;
+            labelsheet.Cells.AutoFitColumns();
 
             //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
             complectsheet.PrinterSettings.FitToPage = true;
@@ -2071,7 +2079,7 @@ namespace Metal_Code
                 {
                     if (s.Contains(offer.Order))                        //ищем подкаталог с номером заказа
                     {
-                        string[] files = Directory.GetFiles(s);         //получаем все файлы в папке заказа, чтобы сохранить файл комплектации в директории этих файлов
+                        string[] files = Directory.GetFileSystemEntries(s);   //получаем все файлы в папке заказа, чтобы сохранить файл комплектации в директории этих файлов
                         workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {Company.Text} - комплектация.xlsx");
                         StatusBegin($"Изменения в базе сохранены. Кроме того создан файл комплектации в папке {Path.GetDirectoryName(files[0])}");
                         break;
