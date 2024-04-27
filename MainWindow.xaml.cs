@@ -602,22 +602,6 @@ namespace Metal_Code
 
                     List<Offer>? offers = _man?.Offers.ToList();        //сначала получаем все расчеты менеджера
 
-
-                    //временная инструкция для переноса значений в расчеты
-                    if (offers?.Count > 0)
-                    {
-                        foreach (Offer offer in offers)
-                            if (ExtractAgent(offer) == "t")
-                            {
-                                offer.Agent = true;
-                                db.Entry(offer).Property(o => o.Agent).IsModified = true;
-                            }
-
-                        db.SaveChanges();                               //сохраняем изменения в базе данных
-                        StatusBegin("Изменения в локальной базе сохранены");
-                    }
-
-
                     //затем ищем все КП согласно введенному номеру расчета или названию компании
                     if (Search.Text is not null && Search.Text != "") offers = offers?.Where(o => o.N.Contains(Search.Text)|| o.Company.Contains(Search.Text)).ToList();
                     //наконец, выполняем выборку расчетов по дате или диапазону
@@ -2187,7 +2171,7 @@ namespace Metal_Code
                 }
             }
 
-            List<string> _headers = new() { "дата", "№счета", "проект", "№заказа", "работа", "металл", "Итого" };
+            List<string> _headers = new() { "дата", "№счета", "проект", "№заказа", "работа", "металл", "Итого", "№КП" };
             List<Offer> _agentFalse = new();    //ООО
             List<Offer> _agentTrue = new();     //ИП и ПК
 
@@ -2217,6 +2201,7 @@ namespace Metal_Code
                     worksheet.Cells[f + 3, 5].Value = Math.Round(_agentFalse[f].Services, 2);
                     worksheet.Cells[f + 3, 6].Value = Math.Round(_agentFalse[f].Material, 2);
                     worksheet.Cells[f + 3, 7].Value = Math.Round(_agentFalse[f].Amount, 2);
+                    worksheet.Cells[f + 3, 8].Value = _agentFalse[f].N;
                 }
 
                 worksheet.Names.Add("totalS1", worksheet.Cells[3, 5, 2 + _agentFalse.Count, 5]);
@@ -2237,6 +2222,13 @@ namespace Metal_Code
 
                 worksheet.Cells[3 + _agentFalse.Count, 9, 3 + _agentFalse.Count, 10].Style.Fill.PatternType = ExcelFillStyle.Solid;
                 worksheet.Cells[3 + _agentFalse.Count, 9, 3 + _agentFalse.Count, 10].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGreen);
+            }
+            else
+            {       //если вдруг за выбранный период не оказалось оплаченных счетов на ООО, устанавливаем общую сумму,
+                    //сумму за услуги и сумму за материал, в ноль по умолчанию во избежании ошибок
+                worksheet.Names.Add("totalS1", worksheet.Cells[1, 1, 1, 1]);
+                worksheet.Names.Add("totalM1", worksheet.Cells[1, 1, 1, 1]);
+                worksheet.Names.Add("total1", worksheet.Cells[1, 1, 1, 1]);
             }
 
             if (_agentTrue.Count > 0)
@@ -2259,6 +2251,7 @@ namespace Metal_Code
                     worksheet.Cells[t + 6 + _agentFalse.Count, 5].Value = Math.Round(_agentTrue[t].Services, 2);
                     worksheet.Cells[t + 6 + _agentFalse.Count, 6].Value = Math.Round(_agentTrue[t].Material, 2);
                     worksheet.Cells[t + 6 + _agentFalse.Count, 7].Value = Math.Round(_agentTrue[t].Amount, 2);
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 8].Value = _agentFalse[t].N;
                 }
 
                 worksheet.Names.Add("totalS2", worksheet.Cells[6 + _agentFalse.Count, 5, 5 + _agentFalse.Count + _agentTrue.Count, 5]);
@@ -2280,49 +2273,73 @@ namespace Metal_Code
                 worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 9, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Fill.PatternType = ExcelFillStyle.Solid;
                 worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 9, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGreen);
             }
+            else
+            {       //если вдруг за выбранный период не оказалось оплаченных счетов на ИП и ПК, устанавливаем общую сумму,
+                    //сумму за услуги и сумму за материал, в ноль по умолчанию во избежании ошибок
+                worksheet.Names.Add("totalS2", worksheet.Cells[1, 1, 1, 1]);
+                worksheet.Names.Add("totalM2", worksheet.Cells[1, 1, 1, 1]);
+                worksheet.Names.Add("total2", worksheet.Cells[1, 1, 1, 1]);
+            }
+
+            worksheet.Column(8).Hidden = true;      //скрываем столбец с номером заказа
+
+            int plan = 150000;                      //сумма плана для продаж менеджера
 
             worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 4].Value = "ИТОГО:";
             worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 5].Formula = "=SUM(totalS1)+SUM(totalS2)";
             worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 6].Formula = "=SUM(totalM1)+SUM(totalM2)";
             worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 7].Formula = "=SUM(total1)+SUM(total2)";
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 4, 8 + _agentFalse.Count + _agentTrue.Count, 7].Style.Fill.PatternType = ExcelFillStyle.Solid;
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 4, 8 + _agentFalse.Count + _agentTrue.Count, 7].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightPink);
-
-            worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Прибыль месяца:";
-            worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 2].Formula =
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Прибыль месяца:";
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Style.Font.Bold = true;
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Formula =
                 "=(SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15";
-            worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 3].Formula =
-                $"=(((SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15)-150000)*0.15";
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Calculate();
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 1, 8 + _agentFalse.Count + _agentTrue.Count, 7].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 1, 8 + _agentFalse.Count + _agentTrue.Count, 7].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightPink);
 
-            worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Доп бонус за ИП и ПК:";
-            worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(total2)*0.2-SUM(total2)/6";
+            worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Доп бонус за ИП и ПК:";
+            worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(total2)*0.2-SUM(total2)/6";
+            worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Оклад:";
+            worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 2].Value = 30000;
+            worksheet.Cells[13 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Премия за план:";
 
-            worksheet.Cells[14 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Оклад:";
-            worksheet.Cells[14 + _agentFalse.Count + _agentTrue.Count, 2].Value = 30000;
-            worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Премия за выполнение плана:";
-            worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 1].Style.WrapText = true;
-            worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 2].Value = 20000;
-            worksheet.Cells[16 + _agentFalse.Count + _agentTrue.Count, 1].Value = "%:";
+            if (float.TryParse($"{worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Value}", out float value))
+            {
+                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Value = Math.Round(value, 2);
+                worksheet.Cells[13 + _agentFalse.Count + _agentTrue.Count, 2].Value = value >= plan ? 20000 : 0;
+                worksheet.Cells[14 + _agentFalse.Count + _agentTrue.Count, 2].Formula = value < plan ? "" :
+                    $"=(((SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15)-{plan})*0.15";
+            }
 
-            worksheet.Names.Add("totalPlus",worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 2, 16 + _agentFalse.Count + _agentTrue.Count, 2]);
+            worksheet.Cells[14 + _agentFalse.Count + _agentTrue.Count, 1].Value = "%:";
+            worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Аванс:";
+            worksheet.Cells[16 + _agentFalse.Count + _agentTrue.Count, 1].Value = "На карту:";
 
-            worksheet.Cells[18 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Аванс:";
-            worksheet.Cells[19 + _agentFalse.Count + _agentTrue.Count, 1].Value = "На карту:";
+            worksheet.Names.Add("totalPlus",worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 2, 14 + _agentFalse.Count + _agentTrue.Count, 2]);
+            worksheet.Names.Add("totalMinus", worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 2, 16 + _agentFalse.Count + _agentTrue.Count, 2]);
 
-            worksheet.Names.Add("totalMinus", worksheet.Cells[18 + _agentFalse.Count + _agentTrue.Count, 2, 19 + _agentFalse.Count + _agentTrue.Count, 2]);
+            worksheet.Cells[18 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Итоговая за месяц:";
+            worksheet.Cells[18 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(totalPlus)";
+            worksheet.Cells[19 + _agentFalse.Count + _agentTrue.Count, 1].Value = "К доплате:";
+            worksheet.Cells[19 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(totalPlus)-SUM(totalMinus)";
+            worksheet.Cells[19 + _agentFalse.Count + _agentTrue.Count, 2].Style.Font.Color.SetColor(System.Drawing.Color.Red);
 
-            worksheet.Cells[21 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Итоговая за месяц:";
-            worksheet.Cells[21 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(totalPlus)";
-            worksheet.Cells[22 + _agentFalse.Count + _agentTrue.Count, 1].Value = "К доплате:";
-            worksheet.Cells[22 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(totalPlus)-SUM(totalMinus)";
+            ExcelRange tablePlus = worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 1, 14 + _agentFalse.Count + _agentTrue.Count, 2];
+            tablePlus.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            tablePlus.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightBlue);
 
-            ExcelRange table = worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 1, 22 + _agentFalse.Count + _agentTrue.Count, 3];
-            table.Style.Fill.PatternType = ExcelFillStyle.Solid;
-            table.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+            ExcelRange tableMinus = worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 1, 16 + _agentFalse.Count + _agentTrue.Count, 2];
+            tableMinus.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            tableMinus.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightYellow);
 
-            ExcelRange bonus = worksheet.Cells[10 + _agentFalse.Count + _agentTrue.Count, 2, 22 + _agentFalse.Count + _agentTrue.Count, 2];
+            ExcelRange bonus = worksheet.Cells[18 + _agentFalse.Count + _agentTrue.Count, 1, 19 + _agentFalse.Count + _agentTrue.Count, 2];
             bonus.Style.Fill.PatternType = ExcelFillStyle.Solid;
-            bonus.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightBlue);
+            bonus.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.GreenYellow);
+
+            ExcelRange table = worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 1, 19 + _agentFalse.Count + _agentTrue.Count, 2];
+            table.Style.Numberformat.Format = "0.00";
+            table.Style.Border.Right.Style = table.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             worksheet.Cells.AutoFitColumns();
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
