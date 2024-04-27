@@ -559,6 +559,7 @@ namespace Metal_Code
                                 //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
                                 Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
                                 {
+                                    Agent = offer.Agent,
                                     Invoice = offer.Invoice,
                                     Order = offer.Order,
                                     Act = offer.Act,
@@ -668,6 +669,7 @@ namespace Metal_Code
                                 Offer? tempOffer = _man?.Offers.FirstOrDefault(o => o.Data == offer.Data);
                                 if (tempOffer != null)
                                 {
+                                    tempOffer.Agent = offer.Agent;
                                     tempOffer.Invoice = offer.Invoice;
                                     tempOffer.Order = offer.Order;
                                     tempOffer.Act = offer.Act;
@@ -677,6 +679,7 @@ namespace Metal_Code
                                 //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
                                 Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
                                 {
+                                    Agent = offer.Agent,
                                     Invoice = offer.Invoice,
                                     Order = offer.Order,
                                     Act = offer.Act,
@@ -775,6 +778,28 @@ namespace Metal_Code
 
                                 _man?.Offers.Remove(_offer);                    //если находим, то удаляем его из базы
                                 StatusBegin($"Расчет {_offer.N} удален");
+
+                                //if (isLocal)
+                                //{
+                                //    using ManagerContext dbMain = new(connections[1]);
+                                //    bool _isAvalaible = dbMain.Database.CanConnect();                       //проверяем, свободна ли база для подключения
+                                //    if (_isAvalaible && ManagerDrop.SelectedItem is Manager _manMain)       //если база свободна, получаем выбранного менеджера
+                                //    {
+                                //        try
+                                //        {
+                                //            Offer? _offerMain = dbMain.Offers.FirstOrDefault(o => o.Data == _offer.Data);    //ищем этот расчет по Data
+                                //            if (_offerMain != null )
+                                //            {
+                                //                dbMain.Offers.Remove(_offerMain);
+                                //            }
+
+                                //        }
+                                //        catch (DbUpdateConcurrencyException ex)
+                                //        {
+                                //            StatusBegin(ex.Message);
+                                //        }
+                                //    }
+                                //}
                             }
                         }
                     }
