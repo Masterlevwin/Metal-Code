@@ -11,7 +11,7 @@ namespace Metal_Code
     /// </summary>
     public partial class MetalWindow : Window
     {
-        MetalContext db = new(MainWindow.M.isLocal ? MainWindow.M.connections[6] : MainWindow.M.connections[7]);
+        MetalContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[6] : MainWindow.M.connections[7]);
         public MetalWindow()
         {
             InitializeComponent();
@@ -30,9 +30,6 @@ namespace Metal_Code
             MetalGrid.Columns[1].Header = "Марка";
             MetalGrid.Columns[2].Header = "Плотность";
             MetalGrid.Columns[3].Header = "Цена за кг";
-            //MetalGrid.Columns[4].Header = "Цена за метр";
-            //MetalGrid.Columns[5].Header = "Цена за прокол";
-            //MetalGrid.Columns[6].Header = "Цена за пог метр";
 
             if (!MainWindow.M.CurrentManager.IsAdmin) foreach (UIElement element in ButtonsStack.Children)
                     if (element is Button) element.IsEnabled = false;

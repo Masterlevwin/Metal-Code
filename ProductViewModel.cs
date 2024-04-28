@@ -257,6 +257,18 @@ namespace Metal_Code
             {
                 return removeOfferCommand ??= new RelayCommand(obj =>
                   {
+                      if (MainWindow.M.ManagerDrop.SelectedItem is Manager man && MainWindow.M.CurrentManager == man)
+                      {
+                          MessageBoxResult response = MessageBox.Show("Уверены? Расчет будет удален как из локальной базы, так и из основной!", "Удаление расчета",
+                              MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+                          if (response == MessageBoxResult.No) return;
+                      }
+                      else
+                      {
+                          MessageBoxResult response = MessageBox.Show("Уверены? Расчет будет удален из локальной базы!", "Удаление расчета",
+                              MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+                          if (response == MessageBoxResult.No) return;
+                      }
                       MainWindow.M.SaveOrRemoveOffer(false);
                   });
             }

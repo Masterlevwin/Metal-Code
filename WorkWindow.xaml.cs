@@ -9,7 +9,7 @@ namespace Metal_Code
     /// </summary>
     public partial class WorkWindow : Window
     {
-        WorkContext db = new(MainWindow.M.isLocal ? MainWindow.M.connections[4] : MainWindow.M.connections[5]);
+        WorkContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[4] : MainWindow.M.connections[5]);
         public WorkWindow()
         {
             InitializeComponent();

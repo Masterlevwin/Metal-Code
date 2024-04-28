@@ -31,19 +31,28 @@ namespace Metal_Code
         public static MainWindow M = new();
         readonly string version = "2.4.6";
 
-        public bool isLocal = true;     //запуск локальной версии
+        //public bool isLocal = true;     //запуск локальной версии
         //public bool isLocal = false;    //запуск стандартной версии
         public readonly string[] connections =
         {
             "Data Source=managers.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
             "Data Source=typedetails.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
             "Data Source=works.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
             "Data Source=metals.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
+            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
             $"Y:\\Производство\\Laser rezka\\В работу"
+            //"Data Source=managers.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            //"Data Source=typedetails.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            //"Data Source=works.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            //"Data Source=metals.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
+            //$"Y:\\Производство\\Laser rezka\\В работу"
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -66,20 +75,19 @@ namespace Metal_Code
 
         private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна
         {
-            using TypeDetailContext dbT = new(isLocal ? connections[2] : connections[3]);
+            using TypeDetailContext dbT = new(IsLocal ? connections[2] : connections[3]);
             dbT.TypeDetails.Load();
             TypeDetails = dbT.TypeDetails.Local.ToObservableCollection();
 
-            using WorkContext dbW = new(isLocal ? connections[4] : connections[5]);
+            using WorkContext dbW = new(IsLocal ? connections[4] : connections[5]);
             dbW.Works.Load();
             Works = dbW.Works.Local.ToObservableCollection();
 
-            using MetalContext dbM = new(isLocal ? connections[6] : connections[7]);
+            using MetalContext dbM = new(IsLocal ? connections[6] : connections[7]);
             dbM.Metals.Load();
             Metals = dbM.Metals.Local.ToObservableCollection();
             InitializeDict();
 
-            InsertBtn.IsEnabled = isLocal;      //если запущена локальная версия, делаем кнопку активной для использования
             ViewLoginWindow();
         }
 
@@ -104,14 +112,15 @@ namespace Metal_Code
             }
         }
 
-        private readonly Dictionary<string, float> TempWorks = new();
+        private readonly Dictionary<byte, List<Offer>> TempOffersDict = new() { [0] = new(), [1] = new() };     //временный словарь новых и удаленных расчетов
+        private readonly Dictionary<string, float> TempWorksDict = new();                                       //временный словарь работ
 
         public readonly List<float> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25, 30 };
-        public Dictionary<string, Dictionary<float, (float, float, float)>> MetalDict = new();
-        public Dictionary<double, float> WideDict = new();
-        public Dictionary<Metal, float> MetalRatioDict = new();
+        public Dictionary<string, Dictionary<float, (float, float, float)>> MetalDict = new();                  //словарь материалов
+        public Dictionary<double, float> WideDict = new();                                                      //словарь отверстий
+        public Dictionary<Metal, float> MetalRatioDict = new();                                                 //словарь коэффициентов за материал
 
-        private void InitializeDict()
+        private void InitializeDict()       //метод заполнения словарей значениями
         {
             foreach (Metal metal in Metals)
             {
@@ -167,10 +176,22 @@ namespace Metal_Code
                 metalWindow.Show();
             }
         }
-        
+
 
         //----------Свойства и их основные методы---------//
         #region
+        private bool isLocal = true;    //запуск локальной версии
+        //private bool isLocal = false;   //запуск основной версии
+        public bool IsLocal
+        {
+            get => isLocal;
+            set
+            {
+                isLocal = value;
+                OnPropertyChanged(nameof(IsLocal));
+            }
+        }
+
         private Offer? activeOffer;
         public Offer? ActiveOffer
         {
@@ -490,12 +511,12 @@ namespace Metal_Code
             }
         }
 
-        private void ViewOffersGrid(Manager man, List<Offer>? offers = null, int count = 24)
+        private void ViewOffersGrid(Manager man, List<Offer>? offers = null, int count = 23)
         {
             if (offers?.Count > 0) Offers = offers;
             else
             {
-                using ManagerContext db = new(isLocal ? connections[0] : connections[1]);   //подключаемся к базе данных
+                using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);   //подключаемся к базе данных
                 bool isAvalaible = db.Database.CanConnect();                                //проверяем, свободна ли база для подключения
                 if (isAvalaible)
                 {
@@ -528,7 +549,7 @@ namespace Metal_Code
 
         private void RefreshOffers(object sender, RoutedEventArgs e)        //метод загрузки расчетов из основной базы в локальную
         {
-            if (!isLocal) return;
+            if (!IsLocal) return;
 
             using ManagerContext db = new(connections[1]);      //подключаемся к основной базе данных
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
@@ -539,59 +560,48 @@ namespace Metal_Code
                     //подключаемся к локальной базе данных
                     using ManagerContext dbLocal = new(connections[0]);
 
-                    foreach (Manager manLocal in Managers)
-                    {
-                        //ищем менеджера в основной базе по имени соответствующего локальному, при этом загружаем его расчеты
-                        Manager? _man = db.Managers.Where(m => m.Name == manLocal.Name).Include(c => c.Offers).FirstOrDefault();
+                    //ищем менеджера в основной базе по имени соответствующего выбранному, при этом загружаем его расчеты
+                    Manager? _man = db.Managers.Where(m => m.Name == man.Name).Include(c => c.Offers).FirstOrDefault();
 
-                        //ищем менеджера в локальной базе по имени соответствующего локальному, при этом загружаем его расчеты
-                        Manager? _manLocal = dbLocal.Managers.Where(m => m.Name == manLocal.Name).Include(c => c.Offers).FirstOrDefault();
+                    //ищем менеджера в локальной базе по имени соответствующего локальному, при этом загружаем его расчеты
+                    Manager? _manLocal = dbLocal.Managers.Where(m => m.Name == man.Name).Include(c => c.Offers).FirstOrDefault();
 
-                        if (_man?.Offers.Count > 0 && _man.Name == _manLocal?.Name)
+                    if (_man?.Offers.Count > 0)
+                        foreach (Offer offer in _man.Offers)
                         {
-                            foreach (Offer offer in _man.Offers)
+                            //проверяем наличие идентичного КП в основной базе, если такое уже есть,
+                            //изменяем номера счета, заказа и акта, но пропускаем копирование
+                            Offer? tempOffer = _manLocal?.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                            if (tempOffer != null) continue;
+
+                            //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
+                            Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
                             {
-                                //проверяем наличие идентичного КП в основной базе, если такое уже есть,
-                                //изменяем номера счета, заказа и акта, но пропускаем копирование
-                                Offer? tempOffer = _manLocal?.Offers.FirstOrDefault(o => o.Data == offer.Data);
-                                if (tempOffer != null) continue;
+                                Agent = offer.Agent,
+                                Invoice = offer.Invoice,
+                                Order = offer.Order,
+                                Act = offer.Act,
+                                CreatedDate = offer.CreatedDate,
+                                EndDate = offer.EndDate,
+                                Autor = offer.Autor,
+                                Manager = _manLocal,        //указываем соответствующего менеджера  
+                                Data = offer.Data
+                            };
 
-                                //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
-                                Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
-                                {
-                                    Agent = offer.Agent,
-                                    Invoice = offer.Invoice,
-                                    Order = offer.Order,
-                                    Act = offer.Act,
-                                    CreatedDate = offer.CreatedDate,
-                                    EndDate = offer.EndDate,
-                                    Autor = offer.Autor,
-                                    Manager = _manLocal,        //указываем соответствующего менеджера  
-                                    Data = offer.Data
-                                };
-
-                                dbLocal.Offers.Add(_offer);     //переносим расчет в базу этого менеджера
-                            }
+                            dbLocal.Offers.Add(_offer);     //переносим расчет в базу этого менеджера
                         }
-                    }
-
-                    dbLocal.SaveChanges();                      //сохраняем изменения в локальной базе данных
-                    StatusBegin($"Локальная база обновлена");
+                    dbLocal.SaveChanges();                  //сохраняем изменения в локальной базе данных
+                    StatusBegin($"Локальная база обновлена. Сейчас в базе {dbLocal.Offers.ToList().Count} расчетов.");
 
                     ViewOffersGrid(man);
                 }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin(ex.Message);
-                }
+                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }
         }
 
         private void SearchOffers(object sender, RoutedEventArgs e)         //метод фильтра расчетов по номеру, компании или диапазону дат
         {
-            if (!isLocal) return;
-
-            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);       //подключаемся к базе данных
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);       //подключаемся к базе данных
             bool isAvalaible = db.Database.CanConnect();                                    //проверяем, свободна ли база для подключения
 
             if (isAvalaible && ManagerDrop.SelectedItem is Manager man)
@@ -604,7 +614,7 @@ namespace Metal_Code
                     List<Offer>? offers = _man?.Offers.ToList();        //сначала получаем все расчеты менеджера
 
                     //затем ищем все КП согласно введенному номеру расчета или названию компании
-                    if (Search.Text is not null && Search.Text != "") offers = offers?.Where(o => o.N.Contains(Search.Text)|| o.Company.Contains(Search.Text)).ToList();
+                    if (Search.Text is not null && Search.Text != "") offers = offers?.Where(o => o.N.Contains(Search.Text) || o.Company.Contains(Search.Text)).ToList();
                     //наконец, выполняем выборку расчетов по дате или диапазону
                     if (Start.SelectedDate != null) offers = offers?.Where(o => o.CreatedDate >= Start.SelectedDate).ToList();
                     if (End.SelectedDate != null) offers = offers?.Where(o => o.CreatedDate <= End.SelectedDate).ToList();
@@ -614,15 +624,9 @@ namespace Metal_Code
                         StatusBegin($"Расчетов по выбранным параметрам не найдено");
                         return;
                     }
-                    else
-                    {
-                        ViewOffersGrid(man, offers);
-                    }
+                    else ViewOffersGrid(man, offers);
                 }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin(ex.Message);
-                }
+                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }
         }
 
@@ -631,16 +635,17 @@ namespace Metal_Code
             DateTime date = DateTime.UtcNow;
             Start.SelectedDate = new DateTime(date.Year, date.Month, 1);
 
-            End.SelectedDate = DateTime.UtcNow;
+            End.SelectedDate = DateTime.UtcNow.AddDays(1);
         }
 
-        private void InsertDatabase(object sender, RoutedEventArgs e)
-        {
-            InsertDatabase();
-        }
+        private void InsertDatabase(object sender, RoutedEventArgs e) { InsertDatabase(); }
         private void InsertDatabase()                                       //метод отправки новых созданных расчетов в основную базу
         {
-            if (!isLocal) return;                               //если запущена основная база, выходим из метода
+            if (!IsLocal || (TempOffersDict[0].Count == 0 && TempOffersDict[1].Count == 0))
+            {
+                StatusBegin("Нет изменений для отправки в основную базу");
+                return;
+            }
 
             //подключаемся к основной базе данных
             using ManagerContext db = new(connections[1]);
@@ -648,67 +653,64 @@ namespace Metal_Code
             if (isAvalaible)
             {
                 try
-                {
-                    //подключаемся к локальной базе данных
-                    using ManagerContext dbLocal = new(connections[0]);
-
-                    foreach (Manager manLocal in Managers)
-                    {
-                        //ищем менеджера в основной базе по имени соответствующего локальному, при этом загружаем его расчеты
-                        Manager? _man = db.Managers.Where(m => m.Name == manLocal.Name).Include(c => c.Offers).FirstOrDefault();
-
-                        //ищем менеджера в локальной базе по имени соответствующего локальному, при этом загружаем его расчеты
-                        Manager? _manLocal = dbLocal.Managers.Where(m => m.Name == manLocal.Name).Include(c => c.Offers).FirstOrDefault();
-
-                        if (_manLocal?.Offers.Count > 0 && _man?.Name == _manLocal.Name)
+                {      //перебираем список расчетов на добавление
+                    if (TempOffersDict.TryGetValue(0, out List<Offer>? value) && value.Count > 0)
+                        foreach (Offer offer in value)
                         {
-                            foreach (Offer offer in _manLocal.Offers)
+                            //проверяем наличие идентичного КП в основной базе, если такое уже есть,
+                            //синхронизируем изменения, но пропускаем копирование
+                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                            if (tempOffer != null)
                             {
-                                //проверяем наличие идентичного КП в основной базе, если такое уже есть,
-                                //изменяем номера счета, заказа и акта, но пропускаем копирование
-                                Offer? tempOffer = _man?.Offers.FirstOrDefault(o => o.Data == offer.Data);
-                                if (tempOffer != null)
-                                {
-                                    tempOffer.Agent = offer.Agent;
-                                    tempOffer.Invoice = offer.Invoice;
-                                    tempOffer.Order = offer.Order;
-                                    tempOffer.Act = offer.Act;
-                                    continue;
-                                }
-
-                                //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
-                                Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
-                                {
-                                    Agent = offer.Agent,
-                                    Invoice = offer.Invoice,
-                                    Order = offer.Order,
-                                    Act = offer.Act,
-                                    CreatedDate = offer.CreatedDate,
-                                    EndDate = offer.EndDate,
-                                    Autor = offer.Autor,
-                                    Manager = _man,         //указываем соответствующего менеджера  
-                                    Data = offer.Data
-                                };
-
-                                db.Offers.Add(_offer);     //переносим расчет в базу этого менеджера
+                                tempOffer.Agent = offer.Agent;
+                                tempOffer.Invoice = offer.Invoice;
+                                tempOffer.Order = offer.Order;
+                                tempOffer.Act = offer.Act;
+                                continue;
                             }
-                        }
-                    }
 
-                    db.SaveChanges();                      //сохраняем изменения в основной базе данных
-                    StatusBegin($"Основная база обновлена");
+                            Manager? _man = db.Managers.Where(m => m.Id == offer.Manager.Id).FirstOrDefault();
+
+                            //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
+                            Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
+                            {
+                                Agent = offer.Agent,
+                                Invoice = offer.Invoice,
+                                Order = offer.Order,
+                                Act = offer.Act,
+                                CreatedDate = offer.CreatedDate,
+                                EndDate = offer.EndDate,
+                                Autor = offer.Autor,
+                                Manager = _man,             //указываем соответствующего менеджера  
+                                Data = offer.Data
+                            };
+
+                            _man?.Offers.Add(_offer);       //переносим расчет в базу этого менеджера
+                        }
+
+                        //перебираем список расчетов на удаление
+                    if (TempOffersDict.TryGetValue(1, out List<Offer>? _value) && _value.Count > 0)
+                        foreach (Offer offer in _value)
+                        {
+                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                            if (tempOffer != null) db.Offers.Remove(tempOffer);
+                        }
+
+                    db.SaveChanges();                       //сохраняем изменения в основной базе данных
+                    StatusBegin($"Основная база обновлена. Сейчас в базе {db.Offers.ToList().Count} расчетов.");
+
+                    //очищаем списки во временном словаре
+                    TempOffersDict[0].Clear();
+                    TempOffersDict[1].Clear();
                 }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin(ex.Message);
-                }
+                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }
         }
 
         private void UpdateOffer(object sender, RoutedEventArgs e)          //метод сохранения изменений в расчете
         {
             //подключаемся к базе данных
-            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
             bool isAvalaible = db.Database.CanConnect();                        //проверяем, свободна ли база для подключения
             if (isAvalaible && OffersGrid.SelectedItem is Offer offer)          //если база свободна, получаем выбранный расчет
             {
@@ -732,23 +734,22 @@ namespace Metal_Code
                         if (ActiveOffer?.Data == _offer.Data && Parts.Count > 0) CreateComplect(connections[8], _offer);    //создаем файл комплектации
                     }
                 }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin(ex.Message);
-                }
+                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }
         }
 
         public void SaveOrRemoveOffer(bool isSave)                          //метод сохранения и удаления расчета
         {
             //подключаемся к базе данных
-            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
             bool isAvalaible = db.Database.CanConnect();                            //проверяем, свободна ли база для подключения
             if (isAvalaible && ManagerDrop.SelectedItem is Manager man)             //если база свободна, получаем выбранного менеджера
             {
                 try
                 {
-                    Manager? _man = db.Managers.FirstOrDefault(m => m.Id == man.Id);            //ищем его в базе по Id
+                    //ищем менеджера в основной базе по имени соответствующего выбранному, при этом загружаем его расчеты
+                    Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
+
                     if (isSave)     //если метод запущен с параметром true, то есть в режиме сохранения
                     {
                         //сначала создаем новое КП
@@ -761,9 +762,11 @@ namespace Metal_Code
                             Data = SaveOfferData()      //сериализуем расчет в виде строки json
                         };
 
+                        if (IsLocal) TempOffersDict[0].Add(_offer);     //добавляем расчет во временный список для отправки в основную базу
+
                         _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
                         ActiveOffer = _offer;
-                        StatusBegin($"Расчет {_offer.N} сохранен");
+                        StatusBegin($"Расчет {_offer.N} сохранен. В базе {_man?.Name} {_man?.Offers.Count} расчетов.");
                     }
                     else            //если метод запущен с параметром false, то есть в режиме удаления
                     {
@@ -772,34 +775,15 @@ namespace Metal_Code
                             Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
                             if (_offer != null)
                             {
+                                //добавляем расчет во временный список для удаления из основной базы, если текущий менеджер - владелец расчета
+                                if (IsLocal && CurrentManager == man) TempOffersDict[1].Add(_offer);
+
+                                _man?.Offers.Remove(_offer);                    //если находим, то удаляем его из базы
+                                StatusBegin($"Расчет {_offer.N} удален. В базе {_man?.Name} {_man?.Offers.Count} расчетов.");
+
                                 DataGridRow row = (DataGridRow)OffersGrid.ItemContainerGenerator.ContainerFromIndex(OffersGrid.SelectedIndex);
                                 SolidColorBrush _deleteBrush = new(Colors.Gray);
                                 row.Background = _deleteBrush;
-
-                                _man?.Offers.Remove(_offer);                    //если находим, то удаляем его из базы
-                                StatusBegin($"Расчет {_offer.N} удален");
-
-                                //if (isLocal)
-                                //{
-                                //    using ManagerContext dbMain = new(connections[1]);
-                                //    bool _isAvalaible = dbMain.Database.CanConnect();                       //проверяем, свободна ли база для подключения
-                                //    if (_isAvalaible && ManagerDrop.SelectedItem is Manager _manMain)       //если база свободна, получаем выбранного менеджера
-                                //    {
-                                //        try
-                                //        {
-                                //            Offer? _offerMain = dbMain.Offers.FirstOrDefault(o => o.Data == _offer.Data);    //ищем этот расчет по Data
-                                //            if (_offerMain != null )
-                                //            {
-                                //                dbMain.Offers.Remove(_offerMain);
-                                //            }
-
-                                //        }
-                                //        catch (DbUpdateConcurrencyException ex)
-                                //        {
-                                //            StatusBegin(ex.Message);
-                                //        }
-                                //    }
-                                //}
                             }
                         }
                     }
@@ -807,10 +791,7 @@ namespace Metal_Code
                     db.SaveChanges();                   //сохраняем изменения в базе данных
                     if (isSave) ViewOffersGrid(man);    //и обновляем datagrid, если появился новый расчет
                 }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin(ex.Message);
-                }
+                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }
         }
 
@@ -835,7 +816,7 @@ namespace Metal_Code
 
         private void UpdateDatabases(object sender, RoutedEventArgs e)      //метод обновления локальных баз
         {
-            if (!isLocal) return;                               //если запущена основная база, выходим из метода
+            if (!IsLocal) return;                               //если запущена основная база, выходим из метода
 
             //подключаемся к основной базе типовых деталей
             using TypeDetailContext dbType = new(connections[3]);
@@ -1098,7 +1079,7 @@ namespace Metal_Code
         }
         public ObservableCollection<Detail> SaveDetails()
         {
-            if (TempWorks.Count > 0) TempWorks.Clear();
+            if (TempWorksDict.Count > 0) TempWorksDict.Clear();
 
             ObservableCollection<Detail> details = new();
             for (int i = 0; i < DetailControls.Count; i++)
@@ -1141,27 +1122,27 @@ namespace Metal_Code
                                 //если список еще не содержит доп работу с таким именем, создаем такую запись, иначе просто добавляем стоимость
                                 if (_work.Name == "Доп работа П")
                                 {
-                                    if (!TempWorks.ContainsKey($"{extra.NameExtra} (П)")) TempWorks[$"{extra.NameExtra} (П)"] = work.Result;
-                                    else TempWorks[$"{extra.NameExtra} (П)"] += work.Result;
+                                    if (!TempWorksDict.ContainsKey($"{extra.NameExtra} (П)")) TempWorksDict[$"{extra.NameExtra} (П)"] = work.Result;
+                                    else TempWorksDict[$"{extra.NameExtra} (П)"] += work.Result;
                                 }
 
                                 if (_work.Name == "Доп работа Л")
                                 {
-                                    if (!TempWorks.ContainsKey($"{extra.NameExtra} (Л)")) TempWorks[$"{extra.NameExtra} (Л)"] = work.Result;
-                                    else TempWorks[$"{extra.NameExtra} (Л)"] += work.Result;
+                                    if (!TempWorksDict.ContainsKey($"{extra.NameExtra} (Л)")) TempWorksDict[$"{extra.NameExtra} (Л)"] = work.Result;
+                                    else TempWorksDict[$"{extra.NameExtra} (Л)"] += work.Result;
                                 }
                             }
                             else if (work.workType is PaintControl paint && paint.Ral != null)          //проверяем наличие окраски
                             {
                                 //если список еще не содержит окраску в этот цвет, создаем такую запись, иначе просто добавляем стоимость
-                                if (!TempWorks.ContainsKey($"Окраска в цвет {paint.Ral}")) TempWorks[$"Окраска в цвет {paint.Ral}"] = work.Result;
-                                else TempWorks[$"Окраска в цвет {paint.Ral}"] += work.Result;
+                                if (!TempWorksDict.ContainsKey($"Окраска в цвет {paint.Ral}")) TempWorksDict[$"Окраска в цвет {paint.Ral}"] = work.Result;
+                                else TempWorksDict[$"Окраска в цвет {paint.Ral}"] += work.Result;
                             }
                             else if (_work.Name != null)                                                //проверяем все остальные работы
                             {
                                 //если список еще не содержит работу с таким именем, создаем такую запись, иначе просто добавляем стоимость
-                                if (!TempWorks.ContainsKey(_work.Name)) TempWorks[_work.Name] = work.Result;
-                                else TempWorks[_work.Name] += work.Result;
+                                if (!TempWorksDict.ContainsKey(_work.Name)) TempWorksDict[_work.Name] = work.Result;
+                                else TempWorksDict[_work.Name] += work.Result;
                             }
 
                             SaveWork _saveWork = new(_work.Name, work.Ratio, work.TechRatio);
@@ -1228,10 +1209,10 @@ namespace Metal_Code
                 details.Add(_detail);
             }
 
-            if (TempWorks.Count > 0 && Paint > 0)
+            if (TempWorksDict.Count > 0 && Paint > 0)
             {
-                if (TempWorks.ContainsKey("Окраска")) TempWorks["Окраска"] += Paint;
-                else TempWorks["Окраска"] = Paint;
+                if (TempWorksDict.ContainsKey("Окраска")) TempWorksDict["Окраска"] += Paint;
+                else TempWorksDict["Окраска"] = Paint;
             }
 
             return details;
@@ -1692,18 +1673,18 @@ namespace Metal_Code
 
             int las = 0, pr = 0;        //количество видов работ Лазерфлекс / Провэлд
 
-            if (TempWorks.Count > 0) foreach (string key in TempWorks.Keys)
+            if (TempWorksDict.Count > 0) foreach (string key in TempWorksDict.Keys)
                 {
                     if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key.Contains("(Л)"))
                     {
                         statsheet.Cells[3 + las, 4].Value = key;
-                        statsheet.Cells[3 + las, 5].Value = Math.Round(TempWorks[key], 2);
+                        statsheet.Cells[3 + las, 5].Value = Math.Round(TempWorksDict[key], 2);
                         las++;
                     }
                     else
                     {
                         statsheet.Cells[3 + pr, 2].Value = key;
-                        statsheet.Cells[3 + pr, 3].Value = Math.Round(TempWorks[key], 2);
+                        statsheet.Cells[3 + pr, 3].Value = Math.Round(TempWorksDict[key], 2);
                         pr++;
                     }
                 }
@@ -1859,8 +1840,8 @@ namespace Metal_Code
 
             temp++;
 
-            if (TempWorks.Count > 0)
-                foreach (string key in TempWorks.Keys)
+            if (TempWorksDict.Count > 0)
+                foreach (string key in TempWorksDict.Keys)
                 {
                     if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key.Contains("(Л)")) continue;
 
@@ -1899,7 +1880,7 @@ namespace Metal_Code
                     statsheet.Cells[temp, 14].Value = EndDate();                                                //"Дата отгрузки"
                     statsheet.Cells[temp, 14].Style.Numberformat.Format = "d MMM";
 
-                    statsheet.Cells[temp, 21].Value = Math.Round(TempWorks[key], 2);                            //"Стоимость работ"
+                    statsheet.Cells[temp, 21].Value = Math.Round(TempWorksDict[key], 2);                            //"Стоимость работ"
                     temp++;
                 }
 
@@ -2131,7 +2112,7 @@ namespace Metal_Code
                 StatusBegin("Нельзя получить отчет другого менеджера или инженера! Выберите себя.");
                 return;
             }
-            
+
             try
             {
                 if (ProductModel.dialogService.SaveFileDialog() == true && ProductModel.dialogService.FilePaths != null)
@@ -2163,10 +2144,7 @@ namespace Metal_Code
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                ProductModel.dialogService.ShowMessage(ex.Message);
-            }
+            catch (Exception ex) { ProductModel.dialogService.ShowMessage(ex.Message); }
         }
 
         public bool ManagerReport(string path)          //метод создания отчета по заказам
@@ -2179,7 +2157,7 @@ namespace Metal_Code
             List<Offer> _offers = new();
 
             //подключаемся к базе данных
-            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
             bool isAvalaible = db.Database.CanConnect();                    //проверяем, свободна ли база для подключения
             if (isAvalaible && UserDrop.SelectedItem is Manager man)        //если база свободна, получаем выбранного менеджера
             {
@@ -2391,7 +2369,7 @@ namespace Metal_Code
             List<Offer> _offers = new();
 
             //подключаемся к базе данных
-            using ManagerContext db = new(isLocal ? connections[0] : connections[1]);
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
             bool isAvalaible = db.Database.CanConnect();                    //проверяем, свободна ли база для подключения
             if (isAvalaible && UserDrop.SelectedItem is Manager man)        //если база свободна, получаем выбранного сотрудника
             {

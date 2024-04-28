@@ -9,7 +9,7 @@ namespace Metal_Code
     /// </summary>
     public partial class TypeDetailWindow : Window
     {
-        TypeDetailContext db = new(MainWindow.M.isLocal ? MainWindow.M.connections[2] : MainWindow.M.connections[3]);
+        TypeDetailContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[2] : MainWindow.M.connections[3]);
         public TypeDetailWindow()
         {
             InitializeComponent();

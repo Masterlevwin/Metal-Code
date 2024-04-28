@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -13,7 +12,7 @@ namespace Metal_Code
     /// </summary>
     public partial class ManagerWindow : Window
     {
-        ManagerContext db = new(MainWindow.M.isLocal ? MainWindow.M.connections[0] : MainWindow.M.connections[1]);
+        ManagerContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[0] : MainWindow.M.connections[1]);
         public ManagerWindow()
         {
             InitializeComponent();

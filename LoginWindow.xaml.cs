@@ -21,7 +21,7 @@ namespace Metal_Code
             string login = LoginText.Text;
             string password = PasswordText.Password;
 
-            using ManagerContext db = new(MainWindow.M.isLocal ? MainWindow.M.connections[0] : MainWindow.M.connections[1]);
+            using ManagerContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[0] : MainWindow.M.connections[1]);
             db.Managers.Load();
             MainWindow.M.Managers = db.Managers.Local.ToObservableCollection();
 
