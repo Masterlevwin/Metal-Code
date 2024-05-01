@@ -43,7 +43,7 @@ namespace Metal_Code
             $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
             "Data Source=metals.db",
             $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
-            $"Y:\\Производство\\Laser rezka\\В работу"
+            $"C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы"
             //"Data Source=managers.db",
             //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
             //"Data Source=typedetails.db",
@@ -1599,33 +1599,43 @@ namespace Metal_Code
 
             // ----- таблица разбивки цены детали по работам (Лист3 - "Статистика") -----
 
-                                        //      50      51      52      53      54      55        56      57        58      59      60          61          62
-            List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "Подробности" };
+                                        //      50      51      52      53      54      55        56      57        58      59      60          61          62        (18)      (19)      (20)   (21)
+            List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "S,кв м", "цвет", "П" };
 
             if (Parts.Count > 0)
             {
+                int _count = 0;         //счетчик кол-ва для реестра Провэлда
+
                 //сначала заполняем ячейки по каждой детали и работе
                 for (int i = 0; i < Parts.Count; i++)
+                {
                     for (int j = 0; j < 20; j++)        //пробегаемся по ключам от 50 до 70, которые зарезервированы под конкретные работы
                         if (Parts[i].PropsDict.ContainsKey(j + 50) && float.TryParse(Parts[i].PropsDict[j + 50][0], out float value))
                         {
                             scoresheet.Cells[i + 2, j + 5].Value = Math.Round(value, 2);
-                            
+
                             //подробности окраски для каждой детали
                             if (j == 4)
                             {
                                 if (float.TryParse(Parts[i].PropsDict[j + 50][1], out float square)) scoresheet.Cells[i + 2, 19].Value = Math.Round(square, 3);    //площадь
                                 if (Parts[i].PropsDict[j + 50][2] != null) scoresheet.Cells[i + 2, 20].Value = Parts[i].PropsDict[j + 50][2];                      //цвет
                             }
+
+                            //ставим галочку, если деталь добавлена в работы для Провэлда
+                            if (j > 2 && j < 10 && scoresheet.Cells[i + 2, 21].Value == null) scoresheet.Cells[i + 2, 21].Value = "П";
                         }
+
+                    if (scoresheet.Cells[i + 2, 21].Value != null && int.TryParse($"{scoresheet.Cells[i + 2, 2].Value}", out int _c)) _count += _c;
+                }
+                scoresheet.Cells[Parts.Count + 2, 21].Value = _count;
 
                 //затем оформляем заголовки таблицы и подсчитываем общую стоимость и количество деталей для каждой работы
                 float workTotal = 0, workCount = 0;
+
                 for (int col = 0; col < _heads.Count; col++)
                 {
                     scoresheet.Cells[1, col + 5].Value = _heads[col];       //заполняем заголовки из списка
-
-                    if (col == 14) scoresheet.Cells[1, col + 5, 1, col + 6].Merge = true;
+                    if (col + 5 > 18) continue;
 
                     for (int i = 0; i < Parts.Count; i++)       //пробегаем по каждой детали и получаем стоимость работы с учетом количества деталей
                     {
@@ -1659,7 +1669,8 @@ namespace Metal_Code
             totals.Style.Fill.PatternType = ExcelFillStyle.Solid;
             totals.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.PowderBlue);
 
-            ExcelRange sends = scoresheet.Cells[1, 5, Parts.Count + 3, 20];
+            ExcelRange sends = scoresheet.Cells[1, 5, Parts.Count + 3, 21];
+            sends.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
 
             // ----- таблица общих сумм работ, выполняемых подразделениями (Лист2 - "Реестр") -----
@@ -1825,6 +1836,7 @@ namespace Metal_Code
             if (_bpk > 1) statsheet.Cells[temp + 1, 13].Value = $"ПК-{_bpk}";
             if (Ratio != 1) statsheet.Cells[temp, 15].Value = $"ОК-{Ratio}";
 
+
             // ----- реестр Провэлд (Лист2 - "Реестр") -----
 
             int beginP = temp += 3;
@@ -1841,20 +1853,24 @@ namespace Metal_Code
             temp++;
 
             if (TempWorksDict.Count > 0)
+            {
+                float sum = 0;        //счетчик общей стоимости работ Провэлда
+
                 foreach (string key in TempWorksDict.Keys)
                 {
                     if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key.Contains("(Л)")) continue;
 
                     if (key.Contains("Окраска"))
                     {
-                        statsheet.Cells[temp, 3].Value = key.Remove(7);
+                        if (statsheet.Cells[temp, 3].Value != null && !$"{statsheet.Cells[temp, 3].Value}".Contains("Окраска"))
+                            statsheet.Cells[temp, 3].Value += $"{key.Remove(7)} ";
 
                         int _count = 0;
                         float _square = 0;
 
                         for (int i = 0; i < Parts.Count; i++)
                         {
-                            //если в "Подробностях" цвета не пусто, и данная окраска соответствует по RAL, считаем кол-во и площадь таких деталей
+                            //если в столбце "цвет" не пусто, и данная окраска соответствует по RAL, считаем кол-во и площадь таких деталей
                             if ($"{scoresheet.Cells[i + 2, 20].Value}" != "" && $"{key.Substring(14)}".Contains($"{scoresheet.Cells[i + 2, 20].Value}"))
                             {
                                 _count += (int)Parser($"{scoresheet.Cells[i + 2, 2].Value}");
@@ -1863,15 +1879,19 @@ namespace Metal_Code
                             }
                         }
 
-                        statsheet.Cells[temp, 4].Value = _count;
-                        statsheet.Cells[temp, 17].Value = $"{key.Substring(14)} ({Math.Round(_square, 3)} кв м)";
+                        //statsheet.Cells[temp, 4].Value = _count;
+                        statsheet.Cells[temp, 17].Value += $"{key.Substring(14)} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
                     }
-                    else statsheet.Cells[temp, 3].Value = key;                                                  //"Наименование изделия / вид работы"
+                    else statsheet.Cells[temp, 3].Value += $"{key} ";                                           //"Наименование изделия / вид работы"
+                    
+                    statsheet.Cells[temp, 3].Style.WrapText = true;
+                    statsheet.Cells[temp, 17].Style.WrapText = true;
 
-                    for (int col = 0; col < _heads.Count; col++)
-                        if (key.Contains(_heads[col]) && _heads[col] != "Окр")
-                            statsheet.Cells[temp, 4].Value = scoresheet.Cells[Parts.Count + 2, col + 5].Value;  //"Кол-во"
+                    //for (int col = 0; col < _heads.Count; col++)
+                    //    if (key.Contains(_heads[col]) && _heads[col] != "Окр")
+                    //        statsheet.Cells[temp, 4].Value = scoresheet.Cells[Parts.Count + 2, col + 5].Value;  //"Кол-во"
 
+                    statsheet.Cells[temp, 4].Value = scoresheet.Cells[Parts.Count + 2, 21].Value;
                     statsheet.Cells[temp, 5].Value = "шт";                                                      //"ед изм."
                     statsheet.Cells[temp, 6].Value = Boss.Text.Substring(4);                                    //"Подразделение"
                     statsheet.Cells[temp, 7].Value = Company.Text;                                              //"Компания"
@@ -1879,12 +1899,14 @@ namespace Metal_Code
                     statsheet.Cells[temp, 10].Value = CurrentManager.Name;                                      //"Инженер"
                     statsheet.Cells[temp, 14].Value = EndDate();                                                //"Дата отгрузки"
                     statsheet.Cells[temp, 14].Style.Numberformat.Format = "d MMM";
-
-                    statsheet.Cells[temp, 21].Value = Math.Round(TempWorksDict[key], 2);                            //"Стоимость работ"
-                    temp++;
+                    
+                    sum += TempWorksDict[key];
+                    //temp++;
                 }
+                statsheet.Cells[temp, 21].Value = Math.Round(sum, 2);                                           //"Стоимость работ"
+            }
 
-            ExcelRange registryP = statsheet.Cells[beginP, 1, temp - 1, 21];
+            ExcelRange registryP = statsheet.Cells[beginP, 1, temp, 21];
 
 
             // ----- обводка границ и авторастягивание столбцов -----
@@ -1900,6 +1922,8 @@ namespace Metal_Code
 
             scoresheet.Cells.AutoFitColumns();
             statsheet.Cells.AutoFitColumns();
+            registryP.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            registryP.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
 
 
             // ----- сохраняем книгу в файл Excel -----

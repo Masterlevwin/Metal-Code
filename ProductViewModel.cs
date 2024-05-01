@@ -6,7 +6,6 @@ using System.IO;
 using System.Runtime.Serialization.Json;
 using Microsoft.Win32;
 using System.Windows;
-using System.Windows.Controls;
 
 namespace Metal_Code
 {
