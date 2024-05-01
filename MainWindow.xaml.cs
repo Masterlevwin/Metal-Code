@@ -29,30 +29,30 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.4.6";
+        readonly string version = "2.4.7";
 
         //public bool isLocal = true;     //запуск локальной версии
         //public bool isLocal = false;    //запуск стандартной версии
         public readonly string[] connections =
         {
-            "Data Source=managers.db",
-            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
-            "Data Source=typedetails.db",
-            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
-            "Data Source=works.db",
-            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
-            "Data Source=metals.db",
-            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
-            $"C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы"
             //"Data Source=managers.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
             //"Data Source=typedetails.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
             //"Data Source=works.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
             //"Data Source=metals.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
-            //$"Y:\\Производство\\Laser rezka\\В работу"
+            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
+            //$"C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы"
+            "Data Source=managers.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            "Data Source=typedetails.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            "Data Source=works.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            "Data Source=metals.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
+            $"Y:\\Производство\\Laser rezka\\В работу"
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
