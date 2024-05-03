@@ -31,8 +31,6 @@ namespace Metal_Code
         public static MainWindow M = new();
         readonly string version = "2.4.7";
 
-        //public bool isLocal = true;     //запуск локальной версии
-        //public bool isLocal = false;    //запуск стандартной версии
         public readonly string[] connections =
         {
             //"Data Source=managers.db",
@@ -111,8 +109,9 @@ namespace Metal_Code
                 NewProject();
             }
         }
-
-        private readonly Dictionary<byte, List<Offer>> TempOffersDict = new() { [0] = new(), [1] = new() };     //временный словарь новых и удаленных расчетов
+        
+        //временный словарь расчетов для синхронизации с основной базой (0 - новые, 1 - удаленные, 2 - измененные)
+        private readonly Dictionary<byte, List<Offer>> TempOffersDict = new() { [0] = new(), [1] = new(), [2] = new() };
         private readonly Dictionary<string, float> TempWorksDict = new();                                       //временный словарь работ
 
         public readonly List<float> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25, 30 };
@@ -179,7 +178,6 @@ namespace Metal_Code
 
 
         //----------Свойства и их основные методы---------//
-        #region
         private bool isLocal = true;    //запуск локальной версии
         //private bool isLocal = false;   //запуск основной версии
         public bool IsLocal
@@ -191,7 +189,7 @@ namespace Metal_Code
                 OnPropertyChanged(nameof(IsLocal));
             }
         }
-
+        #region
         private Offer? activeOffer;
         public Offer? ActiveOffer
         {
@@ -679,9 +677,9 @@ namespace Metal_Code
         }
 
         private void InsertDatabase(object sender, RoutedEventArgs e) { InsertDatabase(); }
-        private void InsertDatabase()                                       //метод отправки новых созданных расчетов в основную базу
+        private void InsertDatabase()                                       //метод синхронизации расчетов с основной базой
         {
-            if (!IsLocal || (TempOffersDict[0].Count == 0 && TempOffersDict[1].Count == 0))
+            if (!IsLocal || (TempOffersDict[0].Count == 0 && TempOffersDict[1].Count == 0 && TempOffersDict[2].Count == 0))
             {
                 StatusBegin("Нет изменений для отправки в основную базу");
                 return;
@@ -694,20 +692,12 @@ namespace Metal_Code
             {
                 try
                 {      //перебираем список расчетов на добавление
-                    if (TempOffersDict.TryGetValue(0, out List<Offer>? value) && value.Count > 0)
-                        foreach (Offer offer in value)
+                    if (TempOffersDict.TryGetValue(0, out List<Offer>? addList) && addList.Count > 0)
+                        foreach (Offer offer in addList)
                         {
-                            //проверяем наличие идентичного КП в основной базе, если такое уже есть,
-                            //синхронизируем изменения, но пропускаем копирование
+                            //проверяем наличие идентичного КП в основной базе, если такое уже есть, пропускаем копирование
                             Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Data == offer.Data);
-                            if (tempOffer != null)
-                            {
-                                tempOffer.Agent = offer.Agent;
-                                tempOffer.Invoice = offer.Invoice;
-                                tempOffer.Order = offer.Order;
-                                tempOffer.Act = offer.Act;
-                                continue;
-                            }
+                            if (tempOffer != null) continue;
 
                             Manager? _man = db.Managers.Where(m => m.Id == offer.Manager.Id).FirstOrDefault();
 
@@ -729,11 +719,29 @@ namespace Metal_Code
                         }
 
                         //перебираем список расчетов на удаление
-                    if (TempOffersDict.TryGetValue(1, out List<Offer>? _value) && _value.Count > 0)
-                        foreach (Offer offer in _value)
+                    if (TempOffersDict.TryGetValue(1, out List<Offer>? removeList) && removeList.Count > 0)
+                        foreach (Offer offer in removeList)
                         {
                             Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Data == offer.Data);
                             if (tempOffer != null) db.Offers.Remove(tempOffer);
+                        }
+
+                        //перебираем список расчетов на синхронизацию изменений
+                    if (TempOffersDict.TryGetValue(2, out List<Offer>? changeList) && changeList.Count > 0)
+                        foreach (Offer offer in changeList)
+                        {
+                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                            if (tempOffer != null)
+                            {
+                                tempOffer.Agent = offer.Agent;
+                                db.Entry(tempOffer).Property(o => o.Agent).IsModified = true;
+                                tempOffer.Invoice = offer.Invoice;
+                                db.Entry(tempOffer).Property(o => o.Invoice).IsModified = true;
+                                tempOffer.CreatedDate = offer.CreatedDate;
+                                db.Entry(tempOffer).Property(o => o.CreatedDate).IsModified = true;
+                                tempOffer.Order = offer.Order;
+                                db.Entry(tempOffer).Property(o => o.Order).IsModified = true;
+                            }
                         }
 
                     db.SaveChanges();                       //сохраняем изменения в основной базе данных
@@ -742,6 +750,7 @@ namespace Metal_Code
                     //очищаем списки во временном словаре
                     TempOffersDict[0].Clear();
                     TempOffersDict[1].Clear();
+                    TempOffersDict[2].Clear();
                 }
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }
@@ -758,15 +767,18 @@ namespace Metal_Code
                 {
                     Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
                     if (_offer != null)
-                    {                               //менять можно только агента, номер счета, номер заказа и дату создания
+                    {                               //менять можно только агента, номер счета, дату создания и номер заказа
                         _offer.Agent = offer.Agent;
                         db.Entry(_offer).Property(o => o.Agent).IsModified = true;
                         _offer.Invoice = offer.Invoice;
                         db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
-                        _offer.Order = offer.Order;
-                        db.Entry(_offer).Property(o => o.Order).IsModified = true;
                         _offer.CreatedDate = offer.CreatedDate;
                         db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
+                        _offer.Order = offer.Order;
+                        db.Entry(_offer).Property(o => o.Order).IsModified = true;
+
+                        //добавляем расчет во временный список для синхронизации с основной базой
+                        if (IsLocal && ManagerDrop.SelectedItem is Manager man && CurrentManager == man) TempOffersDict[2].Add(_offer);
 
                         db.SaveChanges();                                               //сохраняем изменения в базе данных
                         StatusBegin("Изменения в базе сохранены");
@@ -2318,7 +2330,7 @@ namespace Metal_Code
                     worksheet.Cells[t + 6 + _agentFalse.Count, 5].Value = Math.Round(_agentTrue[t].Services, 2);
                     worksheet.Cells[t + 6 + _agentFalse.Count, 6].Value = Math.Round(_agentTrue[t].Material, 2);
                     worksheet.Cells[t + 6 + _agentFalse.Count, 7].Value = Math.Round(_agentTrue[t].Amount, 2);
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 8].Value = _agentFalse[t].N;
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 8].Value = _agentTrue[t].N;
                 }
 
                 worksheet.Names.Add("totalS2", worksheet.Cells[6 + _agentFalse.Count, 5, 5 + _agentFalse.Count + _agentTrue.Count, 5]);
