@@ -29,7 +29,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.4.7";
+        readonly string version = "2.4.8";
 
         public readonly string[] connections =
         {
@@ -181,8 +181,8 @@ namespace Metal_Code
 
 
         //----------Свойства и их основные методы---------//
-        //private bool isLocal = true;    //запуск локальной версии
-        private bool isLocal = false;   //запуск основной версии
+        private bool isLocal = true;    //запуск локальной версии
+        //private bool isLocal = false;   //запуск основной версии
         public bool IsLocal
         {
             get => isLocal;
