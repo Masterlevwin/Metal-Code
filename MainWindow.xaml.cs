@@ -33,24 +33,24 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {
-            //"Data Source=managers.db",
-            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
-            //"Data Source=typedetails.db",
-            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
-            //"Data Source=works.db",
-            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
-            //"Data Source=metals.db",
-            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
-            //$"C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы"
             "Data Source=managers.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
             "Data Source=typedetails.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
             "Data Source=works.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
             "Data Source=metals.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
-            $"Y:\\Производство\\Laser rezka\\В работу"
+            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
+            $"C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы"
+            //"Data Source=managers.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            //"Data Source=typedetails.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            //"Data Source=works.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            //"Data Source=metals.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
+            //$"Y:\\Производство\\Laser rezka\\В работу"
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -58,6 +58,7 @@ namespace Metal_Code
         public Manager CurrentManager = new();
         public ObservableCollection<Manager> Managers { get; set; } = new();
         public List<Offer> Offers { get; set; } = new();
+        public ObservableCollection<Customer> Customers { get; set; } = new();
         public ObservableCollection<TypeDetail> TypeDetails { get; set; } = new();
         public ObservableCollection<Work> Works { get; set; } = new();
         public ObservableCollection<Metal> Metals { get; set; } = new();
@@ -180,8 +181,8 @@ namespace Metal_Code
 
 
         //----------Свойства и их основные методы---------//
-        private bool isLocal = true;    //запуск локальной версии
-        //private bool isLocal = false;   //запуск основной версии
+        //private bool isLocal = true;    //запуск локальной версии
+        private bool isLocal = false;   //запуск основной версии
         public bool IsLocal
         {
             get => isLocal;
@@ -332,7 +333,9 @@ namespace Metal_Code
 
         private void SetAdress()
         {
-            if (Company.Text is null || Company.Text == "") return;
+            //if (CustomerDrop.SelectedItem is Customer customer) Adress.Text = customer.Adress;
+
+            if (CustomerDrop.Text is null || CustomerDrop.Text == "") return;
 
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);       //подключаемся к базе данных
             bool isAvalaible = db.Database.CanConnect();                                    //проверяем, свободна ли база для подключения
@@ -343,9 +346,9 @@ namespace Metal_Code
                 {
                     //ищем менеджера по имени соответствующего выбранному, при этом загружаем его расчеты
                     Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
-                    
+
                     //получаем все расчеты менеджера согласно названию компании
-                    List<Offer>? offers = _man?.Offers.Where(o => o.Company == Company.Text).ToList();
+                    List<Offer>? offers = _man?.Offers.Where(o => o.Company == CustomerDrop.Text).ToList();
 
                     //сортируем список в обратном порядке их создания, чтобы получить последние вначале
                     offers = offers?.OrderByDescending(o => o.Id).ToList();
@@ -561,8 +564,12 @@ namespace Metal_Code
                 if (isAvalaible)
                 {
                     //при смене менеджера загружаем ТОЛЬКО ЕГО и ЕГО коллекцию расчетов
-                    Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
-                    if (_man != null) Offers = _man.Offers.TakeLast(count).ToList();        //показываем последние "count" расчетов
+                    Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(o => o.Offers).FirstOrDefault();
+                    if (_man != null)
+                    {
+                        Offers = _man.Offers.TakeLast(count).ToList();        //показываем последние "count" расчетов
+                        CustomerDrop.ItemsSource = Customers.Where(c => c.ManagerId == _man.Id).OrderBy(s => s.Name);
+                    }
                 }
             }
 
@@ -585,6 +592,11 @@ namespace Metal_Code
 
                 OffersGrid.FrozenColumnCount = 2;
             }
+        }
+
+        private void SetAgent(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox cBox && cBox.SelectedItem is Customer customer) IsAgent = customer.Agent;
         }
 
         private void RefreshOffers(object sender, RoutedEventArgs e)        //метод загрузки расчетов из основной базы в локальную
@@ -807,7 +819,7 @@ namespace Metal_Code
                     if (isSave)     //если метод запущен с параметром true, то есть в режиме сохранения
                     {
                         //сначала создаем новое КП
-                        Offer _offer = new(Order.Text, Company.Text, Result, GetMetalPrice(), GetServices())
+                        Offer _offer = new(Order.Text, CustomerDrop.Text, Result, GetMetalPrice(), GetServices())
                         {
                             Agent = IsAgent,
                             EndDate = EndDate(),
@@ -1030,7 +1042,7 @@ namespace Metal_Code
             CheckPaint.IsChecked = false;
             CheckConstruct.IsChecked = false;
             HasAssembly = false;
-            Order.Text = Company.Text = DateProduction.Text = Adress.Text = "";
+            Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = "";
             ProductName.Text = $"Изделие";
             ActiveOffer = null;
         }
@@ -1109,7 +1121,7 @@ namespace Metal_Code
             {
                 Name = ProductName.Text,
                 Order = Order.Text,
-                Company = Company.Text,
+                Company = CustomerDrop.Text,
                 Production = DateProduction.Text,
                 Manager = Adress.Text,                  //поле "Manager" сохраняет ссылку на адрес доставки;
                                                         //не менял название поля, чтобы загружались старые сохранения
@@ -1278,7 +1290,7 @@ namespace Metal_Code
 
             ProductName.Text = ProductModel.Product.Name;
             Order.Text = ProductModel.Product.Order;
-            Company.Text = ProductModel.Product.Company;
+            CustomerDrop.Text = ProductModel.Product.Company;
             DateProduction.Text = ProductModel.Product.Production;
             Adress.Text = ProductModel.Product.Manager;
             CheckPaint.IsChecked = ProductModel.Product.HasPaint;
@@ -1401,7 +1413,7 @@ namespace Metal_Code
             worksheet.Rows[2].Style.Font.Size = 16;
             worksheet.Rows[2].Style.Font.Bold = true;
             worksheet.Rows[2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            worksheet.Cells["C2"].Value = "КП № " + Order.Text + " для " + Company.Text + " от " + DateTime.Now.ToString("d");
+            worksheet.Cells["C2"].Value = "КП № " + Order.Text + " для " + CustomerDrop.Text + " от " + DateTime.Now.ToString("d");
             worksheet.Cells[2, 3, 2, 8].Merge = true;
             worksheet.Cells[2, 3, 2, 8].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
             worksheet.Cells[2, 3, 2, 8].Style.Border.Bottom.Color.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
@@ -1803,7 +1815,7 @@ namespace Metal_Code
                 {
                     TypeDetailControl type = det.TypeDetailControls[i];
 
-                    statsheet.Cells[i + temp, 2].Value = Company.Text;      //"Заказчик"
+                    statsheet.Cells[i + temp, 2].Value = CustomerDrop.Text;      //"Заказчик"
                     statsheet.Cells[i + temp, 3].Value = ShortManager();    //"Менеджер"
 
                     if (HasDelivery) statsheet.Cells[i + temp, 8].Value = "Доставка ";
@@ -1948,7 +1960,7 @@ namespace Metal_Code
                     statsheet.Cells[temp, 4].Value = scoresheet.Cells[Parts.Count + 2, 21].Value;
                     statsheet.Cells[temp, 5].Value = "шт";                                                      //"ед изм."
                     statsheet.Cells[temp, 6].Value = Boss.Text.Substring(4);                                    //"Подразделение"
-                    statsheet.Cells[temp, 7].Value = Company.Text;                                              //"Компания"
+                    statsheet.Cells[temp, 7].Value = CustomerDrop.Text;                                              //"Компания"
                     statsheet.Cells[temp, 9].Value = ManagerDrop.Text;                                          //"Менеджер"
                     statsheet.Cells[temp, 10].Value = CurrentManager.Name;                                      //"Инженер"
                     statsheet.Cells[temp, 14].Value = EndDate();                                                //"Дата отгрузки"
@@ -2043,7 +2055,7 @@ namespace Metal_Code
             complectsheet.Cells[1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
 
             complectsheet.Cells[1, 4, 1, 9].Merge = true;
-            complectsheet.Cells[1, 4].Value = Company.Text;                                 //Компания
+            complectsheet.Cells[1, 4].Value = CustomerDrop.Text;                                 //Компания
             complectsheet.Cells[1, 4].Style.Font.Size = 36;
             complectsheet.Cells[1, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
 
@@ -2129,7 +2141,7 @@ namespace Metal_Code
             labelsheet.Cells[2, 1].Style.Font.Size = 48;
             labelsheet.Cells[2, 1].Style.Font.Bold = true;
             labelsheet.Cells[2, 1, 2, 2].Merge = true;
-            labelsheet.Cells[3, 1].Value = Company.Text;
+            labelsheet.Cells[3, 1].Value = CustomerDrop.Text;
             labelsheet.Cells[3, 1].Style.Font.Size = 16;
             labelsheet.Cells[3, 1].Style.Font.Bold = true;
             labelsheet.Cells[3, 1, 3, 2].Merge = true;
@@ -2172,13 +2184,13 @@ namespace Metal_Code
                     if (s.Contains(offer.Order))                        //ищем подкаталог с номером заказа
                     {
                         string[] files = Directory.GetFileSystemEntries(s);   //получаем все файлы в папке заказа, чтобы сохранить файл комплектации в директории этих файлов
-                        workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {Company.Text} - комплектация.xlsx");
+                        workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {CustomerDrop.Text} - комплектация.xlsx");
                         StatusBegin($"Изменения в базе сохранены. Кроме того создан файл комплектации в папке {Path.GetDirectoryName(files[0])}");
                         break;
                     }
                 }
             }
-            else workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {Company.Text} - комплектация.xlsx");
+            else workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
         }
 
 
@@ -2640,7 +2652,7 @@ namespace Metal_Code
             if (ActiveOffer != null && ActiveOffer.Order != null) sb.Append($", №{ActiveOffer.Order}");
             else sb.Append($", №{Order.Text}");
 
-            sb.Append($", {Company.Text}({ShortManager()})");   //добавляем заказчика и менеджера в сокращенном виде
+            sb.Append($", {CustomerDrop.Text}({ShortManager()})");   //добавляем заказчика и менеджера в сокращенном виде
             sb.Append($", примерно {GetTotalMass()} кг;");      //добавляем массу всех деталей
             sb.Append($" {Adress.Text}");                       //и, наконец, адрес доставки и контакт
 

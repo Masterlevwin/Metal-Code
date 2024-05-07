@@ -165,6 +165,7 @@ namespace Metal_Code
         public bool IsEngineer {  get; set; }
         public bool IsLaser{  get; set; }
         public ObservableCollection<Offer> Offers { get; set; } = new();
+        public ObservableCollection<Customer> Customers { get; set; } = new();
         public Manager()
         {
 
@@ -212,6 +213,23 @@ namespace Metal_Code
             Material = material;
             Services = services;
             CreatedDate = DateTime.Now;
+        }
+    }
+
+    public class Customer
+    {
+        public int Id { get; set; }
+
+        public string? Name { get; set; }
+        public string? Adress { get; set; }
+        public bool Agent { get; set; }
+
+        public Manager? Manager { get; set; }
+        public int ManagerId { get; set; }
+
+        public Customer()
+        {
+
         }
     }
 
@@ -274,6 +292,7 @@ namespace Metal_Code
     {
         public DbSet<Manager> Managers { get; set; } = null!;
         public DbSet<Offer> Offers { get; set; } = null!;
+        public DbSet<Customer> Customers { get; set; } = null!;
 
         public string connectionString;
         public ManagerContext(string connectionString)

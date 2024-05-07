@@ -9,6 +9,8 @@
     <!-- Control colour themes. dont mess with em okay unless youre good at styles -->
     <!-- Complete DarkTheme Colours -->
     <SolidColorBrush x:Key="TransparentBrush" Color="Transparent"/>
+    <SolidColorBrush x:Key="ComboBoxBackground" Color="#FFFFF7DE"/>
+    <SolidColorBrush x:Key="ButtonBackground" Color="#FFDEFFC8"/>
     <SolidColorBrush x:Key="ContainerBackground" Color="WhiteSmoke"/>
     <SolidColorBrush x:Key="ContainerBorder" Color="#FFE8E8E8"/>
     <SolidColorBrush x:Key="ControlDefaultForeground"  Color="#FF040404" />
@@ -396,7 +398,7 @@
     </ControlTemplate>
     <Style TargetType="{x:Type ComboBox}">
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}"/>
-        <Setter Property="Background" Value="{StaticResource ControlDefaultBackground}"/>
+        <Setter Property="Background" Value="{StaticResource ComboBoxBackground}"/>
         <Setter Property="BorderBrush" Value="#FFFF7D00"/>
         <Setter Property="Foreground" Value="{StaticResource ControlDefaultForeground}"/>
         <Setter Property="BorderThickness" Value="1"/>

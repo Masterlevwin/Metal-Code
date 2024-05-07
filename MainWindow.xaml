@@ -6,6 +6,9 @@
         x:Class="Metal_Code.MainWindow"
         mc:Ignorable="d"
         Title="Metal-Code" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" d:DesignHeight="805.736" d:DesignWidth="1907.931" Closing="Exit" WindowState="Maximized" Icon="/app_logo.jpeg" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveCaptionTextBrushKey}}" FontFamily="Century">
+    <Window.Resources>
+        <Color x:Key="ComboBoxBackground">#FFDEF7FF</Color>
+    </Window.Resources>
 
     <Window.InputBindings>
         <KeyBinding Key="A"
@@ -138,10 +141,18 @@
                         <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет от ООО" HorizontalAlignment="Left" Margin="15,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;"/>
                         <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет от ИП или ПК" HorizontalAlignment="Left" Margin="110,45,0,0" VerticalAlignment="Top" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;"/>
 
-                        <TextBlock Text="КП №" HorizontalAlignment="Left" Margin="260,23,0,0" VerticalAlignment="Top"/>
-                        <TextBox x:Name="Order" HorizontalAlignment="Left" Margin="300,22,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40" ToolTip="Введите номер предложения"/>
-                        <TextBlock Text="для" HorizontalAlignment="Left" Margin="350,23,0,0" VerticalAlignment="Top"/>
-                        <TextBox x:Name="Company" HorizontalAlignment="Left" Margin="380,22,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите контрагента" Width="170"/>
+                        <TextBlock Text="КП №" HorizontalAlignment="Left" Margin="260,25,0,0" VerticalAlignment="Top"/>
+                        <TextBox x:Name="Order" HorizontalAlignment="Left" Margin="300,22,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40" ToolTip="Введите номер предложения" MaxHeight="22" MinHeight="22"/>
+                        <TextBlock Text="для" HorizontalAlignment="Left" Margin="350,25,0,0" VerticalAlignment="Top"/>
+
+                        <ComboBox x:Name="CustomerDrop" DisplayMemberPath="Name" IsEditable="True" SelectedIndex="0" SelectionChanged="SetAgent" HorizontalAlignment="Left" Margin="380,22,0,0" VerticalAlignment="Top" Width="170" MaxHeight="22">
+                            <ComboBox.Background>
+                                <LinearGradientBrush EndPoint="0,1">
+                                    <GradientStop Color="White"/>
+                                    <GradientStop Color="#FFE5E5E5" Offset="1"/>
+                                </LinearGradientBrush>
+                            </ComboBox.Background>
+                        </ComboBox>
 
                         <TextBlock Text="Срок изготовления:" HorizontalAlignment="Left" Margin="15,65,0,0" VerticalAlignment="Top"/>
                         <TextBox ToolTip="Введите срок изготовления" x:Name="DateProduction" Margin="135,65,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50"/>
