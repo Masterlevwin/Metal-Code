@@ -143,15 +143,30 @@ namespace Metal_Code
             {
                 foreach (PartControl p in Parts)
                     foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) if (item.CharName == CharName && item.Holes > 0)
-                        price += (_work.Price / p.Part.Count / item.Holes + Time(p.Part.Mass, item.Wide, work) * 2000 / 60) * p.Part.Count * item.Holes;
+                        price += (_work.Price + Time(p.Part.Mass, item.Wide, work) * 2000 / 60 * p.Part.Count * item.Holes) * RatioHoles(p.Part.Count * item.Holes);
             }
             else if (work.type.Mass > 0)
             {
                 if (Wide == 0 || Holes == 0) return;
 
-                price = (_work.Price / work.type.Count / Holes + Time(work.type.Mass, Wide, work) * 2000 / 60) * work.type.Count * Holes;
+                price = (_work.Price + Time(work.type.Mass, Wide, work) * 2000 / 60 * work.type.Count * Holes) * RatioHoles(work.type.Count * Holes);
             }
             work.SetResult(price, false);
+        }
+
+        private float RatioHoles(int _count)
+        {
+            float _threadRatio = _count switch
+            {
+                <= 50 => 1,
+                <= 100 => 0.9f,
+                <= 500 => 0.8f,
+                <= 1000 => 0.7f,
+                <= 2000 => 0.6f,
+                _ => 0.5f
+            };
+
+            return _threadRatio;
         }
 
         private float Time(float _mass, float _wide, WorkControl work)
@@ -166,8 +181,12 @@ namespace Metal_Code
                 Time(_mass, _wide, work);                                   //и запускаем метод заново (рекурсия)
             }
 
+
+            MainWindow.M.StatusBegin($"{MainWindow.M.MetalRatioDict[metal]}");
+
+
             return MainWindow.M.WideDict.ContainsKey(work.type.S) && MainWindow.M.WideDict.ContainsKey(Math.Ceiling(_wide)) ?
-                _work.Time * (MainWindow.M.WideDict[work.type.S] + MainWindow.M.WideDict[Math.Ceiling(_wide)] + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass)) : 0;
+                _work.Time + MainWindow.M.WideDict[work.type.S] + MainWindow.M.WideDict[Math.Ceiling(_wide)] + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass) - 1 : 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
@@ -211,7 +230,7 @@ namespace Metal_Code
                     foreach (WorkControl _w in p.work.type.WorkControls)        // получаем минималку работы
                         if (_w.workType is ThreadControl thread && thread.CharName == CharName && _w.WorkDrop.SelectedItem is Work _work)
                         {
-                            float _send = (_work.Price / p.Part.Count / Holes + Time(p.Part.Mass, Wide, _w) * 2000 / 60) * Holes * _w.Ratio * _w.TechRatio;
+                            float _send = (_work.Price + Time(p.Part.Mass, Wide, _w) * 2000 / 60 * p.Part.Count * Holes) * RatioHoles(p.Part.Count * Holes) * _w.Ratio * _w.TechRatio / p.Part.Count;
                             p.Part.Price += _send;
 
                             if (p.Part.PropsDict.ContainsKey(key) && float.TryParse(p.Part.PropsDict[key][0], out float value))

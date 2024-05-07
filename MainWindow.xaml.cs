@@ -143,11 +143,13 @@ namespace Metal_Code
                 else WideDict[Destinies[i]] = (float)Math.Round(0.1f * (i + 2) - 1, 1);
             }
 
-            for (int j = 0; j < Metals.Count; j++)
+            foreach (Metal met in Metals)
             {
-                if (j < 3) MetalRatioDict[Metals[j]] = 0;
-                else if (j < 5) MetalRatioDict[Metals[j]] = .5f;
-                else MetalRatioDict[Metals[j]] = 2;
+                if (met == null || met.Name == null) continue;
+
+                if (met.Name == "09г2с" || met.Name.Contains("амг")) MetalRatioDict[met] = 1.5f;
+                else if (met.Name.Contains("aisi")) MetalRatioDict[met] = 2;
+                else MetalRatioDict[met] = 1;
             }
         }
 
