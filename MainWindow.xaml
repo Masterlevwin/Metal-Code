@@ -129,7 +129,7 @@
             </StatusBar>
 
             <GroupBox Header="Коммерческое предложение" x:Name="OrderBox" Grid.Column="1" Margin="10,20,20,10">
-                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MinWidth="20" MinHeight="20">
                     <Grid x:Name="OrderGrid">
 
                         <Image Source="/app_logo.jpeg" HorizontalAlignment="Left" VerticalAlignment="Top" Height="27" Margin="35,10,0,0"/>
@@ -145,7 +145,7 @@
                         <TextBox x:Name="Order" HorizontalAlignment="Left" Margin="300,22,0,0" VerticalAlignment="Top" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MaxWidth="40" ToolTip="Введите номер предложения" MaxHeight="22" MinHeight="22"/>
                         <TextBlock Text="для" HorizontalAlignment="Left" Margin="350,25,0,0" VerticalAlignment="Top"/>
 
-                        <ComboBox x:Name="CustomerDrop" DisplayMemberPath="Name" IsEditable="True" SelectedIndex="0" SelectionChanged="SetAgent" HorizontalAlignment="Left" Margin="380,22,0,0" VerticalAlignment="Top" Width="170" MaxHeight="22">
+                        <ComboBox x:Name="CustomerDrop" DisplayMemberPath="Name" IsEditable="True" SelectedIndex="0" SelectionChanged="CustomerChanged" HorizontalAlignment="Left" Margin="380,22,0,0" VerticalAlignment="Top" Width="170" MaxHeight="22">
                             <ComboBox.Background>
                                 <LinearGradientBrush EndPoint="0,1">
                                     <GradientStop Color="White"/>
@@ -201,6 +201,9 @@
                         <TextBlock Text="Отправить" HorizontalAlignment="Left" Margin="460,203,0,0" VerticalAlignment="Top"/>
                         <Button Content="Х" HorizontalAlignment="Left" Margin="385,228,0,0" VerticalAlignment="Top" MinWidth="20" MinHeight="20" Click="ResetDates" BorderBrush="#FFFF0046" ToolTip="Сбросить даты"/>
                         <TextBox x:Name="AssemblyRatio" ToolTip="Коэффициент" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" Margin="470,163,0,0"/>
+                        <Button Content="+" HorizontalAlignment="Left" Margin="440,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="8" Click="AddCustomer"/>
+                        <Button Content="/" HorizontalAlignment="Left" Margin="465,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" FontSize="8" Click="EditCustomer"/>
+                        <Button Content="Х" HorizontalAlignment="Left" Margin="490,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" FontSize="8" Click="DeleteCustomer"/>
 
                     </Grid>
                 </ScrollViewer>

@@ -319,7 +319,7 @@ namespace Metal_Code
             {
                 if (radioButton.Name == "DeliveryRadioButton")
                 {
-                    SetAdress();
+                    if (CustomerDrop.SelectedItem is Customer customer) Adress.Text = customer.Address;
                     HasDelivery = true;
                 }
                 else if (radioButton.Name == "PickupRadioButton")
@@ -333,40 +333,36 @@ namespace Metal_Code
 
         private void SetAdress()
         {
-            //if (CustomerDrop.SelectedItem is Customer customer) Adress.Text = customer.Adress;
+            //using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);       //подключаемся к базе данных
+            //bool isAvalaible = db.Database.CanConnect();                                    //проверяем, свободна ли база для подключения
 
-            if (CustomerDrop.Text is null || CustomerDrop.Text == "") return;
+            //if (isAvalaible && ManagerDrop.SelectedItem is Manager man)
+            //{
+            //    try
+            //    {
+            //        //ищем менеджера по имени соответствующего выбранному, при этом загружаем его расчеты
+            //        Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
 
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);       //подключаемся к базе данных
-            bool isAvalaible = db.Database.CanConnect();                                    //проверяем, свободна ли база для подключения
+            //        //получаем все расчеты менеджера согласно названию компании
+            //        List<Offer>? offers = _man?.Offers.Where(o => o.Company == CustomerDrop.Text).ToList();
 
-            if (isAvalaible && ManagerDrop.SelectedItem is Manager man)
-            {
-                try
-                {
-                    //ищем менеджера по имени соответствующего выбранному, при этом загружаем его расчеты
-                    Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
+            //        //сортируем список в обратном порядке их создания, чтобы получить последние вначале
+            //        offers = offers?.OrderByDescending(o => o.Id).ToList();
 
-                    //получаем все расчеты менеджера согласно названию компании
-                    List<Offer>? offers = _man?.Offers.Where(o => o.Company == CustomerDrop.Text).ToList();
-
-                    //сортируем список в обратном порядке их создания, чтобы получить последние вначале
-                    offers = offers?.OrderByDescending(o => o.Id).ToList();
-
-                    if (offers?.Count > 0)
-                        foreach (Offer offer in offers)
-                            if (offer.Data != null)
-                            {
-                                ProductModel.Product = OpenOfferData(offer.Data);
-                                if (ProductModel.Product?.Manager != null && ProductModel.Product?.Manager != "")
-                                {
-                                    Adress.Text = ProductModel.Product?.Manager;
-                                    break;
-                                }
-                            }
-                }
-                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
-            }
+            //        if (offers?.Count > 0)
+            //            foreach (Offer offer in offers)
+            //                if (offer.Data != null)
+            //                {
+            //                    ProductModel.Product = OpenOfferData(offer.Data);
+            //                    if (ProductModel.Product?.Manager != null && ProductModel.Product?.Manager != "")
+            //                    {
+            //                        Adress.Text = ProductModel.Product?.Manager;
+            //                        break;
+            //                    }
+            //                }
+            //    }
+            //    catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
+            //}
         }
 
         private int delivery;
@@ -592,11 +588,6 @@ namespace Metal_Code
 
                 OffersGrid.FrozenColumnCount = 2;
             }
-        }
-
-        private void SetAgent(object sender, SelectionChangedEventArgs e)
-        {
-            if (sender is ComboBox cBox && cBox.SelectedItem is Customer customer) IsAgent = customer.Agent;
         }
 
         private void RefreshOffers(object sender, RoutedEventArgs e)        //метод загрузки расчетов из основной базы в локальную
@@ -2570,6 +2561,99 @@ namespace Metal_Code
             }
 
             return (types, works, count, bends, models, assemblies);
+        }
+
+
+        //-------------Заказчики--------------//
+        private void CustomerChanged(object sender, SelectionChangedEventArgs e)        //метод смены заказчика
+        {
+            if (CustomerDrop.SelectedItem is Customer customer)
+            {
+                IsAgent = customer.Agent;
+                if (HasDelivery) HasDelivery = false;
+            }
+        }
+
+        private void AddCustomer(object sender, RoutedEventArgs e)                      //метод добавления нового заказчика в базу
+        {
+            if (CustomerDrop.Text is null || CustomerDrop.Text == "" || ManagerDrop.SelectedItem is not Manager man) return;
+
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);   //подключаемся к базе данных
+            bool isAvalaible = db.Database.CanConnect();                                //проверяем, свободна ли база для подключения
+            if (isAvalaible)
+            {               //если база свободна, проверяем введенное имя заказчика на совпадение с именами в базе
+                Customer? _customer = db.Customers.FirstOrDefault(x => x.Name == CustomerDrop.Text);
+                
+                if (_customer is null)
+                {           //если заказчика с таким именем еще нет в базе, ищем менеджера согласно выбранному
+                    Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Customers).FirstOrDefault();
+
+                    if (_man is not null)                                               //и добавляем нового заказчика ему в базу
+                    {
+                        _customer = new()
+                        {
+                            Name = CustomerDrop.Text,
+                            Address = Adress.Text,
+                            Agent = IsAgent
+                        };
+
+                        _man.Customers.Add(_customer);
+                        db.SaveChanges();
+                        StatusBegin($"Заказчик {_customer.Name} добавлен в базу {_man.Name}.");
+                    }
+                }
+                else StatusBegin($"Заказчик {_customer.Name} уже существует.");
+            }
+        }
+
+        private void EditCustomer(object sender, RoutedEventArgs e)                     //метод редактирования свойств заказчика
+        {
+            if (CustomerDrop.SelectedItem is not Customer customer)
+            {
+                StatusBegin($"Такого заказчика нет в базе.");
+                return;
+            }
+
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);   //подключаемся к базе данных
+            bool isAvalaible = db.Database.CanConnect();                                //проверяем, свободна ли база для подключения
+            if (isAvalaible)
+            {               //если база свободна, находим выбранного заказчика в базе
+                Customer? _customer = db.Customers.FirstOrDefault(x => x.Id == customer.Id);
+                if (_customer is not null)                                              //и изменяем его свойства
+                {
+                    _customer.Name = CustomerDrop.Text;
+                    db.Entry(_customer).Property(o => o.Name).IsModified = true;
+                    _customer.Address = Adress.Text;
+                    db.Entry(_customer).Property(o => o.Address).IsModified = true;
+                    _customer.Agent = IsAgent;
+                    db.Entry(_customer).Property(o => o.Agent).IsModified = true;
+
+                    db.SaveChanges();
+                    StatusBegin($"Данные заказчика {customer.Name} изменены.");
+                }
+            }
+        }
+
+        private void DeleteCustomer(object sender, RoutedEventArgs e)                   //метод удаления заказчика из базы
+        {
+            if (CustomerDrop.SelectedItem is not Customer customer)
+            {
+                StatusBegin($"Такого заказчика нет в базе.");
+                return;
+            }
+
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);   //подключаемся к базе данных
+            bool isAvalaible = db.Database.CanConnect();                                //проверяем, свободна ли база для подключения
+            if (isAvalaible)
+            {
+                Customer? _customer = db.Customers.FirstOrDefault(x => x.Id == customer.Id);
+                if (_customer is not null)
+                {
+                    db.Customers.Remove(_customer);
+                    db.SaveChanges();
+                    StatusBegin($"Заказчик {customer.Name} удален из базы.");
+                }
+            }
         }
 
 
