@@ -13,6 +13,9 @@
   <ItemGroup>
     <None Remove="app_logo.ico" />
     <None Remove="app_logo.jpeg" />
+    <None Remove="Images\add.png" />
+    <None Remove="Images\del.png" />
+    <None Remove="Images\edit.png" />
     <None Remove="Images\exampe1.png" />
     <None Remove="Images\exampe2.png" />
     <None Remove="Images\new.png" />
@@ -60,6 +63,9 @@
     <Resource Include="app_logo.jpeg">
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Images\add.png" />
+    <Resource Include="Images\del.png" />
+    <Resource Include="Images\edit.png" />
     <Resource Include="Images\exampe1.png" />
     <Resource Include="Images\exampe2.png" />
     <Resource Include="Images\new.png" />

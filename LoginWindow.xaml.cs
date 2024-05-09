@@ -43,39 +43,6 @@ namespace Metal_Code
                     //устанавливаем менеджера по умолчанию
                     if (MainWindow.M.ManagerDrop.Items.Contains(manager)) MainWindow.M.ManagerDrop.SelectedItem = manager;
 
-
-                    //if (manager.Name == "Серых Михаил")
-                    //{
-                    //    db.Offers.Load();
-                    //    List<Offer> _offers = new();
-
-                    //    foreach (Offer offer in db.Offers.Local.OrderByDescending(o => o.Id).ToList())
-                    //    {
-                    //        if (offer.Company != null)
-                    //        {
-                    //            Offer? _offer = _offers.FirstOrDefault(o => o.Company == offer.Company);
-                    //            if (_offer == null)
-                    //            {
-                    //                _offers.Add(offer);
-
-                    //                Customer customer = new()
-                    //                {
-                    //                    Name = offer.Company,
-                    //                    Agent = offer.Agent,
-                    //                    Manager = offer.Manager,
-                    //                };
-
-                    //                Customer? _customer = db.Customers.FirstOrDefault(x => x.Name == customer.Name); 
-                    //                if (_customer is null) db.Customers.Add(customer);
-                    //            }
-                    //        }
-                    //    }
-
-                    //    db.SaveChanges();
-                    //    MainWindow.M.StatusBegin($"{db.Customers.Local.Count}");
-                    //}
-
-
                     DialogResult = true;
                 }
                 else MessageBox.Show("Неправильный пароль. Попробуйте еще раз.");

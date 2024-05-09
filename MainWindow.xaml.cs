@@ -331,40 +331,6 @@ namespace Metal_Code
             }
         }
 
-        private void SetAdress()
-        {
-            //using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);       //подключаемся к базе данных
-            //bool isAvalaible = db.Database.CanConnect();                                    //проверяем, свободна ли база для подключения
-
-            //if (isAvalaible && ManagerDrop.SelectedItem is Manager man)
-            //{
-            //    try
-            //    {
-            //        //ищем менеджера по имени соответствующего выбранному, при этом загружаем его расчеты
-            //        Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
-
-            //        //получаем все расчеты менеджера согласно названию компании
-            //        List<Offer>? offers = _man?.Offers.Where(o => o.Company == CustomerDrop.Text).ToList();
-
-            //        //сортируем список в обратном порядке их создания, чтобы получить последние вначале
-            //        offers = offers?.OrderByDescending(o => o.Id).ToList();
-
-            //        if (offers?.Count > 0)
-            //            foreach (Offer offer in offers)
-            //                if (offer.Data != null)
-            //                {
-            //                    ProductModel.Product = OpenOfferData(offer.Data);
-            //                    if (ProductModel.Product?.Manager != null && ProductModel.Product?.Manager != "")
-            //                    {
-            //                        Adress.Text = ProductModel.Product?.Manager;
-            //                        break;
-            //                    }
-            //                }
-            //    }
-            //    catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
-            //}
-        }
-
         private int delivery;
         public int Delivery
         {
@@ -824,6 +790,11 @@ namespace Metal_Code
                         _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
                         ActiveOffer = _offer;
                         StatusBegin($"Расчет {_offer.N} сохранен. В базе {_man?.Name} {_man?.Offers.Count} расчетов.");
+
+                        Customer? _customer = db.Customers.FirstOrDefault(x => x.Name == CustomerDrop.Text);
+                        if (_customer is null)
+                            MessageBox.Show($"Заказчик {CustomerDrop.Text} не сохранен в базе. Добавьте его данные в базу, чтобы использовать их повторно.");
+
                     }
                     else            //если метод запущен с параметром false, то есть в режиме удаления
                     {
@@ -2577,6 +2548,12 @@ namespace Metal_Code
         private void AddCustomer(object sender, RoutedEventArgs e)                      //метод добавления нового заказчика в базу
         {
             if (CustomerDrop.Text is null || CustomerDrop.Text == "" || ManagerDrop.SelectedItem is not Manager man) return;
+            
+            if (!IsLocal && !CurrentManager.IsAdmin)
+            {
+                StatusBegin($"Для добавления нового заказчика в базу обратитесь к администратору.");
+                return;
+            }
 
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);   //подключаемся к базе данных
             bool isAvalaible = db.Database.CanConnect();                                //проверяем, свободна ли база для подключения
@@ -2614,6 +2591,18 @@ namespace Metal_Code
                 return;
             }
 
+            if (!IsLocal && !CurrentManager.IsAdmin)
+            {
+                StatusBegin($"Для изменения данных заказчика в базе обратитесь к администратору.");
+                return;
+            }
+            else
+            {
+                MessageBoxResult response = MessageBox.Show("Уверены? Данные заказчика будут изменены!", "Редактирование данных заказчика",
+                    MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+                if (response == MessageBoxResult.No) return;
+            }
+
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);   //подключаемся к базе данных
             bool isAvalaible = db.Database.CanConnect();                                //проверяем, свободна ли база для подключения
             if (isAvalaible)
@@ -2640,6 +2629,18 @@ namespace Metal_Code
             {
                 StatusBegin($"Такого заказчика нет в базе.");
                 return;
+            }
+
+            if (!IsLocal && !CurrentManager.IsAdmin)
+            {
+                StatusBegin($"Для удаления заказчика из базы обратитесь к администратору.");
+                return;
+            }
+            else
+            {
+                MessageBoxResult response = MessageBox.Show("Уверены? Заказчик будет удален из базы!", "Удаление заказчика",
+                    MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+                if (response == MessageBoxResult.No) return;
             }
 
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);   //подключаемся к базе данных

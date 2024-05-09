@@ -6,9 +6,6 @@
         x:Class="Metal_Code.MainWindow"
         mc:Ignorable="d"
         Title="Metal-Code" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" d:DesignHeight="805.736" d:DesignWidth="1907.931" Closing="Exit" WindowState="Maximized" Icon="/app_logo.jpeg" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveCaptionTextBrushKey}}" FontFamily="Century">
-    <Window.Resources>
-        <Color x:Key="ComboBoxBackground">#FFDEF7FF</Color>
-    </Window.Resources>
 
     <Window.InputBindings>
         <KeyBinding Key="A"
@@ -154,6 +151,16 @@
                             </ComboBox.Background>
                         </ComboBox>
 
+                        <Button Click="AddCustomer" HorizontalAlignment="Left" Margin="430,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" BorderThickness="0">
+                            <Image Source="/Images/add.png"/>
+                        </Button>
+                        <Button Click="EditCustomer" HorizontalAlignment="Left" Margin="465,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" BorderThickness="0">
+                            <Image Source="/Images/edit.png"/>
+                        </Button>
+                        <Button Click="DeleteCustomer" HorizontalAlignment="Left" Margin="500,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" BorderThickness="0">
+                            <Image Source="/Images/del.png"/>
+                        </Button>
+
                         <TextBlock Text="Срок изготовления:" HorizontalAlignment="Left" Margin="15,65,0,0" VerticalAlignment="Top"/>
                         <TextBox ToolTip="Введите срок изготовления" x:Name="DateProduction" Margin="135,65,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50"/>
                         <TextBlock Text="раб/дней" HorizontalAlignment="Left" Margin="200,65,0,0" VerticalAlignment="Top"/>
@@ -201,9 +208,6 @@
                         <TextBlock Text="Отправить" HorizontalAlignment="Left" Margin="460,203,0,0" VerticalAlignment="Top"/>
                         <Button Content="Х" HorizontalAlignment="Left" Margin="385,228,0,0" VerticalAlignment="Top" MinWidth="20" MinHeight="20" Click="ResetDates" BorderBrush="#FFFF0046" ToolTip="Сбросить даты"/>
                         <TextBox x:Name="AssemblyRatio" ToolTip="Коэффициент" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" Margin="470,163,0,0"/>
-                        <Button Content="+" HorizontalAlignment="Left" Margin="440,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="8" Click="AddCustomer"/>
-                        <Button Content="/" HorizontalAlignment="Left" Margin="465,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" FontSize="8" Click="EditCustomer"/>
-                        <Button Content="Х" HorizontalAlignment="Left" Margin="490,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" FontSize="8" Click="DeleteCustomer"/>
 
                     </Grid>
                 </ScrollViewer>
