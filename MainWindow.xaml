@@ -151,13 +151,13 @@
                             </ComboBox.Background>
                         </ComboBox>
 
-                        <Button Click="AddCustomer" HorizontalAlignment="Left" Margin="430,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" BorderThickness="0">
+                        <Button ToolTip="Добавить заказчика" Click="AddCustomer" HorizontalAlignment="Left" Margin="430,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" BorderThickness="0">
                             <Image Source="/Images/add.png"/>
                         </Button>
-                        <Button Click="EditCustomer" HorizontalAlignment="Left" Margin="465,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" BorderThickness="0">
+                        <Button ToolTip="Изменить данные заказчика" Click="EditCustomer" HorizontalAlignment="Left" Margin="465,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" BorderThickness="0">
                             <Image Source="/Images/edit.png"/>
                         </Button>
-                        <Button Click="DeleteCustomer" HorizontalAlignment="Left" Margin="500,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" BorderThickness="0">
+                        <Button ToolTip="Удалить заказчика" Click="DeleteCustomer" HorizontalAlignment="Left" Margin="500,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" BorderThickness="0">
                             <Image Source="/Images/del.png"/>
                         </Button>
 
