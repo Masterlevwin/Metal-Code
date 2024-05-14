@@ -367,9 +367,11 @@ namespace Metal_Code
         {
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
 
-            if (type.Name != null && (type.Name.Contains("Лист металла")
-                || type.Name.Contains("Труба") || type.Name.Contains("Швеллер") || type.Name.Contains("Уголок") || type.Name.Contains("Двутавр"))) Price = metal.MassPrice;
-            else Price = type.Price;
+            //if (type.Name != null && (type.Name.Contains("Лист металла")
+            //    || type.Name.Contains("Труба") || type.Name.Contains("Швеллер") || type.Name.Contains("Уголок") || type.Name.Contains("Двутавр"))) Price = metal.MassPrice;
+            //else Price = type.Price;
+
+            Price = metal.MassPrice;
 
             if (det.Detail.IsComplect)
             {
