@@ -83,10 +83,10 @@ namespace Metal_Code
         {
             Detail.IsComplect = true;
             if (_complect != "") SetName(_complect);
-            DetailName.IsEnabled = false;
+            DetailName.IsEnabled = Count.IsEnabled = false;
         }
 
-        private void SetCount(object sender, TextChangedEventArgs e)    // свойство временно не используется, так как заказчик посчитал его ненужным
+        private void SetCount(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count)) Detail.Count = count;
             MainWindow.M.TotalResult();
