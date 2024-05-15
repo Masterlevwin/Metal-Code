@@ -1364,37 +1364,6 @@ namespace Metal_Code
 
             worksheet.Drawings.AddPicture("A1", IsLaser ? "laser_logo.jpg" : "app_logo.jpg");  //файлы должны быть в директории bin/Debug...
 
-                //оформляем первую строку КП, где указываем название нашей компании и ее телефон
-            worksheet.Cells["A1"].Value = Boss.Text + Phone.Text;
-            worksheet.Cells[1, 1, 1, 8].Merge = true;
-            worksheet.Rows[1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
-            worksheet.Cells[1, 1, 1, 8].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
-            worksheet.Cells[1, 1, 1, 8].Style.Border.Bottom.Color.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
-
-                //оформляем вторую строку, где указываем номер КП, контрагента и дату создания
-            worksheet.Rows[2].Style.Font.Size = 16;
-            worksheet.Rows[2].Style.Font.Bold = true;
-            worksheet.Rows[2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            worksheet.Cells["C2"].Value = "КП № " + Order.Text + " для " + CustomerDrop.Text + " от " + DateTime.Now.ToString("d");
-            worksheet.Cells[2, 3, 2, 8].Merge = true;
-            worksheet.Cells[2, 3, 2, 8].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
-            worksheet.Cells[2, 3, 2, 8].Style.Border.Bottom.Color.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
-
-                //оформляем третью строку с предупреждением
-            worksheet.Cells["A3"].Value = "Данный расчет действителен в течении 2-х банковских дней";
-            worksheet.Cells[3, 1, 3, 8].Merge = true;
-            worksheet.Rows[3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
-
-            if (!IsLaser)       //для Провэлда оформляем две уточняющие строки
-            {
-                worksheet.Cells["C4"].Value = $"Для изготовления изделия";
-                worksheet.Cells["C5"].Value = "понадобятся следующие детали и работы:";
-                worksheet.Cells[4, 3, 4, 4].Merge = true;
-                worksheet.Cells[5, 3, 5, 5].Merge = true;
-                worksheet.Cells["E4"].Value = ProductName.Text;
-                worksheet.Cells["E4"].Style.Font.Bold = true;
-            }
-
             int row = 8;        //счетчик строк деталей, начинаем с восьмой строки документа
 
                 //если есть нарезанные детали, вычисляем их общую стоимость, и оформляем их в КП
@@ -1499,14 +1468,6 @@ namespace Metal_Code
                 }
             }
 
-                //оформляем стиль созданной таблицы
-            ExcelRange table = worksheet.Cells[6, 1, row - 1, 8];
-            table.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            table.Style.VerticalAlignment = ExcelVerticalAlignment.Top;
-            table.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-            table.Style.Border.Right.Style = ExcelBorderStyle.Thin;
-            table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
-
                 //вычисляем итоговую сумму КП и оформляем соответствующим образом
             worksheet.Cells[row, 7].Value = IsAgent ? "ИТОГО:" : "ИТОГО с НДС:";
             worksheet.Cells[row, 7].Style.Font.Bold = true;
@@ -1573,17 +1534,65 @@ namespace Metal_Code
             worksheet.Cells[row + 6, 8].Value = "версия: " + version;
             worksheet.Cells[row + 6, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
 
+            worksheet.InsertColumn(5, 1);
+            for (int i = 1; i < row - 7; i++) worksheet.Cells[i + 7, 5].Value = i;
+            worksheet.Cells[row, 5].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
+            worksheet.Cells[6, 5].Value = "№";
+            worksheet.Cells[6, 5, 7, 5].Merge = true;
+            worksheet.Cells[6, 5, 7, 5].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            worksheet.Cells[6, 5, 7, 5].Style.Fill.BackgroundColor.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
+
+            //оформляем стиль созданной таблицы
+            ExcelRange table = worksheet.Cells[6, 1, row - 1, 9];
+            table.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            table.Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+            table.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            table.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+
+            //оформляем первую строку КП, где указываем название нашей компании и ее телефон
+            worksheet.Cells["A1"].Value = Boss.Text + Phone.Text;
+            worksheet.Cells[1, 1, 1, 9].Merge = true;
+            worksheet.Rows[1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            worksheet.Cells[1, 1, 1, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
+            worksheet.Cells[1, 1, 1, 9].Style.Border.Bottom.Color.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
+
+                //оформляем вторую строку, где указываем номер КП, контрагента и дату создания
+            worksheet.Rows[2].Style.Font.Size = 16;
+            worksheet.Rows[2].Style.Font.Bold = true;
+            worksheet.Rows[2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            worksheet.Cells["C2"].Value = "КП № " + Order.Text + " для " + CustomerDrop.Text + " от " + DateTime.Now.ToString("d");
+            worksheet.Cells[2, 3, 2, 9].Merge = true;
+            worksheet.Cells[2, 3, 2, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
+            worksheet.Cells[2, 3, 2, 9].Style.Border.Bottom.Color.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
+
+                //оформляем третью строку с предупреждением
+            worksheet.Cells["A3"].Value = "Данный расчет действителен в течении 2-х банковских дней";
+            worksheet.Cells[3, 1, 3, 9].Merge = true;
+            worksheet.Rows[3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+
+            if (!IsLaser)       //для Провэлда оформляем две уточняющие строки
+            {
+                worksheet.Cells["C4"].Value = $"Для изготовления изделия";
+                worksheet.Cells["C5"].Value = "понадобятся следующие детали и работы:";
+                worksheet.Cells[4, 3, 4, 4].Merge = true;
+                worksheet.Cells[5, 3, 5, 6].Merge = true;
+                worksheet.Cells["E4"].Value = ProductName.Text;
+                worksheet.Cells["E4"].Style.Font.Bold = true;
+            }
+
                 //выравниваем содержимое документа и оформляем нюансы
             worksheet.Cells.AutoFitColumns();
 
             if (worksheet.Rows[row + 4].Height < 35) worksheet.Rows[row + 4].Height = 35;       //оформляем строку, где указан порядок отгрузки
             if (!DetailControls[0].TypeDetailControls[0].HasMetal
                 && worksheet.Rows[row + 1].Height < 35) worksheet.Rows[row + 1].Height = 35;    //оформляем строку, где указано предупреждение об остатках материала
-            if (worksheet.Columns[5].Width < 15) worksheet.Columns[5].Width = 15;               //оформляем столбец, где указано наименование детали
+            worksheet.Columns[5].Width = 8;                                                     //оформляем столбец, где указано номер позиции
+            if (worksheet.Columns[6].Width < 15) worksheet.Columns[6].Width = 15;               //оформляем столбец, где указано наименование детали
             worksheet.Cells[8, 1, row, 3].Style.WrapText = true;                                //переносим текст при необходимости
             if (IsLaser) worksheet.DeleteRow(4, 2);                                             //удаляем 4 и 5 строки, необходимые только для Провэлда
             if (Parts.Count == 0) worksheet.DeleteRow(row + 5, 1);       //удаляем строку, где указана расшифровка работ, если нет нарезанных деталей
-                
+
                 //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
             worksheet.PrinterSettings.FitToPage = true;
             worksheet.PrinterSettings.FitToWidth = 1;
@@ -1591,13 +1600,13 @@ namespace Metal_Code
             worksheet.PrinterSettings.HorizontalCentered = true;
 
 
-            //заранее добавляем второй лист "Реестр" для удобства просмотра, но сначала заполняем третий лист "Статистика"
+                //заранее добавляем второй лист "Реестр" для удобства просмотра, но сначала заполняем третий лист "Статистика"
             ExcelWorksheet statsheet = workbook.Workbook.Worksheets.Add("Реестр");
 
 
             // ----- таблица статистики по нарезанным деталям (Лист3 - "Статистика") -----
 
-            ExcelRange extable = worksheet.Cells[IsLaser ? 6 : 8, 5, IsLaser ? row - 3 : row - 1, 7];
+            ExcelRange extable = worksheet.Cells[IsLaser ? 6 : 8, 6, IsLaser ? row - 3 : row - 1, 8];
             extable.Style.Border.BorderAround(ExcelBorderStyle.None);
             worksheet.Cells[IsLaser ? 6 : 8, 7, IsLaser ? row - 3 : row - 1, 7].Style.Border.Right.Style = ExcelBorderStyle.Thin;
 
@@ -1915,21 +1924,16 @@ namespace Metal_Code
                     statsheet.Cells[temp, 3].Style.WrapText = true;
                     statsheet.Cells[temp, 17].Style.WrapText = true;
 
-                    //for (int col = 0; col < _heads.Count; col++)
-                    //    if (key.Contains(_heads[col]) && _heads[col] != "Окр")
-                    //        statsheet.Cells[temp, 4].Value = scoresheet.Cells[Parts.Count + 2, col + 5].Value;  //"Кол-во"
-
                     statsheet.Cells[temp, 4].Value = scoresheet.Cells[Parts.Count + 2, 21].Value;
                     statsheet.Cells[temp, 5].Value = "шт";                                                      //"ед изм."
                     statsheet.Cells[temp, 6].Value = Boss.Text.Substring(4);                                    //"Подразделение"
-                    statsheet.Cells[temp, 7].Value = CustomerDrop.Text;                                              //"Компания"
+                    statsheet.Cells[temp, 7].Value = CustomerDrop.Text;                                         //"Компания"
                     statsheet.Cells[temp, 9].Value = ManagerDrop.Text;                                          //"Менеджер"
                     statsheet.Cells[temp, 10].Value = CurrentManager.Name;                                      //"Инженер"
                     statsheet.Cells[temp, 14].Value = EndDate();                                                //"Дата отгрузки"
                     statsheet.Cells[temp, 14].Style.Numberformat.Format = "d MMM";
                     
                     sum += TempWorksDict[key];
-                    //temp++;
                 }
                 statsheet.Cells[temp, 21].Value = Math.Round(sum, 2);                                           //"Стоимость работ"
             }
@@ -1965,7 +1969,7 @@ namespace Metal_Code
         {
             // ----- основная таблица деталей для экспорта в 1С (Лист1 - "Счет") -----
 
-            ExcelRange extable = worksheet.Cells[IsLaser ? 6 : 8, 5, IsLaser ? row + 5 : row + 7, 7];
+            ExcelRange extable = worksheet.Cells[IsLaser ? 6 : 8, 6, IsLaser ? row + 5 : row + 7, 8];
 
             using var workbook = new ExcelPackage();
             ExcelWorksheet scoresheet = workbook.Workbook.Worksheets.Add("Счет");
