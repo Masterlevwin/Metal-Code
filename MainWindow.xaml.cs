@@ -1780,18 +1780,27 @@ namespace Metal_Code
             float _lkk, _lpk, _bkk, _bpk;          //счетчики коэффициентов лазера и гибки
             _lkk = _lpk = _bkk = _bpk = 1;
 
+
+            // ----- параллельно с реестром заполняем давальческую накладную (Лист4 - "Накладная") -----
+            using var templatebook = new ExcelPackage(new FileInfo("template.xlsx"));
+            ExcelWorksheet notesheet = workbook.Workbook.Worksheets.Add("Накладная", templatebook.Workbook.Worksheets[0]);
+            notesheet.Cells[3, 3].Value = notesheet.Cells[3, 8].Value = Order.Text;
+            notesheet.Cells[5, 2].Value = notesheet.Cells[5, 7].Value = Boss.Text;
+            notesheet.Cells[6, 2].Value = notesheet.Cells[6, 7].Value = CustomerDrop.Text;
+            int tempNote = 9;       //строка, с которой начинаем заполнение
+
+
             foreach (DetailControl det in DetailControls)
             {
                 for (int i = 0; i < det.TypeDetailControls.Count; i++)
                 {
                     TypeDetailControl type = det.TypeDetailControls[i];
 
-                    statsheet.Cells[i + temp, 2].Value = CustomerDrop.Text;      //"Заказчик"
+                    statsheet.Cells[i + temp, 2].Value = CustomerDrop.Text; //"Заказчик"
                     statsheet.Cells[i + temp, 3].Value = ShortManager();    //"Менеджер"
 
                     if (HasDelivery) statsheet.Cells[i + temp, 8].Value = "Доставка ";
-                    if (type.CheckMetal.IsChecked == false)
-                        statsheet.Cells[i + temp, 10].Value = "Давальч ";
+                    if (type.CheckMetal.IsChecked == false) statsheet.Cells[i + temp, 10].Value = "Давальч ";
 
                     statsheet.Cells[i + temp, 11].Value = EndDate();        //"Дата сдачи"
                     statsheet.Cells[i + temp, 11].Style.Numberformat.Format = "d MMM";
@@ -1802,7 +1811,6 @@ namespace Metal_Code
                     {
                         statsheet.Cells[i + temp, 14].Value = $"{Math.Ceiling(det.Detail.IsComplect ? type.Mass : type.Mass * type.Count)}" +
                             $" ({(type.CheckMetal.IsChecked == true ? met.MassPrice : 0)}р)";
-
                     }
 
                     foreach (WorkControl w in type.WorkControls)            //анализируем работы каждой типовой детали
@@ -1812,22 +1820,27 @@ namespace Metal_Code
                         if (w.workType is CutControl)
                         {
                             //"Толщина и марка металла"
-                            if ((type.MetalDrop.Text.Contains("ст") && type.S >= 3) || (type.MetalDrop.Text.Contains("хк") && type.S < 3))
-                                statsheet.Cells[i + temp, 4].Value = $"s{type.S}";
-                            else if (type.MetalDrop.Text.Contains("амг2"))
-                                statsheet.Cells[i + temp, 4].Value = $"al{type.S}";
-                            else if (type.MetalDrop.Text.Contains("амг") || type.MetalDrop.Text.Contains("д16"))
-                                statsheet.Cells[i + temp, 4].Value = $"al{type.S} {type.MetalDrop.Text}";
-                            else if (type.MetalDrop.Text.Contains("латунь"))
-                                statsheet.Cells[i + temp, 4].Value = $"br{type.S}";
-                            else if (type.MetalDrop.Text.Contains("медь"))
-                                statsheet.Cells[i + temp, 4].Value = $"cu{type.S}";
-                            else statsheet.Cells[i + temp, 4].Value = $"s{type.S} {type.MetalDrop.Text}";
+                            string description = "";
+                            if ((type.MetalDrop.Text.Contains("ст") && type.S >= 3) || (type.MetalDrop.Text.Contains("хк") && type.S < 3)) description = $"s{type.S}";
+                            else if (type.MetalDrop.Text.Contains("амг2")) description = $"al{type.S}";
+                            else if (type.MetalDrop.Text.Contains("амг") || type.MetalDrop.Text.Contains("д16")) description = $"al{type.S} {type.MetalDrop.Text}";
+                            else if (type.MetalDrop.Text.Contains("латунь")) description = $"br{type.S}";
+                            else if (type.MetalDrop.Text.Contains("медь")) description = $"cu{type.S}";
+                            else description = $"s{type.S} {type.MetalDrop.Text}";
 
                             statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f);     //"Лазер (время работ)"
 
                             if (w.Ratio != 1) _lkk *= w.Ratio;
                             if (w.TechRatio > 1) _lpk *= w.TechRatio;
+
+                            statsheet.Cells[i + temp, 4].Value = description;
+
+                            if (type.CheckMetal.IsChecked == false)     //если материал давальческий, добавляем его в накладную
+                            {
+                                notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = "Лист " + description;
+                                notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
+                                tempNote++;
+                            }
                         }
                         else if (w.workType is BendControl)
                         {
@@ -1843,6 +1856,13 @@ namespace Metal_Code
                             statsheet.Cells[i + temp, 4].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
 
                             statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f);     //"Лазер (время работ)"
+
+                            if (type.CheckMetal.IsChecked == false)     //если материал давальческий, добавляем его в накладную
+                            {
+                                notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+                                notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
+                                tempNote++;
+                            }
                         }
                         //для доп работы её наименование добавляем к наименованию работы - особый случай
                         else if (w.workType is ExtraControl _extra) statsheet.Cells[i + temp, 8].Value += $"{_extra.NameExtra} ";
@@ -1861,6 +1881,8 @@ namespace Metal_Code
                 }
                 temp += det.TypeDetailControls.Count;
             }
+
+            for (int n = 1; n <= tempNote - 9; n++) notesheet.Cells[n + 8, 1].Value = notesheet.Cells[n + 8, 6].Value = n;
 
             ExcelRange registryL = statsheet.Cells[beginL, 1, temp - 1, 19];
             statsheet.Cells[beginL, 4, temp - 1, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;      //"Толщина и марка металла"
@@ -1961,8 +1983,8 @@ namespace Metal_Code
             // ----- сохраняем книгу в файл Excel -----
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем файл .xlsx
 
-            CreateScore(worksheet, row - 8, path);      //создаем файл для счета на основе полученного КП
-            if (Parts.Count > 0) CreateComplect(path);  //создаем файл комплектации
+            CreateScore(worksheet, row - 8, path);                      //создаем файл для счета на основе полученного КП
+            if (Parts.Count > 0) CreateComplect(path);                  //создаем файл комплектации
         }
 
         private void CreateScore(ExcelWorksheet worksheet, int row, string _path)       // метод создания файла для счета
