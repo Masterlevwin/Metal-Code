@@ -2872,5 +2872,33 @@ namespace Metal_Code
         {
             Environment.Exit(0);
         }
+
+        private void AnalyseDateProduction(object sender, RoutedEventArgs e)
+        {
+            AnalyseDateProduction();
+        }
+
+        private void AnalyseDateProduction(string path = "Y:\\Производство\\Laser rezka\\В работу")
+        {
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var workbook = new ExcelPackage(path + "\\!Реестр.xlsx");
+            ExcelWorksheet notesheet = workbook.Workbook.Worksheets[0];
+
+            int dirCount = Directory.GetDirectories(path).Length;
+
+            int end = notesheet.Cells.Where(c => c.Start.Column == 2 && !string.IsNullOrEmpty(c.Text)).Last().Start.Row;
+
+            int countLaser = 0; int countBend = 0;
+
+            for (int i = end; i > end - dirCount; i--)
+            {
+                if (notesheet.Cells[i, 13].Value != null && int.TryParse($"{notesheet.Cells[i, 13].Value}", out int l)) countLaser += l;
+                if (notesheet.Cells[i, 14].Value != null && int.TryParse($"{notesheet.Cells[i, 14].Value}", out int b)) countBend += b;
+            }
+
+
+            StatusBegin($"Лазер: {Math.Round((decimal)countLaser / 60 / 12)} дней; Гибка: {Math.Round((decimal)countBend / 60 / 12)} дней");
+        }
     }
 }

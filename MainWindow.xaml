@@ -55,7 +55,7 @@
                 <MenuItem Header="Обновить базы" Click="UpdateDatabases"/>
             </MenuItem>
             <MenuItem Header="О программе">
-                <MenuItem Header="Очень краткое руководство" Click="OpenExample"/>
+                <MenuItem Header="Очень краткое руководство" Click="AnalyseDateProduction"/>
                 <TextBlock x:Name="Version"/>
             </MenuItem>
         </Menu>
