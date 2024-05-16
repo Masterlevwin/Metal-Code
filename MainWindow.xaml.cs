@@ -1381,8 +1381,8 @@ namespace Metal_Code
                 foreach (DetailControl d in DetailControls.Where(d => !d.Detail.IsComplect))
                 {
                     //в этом случае, пересчитываем цену и стоимость деталей, которые НЕ "Комплект деталей" (их цена и стоимость пересчитываются в блоке SaveDetails())
-                    d.Detail.Price -= Construct / DetailControls.Count;
-                    d.Detail.Total = d.Detail.Price * d.Detail.Count;
+                    d.Detail.Total -= Construct / DetailControls.Count;
+                    d.Detail.Price = (float)Math.Round(d.Detail.Total / d.Detail.Count, 2);
                 }
 
             ObservableCollection<Detail> _details = new(ProductModel.Product.Details.Where(d => !d.IsComplect));

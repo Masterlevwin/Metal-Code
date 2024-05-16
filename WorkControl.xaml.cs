@@ -32,7 +32,7 @@ namespace Metal_Code
             }
         }
 
-        private float ratio;
+        private float ratio = 1;
         public float Ratio
         {
             get => ratio;
@@ -46,7 +46,7 @@ namespace Metal_Code
             }
         }
 
-        private float techratio;
+        private float techratio = 1;
         public float TechRatio
         {
             get => techratio;
@@ -125,14 +125,14 @@ namespace Metal_Code
         }
         private void SetRatio(string _ratio)
         {
-            if (float.TryParse(_ratio, out float r)) Ratio = r;     // стандартный парсер избавляет от проблемы с запятой
+            if (float.TryParse(_ratio, out float r)) Ratio = r;
 
             if (workType != null && workType is IPriceChanged control) control.OnPriceChanged();
             else if (WorkDrop.SelectedItem is Work work) SetResult(work.Price, false);
         }
         private void SetTechRatio(string _ratio)
         {
-            if (float.TryParse(_ratio, out float r)) TechRatio = r;     // стандартный парсер избавляет от проблемы с запятой
+            if (float.TryParse(_ratio, out float r)) TechRatio = r;
 
             if (workType != null && workType is IPriceChanged control) control.OnPriceChanged();
             else if (WorkDrop.SelectedItem is Work work) SetResult(work.Price, false);
@@ -226,29 +226,9 @@ namespace Metal_Code
                     break;
             }
 
-            //if (workType is not BendControl && workType is not ExtraControl && workType is not ThreadControl && ValidateProp(out int index))
-            //{
-            //    if (WorkDrop.Items.Count <= index) MessageBox.Show($"Такая работа уже есть!\nУдалите лишнее!");
-            //    else WorkDrop.SelectedIndex = index;
-            //}
-
             // запускаем процесс формирования стоимости по умолчанию
-            SetRatio("1");      
-            SetTechRatio("1");
-        }
-
-        private bool ValidateProp(out int ndx)
-        {
-            if (type.WorkControls.Count > 0) ndx = type.WorkControls.Max(i => i.WorkDrop.SelectedIndex);
-            else ndx = WorkDrop.SelectedIndex;
-
-            foreach (WorkControl w in type.WorkControls) if (w != this && w.WorkDrop.SelectedIndex == WorkDrop.SelectedIndex)
-                {
-                    ndx++;
-                    return true;
-                }
-
-            return false;
+            //SetRatio("1");      
+            //SetTechRatio("1");
         }
 
         public void SetResult(float price, bool addMin = true)

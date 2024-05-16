@@ -101,21 +101,21 @@ namespace Metal_Code
 
         public void PriceResult()
         {
-            Detail.Price = 0;
+            Detail.Total = 0;
             foreach (TypeDetailControl t in TypeDetailControls)
             {
-                Detail.Price += t.Result;
-                foreach (WorkControl w in t.WorkControls) Detail.Price += w.Result;
+                Detail.Total += t.Result;
+                foreach (WorkControl w in t.WorkControls) Detail.Total += w.Result;
             }
 
             // добавляем окраску, если она отмечена галочкой или квадратиком
             if (MainWindow.M.CheckPaint.IsChecked != false && !Detail.IsComplect)
-                Detail.Price += MainWindow.M.Paint / MainWindow.M.DetailControls.Count(d => !d.Detail.IsComplect);
+                Detail.Total += MainWindow.M.Paint / MainWindow.M.DetailControls.Count(d => !d.Detail.IsComplect);
 
             // добавляем конструкторские работы
-            Detail.Price += MainWindow.M.Construct / MainWindow.M.DetailControls.Count;
+            Detail.Total += MainWindow.M.Construct / MainWindow.M.DetailControls.Count;
 
-            Detail.Total = Detail.Price * Detail.Count;
+            Detail.Price = (float)Math.Round(Detail.Total / Detail.Count, 2);
 
             MainWindow.M.TotalResult();
         }
