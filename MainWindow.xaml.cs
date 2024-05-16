@@ -319,7 +319,7 @@ namespace Metal_Code
             {
                 if (radioButton.Name == "DeliveryRadioButton")
                 {
-                    if (CustomerDrop.SelectedItem is Customer customer) Adress.Text = customer.Address;
+                    if (CustomerDrop.SelectedItem is Customer customer && customer.Address is not null) Adress.Text = customer.Address;
                     HasDelivery = true;
                 }
                 else if (radioButton.Name == "PickupRadioButton")

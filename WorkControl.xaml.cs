@@ -225,10 +225,6 @@ namespace Metal_Code
                     SetResult(work.Price, false);
                     break;
             }
-
-            // запускаем процесс формирования стоимости по умолчанию
-            //SetRatio("1");      
-            //SetTechRatio("1");
         }
 
         public void SetResult(float price, bool addMin = true)
