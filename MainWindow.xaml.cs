@@ -29,7 +29,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.4.8";
+        readonly string version = "2.4.9";
 
         public readonly string[] connections =
         {
