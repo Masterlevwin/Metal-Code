@@ -121,7 +121,7 @@ namespace Metal_Code
 
         public List<string>? PropsList = new();
 
-        public List<LaserItem> Items = new();
+        public List<LaserItem>? Items = new();
         public List<Part> Parts = new();
         public SaveWork(string? _namework, float _ratio = 0, float _techratio = 1)
         {

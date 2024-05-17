@@ -95,7 +95,8 @@ namespace Metal_Code
         public TubeType Tube { get; set; }
         public List<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
-        public List<Part>? PartDetails { get; set; } = new();   //свойство интерфейса ICut, в коде нигде не инициализируется, поэтому это делаем здесь
+        public List<Part>? PartDetails { get; set; } = new();
+        public List<LaserItem>? Items { get; set; } = new();
 
         readonly TabItem TabItem = new();
 
@@ -279,6 +280,7 @@ namespace Metal_Code
                     Parts = PartList(tables);           // формируем список элементов PartControl
                     SetImagesForParts(stream);          // устанавливаем поле Part.ImageBytes для каждой детали
                     PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
+                    //ItemList(tables);                   // формируем список труб из отчета
                     AddPartsTab();                      // добавляем вкладку в "Список нарезанных деталей"
                     SetTotalProperties();               //определяем общую массу и общую длину нарезанных труб
                 }
@@ -306,6 +308,7 @@ namespace Metal_Code
                         _pipe.Parts = _pipe.PartList(tables);
                         _pipe.SetImagesForParts(stream);
                         _pipe.PartsControl = new(this, _pipe.Parts);
+                        //_pipe.ItemList(tables);
                         _pipe.AddPartsTab();
                         _pipe.SetTotalProperties();
                     }
@@ -334,24 +337,23 @@ namespace Metal_Code
             {
                 PartDetails?.Clear();
 
-                for (int j = 0; j < tables[2].Rows.Count; j++)
+                work.type.SetCount((int)MainWindow.Parser($"{tables[2].Rows[1].ItemArray[2]}"));                                //Кол.сечений
+                SetPinhole($"{tables[2].Rows[1].ItemArray[3]}");                                                                //Контур
+                if (float.TryParse($"{tables[2].Rows[1].ItemArray[4]}", out float val)) Way = (float)Math.Ceiling(val / 1000);  //Длина резки сечения(mm)
+
+                if (Items?.Count > 0) Items.Clear();
+
+                for (int j = 3; j < tables[2].Rows.Count; j++)                                              //заполняем список труб
                 {
-                    if (tables[2].Rows[j] == null) continue;
+                    if (tables[2].Rows[j] == null) break;
 
-                    if (tables[2].Rows[j].ItemArray[2]?.ToString() == "Кол. сечений")
+                    LaserItem? item = new()
                     {
-                        work.type.SetCount((int)MainWindow.Parser(tables[2].Rows[j + 1].ItemArray[2].ToString()));
-                    }
+                        sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[2]}"),               //Кол-во
+                        sheetSize = $"{tables[2].Rows[j].ItemArray[4]}".TrimEnd(new char[] { ',', '.' })    //Длина трубы(mm)
+                    };
 
-                    if (tables[2].Rows[j].ItemArray[3]?.ToString() == "Контур")
-                    {
-                        SetPinhole(tables[2].Rows[j + 1].ItemArray[3].ToString());
-                    }
-
-                    if (tables[2].Rows[j].ItemArray[4]?.ToString() == "Длина резки сечения(mm)")
-                    {
-                        if (float.TryParse(tables[2].Rows[j + 1].ItemArray[4].ToString(), out float w)) Way = (float)Math.Ceiling(w / 1000);
-                    }
+                    Items?.Add(item);
                 }
 
                 for (int i = 0; i < tables[0].Rows.Count; i++)
@@ -572,7 +574,8 @@ namespace Metal_Code
                     }
                 }
 
-                SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");      //переносим погонные метры из типовой детали
+                if (float.TryParse($"{tables[2].Rows[3].ItemArray[4]}", out float l)) work.type.L = l;      //Длина первой трубы(mm)
+                SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");             //переносим погонные метры из типовой детали
             }
             else if (PartDetails?.Count > 0) foreach (Part part in PartDetails) _parts.Add(new(this, work, part));
 

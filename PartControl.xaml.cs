@@ -192,8 +192,10 @@ namespace Metal_Code
 
     public interface ICut
     {
+        public List<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
         public List<Part>? PartDetails {  get; set; }
+        public List<LaserItem>? Items { get; set; }
         public float Mass {  get; set; }
     }
 }

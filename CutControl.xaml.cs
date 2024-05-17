@@ -81,9 +81,8 @@ namespace Metal_Code
 
         public List<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
-        public List<Part>? PartDetails { get; set; } = new();   //свойство интерфейса ICut, в коде нигде не инициализируется, поэтому это делаем здесь
-
-        public List<LaserItem> items = new();
+        public List<Part>? PartDetails { get; set; } = new();
+        public List<LaserItem>? Items { get; set; } = new();
 
         readonly TabItem TabItem = new();
 
@@ -126,9 +125,9 @@ namespace Metal_Code
             BtnEnabled();
             float price = 0;
 
-            if (items.Count > 0)
+            if (Items?.Count > 0)
             {
-                foreach (LaserItem item in items) price += ItemPrice(item);
+                foreach (LaserItem item in Items) price += ItemPrice(item);
                 work.SetResult(price, false);
             }
             else
@@ -444,7 +443,7 @@ namespace Metal_Code
 
         public void ItemList(DataTable table)
         {
-            if (items.Count > 0) items.Clear();
+            if (Items?.Count > 0) Items.Clear();
 
             // сначала считываем общие данные для всей раскладки:
             // вес всех деталей, длину пути резки, марку металла и толщину
@@ -488,7 +487,7 @@ namespace Metal_Code
 
                 if (table.Rows[i].ItemArray[0]?.ToString() == "Размер листа")
                 {
-                    item.sheetSize = $"{table.Rows[i].ItemArray[1]}".TrimEnd('m');
+                    item.sheetSize = $"{table.Rows[i].ItemArray[1]}".TrimEnd('m').Trim();
                     SetSheetSize(item.sheetSize);
                 }
 
@@ -516,11 +515,11 @@ namespace Metal_Code
                     if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null &&
                         (metal.Name.Contains("шлиф") || metal.Name.Contains("зер"))) item.way *= 2;
 
-                    items.Add(item);
+                    Items?.Add(item);
                     item = null;
                 }
             }
-            SumProperties(items);
+            if (Items?.Count > 0) SumProperties(Items);
         }
 
         public void SumProperties(List<LaserItem> _items)

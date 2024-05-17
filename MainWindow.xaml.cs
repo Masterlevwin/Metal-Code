@@ -1175,7 +1175,7 @@ namespace Metal_Code
 
                             SaveWork _saveWork = new(_work.Name, work.Ratio, work.TechRatio);
 
-                            if (work.workType is ICut _cut && _cut.PartDetails?.Count > 0)
+                            if (work.workType is ICut _cut && _cut.PartDetails?.Count > 0 && _cut.Items?.Count > 0)
                             {
                                 foreach (Part p in _cut.PartDetails)
                                 {
@@ -1212,7 +1212,7 @@ namespace Metal_Code
                                     foreach (PartControl part in _cut.PartsControl.Parts) part.PropertiesChanged?.Invoke(part, true);
 
                                 _saveWork.Parts = _cut.PartDetails;
-                                if (_cut is CutControl cut) _saveWork.Items = cut.items;
+                                _saveWork.Items = _cut.Items;
                             }
 
                             work.PropertiesChanged?.Invoke(work, true);
@@ -1307,20 +1307,20 @@ namespace Metal_Code
                                 break;
                             }
 
-                        if (_work.workType is ICut _cut && details[i].TypeDetails[j].Works[k].Parts.Count > 0)
+                        if (_work.workType is ICut _cut && details[i].TypeDetails[j].Works[k].Items?.Count > 0)
                         {
+                            _cut.Items = details[i].TypeDetails[j].Works[k].Items;
+                            _cut.PartDetails = details[i].TypeDetails[j].Works[k].Parts;
+
                             if (_cut is CutControl cut)
                             {
-                                cut.items = details[i].TypeDetails[j].Works[k].Items;
-                                cut.SumProperties(cut.items);
-                                cut.PartDetails = details[i].TypeDetails[j].Works[k].Parts;
+                                if (_cut.Items?.Count > 0) cut.SumProperties(_cut.Items);
                                 cut.Parts = cut.PartList();
                                 cut.PartsControl = new(cut, cut.Parts);
                                 cut.AddPartsTab();
                             }
                             else if (_cut is PipeControl pipe)
                             {
-                                pipe.PartDetails = details[i].TypeDetails[j].Works[k].Parts;
                                 pipe.Parts = pipe.PartList();
                                 pipe.PartsControl = new(pipe, pipe.Parts);
                                 pipe.AddPartsTab();
@@ -1817,7 +1817,7 @@ namespace Metal_Code
                     {
                         if (w.Result == 0) continue;                        //пропускаем добавление нулевых работ
 
-                        if (w.workType is CutControl)
+                        if (w.workType is CutControl cut)
                         {
                             //"Толщина и марка металла"
                             string description = "";
@@ -1837,9 +1837,14 @@ namespace Metal_Code
 
                             if (type.CheckMetal.IsChecked == false)     //если материал давальческий, добавляем его в накладную
                             {
-                                notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = "Лист " + description;
-                                notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
-                                tempNote++;
+                                var _items = cut.Items?.GroupBy(c => c.sheetSize);      //группируем все листы по размеру
+                                if (_items is not null)
+                                    foreach (var item in _items)        //каждую группу листов одного размера и их количество записываем в одну строку
+                                    {                                   
+                                        notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"Лист {description} ({item.Key})";
+                                        notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = item.Sum(s => s.sheets);
+                                        tempNote++;
+                                    }
                             }
                         }
                         else if (w.workType is BendControl)
@@ -1850,7 +1855,7 @@ namespace Metal_Code
                             if (w.Ratio != 1) _bkk *= w.Ratio;
                             if (w.TechRatio > 1) _bpk *= w.TechRatio;
                         }
-                        else if (w.workType is PipeControl)
+                        else if (w.workType is PipeControl pipe)
                         {
                             //"Толщина и марка металла"
                             statsheet.Cells[i + temp, 4].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
@@ -1859,9 +1864,14 @@ namespace Metal_Code
 
                             if (type.CheckMetal.IsChecked == false)     //если материал давальческий, добавляем его в накладную
                             {
-                                notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
-                                notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
-                                tempNote++;
+                                var _items = pipe.Items?.GroupBy(c => c.sheetSize);      //группируем все трубы по размеру
+                                if (_items is not null)
+                                    foreach (var item in _items)        //каждую группу труб одного размера и их количество записываем в одну строку
+                                    {
+                                        notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({item.Key})";
+                                        notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = item.Sum(s => s.sheets);
+                                        tempNote++;
+                                    }
                             }
                         }
                         //для доп работы её наименование добавляем к наименованию работы - особый случай

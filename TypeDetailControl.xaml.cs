@@ -375,9 +375,6 @@ namespace Metal_Code
 
             if (det.Detail.IsComplect)
             {
-                //foreach (UIElement element in TypeDetailGrid.Children)
-                //    if (element is TextBox tBox) tBox.IsReadOnly = true;
-
                 foreach (WorkControl w in WorkControls)
                     if (w.workType is ICut cut)
                     {
