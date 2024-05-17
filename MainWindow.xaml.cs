@@ -2885,20 +2885,25 @@ namespace Metal_Code
             using var workbook = new ExcelPackage(path + "\\!Реестр.xlsx");
             ExcelWorksheet notesheet = workbook.Workbook.Worksheets[0];
 
-            int dirCount = Directory.GetDirectories(path).Length;
+            int endRow = notesheet.Cells.Where(c => c.Start.Column == 2 && !string.IsNullOrEmpty(c.Text)).Last().Start.Row;     //номер последней строки реестра
+            int timeLaser = 0; int timeBend = 0;                //счетчики времени работ лазера и гибки
 
-            int end = notesheet.Cells.Where(c => c.Start.Column == 2 && !string.IsNullOrEmpty(c.Text)).Last().Start.Row;
-
-            int countLaser = 0; int countBend = 0;
-
-            for (int i = end; i > end - dirCount; i--)
+            string[] dirs = Directory.GetDirectories(path);     //получаем все подкаталоги с невырезанными заказами
+            foreach (string s in dirs)
             {
-                if (notesheet.Cells[i, 13].Value != null && int.TryParse($"{notesheet.Cells[i, 13].Value}", out int l)) countLaser += l;
-                if (notesheet.Cells[i, 14].Value != null && int.TryParse($"{notesheet.Cells[i, 14].Value}", out int b)) countBend += b;
+                for (int i = endRow; i > 0; i--)
+                {
+                    if (notesheet.Cells[i, 2].Value != null && s.Contains($"{notesheet.Cells[i, 2].Value}"))
+                    {
+                        if (notesheet.Cells[i, 13].Value != null && int.TryParse($"{notesheet.Cells[i, 13].Value}", out int l) && notesheet.Cells[i, 19].Value != null && int.TryParse($"{notesheet.Cells[i, 19].Value}", out int rl)) timeLaser += l / rl;
+                        else if (notesheet.Cells[i, 13].Value != null && int.TryParse($"{notesheet.Cells[i, 13].Value}", out int vl)) timeLaser += vl;
+                        if (notesheet.Cells[i, 14].Value != null && int.TryParse($"{notesheet.Cells[i, 14].Value}", out int b) && notesheet.Cells[i, 19].Value != null && int.TryParse($"{notesheet.Cells[i, 19].Value}", out int rb)) timeBend += b / rb;
+                        else if (notesheet.Cells[i, 14].Value != null && int.TryParse($"{notesheet.Cells[i, 14].Value}", out int vb)) timeBend += vb;
+                    }
+                }
             }
 
-
-            StatusBegin($"Лазер: {Math.Round((decimal)countLaser / 60 / 12)} дней; Гибка: {Math.Round((decimal)countBend / 60 / 12)} дней");
+            StatusBegin($"Лазер: {Math.Round((decimal)timeLaser / 60 / 12)} дней; Гибка: {Math.Round((decimal)timeBend / 60 / 12)} дней; Кол-во папок в работе - {dirs.Length}");
         }
     }
 }
