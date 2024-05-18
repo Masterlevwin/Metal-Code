@@ -223,7 +223,7 @@ namespace Metal_Code
         public string? Name { get; set; }
         public string? Address { get; set; }
         public bool Agent { get; set; }
-
+        //public int DeliveryPrice { get; set; }
         public Manager? Manager { get; set; }
         public int ManagerId { get; set; }
 

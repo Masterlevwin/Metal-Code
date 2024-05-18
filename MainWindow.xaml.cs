@@ -319,7 +319,12 @@ namespace Metal_Code
             {
                 if (radioButton.Name == "DeliveryRadioButton")
                 {
-                    if (CustomerDrop.SelectedItem is Customer customer && customer.Address is not null) Adress.Text = customer.Address;
+                    if (CustomerDrop.SelectedItem is Customer customer)
+                    {
+                        if (customer.Address is not null) Adress.Text = customer.Address;
+                        //SetDelivery(customer.DeliveryPrice);
+                    }
+                    
                     HasDelivery = true;
                 }
                 else if (radioButton.Name == "PickupRadioButton")
@@ -2607,7 +2612,8 @@ namespace Metal_Code
                         {
                             Name = CustomerDrop.Text,
                             Address = Adress.Text,
-                            Agent = IsAgent
+                            Agent = IsAgent,
+                            //DeliveryPrice = Delivery
                         };
 
                         _man.Customers.Add(_customer);
@@ -2652,6 +2658,8 @@ namespace Metal_Code
                     db.Entry(_customer).Property(o => o.Address).IsModified = true;
                     _customer.Agent = IsAgent;
                     db.Entry(_customer).Property(o => o.Agent).IsModified = true;
+                    //if (int.TryParse(DeliveryPrice.Text, out int delivery)) _customer.DeliveryPrice = delivery;
+                    //db.Entry(_customer).Property(o => o.DeliveryPrice).IsModified = true;
 
                     db.SaveChanges();
                     StatusBegin($"Данные заказчика {customer.Name} изменены.");
