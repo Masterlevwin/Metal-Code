@@ -322,7 +322,7 @@ namespace Metal_Code
                     if (CustomerDrop.SelectedItem is Customer customer)
                     {
                         if (customer.Address is not null) Adress.Text = customer.Address;
-                        //SetDelivery(customer.DeliveryPrice);
+                        if (Delivery == 0) SetDelivery(customer.DeliveryPrice);
                     }
                     
                     HasDelivery = true;
@@ -2631,7 +2631,7 @@ namespace Metal_Code
                             Name = CustomerDrop.Text,
                             Address = Adress.Text,
                             Agent = IsAgent,
-                            //DeliveryPrice = Delivery
+                            DeliveryPrice = Delivery
                         };
 
                         _man.Customers.Add(_customer);
@@ -2676,8 +2676,8 @@ namespace Metal_Code
                     db.Entry(_customer).Property(o => o.Address).IsModified = true;
                     _customer.Agent = IsAgent;
                     db.Entry(_customer).Property(o => o.Agent).IsModified = true;
-                    //if (int.TryParse(DeliveryPrice.Text, out int delivery)) _customer.DeliveryPrice = delivery;
-                    //db.Entry(_customer).Property(o => o.DeliveryPrice).IsModified = true;
+                    if (int.TryParse(DeliveryPrice.Text, out int delivery)) _customer.DeliveryPrice = delivery;
+                    db.Entry(_customer).Property(o => o.DeliveryPrice).IsModified = true;
 
                     db.SaveChanges();
                     StatusBegin($"Данные заказчика {customer.Name} изменены.");
