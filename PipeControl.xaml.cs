@@ -343,14 +343,14 @@ namespace Metal_Code
 
                 if (Items?.Count > 0) Items.Clear();
 
-                for (int j = 3; j < tables[2].Rows.Count; j++)                                              //заполняем список труб
+                for (int j = 3; j < tables[2].Rows.Count; j++)                                                                  //заполняем список труб
                 {
                     if (tables[2].Rows[j] == null) break;
 
                     LaserItem? item = new()
                     {
-                        sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[2]}"),               //Кол-во
-                        sheetSize = $"{tables[2].Rows[j].ItemArray[4]}".TrimEnd(new char[] { ',', '.' })    //Длина трубы(mm)
+                        sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[2]}"),                                   //Кол-во
+                        sheetSize = $"{tables[2].Rows[j].ItemArray[4]}".TrimEnd(new char[] { ',' }).TrimEnd()                   //Длина трубы(mm)
                     };
 
                     Items?.Add(item);

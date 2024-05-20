@@ -1842,14 +1842,23 @@ namespace Metal_Code
 
                             if (type.CheckMetal.IsChecked == false)     //если материал давальческий, добавляем его в накладную
                             {
-                                var _items = cut.Items?.GroupBy(c => c.sheetSize);      //группируем все листы по размеру
-                                if (_items is not null)
-                                    foreach (var item in _items)        //каждую группу листов одного размера и их количество записываем в одну строку
-                                    {                                   
-                                        notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"Лист {description} ({item.Key})";
-                                        notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = item.Sum(s => s.sheets);
-                                        tempNote++;
-                                    }
+                                if (cut.Items?.Count > 0)
+                                {
+                                    var _items = cut.Items?.GroupBy(c => c.sheetSize);      //группируем все листы по размеру
+                                    if (_items is not null)
+                                        foreach (var item in _items)    //каждую группу листов одного размера и их количество записываем в одну строку
+                                        {
+                                            notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"Лист {description} ({item.Key})";
+                                            notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = item.Sum(s => s.sheets);
+                                            tempNote++;
+                                        }
+                                }
+                                else
+                                {
+                                    notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"Лист {description} ({type.A}x{type.B})";
+                                    notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
+                                    tempNote++;
+                                }
                             }
                         }
                         else if (w.workType is BendControl)
@@ -1869,14 +1878,23 @@ namespace Metal_Code
 
                             if (type.CheckMetal.IsChecked == false)     //если материал давальческий, добавляем его в накладную
                             {
-                                var _items = pipe.Items?.GroupBy(c => c.sheetSize);      //группируем все трубы по размеру
-                                if (_items is not null)
-                                    foreach (var item in _items)        //каждую группу труб одного размера и их количество записываем в одну строку
-                                    {
-                                        notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({item.Key})";
-                                        notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = item.Sum(s => s.sheets);
-                                        tempNote++;
-                                    }
+                                if (pipe.Items?.Count > 0)
+                                {
+                                    var _items = pipe.Items?.GroupBy(c => c.sheetSize);      //группируем все трубы по размеру
+                                    if (_items is not null)
+                                        foreach (var item in _items)    //каждую группу труб одного размера и их количество записываем в одну строку
+                                        {
+                                            notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({item.Key})";
+                                            notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = item.Sum(s => s.sheets);
+                                            tempNote++;
+                                        }
+                                }
+                                else
+                                {
+                                    notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({type.L})";
+                                    notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
+                                    tempNote++;
+                                }
                             }
                         }
                         //для доп работы её наименование добавляем к наименованию работы - особый случай
