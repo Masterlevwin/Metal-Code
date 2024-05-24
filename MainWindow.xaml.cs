@@ -1284,6 +1284,10 @@ namespace Metal_Code
                 AddDetail();
                 DetailControl _det = DetailControls[i];
                 _det.Detail.Title = details[i].Title;
+
+                //если деталь является Комплектом, запускаем ограничения
+                if (_det.Detail.Title != null && _det.Detail.Title.Contains("Комплект")) _det.IsComplectChanged();
+
                 _det.Detail.Count = details[i].Count;
 
                 for (int j = 0; j < details[i].TypeDetails.Count; j++)
@@ -1341,7 +1345,6 @@ namespace Metal_Code
 
                                         part.PropertiesChanged?.Invoke(part, false);
                                     }
-
                         }
 
                         _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
@@ -1353,8 +1356,6 @@ namespace Metal_Code
                     }
                     if (_det.TypeDetailControls.Count < details[i].TypeDetails.Count) _det.AddTypeDetail();
                 }
-                //если деталь является Комплектом, запускаем ограничения
-                if (_det.Detail.Title != null && _det.Detail.Title.Contains("Комплект")) _det.IsComplectChanged();
             }
         }
 

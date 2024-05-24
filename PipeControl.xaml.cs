@@ -280,7 +280,6 @@ namespace Metal_Code
                     Parts = PartList(tables);           // формируем список элементов PartControl
                     SetImagesForParts(stream);          // устанавливаем поле Part.ImageBytes для каждой детали
                     PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
-                    //ItemList(tables);                   // формируем список труб из отчета
                     AddPartsTab();                      // добавляем вкладку в "Список нарезанных деталей"
                     SetTotalProperties();               //определяем общую массу и общую длину нарезанных труб
                 }
@@ -308,7 +307,6 @@ namespace Metal_Code
                         _pipe.Parts = _pipe.PartList(tables);
                         _pipe.SetImagesForParts(stream);
                         _pipe.PartsControl = new(this, _pipe.Parts);
-                        //_pipe.ItemList(tables);
                         _pipe.AddPartsTab();
                         _pipe.SetTotalProperties();
                     }

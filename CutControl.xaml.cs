@@ -175,6 +175,8 @@ namespace Metal_Code
                 SetPinhole(w.propsList[1]);
                 if (float.TryParse(w.propsList[2], out float _way)) WayTotal = _way;
                 if (float.TryParse(w.propsList[3], out float _mass)) MassTotal = _mass;
+
+                work.type.CreateSort();     //переопределяем содержимое SortDrop, если есть раскладки (List<LaserItem>))
             }
         }
 
@@ -232,7 +234,7 @@ namespace Metal_Code
                     ItemList(table);                    // формируем список листов из раскладки
                     AddPartsTab();                      // добавляем вкладку в "Список нарезанных деталей"
 
-                    work.type.MassCalculate();          // обновляем значение массы заготовки
+                    work.type.CreateSort();             // обновляем заготовку и все, связанные с ней, данные
 
                     if (Parts.Count > 0)
                         foreach (PartControl part in Parts)
@@ -265,6 +267,8 @@ namespace Metal_Code
                         _cut.PartsControl = new(this, _cut.Parts);
                         _cut.ItemList(table);
                         _cut.AddPartsTab();
+
+                        _cut.work.type.CreateSort();
 
                         if (_cut.Parts.Count > 0)
                             foreach (PartControl part in _cut.Parts)

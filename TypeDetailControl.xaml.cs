@@ -275,7 +275,29 @@ namespace Metal_Code
                 L = 6000;
             }
 
-            if (type.Sort is not null && type.Sort != "")
+            if (det.Detail.IsComplect && type.Name == "Лист металла")
+            {
+                foreach (WorkControl w in WorkControls)
+                {
+                    if (w.workType is ICut cut && cut.Items?.Count > 0)
+                    {
+                        var _items = cut.Items?.GroupBy(c => c.sheetSize);      //группируем все листы по размеру
+                        if (_items is not null)
+                            foreach (var item in _items)
+                            {
+                                if (cut is CutControl && item.Key is not null && item.Key.Contains('X'))
+                                {
+                                    string[] props = item.Key.Split('X');
+                                    if (props.Length > 1) Kinds[$"{item.Key} - {item.Sum(s => s.sheets)} шт"] = (props[0], props[1]);
+                                }
+                            }
+                    }
+                    break;
+                }
+                foreach (string s in Kinds.Keys) SortDrop.Items.Add(s);
+                SortDrop.SelectedIndex = 0;
+            }
+            else if (type.Sort is not null && type.Sort != "")
             {
                 string[] strings = type.Sort.Split(',');
                 for (int i = 0; i < strings.Length; i += 3) Kinds[strings[i]] = (strings[i + 1], strings[i + 2]);
@@ -284,7 +306,6 @@ namespace Metal_Code
 
                 if (type.Name != "Лист металла") A_prop.IsReadOnly = B_prop.IsReadOnly = true;
                 SortDrop.SelectedIndex = ndx;
-                ChangeSort();
             }
             else A_prop.IsReadOnly = B_prop.IsReadOnly = false;
         }
@@ -367,10 +388,6 @@ namespace Metal_Code
         {
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
 
-            //if (type.Name != null && (type.Name.Contains("Лист металла")
-            //    || type.Name.Contains("Труба") || type.Name.Contains("Швеллер") || type.Name.Contains("Уголок") || type.Name.Contains("Двутавр"))) Price = metal.MassPrice;
-            //else Price = type.Price;
-
             Price = metal.MassPrice;
 
             if (det.Detail.IsComplect)
@@ -391,7 +408,7 @@ namespace Metal_Code
                             {
                                 if (part.Metal != metal.Name) part.Metal = metal.Name;
                                 if (part.Destiny != S) part.Destiny = S;
-                            }   
+                            }
                         break;
                     }
             }
