@@ -20,7 +20,8 @@
             <ColumnDefinition Width="Auto" MinWidth="210"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <TextBox ToolTip="Введите наименование детали" Text="{Binding Title}" TextChanged="SetName" x:Name="DetailName" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="150" MinHeight="20" MaxWidth="150" MaxLines="1" HorizontalAlignment="Left" VerticalAlignment="Top" MaxHeight="20" Height="20" Width="150"/>
+        <Button x:Name="Counter" Margin="0,2,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="16" MinHeight="16" MaxWidth="16" MaxHeight="16"/>
+        <TextBox ToolTip="Введите наименование детали" Text="{Binding Title}" TextChanged="SetName" x:Name="DetailName" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="130" MinHeight="20" MaxWidth="130" MaxLines="1" HorizontalAlignment="Left" VerticalAlignment="Top" MaxHeight="20" Height="20" Width="133" Margin="20,0,0,0"/>
         <TextBox ToolTip="Введите количество деталей" Text="{Binding Count}" TextChanged="SetCount" x:Name="Count" HorizontalAlignment="Left" Margin="160,0,0,0" VerticalAlignment="Top" MaxWidth="40" MaxHeight="20" MinWidth="40" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
         <Button Content="Х" HorizontalAlignment="Left" Margin="200,0,0,0" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" Padding="0" MaxWidth="10" MaxHeight="10" FontSize="8" BorderThickness="0" Click="Remove" ToolTip="Удалить деталь"/>
     </Grid>

@@ -17,6 +17,7 @@ using System.Windows.Media.Animation;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using OfficeOpenXml.Drawing;
+using System.Diagnostics.Metrics;
 
 namespace Metal_Code
 {
@@ -1030,6 +1031,8 @@ namespace Metal_Code
                     DetailControls[^1].Margin.Top + 30 + 30 * DetailControls[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
 
             DetailControls.Add(detail);
+            detail.Counter.Content = DetailControls.IndexOf(detail);
+
             ProductGrid.Children.Add(detail);
 
             detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
