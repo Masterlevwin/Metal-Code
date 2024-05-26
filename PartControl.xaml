@@ -20,7 +20,7 @@
         </Popup>
         <TextBox Text="{Binding Count}" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinHeight="20" MaxHeight="20" HorizontalAlignment="Left" MaxLines="1" Margin="5,65,0,0" MaxWidth="40" MinWidth="40" Height="20" ToolTip="Количество вырезанных деталей" Width="40"/>
         <TextBlock Text="{Binding Square, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" ToolTip="Площадь детали" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="60,67,0,0" MaxWidth="70"/>
-        <TextBlock Text="кв м" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="105,67,0,0"/>
+        <TextBlock Text="кв м" MouseWheel="ViewPopupDimensions" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="105,67,0,0"/>
         <CheckBox ToolTip="Модель детали" x:Name="CheckModel" IsChecked="{Binding MakeModel, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" Content="М" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,95,0,0" FontWeight="SemiBold" Foreground="#FF6400FF"/>
         <TextBlock Text="{Binding Mass}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="60,93,0,0" ToolTip="Масса детали" MaxWidth="70"/>
         <TextBlock Text="кг" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="105,93,0,0"/>

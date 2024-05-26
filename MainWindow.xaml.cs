@@ -1031,7 +1031,7 @@ namespace Metal_Code
                     DetailControls[^1].Margin.Top + 30 + 30 * DetailControls[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
 
             DetailControls.Add(detail);
-            detail.Counter.Content = DetailControls.IndexOf(detail);
+            detail.Counter.Content = DetailControls.IndexOf(detail) + 1;
 
             ProductGrid.Children.Add(detail);
 

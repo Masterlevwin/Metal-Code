@@ -81,14 +81,12 @@ namespace Metal_Code
             if (!Part.PropsDict.ContainsKey(100)) return;
 
             if (owner is PipeControl && float.TryParse(Part.PropsDict[100][0], out float l)) Square = (float)Math.Round(l, 3);
-            else
-            {
-                if (float.TryParse(Part.PropsDict[100][0], out float h) && float.TryParse(Part.PropsDict[100][1], out float w))
-                    Square = (float)Math.Round(h * w / 500000, 3);
+            else if (float.TryParse(Part.PropsDict[100][0], out float h) && float.TryParse(Part.PropsDict[100][1], out float w))
+                Square = (float)Math.Round(h * w / 500000, 3);
 
-                if (Part.PropsDict[100].Count > 2) Dimensions = Part.PropsDict[100][2];     //если присутствует строка размеров, показать ее
-                //данной проверкой мы избегаем исключения по индексу в случае, если загружаются старые расчеты (элемент PropsDict[100][2] был добавлен позже)
-            }
+            if (Part.PropsDict[100].Count > 2) Dimensions = Part.PropsDict[100][2];     //если присутствует строка размеров, показать ее
+            //данной проверкой мы избегаем исключения по индексу в случае, если загружаются старые расчеты (элемент PropsDict[100][2] был добавлен позже)
+
         }
 
         private void ViewPopupDimensions(object sender, System.Windows.Input.MouseWheelEventArgs e)
