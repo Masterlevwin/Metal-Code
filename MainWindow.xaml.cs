@@ -116,7 +116,7 @@ namespace Metal_Code
         private readonly Dictionary<byte, List<Offer>> TempOffersDict = new() { [0] = new(), [1] = new(), [2] = new() };
         private readonly Dictionary<string, float> TempWorksDict = new();                                       //временный словарь работ
 
-        public readonly List<float> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 25, 30 };
+        public readonly List<float> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 25, 30 };
         public Dictionary<string, Dictionary<float, (float, float, float)>> MetalDict = new();                  //словарь материалов
         public Dictionary<double, float> WideDict = new();                                                      //словарь отверстий
         public Dictionary<Metal, float> MetalRatioDict = new();                                                 //словарь коэффициентов за материал

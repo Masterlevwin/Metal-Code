@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 namespace Metal_Code
 {
@@ -64,6 +65,7 @@ namespace Metal_Code
                 {
                     MainWindow.M.DetailControls[i].Margin = new Thickness(0,
                         direction ? MainWindow.M.DetailControls[i].Margin.Top + 30 : MainWindow.M.DetailControls[i].Margin.Top - 30, 0, 0);
+                    MainWindow.M.DetailControls[i].Counter.Content = MainWindow.M.DetailControls.IndexOf(MainWindow.M.DetailControls[i]);
                 }
             }
         }

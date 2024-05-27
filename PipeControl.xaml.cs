@@ -493,6 +493,8 @@ namespace Metal_Code
 
                 for (int j = 3; j < tables[0].Rows.Count; j++)
                 {
+                    if ($"{tables[0].Rows[j].ItemArray[1]}" == " ") break;
+
                     Part part = new()
                     {
                         Title = $"{tables[0].Rows[j].ItemArray[1]}",
@@ -560,8 +562,6 @@ namespace Metal_Code
                         _parts.Add(new(this, work, part));
                         PartDetails?.Add(part);
                     }
-
-                    if ($"{tables[0].Rows[j].ItemArray[1]}" == " ") break;
                 }
 
                 if (float.TryParse($"{tables[2].Rows[3].ItemArray[3]}", out float l)) work.type.L = l;      //Длина первой трубы(mm)
@@ -743,6 +743,8 @@ namespace Metal_Code
                     {
                         for (int j = i + 1; j < tables[0].Rows.Count; j++)
                         {
+                            if ($"{tables[0].Rows[j].ItemArray[2]}" == " ") break;
+
                             Part part = new()
                             {
                                 Title = $"{tables[0].Rows[j].ItemArray[2]}",
@@ -810,8 +812,6 @@ namespace Metal_Code
                                 _parts.Add(new(this, work, part));
                                 PartDetails?.Add(part);
                             }
-
-                            if ($"{tables[0].Rows[j].ItemArray[2]}" == " ") break;
                         }
                         break;
                     }
@@ -850,7 +850,8 @@ namespace Metal_Code
 
             if (PartDetails?.Count > 0 && pictures.Count > 0)
                 for (int i = 0; i < PartDetails.Count; i++)
-                    PartDetails[i].ImageBytes = pictures[i].Image.ImageBytes;    //для каждой детали записываем массив байтов соответствующей картинки
+                    PartDetails[i].ImageBytes = pictures[0].Image.ImageBytes;   //для каждой детали записываем массив байтов соответствующей картинки
+                                                                                //в случае с трубами на данный момент картинка одна и та же!
         }
     }
 
