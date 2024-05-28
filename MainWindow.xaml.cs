@@ -1031,14 +1031,10 @@ namespace Metal_Code
         {
             DetailControl detail = new(new());
 
-            if (DetailControls.Count > 0)
-                detail.Margin = new Thickness(0,    //добавил +30, так как увеличился DetailControl
-                    DetailControls[^1].Margin.Top + 30 + 30 * DetailControls[^1].TypeDetailControls.Sum(t => t.WorkControls.Count), 0, 0);
-
             DetailControls.Add(detail);
             detail.Counter.Content = DetailControls.IndexOf(detail) + 1;
 
-            ProductGrid.Children.Add(detail);
+            DetailsStack.Children.Add(detail);
 
             detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
         }

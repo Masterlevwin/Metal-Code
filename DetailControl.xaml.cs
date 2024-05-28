@@ -31,15 +31,10 @@ namespace Metal_Code
         {
             TypeDetailControl type = new(this);
 
-            if (TypeDetailControls.Count > 0)
-                type.Margin = new Thickness(0,
-                    TypeDetailControls[^1].Margin.Top + 30 * TypeDetailControls[^1].WorkControls.Count, 0, 0);
-
             TypeDetailControls.Add(type);
             type.Priced += MassCalculate;       // подписка на изменение типовой детали для расчета общей массы детали
-            DetailGrid.Children.Add(type);
-
-            Grid.SetRow(type, 1);
+            
+            BilletsStack.Children.Add(type);
             
             type.AddWork();   // при добавлении дропа типовой детали добавляем дроп работ
         }
@@ -51,24 +46,27 @@ namespace Metal_Code
         }
         public void Remove()
         {
-            while (TypeDetailControls.Count > 0) TypeDetailControls[^1].Remove();
+            if (MainWindow.M.DetailControls.Count > 1)
+                for (int i = MainWindow.M.DetailControls.IndexOf(this) + 1; i < MainWindow.M.DetailControls.Count; i++)
+                    MainWindow.M.DetailControls[i].Counter.Content = MainWindow.M.DetailControls.IndexOf(MainWindow.M.DetailControls[i]);
+
             MainWindow.M.DetailControls.Remove(this);
-            MainWindow.M.ProductGrid.Children.Remove(this);
+            MainWindow.M.DetailsStack.Children.Remove(this);
         }
 
-        public void UpdatePosition(bool direction)
-        {
-            int num = MainWindow.M.DetailControls.IndexOf(this);
-            if (MainWindow.M.DetailControls.Count > 1)
-            {
-                for (int i = num + 1; i < MainWindow.M.DetailControls.Count; i++)
-                {
-                    MainWindow.M.DetailControls[i].Margin = new Thickness(0,
-                        direction ? MainWindow.M.DetailControls[i].Margin.Top + 30 : MainWindow.M.DetailControls[i].Margin.Top - 30, 0, 0);
-                    MainWindow.M.DetailControls[i].Counter.Content = MainWindow.M.DetailControls.IndexOf(MainWindow.M.DetailControls[i]);
-                }
-            }
-        }
+        //public void UpdatePosition(bool direction)
+        //{
+        //    int num = MainWindow.M.DetailControls.IndexOf(this);
+        //    if (MainWindow.M.DetailControls.Count > 1)
+        //    {
+        //        for (int i = num + 1; i < MainWindow.M.DetailControls.Count; i++)
+        //        {
+        //            MainWindow.M.DetailControls[i].Margin = new Thickness(0,
+        //                direction ? MainWindow.M.DetailControls[i].Margin.Top + 30 : MainWindow.M.DetailControls[i].Margin.Top - 30, 0, 0);
+        //            
+        //        }
+        //    }
+        //}
 
         private void SetName(object sender, TextChangedEventArgs e)
         {

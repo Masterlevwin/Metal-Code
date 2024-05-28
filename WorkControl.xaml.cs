@@ -95,20 +95,19 @@ namespace Metal_Code
 
         public void Remove()
         {
-            UpdatePosition(false);
             type.WorkControls.Remove(this);
             type.det.PriceResult();
-            type.TypeDetailGrid.Children.Remove(this);
+            type.WorksStack.Children.Remove(this);
         }
 
-        public void UpdatePosition(bool direction)
-        {
-            int numW = type.WorkControls.IndexOf(this);
-            if (type.WorkControls.Count > 1) for (int i = numW + 1; i < type.WorkControls.Count; i++)
-                    type.WorkControls[i].Margin = new Thickness(0,
-                        direction ? type.WorkControls[i].Margin.Top + 30 : type.WorkControls[i].Margin.Top - 30, 0, 0);
-            type.UpdatePosition(direction);
-        }
+        //public void UpdatePosition(bool direction)
+        //{
+        //    int numW = type.WorkControls.IndexOf(this);
+        //    if (type.WorkControls.Count > 1) for (int i = numW + 1; i < type.WorkControls.Count; i++)
+        //            type.WorkControls[i].Margin = new Thickness(0,
+        //                direction ? type.WorkControls[i].Margin.Top + 30 : type.WorkControls[i].Margin.Top - 30, 0, 0);
+        //    type.UpdatePosition(direction);
+        //}
 
         private void SetRatio(object sender, TextChangedEventArgs e)
         {

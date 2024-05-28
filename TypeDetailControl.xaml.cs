@@ -187,14 +187,8 @@ namespace Metal_Code
         {
             WorkControl work = new(this);
 
-            if (WorkControls.Count > 0) work.Margin = new Thickness(0, WorkControls[^1].Margin.Top + 30, 0, 0);
-
             WorkControls.Add(work);
-            TypeDetailGrid.Children.Add(work);
-
-            Grid.SetColumn(work, 1);
-
-            work.UpdatePosition(true);
+            WorksStack.Children.Add(work);
         }
 
         private void Remove(object sender, RoutedEventArgs e)
@@ -204,24 +198,23 @@ namespace Metal_Code
         }
         public void Remove()
         {
-            while (WorkControls.Count > 0) WorkControls[^1].Remove();
             det.TypeDetailControls.Remove(this);
-            det.DetailGrid.Children.Remove(this);
+            det.BilletsStack.Children.Remove(this);
         }
 
-        public void UpdatePosition(bool direction)
-        {
-            int numT = det.TypeDetailControls.IndexOf(this);
-            if (det.TypeDetailControls.Count > 1)
-            {
-                for (int i = numT + 1; i < det.TypeDetailControls.Count; i++)
-                {
-                    det.TypeDetailControls[i].Margin = new Thickness(0,
-                        direction ? det.TypeDetailControls[i].Margin.Top + 30 : det.TypeDetailControls[i].Margin.Top - 30, 0, 0);
-                }
-            }
-            det.UpdatePosition(direction);
-        }
+        //public void UpdatePosition(bool direction)
+        //{
+        //    int numT = det.TypeDetailControls.IndexOf(this);
+        //    if (det.TypeDetailControls.Count > 1)
+        //    {
+        //        for (int i = numT + 1; i < det.TypeDetailControls.Count; i++)
+        //        {
+        //            det.TypeDetailControls[i].Margin = new Thickness(0,
+        //                direction ? det.TypeDetailControls[i].Margin.Top + 30 : det.TypeDetailControls[i].Margin.Top - 30, 0, 0);
+        //        }
+        //    }
+        //    det.UpdatePosition(direction);
+        //}
 
         public delegate void Changed();
         public event Changed? Priced;

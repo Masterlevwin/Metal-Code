@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="20" d:DesignWidth="750" VerticalAlignment="Top">
+             d:DesignHeight="30" d:DesignWidth="750" VerticalAlignment="Top">
     <UserControl.ContextMenu>
         <ContextMenu>
             <MenuItem Header="Добавить" Click="AddTypeDetail"></MenuItem>
@@ -14,6 +14,9 @@
         </ContextMenu>
     </UserControl.ContextMenu>
     <Grid x:Name="TypeDetailGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition MinHeight="30"/>
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>
@@ -33,7 +36,9 @@
                 <TextBlock x:Name="MassPrice" Padding="3" TextAlignment="Center"/>
             </StackPanel>
         </Popup>
-        <Button Content="+" Click="AddTypeDetail" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" ToolTip="Добавить заготовку" FontSize="8" Margin="50,10,0,0" MinWidth="10" MinHeight="10" Height="10" Width="10"/>
+        <Button Content="+" Click="AddTypeDetail" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" ToolTip="Добавить заготовку" FontSize="8" Margin="50,15,0,0" MinWidth="10" MinHeight="10"/>
         <Button Content="Х" MinWidth="10" MinHeight="10" FontWeight="Bold" Padding="0,0,0,0" MaxWidth="10" MaxHeight="10" FontSize="8" BorderThickness="0,0,0,0" Click="Remove" ToolTip="Удалить заготовку" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="670,0,0,0"/>
+
+        <StackPanel x:Name="WorksStack" Grid.Column="1"/>
     </Grid>
 </UserControl>
