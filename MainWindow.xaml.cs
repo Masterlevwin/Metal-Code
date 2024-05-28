@@ -17,7 +17,6 @@ using System.Windows.Media.Animation;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using OfficeOpenXml.Drawing;
-using System.Diagnostics.Metrics;
 
 namespace Metal_Code
 {
@@ -852,6 +851,12 @@ namespace Metal_Code
         {
             if (!IsLocal) return;                               //если запущена основная база, выходим из метода
 
+            MessageBoxResult response = MessageBox.Show(
+                "Для обновления локальных баз, потребуется перезагрузка.\nНажмите \"Нет\", если требуется сохранить текущий расчет",
+                "Обновление локальных баз", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+
+            if (response == MessageBoxResult.No) return;
+
             //подключаемся к основной базе типовых деталей
             using TypeDetailContext dbType = new(connections[3]);
 
@@ -975,8 +980,8 @@ namespace Metal_Code
                 }
             }
 
-            MessageBox.Show("Локальные базы заготовок, работ и металлов обновлены.\nЧтобы применить изменения, необходимо перезапустить программу.",
-                "Обновление локальных баз", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+            System.Windows.Forms.Application.Restart();
+            Environment.Exit(0);
         }
 
         void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)

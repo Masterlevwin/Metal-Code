@@ -345,7 +345,7 @@ namespace Metal_Code
 
                 if (matchesTube.Count > 0)
                 {
-                    if (_tube.Contains("Профильная"))
+                    if (_tube.Contains("Форма"))            //профильная труба
                     {
                         work.type.A = MainWindow.Parser(matchesTube[0].Value);
                         work.type.B = MainWindow.Parser(matchesTube[1].Value);
@@ -852,34 +852,6 @@ namespace Metal_Code
                 for (int i = 0; i < PartDetails.Count; i++)
                     PartDetails[i].ImageBytes = pictures[0].Image.ImageBytes;   //для каждой детали записываем массив байтов соответствующей картинки
                                                                                 //в случае с трубами на данный момент картинка одна и та же!
-        }
-    }
-
-    public class ExcelPipeDialogService : IDialogService
-    {
-        public string[]? FilePaths { get; set; }
-
-        public bool OpenFileDialog()
-        {
-            OpenFileDialog openFileDialog = new();
-            openFileDialog.Filter = "Excel (*.xls)|*.xls|All files (*.*)|*.*";
-            openFileDialog.Multiselect = true;
-            if (openFileDialog.ShowDialog() == true)
-            {
-                FilePaths = openFileDialog.FileNames;
-                return true;
-            }
-            return false;
-        }
-
-        public bool SaveFileDialog()
-        {
-            return false;
-        }
-
-        public void ShowMessage(string message)
-        {
-            MessageBox.Show(message);
         }
     }
 }
