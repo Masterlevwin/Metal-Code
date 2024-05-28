@@ -1,8 +1,9 @@
-﻿<UserControl x:Class="Metal_Code.PartsControl"
+﻿<UserControl
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Metal_Code" x:Class="Metal_Code.PartsControl" 
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="400">
     <ScrollViewer>
@@ -53,15 +54,16 @@
             <TextBox x:Name="Holes3" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="160,175,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите количество отверстий"/>
             <TextBlock Text="Вальц" HorizontalAlignment="Left" Margin="40,200,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Вальцовка для всех"/>
             <ComboBox x:Name="RollDrop" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" SelectedIndex="0" ToolTip="Выберите сторону вальцовки" SelectionChanged="SetType" Margin="120,200,0,0"/>
-            <Button Content="И>" ToolTip="По наименованию" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,25,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
-            <Button Content="Г>" ToolTip="По гибке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,50,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
-            <Button Content="Св>" ToolTip="По сварке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,75,0,0" MinWidth="28" MaxWidth="28" MinHeight="20" MaxHeight="20"/>
-            <Button Content="О>" ToolTip="По окраске" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,100,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
-            <Button Content="Р>" ToolTip="По резьбе" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,125,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
-            <Button Content="З>" ToolTip="По зенковке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,150,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
-            <Button Content="С>" ToolTip="По сверловке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,175,0,0" MinHeight="20" MaxHeight="20" MinWidth="25" MaxWidth="25"/>
-            <Button  Content="В>" ToolTip="По вальцовке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,200,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
+            <Button Content="И&gt;" ToolTip="По наименованию" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,25,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
+            <Button Content="Г&gt;" ToolTip="По гибке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,50,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
+            <Button Content="Св&gt;" ToolTip="По сварке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,75,0,0" MinWidth="28" MaxWidth="28" MinHeight="20" MaxHeight="20"/>
+            <Button Content="О&gt;" ToolTip="По окраске" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,100,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
+            <Button Content="Р&gt;" ToolTip="По резьбе" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,125,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
+            <Button Content="З&gt;" ToolTip="По зенковке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,150,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
+            <Button Content="С&gt;" ToolTip="По сверловке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,175,0,0" MinHeight="20" MaxHeight="20" MinWidth="25" MaxWidth="25"/>
+            <Button  Content="В&gt;" ToolTip="По вальцовке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,200,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
             <TextBlock HorizontalAlignment="Left" Margin="5,5,0,0" TextWrapping="Wrap" Text="Сорт" VerticalAlignment="Top"/>
+            <CheckBox ToolTip="Модели ВСЕХ деталей отрисованы" Content="М" Click="SetAllMakeModel" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,25,0,0" FontWeight="SemiBold" Foreground="#FF6400FF"/>
         </Grid>
     </ScrollViewer>
 </UserControl>

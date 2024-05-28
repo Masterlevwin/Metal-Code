@@ -193,5 +193,12 @@ namespace Metal_Code
                         break;
                 }
         }
+
+        private void SetAllMakeModel(object sender, RoutedEventArgs e)          //метод, который устанавливает ВСЕМ деталям свойство отрисовки инженером
+        {
+            if (sender is CheckBox cBox && cBox.IsChecked is not null)
+                foreach (PartControl p in Parts)
+                    p.MakeModel = (bool)cBox.IsChecked;
+        }
     }
 }
