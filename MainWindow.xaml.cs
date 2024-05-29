@@ -41,7 +41,8 @@ namespace Metal_Code
             $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
             "Data Source=metals.db",
             $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
-            $"C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы"
+            $"C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы",
+            $"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"
             //"Data Source=managers.db",
             //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
             //"Data Source=typedetails.db",
@@ -50,7 +51,8 @@ namespace Metal_Code
             //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
             //"Data Source=metals.db",
             //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
-            //$"Y:\\Производство\\Laser rezka\\В работу"
+            //$"Y:\\Производство\\Laser rezka\\В работу",
+            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -67,7 +69,7 @@ namespace Metal_Code
         {
             InitializeComponent();
             M = this;
-            Version.Text = version;
+            Version.Header = version;
             DataContext = ProductModel;
             Loaded += LoadDataBases;
         }
@@ -2897,7 +2899,7 @@ namespace Metal_Code
         #endregion
 
 
-        //-------------Выход из программы------------------------//
+        //-------------Выход и перезагрузка-----------------------//
         private void Exit(object sender, CancelEventArgs e)
         {
             MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
@@ -2912,6 +2914,13 @@ namespace Metal_Code
         public void Exit(object sender, RoutedEventArgs e)
         {
             Environment.Exit(0);
+        }
+
+        private void Restart(object sender, RoutedEventArgs e)
+        {
+            FileInfo fileInfo = new(connections[9] + "\\version.txt");
+            if (fileInfo.Exists && File.ReadAllText(connections[9] + "\\version.txt") == version)
+                MessageBox.Show($"Metal-Code не требует обновления.\nТекущая версия - {version}");
         }
 
         private void AnalyseDateProduction(object sender, RoutedEventArgs e)

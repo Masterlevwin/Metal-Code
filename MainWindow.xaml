@@ -56,7 +56,7 @@
             </MenuItem>
             <MenuItem Header="О программе">
                 <MenuItem Header="Очень краткое руководство" Click="AnalyseDateProduction"/>
-                <TextBlock x:Name="Version"/>
+                <MenuItem x:Name="Version" Click="Restart"/>
             </MenuItem>
         </Menu>
 
