@@ -17,6 +17,7 @@ using System.Windows.Media.Animation;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using OfficeOpenXml.Drawing;
+using System.Diagnostics;
 
 namespace Metal_Code
 {
@@ -2918,9 +2919,20 @@ namespace Metal_Code
 
         private void Restart(object sender, RoutedEventArgs e)
         {
-            FileInfo fileInfo = new(connections[9] + "\\version.txt");
-            if (fileInfo.Exists && File.ReadAllText(connections[9] + "\\version.txt") == version)
-                MessageBox.Show($"Metal-Code не требует обновления.\nТекущая версия - {version}");
+            if (CheckVersion()) MessageBox.Show($"Metal-Code не требует обновления.\nТекущая версия - {version}");
+            else
+            {
+                Process.Start(Directory.GetCurrentDirectory() + "\\Metal-Code.Updater.exe");
+                Environment.Exit(0);
+            }
+        }
+        public bool CheckVersion()
+        {
+            FileInfo serverVersionFile = new(connections[9] + "\\version.txt");
+            FileInfo localVersionFile = new(Directory.GetCurrentDirectory() + "\\version.txt");
+
+            return serverVersionFile.Exists && localVersionFile.Exists
+                && File.ReadAllText(connections[9] + "\\version.txt") == File.ReadAllText(Directory.GetCurrentDirectory() + "\\version.txt");
         }
 
         private void AnalyseDateProduction(object sender, RoutedEventArgs e)
