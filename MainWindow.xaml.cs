@@ -30,7 +30,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.4.9";
+        readonly string version = "2.5.0";
 
         public readonly string[] connections =
         {
@@ -43,7 +43,7 @@ namespace Metal_Code
             "Data Source=metals.db",
             $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
             $"C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы",
-            $"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"
+            $"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows"
             //"Data Source=managers.db",
             //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
             //"Data Source=typedetails.db",
@@ -70,7 +70,9 @@ namespace Metal_Code
         {
             InitializeComponent();
             M = this;
-            Version.Header = version;
+
+            if (!CheckVersion(out string _version)) Restart();
+
             DataContext = ProductModel;
             Loaded += LoadDataBases;
         }
@@ -2919,17 +2921,21 @@ namespace Metal_Code
 
         private void Restart(object sender, RoutedEventArgs e)
         {
-            if (CheckVersion()) MessageBox.Show($"Metal-Code не требует обновления.\nТекущая версия - {version}");
-            else
-            {
-                Process.Start(Directory.GetCurrentDirectory() + "\\Metal-Code.Updater.exe");
-                Environment.Exit(0);
-            }
+            if (CheckVersion(out string _version)) MessageBox.Show($"Metal-Code не требует обновления.\nТекущая версия - {_version}");
+            else Restart();
         }
-        public bool CheckVersion()
+        private void Restart()
+        {
+            Process.Start(Directory.GetCurrentDirectory() + "\\Metal-Code.Updater.exe");
+            Environment.Exit(0);
+        }
+
+        public bool CheckVersion(out string _version)
         {
             FileInfo serverVersionFile = new(connections[9] + "\\version.txt");
             FileInfo localVersionFile = new(Directory.GetCurrentDirectory() + "\\version.txt");
+
+            _version = File.ReadAllText(connections[9] + "\\version.txt");
 
             return serverVersionFile.Exists && localVersionFile.Exists
                 && File.ReadAllText(connections[9] + "\\version.txt") == File.ReadAllText(Directory.GetCurrentDirectory() + "\\version.txt");
