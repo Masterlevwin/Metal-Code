@@ -34,26 +34,26 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {
-            "Data Source=managers.db",
-            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
-            "Data Source=typedetails.db",
-            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
-            "Data Source=works.db",
-            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
-            "Data Source=metals.db",
-            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
-            $"C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы",
-            $"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows"
             //"Data Source=managers.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
             //"Data Source=typedetails.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
             //"Data Source=works.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
             //"Data Source=metals.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
-            //$"Y:\\Производство\\Laser rezka\\В работу",
-            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"
+            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
+            //$"C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы",
+            //$"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows"
+            "Data Source=managers.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            "Data Source=typedetails.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            "Data Source=works.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            "Data Source=metals.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
+            $"Y:\\Производство\\Laser rezka\\В работу",
+            $"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -71,7 +71,8 @@ namespace Metal_Code
             InitializeComponent();
             M = this;
 
-            //if (!CheckVersion(out string _version)) Restart();
+            UpdateDatabases();
+            if (!CheckVersion(out string _version)) Restart();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -862,6 +863,15 @@ namespace Metal_Code
 
             if (response == MessageBoxResult.No) return;
 
+            InsertDatabase();
+
+            System.Windows.Forms.Application.Restart();
+            Environment.Exit(0);
+        }
+        private void UpdateDatabases()
+        {
+            if (!IsLocal) return;                               //если запущена основная база, выходим из метода
+
             //подключаемся к основной базе типовых деталей
             using TypeDetailContext dbType = new(connections[3]);
 
@@ -984,9 +994,6 @@ namespace Metal_Code
                     StatusBegin(ex.Message);
                 }
             }
-
-            System.Windows.Forms.Application.Restart();
-            Environment.Exit(0);
         }
 
         void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
@@ -2921,7 +2928,7 @@ namespace Metal_Code
             if (response == MessageBoxResult.No) e.Cancel = true;
             else
             {
-                //InsertDatabase();
+                InsertDatabase();
                 Environment.Exit(0);
             }
         }
