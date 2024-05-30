@@ -345,7 +345,7 @@ namespace Metal_Code
 
                 if (matchesTube.Count > 0)
                 {
-                    if (_tube.Contains("Прямоугольная"))
+                    if (_tube.Contains("Прямоугольная") || _tube.Contains("Форма"))
                     {
                         work.type.A = MainWindow.Parser(matchesTube[0].Value);
                         work.type.B = MainWindow.Parser(matchesTube[1].Value);
@@ -366,7 +366,7 @@ namespace Metal_Code
                         work.type.A = work.type.B = MainWindow.Parser(matchesTube[0].Value);
                         Tube = TubeType.square;
                     }
-                    else if (_tube.Contains("Форма"))
+                    else if (_tube.Contains("Швеллер"))
                     {
                         foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Швеллер")
                             {

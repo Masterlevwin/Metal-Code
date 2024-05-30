@@ -1831,8 +1831,10 @@ namespace Metal_Code
 
                     if (type.MetalDrop.SelectedItem is Metal met)           //"Количество материала и (его цена за 1 кг)"
                     {
-                        statsheet.Cells[i + temp, 14].Value = $"{Math.Ceiling(det.Detail.IsComplect ? type.Mass : type.Mass * type.Count)}" +
-                            $" ({(type.CheckMetal.IsChecked == true ? met.MassPrice : 0)}р)";
+                        double _mass = Math.Ceiling(det.Detail.IsComplect ? type.Mass : type.Mass * type.Count);
+
+                        statsheet.Cells[i + temp, 14].Value = $"{_mass}" +
+                            $" ({(type.CheckMetal.IsChecked == true ? (type.ExtraResult > 0 ? Math.Ceiling(type.ExtraResult / _mass) : met.MassPrice) : 0)}р)";
                     }
 
                     foreach (WorkControl w in type.WorkControls)            //анализируем работы каждой типовой детали
