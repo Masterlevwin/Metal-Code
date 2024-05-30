@@ -71,7 +71,7 @@ namespace Metal_Code
             InitializeComponent();
             M = this;
 
-            if (!CheckVersion(out string _version)) Restart();
+            //if (!CheckVersion(out string _version)) Restart();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -2738,6 +2738,17 @@ namespace Metal_Code
         }
 
 
+        //------------Таблица гибов-------------------------------//
+        private void ShowTableOfBends(object sender, RoutedEventArgs e)
+        {
+            if (sender is CheckBox cBox && cBox is not null)
+            {
+                if (cBox.IsChecked is true) TableOfBends.Visibility = Visibility.Visible;
+                else TableOfBends.Visibility = Visibility.Hidden;
+            }
+        }
+
+
         //------------Смена темы----------------------------------//
         private static void ThemeChange(string style)
         {
@@ -2924,7 +2935,7 @@ namespace Metal_Code
             if (CheckVersion(out string _version)) MessageBox.Show($"Metal-Code не требует обновления.\nТекущая версия - {_version}");
             else Restart();
         }
-        private void Restart()
+        private static void Restart()
         {
             Process.Start(Directory.GetCurrentDirectory() + "\\Metal-Code.Updater.exe");
             Environment.Exit(0);

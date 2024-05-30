@@ -209,7 +209,8 @@
                         </Button>
                         <TextBlock Text="Отправить" HorizontalAlignment="Left" Margin="460,203,0,0" VerticalAlignment="Top"/>
                         <Button Content="Х" HorizontalAlignment="Left" Margin="385,228,0,0" VerticalAlignment="Top" MinWidth="20" MinHeight="20" Click="ResetDates" BorderBrush="#FFFF0046" ToolTip="Сбросить даты"/>
-                        <TextBox x:Name="AssemblyRatio" ToolTip="Коэффициент" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" Margin="470,163,0,0"/>
+                        <TextBox ToolTip="Коэффициент" x:Name="AssemblyRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" Margin="470,163,0,0"/>
+                        <CheckBox Content="Таблица гибов" Click="ShowTableOfBends" Margin="15,0,0,15" HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
 
                     </Grid>
                 </ScrollViewer>
@@ -226,6 +227,7 @@
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                     </DataGrid>
+                    <Image x:Name="TableOfBends" Source="/Images/tableofbends.jpg" Stretch="Fill" Visibility="Hidden"/>
                 </Grid>
             </GroupBox>
 

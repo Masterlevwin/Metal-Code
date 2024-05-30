@@ -31,6 +31,7 @@
     <None Remove="Images\save3.png" />
     <None Remove="Images\save4.png" />
     <None Remove="Images\signature.jpg" />
+    <None Remove="Images\tableofbends.jpg" />
     <None Remove="Images\update.jpg" />
     <None Remove="Images\update.png" />
     <None Remove="Images\update2.png" />
@@ -83,6 +84,7 @@
     <Resource Include="Images\save3.png" />
     <Resource Include="Images\save4.png" />
     <Resource Include="Images\signature.jpg" />
+    <Resource Include="Images\tableofbends.jpg" />
     <Resource Include="Images\update.png" />
     <Resource Include="Images\update4.png" />
     <Resource Include="Images\xlsx_load.png" />
