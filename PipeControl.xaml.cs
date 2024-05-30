@@ -345,7 +345,7 @@ namespace Metal_Code
 
                 if (matchesTube.Count > 0)
                 {
-                    if (_tube.Contains("Форма"))            //профильная труба
+                    if (_tube.Contains("Прямоугольная"))
                     {
                         work.type.A = MainWindow.Parser(matchesTube[0].Value);
                         work.type.B = MainWindow.Parser(matchesTube[1].Value);
@@ -366,7 +366,7 @@ namespace Metal_Code
                         work.type.A = work.type.B = MainWindow.Parser(matchesTube[0].Value);
                         Tube = TubeType.square;
                     }
-                    else if (_tube.Contains("Швеллер"))
+                    else if (_tube.Contains("Форма"))
                     {
                         foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Швеллер")
                             {
@@ -482,11 +482,12 @@ namespace Metal_Code
                 {
                     if (tables[2].Rows[j] == null) break;
 
-                    LaserItem? item = new()
-                    {
-                        sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[1]}"),                                           //Кол-во
-                        sheetSize = $"{tables[2].Rows[j].ItemArray[3]}".Remove($"{tables[2].Rows[j].ItemArray[3]}".IndexOf(','))        //Длина трубы(mm)
-                    };
+                    LaserItem? item = new();
+                    item.sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[1]}");                                           //Кол-во
+
+                    if ($"{tables[2].Rows[j].ItemArray[3]}".Contains(','))
+                        item.sheetSize = $"{tables[2].Rows[j].ItemArray[3]}".Remove($"{tables[2].Rows[j].ItemArray[3]}".IndexOf(','));   //Длина трубы(mm)
+                    else item.sheetSize = $"{tables[2].Rows[j].ItemArray[3]}";
 
                     Items?.Add(item);
                 }
