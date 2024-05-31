@@ -478,16 +478,19 @@ namespace Metal_Code
 
                 if (Items?.Count > 0) Items.Clear();
 
-                for (int j = 3; j < tables[2].Rows.Count; j++)                                                                  //заполняем список труб
+                for (int j = 3; j < tables[2].Rows.Count; j++)                                  //заполняем список труб
                 {
                     if (tables[2].Rows[j] == null) break;
 
                     LaserItem? item = new();
-                    item.sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[1]}");                                           //Кол-во
+                    item.sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[1]}");  //Кол-во
 
-                    if ($"{tables[2].Rows[j].ItemArray[3]}".Contains(','))
-                        item.sheetSize = $"{tables[2].Rows[j].ItemArray[3]}".Remove($"{tables[2].Rows[j].ItemArray[3]}".IndexOf(','));   //Длина трубы(mm)
-                    else item.sheetSize = $"{tables[2].Rows[j].ItemArray[3]}";
+                    string lengthTube = $"{tables[2].Rows[j].ItemArray[3]}";                    //Длина трубы(mm)
+
+                    if (lengthTube.Contains(',')) lengthTube = lengthTube.Remove(lengthTube.IndexOf(','));
+                    else if (lengthTube.Contains('.')) lengthTube = lengthTube.Remove(lengthTube.IndexOf('.'));
+
+                    item.sheetSize = lengthTube;
 
                     Items?.Add(item);
                 }
@@ -496,6 +499,7 @@ namespace Metal_Code
                 {
                     if ($"{tables[0].Rows[j].ItemArray[1]}" == " ") break;
 
+                    //если строка не пуста, инициализируем новую деталь
                     Part part = new()
                     {
                         Title = $"{tables[0].Rows[j].ItemArray[1]}",
@@ -503,19 +507,29 @@ namespace Metal_Code
                         Accuracy = $"H12/h12 +-IT 12/2"
                     };
 
+                    //устанавливаем толщину заготовки, если она равна нулю
+                    if (work.type.S == 0)
+                    {
+                        Regex destinyEng = new(@"x[+-]?((\d+\.?\d*)|(\.\d+))");             //проверяем английскую х (здесь в коде - тоже английская х)
+                        List<Match> matchesEng = destinyEng.Matches(part.Title).ToList();
+                        if (matchesEng.Count > 0) work.type.S = MainWindow.Parser(matchesEng[^1].Value.Trim('x'));      //здесь в коде - английская х
+
+                        if (work.type.S == 0)       //если проверка на английскую х провалена, т.е. толщина по-прежнему равна нулю, проверяем русскую х
+                        {
+                            Regex destinyRus = new(@"х[+-]?((\d+\.?\d*)|(\.\d+))");         //проверяем русскую х (здесь в коде - тоже русская х)
+                            List<Match> matchesRus = destinyRus.Matches(part.Title).ToList();
+                            if (matchesRus.Count > 0) work.type.S = MainWindow.Parser(matchesRus[^1].Value.Trim('х'));  //здесь в коде - русская х
+                        }
+                    }
+
+                    //определяем количество деталей
                     string? _count = tables[0].Rows[j].ItemArray[2]?.ToString();
 
                     if (_count != null && _count.Contains('/')) part.Count = (int)MainWindow.Parser(_count.Split('/')[0]);
 
-                    if (part.Count > 0)
+                    if (part.Count > 0)     //если количество деталей успешно определено, далее устанавливаем
+                                            //толщину, материал, массу и площадь окрашиваемой поверхности детали
                     {
-                        //устанавливаем толщину заготовки
-                        Regex destiny = new(@"х[+-]?((\d+\.?\d*)|(\.\d+))");
-
-                        List<Match> matches = destiny.Matches(part.Title).ToList();
-
-                        if (matches.Count > 0 && work.type.S == 0) work.type.S = MainWindow.Parser(matches[^1].Value.Trim('х'));
-
                         part.Destiny = work.type.S;
                         part.Metal = work.type.MetalDrop.Text;
 
@@ -587,15 +601,19 @@ namespace Metal_Code
 
                 if (Items?.Count > 0) Items.Clear();
 
-                for (int j = 3; j < tables[2].Rows.Count; j++)                                                                  //заполняем список труб
+                for (int j = 3; j < tables[2].Rows.Count; j++)                                  //заполняем список труб
                 {
                     if (tables[2].Rows[j] == null) break;
 
-                    LaserItem? item = new()
-                    {
-                        sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[2]}"),                                   //Кол-во
-                        sheetSize = $"{tables[2].Rows[j].ItemArray[4]}".TrimEnd(new char[] { ',' }).TrimEnd()                   //Длина трубы(mm)
-                    };
+                    LaserItem? item = new();
+                    item.sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[1]}");  //Кол-во
+
+                    string lengthTube = $"{tables[2].Rows[j].ItemArray[3]}";                    //Длина трубы(mm)
+
+                    if (lengthTube.Contains(',')) lengthTube = lengthTube.Remove(lengthTube.IndexOf(','));
+                    else if (lengthTube.Contains('.')) lengthTube = lengthTube.Remove(lengthTube.IndexOf('.'));
+
+                    item.sheetSize = lengthTube;
 
                     Items?.Add(item);
                 }
@@ -753,19 +771,27 @@ namespace Metal_Code
                                 Accuracy = $"H12/h12 +-IT 12/2"
                             };
 
+                            //устанавливаем толщину заготовки, если она равна нулю
+                            if (work.type.S == 0)
+                            {
+                                Regex destinyEng = new(@"x[+-]?((\d+\.?\d*)|(\.\d+))");             //проверяем английскую х (здесь в коде - тоже английская х)
+                                List<Match> matchesEng = destinyEng.Matches(part.Title).ToList();
+                                if (matchesEng.Count > 0) work.type.S = MainWindow.Parser(matchesEng[^1].Value.Trim('x'));      //здесь в коде - английская х
+
+                                if (work.type.S == 0)       //если проверка на английскую х провалена, т.е. толщина по-прежнему равна нулю, проверяем русскую х
+                                {
+                                    Regex destinyRus = new(@"х[+-]?((\d+\.?\d*)|(\.\d+))");         //проверяем русскую х (здесь в коде - тоже русская х)
+                                    List<Match> matchesRus = destinyRus.Matches(part.Title).ToList();
+                                    if (matchesRus.Count > 0) work.type.S = MainWindow.Parser(matchesRus[^1].Value.Trim('х'));  //здесь в коде - русская х
+                                }
+                            }
+
                             string? _count = tables[0].Rows[j].ItemArray[3]?.ToString();
 
                             if (_count != null && _count.Contains('/')) part.Count = (int)MainWindow.Parser(_count.Split('/')[0]);
 
                             if (part.Count > 0)
                             {
-                                //устанавливаем толщину заготовки
-                                Regex destiny = new(@"х[+-]?((\d+\.?\d*)|(\.\d+))");
-
-                                List<Match> matches = destiny.Matches(part.Title).ToList();
-
-                                if (matches.Count > 0 && work.type.S == 0) work.type.S = MainWindow.Parser(matches[^1].Value.Trim('х'));
-
                                 part.Destiny = work.type.S;
                                 part.Metal = work.type.MetalDrop.Text;
 
