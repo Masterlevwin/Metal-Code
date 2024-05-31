@@ -17,7 +17,6 @@ namespace Metal_Code
 
         private void Accept_Click(object sender, RoutedEventArgs e)
         {
-            //DialogResult = true;
             string login = LoginText.Text;
             string password = PasswordText.Password;
             bool isRemember = IsRemember.IsChecked is not null;
