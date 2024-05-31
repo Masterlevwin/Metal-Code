@@ -21,6 +21,7 @@
         <TextBox x:Name="LoginText" Margin="8" Grid.Column="1" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Grid.Row="1" />
         <TextBlock Text="Введите пароль" Margin="8" Grid.Row="2" TextAlignment="Center"/>
         <PasswordBox x:Name="PasswordText" Grid.Row="2" Grid.Column="1" Margin="8" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+        <CheckBox Content="Запомнить меня" x:Name="IsRemember" Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         <StackPanel Orientation="Horizontal" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Center">
             <Button Margin="8" IsDefault="True" Click="Accept_Click" Content="Войти" MinWidth="60"/>
             <Button Margin="8" Content="Выйти" Click="Exit" MinWidth="60"/>

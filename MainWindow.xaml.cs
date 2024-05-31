@@ -93,10 +93,48 @@ namespace Metal_Code
             Metals = dbM.Metals.Local.ToObservableCollection();
             InitializeDict();
 
-            ViewLoginWindow();
+            if (!CheckMachineName()) ShowLoginWindow();
+            else NewProject();
         }
 
-        private void ViewLoginWindow()
+        private bool CheckMachineName()
+        {
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
+
+            db.Managers.Load();
+            Managers = db.Managers.Local.ToObservableCollection();
+
+            Manager? manager = Managers.FirstOrDefault(c => c.Contact == Environment.MachineName);
+
+            if (manager != null)
+            {
+                ManagerDrop.ItemsSource = Managers.Where(m => !m.IsEngineer);     //список ТОЛЬКО менеджеров (для выставления КП)
+                UserDrop.ItemsSource = Managers;                                  //список ВСЕХ пользователей (для отчетов)
+
+                db.Customers.Load();
+                Customers = db.Customers.Local.ToObservableCollection();
+
+                CurrentManager = manager;                                                       //определяем текущего менеджера
+                if (ManagerDrop.Items.Contains(manager)) ManagerDrop.SelectedItem = manager;    //устанавливаем менеджера по умолчанию
+
+                UserDrop.SelectedItem = CurrentManager;
+                if (CurrentManager.IsEngineer)
+                {
+                    IsEnabled = false;
+                    SetManagerWindow setManagerWindow = new();
+                    if (setManagerWindow.ShowDialog() == true)
+                    {
+                        if (ManagerDrop.Items.Contains(setManagerWindow.SelectManager)) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
+                        else ManagerDrop.SelectedIndex = 0;
+                        IsEnabled = true;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private void ShowLoginWindow()
         {
             LoginWindow loginWindow = new();
             IsEnabled = false;

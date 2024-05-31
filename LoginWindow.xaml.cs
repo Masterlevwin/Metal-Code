@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 
@@ -21,6 +20,7 @@ namespace Metal_Code
             //DialogResult = true;
             string login = LoginText.Text;
             string password = PasswordText.Password;
+            bool isRemember = IsRemember.IsChecked is not null;
 
             using ManagerContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[0] : MainWindow.M.connections[1]);
             db.Managers.Load();
@@ -32,6 +32,7 @@ namespace Metal_Code
             db.Customers.Load();
             MainWindow.M.Customers = db.Customers.Local.ToObservableCollection();
 
+            //авторизация с нового устройства
             Manager? manager = MainWindow.M.Managers.FirstOrDefault(x => x.Name == login);
             if (manager != null)
             {
@@ -42,6 +43,18 @@ namespace Metal_Code
 
                     //устанавливаем менеджера по умолчанию
                     if (MainWindow.M.ManagerDrop.Items.Contains(manager)) MainWindow.M.ManagerDrop.SelectedItem = manager;
+
+                    //если установлен флажок "Запомнить меня"
+                    if (isRemember)
+                    {
+                        Manager? _manager = db.Managers.FirstOrDefault(x => x.Name == login);
+                        if (_manager is not null)
+                        {
+                            _manager.Contact = Environment.MachineName;
+                            db.Entry(_manager).Property(o => o.Contact).IsModified = true;
+                            db.SaveChanges();
+                        }
+                    }
 
                     DialogResult = true;
                 }
