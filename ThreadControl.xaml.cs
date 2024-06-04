@@ -88,9 +88,6 @@ namespace Metal_Code
             {
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
 
-                //PartBtn.Visibility = Visibility.Visible;
-                //PartBtn.Click += (o, e) => { part.RemoveControl(this); };
-
                 foreach (WorkControl w in part.work.type.WorkControls)
                     if (w.workType is ThreadControl thread && thread.CharName == CharName) return;
 
