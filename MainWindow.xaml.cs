@@ -115,6 +115,7 @@ namespace Metal_Code
                 Customers = db.Customers.Local.ToObservableCollection();
 
                 CurrentManager = manager;                                                       //определяем текущего менеджера
+                Login.Header = CurrentManager.Name;
                 if (ManagerDrop.Items.Contains(manager)) ManagerDrop.SelectedItem = manager;    //устанавливаем менеджера по умолчанию
 
                 UserDrop.SelectedItem = CurrentManager;
@@ -134,6 +135,13 @@ namespace Metal_Code
             return false;
         }
 
+        private void ShowLoginWindow(object sender, RoutedEventArgs e)
+        {
+            MessageBoxResult response = MessageBox.Show("Сменить текущего пользователя?\nЕсли \"Да\", потребуется авторизация, и текущий расчет будет очищен!", "Сменить пользователя",
+                               MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+            if (response == MessageBoxResult.No) return;
+            else ShowLoginWindow();
+        }
         private void ShowLoginWindow()
         {
             LoginWindow loginWindow = new();

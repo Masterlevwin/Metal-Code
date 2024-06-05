@@ -29,7 +29,7 @@
 
     <Grid x:Name="MenuGrid">
 
-        <Menu VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" Padding="10,0,0,0" FontFamily="Leelawadee UI">
+        <Menu VerticalAlignment="Top" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" Padding="10,0,0,0" FontFamily="Leelawadee UI" DisplayMemberPath="{Binding CurrentManager.Name, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
             <MenuItem Header="_Файл">
                 <MenuItem Header="_Новый проект" Command="{Binding NewProjectCommand}" InputGestureText="Ctrl+A"/>
                 <MenuItem Header="_Открыть" Command="{Binding OpenCommand}" InputGestureText="Ctrl+S"/>
@@ -58,6 +58,8 @@
                 <MenuItem Header="Очень краткое руководство" Click="AnalyseDateProduction"/>
                 <MenuItem Header="Обновить программу" Click="Restart"/>
             </MenuItem>
+            <MenuItem ToolTip="Сменить пользователя" x:Name="Login" Click="ShowLoginWindow"/>
+
         </Menu>
 
         <Grid x:Name="WindowGrid">

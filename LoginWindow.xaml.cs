@@ -39,6 +39,7 @@ namespace Metal_Code
                 {
                     //определяем текущего менеджера
                     MainWindow.M.CurrentManager = manager;
+                    MainWindow.M.Login.Header = MainWindow.M.CurrentManager.Name;
 
                     //устанавливаем менеджера по умолчанию
                     if (MainWindow.M.ManagerDrop.Items.Contains(manager)) MainWindow.M.ManagerDrop.SelectedItem = manager;
