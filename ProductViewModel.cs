@@ -6,6 +6,7 @@ using System.IO;
 using System.Runtime.Serialization.Json;
 using Microsoft.Win32;
 using System.Windows;
+using System.Linq;
 
 namespace Metal_Code
 {
@@ -288,6 +289,38 @@ namespace Metal_Code
                   });
             }
         }
+
+        // команда переименования файла
+        private RelayCommand renameCommand;
+        public RelayCommand RenameCommand
+        {
+            get
+            {
+                return renameCommand ??= new RelayCommand(obj =>
+                {
+                    try
+                    {
+                        OpenFileDialog openFileDialog = new()
+                        {
+                            Multiselect = true
+                        };
+                        if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames != null)
+                        {
+                            foreach (string _name in openFileDialog.FileNames)
+                                File.Move(_name, Path.GetDirectoryName(_name) + "\\" + Path.GetFileNameWithoutExtension(_name)
+                                    + $" {MainWindow.M.Rename.Text}" + Path.GetExtension(_name));
+
+                            MainWindow.M.StatusBegin("Файлы успешно переименованы");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        dialogService.ShowMessage(ex.Message);
+                    }
+                });
+            }
+        }
+
     }
 
     public class RelayCommand : ICommand
