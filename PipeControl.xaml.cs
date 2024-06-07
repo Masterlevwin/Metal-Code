@@ -345,13 +345,7 @@ namespace Metal_Code
 
                 if (matchesTube.Count > 0)
                 {
-                    if (_tube.Contains("Прямоугольная") || _tube.Contains("Форма"))
-                    {
-                        work.type.A = MainWindow.Parser(matchesTube[0].Value);
-                        work.type.B = MainWindow.Parser(matchesTube[1].Value);
-                        Tube = TubeType.rect;
-                    }
-                    else if (_tube.Contains("Круглая"))
+                    if (_tube.Contains("Круглая"))
                     {
                         foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба круглая")
                             {
@@ -366,7 +360,7 @@ namespace Metal_Code
                         work.type.A = work.type.B = MainWindow.Parser(matchesTube[0].Value);
                         Tube = TubeType.square;
                     }
-                    else if (_tube.Contains("Швеллер"))
+                    else if (_tube.Contains("Швеллер") || _tube.Contains("Труба U"))
                     {
                         foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Швеллер")
                             {
@@ -395,7 +389,7 @@ namespace Metal_Code
                             }
                         Tube = TubeType.channel;
                     }
-                    else if (_tube.Contains("равнополочный"))
+                    else if (_tube.Contains("равнополочный") || _tube.Contains("труба(L)"))
                     {
                         foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Уголок равнополочный")
                             {
@@ -463,11 +457,14 @@ namespace Metal_Code
                             }
                         Tube = TubeType.hbeam;
                     }
+                    else
+                    {
+                        work.type.A = MainWindow.Parser(matchesTube[0].Value);
+                        work.type.B = MainWindow.Parser(matchesTube[1].Value);
+                        Tube = TubeType.rect;
+                    }
                 }
-                else
-                {
-                    MainWindow.M.StatusBegin("Не удалось определить размеры трубы");
-                }
+                else MainWindow.M.StatusBegin("Не удалось определить размеры трубы");
 
                 int ndx = $"{tables[2].Rows[1].ItemArray[2]}".IndexOf(':');
                 work.type.SetCount((int)MainWindow.Parser($"{tables[2].Rows[1].ItemArray[2]}".Substring(ndx + 1)));                                //Кол.сечений
