@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic.ApplicationServices;
 using System;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -93,27 +95,55 @@ namespace Metal_Code
         // удаление
         private void DeleteLaser_Click(object sender, RoutedEventArgs e)
         {
-            // получаем выделенный объект
             // если ни одного объекта не выделено, выходим
             if (LaserList.SelectedItem is not Manager manager) return;
-            db.Managers.Remove(manager);
-            db.SaveChanges();
-            LaserList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => x.IsLaser);
+
+            // предупреждаем о том, что будут потеряны данные
+            MessageBoxResult response = MessageBox.Show("Уверены? Пользователь и все его заказчики с расчетами будут удалены из базы!",
+                "Удаление пользователя", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+            if (response == MessageBoxResult.No) return;
+
+            // получаем выделенный объект
+            Manager? _manager = db.Managers.Where(x => x.Id == manager.Id).Include(o => o.Customers).Include(o => o.Offers).FirstOrDefault();
+            if (_manager != null)
+            {
+                db.Managers.Remove(_manager);
+                db.SaveChanges();
+                LaserList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => x.IsLaser);
+                HaveChanged = true;
+            }
         }
 
         private void DeleteApp_Click(object sender, RoutedEventArgs e)
         {
-            // получаем выделенный объект
             // если ни одного объекта не выделено, выходим
             if (AppList.SelectedItem is not Manager manager) return;
-            db.Managers.Remove(manager);
-            db.SaveChanges();
-            AppList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => !x.IsLaser);
+
+            // предупреждаем о том, что будут потеряны данные
+            MessageBoxResult response = MessageBox.Show("Уверены? Пользователь и все его заказчики с расчетами будут удалены из базы!",
+                "Удаление пользователя", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+            if (response == MessageBoxResult.No) return;
+
+            // получаем выделенный объект
+            Manager? _manager = db.Managers.Where(x => x.Id == manager.Id).Include(o => o.Customers).Include(o => o.Offers).FirstOrDefault();
+            if (_manager != null)
+            {
+                db.Managers.Remove(_manager);
+                db.SaveChanges();
+                AppList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => !x.IsLaser);
+                HaveChanged = true;
+            }
         }
 
+        private bool HaveChanged = false;           //было ли удаление менеджера
         private void FocusMainWindow(object sender, EventArgs e)
         {
-            MainWindow.M.IsEnabled = true;
+            if (HaveChanged)                        //если произошло удаление менеджера, перезапускаем программу
+            {
+                System.Windows.Forms.Application.Restart();
+                Environment.Exit(0);
+            }
+            else MainWindow.M.IsEnabled = true;     //иначе просто активируем главное окно
         }
     }
 }
