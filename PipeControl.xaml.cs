@@ -473,9 +473,11 @@ namespace Metal_Code
                 work.type.SetCount((int)MainWindow.Parser($"{tables[2].Rows[1].ItemArray[2]}".Substring(ndx + 1)));                                //Кол.сечений
                 ndx = $"{tables[2].Rows[1].ItemArray[3]}".IndexOf(':');
                 SetPinhole($"{tables[2].Rows[1].ItemArray[3]}".Substring(ndx + 1));                                                                //Контур
+
                 ndx = $"{tables[2].Rows[1].ItemArray[4]}".IndexOf(':');
-                if (float.TryParse($"{tables[2].Rows[1].ItemArray[4]}".Substring(ndx + 1), System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands,
-                System.Globalization.CultureInfo.InvariantCulture, out float val)) Way = (float)Math.Ceiling(val / 1000);  //Длина резки сечения(mm)
+                if ($"{tables[2].Rows[1].ItemArray[4]}".Substring(ndx + 1).Contains(',')
+                    && float.TryParse($"{tables[2].Rows[1].ItemArray[4]}".Substring(ndx + 1), out float val)) Way = (float)Math.Ceiling(val / 1000);
+                else Way = (float)Math.Ceiling(MainWindow.Parser($"{tables[2].Rows[1].ItemArray[4]}".Substring(ndx + 1)) / 1000);                  //Длина резки сечения(mm)     
 
                 if (Items?.Count > 0) Items.Clear();
 
@@ -534,8 +536,9 @@ namespace Metal_Code
                         part.Destiny = work.type.S;
                         part.Metal = work.type.MetalDrop.Text;
 
-                        if (float.TryParse($"{tables[0].Rows[j].ItemArray[3]}", System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands,
-                System.Globalization.CultureInfo.InvariantCulture, out float w)) part.Way = (float)Math.Round(w, 3);
+                        if ($"{tables[0].Rows[j].ItemArray[3]}".Contains(',') && float.TryParse($"{tables[0].Rows[j].ItemArray[3]}", out float w))
+                            part.Way = (float)Math.Round(w, 3);
+                        else part.Way = (float)Math.Round(MainWindow.Parser($"{tables[0].Rows[j].ItemArray[3]}"), 3);       //Длина нарезанной трубы
 
                         if (work.type.MetalDrop.SelectedItem is Metal metal && work.type.S > 0)
                             switch (Tube)
@@ -581,8 +584,9 @@ namespace Metal_Code
                     }
                 }
 
-                if (float.TryParse($"{tables[2].Rows[3].ItemArray[3]}", System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, System.Globalization.CultureInfo.InvariantCulture, out float l)) work.type.L = l;      //Длина первой трубы(mm)
-                SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");             //переносим погонные метры из типовой детали
+                if ($"{tables[2].Rows[3].ItemArray[3]}".Contains(',') && float.TryParse($"{tables[2].Rows[3].ItemArray[3]}", out float l)) work.type.L = l;
+                else work.type.L = MainWindow.Parser($"{tables[2].Rows[3].ItemArray[3]}");      //Длина первой трубы(mm)
+                SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");                     //переносим погонные метры из типовой детали
             }
             else if (PartDetails?.Count > 0) foreach (Part part in PartDetails) _parts.Add(new(this, work, part));
 
