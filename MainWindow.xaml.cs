@@ -18,6 +18,7 @@ using System.Runtime.Serialization.Json;
 using System.Text;
 using OfficeOpenXml.Drawing;
 using System.Diagnostics;
+using System.Windows.Media.Imaging;
 
 namespace Metal_Code
 {
@@ -2964,6 +2965,17 @@ namespace Metal_Code
             if (float.TryParse(data, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands,
                 System.Globalization.CultureInfo.InvariantCulture, out float f)) return f;
             else return 0;
+        }
+
+        public static BitmapImage CreateBitmap(byte[] imageBytes)      //метод преобразования массива байтов в изображение BitmapImage
+        {
+            BitmapImage? image = new();
+            image.BeginInit();
+            image.StreamSource = new MemoryStream(imageBytes);
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.EndInit();
+            image.Freeze();
+            return image;
         }
         #endregion
 

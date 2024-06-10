@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Runtime.Serialization;
 
 namespace Metal_Code
 {
@@ -229,9 +230,9 @@ namespace Metal_Code
                 if (i == 0)
                 {
                     Parts = PartList(table);            // формируем список элементов PartControl
-                    SetImagesForParts(stream);          // устанавливаем поле Part.ImageBytes для каждой детали
-                    PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
                     ItemList(table);                    // формируем список листов из раскладки
+                    SetImagesForParts(stream);          // устанавливаем поле Part.ImageBytes для каждой детали                
+                    PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
                     AddPartsTab();                      // добавляем вкладку в "Список нарезанных деталей"
 
                     work.type.CreateSort();             // обновляем заготовку и все, связанные с ней, данные
@@ -263,9 +264,9 @@ namespace Metal_Code
                     if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is CutControl _cut)
                     {
                         _cut.Parts = _cut.PartList(table);
-                        _cut.SetImagesForParts(stream);
-                        _cut.PartsControl = new(this, _cut.Parts);
                         _cut.ItemList(table);
+                        _cut.SetImagesForParts(stream);
+                        _cut.PartsControl = new(_cut, _cut.Parts);
                         _cut.AddPartsTab();
 
                         _cut.work.type.CreateSort();
@@ -439,10 +440,17 @@ namespace Metal_Code
 
             //извлекаем все изображения на листе в список картинок
             List<ExcelPicture> pictures = worksheet.Drawings.Where(x => x.DrawingType == eDrawingType.Picture).Select(x => x.As.Picture).ToList();
-
+      
             if (Parts?.Count > 0)
                 for (int i = 0; i < Parts.Count; i++)
                     Parts[i].Part.ImageBytes = pictures[i].Image.ImageBytes;    //для каждой детали записываем массив байтов соответствующей картинки
+
+            //получаем выборку изображений самих раскладок на основе размера массива байтов
+            var images = pictures.Where(x => x.Image.ImageBytes.Length > 9999).ToList();
+
+            if (Items?.Count > 0)
+                for (int j = 0; j < Items.Count; j++)
+                    Items[j].imageBytes = images[j].Image.ImageBytes;           //для каждой раскладки записываем массив байтов соответствующей картинки
         }
 
         public void ItemList(DataTable table)
@@ -623,6 +631,8 @@ namespace Metal_Code
         public string? sheetSize;
         public int sheets, pinholes;
         public float way, mass, price;
+        [OptionalField]
+        public byte[]? imageBytes;
     }
 
     public class ExcelDialogService : IDialogService

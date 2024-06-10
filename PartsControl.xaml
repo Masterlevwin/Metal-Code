@@ -64,6 +64,15 @@
             <Button  Content="В&gt;" ToolTip="По вальцовке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,200,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
             <TextBlock HorizontalAlignment="Left" Margin="5,5,0,0" TextWrapping="Wrap" Text="Сорт" VerticalAlignment="Top"/>
             <CheckBox ToolTip="Модели ВСЕХ деталей отрисованы" Content="М" Click="SetAllMakeModel" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,25,0,0" FontWeight="SemiBold" Foreground="#FF6400FF"/>
+            
+            <CheckBox Content="Показать раскладки" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,10,10" Click="ShowNesting"/>
+            <ListBox x:Name="imagesList" Padding="5,0,0,0" Grid.Column="1" VerticalAlignment="Top" VerticalContentAlignment="Top" Visibility="Collapsed">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+            </ListBox>
         </Grid>
     </ScrollViewer>
 </UserControl>

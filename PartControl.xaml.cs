@@ -173,18 +173,7 @@ namespace Metal_Code
 
         private void SetPicture(object sender, RoutedEventArgs e)       //метод вызывается при загрузке элемента Image (Image.Loaded) 
         {
-            if (Part.ImageBytes != null) Picture.Source = CreateBitmap(Part.ImageBytes);
-        }
-
-        private static BitmapImage CreateBitmap(byte[] imageBytes)      //метод преобразования массива байтов в изображение BitmapImage
-        {
-            BitmapImage? image = new();
-            image.BeginInit();
-            image.StreamSource = new MemoryStream(imageBytes);
-            image.CacheOption = BitmapCacheOption.OnLoad;
-            image.EndInit();
-            image.Freeze();
-            return image;
+            if (Part.ImageBytes != null) Picture.Source = MainWindow.CreateBitmap(Part.ImageBytes);
         }
     }
 

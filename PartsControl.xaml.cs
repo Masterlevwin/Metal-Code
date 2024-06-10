@@ -200,5 +200,39 @@ namespace Metal_Code
                 foreach (PartControl p in Parts)
                     p.MakeModel = (bool)cBox.IsChecked;
         }
+
+        private void ShowNesting(object sender, RoutedEventArgs e)
+        {
+            if (sender is CheckBox cBox && cBox is not null)
+            {
+                if (cBox.IsChecked is true && owner is ICut cut && cut.Items?.Count > 0)
+                {
+                    List<Image> images = new();
+                    foreach (LaserItem item in cut.Items)
+                    {
+                        if (item.imageBytes is not null)
+                        {
+                            Image _img = new()
+                            {
+                                Source = MainWindow.CreateBitmap(item.imageBytes),
+                                Margin = new Thickness(10, 5, 0, 5),
+                                Height = 370
+                            };
+                            images.Add(_img);
+                        }
+                    }
+                    imagesList.ItemsSource = images;
+
+                    imagesList.Visibility = Visibility.Visible;
+                    partsList.Visibility = Visibility.Collapsed;
+
+                }
+                else
+                {
+                    partsList.Visibility = Visibility.Visible;
+                    imagesList.Visibility= Visibility.Collapsed;
+                }
+            }
+        }
     }
 }
