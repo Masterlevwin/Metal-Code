@@ -2883,7 +2883,7 @@ namespace Metal_Code
             StatusBegin($"Запрос в логистику: {sb}");
         }
 
-        private float GetTotalMass()           //метод расчета общей массы ВСЕХ деталей
+        private float GetTotalMass()        //метод расчета общей массы ВСЕХ деталей
         {
             float total = 0;
 
@@ -2960,14 +2960,14 @@ namespace Metal_Code
             }
         }
 
-        public static float Parser(string data)        //обёртка для парсинга float-значений
+        public static float Parser(string data)                         //обёртка для парсинга float-значений
         {
-            if (float.TryParse(data, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands,
+            if (float.TryParse(data.Replace(',', '.'), System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands,
                 System.Globalization.CultureInfo.InvariantCulture, out float f)) return f;
             else return 0;
         }
 
-        public static BitmapImage CreateBitmap(byte[] imageBytes)      //метод преобразования массива байтов в изображение BitmapImage
+        public static BitmapImage CreateBitmap(byte[] imageBytes)       //метод преобразования массива байтов в изображение BitmapImage
         {
             BitmapImage? image = new();
             image.BeginInit();
