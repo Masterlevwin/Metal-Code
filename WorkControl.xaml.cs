@@ -223,8 +223,7 @@ namespace Metal_Code
 
             Result = (float)Math.Round(addMin ? (price + work.Price) * Ratio * TechRatio : price * Ratio * TechRatio, 2);
 
-            if (workType is CutControl) TimeSpan.Text = $"{Math.Ceiling(Result * 0.012f) / Ratio}";         //"Лазер (время работ)"
-            else if (workType is BendControl) TimeSpan.Text = $"{Math.Ceiling(Result * 0.018f) / Ratio}";   //"Гибка (время работ)"
+            TimeSpan.Text = $"{Math.Ceiling(Result * work.Time / work.Price / Ratio)}";
 
             if (addMin)
             {

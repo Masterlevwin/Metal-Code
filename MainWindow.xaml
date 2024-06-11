@@ -103,17 +103,16 @@
             <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" Margin="20,20,10,10" MaxHeight="500">
                 <ScrollViewer VerticalAlignment="Top" Margin="0,60,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                     <Grid x:Name="ProductGrid" Margin="10,0,10,0">
-                        <TextBlock Text="Заготовка" Margin="215,5,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <TextBlock Text="A" HorizontalAlignment="Left" Margin="310,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <TextBlock Text="B" HorizontalAlignment="Left" Margin="355,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <TextBlock Text="S" HorizontalAlignment="Left" Margin="390,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <TextBlock Text="L" HorizontalAlignment="Left" Margin="430,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <TextBlock Text="Кол-во" HorizontalAlignment="Left" Margin="465,5,0,0" VerticalAlignment="Top" Height="14" Width="39" Panel.ZIndex="1"/>
-                        <TextBlock Text="Материал" HorizontalAlignment="Left" Margin="515,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <CheckBox ToolTip="Добавить к расчету стоимость материала ВСЕХ деталей" Margin="590,5,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="15" Width="16" Click="SetAllMetal" IsChecked="True" Panel.ZIndex="1"/>
-                        <TextBlock Text="Работа" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="735,5,0,0" Panel.ZIndex="1"/>
-                        <TextBlock Text="Коэф" HorizontalAlignment="Left" Margin="980,5,0,0" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!" Height="14" Width="30" Panel.ZIndex="1"/>
-
+                        <TextBlock Text="A" HorizontalAlignment="Left" Margin="320,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
+                        <TextBlock Text="B" HorizontalAlignment="Left" Margin="365,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
+                        <TextBlock Text="S" HorizontalAlignment="Left" Margin="400,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
+                        <TextBlock Text="L" HorizontalAlignment="Left" Margin="440,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
+                        <TextBlock Text="Кол-во" HorizontalAlignment="Left" Margin="475,5,0,0" VerticalAlignment="Top" Height="14" Width="39" Panel.ZIndex="1"/>
+                        <TextBlock Text="Материал" HorizontalAlignment="Left" Margin="525,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
+                        <CheckBox ToolTip="Добавить к расчету стоимость материала ВСЕХ деталей" Margin="600,5,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="15" Width="16" Click="SetAllMetal" IsChecked="True" Panel.ZIndex="1"/>
+                        <TextBlock Text="Работа" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="745,5,0,0" Panel.ZIndex="1"/>
+                        <TextBlock Text="Коэф" ToolTip="Наценка или скидка на услуги" HorizontalAlignment="Left" Margin="985,5,0,0" VerticalAlignment="Top" Height="14" Width="30" Panel.ZIndex="1"/>
+                        <TextBlock Text="Время" ToolTip="Продолжительность, мин" HorizontalAlignment="Left" Margin="1110,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
                         <StackPanel x:Name="DetailsStack"/>
                     </Grid>
                 </ScrollViewer>
