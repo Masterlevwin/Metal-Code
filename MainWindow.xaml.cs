@@ -1512,7 +1512,7 @@ namespace Metal_Code
                 worksheet.Cells[row, 7].Value = Delivery;
                 worksheet.Cells[row, 8].Value = DeliveryRatio * Delivery;
                 row++;
-                worksheet.Cells[row + 4, 2].Value = "Доставка силами Исполнителя по адресу Заказчика.";
+                worksheet.Cells[row + 4, 2].Value = $"Доставка силами Исполнителя по адресу: {Adress.Text}.";
             }
             else
             {
@@ -1676,8 +1676,6 @@ namespace Metal_Code
             // ----- таблица статистики по нарезанным деталям (Лист3 - "Статистика") -----
 
             ExcelRange extable = worksheet.Cells[IsLaser ? 6 : 8, 6, IsLaser ? row - 3 : row - 1, 8];
-            extable.Style.Border.BorderAround(ExcelBorderStyle.None);
-            worksheet.Cells[IsLaser ? 6 : 8, 7, IsLaser ? row - 3 : row - 1, 7].Style.Border.Right.Style = ExcelBorderStyle.Thin;
 
             ExcelWorksheet scoresheet = workbook.Workbook.Worksheets.Add("Статистика");
 
