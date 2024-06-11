@@ -1897,7 +1897,7 @@ namespace Metal_Code
                             else if (type.MetalDrop.Text.Contains("медь")) description = $"cu{type.S}";
                             else description = $"s{type.S} {type.MetalDrop.Text}";
 
-                            statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f);     //"Лазер (время работ)"
+                            statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f) / w.Ratio;     //"Лазер (время работ)"
 
                             if (w.Ratio != 1) _lkk *= w.Ratio;
                             if (w.TechRatio > 1) _lpk *= w.TechRatio;
@@ -1928,7 +1928,7 @@ namespace Metal_Code
                         else if (w.workType is BendControl)
                         {
                             statsheet.Cells[i + temp, 6].Value = "гибка";
-                            statsheet.Cells[i + temp, 13].Value = Math.Ceiling(w.Result * 0.018f);     //"Гибка (время работ)"
+                            statsheet.Cells[i + temp, 13].Value = Math.Ceiling(w.Result * 0.018f) / w.Ratio;     //"Гибка (время работ)"
 
                             if (w.Ratio != 1) _bkk *= w.Ratio;
                             if (w.TechRatio > 1) _bpk *= w.TechRatio;

@@ -100,15 +100,6 @@ namespace Metal_Code
             type.WorksStack.Children.Remove(this);
         }
 
-        //public void UpdatePosition(bool direction)
-        //{
-        //    int numW = type.WorkControls.IndexOf(this);
-        //    if (type.WorkControls.Count > 1) for (int i = numW + 1; i < type.WorkControls.Count; i++)
-        //            type.WorkControls[i].Margin = new Thickness(0,
-        //                direction ? type.WorkControls[i].Margin.Top + 30 : type.WorkControls[i].Margin.Top - 30, 0, 0);
-        //    type.UpdatePosition(direction);
-        //}
-
         private void SetRatio(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox)
@@ -231,6 +222,9 @@ namespace Metal_Code
             if (WorkDrop.SelectedItem is not Work work) return;
 
             Result = (float)Math.Round(addMin ? (price + work.Price) * Ratio * TechRatio : price * Ratio * TechRatio, 2);
+
+            if (workType is CutControl) TimeSpan.Text = $"{Math.Ceiling(Result * 0.012f) / Ratio}";         //"Лазер (время работ)"
+            else if (workType is BendControl) TimeSpan.Text = $"{Math.Ceiling(Result * 0.018f) / Ratio}";   //"Гибка (время работ)"
 
             if (addMin)
             {
