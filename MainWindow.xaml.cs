@@ -73,8 +73,8 @@ namespace Metal_Code
             InitializeComponent();
             M = this;
 
-            //UpdateDatabases();
             //if (!CheckVersion(out string _version)) Restart();
+            UpdateDatabases();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -97,10 +97,6 @@ namespace Metal_Code
 
             if (!CheckMachineName()) ShowLoginWindow();
             else NewProject();
-
-            //принудительно вызываем сборщик мусора для закрытия подключения к базам данных
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
         }
 
         private bool CheckMachineName()
@@ -669,10 +665,6 @@ namespace Metal_Code
                 }
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }
-
-            //принудительно вызываем сборщик мусора для закрытия подключения к базам данных
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
         }
 
         private void SearchOffers(object sender, RoutedEventArgs e)         //метод фильтра расчетов по номеру, компании или диапазону дат
@@ -793,10 +785,6 @@ namespace Metal_Code
                 }
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }
-
-            //принудительно вызываем сборщик мусора для закрытия подключения к базам данных
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
         }
 
         private void UpdateOffer(object sender, RoutedEventArgs e)          //метод сохранения изменений в расчете
@@ -929,21 +917,44 @@ namespace Metal_Code
             System.Windows.Forms.Application.Restart();
             Environment.Exit(0);
         }
-        private void UpdateDatabases()
+        private void UpdateDatabases()                              //обновление баз заготовок, работ и материалов посредством замены файлов
         {
-            if (!IsLocal) return;                               //если запущена основная база, выходим из метода
+            if (!IsLocal) return;                                           //если запущена основная база, выходим из метода
+
+            string path = "Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code";    //путь к основным базам данных
+
+            if (File.Exists(path + "\\typedetails.db"))
+            {
+                FileInfo dbTypeFile = new(path + "\\typedetails.db");
+                dbTypeFile.CopyTo(Directory.GetCurrentDirectory() + "\\typedetails.db", true);
+            }
+
+            if (File.Exists(path + "\\works.db"))
+            {
+                FileInfo dbWorkFile = new(path + "\\works.db");
+                dbWorkFile.CopyTo(Directory.GetCurrentDirectory() + "\\works.db", true);
+            }
+
+            if (File.Exists(path + "\\metals.db"))
+            {
+                FileInfo dbMetalFile = new(path + "\\metals.db");
+                dbMetalFile.CopyTo(Directory.GetCurrentDirectory() + "\\metals.db", true);
+            }
+        }
+        private void UpdateDatabases(bool isLegacy)                 //обновление баз заготовок, работ и материалов посредством подключения к базам
+        {
+            if (!IsLocal) return;                                   //если запущена основная база, выходим из метода
 
             //подключаемся к основной базе типовых деталей
-            using TypeDetailContext dbType = new(connections[3]);
-
-            if (dbType.Database.CanConnect())   //проверяем, свободна ли база для подключения
+            using (TypeDetailContext dbType = new(connections[3]))
             {
-                try
+                dbType.TypeDetails.Load();
+
+                if (dbType.Database.CanConnect())   //проверяем, свободна ли база для подключения
                 {
                     //подключаемся к локальной базе данных
                     using TypeDetailContext dbLocalType = new(connections[2]);
-
-                    foreach (TypeDetail typeDetail in dbType.TypeDetails)
+                    foreach (TypeDetail typeDetail in dbType.TypeDetails.Local.ToObservableCollection())
                     {
                         // получаем типовую деталь из локальной базы, совпадающую с типовой деталью из основной базы по имени
                         TypeDetail? type = dbLocalType.TypeDetails.FirstOrDefault(t => t.Name == typeDetail.Name);
@@ -966,14 +977,11 @@ namespace Metal_Code
                     }
                     dbLocalType.SaveChanges();  //сохраняем изменения в локальной базе типовых деталей
                 }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin(ex.Message);
-                }
             }
 
             //подключаемся к основной базе работ
             using WorkContext dbWork = new(connections[5]);
+            dbWork.Works.Load();
 
             if (dbWork.Database.CanConnect())   //проверяем, свободна ли база для подключения
             {
@@ -982,7 +990,7 @@ namespace Metal_Code
                     //подключаемся к локальной базе данных
                     using WorkContext dbLocalWork = new(connections[4]);
 
-                    foreach (Work w in dbWork.Works)
+                    foreach (Work w in dbWork.Works.Local.ToObservableCollection())
                     {
                         // получаем работу из локальной базы, совпадающую с работой из основной базы по имени
                         Work? work = dbLocalWork.Works.FirstOrDefault(r => r.Name == w.Name);
@@ -1013,6 +1021,7 @@ namespace Metal_Code
 
             //подключаемся к основной базе металлов
             using MetalContext dbMetal = new(connections[7]);
+            dbMetal.Metals.Load();
 
             if (dbMetal.Database.CanConnect())   //проверяем, свободна ли база для подключения
             {
@@ -1021,7 +1030,7 @@ namespace Metal_Code
                     //подключаемся к локальной базе данных
                     using MetalContext dbLocalMetal = new(connections[6]);
 
-                    foreach (Metal met in dbMetal.Metals)
+                    foreach (Metal met in dbMetal.Metals.Local.ToObservableCollection())
                     {
                         // получаем работу из локальной базы, совпадающую с работой из основной базы по имени
                         Metal? metal = dbLocalMetal.Metals.FirstOrDefault(m => m.Name == met.Name);
@@ -1055,10 +1064,6 @@ namespace Metal_Code
                     StatusBegin(ex.Message);
                 }
             }
-            
-            //принудительно вызываем сборщик мусора для закрытия подключения к базам данных
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
         }
 
         void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
