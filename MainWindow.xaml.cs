@@ -19,6 +19,7 @@ using System.Text;
 using OfficeOpenXml.Drawing;
 using System.Diagnostics;
 using System.Windows.Media.Imaging;
+using Microsoft.Data.Sqlite;
 
 namespace Metal_Code
 {
@@ -31,7 +32,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.5.0";
+        readonly string version = "2.5.1";
 
         public readonly string[] connections =
         {
@@ -96,6 +97,10 @@ namespace Metal_Code
 
             if (!CheckMachineName()) ShowLoginWindow();
             else NewProject();
+
+            //принудительно вызываем сборщик мусора для закрытия подключения к базам данных
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
         }
 
         private bool CheckMachineName()
@@ -604,11 +609,11 @@ namespace Metal_Code
                 OffersGrid.Columns[4].Header = "Нал";
                 OffersGrid.Columns[5].Header = "Счёт";
                 OffersGrid.Columns[6].Header = "Создан";
-                (OffersGrid.Columns[6] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
+                ((DataGridTextColumn)OffersGrid.Columns[6]).Binding.StringFormat = "d.MM.y";
                 OffersGrid.Columns[7].Header = "Заказ";
                 OffersGrid.Columns[8].Header = "Автор";
                 OffersGrid.Columns[9].Header = "Дата отгрузки";
-                (OffersGrid.Columns[9] as DataGridTextColumn).Binding.StringFormat = "d.MM.y";
+                ((DataGridTextColumn)OffersGrid.Columns[9]).Binding.StringFormat = "d.MM.y";
 
                 OffersGrid.FrozenColumnCount = 2;
             }
@@ -664,6 +669,10 @@ namespace Metal_Code
                 }
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }
+
+            //принудительно вызываем сборщик мусора для закрытия подключения к базам данных
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
         }
 
         private void SearchOffers(object sender, RoutedEventArgs e)         //метод фильтра расчетов по номеру, компании или диапазону дат
@@ -681,7 +690,8 @@ namespace Metal_Code
                     List<Offer>? offers = _man?.Offers.ToList();        //сначала получаем все расчеты менеджера
 
                     //затем ищем все КП согласно введенному номеру расчета или названию компании
-                    if (Search.Text is not null && Search.Text != "") offers = offers?.Where(o => o.N.Contains(Search.Text) || o.Company.Contains(Search.Text)).ToList();
+                    if (Search.Text is not null && Search.Text != "") offers = offers?.Where(o => (o.N is not null && o.N.Contains(Search.Text))
+                                                                                    || (o.Company is not null && o.Company.Contains(Search.Text))).ToList();
                     //наконец, выполняем выборку расчетов по дате или диапазону
                     if (Start.SelectedDate != null) offers = offers?.Where(o => o.CreatedDate >= Start.SelectedDate).ToList();
                     if (End.SelectedDate != null) offers = offers?.Where(o => o.CreatedDate <= End.SelectedDate).ToList();
@@ -726,7 +736,7 @@ namespace Metal_Code
                         {
                             //проверяем наличие идентичного КП в основной базе, если такое уже есть, пропускаем копирование
                             Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Data == offer.Data);
-                            if (tempOffer != null) continue;
+                            if (tempOffer != null || offer.Manager is null) continue;
 
                             Manager? _man = db.Managers.Where(m => m.Id == offer.Manager.Id).FirstOrDefault();
 
@@ -783,6 +793,10 @@ namespace Metal_Code
                 }
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }
+
+            //принудительно вызываем сборщик мусора для закрытия подключения к базам данных
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
         }
 
         private void UpdateOffer(object sender, RoutedEventArgs e)          //метод сохранения изменений в расчете
@@ -1041,6 +1055,10 @@ namespace Metal_Code
                     StatusBegin(ex.Message);
                 }
             }
+            
+            //принудительно вызываем сборщик мусора для закрытия подключения к базам данных
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
         }
 
         void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
@@ -1102,7 +1120,7 @@ namespace Metal_Code
         //-------------Установка дат-----------//
         private void SetDate(object sender, SelectionChangedEventArgs e)
         {
-            DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
+            if (datePicker.SelectedDate is not null) DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
 
             static int GetBusinessDays(DateTime startD, DateTime endD)
             {
@@ -1117,7 +1135,7 @@ namespace Metal_Code
             }
         }
 
-        public string? DateFormat(DateTime? date)
+        public static string? DateFormat(DateTime? date)
         {
             return date?.ToString("d MMM");
         }
@@ -1259,10 +1277,12 @@ namespace Metal_Code
                                     //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
                                     if (CheckConstruct.IsChecked == true)
                                     {
-                                        p.Price += Construct / DetailControls.Count /
-                                        DetailControls.FirstOrDefault(d => d.Detail.IsComplect).TypeDetailControls.Count /
-                                        _cut.PartDetails.Sum(p => p.Count);
-                                        p.PropsDict[62] = new() { $"{p.Price}" };
+                                        DetailControl? dc = DetailControls.FirstOrDefault(d => d.Detail.IsComplect);
+                                        if (dc != null)
+                                        {
+                                            p.Price += Construct / DetailControls.Count / dc.TypeDetailControls.Count / _cut.PartDetails.Sum(p => p.Count);
+                                            p.PropsDict[62] = new() { $"{p.Price}" };
+                                        }
                                     }
                                     //"размазываем" доп работы
                                     foreach (WorkControl w in work.type.WorkControls)
@@ -2027,7 +2047,7 @@ namespace Metal_Code
                         for (int i = 0; i < Parts.Count; i++)
                         {
                             //если в столбце "цвет" не пусто, и данная окраска соответствует по RAL, считаем кол-во и площадь таких деталей
-                            if ($"{scoresheet.Cells[i + 2, 20].Value}" != "" && $"{key.Substring(14)}".Contains($"{scoresheet.Cells[i + 2, 20].Value}"))
+                            if ($"{scoresheet.Cells[i + 2, 20].Value}" != "" && $"{key[14..]}".Contains($"{scoresheet.Cells[i + 2, 20].Value}"))
                             {
                                 _count += (int)Parser($"{scoresheet.Cells[i + 2, 2].Value}");
                                 if (float.TryParse($"{scoresheet.Cells[i + 2, 19].Value}", out float s))
@@ -2036,7 +2056,7 @@ namespace Metal_Code
                         }
 
                         //statsheet.Cells[temp, 4].Value = _count;
-                        statsheet.Cells[temp, 17].Value += $"{key.Substring(14)} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
+                        statsheet.Cells[temp, 17].Value += $"{key[14..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
                     }
                     else statsheet.Cells[temp, 3].Value += $"{key} ";                                           //"Наименование изделия / вид работы"
                     
@@ -2045,7 +2065,7 @@ namespace Metal_Code
 
                     statsheet.Cells[temp, 4].Value = scoresheet.Cells[Parts.Count + 2, 21].Value;
                     statsheet.Cells[temp, 5].Value = "шт";                                                      //"ед изм."
-                    statsheet.Cells[temp, 6].Value = Boss.Text.Substring(4);                                    //"Подразделение"
+                    statsheet.Cells[temp, 6].Value = Boss.Text[4..];                                            //"Подразделение"
                     statsheet.Cells[temp, 7].Value = CustomerDrop.Text;                                         //"Компания"
                     statsheet.Cells[temp, 9].Value = ManagerDrop.Text;                                          //"Менеджер"
                     statsheet.Cells[temp, 10].Value = CurrentManager.Name;                                      //"Инженер"
@@ -2915,8 +2935,8 @@ namespace Metal_Code
 
             foreach (PropertyInfo prop in props)
             {
-                Type t = GetCoreType(prop.PropertyType);
-                tb.Columns.Add(prop.Name, t);
+                Type? t = GetCoreType(prop.PropertyType);
+                if (t is not null) tb.Columns.Add(prop.Name, t);
             }
 
 
@@ -2939,7 +2959,7 @@ namespace Metal_Code
             return !t.IsValueType || (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>));
         }
 
-        public static Type GetCoreType(Type t)
+        public static Type? GetCoreType(Type t)
         {
             if (t != null && IsNullable(t))
             {
