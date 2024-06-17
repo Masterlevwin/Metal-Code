@@ -223,20 +223,28 @@ namespace Metal_Code
 
             Result = (float)Math.Round(addMin ? (price + work.Price) * Ratio * TechRatio : price * Ratio * TechRatio, 2);
 
-            TimeSpan.Text = $"{Math.Ceiling(Result * work.Time / work.Price / Ratio)}";
+            //TimeSpan.Text = $"{Math.Ceiling(Result * work.Time / work.Price / Ratio)}";
 
             if (addMin)
             {
                 ResultText.Foreground = Brushes.Blue;       // если добавлена минималка, окрашиваем результат
-                ResultText.ToolTip = "Стоимость услуги\nДобавлена минималка";
+                ResultText.ToolTip = "Стоимость работы\nДобавлена минималка";
             }
             else
             {
                 ResultText.Foreground = Brushes.Black;
-                ResultText.ToolTip = "Стоимость услуги";
+                ResultText.ToolTip = "Стоимость работы";
             }
 
             type.det.PriceResult();
+        }
+
+        private void ViewPopupTimeSpan(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        {
+            if (WorkDrop.SelectedItem is not Work work) return;
+
+            PopupTimeSpan.IsOpen = true;
+            TimeSpan.Text = $"Время работ - {Math.Ceiling(Result * work.Time / work.Price / Ratio)} мин";
         }
     }
 

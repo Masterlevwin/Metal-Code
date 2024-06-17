@@ -3049,9 +3049,15 @@ namespace Metal_Code
 
         private void AnalyseDateProduction(string path = "Y:\\Производство\\Laser rezka\\В работу")
         {
+            if (!File.Exists(path + "\\!Реестр ЗАКРЫВАЙТЕ.xlsx"))
+            {
+                StatusBegin($"Реестра не существует в папке, или он переименован.");
+                return;
+            }
+
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
-            using var workbook = new ExcelPackage(path + "\\!Реестр.xlsx");
+            using var workbook = new ExcelPackage(path + "\\!Реестр ЗАКРЫВАЙТЕ.xlsx");
             ExcelWorksheet notesheet = workbook.Workbook.Worksheets[0];
 
             int endRow = notesheet.Cells.Where(c => c.Start.Column == 2 && !string.IsNullOrEmpty(c.Text)).Last().Start.Row;     //номер последней строки реестра

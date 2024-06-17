@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="30" d:DesignWidth="330" VerticalAlignment="Top">
+             d:DesignHeight="30" d:DesignWidth="300" VerticalAlignment="Top">
     <UserControl.ContextMenu>
         <ContextMenu>
             <MenuItem Header="Добавить" Click="AddWork"></MenuItem>
@@ -24,10 +24,14 @@
         <ComboBox x:Name="WorkDrop" DisplayMemberPath="Name" MinWidth="120" MinHeight="20" Height="20" Margin="20,0,0,0" VerticalContentAlignment="Center" SelectionChanged="CreateWork" ToolTip="Выберите работу" VerticalAlignment="Top" HorizontalAlignment="Left"/>
         <TextBox Text="{Binding Ratio, RelativeSource={RelativeSource AncestorType={x:Type local:WorkControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="25" MinHeight="20" MaxWidth="25" MaxHeight="20" MaxLines="1" ToolTip="Коммерческий" Margin="10,0,0,0" TextChanged="SetRatio" Grid.Column="2"/>
         <TextBox x:Name="TechRatioText" Text="{Binding TechRatio, RelativeSource={RelativeSource AncestorType={x:Type local:WorkControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="25" MinHeight="20" MaxWidth="25" MaxHeight="20" MaxLines="1" ToolTip="Производственный" Margin="40,0,0,0" TextChanged="SetRatio" Grid.Column="2"/>
-        <TextBlock x:Name="ResultText" Text="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:WorkControl}, Mode=FindAncestor}}" MinHeight="20" MaxHeight="20" HorizontalAlignment="Left" Margin="75,0,0,0" Grid.Column="2" MaxWidth="70" VerticalAlignment="Top" TextTrimming="CharacterEllipsis"/>
+        <TextBlock x:Name="ResultText" Text="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:WorkControl}, Mode=FindAncestor}}" MouseWheel="ViewPopupTimeSpan" MinHeight="20" MaxHeight="20" HorizontalAlignment="Left" Margin="75,0,0,0" Grid.Column="2" MaxWidth="70" VerticalAlignment="Top" TextTrimming="CharacterEllipsis"/>
+        <Popup x:Name="PopupTimeSpan" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5" Placement="Mouse">
+            <StackPanel Background="Snow">
+                <TextBlock x:Name="TimeSpan" Padding="3" TextAlignment="Center"/>
+            </StackPanel>
+        </Popup>
         <Button Click="AddWork" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" MinWidth="10" ToolTip="Добавить работу" Margin="5,10,0,0" FontSize="8" MinHeight="10" BorderThickness="1" Content="+"/>
-        <TextBox x:Name="TimeSpan" ToolTip="Продолжительность, мин" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="140,0,0,0" MinHeight="20" MinWidth="35" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="35" MaxHeight="20"/>
-        <Button Click="Remove" ToolTip="Удалить работу" Content="Х" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" Padding="0,0,0,0" MaxWidth="10" MaxHeight="10" FontSize="8" BorderThickness="0,0,0,0" Height="10" Width="10" Panel.ZIndex="-1" Margin="180,0,0,0"/>
+        <Button Click="Remove" ToolTip="Удалить работу" Content="Х" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" Padding="0,0,0,0" MaxWidth="10" MaxHeight="10" FontSize="8" BorderThickness="0,0,0,0" Height="10" Width="10" Panel.ZIndex="-1" Margin="150,0,0,0"/>
 
     </Grid>
 </UserControl>
