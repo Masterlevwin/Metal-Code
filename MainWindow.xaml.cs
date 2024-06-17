@@ -2985,6 +2985,10 @@ namespace Metal_Code
 
         public static float Parser(string data)                         //обёртка для парсинга float-значений
         {
+            //если число одновременно содержит и запятую, и точку - удаляем запятую
+            if (data.Contains(',') && data.Contains('.')) data = data.Replace(",", "");
+
+            //если есть запятая в строке, заменяем ее на точку, и парсим строку в число
             if (float.TryParse(data.Replace(',', '.'), System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands,
                 System.Globalization.CultureInfo.InvariantCulture, out float f)) return f;
             else return 0;
