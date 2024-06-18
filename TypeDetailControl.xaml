@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="40" d:DesignWidth="750" VerticalAlignment="Top">
+             d:DesignHeight="70" d:DesignWidth="750" VerticalAlignment="Top">
     <UserControl.ContextMenu>
         <ContextMenu>
             <MenuItem Header="Добавить" Click="AddTypeDetail"></MenuItem>

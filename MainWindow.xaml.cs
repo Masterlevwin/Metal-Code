@@ -726,7 +726,7 @@ namespace Metal_Code
                     if (TempOffersDict.TryGetValue(2, out List<Offer>? changeList) && changeList.Count > 0)
                         foreach (Offer offer in changeList)
                         {
-                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);
+                            Offer? tempOffer = db.Offers.Find(offer.Id);
                             if (tempOffer != null)
                             {
                                 tempOffer.Agent = offer.Agent;
@@ -744,7 +744,7 @@ namespace Metal_Code
                     if (TempOffersDict.TryGetValue(1, out List<Offer>? removeList) && removeList.Count > 0)
                         foreach (Offer offer in removeList)
                         {
-                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);
+                            Offer? tempOffer = db.Offers.Find(offer.Id);
                             if (tempOffer != null) db.Offers.Remove(tempOffer);
                         }
 
@@ -753,7 +753,7 @@ namespace Metal_Code
                         foreach (Offer offer in addList)
                         {
                             //проверяем наличие идентичного КП в основной базе, если такое уже есть, пропускаем копирование
-                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);
+                            Offer? tempOffer = db.Offers.Find(offer.Id);
                             if (tempOffer != null || offer.Manager is null) continue;
 
                             Manager? _man = db.Managers.Where(m => m.Id == offer.Manager.Id).FirstOrDefault();

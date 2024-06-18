@@ -306,7 +306,7 @@ namespace Metal_Code
                     {
                         _pipe.Parts = _pipe.PartList(tables);
                         _pipe.SetImagesForParts(stream);
-                        _pipe.PartsControl = new(this, _pipe.Parts);
+                        _pipe.PartsControl = new(_pipe, _pipe.Parts);
                         _pipe.AddPartsTab();
                         _pipe.SetTotalProperties();
                     }
@@ -848,14 +848,45 @@ namespace Metal_Code
             return _parts;
         }
 
-        public void SetTotalProperties()
+        public void SetTotalProperties(bool isMassTube = false)
         {
             Mass = WayTotal = 0;
 
             if (PartDetails?.Count > 0) foreach (Part part in PartDetails)
                 {
-                    Mass += part.Mass * part.Count;
+                    if (isMassTube) Mass += part.Mass * part.Count;
                     WayTotal += part.Way * part.Count;
+                }
+
+            if (!isMassTube && work.type.MetalDrop.SelectedItem is Metal metal && work.type.S > 0)
+                switch (Tube)
+                {
+                    case TubeType.rect:
+                        Mass = (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * work.type.L * work.type.Count * metal.Density / 7850, 3);
+                        break;
+                    case TubeType.round:
+                        Mass = (float)Math.Round(Math.PI * work.type.S * (work.type.A - work.type.S) * work.type.L * work.type.Count * metal.Density / 1000000, 3);
+                        break;
+                    case TubeType.square:
+                        Mass = (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * work.type.L * work.type.Count * metal.Density / 7850, 3);
+                        break;
+                    case TubeType.channel:
+                        Mass = (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * work.type.L * work.type.Count / 1000, 3);
+                        break;
+                    case TubeType.corner:
+                        Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.A - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
+                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
+                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * work.type.L * work.type.Count * metal.Density / 1000000, 3);
+                        break;
+                    case TubeType.freeform:
+                        Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.B - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
+                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
+                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * work.type.L * work.type.Count * metal.Density / 1000000, 3);
+                        break;
+                    case TubeType.hbeam:
+                        Mass = (float)Math.Round(work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item1 * work.type.L * work.type.Count / 1000, 3);
+                        break;
+
                 }
 
             work.type.MassCalculate();          // обновляем значение массы заготовки

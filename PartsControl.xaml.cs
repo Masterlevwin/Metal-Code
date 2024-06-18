@@ -230,7 +230,18 @@ namespace Metal_Code
                 else
                 {
                     partsList.Visibility = Visibility.Visible;
-                    imagesList.Visibility= Visibility.Collapsed;
+                    imagesList.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
+
+        private void SetMassPipe(object sender, RoutedEventArgs e)
+        {
+            if (sender is CheckBox cBox && cBox.IsChecked is not null)
+            {
+                if (owner is PipeControl pipe)
+                {
+                    pipe.SetTotalProperties((bool)cBox.IsChecked);
                 }
             }
         }
