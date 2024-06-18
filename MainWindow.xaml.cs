@@ -74,7 +74,7 @@ namespace Metal_Code
             M = this;
 
             //if (!CheckVersion(out string _version)) Restart();
-            UpdateDatabases();
+            //UpdateDatabases();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -716,18 +716,44 @@ namespace Metal_Code
                 return;
             }
 
-            //подключаемся к основной базе данных
-            using ManagerContext db = new(connections[1]);
+            using ManagerContext db = new(connections[1]);      //подключаемся к основной базе данных
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
             if (isAvalaible)
             {
                 try
-                {      //перебираем список расчетов на добавление
+                {
+                    //перебираем список расчетов на синхронизацию изменений
+                    if (TempOffersDict.TryGetValue(2, out List<Offer>? changeList) && changeList.Count > 0)
+                        foreach (Offer offer in changeList)
+                        {
+                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);
+                            if (tempOffer != null)
+                            {
+                                tempOffer.Agent = offer.Agent;
+                                db.Entry(tempOffer).Property(o => o.Agent).IsModified = true;
+                                tempOffer.Invoice = offer.Invoice;
+                                db.Entry(tempOffer).Property(o => o.Invoice).IsModified = true;
+                                tempOffer.CreatedDate = offer.CreatedDate;
+                                db.Entry(tempOffer).Property(o => o.CreatedDate).IsModified = true;
+                                tempOffer.Order = offer.Order;
+                                db.Entry(tempOffer).Property(o => o.Order).IsModified = true;
+                            }
+                        }
+
+                    //перебираем список расчетов на удаление
+                    if (TempOffersDict.TryGetValue(1, out List<Offer>? removeList) && removeList.Count > 0)
+                        foreach (Offer offer in removeList)
+                        {
+                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);
+                            if (tempOffer != null) db.Offers.Remove(tempOffer);
+                        }
+
+                    //перебираем список расчетов на добавление
                     if (TempOffersDict.TryGetValue(0, out List<Offer>? addList) && addList.Count > 0)
                         foreach (Offer offer in addList)
                         {
                             //проверяем наличие идентичного КП в основной базе, если такое уже есть, пропускаем копирование
-                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);
                             if (tempOffer != null || offer.Manager is null) continue;
 
                             Manager? _man = db.Managers.Where(m => m.Id == offer.Manager.Id).FirstOrDefault();
@@ -747,32 +773,6 @@ namespace Metal_Code
                             };
 
                             _man?.Offers.Add(_offer);       //переносим расчет в базу этого менеджера
-                        }
-
-                        //перебираем список расчетов на удаление
-                    if (TempOffersDict.TryGetValue(1, out List<Offer>? removeList) && removeList.Count > 0)
-                        foreach (Offer offer in removeList)
-                        {
-                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Data == offer.Data);
-                            if (tempOffer != null) db.Offers.Remove(tempOffer);
-                        }
-
-                        //перебираем список расчетов на синхронизацию изменений
-                    if (TempOffersDict.TryGetValue(2, out List<Offer>? changeList) && changeList.Count > 0)
-                        foreach (Offer offer in changeList)
-                        {
-                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Data == offer.Data);
-                            if (tempOffer != null)
-                            {
-                                tempOffer.Agent = offer.Agent;
-                                db.Entry(tempOffer).Property(o => o.Agent).IsModified = true;
-                                tempOffer.Invoice = offer.Invoice;
-                                db.Entry(tempOffer).Property(o => o.Invoice).IsModified = true;
-                                tempOffer.CreatedDate = offer.CreatedDate;
-                                db.Entry(tempOffer).Property(o => o.CreatedDate).IsModified = true;
-                                tempOffer.Order = offer.Order;
-                                db.Entry(tempOffer).Property(o => o.Order).IsModified = true;
-                            }
                         }
 
                     db.SaveChanges();                       //сохраняем изменения в основной базе данных
@@ -830,7 +830,7 @@ namespace Metal_Code
             {
                 try
                 {
-                    //ищем менеджера в основной базе по имени соответствующего выбранному, при этом загружаем его расчеты
+                    //ищем менеджера в базе по имени соответствующего выбранному, при этом загружаем его расчеты
                     Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
 
                     if (isSave)     //если метод запущен с параметром true, то есть в режиме сохранения
