@@ -27,6 +27,8 @@
             <Button x:Name="DrillingBtn" Content="С+" ToolTip="Добавить сверловку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,175,0,0" MinWidth="25" MinHeight="20" MaxWidth="25" MaxHeight="20"/>
             <Button x:Name="RollingBtn" Content="В+" ToolTip="Добавить вальцовку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,200,0,0" MaxWidth="25" MinWidth="25" MinHeight="20" MaxHeight="20"/>
 
+            <TextBlock HorizontalAlignment="Left" Margin="5,5,0,0" TextWrapping="Wrap" Text="Сорт" VerticalAlignment="Top"/>
+            <CheckBox ToolTip="Модели ВСЕХ деталей отрисованы" Content="М" Click="SetAllMakeModel" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,25,0,0" FontWeight="SemiBold" Foreground="#FF6400FF"/>
             <TextBlock Text="Общее для всех деталей:" Margin="0,25,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"/>
             <TextBlock Text="Гиб" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Гибка для всех" HorizontalAlignment="Left" Margin="40,50,0,0"/>
             <TextBox x:Name="Bend" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="35" MinHeight="20" MaxWidth="35" MaxHeight="20" TextChanged="SetProperty" ToolTip="Введите количество однотипных гибов" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="80,50,0,0"/>
@@ -54,6 +56,7 @@
             <TextBox x:Name="Holes3" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="160,175,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите количество отверстий"/>
             <TextBlock Text="Вальц" HorizontalAlignment="Left" Margin="40,200,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Вальцовка для всех"/>
             <ComboBox x:Name="RollDrop" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" SelectedIndex="0" ToolTip="Выберите сторону вальцовки" SelectionChanged="SetType" Margin="120,200,0,0"/>
+            
             <Button Content="И&gt;" ToolTip="По наименованию" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,25,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
             <Button Content="Г&gt;" ToolTip="По гибке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,50,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
             <Button Content="Св&gt;" ToolTip="По сварке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,75,0,0" MinWidth="28" MaxWidth="28" MinHeight="20" MaxHeight="20"/>
@@ -62,11 +65,8 @@
             <Button Content="З&gt;" ToolTip="По зенковке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,150,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
             <Button Content="С&gt;" ToolTip="По сверловке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,175,0,0" MinHeight="20" MaxHeight="20" MinWidth="25" MaxWidth="25"/>
             <Button  Content="В&gt;" ToolTip="По вальцовке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,200,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
-            <TextBlock HorizontalAlignment="Left" Margin="5,5,0,0" TextWrapping="Wrap" Text="Сорт" VerticalAlignment="Top"/>
-            <CheckBox ToolTip="Модели ВСЕХ деталей отрисованы" Content="М" Click="SetAllMakeModel" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,25,0,0" FontWeight="SemiBold" Foreground="#FF6400FF"/>
-            <CheckBox Content="Считать массу деталей" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,10,40" Click="SetMassPipe"/>
-
-            <CheckBox Content="Показать раскладки" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,10,10" Click="ShowNesting"/>
+            
+            <CheckBox Content="Показать раскладки" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,230,10,10" Click="ShowNesting"/>
             <ListBox x:Name="imagesList" Padding="5,0,0,0" Grid.Column="1" VerticalAlignment="Top" VerticalContentAlignment="Top" Visibility="Collapsed">
                 <ListBox.ItemsPanel>
                     <ItemsPanelTemplate>

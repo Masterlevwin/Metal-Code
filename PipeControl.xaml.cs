@@ -74,11 +74,25 @@ namespace Metal_Code
             set => mass = value;
         }
 
+        private float massTotal;
+        public float MassTotal
+        {
+            get => massTotal;
+            set => massTotal = value;
+        }
+
         private float wayTotal;
         public float WayTotal
         {
             get => wayTotal;
             set => wayTotal = value;
+        }
+
+        private bool isMassPipe;
+        public bool IsMassPipe
+        {
+            get => isMassPipe;
+            set => isMassPipe = value;
         }
 
         public enum TubeType
@@ -182,6 +196,8 @@ namespace Metal_Code
                 w.propsList.Add($"{Mold}");
                 w.propsList.Add($"{Way}");
                 w.propsList.Add($"{Pinhole}");
+                w.propsList.Add($"{Tube}");
+                w.propsList.Add($"{IsMassPipe}");
 
                 if (PartDetails?.Count > 0)
                 {
@@ -189,10 +205,10 @@ namespace Metal_Code
 
                     foreach (Part p in PartDetails)
                     {
-                        p.Price += work.type.Result * p.Mass / Mass;
+                        p.Price += work.type.Result * p.Mass / MassTotal;
                         p.Price += work.Result * p.Way / WayTotal;
 
-                        p.PropsDict[50] = new() { $"{work.type.Result * p.Mass / Mass}" };
+                        p.PropsDict[50] = new() { $"{work.type.Result * p.Mass / MassTotal}" };
                         p.PropsDict[61] = new() { $"{work.Result * p.Way / WayTotal}" };
                     }
                 }
@@ -202,6 +218,8 @@ namespace Metal_Code
                 SetMold(w.propsList[0]);
                 SetWay(w.propsList[1]);
                 SetPinhole(w.propsList[2]);
+                if (w.propsList.Count > 3 && Enum.TryParse(w.propsList[3], out TubeType tube)) Tube = tube;
+                if (w.propsList.Count > 4 && bool.TryParse(w.propsList[4], out bool isMassPipe)) SetMassPipe(isMassPipe);
             }
         }
 
@@ -281,7 +299,7 @@ namespace Metal_Code
                     SetImagesForParts(stream);          // устанавливаем поле Part.ImageBytes для каждой детали
                     PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
                     AddPartsTab();                      // добавляем вкладку в "Список нарезанных деталей"
-                    SetTotalProperties();               //определяем общую массу и общую длину нарезанных труб
+                    SetTotalProperties();               // определяем общую массу и общую длину нарезанных труб
                 }
                 else
                 {   // добавляем типовую деталь
@@ -848,17 +866,22 @@ namespace Metal_Code
             return _parts;
         }
 
-        public void SetTotalProperties(bool isMassTube = false)
+        private void SetMassPipe(object sender, RoutedEventArgs e)
         {
-            Mass = WayTotal = 0;
+            if (sender is CheckBox box && box.IsChecked is not null) SetMassPipe((bool)box.IsChecked);
+        }
+        public void SetMassPipe(bool isMassPipe = false)
+        {
+            IsMassPipe = isMassPipe;
+            SetTotalProperties();
+        }
 
-            if (PartDetails?.Count > 0) foreach (Part part in PartDetails)
-                {
-                    if (isMassTube) Mass += part.Mass * part.Count;
-                    WayTotal += part.Way * part.Count;
-                }
+        public void SetTotalProperties()
+        {
+            Mass = MassTotal = WayTotal = 0;
 
-            if (!isMassTube && work.type.MetalDrop.SelectedItem is Metal metal && work.type.S > 0)
+            //если не требуется посчитать массу нарезанных труб, считаем массу полных заготовок
+            if (!IsMassPipe && work.type.MetalDrop.SelectedItem is Metal metal && work.type.S > 0)
                 switch (Tube)
                 {
                     case TubeType.rect:
@@ -889,6 +912,20 @@ namespace Metal_Code
 
                 }
 
+            if (PartDetails?.Count > 0) foreach (Part part in PartDetails)
+                {
+                    if (IsMassPipe) Mass += part.Mass * part.Count;     //если требуется рассчитать материал ТОЛЬКО нарезанных труб
+                    MassTotal += part.Mass * part.Count;                //масса всех нарезанных труб
+                    WayTotal += part.Way * part.Count;                  //путь резки всех нарезанных труб
+                }
+
+            //если требуется рассчитать материал ТОЛЬКО нарезанных труб
+            if (IsMassPipe && PartDetails?.Count > 0)
+            {
+                float _ratio = Mass / MassTotal;                        //получаем коэффициент разницы между текущим значением массы и массой нарезанных труб
+                foreach (Part part in PartDetails) part.Mass *= _ratio; //выравниваем массу каждого кусочка согласно коэффициенту
+            }
+
             work.type.MassCalculate();          // обновляем значение массы заготовки
         }
 
@@ -907,5 +944,6 @@ namespace Metal_Code
                     PartDetails[i].ImageBytes = pictures[0].Image.ImageBytes;   //для каждой детали записываем массив байтов соответствующей картинки
                                                                                 //в случае с трубами на данный момент картинка одна и та же!
         }
+
     }
 }
