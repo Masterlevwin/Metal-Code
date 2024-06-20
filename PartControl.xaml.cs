@@ -145,7 +145,7 @@ namespace Metal_Code
                     AddControl(new ThreadControl(this, 'С'));
                     break;
                 case 6:
-                    if (UserControls.Count > 0 && UserControls.Contains(UserControls.FirstOrDefault(r => r is RollingControl)))
+                    if (UserControls.Count > 0 && UserControls.Any(r => r is RollingControl))
                     {
                         MainWindow.M.StatusBegin("Нельзя добавить больше одной вальцовки на деталь");
                         return;
