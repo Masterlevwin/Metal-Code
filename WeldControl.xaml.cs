@@ -324,10 +324,10 @@ namespace Metal_Code
                     SetWeld(w.propsList[0]);
                     SetType((int)MainWindow.Parser(w.propsList[1]));
                 }
-                else if (uc is PartControl p)
+                else if (uc is PartControl p && owner is PartControl _owner)
                 {
-                    SetWeld(p.Part.PropsDict[p.UserControls.IndexOf(this)][1]);
-                    SetType((int)MainWindow.Parser(p.Part.PropsDict[p.UserControls.IndexOf(this)][2]));
+                    SetWeld(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
+                    SetType((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));
                 }
             }
         }

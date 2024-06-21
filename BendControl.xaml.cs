@@ -325,10 +325,10 @@ namespace Metal_Code
                     SetBend(w.propsList[0]);
                     SetShelf((int)MainWindow.Parser(w.propsList[1]));
                 }
-                else if (uc is PartControl p)
+                else if (uc is PartControl p && owner is PartControl _owner)
                 {
-                    SetBend(p.Part.PropsDict[p.UserControls.IndexOf(this)][1]);
-                    SetShelf((int)MainWindow.Parser(p.Part.PropsDict[p.UserControls.IndexOf(this)][2]));
+                    SetBend(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
+                    SetShelf((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));
                 }
             }
         }

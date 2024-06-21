@@ -241,10 +241,10 @@ namespace Metal_Code
                     SetWide(w.propsList[0]);
                     SetHoles(w.propsList[1]);
                 }
-                else if (uc is PartControl p)
+                else if (uc is PartControl p && owner is PartControl _owner)
                 {
-                    SetWide(p.Part.PropsDict[p.UserControls.IndexOf(this)][1]);
-                    SetHoles(p.Part.PropsDict[p.UserControls.IndexOf(this)][2]);
+                    SetWide(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
+                    SetHoles(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]);
                 }
             }
         }

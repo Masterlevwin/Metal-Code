@@ -196,9 +196,9 @@ namespace Metal_Code
                 {
                     SetType((int)MainWindow.Parser(w.propsList[0]));
                 }
-                else if (uc is PartControl p)
+                else if (uc is PartControl p && owner is PartControl _owner)
                 {
-                    SetType((int)MainWindow.Parser(p.Part.PropsDict[p.UserControls.IndexOf(this)][1]));
+                    SetType((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]));
                 }
             }
         }

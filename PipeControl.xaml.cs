@@ -13,6 +13,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
+using System.Drawing;
 
 
 namespace Metal_Code
@@ -332,11 +333,13 @@ namespace Metal_Code
             }
         }
 
-        public void AddPartsTab()                                           //метод добавления вкладки для PartsControl
+        public void AddPartsTab(bool isClon = false)                        //метод добавления вкладки для PartsControl
         {
             TabItem.Header = new TextBlock { Text = $"(ТР) s{work.type.S} {work.type.MetalDrop.Text} ({PartDetails?.Sum(x => x.Count)} шт)" };    // установка заголовка вкладки
-            TabItem.Content = PartsControl;                                                                 // установка содержимого вкладки
-            MainWindow.M.PartsTab.Items.Add(TabItem);
+            TabItem.Content = PartsControl;                                 // установка содержимого вкладки
+
+            if (isClon) ProductWindow.P.PartsTab.Items.Add(TabItem);
+            else MainWindow.M.PartsTab.Items.Add(TabItem);
         }
 
         private void RemovePartsTab(object sender, RoutedEventArgs e)       //метод удаления вкладки нарезанных деталей этой резки,

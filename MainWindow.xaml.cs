@@ -3090,9 +3090,13 @@ namespace Metal_Code
             if (OffersGrid.SelectedItem is not Offer offer) return;
             if (offer.Data != null)
             {
-                MainWindow clon = new();
-                clon.ProductModel.Product = OpenOfferData(offer.Data);
-                if (clon.ProductModel.Product is not null)
+                ProductWindow clon = new()
+                {
+                    Product = OpenOfferData(offer.Data),
+                    Title = $"{offer.N}  {offer.Company}"
+                };
+
+                if (clon.Product is not null)
                 {
                     clon.Show();
                     clon.LoadProduct();
