@@ -637,9 +637,8 @@ namespace Metal_Code
                     if (_man?.Offers.Count > 0)
                         foreach (Offer offer in _man.Offers)
                         {
-                            //проверяем наличие идентичного КП в основной базе, если такое уже есть,
-                            //изменяем номера счета, заказа и акта, но пропускаем копирование
-                            Offer? tempOffer = _manLocal?.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                            //проверяем наличие идентичного КП в локальной базе, и если такое уже есть, пропускаем копирование
+                            Offer? tempOffer = _manLocal?.Offers.Where(o => o.Data == offer.Data).FirstOrDefault();
                             if (tempOffer != null) continue;
 
                             //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
@@ -718,15 +717,20 @@ namespace Metal_Code
 
             using ManagerContext db = new(connections[1]);      //подключаемся к основной базе данных
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
-            if (isAvalaible)
+            if (isAvalaible && ManagerDrop.SelectedItem is Manager man)
             {
                 try
                 {
+                    //ищем менеджера по имени соответствующего выбранному, при этом загружаем его расчеты
+                    Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
+
+                    List<Offer>? offers = _man?.Offers.ToList();        //сначала получаем все расчеты менеджера
+
                     //перебираем список расчетов на синхронизацию изменений
                     if (TempOffersDict.TryGetValue(2, out List<Offer>? changeList) && changeList.Count > 0)
                         foreach (Offer offer in changeList)
                         {
-                            Offer? tempOffer = db.Offers.Find(offer.Id);
+                            Offer? tempOffer = offers?.FirstOrDefault(o => o.Id == offer.Id);
                             if (tempOffer != null)
                             {
                                 tempOffer.Agent = offer.Agent;
@@ -744,7 +748,7 @@ namespace Metal_Code
                     if (TempOffersDict.TryGetValue(1, out List<Offer>? removeList) && removeList.Count > 0)
                         foreach (Offer offer in removeList)
                         {
-                            Offer? tempOffer = db.Offers.Find(offer.Id);
+                            Offer? tempOffer = offers?.FirstOrDefault(o => o.Id == offer.Id);
                             if (tempOffer != null) db.Offers.Remove(tempOffer);
                         }
 
@@ -753,10 +757,8 @@ namespace Metal_Code
                         foreach (Offer offer in addList)
                         {
                             //проверяем наличие идентичного КП в основной базе, если такое уже есть, пропускаем копирование
-                            Offer? tempOffer = db.Offers.Find(offer.Id);
+                            Offer? tempOffer = offers?.FirstOrDefault(o => o.Id == offer.Id);
                             if (tempOffer != null || offer.Manager is null) continue;
-
-                            Manager? _man = db.Managers.Where(m => m.Id == offer.Manager.Id).FirstOrDefault();
 
                             //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
                             Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
