@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" Height="900" Width="900" WindowStartupLocation="CenterScreen">
+        mc:Ignorable="d" Height="900" Width="900" WindowStartupLocation="CenterScreen" FontFamily="Century">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition/>
@@ -11,6 +11,7 @@
         </Grid.RowDefinitions>
         <TextBox x:Name="ProductName" Text="Изделие" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" Margin="35,40,0,0" VerticalContentAlignment="Center" HorizontalAlignment="Left" FontSize="14" IsReadOnly="True"/>
         <TextBlock Text="Детали" HorizontalAlignment="Left" Margin="55,75,0,0" VerticalAlignment="Top" FontFamily="Century" Panel.ZIndex="1"/>
+        <TextBlock x:Name="Amount" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="500,40,0,0" FontSize="14"/>
 
         <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" Margin="20,20,10,10">
             <ScrollViewer VerticalAlignment="Top" Margin="0,60,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">

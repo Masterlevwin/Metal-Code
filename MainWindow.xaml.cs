@@ -19,7 +19,6 @@ using System.Text;
 using OfficeOpenXml.Drawing;
 using System.Diagnostics;
 using System.Windows.Media.Imaging;
-using Microsoft.Data.Sqlite;
 
 namespace Metal_Code
 {
@@ -809,7 +808,21 @@ namespace Metal_Code
                         db.Entry(_offer).Property(o => o.Order).IsModified = true;
 
                         //добавляем расчет во временный список для синхронизации с основной базой
-                        if (IsLocal && ManagerDrop.SelectedItem is Manager man && CurrentManager == man) TempOffersDict[2].Add(_offer);
+                        if (IsLocal && ManagerDrop.SelectedItem is Manager man && CurrentManager == man)
+                        {
+                            if (TempOffersDict.TryGetValue(0, out List<Offer>? addList))
+                            {
+                                Offer? off = addList.FirstOrDefault(o => o.Data == offer.Data);
+                                if (off != null)
+                                {
+                                    off.Agent = offer.Agent;
+                                    off.Invoice = offer.Invoice;
+                                    off.CreatedDate = offer.CreatedDate;
+                                    off.Order = offer.Order;
+                                }
+                            }
+                            TempOffersDict[2].Add(_offer);
+                        }
 
                         db.SaveChanges();                                               //сохраняем изменения в базе данных
                         StatusBegin("Изменения в базе сохранены");
@@ -864,7 +877,15 @@ namespace Metal_Code
                             if (_offer != null)
                             {
                                 //добавляем расчет во временный список для удаления из основной базы, если текущий менеджер - владелец расчета
-                                if (IsLocal && CurrentManager == man) TempOffersDict[1].Add(_offer);
+                                if (IsLocal && CurrentManager == man)
+                                {
+                                    if (TempOffersDict.TryGetValue(0, out List<Offer>? addList))
+                                    {
+                                        Offer? off = addList.FirstOrDefault(o => o.Data == offer.Data);
+                                        if (off != null) addList.Remove(off);
+                                    }
+                                    TempOffersDict[1].Add(_offer);
+                                }
 
                                 _man?.Offers.Remove(_offer);                    //если находим, то удаляем его из базы
                                 StatusBegin($"Расчет {_offer.N} удален. В базе {_man?.Name} {_man?.Offers.Count} расчетов.");
@@ -3093,11 +3114,12 @@ namespace Metal_Code
                 ProductWindow clon = new()
                 {
                     Product = OpenOfferData(offer.Data),
-                    Title = $"{offer.N}  {offer.Company}"
+                    Title = $"{offer.N}  {offer.Company}",
                 };
 
                 if (clon.Product is not null)
                 {
+                    clon.Amount.Text = $"{offer.Amount} руб.";
                     clon.Show();
                     clon.LoadProduct();
                 }
