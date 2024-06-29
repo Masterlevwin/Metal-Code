@@ -853,10 +853,12 @@ namespace Metal_Code
                         {
                             Agent = IsAgent,
                             EndDate = EndDate(),
-                            Autor = CurrentManager.Name,
                             Manager = _man,
                             Data = SaveOfferData()      //сериализуем расчет в виде строки json
                         };
+
+                        if (ActiveOffer?.Autor == CurrentManager.Name || ActiveOffer is null) _offer.Autor = CurrentManager.Name;
+                        else _offer.Autor = $"{ActiveOffer?.Autor}\n{CurrentManager.Name} ({_offer.CreatedDate})";
 
                         if (IsLocal) TempOffersDict[0].Add(_offer);     //добавляем расчет во временный список для отправки в основную базу
 
@@ -1114,11 +1116,12 @@ namespace Metal_Code
         {
             SetRatio(1);
             SetCount(1);
+            Construct = 0;
             HasDelivery = false;
             CheckPaint.IsChecked = false;
             CheckConstruct.IsChecked = false;
             HasAssembly = false;
-            Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = "";
+            Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = ConstructRatio.Text = "";
             ProductName.Text = $"Изделие";
             ActiveOffer = null;
         }
