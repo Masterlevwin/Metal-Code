@@ -1893,6 +1893,8 @@ namespace Metal_Code
             float _lkk, _lpk, _bkk, _bpk;          //счетчики коэффициентов лазера и гибки
             _lkk = _lpk = _bkk = _bpk = 1;
 
+            float _lc, _bc;                        //счетчики количества работ лазера и гибки
+            _lc = _bc = 0;
 
             // ----- параллельно с реестром заполняем давальческую накладную (Лист4 - "Накладная") -----
             using var templatebook = new ExcelPackage(new FileInfo("template.xlsx"));
@@ -1945,8 +1947,9 @@ namespace Metal_Code
 
                             statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f) / w.Ratio;     //"Лазер (время работ)"
 
-                            if (w.Ratio != 1) _lkk *= w.Ratio;
-                            if (w.TechRatio > 1) _lpk *= w.TechRatio;
+                            if (w.Ratio != 1) _lkk += w.Ratio;
+                            if (w.TechRatio > 1) _lpk += w.TechRatio;
+                            _lc++;
 
                             statsheet.Cells[i + temp, 4].Value = description;
 
@@ -1976,8 +1979,9 @@ namespace Metal_Code
                             statsheet.Cells[i + temp, 6].Value = "гибка";
                             statsheet.Cells[i + temp, 13].Value = Math.Ceiling(w.Result * 0.018f) / w.Ratio;     //"Гибка (время работ)"
 
-                            if (w.Ratio != 1) _bkk *= w.Ratio;
-                            if (w.TechRatio > 1) _bpk *= w.TechRatio;
+                            if (w.Ratio != 1) _bkk += w.Ratio;
+                            if (w.TechRatio > 1) _bpk += w.TechRatio;
+                            _bc++;
                         }
                         else if (w.workType is PipeControl pipe)
                         {
@@ -2032,10 +2036,10 @@ namespace Metal_Code
             statsheet.Cells[beginL, 11, temp - 1, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;    //"Дата сдачи"
             statsheet.Cells[beginL, 15, temp - 1, 19].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;     //"Номер КП"
 
-            if (_lkk != 1) statsheet.Cells[temp, 12].Value = $"КК-{_lkk}";
-            if (_lpk > 1) statsheet.Cells[temp + 1, 12].Value = $"ПК-{_lpk}";
-            if (_bkk != 1) statsheet.Cells[temp, 13].Value = $"КК-{_bkk}";
-            if (_bpk > 1) statsheet.Cells[temp + 1, 13].Value = $"ПК-{_bpk}";
+            if (_lkk != 1) statsheet.Cells[temp, 12].Value = $"КК-{_lkk / _lc}";
+            if (_lpk > 1) statsheet.Cells[temp + 1, 12].Value = $"ПК-{_lpk / _lc}";
+            if (_bkk != 1) statsheet.Cells[temp, 13].Value = $"КК-{_bkk / _bc}";
+            if (_bpk > 1) statsheet.Cells[temp + 1, 13].Value = $"ПК-{_bpk / _bc}";
             if (Ratio != 1) statsheet.Cells[temp, 15].Value = $"ОК-{Ratio}";
 
 
