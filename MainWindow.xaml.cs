@@ -865,11 +865,6 @@ namespace Metal_Code
                         _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
                         ActiveOffer = _offer;
                         StatusBegin($"Расчет {_offer.N} сохранен. В базе {_man?.Name} {_man?.Offers.Count} расчетов.");
-
-                        Customer? _customer = db.Customers.FirstOrDefault(x => x.Name == CustomerDrop.Text);
-                        if (_customer is null)
-                            MessageBox.Show($"Заказчик {CustomerDrop.Text} не сохранен в базе. Добавьте его данные в базу, чтобы использовать их повторно.");
-
                     }
                     else            //если метод запущен с параметром false, то есть в режиме удаления
                     {
@@ -899,8 +894,15 @@ namespace Metal_Code
                         }
                     }
 
-                    db.SaveChanges();                   //сохраняем изменения в базе данных
-                    if (isSave) ViewOffersGrid(man);    //и обновляем datagrid, если появился новый расчет
+                    db.SaveChanges();           //сохраняем изменения в базе данных
+                    if (isSave)
+                    {
+                        ViewOffersGrid(man);    //и обновляем datagrid, если появился новый расчет
+
+                        Customer? _customer = db.Customers.FirstOrDefault(x => x.Name == CustomerDrop.Text);
+                        if (_customer is null)
+                            MessageBox.Show($"Заказчик {CustomerDrop.Text} не сохранен в базе. Добавьте его данные в базу, чтобы использовать их повторно.");
+                    }
                 }
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }
@@ -1566,7 +1568,7 @@ namespace Metal_Code
             else
             {
                 worksheet.Cells[row + 4, 2].Value = "Самовывоз со склада Исполнителя по адресу: Ленинградская область, Всеволожский район, " +
-                    "Колтушское сельское поселение, деревня Мяглово, ул. Дорожная, уч. 4Б.";
+                    "Колтуши, деревня Мяглово, ул. Дорожная, уч. 4Б.";
                 worksheet.Cells[row + 4, 2].Style.WrapText = true;
             }
 
