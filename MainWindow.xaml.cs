@@ -43,7 +43,7 @@ namespace Metal_Code
             $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
             "Data Source=metals.db",
             $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
-            $"C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы",
+            $"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows",
             $"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows"
             //"Data Source=managers.db",
             //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
@@ -2195,7 +2195,7 @@ namespace Metal_Code
             complectsheet.Cells[1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
 
             complectsheet.Cells[1, 4, 1, 9].Merge = true;
-            complectsheet.Cells[1, 4].Value = CustomerDrop.Text;                                 //Компания
+            complectsheet.Cells[1, 4].Value = CustomerDrop.Text;                            //Компания
             complectsheet.Cells[1, 4].Style.Font.Size = 36;
             complectsheet.Cells[1, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
 
@@ -2271,6 +2271,35 @@ namespace Metal_Code
             
             ExcelRange details = complectsheet.Cells[2, 1, Parts.Count + 2, 9];     //получаем таблицу деталей для оформления
 
+            if (Parts.Count > 0)        //в случае с нарезанными деталями, оформляем расшифровку работ
+            {
+                complectsheet.Cells[Parts.Count + 4, 1].Value = "Зачистка деталей";
+                complectsheet.Cells[Parts.Count + 4, 1, Parts.Count + 4, 2].Merge = true;
+                complectsheet.Cells[Parts.Count + 4, 3].Value = "(по необходимости / требованию)";
+                complectsheet.Cells[Parts.Count + 4, 3].Style.Font.Bold = true;
+                complectsheet.Cells[Parts.Count + 4, 3, Parts.Count + 4, 9].Merge = true;
+
+                complectsheet.Cells[Parts.Count + 5, 1].Value = "Расшифровка:";
+                complectsheet.Cells[Parts.Count + 5, 1, Parts.Count + 5, 2].Merge = true;
+                complectsheet.Cells[Parts.Count + 5, 3].Value = "";
+                complectsheet.Cells[Parts.Count + 5, 3, Parts.Count + 5, 9].Merge = true;
+
+                foreach (ExcelRangeBase cell in complectsheet.Cells[3, 4, Parts.Count + 3, 4])
+                {
+                    if (cell.Value != null && $"{cell.Value}".Contains('Л') && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains('Л')) complectsheet.Cells[Parts.Count + 5, 3].Value += "Л - Лазер ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Г ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("Г ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "Г - Гибка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Св ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("Св ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "Св - Сварка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("О ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "О - Окраска ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Р ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("Р ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "Р - Резьба ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("З ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("З ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "З - Зенковка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("С ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "С - Сверловка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("В ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("В ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "В - Вальцовка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("ТР") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("ТР")) complectsheet.Cells[Parts.Count + 5, 3].Value += "ТР - Труборез ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Доп ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("Доп ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "Доп - Дополнительные работы ";
+                }
+            }
+
+
             //создаем этикетку
             ExcelWorksheet labelsheet = workbook.Workbook.Worksheets.Add("Этикетка");
             var logo = labelsheet.Drawings.AddPicture("A1", IsLaser ? "laser_logo.jpg" : "app_logo.jpg");  //файлы должны быть в директории bin/Debug...
@@ -2303,6 +2332,8 @@ namespace Metal_Code
             label.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             complectsheet.Cells.AutoFitColumns();
+            if (complectsheet.Column(3).Width < 40) complectsheet.Column(3).Width = 40;
+
             labelsheet.DefaultRowHeight = 40;
             labelsheet.Cells.AutoFitColumns();
 
@@ -2321,7 +2352,7 @@ namespace Metal_Code
                 string[] dirs = Directory.GetDirectories(_path);        //для этого получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
                 foreach (string s in dirs)
                 {
-                    if (s.Contains(offer.Order))                        //ищем подкаталог с номером заказа
+                    if (s.Contains(offer.Order.Remove(4)))                    //ищем подкаталог с номером заказа
                     {
                         string[] files = Directory.GetFileSystemEntries(s);   //получаем все файлы в папке заказа, чтобы сохранить файл комплектации в директории этих файлов
                         workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {CustomerDrop.Text} - комплектация.xlsx");
