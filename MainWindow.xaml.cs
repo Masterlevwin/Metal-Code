@@ -19,6 +19,9 @@ using System.Text;
 using OfficeOpenXml.Drawing;
 using System.Diagnostics;
 using System.Windows.Media.Imaging;
+using Microsoft.Win32;
+using Path = System.IO.Path;
+using System.Text.RegularExpressions;
 
 namespace Metal_Code
 {
@@ -2364,6 +2367,123 @@ namespace Metal_Code
             else workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
         }
 
+        private void CreateComplect(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new()
+            {
+                Filter = "All files (*.*)|*.*",
+                Multiselect = true
+            };
+
+            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0) CreateComplect(openFileDialog.FileNames);
+            else StatusBegin($"Не выбрано ни одного файла");
+        }
+
+        private void CreateComplect(string[] _paths)
+        {
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var workbook = new ExcelPackage();
+            ExcelWorksheet complectsheet = workbook.Workbook.Worksheets.Add("Комплектация");
+
+            complectsheet.Cells[1, 1, 1, 3].Merge = true;
+            complectsheet.Cells[1, 1].Value = Order.Text;                       //Номер КП
+            complectsheet.Cells[1, 1].Style.Font.Size = 60;
+            complectsheet.Cells[1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+
+            complectsheet.Cells[1, 4, 1, 9].Merge = true;
+            complectsheet.Cells[1, 4].Value = CustomerDrop.Text;                //Компания
+            complectsheet.Cells[1, 4].Style.Font.Size = 36;
+            complectsheet.Cells[1, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+
+            //оформляем первую строку
+            complectsheet.Row(1).Style.Font.Bold = true;
+            complectsheet.Row(1).Height = 60;
+
+            //устанавливаем заголовки таблицы
+            List<string> _heads = new() { "№", "Название детали", "Кол-во" };
+            for (int head = 0; head < _heads.Count; head++) complectsheet.Cells[2, head + 1].Value = _heads[head];
+
+            for (int i =  0; i < _paths.Length; i++)
+            {
+                string path = Path.GetFileNameWithoutExtension(_paths[i]);
+
+                complectsheet.Cells[i + 3, 1].Value = i + 1;                                                    //номер по порядку
+
+                if (path.ToLower().Contains('n'))                                                               //наименование детали
+                    complectsheet.Cells[i + 3, 2].Value = path.Remove(path.ToLower().IndexOf('n'));
+                else complectsheet.Cells[i + 3, 2].Value = path;
+
+                Regex count = new(@"[+-]?((\d+\.?\d*)|(\.\d+))");
+
+                List<Match> matches = count.Matches(path).ToList();
+
+                if (matches.Count > 0) complectsheet.Cells[i + 3, 3].Value = (int)Parser($"{matches[^1]}");     //количество деталей
+                else complectsheet.Cells[i + 3, 3].Value = 0;
+                complectsheet.Cells[i + 3, 3].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                complectsheet.Cells[i + 3, 3].Style.Font.Bold = true;
+            }
+
+            complectsheet.Cells[_paths.Length + 3, 2].Value = "всего деталей:";
+            complectsheet.Cells[_paths.Length + 3, 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            complectsheet.Names.Add("totalCount", complectsheet.Cells[3, 3, _paths.Length + 2, 3]);
+            complectsheet.Cells[_paths.Length + 3, 3].Formula = "=SUM(totalCount)";
+            complectsheet.Cells[_paths.Length + 3, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            complectsheet.Row(_paths.Length + 3).Style.Font.Bold = true;
+
+            complectsheet.Cells[_paths.Length + 4, 1].Value = "Зачистка деталей";
+            complectsheet.Cells[_paths.Length + 4, 2].Value = "(по необходимости / требованию)";
+            complectsheet.Cells[_paths.Length + 4, 2].Style.Font.Bold = true;
+
+            ExcelRange details = complectsheet.Cells[2, 1, _paths.Length + 2, 3];     //получаем таблицу деталей для оформления
+
+
+            //создаем этикетку
+            ExcelWorksheet labelsheet = workbook.Workbook.Worksheets.Add("Этикетка");
+            var logo = labelsheet.Drawings.AddPicture("A1", IsLaser ? "laser_logo.jpg" : "app_logo.jpg");  //файлы должны быть в директории bin/Debug...
+            logo.SetPosition(0, 5, 0, 20);
+
+            labelsheet.Cells[1, 1, 1, 2].Merge = true;
+            labelsheet.Cells[2, 1].Value = Order.Text;
+            labelsheet.Cells[2, 1].Style.Font.Size = 48;
+            labelsheet.Cells[2, 1].Style.Font.Bold = true;
+            labelsheet.Cells[2, 1, 2, 2].Merge = true;
+            labelsheet.Cells[3, 1].Value = CustomerDrop.Text;
+            labelsheet.Cells[3, 1].Style.Font.Size = 16;
+            labelsheet.Cells[3, 1].Style.Font.Bold = true;
+            labelsheet.Cells[3, 1, 3, 2].Merge = true;
+            labelsheet.Cells[4, 1].Value = $"общее кол-во деталей:";
+            labelsheet.Names.Add("totalCount", complectsheet.Cells[3, 3, _paths.Length + 2, 3]);
+            labelsheet.Cells[4, 2].Formula = "=SUM(totalCount)";
+            labelsheet.Cells[4, 1, 4, 2].Style.Font.Size = 16;
+            labelsheet.Cells[4, 1, 4, 2].Style.Font.Bold = true;
+            labelsheet.Cells[5, 1].Value = Phone.Text;
+            labelsheet.Cells[5, 1, 5, 2].Merge = true;
+
+            ExcelRange label = labelsheet.Cells[1, 1, 5, 2];                        //получаем этикетку для оформления
+
+            //обводка границ и авторастягивание столбцов
+            details.Style.HorizontalAlignment = label.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            details.Style.VerticalAlignment = label.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            details.Style.Border.Right.Style = label.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+            label.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+
+            complectsheet.Cells.AutoFitColumns();
+            labelsheet.DefaultRowHeight = 40;
+            labelsheet.Cells.AutoFitColumns();
+
+            //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
+            complectsheet.PrinterSettings.FitToPage = true;
+            complectsheet.PrinterSettings.FitToWidth = 1;
+            complectsheet.PrinterSettings.FitToHeight = 0;
+            complectsheet.PrinterSettings.HorizontalCentered = true;
+
+            //сохраняем книгу в файл Excel
+            workbook.SaveAs($"{Path.GetDirectoryName(_paths[0])}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
+            StatusBegin($"Создана простая комплектация в папке с выбранными файлами.");
+        }
+
 
         //-------------Отчеты-----------------//
         private void CreateReport(object sender, RoutedEventArgs e)
@@ -3166,5 +3286,6 @@ namespace Metal_Code
                 StatusBegin($"Расчет {offer.N} открыт для чтения");
             }
         }
+
     }
 }

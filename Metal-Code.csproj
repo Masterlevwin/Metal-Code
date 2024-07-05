@@ -14,6 +14,8 @@
     <None Remove="app_logo.ico" />
     <None Remove="app_logo.jpeg" />
     <None Remove="Images\add.png" />
+    <None Remove="Images\complect.png" />
+    <None Remove="Images\complect2.png" />
     <None Remove="Images\del.png" />
     <None Remove="Images\edit.png" />
     <None Remove="Images\exampe1.png" />
@@ -67,6 +69,8 @@
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </Resource>
     <Resource Include="Images\add.png" />
+    <Resource Include="Images\complect.png" />
+    <Resource Include="Images\complect2.png" />
     <Resource Include="Images\del.png" />
     <Resource Include="Images\edit.png" />
     <Resource Include="Images\exampe1.png" />
