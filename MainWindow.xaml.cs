@@ -2379,7 +2379,7 @@ namespace Metal_Code
             else StatusBegin($"Не выбрано ни одного файла");
         }
 
-        private void CreateComplect(string[] _paths)
+        private void CreateComplect(string[] _paths)                                    // метод создания файла ПРОСТОЙ комплектации
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
@@ -2480,8 +2480,9 @@ namespace Metal_Code
             complectsheet.PrinterSettings.HorizontalCentered = true;
 
             //сохраняем книгу в файл Excel
-            workbook.SaveAs($"{Path.GetDirectoryName(_paths[0])}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
-            StatusBegin($"Создана простая комплектация в папке с выбранными файлами.");
+            if (Order.Text != "" && CustomerDrop.Text != "") workbook.SaveAs($"{Path.GetDirectoryName(_paths[0])}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
+            else workbook.SaveAs($"{Path.GetDirectoryName(_paths[0])}\\Простая комплектация.xlsx");
+            StatusBegin($"Создана простая комплектация в папке {Path.GetDirectoryName(_paths[0])}");
         }
 
 
