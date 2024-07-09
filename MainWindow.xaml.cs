@@ -34,7 +34,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.5.2";
+        readonly string version = "2.5.3";
 
         public readonly string[] connections =
         {
@@ -720,18 +720,50 @@ namespace Metal_Code
             End.SelectedDate = DateTime.UtcNow.AddDays(1);
         }
 
-        private void InsertDatabase(object sender, RoutedEventArgs e) { InsertDatabase(); }
-        private void InsertDatabase()                                       //метод синхронизации расчетов с основной базой
+        private void InsertDatabase(object sender, RoutedEventArgs e) 
+        {
+            if (ManagerDrop.SelectedItem is not Manager man) return;
+
+            InsertProgressBar.Visibility = Visibility.Visible;
+            InsertTb.Text = "Отправление...";
+            InsertBtn.IsEnabled = false;
+            StatusBegin($"Подождите, идет отправка расчетов в основную базу...");
+
+            BackgroundWorker worker = new();
+            worker.WorkerReportsProgress = true;
+            worker.WorkerSupportsCancellation = true;
+            worker.DoWork += Worker_DoWork;
+            worker.ProgressChanged += Worker_ProgressChanged;
+            worker.RunWorkerCompleted += Worker_RunWorkerCompleted;
+            worker.RunWorkerAsync(man);
+        }
+
+        void Worker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            if (e.Argument is Manager man) e.Result = InsertDatabase(man);
+        }
+
+        void Worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            
+        }
+
+        void Worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            StatusBegin($"{e.Result}");
+            InsertBtn.IsEnabled = true;
+            InsertTb.Text = "Отправить";
+            InsertProgressBar.Visibility = Visibility.Collapsed;
+        }
+
+        private string InsertDatabase(Manager man)                          //метод синхронизации расчетов с основной базой
         {
             if (!IsLocal || (TempOffersDict[0].Count == 0 && TempOffersDict[1].Count == 0 && TempOffersDict[2].Count == 0))
-            {
-                StatusBegin("Нет изменений для отправки в основную базу");
-                return;
-            }
+                return "Нет изменений для отправки в основную базу";
 
             using ManagerContext db = new(connections[1]);      //подключаемся к основной базе данных
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
-            if (isAvalaible && ManagerDrop.SelectedItem is Manager man)
+            if (isAvalaible)
             {
                 try
                 {
@@ -782,23 +814,23 @@ namespace Metal_Code
                                 CreatedDate = offer.CreatedDate,
                                 EndDate = offer.EndDate,
                                 Autor = offer.Autor,
-                                Manager = _man,             //указываем соответствующего менеджера  
+                                Manager = _man,             //указываем соответствующего менеджера
                                 Data = offer.Data
                             };
 
                             _man?.Offers.Add(_offer);       //переносим расчет в базу этого менеджера
                         }
 
-                    db.SaveChangesAsync();                  //сохраняем изменения в основной базе данных
-                    StatusBegin($"Основная база обновлена. Сейчас в базе {db.Offers.ToList().Count} расчетов.");
+                    db.SaveChanges();                       //сохраняем изменения в основной базе данных
 
                     //очищаем списки во временном словаре
                     TempOffersDict[0].Clear();
                     TempOffersDict[1].Clear();
                     TempOffersDict[2].Clear();
                 }
-                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
+                catch (DbUpdateConcurrencyException ex) { return ex.Message; }
             }
+            return $"Основная база обновлена. Сейчас в основной базе {db.Offers.ToList().Count} расчетов.";
         }
 
         private void UpdateOffer(object sender, RoutedEventArgs e)          //метод сохранения изменений в расчете
@@ -944,7 +976,7 @@ namespace Metal_Code
 
         private void UpdateDatabases(object sender, RoutedEventArgs e)      //метод обновления локальных баз
         {
-            if (!IsLocal) return;                               //если запущена основная база, выходим из метода
+            if (!IsLocal || ManagerDrop.SelectedItem is not Manager man) return;    //если запущена основная база, выходим из метода
 
             MessageBoxResult response = MessageBox.Show(
                 "Для обновления локальных баз, потребуется перезагрузка.\nНажмите \"Нет\", если требуется сохранить текущий расчет",
@@ -952,7 +984,7 @@ namespace Metal_Code
 
             if (response == MessageBoxResult.No) return;
 
-            InsertDatabase();
+            InsertDatabase(man);
 
             System.Windows.Forms.Application.Restart();
             Environment.Exit(0);
@@ -3206,10 +3238,10 @@ namespace Metal_Code
         {
             MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
                                            MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-            if (response == MessageBoxResult.No) e.Cancel = true;
+            if (response == MessageBoxResult.No || ManagerDrop.SelectedItem is not Manager man) e.Cancel = true;
             else
             {
-                //InsertDatabase();
+                //InsertDatabase(man);
                 Environment.Exit(0);
             }
         }
