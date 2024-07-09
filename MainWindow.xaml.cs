@@ -983,9 +983,9 @@ namespace Metal_Code
                 "Для обновления локальных баз, потребуется перезагрузка.\nНажмите \"Нет\", если требуется сохранить текущий расчет",
                 "Обновление локальных баз", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
 
-            if (response == MessageBoxResult.No) return;
+            if (response == MessageBoxResult.No || ManagerDrop.SelectedItem is not Manager man) return;
 
-            InsertDatabase();
+            InsertDatabase(man);
 
             System.Windows.Forms.Application.Restart();
             Environment.Exit(0);
@@ -3242,7 +3242,7 @@ namespace Metal_Code
             if (response == MessageBoxResult.No || ManagerDrop.SelectedItem is not Manager man) e.Cancel = true;
             else
             {
-                //InsertDatabase();
+                //InsertDatabase(man);
                 Environment.Exit(0);
             }
         }
