@@ -720,7 +720,8 @@ namespace Metal_Code
             End.SelectedDate = DateTime.UtcNow.AddDays(1);
         }
 
-        private void InsertDatabase(object sender, RoutedEventArgs e) 
+        private void InsertDatabase(object sender, RoutedEventArgs e) { InsertDatabase(); }
+        private void InsertDatabase()
         {
             if (ManagerDrop.SelectedItem is not Manager man) return;
 
@@ -745,7 +746,7 @@ namespace Metal_Code
 
         void Worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
-            
+
         }
 
         void Worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -976,7 +977,7 @@ namespace Metal_Code
 
         private void UpdateDatabases(object sender, RoutedEventArgs e)      //метод обновления локальных баз
         {
-            if (!IsLocal || ManagerDrop.SelectedItem is not Manager man) return;    //если запущена основная база, выходим из метода
+            if (!IsLocal) return;               //если запущена основная база, выходим из метода
 
             MessageBoxResult response = MessageBox.Show(
                 "Для обновления локальных баз, потребуется перезагрузка.\nНажмите \"Нет\", если требуется сохранить текущий расчет",
@@ -984,7 +985,7 @@ namespace Metal_Code
 
             if (response == MessageBoxResult.No) return;
 
-            InsertDatabase(man);
+            InsertDatabase();
 
             System.Windows.Forms.Application.Restart();
             Environment.Exit(0);
@@ -3241,7 +3242,7 @@ namespace Metal_Code
             if (response == MessageBoxResult.No || ManagerDrop.SelectedItem is not Manager man) e.Cancel = true;
             else
             {
-                //InsertDatabase(man);
+                //InsertDatabase();
                 Environment.Exit(0);
             }
         }
