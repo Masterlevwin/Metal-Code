@@ -22,6 +22,7 @@ using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using Path = System.IO.Path;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace Metal_Code
 {
@@ -75,6 +76,7 @@ namespace Metal_Code
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
 
         public Manager CurrentManager = new();
+        public Manager TargetManager = new();
         public ObservableCollection<Manager> Managers { get; set; } = new();
         public List<Offer> Offers { get; set; } = new();
         public ObservableCollection<Customer> Customers { get; set; } = new();
@@ -720,47 +722,72 @@ namespace Metal_Code
             End.SelectedDate = DateTime.UtcNow.AddDays(1);
         }
 
-        private void InsertDatabase(object sender, RoutedEventArgs e) { InsertDatabase(); }
-        private void InsertDatabase()
+        private void InsertDatabase(object sender, RoutedEventArgs e) { CreateWorker(InsertDatabase, ActionState.none); }
+
+        public enum ActionState
+        {
+            none,
+            exit,
+            restart
+        }
+
+        public ActionState State = ActionState.none;
+
+        private void CreateWorker(Func<Manager, string> func, ActionState state)
         {
             if (ManagerDrop.SelectedItem is not Manager man) return;
-
+                
+            TargetManager = man;
+            State = state;
             InsertProgressBar.Visibility = Visibility.Visible;
+
             InsertTb.Text = "Отправление...";
             InsertBtn.IsEnabled = false;
+
             StatusBegin($"Подождите, идет отправка расчетов в основную базу...");
 
             BackgroundWorker worker = new();
             worker.WorkerReportsProgress = true;
             worker.WorkerSupportsCancellation = true;
-            worker.DoWork += Worker_DoWork;
-            worker.ProgressChanged += Worker_ProgressChanged;
-            worker.RunWorkerCompleted += Worker_RunWorkerCompleted;
-            worker.RunWorkerAsync(man);
+            worker.DoWork += Worker_DoWorkWithExit;
+            worker.ProgressChanged += Worker_ProgressChangedWithExit;
+            worker.RunWorkerCompleted += Worker_RunWorkerCompletedWithExit;
+            worker.RunWorkerAsync(func);
         }
 
-        void Worker_DoWork(object sender, DoWorkEventArgs e)
+        void Worker_DoWorkWithExit(object sender, DoWorkEventArgs e)
         {
-            if (e.Argument is Manager man) e.Result = InsertDatabase(man);
+            if (e.Argument is Func<Manager, string> func) e.Result = func(TargetManager);
         }
 
-        void Worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        void Worker_ProgressChangedWithExit(object sender, ProgressChangedEventArgs e)
         {
 
         }
 
-        void Worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        void Worker_RunWorkerCompletedWithExit(object sender, RunWorkerCompletedEventArgs e)
         {
-            StatusBegin($"{e.Result}");
-            InsertBtn.IsEnabled = true;
-            InsertTb.Text = "Отправить";
-            InsertProgressBar.Visibility = Visibility.Collapsed;
+            if (State == ActionState.exit) Environment.Exit(0);
+            else if (State == ActionState.restart)
+            {
+                System.Windows.Forms.Application.Restart();
+                Environment.Exit(0);
+            }
+            else if (State == ActionState.none)
+            {
+                StatusBegin($"{e.Result}");
+                InsertBtn.IsEnabled = true;
+                InsertTb.Text = "Отправить";
+                InsertProgressBar.Visibility = Visibility.Collapsed;
+            }
         }
 
         private string InsertDatabase(Manager man)                          //метод синхронизации расчетов с основной базой
         {
             if (!IsLocal || (TempOffersDict[0].Count == 0 && TempOffersDict[1].Count == 0 && TempOffersDict[2].Count == 0))
                 return "Нет изменений для отправки в основную базу";
+
+            Thread.Sleep(5000);
 
             using ManagerContext db = new(connections[1]);      //подключаемся к основной базе данных
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
@@ -983,12 +1010,9 @@ namespace Metal_Code
                 "Для обновления локальных баз, потребуется перезагрузка.\nНажмите \"Нет\", если требуется сохранить текущий расчет",
                 "Обновление локальных баз", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
 
-            if (response == MessageBoxResult.No || ManagerDrop.SelectedItem is not Manager man) return;
+            if (response == MessageBoxResult.No) return;
 
-            InsertDatabase(man);
-
-            System.Windows.Forms.Application.Restart();
-            Environment.Exit(0);
+            CreateWorker(InsertDatabase, ActionState.restart);
         }
         private void UpdateDatabases()                              //обновление баз заготовок, работ и материалов посредством замены файлов
         {
@@ -3239,12 +3263,8 @@ namespace Metal_Code
         {
             MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
                                            MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-            if (response == MessageBoxResult.No || ManagerDrop.SelectedItem is not Manager man) e.Cancel = true;
-            else
-            {
-                //InsertDatabase(man);
-                Environment.Exit(0);
-            }
+            if (response == MessageBoxResult.Yes) CreateWorker(InsertDatabase, ActionState.exit);
+            e.Cancel = true;
         }
         public void Exit(object sender, RoutedEventArgs e)
         {

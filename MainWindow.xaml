@@ -206,7 +206,7 @@
                         <DatePicker x:Name="End" HorizontalAlignment="Left" Margin="270,225,0,0" VerticalAlignment="Top"/>
                         <Button Content="Фильтр" Click="SearchOffers" HorizontalAlignment="Left" Margin="360,200,0,0" VerticalAlignment="Top" MinWidth="40" MinHeight="20" BorderBrush="#FF00C800"/>
 
-                        <Button x:Name="InsertBtn" ToolTip="Отправить новые расчеты в основную базу" Click="InsertDatabase" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,200,0,0" Padding="0" BorderThickness="0" MaxWidth="20" MaxHeight="20" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
+                        <Button x:Name="InsertBtn" ToolTip="Отправить новые расчеты в основную базу" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,200,0,0" Padding="0" BorderThickness="0" MaxWidth="20" MaxHeight="20" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Click="InsertDatabase">
                             <Image Source="/Images/save3.png"/>
                         </Button>
                         <TextBlock x:Name="InsertTb" Text="Отправить" HorizontalAlignment="Left" Margin="460,203,0,0" VerticalAlignment="Top"/>
