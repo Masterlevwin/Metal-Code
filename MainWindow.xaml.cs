@@ -48,7 +48,7 @@ namespace Metal_Code
             "Data Source=metals.db",
             $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
             $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\bin\\Release\\net7.0-windows",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\bin\\Release\\net7.0-windows"
+            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы"
 
             //"Data Source=managers.db",
             //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
@@ -75,8 +75,8 @@ namespace Metal_Code
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
 
-        public Manager CurrentManager = new();
-        public Manager TargetManager = new();
+        public Manager CurrentManager = new();      //текущий авторизованный менеджер
+        public Manager TargetManager = new();       //выбранный менеджер из списка
         public ObservableCollection<Manager> Managers { get; set; } = new();
         public List<Offer> Offers { get; set; } = new();
         public ObservableCollection<Customer> Customers { get; set; } = new();
@@ -631,57 +631,6 @@ namespace Metal_Code
             }
         }
 
-        private void RefreshOffers(object sender, RoutedEventArgs e)        //метод загрузки расчетов из основной базы в локальную
-        {
-            if (!IsLocal) return;
-
-            using ManagerContext db = new(connections[1]);      //подключаемся к основной базе данных
-            bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
-            if (isAvalaible && ManagerDrop.SelectedItem is Manager man)
-            {
-                try
-                {
-                    //подключаемся к локальной базе данных
-                    using ManagerContext dbLocal = new(connections[0]);
-
-                    //ищем менеджера в основной базе по имени соответствующего выбранному, при этом загружаем его расчеты
-                    Manager? _man = db.Managers.Where(m => m.Name == man.Name).Include(c => c.Offers).FirstOrDefault();
-
-                    //ищем менеджера в локальной базе по имени соответствующего локальному, при этом загружаем его расчеты
-                    Manager? _manLocal = dbLocal.Managers.Where(m => m.Name == man.Name).Include(c => c.Offers).FirstOrDefault();
-
-                    if (_man?.Offers.Count > 0)
-                        foreach (Offer offer in _man.Offers)
-                        {
-                            //проверяем наличие идентичного КП в локальной базе, и если такое уже есть, пропускаем копирование
-                            Offer? tempOffer = _manLocal?.Offers.Where(o => o.Data == offer.Data).FirstOrDefault();
-                            if (tempOffer != null) continue;
-
-                            //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
-                            Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
-                            {
-                                Agent = offer.Agent,
-                                Invoice = offer.Invoice,
-                                Order = offer.Order,
-                                Act = offer.Act,
-                                CreatedDate = offer.CreatedDate,
-                                EndDate = offer.EndDate,
-                                Autor = offer.Autor,
-                                Manager = _manLocal,        //указываем соответствующего менеджера  
-                                Data = offer.Data
-                            };
-
-                            dbLocal.Offers.Add(_offer);     //переносим расчет в базу этого менеджера
-                        }
-                    dbLocal.SaveChanges();                  //сохраняем изменения в локальной базе данных
-                    StatusBegin($"Локальная база обновлена. Сейчас в базе {dbLocal.Offers.ToList().Count} расчетов.");
-
-                    ViewOffersGrid(man);
-                }
-                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
-            }
-        }
-
         private void SearchOffers(object sender, RoutedEventArgs e)         //метод фильтра расчетов по номеру, компании или диапазону дат
         {
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);       //подключаемся к базе данных
@@ -722,72 +671,71 @@ namespace Metal_Code
             End.SelectedDate = DateTime.UtcNow.AddDays(1);
         }
 
-        private void InsertDatabase(object sender, RoutedEventArgs e) { CreateWorker(InsertDatabase, ActionState.none); }
-
-        public enum ActionState
+        
+        //метод запуска процесса загрузки расчетов из основной базы в локальную
+        private void RefreshOffers(object sender, RoutedEventArgs e) { CreateWorker(RefreshOffers, ActionState.refresh); }
+        private string RefreshOffers(Manager man)
         {
-            none,
-            exit,
-            restart
-        }
+            if (!IsLocal) return "Загружена основная база расчетов. Обновление не требуется.";
 
-        public ActionState State = ActionState.none;
+            int count = 0;
 
-        private void CreateWorker(Func<Manager, string> func, ActionState state)
-        {
-            if (ManagerDrop.SelectedItem is not Manager man) return;
-                
-            TargetManager = man;
-            State = state;
-            InsertProgressBar.Visibility = Visibility.Visible;
-
-            InsertTb.Text = "Отправление...";
-            InsertBtn.IsEnabled = false;
-
-            StatusBegin($"Подождите, идет отправка расчетов в основную базу...");
-
-            BackgroundWorker worker = new();
-            worker.WorkerReportsProgress = true;
-            worker.WorkerSupportsCancellation = true;
-            worker.DoWork += Worker_DoWorkWithExit;
-            worker.ProgressChanged += Worker_ProgressChangedWithExit;
-            worker.RunWorkerCompleted += Worker_RunWorkerCompletedWithExit;
-            worker.RunWorkerAsync(func);
-        }
-
-        void Worker_DoWorkWithExit(object sender, DoWorkEventArgs e)
-        {
-            if (e.Argument is Func<Manager, string> func) e.Result = func(TargetManager);
-        }
-
-        void Worker_ProgressChangedWithExit(object sender, ProgressChangedEventArgs e)
-        {
-
-        }
-
-        void Worker_RunWorkerCompletedWithExit(object sender, RunWorkerCompletedEventArgs e)
-        {
-            if (State == ActionState.exit) Environment.Exit(0);
-            else if (State == ActionState.restart)
+            using ManagerContext db = new(connections[1]);      //подключаемся к основной базе данных
+            bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
+            if (isAvalaible)
             {
-                System.Windows.Forms.Application.Restart();
-                Environment.Exit(0);
+                try
+                {
+                    //подключаемся к локальной базе данных
+                    using ManagerContext dbLocal = new(connections[0]);
+
+                    //ищем менеджера в основной базе по имени соответствующего выбранному, при этом загружаем его расчеты
+                    Manager? _man = db.Managers.Where(m => m.Name == man.Name).Include(c => c.Offers).FirstOrDefault();
+
+                    //ищем менеджера в локальной базе по имени соответствующего локальному, при этом загружаем его расчеты
+                    Manager? _manLocal = dbLocal.Managers.Where(m => m.Name == man.Name).Include(c => c.Offers).FirstOrDefault();
+
+                    count = dbLocal.Offers.Count();
+
+                    if (_man?.Offers.Count > 0)
+                        foreach (Offer offer in _man.Offers)
+                        {
+                            //проверяем наличие идентичного КП в локальной базе, и если такое уже есть, пропускаем копирование
+                            Offer? tempOffer = _manLocal?.Offers.Where(o => o.Data == offer.Data).FirstOrDefault();
+                            if (tempOffer != null) continue;
+
+                            //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
+                            Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
+                            {
+                                Agent = offer.Agent,
+                                Invoice = offer.Invoice,
+                                Order = offer.Order,
+                                Act = offer.Act,
+                                CreatedDate = offer.CreatedDate,
+                                EndDate = offer.EndDate,
+                                Autor = offer.Autor,
+                                Manager = _manLocal,        //указываем соответствующего менеджера  
+                                Data = offer.Data
+                            };
+
+                            dbLocal.Offers.Add(_offer);     //переносим расчет в базу этого менеджера
+                        }
+                    dbLocal.SaveChanges();                  //сохраняем изменения в локальной базе данных
+                    count -= dbLocal.Offers.Count();
+                }
+                catch (DbUpdateConcurrencyException ex) { return ex.Message; }
             }
-            else if (State == ActionState.none)
-            {
-                StatusBegin($"{e.Result}");
-                InsertBtn.IsEnabled = true;
-                InsertTb.Text = "Отправить";
-                InsertProgressBar.Visibility = Visibility.Collapsed;
-            }
+            return $"Локальная база обновлена. Добавлено {count} расчетов.";
         }
 
+        //метод запуска процесса синхронизации расчетов с основной базой
+        private void InsertDatabase(object sender, RoutedEventArgs e) { CreateWorker(InsertDatabase, ActionState.insert); }
         private string InsertDatabase(Manager man)                          //метод синхронизации расчетов с основной базой
         {
             if (!IsLocal || (TempOffersDict[0].Count == 0 && TempOffersDict[1].Count == 0 && TempOffersDict[2].Count == 0))
                 return "Нет изменений для отправки в основную базу";
 
-            Thread.Sleep(5000);
+            int countChange = 0; int countRemove = 0; int countAdd = 0;
 
             using ManagerContext db = new(connections[1]);      //подключаемся к основной базе данных
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
@@ -813,6 +761,7 @@ namespace Metal_Code
                                 db.Entry(tempOffer).Property(o => o.CreatedDate).IsModified = true;
                                 tempOffer.Order = offer.Order;
                                 db.Entry(tempOffer).Property(o => o.Order).IsModified = true;
+                                countChange++;
                             }
                         }
 
@@ -821,7 +770,11 @@ namespace Metal_Code
                         foreach (Offer offer in removeList)
                         {
                             Offer? tempOffer = _man?.Offers.FirstOrDefault(o => o.Data == offer.Data);
-                            if (tempOffer != null) db.Offers.Remove(tempOffer);
+                            if (tempOffer != null)
+                            {
+                                db.Offers.Remove(tempOffer);
+                                countRemove++;
+                            }
                         }
 
                     //перебираем список расчетов на добавление
@@ -847,6 +800,7 @@ namespace Metal_Code
                             };
 
                             _man?.Offers.Add(_offer);       //переносим расчет в базу этого менеджера
+                            countAdd++;
                         }
 
                     db.SaveChanges();                       //сохраняем изменения в основной базе данных
@@ -858,56 +812,9 @@ namespace Metal_Code
                 }
                 catch (DbUpdateConcurrencyException ex) { return ex.Message; }
             }
-            return $"Основная база обновлена. Сейчас в основной базе {db.Offers.ToList().Count} расчетов.";
+            return $"Основная база обновлена. Добавлено {countAdd} расчетов. Удалено {countRemove} расчетов. Изменено {countChange} расчетов.";
         }
 
-        private void UpdateOffer(object sender, RoutedEventArgs e)          //метод сохранения изменений в расчете
-        {
-            //подключаемся к базе данных
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
-            bool isAvalaible = db.Database.CanConnect();                        //проверяем, свободна ли база для подключения
-            if (isAvalaible && OffersGrid.SelectedItem is Offer offer)          //если база свободна, получаем выбранный расчет
-            {
-                try
-                {
-                    Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
-                    if (_offer != null)
-                    {                               //менять можно только агента, номер счета, дату создания и номер заказа
-                        _offer.Agent = offer.Agent;
-                        db.Entry(_offer).Property(o => o.Agent).IsModified = true;
-                        _offer.Invoice = offer.Invoice;
-                        db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
-                        _offer.CreatedDate = offer.CreatedDate;
-                        db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
-                        _offer.Order = offer.Order;
-                        db.Entry(_offer).Property(o => o.Order).IsModified = true;
-
-                        //добавляем расчет во временный список для синхронизации с основной базой
-                        if (IsLocal && ManagerDrop.SelectedItem is Manager man && CurrentManager == man)
-                        {
-                            if (TempOffersDict.TryGetValue(0, out List<Offer>? addList))
-                            {
-                                Offer? off = addList.FirstOrDefault(o => o.Data == offer.Data);
-                                if (off != null)
-                                {
-                                    off.Agent = offer.Agent;
-                                    off.Invoice = offer.Invoice;
-                                    off.CreatedDate = offer.CreatedDate;
-                                    off.Order = offer.Order;
-                                }
-                            }
-                            TempOffersDict[2].Add(_offer);
-                        }
-
-                        db.SaveChanges();                                               //сохраняем изменения в базе данных
-                        StatusBegin("Изменения в базе сохранены");
-
-                        if (ActiveOffer?.Data == _offer.Data && Parts.Count > 0) CreateComplect(connections[8], _offer);    //создаем файл комплектации
-                    }
-                }
-                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
-            }
-        }
 
         public void SaveOrRemoveOffer(bool isSave)                          //метод сохранения и удаления расчета
         {
@@ -983,6 +890,54 @@ namespace Metal_Code
             }
         }
 
+        private void UpdateOffer(object sender, RoutedEventArgs e)          //метод сохранения изменений в расчете
+        {
+            //подключаемся к базе данных
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
+            bool isAvalaible = db.Database.CanConnect();                        //проверяем, свободна ли база для подключения
+            if (isAvalaible && OffersGrid.SelectedItem is Offer offer)          //если база свободна, получаем выбранный расчет
+            {
+                try
+                {
+                    Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
+                    if (_offer != null)
+                    {                               //менять можно только агента, номер счета, дату создания и номер заказа
+                        _offer.Agent = offer.Agent;
+                        db.Entry(_offer).Property(o => o.Agent).IsModified = true;
+                        _offer.Invoice = offer.Invoice;
+                        db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
+                        _offer.CreatedDate = offer.CreatedDate;
+                        db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
+                        _offer.Order = offer.Order;
+                        db.Entry(_offer).Property(o => o.Order).IsModified = true;
+
+                        //добавляем расчет во временный список для синхронизации с основной базой
+                        if (IsLocal && ManagerDrop.SelectedItem is Manager man && CurrentManager == man)
+                        {
+                            if (TempOffersDict.TryGetValue(0, out List<Offer>? addList))
+                            {
+                                Offer? off = addList.FirstOrDefault(o => o.Data == offer.Data);
+                                if (off != null)
+                                {
+                                    off.Agent = offer.Agent;
+                                    off.Invoice = offer.Invoice;
+                                    off.CreatedDate = offer.CreatedDate;
+                                    off.Order = offer.Order;
+                                }
+                            }
+                            TempOffersDict[2].Add(_offer);
+                        }
+
+                        db.SaveChanges();                                               //сохраняем изменения в базе данных
+                        StatusBegin("Изменения в базе сохранены");
+
+                        if (ActiveOffer?.Data == _offer.Data && Parts.Count > 0) CreateComplect(connections[8], _offer);    //создаем файл комплектации
+                    }
+                }
+                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
+            }
+        }
+
         public string SaveOfferData()                               //метод сериализации расчета
         {
             using MemoryStream stream = new();
@@ -1012,7 +967,7 @@ namespace Metal_Code
 
             if (response == MessageBoxResult.No) return;
 
-            CreateWorker(InsertDatabase, ActionState.restart);
+            CreateWorker(InsertDatabase, ActionState.restartBases);         //запускаем фоновый процесс с перезапуском программы
         }
         private void UpdateDatabases()                              //обновление баз заготовок, работ и материалов посредством замены файлов
         {
@@ -1169,6 +1124,106 @@ namespace Metal_Code
             if (e.PropertyName == "Autor") e.Column.IsReadOnly = true;                              //запрещаем редактировать автора расчета
         }
         #endregion
+
+
+        //-------------Фоновые процессы-----------//
+        public enum ActionState         //условия окончания работы фонового процесса
+        {
+            none,                       //по умолчанию
+            refresh,                    //получение расчетов из основной базы
+            insert,                     //отправка расчетов в основную базу
+            restartBases,               //перезапуск программы при обновлении баз
+            restartApp,                 //перезапуск программы при обновлении программы
+            exit,                       //выход из программы
+        }
+
+        public ActionState State = ActionState.none;
+
+        private void CreateWorker(Func<Manager, string> func, ActionState state)        //метод создания фонового процесса
+        {
+            if (ManagerDrop.SelectedItem is not Manager man) return;
+
+            TargetManager = man;
+            State = state;
+
+            InsertProgressBar.Visibility = Visibility.Visible;
+
+            switch (State)
+            {
+                case ActionState.refresh:
+                    StatusBegin($"Подождите, идет получение расчетов из основной базы...");
+                    RefreshTb.Text = "Получение...";
+                    RefreshBtn.IsEnabled = false;
+                    break;
+                case ActionState.insert:
+                    StatusBegin($"Подождите, идет отправка расчетов в основную базу...");
+                    InsertTb.Text = "Отправление...";
+                    InsertBtn.IsEnabled = false;
+                    break;
+                case ActionState.restartBases:
+                    StatusBegin($"Подождите, идет обновление локальных баз с последующей перезагрузкой...");
+                    break;
+                case ActionState.restartApp:
+                    StatusBegin($"Подождите, идет обновление программы с последующей перезагрузкой...");
+                    break;
+                case ActionState.exit:
+                    StatusBegin($"Подождите, идет отправка расчетов в основную базу с последующим выходом из программы...");
+                    break;
+                default:
+                    break;
+            }
+
+            BackgroundWorker worker = new();
+            worker.WorkerReportsProgress = true;
+            worker.WorkerSupportsCancellation = true;
+            worker.DoWork += Worker_DoWork;
+            worker.ProgressChanged += Worker_ProgressChanged;
+            worker.RunWorkerCompleted += Worker_RunWorkerCompleted;
+            worker.RunWorkerAsync(func);
+        }
+
+        void Worker_DoWork(object sender, DoWorkEventArgs e)                            //обработчик события запуска фонового процесса
+        {
+            if (e.Argument is Func<Manager, string> func) e.Result = func(TargetManager);
+        }
+
+        void Worker_ProgressChanged(object sender, ProgressChangedEventArgs e)          //обработчик промежуточных результатов фонового процесса
+        {
+
+        }
+
+        void Worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)    //обработчик события завершения фонового процесса
+        {
+            switch (State)
+            {
+                case ActionState.refresh:
+                    StatusBegin($"{e.Result}");
+                    RefreshBtn.IsEnabled = true;
+                    RefreshTb.Text = "Получить";
+                    InsertProgressBar.Visibility = Visibility.Collapsed;
+                    ViewOffersGrid(TargetManager);
+                    break;
+                case ActionState.insert:
+                    StatusBegin($"{e.Result}");
+                    InsertBtn.IsEnabled = true;
+                    InsertTb.Text = "Отправить";
+                    InsertProgressBar.Visibility = Visibility.Collapsed;
+                    break;
+                case ActionState.restartBases:
+                    System.Windows.Forms.Application.Restart();
+                    Environment.Exit(0);
+                    break;
+                case ActionState.restartApp:
+                    Process.Start(Directory.GetCurrentDirectory() + "\\Metal-Code.Updater.exe");
+                    Environment.Exit(0);
+                    break;
+                case ActionState.exit:
+                    Environment.Exit(0);
+                    break;
+                default:
+                    break;
+            }
+        }
 
 
         //-------------Создание нового проекта-----------//
@@ -3263,7 +3318,7 @@ namespace Metal_Code
         {
             MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
                                            MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-            if (response == MessageBoxResult.Yes) CreateWorker(InsertDatabase, ActionState.exit);
+            if (response == MessageBoxResult.Yes) CreateWorker(InsertDatabase, ActionState.exit);       //запускаем фоновый процесс с выходом из программмы
             e.Cancel = true;
         }
         public void Exit(object sender, RoutedEventArgs e)
@@ -3276,10 +3331,15 @@ namespace Metal_Code
             if (CheckVersion(out string _version)) MessageBox.Show($"Metal-Code не требует обновления.\nТекущая версия - {_version}");
             else Restart();
         }
-        private static void Restart()
+        private void Restart()
         {
-            Process.Start(Directory.GetCurrentDirectory() + "\\Metal-Code.Updater.exe");
-            Environment.Exit(0);
+            MessageBoxResult response = MessageBox.Show(
+                "Для обновления программы, потребуется перезагрузка.\nНажмите \"Нет\", если требуется сохранить текущий расчет",
+                "Обновление программы", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+
+            if (response == MessageBoxResult.No) return;
+
+            CreateWorker(InsertDatabase, ActionState.restartApp);       //запускаем фоновый процесс с перезапуском программы
         }
 
         public bool CheckVersion(out string _version)

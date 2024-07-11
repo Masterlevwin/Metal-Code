@@ -194,12 +194,12 @@
                         <TextBlock Text="Ваш менеджер:" HorizontalAlignment="Left" Margin="15,160,0,0" VerticalAlignment="Top"/>
                         <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged" HorizontalAlignment="Left" Margin="115,160,0,0" VerticalAlignment="Top" Width="175"/>
 
-                        <Button ToolTip="Получить новые расчеты из основной базы" Click="RefreshOffers" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,200,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
+                        <Button x:Name="RefreshBtn" ToolTip="Получить новые расчеты из основной базы" Click="RefreshOffers" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,200,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
                             <Image Source="/Images/update.png"/>
                         </Button>
-                        <TextBlock Text="Обновить" HorizontalAlignment="Left" Margin="50,203,0,0" VerticalAlignment="Top"/>
+                        <TextBlock x:Name="RefreshTb" Text="Получить" HorizontalAlignment="Left" Margin="50,203,0,0" VerticalAlignment="Top"/>
 
-                        <TextBox x:Name="Search" ToolTip="Введите номер расчета или название компании" MinWidth="230" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="115,200,0,0"/>
+                        <TextBox x:Name="Search" ToolTip="Введите номер расчета или название компании" MinWidth="200" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="140,200,0,0"/>
                         <TextBlock Text="от" HorizontalAlignment="Left" Margin="120,230,0,0" VerticalAlignment="Top"/>
                         <DatePicker x:Name="Start" HorizontalAlignment="Left" Margin="140,225,0,0" VerticalAlignment="Top"/>
                         <TextBlock Text="до" HorizontalAlignment="Left" Margin="250,230,0,0" VerticalAlignment="Top"/>
