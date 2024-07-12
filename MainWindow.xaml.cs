@@ -1162,12 +1162,15 @@ namespace Metal_Code
                     break;
                 case ActionState.restartBases:
                     StatusBegin($"Подождите, идет обновление локальных баз с последующей перезагрузкой...");
+                    IsEnabled = false;
                     break;
                 case ActionState.restartApp:
                     StatusBegin($"Подождите, идет обновление программы с последующей перезагрузкой...");
+                    IsEnabled = false;
                     break;
                 case ActionState.exit:
                     StatusBegin($"Подождите, идет отправка расчетов в основную базу с последующим выходом из программы...");
+                    IsEnabled = false;
                     break;
                 default:
                     break;
