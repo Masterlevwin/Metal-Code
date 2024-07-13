@@ -39,27 +39,27 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {
-            "Data Source=managers.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
-            "Data Source=typedetails.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
-            "Data Source=works.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
-            "Data Source=metals.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\bin\\Release\\net7.0-windows",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы"
-
             //"Data Source=managers.db",
-            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
             //"Data Source=typedetails.db",
-            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
             //"Data Source=works.db",
-            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
             //"Data Source=metals.db",
-            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
-            //$"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows",
-            //$"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows"
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
+            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\bin\\Release\\net7.0-windows",
+            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы"
+
+            "Data Source=managers.db",
+            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
+            "Data Source=typedetails.db",
+            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
+            "Data Source=works.db",
+            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
+            "Data Source=metals.db",
+            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
+            $"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows",
+            $"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows"
 
             //"Data Source=managers.db",
             //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
@@ -671,7 +671,6 @@ namespace Metal_Code
             End.SelectedDate = DateTime.UtcNow.AddDays(1);
         }
 
-        
         //метод запуска процесса загрузки расчетов из основной базы в локальную
         private void RefreshOffers(object sender, RoutedEventArgs e) { CreateWorker(RefreshOffers, ActionState.refresh); }
         private string RefreshOffers(Manager man)
@@ -743,14 +742,11 @@ namespace Metal_Code
             {
                 try
                 {
-                    //ищем менеджера по имени соответствующего выбранному, при этом загружаем его расчеты
-                    Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
-
                     //перебираем список расчетов на синхронизацию изменений
                     if (TempOffersDict.TryGetValue(2, out List<Offer>? changeList) && changeList.Count > 0)
                         foreach (Offer offer in changeList)
                         {
-                            Offer? tempOffer = _man?.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Data == offer.Data);
                             if (tempOffer != null)
                             {
                                 tempOffer.Agent = offer.Agent;
@@ -769,7 +765,7 @@ namespace Metal_Code
                     if (TempOffersDict.TryGetValue(1, out List<Offer>? removeList) && removeList.Count > 0)
                         foreach (Offer offer in removeList)
                         {
-                            Offer? tempOffer = _man?.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Data == offer.Data);
                             if (tempOffer != null)
                             {
                                 db.Offers.Remove(tempOffer);
@@ -781,9 +777,12 @@ namespace Metal_Code
                     if (TempOffersDict.TryGetValue(0, out List<Offer>? addList) && addList.Count > 0)
                         foreach (Offer offer in addList)
                         {
+                            //ищем менеджера по имени соответствующего выбранному, при этом загружаем его расчеты
+                            Manager? _man = db.Managers.Where(m => m == offer.Manager).Include(c => c.Offers).FirstOrDefault();
+
                             //проверяем наличие идентичного КП в основной базе, если такое уже есть, пропускаем копирование
                             Offer? tempOffer = _man?.Offers.FirstOrDefault(o => o.Data == offer.Data);
-                            if (tempOffer != null || offer.Manager is null) continue;
+                            if (tempOffer != null) continue;
 
                             //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
                             Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
@@ -815,7 +814,6 @@ namespace Metal_Code
             return $"Основная база обновлена. Добавлено {countAdd} расчетов. Удалено {countRemove} расчетов. Изменено {countChange} расчетов.";
         }
 
-
         public void SaveOrRemoveOffer(bool isSave)                          //метод сохранения и удаления расчета
         {
             //подключаемся к базе данных
@@ -846,7 +844,7 @@ namespace Metal_Code
 
                         _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
                         ActiveOffer = _offer;
-                        StatusBegin($"Расчет {_offer.N} сохранен. В базе {_man?.Name} {_man?.Offers.Count} расчетов.");
+                        StatusBegin($"Расчет {_offer.N} сохранен. В базе {_man?.Name} теперь {_man?.Offers.Count} расчетов.");
                     }
                     else            //если метод запущен с параметром false, то есть в режиме удаления
                     {
@@ -867,7 +865,7 @@ namespace Metal_Code
                                 }
 
                                 _man?.Offers.Remove(_offer);                    //если находим, то удаляем его из базы
-                                StatusBegin($"Расчет {_offer.N} удален. В базе {_man?.Name} {_man?.Offers.Count} расчетов.");
+                                StatusBegin($"Расчет {_offer.N} удален. В базе {_man?.Name} теперь {_man?.Offers.Count} расчетов.");
 
                                 DataGridRow row = (DataGridRow)OffersGrid.ItemContainerGenerator.ContainerFromIndex(OffersGrid.SelectedIndex);
                                 SolidColorBrush _deleteBrush = new(Colors.Gray);
@@ -877,6 +875,7 @@ namespace Metal_Code
                     }
 
                     db.SaveChanges();           //сохраняем изменения в базе данных
+
                     if (isSave)
                     {
                         ViewOffersGrid(man);    //и обновляем datagrid, если появился новый расчет
