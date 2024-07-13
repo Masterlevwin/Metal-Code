@@ -671,6 +671,7 @@ namespace Metal_Code
             End.SelectedDate = DateTime.UtcNow.AddDays(1);
         }
 
+
         //метод запуска процесса загрузки расчетов из основной базы в локальную
         private void RefreshOffers(object sender, RoutedEventArgs e) { CreateWorker(RefreshOffers, ActionState.refresh); }
         private string RefreshOffers(Manager man)
@@ -694,8 +695,6 @@ namespace Metal_Code
                     //ищем менеджера в локальной базе по имени соответствующего локальному, при этом загружаем его расчеты
                     Manager? _manLocal = dbLocal.Managers.Where(m => m.Name == man.Name).Include(c => c.Offers).FirstOrDefault();
 
-                    count = dbLocal.Offers.Count();
-
                     if (_man?.Offers.Count > 0)
                         foreach (Offer offer in _man.Offers)
                         {
@@ -718,9 +717,9 @@ namespace Metal_Code
                             };
 
                             dbLocal.Offers.Add(_offer);     //переносим расчет в базу этого менеджера
+                            count++;
                         }
                     dbLocal.SaveChanges();                  //сохраняем изменения в локальной базе данных
-                    count -= dbLocal.Offers.Count();
                 }
                 catch (DbUpdateConcurrencyException ex) { return ex.Message; }
             }
@@ -729,7 +728,7 @@ namespace Metal_Code
 
         //метод запуска процесса синхронизации расчетов с основной базой
         private void InsertDatabase(object sender, RoutedEventArgs e) { CreateWorker(InsertDatabase, ActionState.insert); }
-        private string InsertDatabase(Manager man)                          //метод синхронизации расчетов с основной базой
+        private string InsertDatabase(Manager man)
         {
             if (!IsLocal || (TempOffersDict[0].Count == 0 && TempOffersDict[1].Count == 0 && TempOffersDict[2].Count == 0))
                 return "Нет изменений для отправки в основную базу";
@@ -813,6 +812,7 @@ namespace Metal_Code
             }
             return $"Основная база обновлена. Добавлено {countAdd} расчетов. Удалено {countRemove} расчетов. Изменено {countChange} расчетов.";
         }
+
 
         public void SaveOrRemoveOffer(bool isSave)                          //метод сохранения и удаления расчета
         {
@@ -3316,16 +3316,16 @@ namespace Metal_Code
 
 
         //-------------Выход и перезагрузка-----------------------//
+        public void Exit(object sender, RoutedEventArgs e)
+        {
+            Environment.Exit(0);
+        }
         private void Exit(object sender, CancelEventArgs e)
         {
             MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
                                            MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
             if (response == MessageBoxResult.Yes) CreateWorker(InsertDatabase, ActionState.exit);       //запускаем фоновый процесс с выходом из программмы
             e.Cancel = true;
-        }
-        public void Exit(object sender, RoutedEventArgs e)
-        {
-            Environment.Exit(0);
         }
 
         private void Restart(object sender, RoutedEventArgs e)
