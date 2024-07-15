@@ -3348,10 +3348,15 @@ namespace Metal_Code
                     "Обновление программы", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
 
                 if (response == MessageBoxResult.No) return;
-                Restart();
+
+                CreateWorker(InsertDatabase, ActionState.restartApp);
             }
         }
-        private void Restart() { CreateWorker(InsertDatabase, ActionState.restartApp); }                //запускаем фоновый процесс с перезапуском программы
+        private void Restart()
+        {
+            Process.Start(Directory.GetCurrentDirectory() + "\\Metal-Code.Updater.exe");
+            Environment.Exit(0);
+        }
 
         public bool CheckVersion(out string _version)
         {
