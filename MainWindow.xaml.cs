@@ -39,27 +39,27 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {
-            //"Data Source=managers.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
-            //"Data Source=typedetails.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
-            //"Data Source=works.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
-            //"Data Source=metals.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
-            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\bin\\Release\\net7.0-windows",
-            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы"
-
             "Data Source=managers.db",
-            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
             "Data Source=typedetails.db",
-            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
             "Data Source=works.db",
-            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
             "Data Source=metals.db",
-            $"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
-            $"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows",
-            $"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows"
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
+            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\bin\\Release\\net7.0-windows",
+            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы"
+
+            //"Data Source=managers.db",
+            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
+            //"Data Source=typedetails.db",
+            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
+            //"Data Source=works.db",
+            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
+            //"Data Source=metals.db",
+            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
+            //$"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows",
+            //$"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows"
 
             //"Data Source=managers.db",
             //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
@@ -109,6 +109,8 @@ namespace Metal_Code
             using MetalContext dbM = new(IsLocal ? connections[6] : connections[7]);
             dbM.Metals.Load();
             Metals = dbM.Metals.Local.ToObservableCollection();
+            MetalDrop.ItemsSource = Metals;
+
             InitializeDict();
 
             if (!CheckMachineName()) ShowLoginWindow();
@@ -3174,6 +3176,14 @@ namespace Metal_Code
             UpdateResult();
         }
 
+        private void SetAllMaterial(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox cBox)
+                foreach (DetailControl d in DetailControls)
+                    foreach (TypeDetailControl t in d.TypeDetailControls) t.MetalDrop.SelectedIndex = cBox.SelectedIndex;
+            UpdateResult();
+        }
+
         public float GetMetalPrice()
         {
             float metalprice = 0;
@@ -3331,18 +3341,17 @@ namespace Metal_Code
         private void Restart(object sender, RoutedEventArgs e)
         {
             if (CheckVersion(out string _version)) MessageBox.Show($"Metal-Code не требует обновления.\nТекущая версия - {_version}");
-            else Restart();
-        }
-        private void Restart()
-        {
-            MessageBoxResult response = MessageBox.Show(
-                "Для обновления программы, потребуется перезагрузка.\nНажмите \"Нет\", если требуется сохранить текущий расчет",
-                "Обновление программы", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+            else
+            {
+                MessageBoxResult response = MessageBox.Show(
+                    "Для обновления программы, потребуется перезагрузка.\nНажмите \"Нет\", если требуется сохранить текущий расчет",
+                    "Обновление программы", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
 
-            if (response == MessageBoxResult.No) return;
-
-            CreateWorker(InsertDatabase, ActionState.restartApp);       //запускаем фоновый процесс с перезапуском программы
+                if (response == MessageBoxResult.No) return;
+                Restart();
+            }
         }
+        private void Restart() { CreateWorker(InsertDatabase, ActionState.restartApp); }                //запускаем фоновый процесс с перезапуском программы
 
         public bool CheckVersion(out string _version)
         {

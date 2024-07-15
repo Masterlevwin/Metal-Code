@@ -107,8 +107,7 @@
                         <TextBlock Text="B" HorizontalAlignment="Left" Margin="365,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
                         <TextBlock Text="S" HorizontalAlignment="Left" Margin="400,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
                         <TextBlock Text="L" HorizontalAlignment="Left" Margin="440,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <TextBlock Text="Кол-во" HorizontalAlignment="Left" Margin="475,5,0,0" VerticalAlignment="Top" Height="14" Width="39" Panel.ZIndex="1"/>
-                        <TextBlock Text="Материал" HorizontalAlignment="Left" Margin="525,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
+                        <TextBlock Text="Кол-во" HorizontalAlignment="Left" Margin="470,5,0,0" VerticalAlignment="Top" Height="14" Width="39" Panel.ZIndex="1"/>
                         <CheckBox ToolTip="Добавить к расчету стоимость материала ВСЕХ деталей" Margin="600,5,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="15" Width="16" Click="SetAllMetal" IsChecked="True" Panel.ZIndex="1"/>
                         <TextBlock Text="Работа" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="745,5,0,0" Panel.ZIndex="1"/>
                         <TextBlock Text="Коэф" ToolTip="Наценка или скидка на услуги" HorizontalAlignment="Left" Margin="985,5,0,0" VerticalAlignment="Top" Height="14" Width="30" Panel.ZIndex="1"/>
@@ -221,7 +220,7 @@
 
                             </StackPanel>
                         </GroupBox>
-                        
+
                         <Button Click="CreateComplect" ToolTip="Сформировать простую комплектацию" HorizontalAlignment="Left" Margin="250,250,0,5" VerticalAlignment="Bottom" BorderThickness="0">
                             <Image Source="/Images/complect2.png" MaxWidth="20" MaxHeight="20"/>
                         </Button>
@@ -245,6 +244,7 @@
                     <Image x:Name="TableOfBends" Source="/Images/tableofbends.jpg" Stretch="Fill" Visibility="Hidden"/>
                 </Grid>
             </GroupBox>
+            <ComboBox x:Name="MetalDrop" DisplayMemberPath="Name" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" MaxHeight="20" MinWidth="80" MaxWidth="80" SelectedIndex="0" ToolTip="Выберите материал" Margin="552,97,0,0" VerticalContentAlignment="Center" Height="20" Width="80" Panel.ZIndex="1" SelectionChanged="SetAllMaterial"/>
 
         </Grid>
     </Grid>
