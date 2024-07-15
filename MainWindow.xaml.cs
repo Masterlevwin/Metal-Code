@@ -648,8 +648,8 @@ namespace Metal_Code
                     List<Offer>? offers = _man?.Offers.ToList();        //сначала получаем все расчеты менеджера
 
                     //затем ищем все КП согласно введенному номеру расчета или названию компании
-                    if (Search.Text is not null && Search.Text != "") offers = offers?.Where(o => (o.N is not null && o.N.Contains(Search.Text))
-                                                                                    || (o.Company is not null && o.Company.Contains(Search.Text))).ToList();
+                    if (Search.Text is not null && Search.Text != "") offers = offers?.Where(o => (o.N is not null && o.N.ToLower().Contains(Search.Text.ToLower()))
+                                                                                    || (o.Company is not null && o.Company.ToLower().Contains(Search.Text.ToLower()))).ToList();
                     //наконец, выполняем выборку расчетов по дате или диапазону
                     if (Start.SelectedDate != null) offers = offers?.Where(o => o.CreatedDate >= Start.SelectedDate).ToList();
                     if (End.SelectedDate != null) offers = offers?.Where(o => o.CreatedDate <= End.SelectedDate).ToList();
