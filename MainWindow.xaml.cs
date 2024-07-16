@@ -3359,7 +3359,7 @@ namespace Metal_Code
 
         public bool CheckVersion(out string _version)
         {
-            if (!File.Exists(connections[9]))
+            if (!File.Exists(connections[9] + "\\version.txt"))
             {
                 _version = $"{version}, без подключения к серверу.";
                 return true;
