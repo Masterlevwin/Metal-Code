@@ -39,16 +39,16 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {
-            "Data Source=managers.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
-            "Data Source=typedetails.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
-            "Data Source=works.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
-            "Data Source=metals.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\bin\\Release\\net7.0-windows",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы"
+            //"Data Source=managers.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
+            //"Data Source=typedetails.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
+            //"Data Source=works.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
+            //"Data Source=metals.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
+            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\bin\\Release\\net7.0-windows",
+            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы"                            //рабочий комп
 
             //"Data Source=managers.db",
             //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
@@ -59,18 +59,18 @@ namespace Metal_Code
             //"Data Source=metals.db",
             //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
             //$"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows",
-            //$"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows"
+            //$"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows"                                                     //домашний комп
 
-            //"Data Source=managers.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
-            //"Data Source=typedetails.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
-            //"Data Source=works.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
-            //"Data Source=metals.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
-            //$"Y:\\Производство\\Laser rezka\\В работу",
-            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"
+            "Data Source=managers.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            "Data Source=typedetails.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            "Data Source=works.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            "Data Source=metals.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
+            $"Y:\\Производство\\Laser rezka\\В работу",
+            $"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"                        //прод
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -89,8 +89,8 @@ namespace Metal_Code
             InitializeComponent();
             M = this;
 
-            //if (!CheckVersion(out string _version)) Restart();
-            //UpdateDatabases();
+            if (!CheckVersion(out string _version)) Restart();
+            UpdateDatabases();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -3360,6 +3360,12 @@ namespace Metal_Code
 
         public bool CheckVersion(out string _version)
         {
+            if (!File.Exists(connections[9]))
+            {
+                _version = string.Empty;
+                return true;
+            }
+
             FileInfo serverVersionFile = new(connections[9] + "\\version.txt");
             FileInfo localVersionFile = new(Directory.GetCurrentDirectory() + "\\version.txt");
 
