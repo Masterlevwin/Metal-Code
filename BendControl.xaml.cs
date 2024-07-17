@@ -3,9 +3,9 @@ using System.Runtime.CompilerServices;
 using System.Windows.Controls;
 using System.Collections.Generic;
 using System.Linq;
-using System;
 using System.Windows;
-using System.Diagnostics;
+using System.Text.RegularExpressions;
+using System.Windows.Media;
 
 namespace Metal_Code
 {
@@ -219,6 +219,7 @@ namespace Metal_Code
         public void SetShelf(int ndx = 0)
         {
             ShelfDrop.SelectedIndex = ndx;
+            ValidateForce();
             OnPriceChanged();
         }
 
@@ -329,6 +330,117 @@ namespace Metal_Code
                 {
                     SetBend(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
                     SetShelf((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));
+                }
+            }
+        }
+
+        //матрица гибов
+        public Dictionary<float, Dictionary<int, int>> MatrixDict = new()
+        {
+            [0.7f] = new Dictionary<int, int>
+            {
+                [6] = 3,
+                [8] = 2,
+            },
+            [0.8f] = new Dictionary<int, int>
+            {
+                [6] = 7,
+                [8] = 5,
+                [10] = 4,
+            },
+            [1] = new Dictionary<int, int>
+            {
+                [6] = 11,
+                [8] = 8,
+                [10] = 6,
+                [13] = 5
+            },
+            [1.2f] = new Dictionary<int, int>
+            {
+                [6] = 18,
+                [8] = 12,
+                [10] = 9,
+                [13] = 7,
+                [16] = 5
+            },
+            [1.5f] = new Dictionary<int, int>
+            {
+                [8] = 21,
+                [10] = 15,
+                [13] = 12,
+                [16] = 8
+            },
+            [2] = new Dictionary<int, int>
+            {
+                [10] = 30,
+                [13] = 23,
+                [16] = 16,
+                [22] = 9
+            },
+            [2.5f] = new Dictionary<int, int>
+            {
+                [13] = 39,
+                [16] = 27,
+                [22] = 14,
+                [35] = 11
+            },
+            [3] = new Dictionary<int, int>
+            {
+                [16] = 43,
+                [22] = 23,
+                [35] = 16
+            },
+            [4] = new Dictionary<int, int>
+            {
+                [22] = 44,
+                [35] = 32,
+                [50] = 18
+            },
+            [5] = new Dictionary<int, int>
+            {
+                [22] = 76,
+                [35] = 54,
+                [50] = 29
+            },
+            [6] = new Dictionary<int, int>
+            {
+                [35] = 85,
+                [50] = 45
+            },
+            [8] = new Dictionary<int, int>
+            {
+                [50] = 88
+            },
+            [10] = new Dictionary<int, int>
+            {
+                [50] = 151
+            },
+        };
+
+        private void ValidateForce()        //метод, в котором проверяется возможность гибки
+        {
+            if (owner is not PartControl p || !MatrixDict.ContainsKey(p.work.type.S)) return;
+
+            Regex shelf = new(@"((\d+\.?\d*)|(\.\d+))");
+
+            List<Match> matches = shelf.Matches($"{ShelfDrop.SelectedItem}").ToList();
+
+            if (matches.Count > 0)
+            {
+                float _shelf = MainWindow.Parser($"{matches[^1]}");             //максимальная длина гиба выбранного диапазона
+
+                int force = MatrixDict[p.work.type.S].Keys.ToArray()[0];        //максимальное усилие гибочного станка
+
+                if (_shelf * force >= 100)                                      //100 тонн - максимальное давление станка
+                {
+                    ShelfDrop.BorderBrush = new SolidColorBrush(Colors.Red);
+                    ShelfDrop.BorderThickness = new Thickness(2);
+                    MainWindow.M.StatusBegin($"Возможно мы не согнём некоторые детали. Уточните возможность гибки у специалиста!");
+                }
+                else
+                {
+                    ShelfDrop.BorderBrush = new SolidColorBrush(Colors.Gray);
+                    ShelfDrop.BorderThickness = new Thickness(1);
                 }
             }
         }
