@@ -430,7 +430,9 @@ namespace Metal_Code
             {
                 float _shelf = MainWindow.Parser($"{matches[^1]}");             //максимальная длина гиба выбранного диапазона
 
-                int force = MatrixDict[p.work.type.S].Keys.ToArray()[0];        //максимальное усилие гибочного станка
+                int force = MatrixDict[p.work.type.S][MatrixDict[p.work.type.S].Keys.ToArray()[0]];     //максимальное усилие гибочного станка
+
+                //MainWindow.M.StatusBegin($"{_shelf} * {force}");
 
                 if (_shelf * force >= 100)                                      //100 тонн - максимальное давление станка
                 {
