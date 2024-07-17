@@ -7,8 +7,15 @@
              mc:Ignorable="d" 
              d:DesignHeight="30" d:DesignWidth="140" VerticalAlignment="Top">
     <Grid>
-        <TextBlock HorizontalAlignment="Left" Margin="6,-3,0,0" Text="В" VerticalAlignment="Top" FontWeight="Bold"/>
         <TextBlock Text="{Binding Side, RelativeSource={RelativeSource AncestorType={x:Type local:RollingControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="30,0,0,0" VerticalAlignment="Top"/>
         <ComboBox x:Name="TypeDrop" SelectionChanged="SetType" HorizontalAlignment="Left" Margin="65,0,0,0" VerticalAlignment="Top" Height="20" MinHeight="20" MaxHeight="20" MinWidth="75" MaxWidth="75" ToolTip="Выберите сторону вальцовки" SelectedIndex="0"/>
+        <TextBlock HorizontalAlignment="Left" Margin="6,-3,0,0" Text="В" VerticalAlignment="Top" FontWeight="Bold" MouseWheel="ShowManual"/>
+        
+        <Popup x:Name="PopupRoll" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5" Placement="Mouse">
+            <StackPanel Background="Snow">
+                <TextBlock x:Name="Manual" Padding="3" TextAlignment="Center"/>
+            </StackPanel>
+        </Popup>
+
     </Grid>
 </UserControl>

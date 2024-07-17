@@ -9,6 +9,13 @@
     <Grid x:Name="BendGrid">
         <TextBox Text="{Binding Bend, RelativeSource={RelativeSource AncestorType={x:Type local:BendControl}, Mode=FindAncestor}}" TextChanged="SetBend" HorizontalAlignment="Left" Margin="30,0,0,0" VerticalAlignment="Top" MinHeight="20" MaxHeight="20" MaxWidth="35" MinWidth="35" ToolTip="Введите количество однотипных гибов" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="2"/>
         <ComboBox x:Name="ShelfDrop" SelectionChanged="SetShelf" HorizontalAlignment="Left" Margin="70,0,0,0" VerticalAlignment="Top" Height="20" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" SelectedIndex="0" ToolTip="Выберите длину гиба"/>
-        <TextBlock Text="Г" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6,-3,0,0" MinWidth="10" MinHeight="10" FontWeight="Bold"/>
+        <TextBlock Text="Г" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6,-3,0,0" MinWidth="10" MinHeight="10" FontWeight="Bold" MouseWheel="ShowManual"/>
+        
+        <Popup x:Name="PopupBend" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5" Placement="Mouse">
+            <StackPanel Background="Snow">
+                <TextBlock x:Name="Manual" Padding="3" TextAlignment="Center"/>
+            </StackPanel>
+        </Popup>
+
     </Grid>
 </UserControl>

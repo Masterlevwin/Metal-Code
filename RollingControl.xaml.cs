@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace Metal_Code
 {
@@ -201,6 +200,17 @@ namespace Metal_Code
                     SetType((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]));
                 }
             }
+        }
+
+        private void ShowManual(object sender, MouseWheelEventArgs e)
+        {
+            PopupRoll.IsOpen = true;
+            Manual.Text = $"Максимальная толщина – 2,5 мм." +
+                $"\r\nМинимальный диаметр – 150 мм." +
+                $"\r\nМаксимальный размер вальцуемой стороны – 1200 мм." +
+                $"\r\nВальцовка в кольцо сопровождается сваркой прихватками – по умолчанию." +
+                $"\r\nЕсли требуется сварка сплошным швом – добавлять сварку в расчете." +
+                $"\r\nПо требованию производства – создать шаблон на лазер.";
         }
     }
 }

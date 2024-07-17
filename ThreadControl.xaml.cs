@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace Metal_Code
 {
@@ -249,5 +248,12 @@ namespace Metal_Code
             }
         }
 
+        private void ShowManual(object sender, MouseWheelEventArgs e)
+        {
+            PopupThread.IsOpen = true;
+            if (CharName == 'З') Manual.Text = $"Проверить развертки деталей на предмет выявления стороны," +
+                $"\r\nв которой будет осуществлена зенковка." +
+                $"\r\nДиаметр вырезаемых отверстий должен быть меньше диаметра зенковки.";
+        }
     }
 }
