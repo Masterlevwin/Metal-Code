@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" Height="900" Width="900" WindowStartupLocation="CenterScreen" FontFamily="Century">
+        mc:Ignorable="d" FontFamily="Century" WindowStartupLocation="CenterScreen">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition/>
@@ -24,7 +24,6 @@
                     <TextBlock Text="Материал" HorizontalAlignment="Left" Margin="525,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
                     <TextBlock Text="Работа" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="745,5,0,0" Panel.ZIndex="1"/>
                     <TextBlock Text="Коэф" ToolTip="Наценка или скидка на услуги" HorizontalAlignment="Left" Margin="985,5,0,0" VerticalAlignment="Top" Width="30" Panel.ZIndex="1"/>
-                    <TextBlock Text="Время" ToolTip="Продолжительность, мин" HorizontalAlignment="Left" Margin="1110,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
                     <StackPanel x:Name="DetailsStack"/>
                 </Grid>
             </ScrollViewer>
