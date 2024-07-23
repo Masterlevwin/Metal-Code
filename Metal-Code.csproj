@@ -16,6 +16,7 @@
     <None Remove="Images\add.png" />
     <None Remove="Images\complect.png" />
     <None Remove="Images\complect2.png" />
+    <None Remove="Images\convert.png" />
     <None Remove="Images\del.png" />
     <None Remove="Images\edit.png" />
     <None Remove="Images\exampe1.png" />
@@ -54,6 +55,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aspose.CAD" Version="24.6.0" />
     <PackageReference Include="EPPlus" Version="7.0.0" />
     <PackageReference Include="ExcelDataReader" Version="3.6.0" />
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.6.0" />
@@ -71,6 +73,7 @@
     <Resource Include="Images\add.png" />
     <Resource Include="Images\complect.png" />
     <Resource Include="Images\complect2.png" />
+    <Resource Include="Images\convert.png" />
     <Resource Include="Images\del.png" />
     <Resource Include="Images\edit.png" />
     <Resource Include="Images\exampe1.png" />

@@ -22,7 +22,7 @@ using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using Path = System.IO.Path;
 using System.Text.RegularExpressions;
-using System.Threading;
+using Aspose.CAD.FileFormats.Cad;
 
 namespace Metal_Code
 {
@@ -1131,6 +1131,7 @@ namespace Metal_Code
         public enum ActionState         //условия окончания работы фонового процесса
         {
             none,                       //по умолчанию
+            convert,                    //конвертация файлов dwg в dxf
             refresh,                    //получение расчетов из основной базы
             insert,                     //отправка расчетов в основную базу
             restartBases,               //перезапуск программы при обновлении баз
@@ -1151,6 +1152,11 @@ namespace Metal_Code
 
             switch (State)
             {
+                case ActionState.convert:
+                    StatusBegin($"Подождите, идет конвертация файлов dwg в dxf...");
+                    ConvertBtn.Content = "...";
+                    ConvertBtn.IsEnabled = false;
+                    break;
                 case ActionState.refresh:
                     StatusBegin($"Подождите, идет получение расчетов из основной базы...");
                     RefreshTb.Text = "Получение...";
@@ -1200,6 +1206,12 @@ namespace Metal_Code
         {
             switch (State)
             {
+                case ActionState.convert:
+                    StatusBegin($"{e.Result}");
+                    ConvertBtn.IsEnabled = true;
+                    ConvertBtn.Content = "Конвертер";
+                    InsertProgressBar.Visibility = Visibility.Collapsed;
+                    break;
                 case ActionState.refresh:
                     StatusBegin($"{e.Result}");
                     RefreshBtn.IsEnabled = true;
@@ -3167,6 +3179,39 @@ namespace Metal_Code
             Status.Background.BeginAnimation(SolidColorBrush.ColorProperty, animation);
         }
 
+
+        //метод запуска процесса конвертации файлов dwg в dxf
+        public string[]? fileNames;
+        private void Convert_dwg_to_dxf(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new()
+            {
+                Multiselect = true,
+                Filter = "DWG-File (*.dwg)|*.dwg|All files (*.*)|*.*"
+            };
+            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames != null)
+            {
+                fileNames = openFileDialog.FileNames;
+                CreateWorker(Convert_dwg_to_dxf, ActionState.convert);
+            }
+        }
+        public string Convert_dwg_to_dxf(Manager man)
+        {
+            try
+            {
+                if (fileNames?.Length > 0)
+                    foreach (string _name in fileNames)
+                    {
+                        using var cadImage = (CadImage)Aspose.CAD.Image.Load(_name);
+                        cadImage.Save(Path.GetDirectoryName(_name) + "\\" + Path.GetFileNameWithoutExtension(_name) + ".dxf");
+                    }
+            }
+            catch (Exception ex) { return $"Произошла ошибка конвертации: {ex.Message}"; }
+
+            return $"Файлы в количестве {fileNames?.Length} шт  успешно конвертированы";
+        }
+
+
         private void SetAllMetal(object sender, RoutedEventArgs e)
         {
             if (sender is CheckBox cBox)
@@ -3357,7 +3402,7 @@ namespace Metal_Code
             Environment.Exit(0);
         }
 
-        public bool CheckVersion(out string _version)
+        public bool CheckVersion(out string _version)                   //метод проверки версии приложения
         {
             if (!File.Exists(connections[9] + "\\version.txt"))
             {
@@ -3413,7 +3458,7 @@ namespace Metal_Code
             StatusBegin($"Лазер: {Math.Round((decimal)timeLaser / 60 / 12)} дней; Гибка: {Math.Round((decimal)timeBend / 60 / 12)} дней; Кол-во папок в работе - {dirs.Length}");
         }
 
-        private void OpenOffer(object sender, RoutedEventArgs e)
+        private void OpenOffer(object sender, RoutedEventArgs e)        //метод загрузки расчета в режиме чтения
         {
             if (OffersGrid.SelectedItem is not Offer offer) return;
             if (offer.Data != null)
