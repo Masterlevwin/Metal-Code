@@ -2281,7 +2281,7 @@ namespace Metal_Code
             extable.Copy(scoresheet.Cells["A2"]);       //копируем список деталей из КП в файл для счета
 
             scoresheet.Cells["A1"].Value = "Наименование";
-            scoresheet.Cells["B1"].Value = "Кол-во";
+            scoresheet.Cells["B1"].Value = "Количество";
             scoresheet.Cells["C1"].Value = "Цена";
             scoresheet.Cells["D1"].Value = "Цена";
             scoresheet.Cells["E1"].Value = "Ед. изм.";
