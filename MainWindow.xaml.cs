@@ -22,7 +22,8 @@ using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using Path = System.IO.Path;
 using System.Text.RegularExpressions;
-using Aspose.CAD.FileFormats.Cad;
+using ACadSharp.IO;
+using ACadSharp;
 
 namespace Metal_Code
 {
@@ -659,7 +660,11 @@ namespace Metal_Code
                         StatusBegin($"Расчетов по выбранным параметрам не найдено");
                         return;
                     }
-                    else ViewOffersGrid(man, offers);
+                    else
+                    {
+                        StatusBegin($"Найдено {offers.Count} расчетов");
+                        ViewOffersGrid(man, offers);
+                    }
                 }
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }
@@ -667,6 +672,8 @@ namespace Metal_Code
 
         private void ResetDates(object sender, RoutedEventArgs e)           //метод сброса дат на начало текущего месяца до начала дня
         {
+            Search.Text = "";
+
             DateTime date = DateTime.UtcNow;
             Start.SelectedDate = new DateTime(date.Year, date.Month, 1);
 
@@ -3202,13 +3209,18 @@ namespace Metal_Code
                 if (fileNames?.Length > 0)
                     foreach (string _name in fileNames)
                     {
-                        using var cadImage = (CadImage)Aspose.CAD.Image.Load(_name);
-                        cadImage.Save(Path.GetDirectoryName(_name) + "\\" + Path.GetFileNameWithoutExtension(_name) + ".dxf");
+                        CadDocument doc;
+
+                        using DwgReader reader = new(_name);
+                        doc = reader.Read();
+
+                        using DxfWriter writer = new(Path.GetDirectoryName(_name) + "\\" + Path.GetFileNameWithoutExtension(_name) + ".dxf", doc, false);
+                        writer.Write();
                     }
             }
             catch (Exception ex) { return $"Произошла ошибка конвертации: {ex.Message}"; }
 
-            return $"Файлы в количестве {fileNames?.Length} шт  успешно конвертированы";
+            return $"Файлы в количестве {fileNames?.Length} шт успешно конвертированы";
         }
 
 

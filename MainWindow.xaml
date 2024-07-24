@@ -217,7 +217,7 @@
                             <StackPanel Orientation="Horizontal">
                                 <Button Content="..." ToolTip="Выбрать файлы" Command="{Binding RenameCommand}" HorizontalAlignment="Left" MinWidth="40"/>
                                 <TextBox x:Name="Rename" ToolTip="Введите строку, она будет в конце имени выбранных файлов" Margin="10,0,0,0" Width="105" MinWidth="200" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                                <Button x:Name="ConvertBtn" Content="Конвертер" ToolTip="Выбрать файлы" Margin="10,0,0,0" HorizontalAlignment="Left" MinWidth="40" Click="Convert_dwg_to_dxf"/>
+                                <Button x:Name="ConvertBtn" Content="Конвертер" ToolTip="Выбрать файлы для конвертации" Margin="10,0,0,0" HorizontalAlignment="Left" MinWidth="40" Click="Convert_dwg_to_dxf"/>
                             </StackPanel>
                         </GroupBox>
 
