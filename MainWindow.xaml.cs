@@ -2222,7 +2222,7 @@ namespace Metal_Code
 
                     if (key.Contains("Окраска"))
                     {
-                        if (statsheet.Cells[temp, 3].Value != null && !$"{statsheet.Cells[temp, 3].Value}".Contains("Окраска"))
+                        if (!$"{statsheet.Cells[temp, 3].Value}".Contains("Окраска"))
                             statsheet.Cells[temp, 3].Value += $"{key.Remove(7)} ";
 
                         int _count = 0;
@@ -2239,7 +2239,6 @@ namespace Metal_Code
                             }
                         }
 
-                        //statsheet.Cells[temp, 4].Value = _count;
                         statsheet.Cells[temp, 17].Value += $"{key[14..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
                     }
                     else statsheet.Cells[temp, 3].Value += $"{key} ";                                           //"Наименование изделия / вид работы"
