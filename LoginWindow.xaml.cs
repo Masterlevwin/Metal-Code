@@ -60,6 +60,11 @@ namespace Metal_Code
                 }
                 else MessageBox.Show("Неправильный пароль. Попробуйте еще раз.");
             }
+            else if (MainWindow.M.Managers.Count == 0)
+            {
+                MessageBox.Show("Добавьте пользователя в базу менеджеров,\nили обратитесь к администратору.");
+                DialogResult = true;
+            }
             else MessageBox.Show("Пользователь с таким именем не найден.");
         }
 

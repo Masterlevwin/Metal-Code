@@ -298,8 +298,8 @@ namespace Metal_Code
         public ManagerContext(string connectionString)
         {
             this.connectionString = connectionString;   // получаем извне строку подключения
-            //Database.EnsureCreated();                   // гарантируем, что база данных создана
-            Database.Migrate();                         //вместо создания базы используем миграции
+            Database.EnsureCreated();                   // гарантируем, что база данных создана
+            //Database.Migrate();                         //вместо создания базы используем миграции
             Database.SetCommandTimeout(9000);
         }
 
