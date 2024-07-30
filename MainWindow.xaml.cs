@@ -286,14 +286,14 @@ namespace Metal_Code
                 isLaser = value;
                 if (IsLaser)
                 {
-                    Boss.Text = $"ООО ЛАЗЕРФЛЕКС  ";
+                    Boss.Text = $"ЛАЗЕРФЛЕКС  ";
                     Phone.Text = "тел:(812)509-60-11";
                     LaserRadioButton.IsChecked = true;
                     ThemeChange("laserTheme"); 
                 }
                 else
                 {
-                    Boss.Text = $"ООО ПРОВЭЛД  ";
+                    Boss.Text = $"ПРОВЭЛД  ";
                     Phone.Text = "тел:(812)603-45-33";
                     AppRadioButton.IsChecked = true;
                     ThemeChange("appTheme");
