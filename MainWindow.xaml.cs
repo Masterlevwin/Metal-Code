@@ -41,15 +41,15 @@ namespace Metal_Code
         public readonly string[] connections =
         {
             "Data Source=managers.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\managers.db",
             "Data Source=typedetails.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\typedetails.db",
             "Data Source=works.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\works.db",
             "Data Source=metals.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\bin\\Release\\net7.0-windows",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы"                            //рабочий комп
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\metals.db",
+            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые",
+            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые"                                          //рабочий комп
 
             //"Data Source=managers.db",
             //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
@@ -91,7 +91,7 @@ namespace Metal_Code
             M = this;
 
             if (!CheckVersion(out string _version)) Restart();
-            UpdateDatabases();
+            //UpdateDatabases();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -708,7 +708,7 @@ namespace Metal_Code
                         foreach (Offer offer in _man.Offers)
                         {
                             //проверяем наличие идентичного КП в локальной базе, и если такое уже есть, пропускаем копирование
-                            Offer? tempOffer = _manLocal?.Offers.Where(o => o.Data == offer.Data).FirstOrDefault();
+                            Offer? tempOffer = _manLocal?.Offers.FirstOrDefault(o => o.CreatedDate == offer.CreatedDate);
                             if (tempOffer != null) continue;
 
                             //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
@@ -725,7 +725,7 @@ namespace Metal_Code
                                 Data = offer.Data
                             };
 
-                            dbLocal.Offers.Add(_offer);     //переносим расчет в базу этого менеджера
+                            _manLocal?.Offers.Add(_offer);  //переносим расчет в базу этого менеджера
                             count++;
                         }
                     dbLocal.SaveChanges();                  //сохраняем изменения в локальной базе данных
@@ -754,15 +754,13 @@ namespace Metal_Code
                     if (TempOffersDict.TryGetValue(2, out List<Offer>? changeList) && changeList.Count > 0)
                         foreach (Offer offer in changeList)
                         {
-                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.CreatedDate == offer.CreatedDate);
                             if (tempOffer != null)
                             {
                                 tempOffer.Agent = offer.Agent;
                                 db.Entry(tempOffer).Property(o => o.Agent).IsModified = true;
                                 tempOffer.Invoice = offer.Invoice;
                                 db.Entry(tempOffer).Property(o => o.Invoice).IsModified = true;
-                                tempOffer.CreatedDate = offer.CreatedDate;
-                                db.Entry(tempOffer).Property(o => o.CreatedDate).IsModified = true;
                                 tempOffer.Order = offer.Order;
                                 db.Entry(tempOffer).Property(o => o.Order).IsModified = true;
                                 countChange++;
@@ -773,7 +771,7 @@ namespace Metal_Code
                     if (TempOffersDict.TryGetValue(1, out List<Offer>? removeList) && removeList.Count > 0)
                         foreach (Offer offer in removeList)
                         {
-                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.CreatedDate == offer.CreatedDate);
                             if (tempOffer != null)
                             {
                                 db.Offers.Remove(tempOffer);
@@ -786,11 +784,7 @@ namespace Metal_Code
                         foreach (Offer offer in addList)
                         {
                             //ищем менеджера по имени соответствующего выбранному, при этом загружаем его расчеты
-                            Manager? _man = db.Managers.Where(m => m == offer.Manager).Include(c => c.Offers).FirstOrDefault();
-
-                            //проверяем наличие идентичного КП в основной базе, если такое уже есть, пропускаем копирование
-                            Offer? tempOffer = _man?.Offers.FirstOrDefault(o => o.Data == offer.Data);
-                            if (tempOffer != null) continue;
+                            Manager? _man = db.Managers.FirstOrDefault(m => m == offer.Manager);
 
                             //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
                             Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
@@ -833,7 +827,7 @@ namespace Metal_Code
                 try
                 {
                     //ищем менеджера в базе по имени соответствующего выбранному, при этом загружаем его расчеты
-                    Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
+                    Manager? _man = db.Managers.FirstOrDefault(m => m.Id == man.Id);
 
                     if (isSave)     //если метод запущен с параметром true, то есть в режиме сохранения
                     {
@@ -853,7 +847,7 @@ namespace Metal_Code
 
                         _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
                         ActiveOffer = _offer;
-                        StatusBegin($"Расчет {_offer.N} сохранен. В базе {_man?.Name} теперь {_man?.Offers.Count} расчетов.");
+                        StatusBegin($"Расчет {_offer.N} {_offer.Company} сохранен.");
                     }
                     else            //если метод запущен с параметром false, то есть в режиме удаления
                     {
@@ -874,7 +868,7 @@ namespace Metal_Code
                                 }
 
                                 _man?.Offers.Remove(_offer);                    //если находим, то удаляем его из базы
-                                StatusBegin($"Расчет {_offer.N} удален. В базе {_man?.Name} теперь {_man?.Offers.Count} расчетов.");
+                                StatusBegin($"Расчет {_offer.N} {_offer.Company} удален.");
 
                                 DataGridRow row = (DataGridRow)OffersGrid.ItemContainerGenerator.ContainerFromIndex(OffersGrid.SelectedIndex);
                                 SolidColorBrush _deleteBrush = new(Colors.Gray);
@@ -924,12 +918,11 @@ namespace Metal_Code
                         {
                             if (TempOffersDict.TryGetValue(0, out List<Offer>? addList))
                             {
-                                Offer? off = addList.FirstOrDefault(o => o.Data == offer.Data);
+                                Offer? off = addList.FirstOrDefault(o => o.CreatedDate == offer.CreatedDate);
                                 if (off != null)
                                 {
                                     off.Agent = offer.Agent;
                                     off.Invoice = offer.Invoice;
-                                    off.CreatedDate = offer.CreatedDate;
                                     off.Order = offer.Order;
                                 }
                             }
@@ -939,7 +932,7 @@ namespace Metal_Code
                         db.SaveChanges();                                               //сохраняем изменения в базе данных
                         StatusBegin("Изменения в базе сохранены");
 
-                        if (ActiveOffer?.Data == _offer.Data && Parts.Count > 0) CreateComplect(connections[8], _offer);    //создаем файл комплектации
+                        if (ActiveOffer?.CreatedDate == _offer.CreatedDate && Parts.Count > 0) CreateComplect(connections[8], _offer);    //создаем файл комплектации
                     }
                 }
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
