@@ -19,7 +19,7 @@ namespace Metal_Code
         {
             string login = LoginText.Text;
             string password = PasswordText.Password;
-            bool isRemember = IsRemember.IsChecked is not null;
+            bool isRemember = (bool)IsRemember.IsChecked;
 
             using ManagerContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[0] : MainWindow.M.connections[1]);
             db.Managers.Load();

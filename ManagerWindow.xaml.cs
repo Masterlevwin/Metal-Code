@@ -51,7 +51,7 @@ namespace Metal_Code
         // редактирование
         private void Edit_DoubleClick(object sender, MouseButtonEventArgs e)
         {
-            if (sender is not ListBox list) return;
+            if (sender is not ListBox list || !MainWindow.M.CurrentManager.IsAdmin) return;
 
             // получаем выделенный объект
             Manager? manager = list.SelectedItem as Manager;

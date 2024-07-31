@@ -91,7 +91,7 @@ namespace Metal_Code
             M = this;
 
             if (!CheckVersion(out string _version)) Restart();
-            UpdateDatabases();
+            //UpdateDatabases();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
