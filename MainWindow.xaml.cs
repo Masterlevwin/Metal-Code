@@ -1381,7 +1381,7 @@ namespace Metal_Code
                 {
                     TypeDetailControl type = det.TypeDetailControls[j];
                     SaveTypeDetail _typeDetail = new(type.TypeDetailDrop.SelectedIndex, type.Count, type.MetalDrop.SelectedIndex, type.HasMetal,
-                        (type.SortDrop.SelectedIndex, type.A, type.B, type.S, type.L), type.ExtraResult);
+                        (type.SortDrop.SelectedIndex, type.A, type.B, type.S, type.L), type.ExtraResult, type.Comment);
 
                     //с помощью повторения символа переноса строки визуализируем дерево деталей и работ
                     if (type.MetalDrop.SelectedItem is Metal _metal)
@@ -1559,6 +1559,7 @@ namespace Metal_Code
                     _type.L = details[i].TypeDetails[j].Tuple.Item5;
                     _type.HasMetal = details[i].TypeDetails[j].HasMetal;
                     _type.ExtraResult = details[i].TypeDetails[j].ExtraResult;
+                    _type.SetComment(details[i].TypeDetails[j].Comment);
 
                     for (int k = 0; k < details[i].TypeDetails[j].Works.Count; k++)
                     {
@@ -2062,7 +2063,9 @@ namespace Metal_Code
                     statsheet.Cells[i + temp, 3].Value = ShortManager();    //"Менеджер"
 
                     if (HasDelivery) statsheet.Cells[i + temp, 8].Value = "Доставка ";
+
                     if (type.CheckMetal.IsChecked == false) statsheet.Cells[i + temp, 10].Value = "Давальч ";
+                    if (type.Comment != null && type.Comment != "") statsheet.Cells[i + temp, 10].Value += $"{type.Comment}";       //Комментарий
 
                     statsheet.Cells[i + temp, 11].Value = EndDate();        //"Дата сдачи"
                     statsheet.Cells[i + temp, 11].Style.Numberformat.Format = "d MMM";

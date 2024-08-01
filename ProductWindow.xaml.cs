@@ -56,6 +56,7 @@ namespace Metal_Code
                     _type.L = details[i].TypeDetails[j].Tuple.Item5;
                     _type.HasMetal = details[i].TypeDetails[j].HasMetal;
                     _type.ExtraResult = details[i].TypeDetails[j].ExtraResult;
+                    _type.SetComment(details[i].TypeDetails[j].Comment);
 
                     for (int k = 0; k < details[i].TypeDetails[j].Works.Count; k++)
                     {

@@ -98,8 +98,11 @@ namespace Metal_Code
         public (int, float, float, float, float) Tuple { get; set; }
         public float ExtraResult { get; set; }
 
+        [OptionalField]
+        public string? Comment;
+
         public List<SaveWork> Works = new();
-        public SaveTypeDetail(int _index = 0, int _count = 0, int _metal = 0, bool _hasMetal = true, (int, float, float, float, float) _tuple = default, float _extraResult = 0)
+        public SaveTypeDetail(int _index = 0, int _count = 0, int _metal = 0, bool _hasMetal = true, (int, float, float, float, float) _tuple = default, float _extraResult = 0, string? _comment = null)
         {
             Index = _index;
             Count = _count;
@@ -107,6 +110,7 @@ namespace Metal_Code
             HasMetal = _hasMetal;
             Tuple = _tuple;
             ExtraResult = _extraResult;
+            Comment = _comment;
         }
     }
     

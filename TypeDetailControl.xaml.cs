@@ -4,8 +4,6 @@ using System.Windows;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System;
-using System.Diagnostics;
-using System.Windows.Media;
 using System.Runtime.Serialization;
 using System.Linq;
 
@@ -165,6 +163,20 @@ namespace Metal_Code
             }
         }
 
+        private string? comment;
+        public string? Comment
+        {
+            get => comment;
+            set
+            {
+                if (value != comment)
+                {
+                    comment = value;
+                    OnPropertyChanged(nameof(Comment));
+                }
+            }
+        }
+
         public readonly DetailControl det;
         public List<WorkControl> WorkControls = new();
 
@@ -202,20 +214,6 @@ namespace Metal_Code
             det.BilletsStack.Children.Remove(this);
         }
 
-        //public void UpdatePosition(bool direction)
-        //{
-        //    int numT = det.TypeDetailControls.IndexOf(this);
-        //    if (det.TypeDetailControls.Count > 1)
-        //    {
-        //        for (int i = numT + 1; i < det.TypeDetailControls.Count; i++)
-        //        {
-        //            det.TypeDetailControls[i].Margin = new Thickness(0,
-        //                direction ? det.TypeDetailControls[i].Margin.Top + 30 : det.TypeDetailControls[i].Margin.Top - 30, 0, 0);
-        //        }
-        //    }
-        //    det.UpdatePosition(direction);
-        //}
-
         public delegate void Changed();
         public event Changed? Priced;
         private void SetCount(object sender, TextChangedEventArgs e)
@@ -237,6 +235,17 @@ namespace Metal_Code
             ExtraResult = extra;
             PriceChanged();
         }
+
+        private void SetComment(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox box) SetComment(box.Text);
+        }
+        public void SetComment(string? _comment)
+        {
+            Comment = _comment;
+            if (Comment != null && Comment != "" && ExpanderComment.IsExpanded == false) ExpanderComment.IsExpanded = true;
+        }
+
 
         public Dictionary<string, (string, string)> Kinds = new();
 

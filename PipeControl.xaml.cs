@@ -1,5 +1,4 @@
 ﻿using ExcelDataReader;
-using Microsoft.Win32;
 using OfficeOpenXml.Drawing;
 using OfficeOpenXml;
 using System;
@@ -13,7 +12,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
-using System.Drawing;
 
 
 namespace Metal_Code
@@ -360,7 +358,7 @@ namespace Metal_Code
 
                 string _tube = $"{tables[0].Rows[1].ItemArray[1]}";
 
-                Regex rect = new(@"[+-]?((\d+\.?\d*)|(\.\d+))");
+                Regex rect = new(@"[+-]?((\d+\,?\d*)|(\,\d+))|((\d+\.?\d*)|(\.\d+))");
 
                 List<Match> matchesTube = rect.Matches(_tube).ToList();
 
@@ -643,7 +641,7 @@ namespace Metal_Code
                     {
                         string _tube = $"{tables[0].Rows[i + 1].ItemArray[1]}";
 
-                        Regex rect = new(@"[+-]?((\d+\.?\d*)|(\.\d+))");
+                        Regex rect = new(@"[+-]?((\d+\,?\d*)|(\,\d+))|((\d+\.?\d*)|(\.\d+))");
 
                         List<Match> matches = rect.Matches(_tube).ToList();
 
