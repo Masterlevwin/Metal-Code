@@ -2064,7 +2064,7 @@ namespace Metal_Code
 
                     if (HasDelivery) statsheet.Cells[i + temp, 8].Value = "Доставка ";
 
-                    if (type.CheckMetal.IsChecked == false) statsheet.Cells[i + temp, 10].Value = "Давальч ";
+                    if (type.CheckMetal.IsChecked == false) statsheet.Cells[i + temp, 10].Value = "Давальч. ";
                     if (type.Comment != null && type.Comment != "") statsheet.Cells[i + temp, 10].Value += $"{type.Comment}";       //Комментарий
 
                     statsheet.Cells[i + temp, 11].Value = EndDate();        //"Дата сдачи"
