@@ -36,7 +36,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.5.3";
+        readonly string version = "2.5.4";
 
         public readonly string[] connections =
         {
@@ -2244,7 +2244,7 @@ namespace Metal_Code
 
                     statsheet.Cells[temp, 4].Value = scoresheet.Cells[Parts.Count + 2, 21].Value;
                     statsheet.Cells[temp, 5].Value = "шт";                                                      //"ед изм."
-                    statsheet.Cells[temp, 6].Value = Boss.Text[4..];                                            //"Подразделение"
+                    statsheet.Cells[temp, 6].Value = Boss.Text;                                                 //"Подразделение"
                     statsheet.Cells[temp, 7].Value = CustomerDrop.Text;                                         //"Компания"
                     statsheet.Cells[temp, 9].Value = ManagerDrop.Text;                                          //"Менеджер"
                     statsheet.Cells[temp, 10].Value = CurrentManager.Name;                                      //"Инженер"
