@@ -7,6 +7,9 @@ using System.Runtime.Serialization.Json;
 using Microsoft.Win32;
 using System.Windows;
 using System.Linq;
+using System.Collections.Generic;
+using ExcelDataReader;
+using System.Data;
 
 namespace Metal_Code
 {
@@ -137,6 +140,87 @@ namespace Metal_Code
                               Product = MainWindow.OpenOfferData(offer.Data);
                               MainWindow.M.LoadProduct();
                               MainWindow.M.StatusBegin($"Расчет {MainWindow.M.ActiveOffer.N} загружен");
+                          }
+                      }
+                      catch (Exception ex)
+                      {
+                          dialogService.ShowMessage(ex.Message);
+                      }
+                  });
+            }
+        }
+
+        // команда загрузки раскладок и отчетов Excel
+        private RelayCommand loadCommand;
+        public RelayCommand LoadCommand
+        {
+            get
+            {
+                return loadCommand ??= new RelayCommand(obj =>
+                  {
+                      try
+                      {
+                          MessageBoxResult response = MessageBox.Show(
+                              "Загрузить раскладки?\nЕсли \"Да\", текущий расчет будет очищен!",
+                              "Загрузка раскладок", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+
+                          if (response == MessageBoxResult.No) return;
+
+                          MainWindow.M.NewProject();        // создаем новый расчет
+
+                          System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
+                          OpenFileDialog openFileDialog = new()
+                          {
+                              Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*",
+                              Multiselect = true
+                          };
+
+                          if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames != null)
+                          {
+                              List<string> _lasers = new(), _tubes = new();
+
+                              foreach (string path in openFileDialog.FileNames)
+                              {
+                                  using FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read);
+                                  using IExcelDataReader reader = ExcelReaderFactory.CreateReader(stream);
+                                  DataSet result = reader.AsDataSet();
+                                  DataTable table = result.Tables[0];
+
+                                  if ($"{table.Rows[0].ItemArray[0]}".Contains("Полный список вакансий")) _lasers.Add(path);
+                                  else _tubes.Add(path);
+                              }
+
+                              if (_lasers.Count > 0)
+                              {
+                                  // устанавливаем "Лазерная резка" в работу по умолчанию
+                                  foreach (Work w in MainWindow.M.Works) if (w.Name == "Лазерная резка")
+                                      {
+                                          MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+                                          break;
+                                      }
+                                  if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is CutControl cut)
+                                      cut.LoadExcel(_lasers.ToArray());
+                              }
+
+                              if (_tubes.Count > 0)
+                              {
+                                  if (_lasers.Count > 0) MainWindow.M.AddDetail();
+
+                                  // устанавливаем "Труба профильная" в заготовке по умолчанию
+                                  foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба профильная")
+                                      {
+                                          MainWindow.M.DetailControls[^1].TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
+                                          foreach (Work w in MainWindow.M.Works) if (w.Name == "Труборез")
+                                              {
+                                                  MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+                                                  break;
+                                              }
+                                          break;
+                                      }
+                                  if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is PipeControl pipe)
+                                      pipe.LoadExcel(_tubes.ToArray());
+                              }
                           }
                       }
                       catch (Exception ex)

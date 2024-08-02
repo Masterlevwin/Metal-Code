@@ -19,7 +19,7 @@
               Command="{Binding SaveCommand}"/>
         <KeyBinding Key="F"
               Modifiers="Control" 
-              Command="{Binding LoadExcelCommand}"/>
+              Command="{Binding LoadCommand}"/>
         <KeyBinding Key="T"
               Modifiers="Control" 
               Command="{Binding LoadTubeCommand}"/>
@@ -87,10 +87,10 @@
             <Button Command="{Binding SaveCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="440,40,0,0" Padding="0" BorderThickness="0" ToolTip="Сохранить расчет" Height="20" Width="20">
                 <Image Source="Images/save.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button Command="{Binding LoadExcelCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="470,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить раскладки" Height="20" Width="20">
+            <Button Command="{Binding LoadCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="470,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить раскладки" Height="20" Width="20">
                 <Image Source="Images/xlsx_load.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button Command="{Binding LoadTubeCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="500,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить отчеты труб" Height="20" Width="20">
+            <Button Command="{Binding LoadTubeCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="500,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить отчеты труб" Height="20" Width="20" IsEnabled="False">
                 <Image Source="Images/xls_load.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
             <Button Command="{Binding UpdateCommand}" VerticalAlignment="Top" Margin="740,40,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" ToolTip="Обновить (F5)" Height="20" Width="20" HorizontalAlignment="Left">
