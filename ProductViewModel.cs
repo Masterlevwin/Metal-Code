@@ -172,7 +172,7 @@ namespace Metal_Code
 
                           OpenFileDialog openFileDialog = new()
                           {
-                              Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*",
+                              Filter = "All files (*.*)|*.*",
                               Multiselect = true
                           };
 
