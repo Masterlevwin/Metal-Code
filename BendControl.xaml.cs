@@ -235,7 +235,7 @@ namespace Metal_Code
                 foreach (PartControl p in Parts)
                     foreach (BendControl item in p.UserControls.OfType<BendControl>())
                     {
-                        float _price = item.Price(item.Bend * p.Part.Count, work, p.Part.Mass);
+                        float _price = item.Price(item.Bend * p.Part.Count, work, p.Part.Mass, p.Square);
 
                         // стоимость данной гибки должна быть не ниже минимальной
                         _price = _price > 0 && _price < _work.Price ? _work.Price : _price;
@@ -248,11 +248,18 @@ namespace Metal_Code
 
                 work.SetResult(price, false);
             }
-            else work.SetResult(Price(Bend * work.type.Count, work, work.type.Mass));
+            else work.SetResult(Price(Bend * work.type.Count, work, work.type.Mass, work.type.Square));
         }
 
-        private float Price(float _count, WorkControl work, float _mass)
+        private float Price(float _count, WorkControl work, float _mass, float _square)
         {
+            float _squareRatio = _square switch             //рассчитываем наценку за площадь детали
+            {
+                <= 0.8f => 1,
+                <= 1.4f => 1.5f,
+                _ => 2,
+            };
+
             float _bendRatio = _count switch
             {
                 <= 10 => 3,
@@ -263,7 +270,7 @@ namespace Metal_Code
             };
 
             return BendDict.ContainsKey(work.type.S) ?
-                _bendRatio * _count * BendDict[work.type.S][$"{ShelfDrop.SelectedItem}"] * MainWindow.MassRatio(_mass) : 0;
+                _bendRatio * _count * BendDict[work.type.S][$"{ShelfDrop.SelectedItem}"] * MainWindow.MassRatio(_mass) * _squareRatio : 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
@@ -302,7 +309,7 @@ namespace Metal_Code
                                 _send = _work.Price * 3 * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
                             else                                                            // иначе добавляем часть от количества именно этой детали
                             {
-                                float _price = Price(Bend * p.Part.Count, p.work, p.Part.Mass);
+                                float _price = Price(Bend * p.Part.Count, p.work, p.Part.Mass, p.Square);
                                 
                                 // стоимость данной гибки должна быть не ниже минимальной
                                 _price = _price > 0 && _price < _work.Price ? _work.Price * _w.Ratio * _w.TechRatio : _price * _w.Ratio * _w.TechRatio;
