@@ -3132,6 +3132,64 @@ namespace Metal_Code
         }
 
 
+        //---Добавление заказчиков от одного менеджера к другому---//
+        private void CopyCustomers(object sender, RoutedEventArgs e)
+        {
+            FromManagerDrop.ItemsSource = Managers;
+            FromManagerDrop.Visibility = Visibility.Visible;
+        }
+        private void CopyCustomers(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox box && box.SelectedItem is Manager manFrom
+                && ManagerDrop.SelectedItem is Manager manTo)
+            {
+                FromManagerDrop.Visibility = Visibility.Hidden;
+                CopyCustomers(manFrom, manTo);
+            }
+        }
+        private void CopyCustomers(Manager manFrom, Manager manTo)
+        {
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);   //подключаемся к базе данных
+            bool isAvalaible = db.Database.CanConnect();                                //проверяем, свободна ли база для подключения
+            if (isAvalaible)
+            {
+                //ищем менеджера, которому копируем заказчиков
+                Manager? _manTo = db.Managers.Where(m => m.Id == manTo.Id).Include(c => c.Customers).FirstOrDefault();
+
+                if (_manTo is not null)                                   //и добавляем нового заказчика ему в базу
+                {
+                    //ищем менеджера, заказчиков которого копируем
+                    Manager? _manFrom = db.Managers.Where(m => m.Id == manFrom.Id).Include(c => c.Customers).FirstOrDefault();
+
+                    int count = 0;
+
+                    if (_manFrom is not null)
+                    {
+                        foreach (Customer c in _manFrom.Customers)
+                        {
+                            Customer? _customer = _manTo.Customers.FirstOrDefault(x => x.Name == c.Name);
+                            if (_customer is not null) continue;
+
+                            Customer customer = new()
+                            {
+                                Name = c.Name,
+                                Address = c.Address,
+                                Agent = c.Agent,
+                                DeliveryPrice = c.DeliveryPrice
+                            };
+
+                            _manTo.Customers.Add(c);
+                            count++;
+                        }
+                    }
+
+                    db.SaveChanges();
+                    StatusBegin($"Добавлено {count} заказчиков. Теперь в базе {_manTo.Name} - {_manTo?.Customers.Count} заказчиков.");
+                }
+            }
+        }
+
+
         //------------Краткое руководство-------------------------//
         private void OpenExample(object sender, RoutedEventArgs e)
         {
@@ -3426,6 +3484,7 @@ namespace Metal_Code
                 && File.ReadAllText(connections[9] + "\\version.txt") == File.ReadAllText(Directory.GetCurrentDirectory() + "\\version.txt");
         }
 
+
         private void AnalyseDateProduction(object sender, RoutedEventArgs e)
         {
             AnalyseDateProduction();
@@ -3485,6 +3544,5 @@ namespace Metal_Code
                 StatusBegin($"Расчет {offer.N} открыт для чтения");
             }
         }
-
     }
 }

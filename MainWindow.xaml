@@ -157,6 +157,10 @@
                         <Button ToolTip="Удалить заказчика" Click="DeleteCustomer" HorizontalAlignment="Left" Margin="500,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" BorderThickness="0">
                             <Image Source="/Images/del.png"/>
                         </Button>
+                        <Button ToolTip="Перенести заказчиков" Click="CopyCustomers" HorizontalAlignment="Left" Margin="535,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" BorderThickness="0">
+                            <Image Source="/Images/convert.png"/>
+                        </Button>
+                        <ComboBox x:Name="FromManagerDrop" HorizontalAlignment="Left" Margin="430,65,0,0" VerticalAlignment="Top" Width="120" MinWidth="120" MaxWidth="120" DisplayMemberPath="Name" Visibility="Hidden" SelectionChanged="CopyCustomers"/>
 
                         <TextBlock Text="Срок изготовления:" HorizontalAlignment="Left" Margin="15,65,0,0" VerticalAlignment="Top"/>
                         <TextBox ToolTip="Введите срок изготовления" x:Name="DateProduction" Margin="135,65,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50"/>
