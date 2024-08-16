@@ -2201,7 +2201,7 @@ namespace Metal_Code
             {
                 "Дата", "№ и в покраску", "Наименование изделия\n/вид работы", "Кол-во", "ед изм.",
                 "Подразделение", "Компания", "Мастер", "Менеджер", "Инженер", "КД", "№ Лазера",
-                "№ трубореза", "Дата отгрузки", "Готово к отгрузке", "Готово \"V\"", "Цвет/цинк",
+                "№ труборез", "Дата отгрузки", "Готово к отгрузке", "Отгружено", "Готово \"V\"", "Цвет/цинк",
                 "Примечание", "Ход проекта", "ОТГРУЗКИ _ дата и количество", "Стоимость работ"
             };
             for (int col = 0; col < _headersP.Count; col++) statsheet.Cells[temp, col + 1].Value = _headersP[col];
@@ -2235,7 +2235,7 @@ namespace Metal_Code
                             }
                         }
 
-                        statsheet.Cells[temp, 17].Value += $"{key[14..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
+                        statsheet.Cells[temp, 18].Value += $"{key[14..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
                     }
                     else statsheet.Cells[temp, 3].Value += $"{key} ";                                           //"Наименование изделия / вид работы"
                     
@@ -2253,10 +2253,10 @@ namespace Metal_Code
                     
                     sum += TempWorksDict[key];
                 }
-                statsheet.Cells[temp, 21].Value = Math.Round(sum, 2);                                           //"Стоимость работ"
+                statsheet.Cells[temp, 22].Value = Math.Round(sum, 2);                                           //"Стоимость работ"
             }
 
-            ExcelRange registryP = statsheet.Cells[beginP, 1, temp, 21];
+            ExcelRange registryP = statsheet.Cells[beginP, 1, temp, 22];
 
 
             // ----- обводка границ и авторастягивание столбцов -----
