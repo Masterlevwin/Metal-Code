@@ -13,6 +13,7 @@
   <ItemGroup>
     <None Remove="app_logo.ico" />
     <None Remove="app_logo.jpeg" />
+    <None Remove="app_logo.jpg" />
     <None Remove="Images\add.png" />
     <None Remove="Images\comment.png" />
     <None Remove="Images\comment2.png" />
@@ -46,6 +47,8 @@
     <None Remove="Images\xlsx_load.png" />
     <None Remove="Images\xls_load.png" />
     <None Remove="laser_logo.jpg" />
+    <None Remove="Themes\template.xlsx" />
+    <None Remove="Themes\version.txt" />
   </ItemGroup>
 
   <ItemGroup>
@@ -55,6 +58,9 @@
 
   <ItemGroup>
     <Content Include="app_logo.ico" />
+    <Content Include="app_logo.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -64,6 +70,7 @@
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.6.0" />
     <PackageReference Include="Flee" Version="2.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.13" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
     <PackageReference Include="System.Runtime.Serialization.Json" Version="4.3.0" />
     <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
   </ItemGroup>
@@ -101,9 +108,26 @@
     <Resource Include="Images\update4.png" />
     <Resource Include="Images\xlsx_load.png" />
     <Resource Include="Images\xls_load.png" />
-    <Resource Include="laser_logo.jpg" />
+    <Content Include="laser_logo.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Resource Include="Themes\appTheme.xaml" />
     <Resource Include="Themes\laserTheme.xaml" />
+    <Content Include="template.xlsx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="version.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Images\app_logo.jpg">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="Images\laser_logo.jpg">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

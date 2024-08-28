@@ -24,6 +24,8 @@ using Path = System.IO.Path;
 using System.Text.RegularExpressions;
 using ACadSharp.IO;
 using ACadSharp;
+using System.Windows.Shapes;
+using System.Management;
 
 namespace Metal_Code
 {
@@ -36,7 +38,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.5.4";
+        readonly string version = "2.5.5";
 
         public readonly string[] connections =
         {
@@ -90,6 +92,8 @@ namespace Metal_Code
             InitializeComponent();
             M = this;
 
+            if (!CheckMachine()) Environment.Exit(0);
+
             if (!CheckVersion(out string _version)) Restart();
             //UpdateDatabases();
 
@@ -118,31 +122,48 @@ namespace Metal_Code
             db.Managers.Load();
             Managers = db.Managers.Local.ToObservableCollection();
 
-            if (Managers.Count == 0) ShowWindow(new RegistrationWindow());
+            if (Managers.Count == 0)
+            {
+                ShowWindow(new RegistrationWindow());
+                EncryptFile();
+            }
             else if (!CheckMachineName()) ShowWindow(new LoginWindow());
             else NewProject();
         }
 
-        private void ShowWindow(Window window)
+        private static bool CheckMachine()
         {
-            IsEnabled = false;
+            ManagementObjectSearcher searcher = new("SELECT * FROM Win32_PhysicalMedia");
 
-            if (window.ShowDialog() == true)
+            foreach (ManagementObject hdd in searcher.Get().Cast<ManagementObject>())
+                if (DecryptFile(out string s) && s == hdd["SerialNumber"].ToString()) return true;
+
+            return false;
+        }
+
+        public static void EncryptFile()
+        {
+            if (File.Exists(Directory.GetCurrentDirectory() + "\\encrypt.dat")) return;
+
+            ManagementObjectSearcher searcher = new("SELECT * FROM Win32_PhysicalMedia");
+
+            foreach (ManagementObject hdd in searcher.Get().Cast<ManagementObject>())
             {
-                UserDrop.SelectedItem = CurrentManager;
-                if (CurrentManager.IsEngineer)
-                {
-                    SetManagerWindow setManagerWindow = new();
-                    if (setManagerWindow.ShowDialog() == true)
-                    {
-                        if (ManagerDrop.Items.Contains(setManagerWindow.SelectManager)) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
-                        else ManagerDrop.SelectedIndex = 0;
-                    }
-                }
-
-                IsEnabled = true;
-                NewProject();
+                using FileStream fs = File.Create(Directory.GetCurrentDirectory() + "\\encrypt.dat");
+                byte[] info = new UTF8Encoding(true).GetBytes($"{hdd["SerialNumber"]}");
+                fs.Write(info, 0, info.Length);
+                break;
             }
+        }
+
+        public static bool DecryptFile(out string s)
+        {
+            s = "";
+            if (!File.Exists(Directory.GetCurrentDirectory() + "\\encrypt.dat")) return false;
+
+            using StreamReader sr = File.OpenText(Directory.GetCurrentDirectory() + "\\encrypt.dat");
+            s = sr.ReadLine();
+            return true;
         }
 
         private bool CheckMachineName()
@@ -190,7 +211,30 @@ namespace Metal_Code
             if (response == MessageBoxResult.No) return;
             else ShowWindow(new LoginWindow());
         }
-        
+                
+        private void ShowWindow(Window window)
+        {
+            IsEnabled = false;
+
+            if (window.ShowDialog() == true)
+            {
+                UserDrop.SelectedItem = CurrentManager;
+                if (CurrentManager.IsEngineer)
+                {
+                    SetManagerWindow setManagerWindow = new();
+                    if (setManagerWindow.ShowDialog() == true)
+                    {
+                        if (ManagerDrop.Items.Contains(setManagerWindow.SelectManager)) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
+                        else ManagerDrop.SelectedIndex = 0;
+                    }
+                }
+
+                IsEnabled = true;
+                NewProject();
+            }
+        }
+
+
         //временный словарь расчетов для синхронизации с основной базой (0 - новые, 1 - удаленные, 2 - измененные)
         private readonly Dictionary<byte, List<Offer>> TempOffersDict = new() { [0] = new(), [1] = new(), [2] = new() };
         private readonly Dictionary<string, float> TempWorksDict = new();                                       //временный словарь работ
