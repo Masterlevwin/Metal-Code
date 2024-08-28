@@ -40,27 +40,27 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {
-            "Data Source=managers.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\managers.db",
-            "Data Source=typedetails.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\typedetails.db",
-            "Data Source=works.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\works.db",
-            "Data Source=metals.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\metals.db",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые"                                          //рабочий комп
-
             //"Data Source=managers.db",
-            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\managers.db",
             //"Data Source=typedetails.db",
-            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\typedetails.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\typedetails.db",
             //"Data Source=works.db",
-            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\works.db",
             //"Data Source=metals.db",
-            //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
-            //$"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows",
-            //$"C:\\Users\\maste\\Metal-Code\\bin\\Release\\net7.0-windows"                                                     //домашний комп
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\metals.db",
+            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые",
+            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые"                                          //рабочий комп
+
+            "Data Source=managers.db",
+            $"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
+            "Data Source=typedetails.db",
+            $"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
+            "Data Source=works.db",
+            $"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
+            "Data Source=metals.db",
+            $"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
+            $"C:\\ProgramData\\Metal-Code",
+            $"C:\\ProgramData\\Metal-Code"                                                                                    //домашний комп
 
             //"Data Source=managers.db",
             //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
@@ -114,8 +114,35 @@ namespace Metal_Code
 
             InitializeDict();
 
-            if (!CheckMachineName()) ShowLoginWindow();
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
+            db.Managers.Load();
+            Managers = db.Managers.Local.ToObservableCollection();
+
+            if (Managers.Count == 0) ShowWindow(new RegistrationWindow());
+            else if (!CheckMachineName()) ShowWindow(new LoginWindow());
             else NewProject();
+        }
+
+        private void ShowWindow(Window window)
+        {
+            IsEnabled = false;
+
+            if (window.ShowDialog() == true)
+            {
+                UserDrop.SelectedItem = CurrentManager;
+                if (CurrentManager.IsEngineer)
+                {
+                    SetManagerWindow setManagerWindow = new();
+                    if (setManagerWindow.ShowDialog() == true)
+                    {
+                        if (ManagerDrop.Items.Contains(setManagerWindow.SelectManager)) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
+                        else ManagerDrop.SelectedIndex = 0;
+                    }
+                }
+
+                IsEnabled = true;
+                NewProject();
+            }
         }
 
         private bool CheckMachineName()
@@ -161,27 +188,7 @@ namespace Metal_Code
             MessageBoxResult response = MessageBox.Show("Сменить текущего пользователя?\nЕсли \"Да\", потребуется авторизация, и текущий расчет будет очищен!", "Сменить пользователя",
                                MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
             if (response == MessageBoxResult.No) return;
-            else ShowLoginWindow();
-        }
-        private void ShowLoginWindow()
-        {
-            LoginWindow loginWindow = new();
-            IsEnabled = false;
-            if (loginWindow.ShowDialog() == true)
-            {
-                UserDrop.SelectedItem = CurrentManager;
-                if (CurrentManager.IsEngineer)
-                {
-                    SetManagerWindow setManagerWindow = new();
-                    if (setManagerWindow.ShowDialog() == true)
-                    {
-                        if (ManagerDrop.Items.Contains(setManagerWindow.SelectManager)) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
-                        else ManagerDrop.SelectedIndex = 0;
-                    }
-                }
-                IsEnabled = true;
-                NewProject();
-            }
+            else ShowWindow(new LoginWindow());
         }
         
         //временный словарь расчетов для синхронизации с основной базой (0 - новые, 1 - удаленные, 2 - измененные)
@@ -3063,7 +3070,7 @@ namespace Metal_Code
                 return;
             }
 
-            if (!IsLocal && !CurrentManager.IsAdmin)
+            if ((!IsLocal && !CurrentManager.IsAdmin) || customer.Name == "Частное лицо")
             {
                 StatusBegin($"Для изменения данных заказчика в базе обратитесь к администратору.");
                 return;
@@ -3105,7 +3112,7 @@ namespace Metal_Code
                 return;
             }
 
-            if (!IsLocal && !CurrentManager.IsAdmin)
+            if ((!IsLocal && !CurrentManager.IsAdmin) || customer.Name == "Частное лицо")
             {
                 StatusBegin($"Для удаления заказчика из базы обратитесь к администратору.");
                 return;

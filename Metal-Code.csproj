@@ -58,7 +58,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ACadSharp" Version="2.3.2-beta" />
+    <PackageReference Include="ACadSharp" Version="2.4.0-beta" />
     <PackageReference Include="EPPlus" Version="7.0.0" />
     <PackageReference Include="ExcelDataReader" Version="3.6.0" />
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.6.0" />

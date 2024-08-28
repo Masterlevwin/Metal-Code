@@ -1,0 +1,48 @@
+﻿<Window x:Class="Metal_Code.RegistrationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" Height="300" Width="300" Topmost="True" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" ShowInTaskbar="False" WindowStyle="None" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Text="Регистрация" Grid.ColumnSpan="2" Foreground="{DynamicResource {x:Static SystemColors.DesktopBrushKey}}" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <Rectangle Grid.RowSpan="6" Stroke="IndianRed" Grid.ColumnSpan="2" StrokeThickness="2"/>
+
+        <TextBlock Text="Введите фамилию и имя (обязательно)" TextWrapping="Wrap" Margin="8" TextAlignment="Center" Grid.Row="1" />
+        <TextBox x:Name="LoginText" Margin="8" Grid.Column="1" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Grid.Row="1" />
+
+        <TextBlock Text="Введите пароль (обязательно)" TextWrapping="Wrap" Margin="8" Grid.Row="2" TextAlignment="Center"/>
+        <PasswordBox x:Name="PasswordText" Grid.Row="2" Grid.Column="1" Margin="8" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+
+        <TextBlock Text="Выберите должность" TextWrapping="Wrap" Margin="8" TextAlignment="Center" Grid.Row="3" />
+        <StackPanel Grid.Row="3" Grid.Column="1" Margin="8">
+            <RadioButton GroupName="Position" Content="Менеджер" IsChecked="True"/>
+            <RadioButton GroupName="Position" Content="Инженер" x:Name="IsEngineer" Margin="0,5,0,0"/>
+        </StackPanel>
+        
+        <TextBlock Text="Выберите компанию-работодателя" TextWrapping="Wrap" Margin="8" TextAlignment="Center" Grid.Row="4" />
+        <StackPanel Grid.Row="4" Grid.Column="1" Margin="8">
+            <RadioButton GroupName="Company" Content="Лазерфлекс"  x:Name="IsLaser" IsChecked="True"/>
+            <RadioButton GroupName="Company" Content="Провэлд" Margin="0,5,0,0"/>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="5" Grid.ColumnSpan="2" HorizontalAlignment="Center">
+            <Button Margin="8" Content="Зарегистрироваться" Click="Accept_Click" IsDefault="True" MinWidth="60" Padding="5"/>
+            <Button Margin="8" Content="Выйти" Click="Exit" MinWidth="60"/>
+        </StackPanel>
+        
+    </Grid>
+</Window>

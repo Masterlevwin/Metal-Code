@@ -19,7 +19,6 @@ namespace Metal_Code
         {
             string login = LoginText.Text;
             string password = PasswordText.Password;
-            bool isRemember = (bool)IsRemember.IsChecked;
 
             using ManagerContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[0] : MainWindow.M.connections[1]);
             db.Managers.Load();
@@ -45,7 +44,7 @@ namespace Metal_Code
                     if (MainWindow.M.ManagerDrop.Items.Contains(manager)) MainWindow.M.ManagerDrop.SelectedItem = manager;
 
                     //если установлен флажок "Запомнить меня"
-                    if (isRemember)
+                    if (IsRemember.IsChecked == true)
                     {
                         Manager? _manager = db.Managers.FirstOrDefault(x => x.Name == login);
                         if (_manager is not null)
@@ -59,11 +58,6 @@ namespace Metal_Code
                     DialogResult = true;
                 }
                 else MessageBox.Show("Неправильный пароль. Попробуйте еще раз.");
-            }
-            else if (MainWindow.M.Managers.Count == 0)
-            {
-                MessageBox.Show("Добавьте пользователя в базу менеджеров,\nили обратитесь к администратору.");
-                DialogResult = true;
             }
             else MessageBox.Show("Пользователь с таким именем не найден.");
         }

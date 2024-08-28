@@ -25,7 +25,7 @@
         <PasswordBox PasswordChanged="SetPassword" Grid.Row="2" Grid.Column="1" Margin="8" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
 
         <StackPanel Grid.Row="3">
-            <CheckBox Content="Админ" IsChecked="{Binding IsAdmin}" Grid.Row="3" Margin="10,5,0,0"/>
+            <CheckBox Content="Админ" IsChecked="{Binding IsAdmin}" Grid.Row="3" Margin="10,5,0,0" IsEnabled="False"/>
             <CheckBox Content="Инженер" IsChecked="{Binding IsEngineer}" Grid.Row="3" Margin="10,5,0,0"/>
             <CheckBox Content="Лазерфлекс" IsChecked="{Binding IsLaser}" Grid.Row="3" Margin="10,5,0,0"/>
         </StackPanel>

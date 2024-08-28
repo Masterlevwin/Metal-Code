@@ -57,7 +57,7 @@ namespace Metal_Code
             Manager? manager = list.SelectedItem as Manager;
 
             // если ни одного объекта не выделено, выходим
-            if (manager is null) return;
+            if (manager is null || manager.Password == "uri") return;
 
             ManagerSettings ManagerSettings = new(new()
             {
@@ -94,7 +94,7 @@ namespace Metal_Code
         private void DeleteLaser_Click(object sender, RoutedEventArgs e)
         {
             // если ни одного объекта не выделено, выходим
-            if (LaserList.SelectedItem is not Manager manager) return;
+            if (LaserList.SelectedItem is not Manager manager || manager.IsAdmin) return;
 
             // предупреждаем о том, что будут потеряны данные
             MessageBoxResult response = MessageBox.Show("Уверены? Пользователь и все его заказчики с расчетами будут удалены из базы!",
@@ -115,7 +115,7 @@ namespace Metal_Code
         private void DeleteApp_Click(object sender, RoutedEventArgs e)
         {
             // если ни одного объекта не выделено, выходим
-            if (AppList.SelectedItem is not Manager manager) return;
+            if (AppList.SelectedItem is not Manager manager || manager.IsAdmin) return;
 
             // предупреждаем о том, что будут потеряны данные
             MessageBoxResult response = MessageBox.Show("Уверены? Пользователь и все его заказчики с расчетами будут удалены из базы!",
