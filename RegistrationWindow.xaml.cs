@@ -77,6 +77,9 @@ namespace Metal_Code
             MainWindow.M.CurrentManager = manager;
             MainWindow.M.Login.Header = MainWindow.M.CurrentManager.Name;
 
+            //создаем защитный файл
+            MainWindow.EncryptFile();                              
+
             DialogResult = true;
 
             MessageBox.Show($"Обязательно запомните или запишите свой пароль \"{password}\"\nФункция восстановления пароля не предусмотрена!");

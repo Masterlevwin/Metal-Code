@@ -92,7 +92,7 @@ namespace Metal_Code
             InitializeComponent();
             M = this;
 
-            if (!CheckMachine()) Environment.Exit(0);
+            //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
 
             if (!CheckVersion(out string _version)) Restart();
             //UpdateDatabases();
@@ -122,13 +122,10 @@ namespace Metal_Code
             db.Managers.Load();
             Managers = db.Managers.Local.ToObservableCollection();
 
-            if (Managers.Count == 0)
-            {
-                ShowWindow(new RegistrationWindow());
-                EncryptFile();
-            }
-            else if (!CheckMachineName()) ShowWindow(new LoginWindow());
-            else NewProject();
+            if (Managers.Count == 0) ShowWindow(new RegistrationWindow());  //если пользователей в базе нет, запускаем процесс регистрации
+            else if (!CheckMachine()) Environment.Exit(0);                  //проверяем защитный файл
+            else if (!CheckMachineName()) ShowWindow(new LoginWindow());    //проверяем пользователя
+            else NewProject();                                              //если все проверки пройдены, создаем новый проект
         }
 
         private static bool CheckMachine()
@@ -191,13 +188,13 @@ namespace Metal_Code
                 if (CurrentManager.IsEngineer)
                 {
                     IsEnabled = false;
-                    SetManagerWindow setManagerWindow = new();
-                    if (setManagerWindow.ShowDialog() == true)
+                    if (CurrentManager.IsEngineer)
                     {
-                        if (ManagerDrop.Items.Contains(setManagerWindow.SelectManager)) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
-                        else ManagerDrop.SelectedIndex = 0;
-                        IsEnabled = true;
+                        SetManagerWindow setManagerWindow = new();
+                        if (setManagerWindow.ShowDialog() == true) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
                     }
+                    else ManagerDrop.SelectedItem = CurrentManager;
+                    IsEnabled = true;
                 }
                 return true;
             }
@@ -222,12 +219,9 @@ namespace Metal_Code
                 if (CurrentManager.IsEngineer)
                 {
                     SetManagerWindow setManagerWindow = new();
-                    if (setManagerWindow.ShowDialog() == true)
-                    {
-                        if (ManagerDrop.Items.Contains(setManagerWindow.SelectManager)) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
-                        else ManagerDrop.SelectedIndex = 0;
-                    }
+                    if (setManagerWindow.ShowDialog() == true) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
                 }
+                else ManagerDrop.SelectedItem = CurrentManager;
 
                 IsEnabled = true;
                 NewProject();
