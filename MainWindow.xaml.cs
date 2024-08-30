@@ -94,8 +94,10 @@ namespace Metal_Code
 
             //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
 
+            AutoRemoveOffers();
+
             if (!CheckVersion(out string _version)) Restart();
-            //UpdateDatabases();
+            UpdateDatabases();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -122,7 +124,8 @@ namespace Metal_Code
             db.Managers.Load();
             Managers = db.Managers.Local.ToObservableCollection();
 
-            if (Managers.Count == 0) ShowWindow(new RegistrationWindow());  //если пользователей в базе нет, запускаем процесс регистрации
+            if (Managers.Count == 0 && !File.Exists(Directory.GetCurrentDirectory() + "\\encrypt.dat"))
+                ShowWindow(new RegistrationWindow());                       //если пользователей в базе нет, запускаем процесс регистрации
             else if (!CheckMachine()) Environment.Exit(0);                  //проверяем защитный файл
             else if (!CheckMachineName()) ShowWindow(new LoginWindow());    //проверяем пользователя
             else NewProject();                                              //если все проверки пройдены, создаем новый проект
@@ -710,6 +713,30 @@ namespace Metal_Code
                         StatusBegin($"Найдено {offers.Count} расчетов");
                         ViewOffersGrid(man, offers);
                     }
+                }
+                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
+            }
+        }
+
+        private void AutoRemoveOffers()
+        {
+            if (DateTime.UtcNow.DayOfWeek is not DayOfWeek.Friday) return;
+
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);       //подключаемся к базе данных
+            bool isAvalaible = db.Database.CanConnect();                                    //проверяем, свободна ли база для подключения
+            
+            if (isAvalaible)
+            {
+                try
+                {
+                    db.Offers.Load();
+
+                    var offers = db.Offers.Where(o => o.CreatedDate < DateTime.UtcNow.AddDays(-60));
+
+                    db.Offers.RemoveRange(offers);
+                    db.SaveChanges();
+
+                    StatusBegin($"Общее количество расчетов в базе - {db.Offers.ToList().Count}.");
                 }
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }

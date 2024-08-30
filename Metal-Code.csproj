@@ -47,6 +47,9 @@
     <None Remove="Images\xlsx_load.png" />
     <None Remove="Images\xls_load.png" />
     <None Remove="laser_logo.jpg" />
+    <None Remove="Metal-Code.Updater.exe" />
+    <None Remove="Metal-Code.Updater.exe.config" />
+    <None Remove="Metal-Code.Updater.pdb" />
     <None Remove="Themes\template.xlsx" />
     <None Remove="Themes\version.txt" />
   </ItemGroup>
@@ -59,6 +62,15 @@
   <ItemGroup>
     <Content Include="app_logo.ico" />
     <Content Include="app_logo.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Metal-Code.Updater.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Metal-Code.Updater.exe.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Metal-Code.Updater.pdb">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
