@@ -78,7 +78,14 @@ namespace Metal_Code
             MainWindow.M.Login.Header = MainWindow.M.CurrentManager.Name;
 
             //создаем защитный файл
-            MainWindow.EncryptFile();                              
+            MainWindow.EncryptFile();
+
+            //проверяем защитный файл
+            if (!MainWindow.CheckMachine())
+            {
+                MessageBox.Show($"Данная копия программы защищена. Ее невозможно запустить на этом компьютере!");
+                Environment.Exit(0);
+            }
 
             DialogResult = true;
 

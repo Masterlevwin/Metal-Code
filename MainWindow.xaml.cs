@@ -124,19 +124,22 @@ namespace Metal_Code
             db.Managers.Load();
             Managers = db.Managers.Local.ToObservableCollection();
 
-            if (Managers.Count == 0 && !File.Exists(Directory.GetCurrentDirectory() + "\\encrypt.dat"))
-                ShowWindow(new RegistrationWindow());                       //если пользователей в базе нет, запускаем процесс регистрации
-            else if (!CheckMachine()) Environment.Exit(0);                  //проверяем защитный файл
+            if (Managers.Count == 0) ShowWindow(new RegistrationWindow());  //если пользователей в базе нет, запускаем процесс регистрации
+            else if (!CheckMachine())                                       //проверяем защитный файл
+            {
+                MessageBox.Show($"Данная копия программы защищена. Ее невозможно запустить на этом компьютере!");
+                Environment.Exit(0);                  
+            }
             else if (!CheckMachineName()) ShowWindow(new LoginWindow());    //проверяем пользователя
             else NewProject();                                              //если все проверки пройдены, создаем новый проект
         }
 
-        private static bool CheckMachine()
+        public static bool CheckMachine()
         {
             ManagementObjectSearcher searcher = new("SELECT * FROM Win32_PhysicalMedia");
 
             foreach (ManagementObject hdd in searcher.Get().Cast<ManagementObject>())
-                if (DecryptFile(out string s) && s == hdd["SerialNumber"].ToString()) return true;
+                if (DecryptFile(out string s) && s == $"{hdd["SerialNumber"]}") return true;
 
             return false;
         }
@@ -718,28 +721,24 @@ namespace Metal_Code
             }
         }
 
-        private void AutoRemoveOffers()
+        private void AutoRemoveOffers()                                     //метод удаления старых расчетов из локальной базы
         {
-            if (DateTime.UtcNow.DayOfWeek is not DayOfWeek.Friday) return;
+            if (DateTime.UtcNow.DayOfWeek is not DayOfWeek.Friday) return;  //удаление старых расчетов выполняем только по пятницам
 
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);       //подключаемся к базе данных
-            bool isAvalaible = db.Database.CanConnect();                                    //проверяем, свободна ли база для подключения
-            
-            if (isAvalaible)
+            using ManagerContext db = new(connections[0]);                  //подключаемся к локальной базе данных
+            try
             {
-                try
-                {
-                    db.Offers.Load();
+                db.Offers.Load();                                           //загружаем все расчеты
 
-                    var offers = db.Offers.Where(o => o.CreatedDate < DateTime.UtcNow.AddDays(-60));
+                //получаем коллекцию расчетов, которые созданы более 60 дней назад
+                var offers = db.Offers.Where(o => o.CreatedDate < DateTime.UtcNow.AddDays(-60));
 
-                    db.Offers.RemoveRange(offers);
-                    db.SaveChanges();
+                db.Offers.RemoveRange(offers);                              //удаляем полученную коллекцию старых расчетов
+                db.SaveChanges();
 
-                    StatusBegin($"Общее количество расчетов в базе - {db.Offers.ToList().Count}.");
-                }
-                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
+                StatusBegin($"Общее количество расчетов в базе - {db.Offers.ToList().Count}.");
             }
+            catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
         }
 
         private void ResetDates(object sender, RoutedEventArgs e)           //метод сброса дат на начало текущего месяца до начала дня
@@ -1046,7 +1045,7 @@ namespace Metal_Code
         {
             if (!IsLocal) return;                                           //если запущена основная база, выходим из метода
 
-            string path = "Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code";    //путь к основным базам данных
+            string path = "C:\\ProgramData\\Metal-Code";    //путь к основным базам данных
 
             if (File.Exists(path + "\\typedetails.db"))
             {
