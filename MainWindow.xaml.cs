@@ -42,27 +42,27 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {
-            //"Data Source=managers.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\managers.db",
-            //"Data Source=typedetails.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\typedetails.db",
-            //"Data Source=works.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\works.db",
-            //"Data Source=metals.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\metals.db",
-            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые",
-            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые"                                          //рабочий комп
-
             "Data Source=managers.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\managers.db",
             "Data Source=typedetails.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\typedetails.db",
             "Data Source=works.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\works.db",
             "Data Source=metals.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
-            $"C:\\ProgramData\\Metal-Code",
-            $"C:\\ProgramData\\Metal-Code"                                                                                    //домашний комп
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\metals.db",
+            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые",
+            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые"                                          //рабочий комп
+
+            //"Data Source=managers.db",
+            //$"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
+            //"Data Source=typedetails.db",
+            //$"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
+            //"Data Source=works.db",
+            //$"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
+            //"Data Source=metals.db",
+            //$"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
+            //$"C:\\ProgramData\\Metal-Code",
+            //$"C:\\ProgramData\\Metal-Code"                                                                                    //домашний комп
 
             //"Data Source=managers.db",
             //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
@@ -92,12 +92,12 @@ namespace Metal_Code
             InitializeComponent();
             M = this;
 
-            //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
+            if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
 
             AutoRemoveOffers();
 
             if (!CheckVersion(out string _version)) Restart();
-            UpdateDatabases();
+            //UpdateDatabases();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -1045,7 +1045,8 @@ namespace Metal_Code
         {
             if (!IsLocal) return;                                           //если запущена основная база, выходим из метода
 
-            string path = "C:\\ProgramData\\Metal-Code";    //путь к основным базам данных
+            //string path = "C:\\ProgramData\\Metal-Code";    //путь к основным базам данных
+            string path = "Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code";    //путь к основным базам данных
 
             if (File.Exists(path + "\\typedetails.db"))
             {
