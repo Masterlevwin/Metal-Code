@@ -24,7 +24,6 @@ using Path = System.IO.Path;
 using System.Text.RegularExpressions;
 using ACadSharp.IO;
 using ACadSharp;
-using System.Windows.Shapes;
 using System.Management;
 
 namespace Metal_Code
@@ -42,16 +41,16 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {
-            "Data Source=managers.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\managers.db",
-            "Data Source=typedetails.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\typedetails.db",
-            "Data Source=works.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\works.db",
-            "Data Source=metals.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\metals.db",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые"                                          //рабочий комп
+            //"Data Source=managers.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\managers.db",
+            //"Data Source=typedetails.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\typedetails.db",
+            //"Data Source=works.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\works.db",
+            //"Data Source=metals.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\metals.db",
+            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые",
+            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые"                                          //рабочий комп
 
             //"Data Source=managers.db",
             //$"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
@@ -64,16 +63,16 @@ namespace Metal_Code
             //$"C:\\ProgramData\\Metal-Code",
             //$"C:\\ProgramData\\Metal-Code"                                                                                    //домашний комп
 
-            //"Data Source=managers.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
-            //"Data Source=typedetails.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
-            //"Data Source=works.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
-            //"Data Source=metals.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
-            //$"Y:\\Производство\\Laser rezka\\В работу",
-            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"                        //прод
+            "Data Source=managers.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            "Data Source=typedetails.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            "Data Source=works.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            "Data Source=metals.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
+            $"Y:\\Производство\\Laser rezka\\В работу",
+            $"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"                        //прод
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -97,7 +96,7 @@ namespace Metal_Code
             AutoRemoveOffers();
 
             if (!CheckVersion(out string _version)) Restart();
-            //UpdateDatabases();
+            UpdateDatabases();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -655,7 +654,7 @@ namespace Metal_Code
                 if (isAvalaible)
                 {
                     //при смене менеджера загружаем ТОЛЬКО ЕГО и ЕГО коллекцию расчетов
-                    Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(o => o.Offers).FirstOrDefault();
+                    Manager? _man = db.Managers.Where(m => m.Name == man.Name).Include(o => o.Offers).FirstOrDefault();
                     if (_man != null)
                     {
                         Offers = _man.Offers.TakeLast(count).ToList();        //показываем последние "count" расчетов
@@ -695,7 +694,7 @@ namespace Metal_Code
                 try
                 {
                     //ищем менеджера по имени соответствующего выбранному, при этом загружаем его расчеты
-                    Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Offers).FirstOrDefault();
+                    Manager? _man = db.Managers.Where(m => m.Name == man.Name).Include(c => c.Offers).FirstOrDefault();
 
                     List<Offer>? offers = _man?.Offers.ToList();        //сначала получаем все расчеты менеджера
 
@@ -853,28 +852,28 @@ namespace Metal_Code
                     //перебираем список расчетов на добавление
                     if (TempOffersDict.TryGetValue(0, out List<Offer>? addList) && addList.Count > 0)
                         foreach (Offer offer in addList)
-                        {
-                            //ищем менеджера по имени соответствующего выбранному, при этом загружаем его расчеты
-                            Manager? _man = db.Managers.FirstOrDefault(m => m == offer.Manager);
-
-                            //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
-                            Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
+                            if (offer.Manager is not null)
                             {
-                                Agent = offer.Agent,
-                                Invoice = offer.Invoice,
-                                Order = offer.Order,
-                                Act = offer.Act,
-                                CreatedDate = offer.CreatedDate,
-                                EndDate = offer.EndDate,
-                                Autor = offer.Autor,
-                                Manager = _man,             //указываем соответствующего менеджера
-                                Data = offer.Data
-                            };
+                                //ищем менеджера по имени соответствующего выбранному, при этом загружаем его расчеты
+                                Manager? _man = db.Managers.FirstOrDefault(m => m.Name == offer.Manager.Name);
 
-                            _man?.Offers.Add(_offer);       //переносим расчет в базу этого менеджера
-                            countAdd++;
-                        }
+                                //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
+                                Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
+                                {
+                                    Agent = offer.Agent,
+                                    Invoice = offer.Invoice,
+                                    Order = offer.Order,
+                                    Act = offer.Act,
+                                    CreatedDate = offer.CreatedDate,
+                                    EndDate = offer.EndDate,
+                                    Autor = offer.Autor,
+                                    Manager = _man,             //указываем соответствующего менеджера
+                                    Data = offer.Data
+                                };
 
+                                _man?.Offers.Add(_offer);       //переносим расчет в базу этого менеджера
+                                countAdd++;
+                            }
                     db.SaveChanges();                       //сохраняем изменения в основной базе данных
 
                     //очищаем списки во временном словаре
@@ -1045,7 +1044,6 @@ namespace Metal_Code
         {
             if (!IsLocal) return;                                           //если запущена основная база, выходим из метода
 
-            //string path = "C:\\ProgramData\\Metal-Code";    //путь к основным базам данных
             string path = "Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code";    //путь к основным базам данных
 
             if (File.Exists(path + "\\typedetails.db"))
