@@ -1687,18 +1687,22 @@ namespace Metal_Code
                             }
 
                             if (_cut.PartsControl?.Parts.Count > 0)
-                                    foreach (PartControl part in _cut.PartsControl.Parts)
-                                    {
-                                        if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
-                                            foreach (int key in part.Part.PropsDict.Keys) if (key < 50)
-                                                    part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
+                            {
+                                foreach (PartControl part in _cut.PartsControl.Parts)
+                                {
+                                    if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
+                                        foreach (int key in part.Part.PropsDict.Keys) if (key < 50)
+                                                part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
+                                }
 
-                                        part.PropertiesChanged?.Invoke(part, false);
-                                    }
+                                foreach (PartControl part in _cut.PartsControl.Parts)
+                                    part.PropertiesChanged?.Invoke(part, false);
+                            }
+
                         }
 
                         _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
-                        _work.PropertiesChanged?.Invoke(_work, false);
+                        if (!_det.Detail.IsComplect) _work.PropertiesChanged?.Invoke(_work, false);
                         _work.Ratio = details[i].TypeDetails[j].Works[k].Ratio;
                         _work.TechRatio = details[i].TypeDetails[j].Works[k].TechRatio;
 

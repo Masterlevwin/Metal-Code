@@ -65,11 +65,6 @@ namespace Metal_Code
             }
         }
 
-        public void AddBlockControl(int index)
-        {
-            foreach (PartControl p in Parts) p.AddControl(index);
-        }
-
         private void SetProperty(object sender, TextChangedEventArgs e)
         {
             if (Parts.Count > 0 && sender is TextBox tBox)
