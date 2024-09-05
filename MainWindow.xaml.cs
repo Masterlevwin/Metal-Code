@@ -41,16 +41,16 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {
-            //"Data Source=managers.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\managers.db",
-            //"Data Source=typedetails.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\typedetails.db",
-            //"Data Source=works.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\works.db",
-            //"Data Source=metals.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\metals.db",
-            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые",
-            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые"                                          //рабочий комп
+            "Data Source=managers.db",
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\managers.db",
+            "Data Source=typedetails.db",
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\typedetails.db",
+            "Data Source=works.db",
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\works.db",
+            "Data Source=metals.db",
+            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\metals.db",
+            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые",
+            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые"                                          //рабочий комп
 
             //"Data Source=managers.db",
             //$"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
@@ -63,16 +63,16 @@ namespace Metal_Code
             //$"C:\\ProgramData\\Metal-Code",
             //$"C:\\ProgramData\\Metal-Code"                                                                                    //домашний комп
 
-            "Data Source=managers.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
-            "Data Source=typedetails.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
-            "Data Source=works.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
-            "Data Source=metals.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
-            $"Y:\\Производство\\Laser rezka\\В работу",
-            $"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"                        //прод
+            //"Data Source=managers.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            //"Data Source=typedetails.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            //"Data Source=works.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            //"Data Source=metals.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
+            //$"Y:\\Производство\\Laser rezka\\В работу",
+            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"                        //прод
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -820,6 +820,8 @@ namespace Metal_Code
             {
                 try
                 {
+                    //AddManagerToMainDatabase(db, man);        //добавляем нового зарегистрированного менеджера в основную базу
+
                     //перебираем список расчетов на синхронизацию изменений
                     if (TempOffersDict.TryGetValue(2, out List<Offer>? changeList) && changeList.Count > 0)
                         foreach (Offer offer in changeList)
@@ -886,6 +888,27 @@ namespace Metal_Code
             return $"Основная база обновлена. Добавлено {countAdd} расчетов. Удалено {countRemove} расчетов. Изменено {countChange} расчетов.";
         }
 
+        private void AddManagerToMainDatabase(ManagerContext db, Manager man)
+        {
+            //проверяем наличие менеджера в основной базе по имени
+            Manager? manager = db.Managers.FirstOrDefault(x => x.Name == man.Name);
+
+            if (manager is null)
+            {
+                Manager _man = new()
+                {
+                    Name = man.Name,
+                    Contact = man.Contact,
+                    Password = man.Password,
+                    IsAdmin = man.IsAdmin,
+                    IsEngineer = man.IsEngineer,
+                    IsLaser = man.IsLaser,
+                    Offers = man.Offers,        //здесь сомнения, возможно будет конфликт id
+                    Customers = man.Customers   //здесь сомнения, возможно будет конфликт id
+                };
+                db.Managers.Add(_man);
+            }
+        }
 
         public void SaveOrRemoveOffer(bool isSave)                          //метод сохранения и удаления расчета
         {
