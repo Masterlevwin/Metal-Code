@@ -621,9 +621,9 @@ namespace Metal_Code
                     if (tables[2].Rows[j] == null) break;
 
                     LaserItem? item = new();
-                    item.sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[1]}");  //Кол-во
+                    item.sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[2]}");  //Кол-во
 
-                    string lengthTube = $"{tables[2].Rows[j].ItemArray[3]}";                    //Длина трубы(mm)
+                    string lengthTube = $"{tables[2].Rows[j].ItemArray[4]}";                    //Длина трубы(mm)
 
                     if (lengthTube.Contains(',')) lengthTube = lengthTube.Remove(lengthTube.IndexOf(','));
                     else if (lengthTube.Contains('.')) lengthTube = lengthTube.Remove(lengthTube.IndexOf('.'));

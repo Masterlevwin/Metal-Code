@@ -41,16 +41,16 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {
-            "Data Source=managers.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\managers.db",
-            "Data Source=typedetails.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\typedetails.db",
-            "Data Source=works.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\works.db",
-            "Data Source=metals.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\metals.db",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые"                                          //рабочий комп
+            //"Data Source=managers.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\managers.db",
+            //"Data Source=typedetails.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\typedetails.db",
+            //"Data Source=works.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\works.db",
+            //"Data Source=metals.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\metals.db",
+            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые",
+            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые"                                          //рабочий комп
 
             //"Data Source=managers.db",
             //$"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
@@ -63,16 +63,16 @@ namespace Metal_Code
             //$"C:\\ProgramData\\Metal-Code",
             //$"C:\\ProgramData\\Metal-Code"                                                                                    //домашний комп
 
-            //"Data Source=managers.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
-            //"Data Source=typedetails.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
-            //"Data Source=works.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
-            //"Data Source=metals.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
-            //$"Y:\\Производство\\Laser rezka\\В работу",
-            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"                        //прод
+            "Data Source=managers.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            "Data Source=typedetails.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            "Data Source=works.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            "Data Source=metals.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
+            $"Y:\\Производство\\Laser rezka\\В работу",
+            $"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"                        //прод
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -1693,16 +1693,13 @@ namespace Metal_Code
                                     if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
                                         foreach (int key in part.Part.PropsDict.Keys) if (key < 50)
                                                 part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
-                                }
-
-                                foreach (PartControl part in _cut.PartsControl.Parts)
                                     part.PropertiesChanged?.Invoke(part, false);
+                                }
                             }
-
                         }
 
                         _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
-                        if (!_det.Detail.IsComplect) _work.PropertiesChanged?.Invoke(_work, false);
+                        if (!_det.Detail.IsComplect || _work.workType is PipeControl) _work.PropertiesChanged?.Invoke(_work, false);
                         _work.Ratio = details[i].TypeDetails[j].Works[k].Ratio;
                         _work.TechRatio = details[i].TypeDetails[j].Works[k].TechRatio;
 

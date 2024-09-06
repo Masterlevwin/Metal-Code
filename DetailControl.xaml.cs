@@ -54,20 +54,6 @@ namespace Metal_Code
             MainWindow.M.DetailsStack.Children.Remove(this);
         }
 
-        //public void UpdatePosition(bool direction)
-        //{
-        //    int num = MainWindow.M.DetailControls.IndexOf(this);
-        //    if (MainWindow.M.DetailControls.Count > 1)
-        //    {
-        //        for (int i = num + 1; i < MainWindow.M.DetailControls.Count; i++)
-        //        {
-        //            MainWindow.M.DetailControls[i].Margin = new Thickness(0,
-        //                direction ? MainWindow.M.DetailControls[i].Margin.Top + 30 : MainWindow.M.DetailControls[i].Margin.Top - 30, 0, 0);
-        //            
-        //        }
-        //    }
-        //}
-
         private void SetName(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox) SetName(tBox.Text);
