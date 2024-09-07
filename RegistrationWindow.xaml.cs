@@ -34,7 +34,7 @@ namespace Metal_Code
                 Name = "Сергеев Юрий",
                 Password = "uri",
                 IsAdmin = true,
-                IsLaser = false,
+                IsLaser = true,
                 IsEngineer = false
             };
 

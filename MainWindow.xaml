@@ -52,7 +52,7 @@
                 <MenuItem Header="Обновить базы" Click="UpdateDatabases"/>
             </MenuItem>
             <MenuItem Header="О программе">
-                <MenuItem Header="Очень краткое руководство" Click="AnalyseDateProduction"/>
+                <MenuItem Header="Очень краткое руководство" Click="OpenExample"/>
                 <MenuItem Header="Обновить программу" Click="Restart"/>
             </MenuItem>
             <MenuItem ToolTip="Сменить пользователя" x:Name="Login" Click="ShowLoginWindow"/>
