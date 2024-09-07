@@ -93,7 +93,7 @@ namespace Metal_Code
 
             if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
 
-            //AutoRemoveOffers();
+            AutoRemoveOffers();
 
             if (!CheckVersion(out string _version)) Restart();
             UpdateDatabases();
@@ -722,7 +722,7 @@ namespace Metal_Code
 
         private void AutoRemoveOffers()                                     //метод удаления старых расчетов из локальной базы
         {
-            if (DateTime.UtcNow.DayOfWeek is not DayOfWeek.Friday) return;  //удаление старых расчетов выполняем только по пятницам
+            if (!IsLocal || DateTime.UtcNow.DayOfWeek is not DayOfWeek.Friday) return;  //удаление старых расчетов выполняем только по пятницам
 
             using ManagerContext db = new(connections[0]);                  //подключаемся к локальной базе данных
             try
@@ -820,7 +820,7 @@ namespace Metal_Code
             {
                 try
                 {
-                    //AddManagerToMainDatabase(db, man);        //добавляем нового зарегистрированного менеджера в основную базу
+                    AddManagerToMainDatabase(db, man);        //добавляем нового зарегистрированного менеджера в основную базу
 
                     //перебираем список расчетов на синхронизацию изменений
                     if (TempOffersDict.TryGetValue(2, out List<Offer>? changeList) && changeList.Count > 0)
@@ -2208,7 +2208,7 @@ namespace Metal_Code
 
                             statsheet.Cells[i + temp, 4].Value = description;
 
-                            if (type.CheckMetal.IsChecked == false)     //если материал давальческий, добавляем его в накладную
+                            if (type.CheckMetal.IsChecked is not null)     //если материал давальческий, добавляем его в накладную
                             {
                                 if (cut.Items?.Count > 0)
                                 {
@@ -2245,7 +2245,7 @@ namespace Metal_Code
 
                             statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f);     //"Лазер (время работ)"
 
-                            if (type.CheckMetal.IsChecked == false)     //если материал давальческий, добавляем его в накладную
+                            if (type.CheckMetal.IsChecked is not null)     //если материал давальческий, добавляем его в накладную
                             {
                                 if (pipe.Items?.Count > 0)
                                 {
