@@ -41,27 +41,27 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {
-            "Data Source=managers.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\managers.db",
-            "Data Source=typedetails.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\typedetails.db",
-            "Data Source=works.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\works.db",
-            "Data Source=metals.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\metals.db",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые"                                          //рабочий комп
-
             //"Data Source=managers.db",
-            //$"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\managers.db",
             //"Data Source=typedetails.db",
-            //$"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\typedetails.db",
             //"Data Source=works.db",
-            //$"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\works.db",
             //"Data Source=metals.db",
-            //$"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
-            //$"C:\\ProgramData\\Metal-Code",
-            //$"C:\\ProgramData\\Metal-Code"                                                                                    //домашний комп
+            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\metals.db",
+            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые",
+            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые"                                          //рабочий комп
+
+            "Data Source=managers.db",
+            $"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
+            "Data Source=typedetails.db",
+            $"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
+            "Data Source=works.db",
+            $"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
+            "Data Source=metals.db",
+            $"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
+            $"C:\\ProgramData\\Metal-Code",
+            $"C:\\ProgramData\\Metal-Code"                                                                                    //домашний комп
 
             //"Data Source=managers.db",
             //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
@@ -1654,22 +1654,32 @@ namespace Metal_Code
                     _type.ExtraResult = details[i].TypeDetails[j].ExtraResult;
                     _type.SetComment(details[i].TypeDetails[j].Comment);
 
-                    for (int k = 0; k < details[i].TypeDetails[j].Works.Count; k++)
+                    foreach (SaveWork item in details[i].TypeDetails[j].Works)  //проверяем каждую сохраненную работу
                     {
-                        WorkControl _work = DetailControls[i].TypeDetailControls[j].WorkControls[k];
+                        //получаем последний созданный контрол
+                        WorkControl _work = DetailControls[i].TypeDetailControls[j].WorkControls[^1];
 
-                        foreach (Work w in _work.WorkDrop.Items)        // чтобы не подвязываться на сохраненный индекс работы, ориентируемся на ее имя
-                                                                        // таким образом избегаем ошибки, когда админ изменит порядок работ в базе данных
-                            if (w.Name == details[i].TypeDetails[j].Works[k].NameWork)
-                            {
-                                _work.WorkDrop.SelectedIndex = _work.WorkDrop.Items.IndexOf(w);
-                                break;
-                            }
-
-                        if (_work.workType is ICut _cut && details[i].TypeDetails[j].Works[k].Items?.Count > 0)
+                        if (_work.workType is null)                             //если тип работы не определен, определяем его по имени сохраненной работы
                         {
-                            _cut.Items = details[i].TypeDetails[j].Works[k].Items;
-                            _cut.PartDetails = details[i].TypeDetails[j].Works[k].Parts;
+                            WorkControl? work = _type.WorkControls.FirstOrDefault(w => w.WorkDrop.SelectedItem is Work wk && wk.Name == item.NameWork);
+                            if (work is not null) continue;
+                            else
+                            {
+                                foreach (Work w in _work.WorkDrop.Items)        // чтобы не подвязываться на сохраненный индекс работы, ориентируемся на ее имя
+                                                                                // таким образом избегаем ошибки, когда админ изменит порядок работ в базе данных
+                                    if (w.Name == item.NameWork)
+                                    {
+                                        _work.WorkDrop.SelectedIndex = _work.WorkDrop.Items.IndexOf(w);
+                                        break;
+                                    }
+                            }
+                        }
+                        else continue;                                          //если тип работы определен, пропускаем копирование данных работы
+
+                        if (_work.workType is ICut _cut && item.Items?.Count > 0)
+                        {
+                            _cut.Items = item.Items;
+                            _cut.PartDetails = item.Parts;
 
                             if (_cut is CutControl cut)
                             {
@@ -1698,13 +1708,14 @@ namespace Metal_Code
                             }
                         }
 
-                        _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
+                        _work.propsList = item.PropsList;
                         _work.PropertiesChanged?.Invoke(_work, false);
-                        _work.Ratio = details[i].TypeDetails[j].Works[k].Ratio;
-                        _work.TechRatio = details[i].TypeDetails[j].Works[k].TechRatio;
+                        _work.Ratio = item.Ratio;
+                        _work.TechRatio = item.TechRatio;
 
                         if (_type.WorkControls.Count < details[i].TypeDetails[j].Works.Count) _type.AddWork();
                     }
+
                     if (_det.TypeDetailControls.Count < details[i].TypeDetails.Count) _det.AddTypeDetail();
                 }
             }
