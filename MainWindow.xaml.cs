@@ -1983,6 +1983,7 @@ namespace Metal_Code
             scoresheet.Cells["A1"].Value = "Наименование";
             scoresheet.Cells["B1"].Value = "Кол-во";
             scoresheet.Cells["C1"].Value = "Цена";
+            scoresheet.Cells["D1"].Value = "Вид детали";
 
             float total = 0;
             for (int i = 0; i < extable.Rows; i++)
@@ -2012,6 +2013,16 @@ namespace Metal_Code
                 //сначала заполняем ячейки по каждой детали и работе
                 for (int i = 0; i < Parts.Count; i++)
                 {
+                    byte[]? bytes = Parts[i].ImageBytes;            //получаем изображение детали, если оно есть
+                    if (bytes is not null)
+                    {
+                        Stream? stream = new MemoryStream(bytes);
+                        ExcelPicture pic = scoresheet.Drawings.AddPicture($"{Parts[i].Title}", stream);
+                        scoresheet.Row(i + 2).Height = 32;          //увеличиваем высоту строки, чтобы вмещалось изображение
+                        pic.SetSize(32, 32);
+                        pic.SetPosition(i + 1, 5, 3, 5);            //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
+                    }
+
                     for (int j = 0; j < 20; j++)        //пробегаемся по ключам от 50 до 70, которые зарезервированы под конкретные работы
                         if (Parts[i].PropsDict.ContainsKey(j + 50) && float.TryParse(Parts[i].PropsDict[j + 50][0], out float value))
                         {
@@ -2088,7 +2099,11 @@ namespace Metal_Code
             for (int col = 0; col < _headersBitrix.Count; col++) statsheet.Cells[1, col + 1].Value = _headersBitrix[col];
 
             int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count) + 3;
-            //MessageBox.Show($"{countTypeDetails}");
+
+            ExcelRange registryBitrix = statsheet.Cells[1, 1, countTypeDetails - 2, 10];
+            registryBitrix.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            registryBitrix.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LavenderBlush);
+            statsheet.Row(1).Style.Font.Bold = true;
 
             statsheet.Cells[countTypeDetails + 1, 2].Value = "ПРОВЭЛД";
             statsheet.Cells[countTypeDetails + 1, 2, countTypeDetails + 1, 3].Merge = true;
@@ -2161,6 +2176,7 @@ namespace Metal_Code
             float _lc, _bc;                        //счетчики количества работ лазера и гибки
             _lc = _bc = 0;
 
+
             // ----- параллельно с реестром заполняем давальческую накладную (Лист4 - "Накладная") -----
             using var templatebook = new ExcelPackage(new FileInfo("template.xlsx"));
             ExcelWorksheet notesheet = workbook.Workbook.Worksheets.Add("Накладная", templatebook.Workbook.Worksheets[0]);
@@ -2185,8 +2201,8 @@ namespace Metal_Code
                         statsheet.Cells[i + beginBitrix, 8].Value += $"({CreateDelivery()})";                           //"Логистика"
                     }
 
-                    if (type.CheckMetal.IsChecked == false) statsheet.Cells[i + temp, 10].Value = "Давальч. ";          //"Комментарий"
-                    if (type.Comment != null && type.Comment != "")
+                    if (type.CheckMetal.IsChecked == false) statsheet.Cells[i + temp, 10].Value = statsheet.Cells[i + beginBitrix, 9].Value = "Давальч. ";
+                    if (type.Comment != null && type.Comment != "")                                                     //"Комментарий"
                     {
                         statsheet.Cells[i + temp, 10].Value += $"{type.Comment}";
                         statsheet.Cells[i + beginBitrix, 9].Value += $"{type.Comment}";
@@ -2402,14 +2418,15 @@ namespace Metal_Code
 
             // ----- обводка границ и авторастягивание столбцов -----
 
-            details.Style.Border.Bottom.Style = sends.Style.Border.Bottom.Style = restable.Style.Border.Bottom.Style = material.Style.Border.Bottom.Style = registryL.Style.Border.Bottom.Style = registryP.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-            details.Style.Border.Right.Style = sends.Style.Border.Right.Style = restable.Style.Border.Right.Style = material.Style.Border.Right.Style = registryL.Style.Border.Right.Style = registryP.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.Bottom.Style = sends.Style.Border.Bottom.Style = restable.Style.Border.Bottom.Style = material.Style.Border.Bottom.Style = registryL.Style.Border.Bottom.Style = registryP.Style.Border.Bottom.Style = registryBitrix.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.Right.Style = sends.Style.Border.Right.Style = restable.Style.Border.Right.Style = material.Style.Border.Right.Style = registryL.Style.Border.Right.Style = registryP.Style.Border.Right.Style = registryBitrix.Style.Border.Right.Style = ExcelBorderStyle.Thin;
             details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             sends.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             restable.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             material.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             registryL.Style.Border.BorderAround(ExcelBorderStyle.Thin);
             registryP.Style.Border.BorderAround(ExcelBorderStyle.Thin);
+            registryBitrix.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             scoresheet.Cells.AutoFitColumns();
             statsheet.Cells.AutoFitColumns();
