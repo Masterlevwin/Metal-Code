@@ -2078,6 +2078,15 @@ namespace Metal_Code
 
             // ----- таблица общих сумм работ, выполняемых подразделениями (Лист2 - "Реестр") -----
 
+            int beginBitrix = 2;
+
+            List<string> _headersBitrix = new()
+            {
+                "№ заказа", "Заказчик", "Менеджер", "Лазерные работы / Труборез", "Гибочные работы",
+                "Производство", "Нанесение покрытий", "Логистика", "Комментарий", "Дата сдачи"
+            };
+            for (int col = 0; col < _headersBitrix.Count; col++) statsheet.Cells[1, col + 1].Value = _headersBitrix[col];
+
             int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count) + 3;
             //MessageBox.Show($"{countTypeDetails}");
 
@@ -2167,16 +2176,24 @@ namespace Metal_Code
                 {
                     TypeDetailControl type = det.TypeDetailControls[i];
 
-                    statsheet.Cells[i + temp, 2].Value = CustomerDrop.Text; //"Заказчик"
-                    statsheet.Cells[i + temp, 3].Value = ShortManager();    //"Менеджер"
+                    statsheet.Cells[i + temp, 2].Value = statsheet.Cells[i + beginBitrix, 2].Value = CustomerDrop.Text; //"Заказчик"
+                    statsheet.Cells[i + temp, 3].Value = statsheet.Cells[i + beginBitrix, 3].Value = ShortManager();    //"Менеджер"
 
-                    if (HasDelivery) statsheet.Cells[i + temp, 8].Value = "Доставка ";
+                    if (HasDelivery)
+                    {
+                        statsheet.Cells[i + temp, 8].Value = statsheet.Cells[i + beginBitrix, 8].Value = "Доставка ";
+                        statsheet.Cells[i + beginBitrix, 8].Value += $"({CreateDelivery()})";                           //"Логистика"
+                    }
 
-                    if (type.CheckMetal.IsChecked == false) statsheet.Cells[i + temp, 10].Value = "Давальч. ";
-                    if (type.Comment != null && type.Comment != "") statsheet.Cells[i + temp, 10].Value += $"{type.Comment}";       //Комментарий
+                    if (type.CheckMetal.IsChecked == false) statsheet.Cells[i + temp, 10].Value = "Давальч. ";          //"Комментарий"
+                    if (type.Comment != null && type.Comment != "")
+                    {
+                        statsheet.Cells[i + temp, 10].Value += $"{type.Comment}";
+                        statsheet.Cells[i + beginBitrix, 9].Value += $"{type.Comment}";
+                    }
 
-                    statsheet.Cells[i + temp, 11].Value = EndDate();        //"Дата сдачи"
-                    statsheet.Cells[i + temp, 11].Style.Numberformat.Format = "d MMM";
+                    statsheet.Cells[i + temp, 11].Value = statsheet.Cells[i + beginBitrix, 10].Value = EndDate();       //"Дата сдачи"
+                    statsheet.Cells[i + temp, 11].Style.Numberformat.Format = statsheet.Cells[i + beginBitrix, 10].Style.Numberformat.Format = "d MMM";
 
                     statsheet.Cells[i + temp, 15].Value = Order.Text;       //"Номер КП"
 
@@ -2211,6 +2228,9 @@ namespace Metal_Code
 
                             statsheet.Cells[i + temp, 4].Value = description;
 
+                            //"Лазерные работы / Труборез"
+                            statsheet.Cells[i + beginBitrix, 4].Value = description + $" ({Math.Ceiling(w.Result * 0.012f) / w.Ratio} мин)";
+
                             if (type.CheckMetal.IsChecked is not null)     //если материал давальческий, добавляем его в накладную
                             {
                                 if (cut.Items?.Count > 0)
@@ -2234,8 +2254,9 @@ namespace Metal_Code
                         }
                         else if (w.workType is BendControl)
                         {
-                            statsheet.Cells[i + temp, 6].Value = "гибка";
-                            statsheet.Cells[i + temp, 13].Value = Math.Ceiling(w.Result * 0.018f) / w.Ratio;     //"Гибка (время работ)"
+                            statsheet.Cells[i + temp, 6].Value = "гибка";           
+                            statsheet.Cells[i + temp, 13].Value = Math.Ceiling(w.Result * 0.018f) / w.Ratio;        //"Гибка (время работ)"
+                            statsheet.Cells[i + beginBitrix, 5].Value = $"{Math.Ceiling(w.Result * 0.018f) / w.Ratio} мин";  //"Гибочные работы"
 
                             if (w.Ratio != 1) _bkk += w.Ratio;
                             if (w.TechRatio > 1) _bpk += w.TechRatio;
@@ -2246,7 +2267,10 @@ namespace Metal_Code
                             //"Толщина и марка металла"
                             statsheet.Cells[i + temp, 4].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
 
-                            statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f);     //"Лазер (время работ)"
+                            statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);        //"Лазер (время работ)"
+
+                            //"Лазерные работы / Труборез"
+                            statsheet.Cells[i + beginBitrix, 4].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({Math.Ceiling(w.Result * 0.012f) / w.Ratio} мин)";
 
                             if (type.CheckMetal.IsChecked is not null)     //если материал давальческий, добавляем его в накладную
                             {
@@ -2269,9 +2293,17 @@ namespace Metal_Code
                                 }
                             }
                         }
-                        //для доп работы её наименование добавляем к наименованию работы - особый случай
-                        else if (w.workType is ExtraControl _extra) statsheet.Cells[i + temp, 8].Value += $"{_extra.NameExtra} ";
-                        else if (w.WorkDrop.SelectedItem is Work work) statsheet.Cells[i + temp, 8].Value += $"{work.Name} ";     //"Доп работы"
+                        else if (w.workType is ExtraControl _extra)     //для доп работы её наименование добавляем к наименованию работы - особый случай
+                        {
+                            statsheet.Cells[i + temp, 8].Value += $"{_extra.NameExtra} ";
+                            statsheet.Cells[i + beginBitrix, 6].Value += $"{_extra.NameExtra} ";                        //"Производство"
+                        }
+                        else if (w.WorkDrop.SelectedItem is Work work)
+                        {
+                            statsheet.Cells[i + temp, 8].Value += $"{work.Name} ";     //"Доп работы"
+                            if (work.Name == "Окраска") statsheet.Cells[i + beginBitrix, 7].Value += $"{work.Name} ";   //"Нанесение покрытий"
+                            else statsheet.Cells[i + beginBitrix, 6].Value += $"{work.Name} ";                          //"Производство"
+                        }
 
                         //проверяем наличие коэффициентов
                         if (w.Ratio != 1)
@@ -2285,6 +2317,7 @@ namespace Metal_Code
                     }
                 }
                 temp += det.TypeDetailControls.Count;
+                beginBitrix += det.TypeDetailControls.Count;
             }
 
             for (int n = 1; n <= tempNote - 9; n++) notesheet.Cells[n + 8, 1].Value = notesheet.Cells[n + 8, 6].Value = n;
@@ -3426,19 +3459,24 @@ namespace Metal_Code
             };
         }
 
-        private void CreateDelivery(object sender, RoutedEventArgs e)       //метод построения строки запроса в логистику
+        private void CreateDelivery(object sender, RoutedEventArgs e)
+        {
+            StatusBegin($"Запрос в логистику: {CreateDelivery()}");
+        }
+
+        private string CreateDelivery()     //метод построения строки запроса в логистику
         {
             StringBuilder sb = new(DateFormat(EndDate()));      //инициализируем строку датой отгрузки в формате "d MMM"
-            
-                //если есть номер заказа, добавляем его; иначе добавляем номер КП
+
+            //если есть номер заказа, добавляем его; иначе добавляем номер КП
             if (ActiveOffer != null && ActiveOffer.Order != null) sb.Append($", №{ActiveOffer.Order}");
             else sb.Append($", №{Order.Text}");
 
             sb.Append($", {CustomerDrop.Text}({ShortManager()})");   //добавляем заказчика и менеджера в сокращенном виде
             sb.Append($", примерно {GetTotalMass()} кг;");      //добавляем массу всех деталей
             sb.Append($" {Adress.Text}");                       //и, наконец, адрес доставки и контакт
-
-            StatusBegin($"Запрос в логистику: {sb}");
+            
+            return $"{sb}";
         }
 
         private float GetTotalMass()        //метод расчета общей массы ВСЕХ деталей
