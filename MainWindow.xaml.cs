@@ -2078,12 +2078,15 @@ namespace Metal_Code
 
             // ----- таблица общих сумм работ, выполняемых подразделениями (Лист2 - "Реестр") -----
 
-            statsheet.Cells[1, 2].Value = "ПРОВЭЛД";
-            statsheet.Cells[1, 2, 1, 3].Merge = true;
-            statsheet.Cells[1, 4].Value = "ЛАЗЕРФЛЕКС";
-            statsheet.Cells[1, 4, 1, 5].Merge = true;
-            statsheet.Cells[2, 2].Value = statsheet.Cells[2, 4].Value = "Работы";
-            statsheet.Cells[2, 3].Value = statsheet.Cells[2, 5].Value = "Стоимость";
+            int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count) + 3;
+            //MessageBox.Show($"{countTypeDetails}");
+
+            statsheet.Cells[countTypeDetails + 1, 2].Value = "ПРОВЭЛД";
+            statsheet.Cells[countTypeDetails + 1, 2, countTypeDetails + 1, 3].Merge = true;
+            statsheet.Cells[countTypeDetails + 1, 4].Value = "ЛАЗЕРФЛЕКС";
+            statsheet.Cells[countTypeDetails + 1, 4, countTypeDetails + 1, 5].Merge = true;
+            statsheet.Cells[countTypeDetails + 2, 2].Value = statsheet.Cells[countTypeDetails + 2, 4].Value = "Работы";
+            statsheet.Cells[countTypeDetails + 2, 3].Value = statsheet.Cells[countTypeDetails + 2, 5].Value = "Стоимость";
 
             int las = 0, pr = 0;        //количество видов работ Лазерфлекс / Провэлд
 
@@ -2091,27 +2094,27 @@ namespace Metal_Code
                 {
                     if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key.Contains("(Л)"))
                     {
-                        statsheet.Cells[3 + las, 4].Value = key;
-                        statsheet.Cells[3 + las, 5].Value = Math.Round(TempWorksDict[key], 2);
+                        statsheet.Cells[countTypeDetails + 3 + las, 4].Value = key;
+                        statsheet.Cells[countTypeDetails + 3 + las, 5].Value = Math.Round(TempWorksDict[key], 2);
                         las++;
                     }
                     else
                     {
-                        statsheet.Cells[3 + pr, 2].Value = key;
-                        statsheet.Cells[3 + pr, 3].Value = Math.Round(TempWorksDict[key], 2);
+                        statsheet.Cells[countTypeDetails + 3 + pr, 2].Value = key;
+                        statsheet.Cells[countTypeDetails + 3 + pr, 3].Value = Math.Round(TempWorksDict[key], 2);
                         pr++;
                     }
                 }
 
-            int temp = pr >= las ? pr : las;     //ограничиваем таблицу тем количеством строк, которых получилось больше
+            int temp = pr >= las ? countTypeDetails + pr : countTypeDetails + las;     //ограничиваем таблицу тем количеством строк, которых получилось больше
 
-            ExcelRange restable = statsheet.Cells[1, 2, 3 + temp, 5];
+            ExcelRange restable = statsheet.Cells[countTypeDetails + 1, 2, 3 + temp, 5];
             restable.Style.Fill.PatternType = ExcelFillStyle.Solid;
-            statsheet.Cells[1, 2, 3 + temp, 3].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGoldenrodYellow);
-            statsheet.Cells[1, 4, 3 + temp, 5].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightCyan);
-            statsheet.Names.Add("totalProweld", statsheet.Cells[3, 3, 2 + temp, 3]);
+            statsheet.Cells[countTypeDetails + 1, 2, 3 + temp, 3].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGoldenrodYellow);
+            statsheet.Cells[countTypeDetails + 1, 4, 3 + temp, 5].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightCyan);
+            statsheet.Names.Add("totalProweld", statsheet.Cells[countTypeDetails + 3, 3, 2 + temp, 3]);
             statsheet.Cells[3 + temp, 3].Formula = "=SUM(totalProweld)";
-            statsheet.Names.Add("totalLaserflex", statsheet.Cells[3, 5, 2 + temp, 5]);
+            statsheet.Names.Add("totalLaserflex", statsheet.Cells[countTypeDetails + 3, 5, 2 + temp, 5]);
             statsheet.Cells[3 + temp, 5].Formula = "=SUM(totalLaserflex)";
             statsheet.Cells[3 + temp, 3].Style.Font.Bold = statsheet.Cells[3 + temp, 5].Style.Font.Bold = true;
 
