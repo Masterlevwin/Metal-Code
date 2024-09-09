@@ -2093,24 +2093,25 @@ namespace Metal_Code
 
             List<string> _headersBitrix = new()
             {
-                "№ заказа", "Заказчик", "Менеджер", "Лазерные работы / Труборез", "Гибочные работы",
-                "Производство", "Нанесение покрытий", "Логистика", "Комментарий", "Дата сдачи"
+                "№ заказа", "Заказчик", "Менеджер", "Количество материала", "Лазерные работы", "Труборез",
+                "Гибочные работы", "Время лазерных работ", "Производство", "Нанесение покрытий",
+                "Логистика", "Комментарий", "Дата сдачи"
             };
-            for (int col = 0; col < _headersBitrix.Count; col++) statsheet.Cells[1, col + 1].Value = _headersBitrix[col];
+            for (int col = 0; col < _headersBitrix.Count; col++) statsheet.Cells[1, col + 7].Value = _headersBitrix[col];
 
-            int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count) + 3;
+            int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count) + 1;
 
-            ExcelRange registryBitrix = statsheet.Cells[1, 1, countTypeDetails - 2, 10];
+            ExcelRange registryBitrix = statsheet.Cells[1, 7, countTypeDetails, 19];
             registryBitrix.Style.Fill.PatternType = ExcelFillStyle.Solid;
             registryBitrix.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LavenderBlush);
             statsheet.Row(1).Style.Font.Bold = true;
 
-            statsheet.Cells[countTypeDetails + 1, 2].Value = "ПРОВЭЛД";
-            statsheet.Cells[countTypeDetails + 1, 2, countTypeDetails + 1, 3].Merge = true;
-            statsheet.Cells[countTypeDetails + 1, 4].Value = "ЛАЗЕРФЛЕКС";
-            statsheet.Cells[countTypeDetails + 1, 4, countTypeDetails + 1, 5].Merge = true;
-            statsheet.Cells[countTypeDetails + 2, 2].Value = statsheet.Cells[countTypeDetails + 2, 4].Value = "Работы";
-            statsheet.Cells[countTypeDetails + 2, 3].Value = statsheet.Cells[countTypeDetails + 2, 5].Value = "Стоимость";
+            statsheet.Cells[1, 2].Value = "ПРОВЭЛД";
+            statsheet.Cells[1, 2, 1, 3].Merge = true;
+            statsheet.Cells[1, 4].Value = "ЛАЗЕРФЛЕКС";
+            statsheet.Cells[1, 4, 1, 5].Merge = true;
+            statsheet.Cells[2, 2].Value = statsheet.Cells[2, 4].Value = "Работы";
+            statsheet.Cells[2, 3].Value = statsheet.Cells[2, 5].Value = "Стоимость";
 
             int las = 0, pr = 0;        //количество видов работ Лазерфлекс / Провэлд
 
@@ -2118,27 +2119,27 @@ namespace Metal_Code
                 {
                     if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key.Contains("(Л)"))
                     {
-                        statsheet.Cells[countTypeDetails + 3 + las, 4].Value = key;
-                        statsheet.Cells[countTypeDetails + 3 + las, 5].Value = Math.Round(TempWorksDict[key], 2);
+                        statsheet.Cells[3 + las, 4].Value = key;
+                        statsheet.Cells[3 + las, 5].Value = Math.Round(TempWorksDict[key], 2);
                         las++;
                     }
                     else
                     {
-                        statsheet.Cells[countTypeDetails + 3 + pr, 2].Value = key;
-                        statsheet.Cells[countTypeDetails + 3 + pr, 3].Value = Math.Round(TempWorksDict[key], 2);
+                        statsheet.Cells[3 + pr, 2].Value = key;
+                        statsheet.Cells[3 + pr, 3].Value = Math.Round(TempWorksDict[key], 2);
                         pr++;
                     }
                 }
 
-            int temp = pr >= las ? countTypeDetails + pr : countTypeDetails + las;     //ограничиваем таблицу тем количеством строк, которых получилось больше
+            int temp = pr >= las ? pr : las;     //ограничиваем таблицу тем количеством строк, которых получилось больше
 
-            ExcelRange restable = statsheet.Cells[countTypeDetails + 1, 2, 3 + temp, 5];
+            ExcelRange restable = statsheet.Cells[1, 2, 3 + temp, 5];
             restable.Style.Fill.PatternType = ExcelFillStyle.Solid;
-            statsheet.Cells[countTypeDetails + 1, 2, 3 + temp, 3].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGoldenrodYellow);
-            statsheet.Cells[countTypeDetails + 1, 4, 3 + temp, 5].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightCyan);
-            statsheet.Names.Add("totalProweld", statsheet.Cells[countTypeDetails + 3, 3, 2 + temp, 3]);
+            statsheet.Cells[1, 2, 3 + temp, 3].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGoldenrodYellow);
+            statsheet.Cells[1, 4, 3 + temp, 5].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightCyan);
+            statsheet.Names.Add("totalProweld", statsheet.Cells[3, 3, 2 + temp, 3]);
             statsheet.Cells[3 + temp, 3].Formula = "=SUM(totalProweld)";
-            statsheet.Names.Add("totalLaserflex", statsheet.Cells[countTypeDetails + 3, 5, 2 + temp, 5]);
+            statsheet.Names.Add("totalLaserflex", statsheet.Cells[3, 5, 2 + temp, 5]);
             statsheet.Cells[3 + temp, 5].Formula = "=SUM(totalLaserflex)";
             statsheet.Cells[3 + temp, 3].Style.Font.Bold = statsheet.Cells[3 + temp, 5].Style.Font.Bold = true;
 
@@ -2155,10 +2156,12 @@ namespace Metal_Code
             statsheet.Cells[7 + temp, 2].Value = "Конструкторские работы:";
             statsheet.Cells[7 + temp, 3].Value = Construct;
 
+            temp = 7 + temp >= countTypeDetails + 1 ? 7 + temp : countTypeDetails + 1;
 
             // ----- реестр Лазерфлекс (Лист2 - "Реестр") -----
 
-            int beginL = temp += 10;
+
+            int beginL = temp += 3;
 
             List<string> _headersL = new()
             {
@@ -2192,24 +2195,24 @@ namespace Metal_Code
                 {
                     TypeDetailControl type = det.TypeDetailControls[i];
 
-                    statsheet.Cells[i + temp, 2].Value = statsheet.Cells[i + beginBitrix, 2].Value = CustomerDrop.Text; //"Заказчик"
-                    statsheet.Cells[i + temp, 3].Value = statsheet.Cells[i + beginBitrix, 3].Value = ShortManager();    //"Менеджер"
+                    statsheet.Cells[i + temp, 2].Value = statsheet.Cells[i + beginBitrix, 8].Value = CustomerDrop.Text; //"Заказчик"
+                    statsheet.Cells[i + temp, 3].Value = statsheet.Cells[i + beginBitrix, 9].Value = ShortManager();    //"Менеджер"
 
                     if (HasDelivery)
                     {
-                        statsheet.Cells[i + temp, 8].Value = statsheet.Cells[i + beginBitrix, 8].Value = "Доставка ";
-                        statsheet.Cells[i + beginBitrix, 8].Value += $"({CreateDelivery()})";                           //"Логистика"
+                        statsheet.Cells[i + temp, 8].Value = statsheet.Cells[i + beginBitrix, 17].Value = "Доставка ";
+                        //statsheet.Cells[i + beginBitrix, 8].Value += $"({CreateDelivery()})";                           //"Логистика"
                     }
 
-                    if (type.CheckMetal.IsChecked == false) statsheet.Cells[i + temp, 10].Value = statsheet.Cells[i + beginBitrix, 9].Value = "Давальч. ";
+                    if (type.CheckMetal.IsChecked == false) statsheet.Cells[i + temp, 10].Value = statsheet.Cells[i + beginBitrix, 18].Value = "Давальч. ";
                     if (type.Comment != null && type.Comment != "")                                                     //"Комментарий"
                     {
                         statsheet.Cells[i + temp, 10].Value += $"{type.Comment}";
-                        statsheet.Cells[i + beginBitrix, 9].Value += $"{type.Comment}";
+                        statsheet.Cells[i + beginBitrix, 18].Value += $"{type.Comment}";
                     }
 
-                    statsheet.Cells[i + temp, 11].Value = statsheet.Cells[i + beginBitrix, 10].Value = EndDate();       //"Дата сдачи"
-                    statsheet.Cells[i + temp, 11].Style.Numberformat.Format = statsheet.Cells[i + beginBitrix, 10].Style.Numberformat.Format = "d MMM";
+                    statsheet.Cells[i + temp, 11].Value = statsheet.Cells[i + beginBitrix, 19].Value = EndDate();       //"Дата сдачи"
+                    statsheet.Cells[i + temp, 11].Style.Numberformat.Format = statsheet.Cells[i + beginBitrix, 19].Style.Numberformat.Format = "d MMM";
 
                     statsheet.Cells[i + temp, 15].Value = Order.Text;       //"Номер КП"
 
@@ -2217,8 +2220,7 @@ namespace Metal_Code
                     {
                         double _mass = Math.Ceiling(det.Detail.IsComplect ? type.Mass : type.Mass * type.Count);
 
-                        statsheet.Cells[i + temp, 14].Value = $"{_mass}" +
-                            $" ({(type.CheckMetal.IsChecked == true ? (type.ExtraResult > 0 ? Math.Ceiling(type.ExtraResult / _mass) : met.MassPrice) : 0)}р)";
+                        statsheet.Cells[i + temp, 14].Value = statsheet.Cells[i + beginBitrix, 10].Value = _mass;
                     }
 
                     foreach (WorkControl w in type.WorkControls)            //анализируем работы каждой типовой детали
@@ -2236,16 +2238,14 @@ namespace Metal_Code
                             else if (type.MetalDrop.Text.Contains("медь")) description = $"cu{type.S}";
                             else description = $"s{type.S} {type.MetalDrop.Text}";
 
-                            statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f) / w.Ratio;     //"Лазер (время работ)"
+                            statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + beginBitrix, 11].Value = description;  //"Лазерные работы"
+
+                            //"Лазер (время работ)"                                 //"Время лазерных работ"
+                            statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.012f) / w.Ratio;
 
                             if (w.Ratio != 1) _lkk += w.Ratio;
                             if (w.TechRatio > 1) _lpk += w.TechRatio;
                             _lc++;
-
-                            statsheet.Cells[i + temp, 4].Value = description;
-
-                            //"Лазерные работы / Труборез"
-                            statsheet.Cells[i + beginBitrix, 4].Value = description + $" ({Math.Ceiling(w.Result * 0.012f) / w.Ratio} мин)";
 
                             if (type.CheckMetal.IsChecked is not null)     //если материал давальческий, добавляем его в накладную
                             {
@@ -2272,7 +2272,7 @@ namespace Metal_Code
                         {
                             statsheet.Cells[i + temp, 6].Value = "гибка";           
                             statsheet.Cells[i + temp, 13].Value = Math.Ceiling(w.Result * 0.018f) / w.Ratio;        //"Гибка (время работ)"
-                            statsheet.Cells[i + beginBitrix, 5].Value = $"{Math.Ceiling(w.Result * 0.018f) / w.Ratio} мин";  //"Гибочные работы"
+                            statsheet.Cells[i + beginBitrix, 13].Value = Math.Ceiling(w.Result * 0.018f) / w.Ratio; //"Гибочные работы"
 
                             if (w.Ratio != 1) _bkk += w.Ratio;
                             if (w.TechRatio > 1) _bpk += w.TechRatio;
@@ -2280,13 +2280,10 @@ namespace Metal_Code
                         }
                         else if (w.workType is PipeControl pipe)
                         {
-                            //"Толщина и марка металла"
-                            statsheet.Cells[i + temp, 4].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
-
-                            statsheet.Cells[i + temp, 12].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);        //"Лазер (время работ)"
-
-                            //"Лазерные работы / Труборез"
-                            statsheet.Cells[i + beginBitrix, 4].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({Math.Ceiling(w.Result * 0.012f) / w.Ratio} мин)";
+                            //"Толщина и марка металла"                             //"Труборез"
+                            statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + beginBitrix, 12].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+                            //"Лазер (время работ)"                                 //"Время лазерных работ"
+                            statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
 
                             if (type.CheckMetal.IsChecked is not null)     //если материал давальческий, добавляем его в накладную
                             {
@@ -2312,13 +2309,13 @@ namespace Metal_Code
                         else if (w.workType is ExtraControl _extra)     //для доп работы её наименование добавляем к наименованию работы - особый случай
                         {
                             statsheet.Cells[i + temp, 8].Value += $"{_extra.NameExtra} ";
-                            statsheet.Cells[i + beginBitrix, 6].Value += $"{_extra.NameExtra} ";                        //"Производство"
+                            statsheet.Cells[i + beginBitrix, 15].Value += $"{_extra.NameExtra} ";                        //"Производство"
                         }
                         else if (w.WorkDrop.SelectedItem is Work work)
                         {
                             statsheet.Cells[i + temp, 8].Value += $"{work.Name} ";     //"Доп работы"
-                            if (work.Name == "Окраска") statsheet.Cells[i + beginBitrix, 7].Value += $"{work.Name} ";   //"Нанесение покрытий"
-                            else statsheet.Cells[i + beginBitrix, 6].Value += $"{work.Name} ";                          //"Производство"
+                            if (work.Name == "Окраска") statsheet.Cells[i + beginBitrix, 16].Value += $"{work.Name} ";   //"Нанесение покрытий"
+                            else statsheet.Cells[i + beginBitrix, 15].Value += $"{work.Name} ";                          //"Производство"
                         }
 
                         //проверяем наличие коэффициентов
