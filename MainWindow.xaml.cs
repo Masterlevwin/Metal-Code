@@ -2200,8 +2200,7 @@ namespace Metal_Code
 
                     if (HasDelivery)
                     {
-                        statsheet.Cells[i + temp, 8].Value = statsheet.Cells[i + beginBitrix, 17].Value = "Доставка ";
-                        //statsheet.Cells[i + beginBitrix, 8].Value += $"({CreateDelivery()})";                           //"Логистика"
+                        statsheet.Cells[i + temp, 8].Value = statsheet.Cells[i + beginBitrix, 17].Value = "Доставка ";  //"Логистика"
                     }
 
                     if (type.CheckMetal.IsChecked == false) statsheet.Cells[i + temp, 10].Value = statsheet.Cells[i + beginBitrix, 18].Value = "Давальч. ";
@@ -2220,7 +2219,10 @@ namespace Metal_Code
                     {
                         double _mass = Math.Ceiling(det.Detail.IsComplect ? type.Mass : type.Mass * type.Count);
 
-                        statsheet.Cells[i + temp, 14].Value = statsheet.Cells[i + beginBitrix, 10].Value = _mass;
+                        statsheet.Cells[i + temp, 14].Value = $"{_mass}" +
+                            $" ({(type.CheckMetal.IsChecked == true ? (type.ExtraResult > 0 ? Math.Ceiling(type.ExtraResult / _mass) : met.MassPrice) : 0)}р)";
+
+                        statsheet.Cells[i + beginBitrix, 10].Value = _mass; //"Количество материала"
                     }
 
                     foreach (WorkControl w in type.WorkControls)            //анализируем работы каждой типовой детали
@@ -2334,6 +2336,7 @@ namespace Metal_Code
             }
 
             for (int n = 1; n <= tempNote - 9; n++) notesheet.Cells[n + 8, 1].Value = notesheet.Cells[n + 8, 6].Value = n;
+            worksheet.Select();
 
             ExcelRange registryL = statsheet.Cells[beginL, 1, temp - 1, 19];
             statsheet.Cells[beginL, 4, temp - 1, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;      //"Толщина и марка металла"
