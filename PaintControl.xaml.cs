@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace Metal_Code
 {
@@ -227,6 +228,16 @@ namespace Metal_Code
                     SetType((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));
                 }
             }
+        }
+
+        //инструкция
+        private void ShowManual(object sender, MouseWheelEventArgs e)
+        {
+            PopupPaint.IsOpen = true;
+            Manual.Text = $"Указывая Ral цвета, дополнительно указывайте структуру краски.\r\n" +
+                $"В случае, когда детали одной заготовки окрашиваются в разные цвета,\r\n" +
+                $"необходимо создать раскладки соответствующих деталей на каждый цвет!\r\n" +
+                $"(так нужно, чтобы в реестре были указаны все цвета для заказа краски)";
         }
     }
 }

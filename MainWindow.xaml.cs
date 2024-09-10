@@ -2311,13 +2311,15 @@ namespace Metal_Code
                         else if (w.workType is ExtraControl _extra)     //для доп работы её наименование добавляем к наименованию работы - особый случай
                         {
                             statsheet.Cells[i + temp, 8].Value += $"{_extra.NameExtra} ";
-                            statsheet.Cells[i + beginBitrix, 15].Value += $"{_extra.NameExtra} ";                        //"Производство"
+                            statsheet.Cells[i + beginBitrix, 15].Value += $"{_extra.NameExtra} ";       //"Производство"
                         }
                         else if (w.WorkDrop.SelectedItem is Work work)
                         {
-                            statsheet.Cells[i + temp, 8].Value += $"{work.Name} ";     //"Доп работы"
-                            if (work.Name == "Окраска") statsheet.Cells[i + beginBitrix, 16].Value += $"{work.Name} ";   //"Нанесение покрытий"
-                            else statsheet.Cells[i + beginBitrix, 15].Value += $"{work.Name} ";                          //"Производство"
+                            statsheet.Cells[i + temp, 8].Value += $"{work.Name} ";                      //"Доп работы"
+
+                            if (w.workType is PaintControl _paint)
+                                statsheet.Cells[i + beginBitrix, 16].Value += _paint.Ral;               //"Нанесение покрытий"
+                            else statsheet.Cells[i + beginBitrix, 15].Value += $"{work.Name} ";         //"Производство"
                         }
 
                         //проверяем наличие коэффициентов
@@ -2427,11 +2429,11 @@ namespace Metal_Code
             registryL.Style.Border.BorderAround(ExcelBorderStyle.Thin);
             registryP.Style.Border.BorderAround(ExcelBorderStyle.Thin);
             registryBitrix.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+            registryBitrix.Style.HorizontalAlignment = registryP.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            registryBitrix.Style.VerticalAlignment = registryP.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
 
             scoresheet.Cells.AutoFitColumns();
             statsheet.Cells.AutoFitColumns();
-            registryP.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            registryP.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
 
 
             // ----- сохраняем книгу в файл Excel -----
