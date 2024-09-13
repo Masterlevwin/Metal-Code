@@ -86,7 +86,7 @@ namespace Metal_Code
 
                               fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());     //сохраняем расчет в папке
                               MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);           //формируем КП в формате excel
-                              MainWindow.M.SaveOrRemoveOffer(true);                             //сохраняем расчет в базе данных
+                              MainWindow.M.SaveOrRemoveOffer(true, dialogService.FilePaths[0]); //сохраняем расчет в базе данных
                           }
                       }
                       catch (Exception ex)

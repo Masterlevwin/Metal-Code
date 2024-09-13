@@ -201,7 +201,7 @@ namespace Metal_Code
         [Browsable(false)]
         public float Services { get; set; }
         [Browsable(false)]
-        public string? Act { get; set; }
+        public string? Act { get; set; }        //путь к сохраненному КП
         [Browsable(false)]
         public Manager? Manager { get; set; }
         [Browsable(false)]

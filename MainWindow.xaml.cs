@@ -25,6 +25,7 @@ using System.Text.RegularExpressions;
 using ACadSharp.IO;
 using ACadSharp;
 using System.Management;
+using System.Windows.Shapes;
 
 namespace Metal_Code
 {
@@ -91,12 +92,12 @@ namespace Metal_Code
             InitializeComponent();
             M = this;
 
-            if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
+            //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
 
-            AutoRemoveOffers();
+            //AutoRemoveOffers();
 
-            if (!CheckVersion(out string _version)) Restart();
-            UpdateDatabases();
+            //if (!CheckVersion(out string _version)) Restart();
+            //UpdateDatabases();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -910,7 +911,7 @@ namespace Metal_Code
             }
         }
 
-        public void SaveOrRemoveOffer(bool isSave)                          //метод сохранения и удаления расчета
+        public void SaveOrRemoveOffer(bool isSave, string? path = null)     //метод сохранения и удаления расчета
         {
             //подключаемся к базе данных
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
@@ -930,7 +931,8 @@ namespace Metal_Code
                             Agent = IsAgent,
                             EndDate = EndDate(),
                             Manager = _man,
-                            Data = SaveOfferData()      //сериализуем расчет в виде строки json
+                            Data = SaveOfferData(),     //сериализуем расчет в виде строки json
+                            Act = path                  //запоминаем путь к расчету
                         };
 
                         if (ActiveOffer?.Autor == CurrentManager.Name || ActiveOffer is null) _offer.Autor = CurrentManager.Name;
@@ -1910,7 +1912,7 @@ namespace Metal_Code
             worksheet.Cells[6, 5, 7, 5].Style.Fill.PatternType = ExcelFillStyle.Solid;
             worksheet.Cells[6, 5, 7, 5].Style.Fill.BackgroundColor.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
 
-            //оформляем стиль созданной таблицы
+                //оформляем стиль созданной таблицы
             ExcelRange table = worksheet.Cells[6, 1, row - 1, 9];
             table.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             table.Style.VerticalAlignment = ExcelVerticalAlignment.Top;
@@ -1918,7 +1920,7 @@ namespace Metal_Code
             table.Style.Border.Right.Style = ExcelBorderStyle.Thin;
             table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
-            //оформляем первую строку КП, где указываем название нашей компании и ее телефон
+                //оформляем первую строку КП, где указываем название нашей компании и ее телефон
             worksheet.Cells["A1"].Value = Boss.Text + Phone.Text;
             worksheet.Cells[1, 1, 1, 9].Merge = true;
             worksheet.Rows[1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
@@ -2165,7 +2167,7 @@ namespace Metal_Code
 
             List<string> _headersL = new()
             {
-                "Заказ", "Заказчик", "Менеджер", "Толщина и марка металла", "V",
+                "№ заказа", "Заказчик", "Менеджер", "Толщина и марка металла", "V",
                 "Гибка", "V", "Доп работы", "V", "Комментарий", "Дата сдачи", "Лазер (время работ)",
                 "Гибка (время работ)", "Количество материала", "Номер КП", "Статус", "Комментарий менеджера", "КК", "ПК"
             };
@@ -2477,7 +2479,7 @@ namespace Metal_Code
 
             // ----- сохраняем книгу в файл Excel -----
 
-            workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Файл для счета " + Order.Text + " на сумму " + $"{Result}" + ".xlsx");
+            workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Файл для счета " + Order.Text + "_" + CustomerDrop.Text + " на сумму " + $"{Result}" + ".xlsx");
         }
 
         private void CreateComplect(string _path, Offer? offer = null)                  // метод создания файла для комплектации
@@ -2666,6 +2668,42 @@ namespace Metal_Code
                 }
             }
             else workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
+
+            if (offer is not null) UpdateOffer(offer);
+        }
+
+        private void UpdateOffer(Offer offer)                                           //метод добавления номера заказа в ячейки реестров
+        {
+            if (offer.Act is null || !File.Exists(offer.Act) ) return;
+
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var offerbook = new ExcelPackage(new FileInfo(offer.Act));
+            ExcelWorksheet? registrysheet = offerbook.Workbook.Worksheets.FirstOrDefault(x => x.Name == "Реестр");
+
+            if (registrysheet is not null)
+            {
+                foreach (var cell in registrysheet.Cells)
+                {
+                    if (cell.Value is not null && $"{cell.Value}" == "№ заказа")
+                    {
+                        int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count);
+
+                        for (int i = 1; i <= countTypeDetails; i++)
+                        {
+                            registrysheet.Cells[cell.Start.Row + i, cell.Start.Column].Value = offer.Order;
+                        }  
+                    }
+
+                    if (cell.Value is not null && $"{cell.Value}" == "№ Лазера")
+                    {
+                        registrysheet.Cells[cell.Start.Row + 1, cell.Start.Column].Value = offer.Order;
+                    }
+                }
+            }
+
+            // ----- сохраняем книгу в файл Excel -----
+            offerbook.SaveAs(offer.Act);      //сохраняем файл .xlsx
         }
 
         private void CreateComplect(object sender, RoutedEventArgs e)

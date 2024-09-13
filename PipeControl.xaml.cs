@@ -526,16 +526,9 @@ namespace Metal_Code
                     //устанавливаем толщину заготовки, если она равна нулю
                     if (work.type.S == 0)
                     {
-                        Regex destinyEng = new(@"x[+-]?((\d+\.?\d*)|(\.\d+))");             //проверяем английскую х (здесь в коде - тоже английская х)
-                        List<Match> matchesEng = destinyEng.Matches(part.Title).ToList();
-                        if (matchesEng.Count > 0) work.type.S = MainWindow.Parser(matchesEng[^1].Value.Trim('x'));      //здесь в коде - английская х
-
-                        if (work.type.S == 0)       //если проверка на английскую х провалена, т.е. толщина по-прежнему равна нулю, проверяем русскую х
-                        {
-                            Regex destinyRus = new(@"х[+-]?((\d+\.?\d*)|(\.\d+))");         //проверяем русскую х (здесь в коде - тоже русская х)
-                            List<Match> matchesRus = destinyRus.Matches(part.Title).ToList();
-                            if (matchesRus.Count > 0) work.type.S = MainWindow.Parser(matchesRus[^1].Value.Trim('х'));  //здесь в коде - русская х
-                        }
+                        Regex destinyEng = new(@"x[+-]?((\d+\.?\d*)|(\.\d+))", RegexOptions.IgnoreCase);
+                        List<Match> matchesEng = destinyEng.Matches(part.Title.ToLower().Replace('х', 'x')).ToList();
+                        if (matchesEng.Count > 0) work.type.S = MainWindow.Parser(matchesEng[^1].Value.Trim('x'));
                     }
 
                     //определяем количество деталей
@@ -789,16 +782,9 @@ namespace Metal_Code
                             //устанавливаем толщину заготовки, если она равна нулю
                             if (work.type.S == 0)
                             {
-                                Regex destinyEng = new(@"x[+-]?((\d+\.?\d*)|(\.\d+))");             //проверяем английскую х (здесь в коде - тоже английская х)
-                                List<Match> matchesEng = destinyEng.Matches(part.Title).ToList();
-                                if (matchesEng.Count > 0) work.type.S = MainWindow.Parser(matchesEng[^1].Value.Trim('x'));      //здесь в коде - английская х
-
-                                if (work.type.S == 0)       //если проверка на английскую х провалена, т.е. толщина по-прежнему равна нулю, проверяем русскую х
-                                {
-                                    Regex destinyRus = new(@"х[+-]?((\d+\.?\d*)|(\.\d+))");         //проверяем русскую х (здесь в коде - тоже русская х)
-                                    List<Match> matchesRus = destinyRus.Matches(part.Title).ToList();
-                                    if (matchesRus.Count > 0) work.type.S = MainWindow.Parser(matchesRus[^1].Value.Trim('х'));  //здесь в коде - русская х
-                                }
+                                Regex destinyEng = new(@"x[+-]?((\d+\.?\d*)|(\.\d+))", RegexOptions.IgnoreCase);
+                                List<Match> matchesEng = destinyEng.Matches(part.Title.ToLower().Replace('х', 'x')).ToList();
+                                if (matchesEng.Count > 0) work.type.S = MainWindow.Parser(matchesEng[^1].Value.Trim('x'));
                             }
 
                             string? _count = tables[0].Rows[j].ItemArray[3]?.ToString();
