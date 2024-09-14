@@ -26,6 +26,7 @@ using ACadSharp.IO;
 using ACadSharp;
 using System.Management;
 using System.Windows.Shapes;
+using System.Globalization;
 
 namespace Metal_Code
 {
@@ -2443,6 +2444,8 @@ namespace Metal_Code
 
             CreateScore(worksheet, row - 8, path);                      //создаем файл для счета на основе полученного КП
             if (Parts.Count > 0) CreateComplect(path);                  //создаем файл комплектации
+            
+            CreateRegistry(path);                                       //создаем файл для списка задач в Битрикс24
         }
 
         private void CreateScore(ExcelWorksheet worksheet, int row, string _path)       // метод создания файла для счета
@@ -2670,6 +2673,192 @@ namespace Metal_Code
             else workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
 
             if (offer is not null) UpdateOffer(offer);
+        }
+
+        private void CreateRegistry(string _path)
+        {
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var CSVbook = new ExcelPackage();
+            ExcelWorksheet tasksheet = CSVbook.Workbook.Worksheets.Add("Задачи");
+
+            List<string> headers = new()
+            {
+                "Название", "Описание", "Крайний срок", "Исполнитель", "Проект",
+                "Время на выполнение задачи в секундах", "Разрешить ответственному менять сроки задачи",
+                "Проконтролировать задачу после завершения", "Автоматически завершать задачу при завершении подзадач"
+            };
+            for (int col = 0; col < headers.Count; col++) tasksheet.Cells[1, col + 1].Value = headers[col];
+
+            tasksheet.Cells[2, 1].Value = $"{Order.Text}";
+            tasksheet.Cells[2, 2].Value = $"Заказчик: {CustomerDrop.Text}";
+            tasksheet.Cells[2, 3].Value = EndDate()?.ToString("g");
+            tasksheet.Cells[2, 4].Value = $"Роман Гусев";
+            tasksheet.Cells[2, 5].Value = $"Лазерные работы";
+            tasksheet.Cells[2, 6].Value = $"{720}";
+            tasksheet.Cells[2, 7].Value = 1;
+            tasksheet.Cells[2, 8].Value = 1;
+            tasksheet.Cells[2, 8].Value = 1;
+
+            ExcelRange taskRange = tasksheet.Cells[1, 1, 2, 9];
+
+            var file = new FileInfo($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - список задач.csv");
+            var format = new ExcelOutputTextFormat
+            {
+                Delimiter = ';',
+                Encoding = new UTF8Encoding(),
+            };
+            taskRange.SaveToText(file, format);
+
+
+            //foreach (DetailControl det in DetailControls)
+            //{
+            //    for (int i = 0; i < det.TypeDetailControls.Count; i++)
+            //    {
+            //        TypeDetailControl type = det.TypeDetailControls[i];
+
+            //        statsheet.Cells[i + temp, 2].Value = statsheet.Cells[i + beginBitrix, 8].Value = CustomerDrop.Text; //"Заказчик"
+            //        statsheet.Cells[i + temp, 3].Value = statsheet.Cells[i + beginBitrix, 9].Value = ShortManager();    //"Менеджер"
+
+            //        if (HasDelivery)
+            //        {
+            //            statsheet.Cells[i + temp, 8].Value = statsheet.Cells[i + beginBitrix, 17].Value = "Доставка ";  //"Логистика"
+            //        }
+
+            //        if (type.CheckMetal.IsChecked == false) statsheet.Cells[i + temp, 10].Value = statsheet.Cells[i + beginBitrix, 18].Value = "Давальч. ";
+            //        if (type.Comment != null && type.Comment != "")                                                     //"Комментарий"
+            //        {
+            //            statsheet.Cells[i + temp, 10].Value += $"{type.Comment}";
+            //            statsheet.Cells[i + beginBitrix, 18].Value += $"{type.Comment}";
+            //        }
+
+            //        statsheet.Cells[i + temp, 11].Value = statsheet.Cells[i + beginBitrix, 19].Value = EndDate();       //"Дата сдачи"
+            //        statsheet.Cells[i + temp, 11].Style.Numberformat.Format = statsheet.Cells[i + beginBitrix, 19].Style.Numberformat.Format = "d MMM";
+
+            //        statsheet.Cells[i + temp, 15].Value = Order.Text;       //"Номер КП"
+
+            //        if (type.MetalDrop.SelectedItem is Metal met)           //"Количество материала и (его цена за 1 кг)"
+            //        {
+            //            double _mass = Math.Ceiling(det.Detail.IsComplect ? type.Mass : type.Mass * type.Count);
+
+            //            statsheet.Cells[i + temp, 14].Value = $"{_mass}" +
+            //                $" ({(type.CheckMetal.IsChecked == true ? (type.ExtraResult > 0 ? Math.Ceiling(type.ExtraResult / _mass) : met.MassPrice) : 0)}р)";
+
+            //            statsheet.Cells[i + beginBitrix, 10].Value = _mass; //"Количество материала"
+            //        }
+
+            //        foreach (WorkControl w in type.WorkControls)            //анализируем работы каждой типовой детали
+            //        {
+            //            if (w.Result == 0) continue;                        //пропускаем добавление нулевых работ
+
+            //            if (w.workType is CutControl cut)
+            //            {
+            //                //"Толщина и марка металла"
+            //                string description = "";
+            //                if ((type.MetalDrop.Text.Contains("ст") && type.S >= 3) || (type.MetalDrop.Text.Contains("хк") && type.S < 3)) description = $"s{type.S}";
+            //                else if (type.MetalDrop.Text.Contains("амг2")) description = $"al{type.S}";
+            //                else if (type.MetalDrop.Text.Contains("амг") || type.MetalDrop.Text.Contains("д16")) description = $"al{type.S} {type.MetalDrop.Text}";
+            //                else if (type.MetalDrop.Text.Contains("латунь")) description = $"br{type.S}";
+            //                else if (type.MetalDrop.Text.Contains("медь")) description = $"cu{type.S}";
+            //                else description = $"s{type.S} {type.MetalDrop.Text}";
+
+            //                statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + beginBitrix, 11].Value = description;  //"Лазерные работы"
+
+            //                //"Лазер (время работ)"                                 //"Время лазерных работ"
+            //                statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.012f) / w.Ratio;
+
+            //                if (w.Ratio != 1) _lkk += w.Ratio;
+            //                if (w.TechRatio > 1) _lpk += w.TechRatio;
+            //                _lc++;
+
+            //                if (type.CheckMetal.IsChecked is not null)     //если материал давальческий, добавляем его в накладную
+            //                {
+            //                    if (cut.Items?.Count > 0)
+            //                    {
+            //                        var _items = cut.Items?.GroupBy(c => c.sheetSize);      //группируем все листы по размеру
+            //                        if (_items is not null)
+            //                            foreach (var item in _items)    //каждую группу листов одного размера и их количество записываем в одну строку
+            //                            {
+            //                                notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"Лист {description} ({item.Key})";
+            //                                notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = item.Sum(s => s.sheets);
+            //                                tempNote++;
+            //                            }
+            //                    }
+            //                    else
+            //                    {
+            //                        notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"Лист {description} ({type.A}x{type.B})";
+            //                        notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
+            //                        tempNote++;
+            //                    }
+            //                }
+            //            }
+            //            else if (w.workType is BendControl)
+            //            {
+            //                statsheet.Cells[i + temp, 6].Value = "гибка";
+            //                statsheet.Cells[i + temp, 13].Value = Math.Ceiling(w.Result * 0.018f) / w.Ratio;        //"Гибка (время работ)"
+            //                statsheet.Cells[i + beginBitrix, 13].Value = Math.Ceiling(w.Result * 0.018f) / w.Ratio; //"Гибочные работы"
+
+            //                if (w.Ratio != 1) _bkk += w.Ratio;
+            //                if (w.TechRatio > 1) _bpk += w.TechRatio;
+            //                _bc++;
+            //            }
+            //            else if (w.workType is PipeControl pipe)
+            //            {
+            //                //"Толщина и марка металла"                             //"Труборез"
+            //                statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + beginBitrix, 12].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+            //                //"Лазер (время работ)"                                 //"Время лазерных работ"
+            //                statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
+
+            //                if (type.CheckMetal.IsChecked is not null)     //если материал давальческий, добавляем его в накладную
+            //                {
+            //                    if (pipe.Items?.Count > 0)
+            //                    {
+            //                        var _items = pipe.Items?.GroupBy(c => c.sheetSize);      //группируем все трубы по размеру
+            //                        if (_items is not null)
+            //                            foreach (var item in _items)    //каждую группу труб одного размера и их количество записываем в одну строку
+            //                            {
+            //                                notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({item.Key})";
+            //                                notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = item.Sum(s => s.sheets);
+            //                                tempNote++;
+            //                            }
+            //                    }
+            //                    else
+            //                    {
+            //                        notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({type.L})";
+            //                        notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
+            //                        tempNote++;
+            //                    }
+            //                }
+            //            }
+            //            else if (w.workType is ExtraControl _extra)     //для доп работы её наименование добавляем к наименованию работы - особый случай
+            //            {
+            //                statsheet.Cells[i + temp, 8].Value += $"{_extra.NameExtra} ";
+            //                statsheet.Cells[i + beginBitrix, 15].Value += $"{_extra.NameExtra} ";       //"Производство"
+            //            }
+            //            else if (w.WorkDrop.SelectedItem is Work work)
+            //            {
+            //                statsheet.Cells[i + temp, 8].Value += $"{work.Name} ";                      //"Доп работы"
+
+            //                if (w.workType is PaintControl _paint)
+            //                    statsheet.Cells[i + beginBitrix, 16].Value += _paint.Ral;               //"Нанесение покрытий"
+            //                else statsheet.Cells[i + beginBitrix, 15].Value += $"{work.Name} ";         //"Производство"
+            //            }
+
+            //            //проверяем наличие коэффициентов
+            //            if (w.Ratio != 1)
+            //                if (float.TryParse($"{statsheet.Cells[i + temp, 16].Value}", out float r))
+            //                    statsheet.Cells[i + temp, 18].Value = Math.Round(r * w.Ratio, 2);
+            //                else statsheet.Cells[i + temp, 18].Value = Math.Round(w.Ratio, 2);
+            //            if (w.TechRatio > 1)
+            //                if (float.TryParse($"{statsheet.Cells[i + temp, 17].Value}", out float r))
+            //                    statsheet.Cells[i + temp, 19].Value = Math.Round(r * w.TechRatio, 2);
+            //                else statsheet.Cells[i + temp, 19].Value = Math.Round(w.TechRatio, 2);
+            //        }
+            //    }
+            //    temp += det.TypeDetailControls.Count;
+            //    beginBitrix += det.TypeDetailControls.Count;
+            //}
+
         }
 
         private void UpdateOffer(Offer offer)                                           //метод добавления номера заказа в ячейки реестров
