@@ -25,8 +25,6 @@ using System.Text.RegularExpressions;
 using ACadSharp.IO;
 using ACadSharp;
 using System.Management;
-using System.Windows.Shapes;
-using System.Globalization;
 
 namespace Metal_Code
 {
@@ -43,17 +41,6 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {
-            //"Data Source=managers.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\managers.db",
-            //"Data Source=typedetails.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\typedetails.db",
-            //"Data Source=works.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\works.db",
-            //"Data Source=metals.db",
-            //$"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые\\metals.db",
-            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые",
-            //$"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Базы тестовые"                                          //рабочий комп
-
             "Data Source=managers.db",
             $"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
             "Data Source=typedetails.db",
@@ -63,7 +50,7 @@ namespace Metal_Code
             "Data Source=metals.db",
             $"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
             $"C:\\ProgramData\\Metal-Code",
-            $"C:\\ProgramData\\Metal-Code"                                                                                    //домашний комп
+            $"C:\\ProgramData\\Metal-Code"                                                                                    //дом
 
             //"Data Source=managers.db",
             //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
@@ -95,10 +82,10 @@ namespace Metal_Code
 
             //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
 
-            //AutoRemoveOffers();
-
             //if (!CheckVersion(out string _version)) Restart();
             //UpdateDatabases();
+
+            //AutoRemoveOffers();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -1029,9 +1016,7 @@ namespace Metal_Code
                         StatusBegin("Изменения в базе сохранены");
 
                         if (ActiveOffer?.CreatedDate == _offer.CreatedDate && Parts.Count > 0)
-                            CreateComplect(connections[8], _offer);                     //создаем файл комплектации
-                        if (ActiveOffer?.CreatedDate == _offer.CreatedDate && _offer.Act is not null && File.Exists(_offer.Act))
-                            CreateRegistry(_offer.Act, _offer.Order);                   //создаем файл для списка задач в Битрикс24
+                            CreateComplect(connections[8], _offer);                     //создаем файлы комплектации и списка задач
                     }
                 }
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
@@ -2668,20 +2653,25 @@ namespace Metal_Code
                     {
                         string[] files = Directory.GetFileSystemEntries(s);   //получаем все файлы в папке заказа, чтобы сохранить файл комплектации в директории этих файлов
                         workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {CustomerDrop.Text} - комплектация.xlsx");
-                        StatusBegin($"Изменения в базе сохранены. Кроме того создан файл комплектации в папке {Path.GetDirectoryName(files[0])}");
+
+                        CreateRegistry(files[0], offer.Order);
+
+                        StatusBegin($"Изменения в базе сохранены. Кроме того созданы файлы КОМПЛЕКТАЦИИ и СПИСКА ЗАДАЧ в папке {Path.GetDirectoryName(files[0])}");
                         break;
                     }
                 }
             }
-            else workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
+            else
+            {
+                workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
+                CreateRegistry(_path, Order.Text);
+            }
 
             if (offer is not null) UpdateOffer(offer);
         }
 
-        private void CreateRegistry(string _path, string? _order)                       // метод создания файла для списка задач
+        private void CreateRegistry(string _path, string _order)                        // метод создания файла для списка задач
         {
-            if (_order is null || _order == "") return;
-
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
             using var CSVbook = new ExcelPackage();
