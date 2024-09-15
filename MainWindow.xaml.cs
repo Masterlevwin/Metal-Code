@@ -49,7 +49,7 @@ namespace Metal_Code
             $"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
             "Data Source=metals.db",
             $"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
-            $"C:\\ProgramData\\Metal-Code",
+            $"C:\\Users\\Михаил\\Desktop\\Тесты\\Производство",
             $"C:\\ProgramData\\Metal-Code"                                                                                    //дом
 
             //"Data Source=managers.db",
@@ -2652,12 +2652,16 @@ namespace Metal_Code
                     if (s.Contains(offer.Order.Remove(4)))                    //ищем подкаталог с номером заказа
                     {
                         string[] files = Directory.GetFileSystemEntries(s);   //получаем все файлы в папке заказа, чтобы сохранить файл комплектации в директории этих файлов
-                        workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {CustomerDrop.Text} - комплектация.xlsx");
+                        if (files.Length > 0)
+                        {
+                            workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {CustomerDrop.Text} - комплектация.xlsx");
 
-                        CreateRegistry(files[0], offer.Order);
+                            CreateRegistry(files[0], offer.Order);
 
-                        StatusBegin($"Изменения в базе сохранены. Кроме того созданы файлы КОМПЛЕКТАЦИИ и СПИСКА ЗАДАЧ в папке {Path.GetDirectoryName(files[0])}");
-                        break;
+                            StatusBegin($"Изменения в базе сохранены. Кроме того созданы файлы комплектации и списка задач в папке {Path.GetDirectoryName(files[0])}");
+                            break;
+                        }
+                        else StatusBegin($"Изменения в базе сохранены. Но файл комплектации не создан, так как в папке заказа нет файлов.");
                     }
                 }
             }
