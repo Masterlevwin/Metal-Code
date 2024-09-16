@@ -2727,6 +2727,8 @@ namespace Metal_Code
                             tasksheet.Cells[temp, 2].Value += $", Количество материала: {_mass}, Комментарий: ";
                             if (type.CheckMetal.IsChecked == false) tasksheet.Cells[temp, 2].Value += "Давальч. ";
                             if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 2].Value += $"{type.Comment}";
+                            //"Исполнитель"
+                            tasksheet.Cells[temp, 4].Value = $"Роман Гусев";
                             //"Проект"
                             tasksheet.Cells[temp, 5].Value = "Лазерные работы";
                             //"Время на выполнение задачи в секундах"
@@ -2738,6 +2740,8 @@ namespace Metal_Code
                         {
                             //"Название"
                             tasksheet.Cells[temp, 1].Value += $"{description} Гибка";
+                            //"Исполнитель"
+                            tasksheet.Cells[temp, 4].Value = $"Роман Гусев";
                             //"Проект"
                             tasksheet.Cells[temp, 5].Value = "Гибочные работы";
                             //"Время на выполнение задачи в секундах"
@@ -2755,6 +2759,8 @@ namespace Metal_Code
                             tasksheet.Cells[temp, 2].Value += $", Количество материала: {_mass}, Комментарий: ";
                             if (type.CheckMetal.IsChecked == false) tasksheet.Cells[temp, 2].Value += "Давальч. ";
                             if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 2].Value += $"{type.Comment}";
+                            //"Исполнитель"
+                            tasksheet.Cells[temp, 4].Value = $"Роман Гусев";
                             //"Проект"
                             tasksheet.Cells[temp, 5].Value = "Труборез";
                             //"Время на выполнение задачи в секундах"
@@ -2768,6 +2774,8 @@ namespace Metal_Code
                             {
                                 //"Название"
                                 tasksheet.Cells[temp, 1].Value += $"{_paint.Ral}";
+                                //"Исполнитель"
+                                tasksheet.Cells[temp, 4].Value = $"Всеволод Берестов";
                                 //"Проект"
                                 tasksheet.Cells[temp, 5].Value = "Нанесение покрытий";
                                 //"Время на выполнение задачи в секундах"
@@ -2786,6 +2794,8 @@ namespace Metal_Code
                                 //"Название"
                                 if (w.workType is ExtraControl extra) tasksheet.Cells[temp, 1].Value += $"{extra.NameExtra}";
                                 else tasksheet.Cells[temp, 1].Value += $"{work.Name}";
+                                //"Исполнитель"
+                                tasksheet.Cells[temp, 4].Value = $"Всеволод Берестов";
                                 //"Проект"
                                 tasksheet.Cells[temp, 5].Value = "Производство";
                                 //"Время на выполнение задачи в секундах"
@@ -2807,7 +2817,6 @@ namespace Metal_Code
             for (int row = 2; row < temp; row++)
             {
                 tasksheet.Cells[row, 3].Value = EndDate()?.ToString("g");
-                tasksheet.Cells[row, 4].Value = $"Роман Гусев";
                 tasksheet.Cells[row, 7].Value = 1;
                 tasksheet.Cells[row, 8].Value = 1;
                 tasksheet.Cells[row, 9].Value = 1;
