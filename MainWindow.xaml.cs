@@ -2077,6 +2077,7 @@ namespace Metal_Code
             ExcelRange sends = scoresheet.Cells[1, 5, Parts.Count + 3, 21];
             sends.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
+            ExcelRange materials = scoresheet.Cells[1, 5, Parts.Count + 1, 5];
 
             // ----- таблица общих сумм работ, выполняемых подразделениями (Лист2 - "Реестр") -----
 
@@ -2430,13 +2431,13 @@ namespace Metal_Code
             // ----- сохраняем книгу в файл Excel -----
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем файл .xlsx
 
-            CreateScore(worksheet, row - 8, path);                      //создаем файл для счета на основе полученного КП
+            CreateScore(worksheet, row - 8, path, materials);                      //создаем файл для счета на основе полученного КП
             if (Parts.Count > 0) CreateComplect(path);                  //создаем файл комплектации
             
             CreateRegistry(path, Order.Text);                           //создаем файл для списка задач в Битрикс24
         }
 
-        private void CreateScore(ExcelWorksheet worksheet, int row, string _path)       // метод создания файла для счета
+        private void CreateScore(ExcelWorksheet worksheet, int row, string _path, ExcelRange materials)       // метод создания файла для счета
         {
             // ----- основная таблица деталей для экспорта в 1С (Лист1 - "Счет") -----
 
@@ -2452,6 +2453,8 @@ namespace Metal_Code
             scoresheet.Cells["C1"].Value = "Цена";
             scoresheet.Cells["D1"].Value = "Цена";
             scoresheet.Cells["E1"].Value = "Ед. изм.";
+
+            materials.Copy(scoresheet.Cells["F1"]);     //копируем стоимость материала из КП в файл для счета
 
             for (int i = 0; i < row; i++)
             {
