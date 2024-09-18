@@ -31,8 +31,8 @@ namespace Metal_Code
             MetalGrid.Columns[2].Header = "Плотность";
             MetalGrid.Columns[3].Header = "Цена за кг";
 
-            if (!MainWindow.M.CurrentManager.IsAdmin) foreach (UIElement element in ButtonsStack.Children)
-                    if (element is Button) element.IsEnabled = false;
+            //if (!MainWindow.M.CurrentManager.IsAdmin) foreach (UIElement element in ButtonsStack.Children)
+            //        if (element is Button) element.IsEnabled = false;
         }
 
         // добавление

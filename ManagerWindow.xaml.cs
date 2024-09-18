@@ -30,8 +30,8 @@ namespace Metal_Code
             LaserList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => x.IsLaser);
             AppList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => !x.IsLaser);
 
-            if (MainWindow.M.Managers.Count > 0 && !MainWindow.M.CurrentManager.IsAdmin) foreach (UIElement element in ButtonsStack.Children)
-                    if (element is Button) element.IsEnabled = false;
+            //if (MainWindow.M.Managers.Count > 0 && !MainWindow.M.CurrentManager.IsAdmin) foreach (UIElement element in ButtonsStack.Children)
+            //        if (element is Button) element.IsEnabled = false;
         }
 
         // добавление
