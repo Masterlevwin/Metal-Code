@@ -390,7 +390,15 @@ namespace Metal_Code
         {
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
 
-            Price = metal.MassPrice;
+            if (metal.Name is not null && MainWindow.M.MetalDict[metal.Name].ContainsKey(S))
+            {
+                Price = S switch
+                {
+                    < 14 => metal.MassPrice,
+                    < 18 => metal.MassPrice * 1.05f,
+                    _ => metal.MassPrice * 1.15f,
+                };
+            }
 
             if (det.Detail.IsComplect)
             {
