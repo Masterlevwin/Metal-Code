@@ -129,6 +129,10 @@ namespace Metal_Code
             if (Items?.Count > 0)
             {
                 foreach (LaserItem item in Items) price += ItemPrice(item);
+
+                // стоимость резки должна быть не ниже 10% от стоимости материала
+                if (work.type.Result > 0 && (price / work.type.Result) < 0.1f) price = work.type.Result * 0.1f;
+
                 work.SetResult(price, false);
             }
             else
@@ -137,8 +141,14 @@ namespace Metal_Code
                 if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
                 if (metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                    work.SetResult(Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1
-                        + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2);
+                {
+                    price = Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1 + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2;
+
+                    // стоимость резки должна быть не ниже 10% от стоимости материала
+                    if (work.type.Result > 0 && (price / work.type.Result) < 0.1f) price = work.type.Result * 0.1f;
+
+                    work.SetResult(price);
+                }
                 else work.SetResult(price, false);
             }
         }
