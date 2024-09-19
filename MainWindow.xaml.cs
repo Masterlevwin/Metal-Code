@@ -1650,22 +1650,24 @@ namespace Metal_Code
                         //получаем последний созданный контрол
                         WorkControl _work = DetailControls[i].TypeDetailControls[j].WorkControls[^1];
 
-                        if (_work.workType is null)                             //если тип работы не определен, определяем его по имени сохраненной работы
+                        //получаем работу, совпадающую по имени с сохраненной, на случай, если она уже добавлена
+                        WorkControl? work = _type.WorkControls.FirstOrDefault(w => w.WorkDrop.SelectedItem is Work wk && wk.Name == item.NameWork);
+
+                        if (work is not null)
                         {
-                            WorkControl? work = _type.WorkControls.FirstOrDefault(w => w.WorkDrop.SelectedItem is Work wk && wk.Name == item.NameWork);
-                            if (work is not null) continue;
-                            else
-                            {
-                                foreach (Work w in _work.WorkDrop.Items)        // чтобы не подвязываться на сохраненный индекс работы, ориентируемся на ее имя
-                                                                                // таким образом избегаем ошибки, когда админ изменит порядок работ в базе данных
-                                    if (w.Name == item.NameWork)
-                                    {
-                                        _work.WorkDrop.SelectedIndex = _work.WorkDrop.Items.IndexOf(w);
-                                        break;
-                                    }
-                            }
+                            work.Ratio = item.Ratio;
+                            work.TechRatio = item.TechRatio;
+                            continue;
                         }
-                        else continue;                                          //если тип работы определен, пропускаем копирование данных работы
+                        else
+                        {
+                            foreach (Work w in _work.WorkDrop.Items)        // чтобы не подвязываться на сохраненный индекс работы, ориентируемся на ее имя                                          
+                                if (w.Name == item.NameWork)                // таким образом избегаем ошибки, когда админ изменит порядок работ в базе данных
+                                {
+                                    _work.WorkDrop.SelectedIndex = _work.WorkDrop.Items.IndexOf(w);
+                                    break;
+                                }
+                        }
 
                         if (_work.workType is ICut _cut && item.Items?.Count > 0)
                         {
