@@ -177,8 +177,12 @@ namespace Metal_Code
             // стоимость резки трубы должна быть не ниже минимальной
             if (work.WorkDrop.SelectedItem is Work _work) price = price > 0 && price < _work.Price ? _work.Price : price;
 
+            // проверяем стоимость материала
+            float _result = (float)Math.Round((work.type.det.Detail.IsComplect ? 1 : work.type.Count) *
+                (work.type.ExtraResult > 0 ? work.type.ExtraResult : work.type.Price * work.type.Mass), 2);
+
             // стоимость резки должна быть не ниже 10% от стоимости материала
-            if (work.type.Result > 0 && (price / work.type.Result) < 0.1f) price = work.type.Result * 0.1f;
+            if (_result > 0 && (price / _result) < 0.1f) price = _result * 0.1f;
 
             work.SetResult(price, false);
         }

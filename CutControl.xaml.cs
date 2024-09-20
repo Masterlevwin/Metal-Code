@@ -13,6 +13,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Runtime.Serialization;
+using System.Diagnostics;
 
 namespace Metal_Code
 {
@@ -130,8 +131,12 @@ namespace Metal_Code
             {
                 foreach (LaserItem item in Items) price += ItemPrice(item);
 
+                // проверяем стоимость материала
+                float _result = (float)Math.Round((work.type.det.Detail.IsComplect ? 1 : work.type.Count) *
+                    (work.type.ExtraResult > 0 ? work.type.ExtraResult : work.type.Price * work.type.Mass), 2);
+
                 // стоимость резки должна быть не ниже 10% от стоимости материала
-                if (work.type.Result > 0 && (price / work.type.Result) < 0.1f) price = work.type.Result * 0.1f;
+                if (_result > 0 && (price / _result) < 0.1f) price = _result * 0.1f;
 
                 work.SetResult(price, false);
             }
@@ -144,8 +149,12 @@ namespace Metal_Code
                 {
                     price = Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1 + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2;
 
+                    // проверяем стоимость материала
+                    float _result = (float)Math.Round((work.type.det.Detail.IsComplect ? 1 : work.type.Count) *
+                        (work.type.ExtraResult > 0 ? work.type.ExtraResult : work.type.Price * work.type.Mass), 2);
+
                     // стоимость резки должна быть не ниже 10% от стоимости материала
-                    if (work.type.Result > 0 && (price / work.type.Result) < 0.1f) price = work.type.Result * 0.1f;
+                    if (_result > 0 && (price / _result) < 0.1f) price = _result * 0.1f;
 
                     work.SetResult(price);
                 }
