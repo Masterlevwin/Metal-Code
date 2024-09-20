@@ -2395,7 +2395,7 @@ namespace Metal_Code
                     statsheet.Cells[temp, 3].Style.WrapText = true;
                     statsheet.Cells[temp, 17].Style.WrapText = true;
 
-                    statsheet.Cells[temp, 4].Value = scoresheet.Cells[Parts.Count + 2, 21].Value;
+                    statsheet.Cells[temp, 4].Value = 1;                                                         //"Кол-во"
                     statsheet.Cells[temp, 5].Value = "шт";                                                      //"ед изм."
                     statsheet.Cells[temp, 6].Value = Boss.Text;                                                 //"Подразделение"
                     statsheet.Cells[temp, 7].Value = CustomerDrop.Text;                                         //"Компания"
@@ -2403,7 +2403,8 @@ namespace Metal_Code
                     statsheet.Cells[temp, 10].Value = CurrentManager.Name;                                      //"Инженер"
                     statsheet.Cells[temp, 14].Value = EndDate();                                                //"Дата отгрузки"
                     statsheet.Cells[temp, 14].Style.Numberformat.Format = "d MMM";
-                    
+                    statsheet.Cells[temp, 19].Value = scoresheet.Cells[Parts.Count + 2, 21].Value + $" шт";     //"Примечание"
+
                     sum += TempWorksDict[key];
                 }
                 statsheet.Cells[temp, 22].Value = Math.Round(sum, 2);                                           //"Стоимость работ"
