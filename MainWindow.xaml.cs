@@ -2079,7 +2079,7 @@ namespace Metal_Code
             ExcelRange sends = scoresheet.Cells[1, 5, Parts.Count + 3, 21];
             sends.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
-            ExcelRange materials = scoresheet.Cells[1, 5, Parts.Count + 1, 5];
+            ExcelRange materials = scoresheet.Cells[1, 5, extable.Rows + 1, 5];
 
             // ----- таблица общих сумм работ, выполняемых подразделениями (Лист2 - "Реестр") -----
 
