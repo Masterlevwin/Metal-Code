@@ -25,6 +25,7 @@ using System.Text.RegularExpressions;
 using ACadSharp.IO;
 using ACadSharp;
 using System.Management;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 namespace Metal_Code
 {
@@ -2626,6 +2627,41 @@ namespace Metal_Code
             labelsheet.Cells[5, 1, 5, 2].Merge = true;
 
             ExcelRange label = labelsheet.Cells[1, 1, 5, 2];                        //получаем этикетку для оформления
+
+
+            //создаем лист с раскладками
+            ExcelWorksheet itemsheet = workbook.Workbook.Worksheets.Add("Раскладки");
+
+            int namePic = 0;
+            foreach (DetailControl det in DetailControls)
+            {
+                foreach (TypeDetailControl type in det.TypeDetailControls)
+                {
+                    foreach (WorkControl work in type.WorkControls)
+                    {
+                        if (work.workType is ICut cut && cut.Items?.Count > 0)
+                        {
+                            foreach (LaserItem item in cut.Items)
+                            {
+                                byte[]? bytes = item.imageBytes;                //получаем изображение раскладки, если оно есть
+                                if (bytes is not null)
+                                {
+                                    Stream? stream = new MemoryStream(bytes);
+                                    ExcelPicture pic = itemsheet.Drawings.AddPicture($"{namePic}", stream);
+                                    itemsheet.Cells[namePic + 1, 1].Value = $"s{type.S} {type.MetalDrop.Text}";
+                                    itemsheet.Cells[namePic + 1, 1].Style.Font.Bold = true;
+                                    itemsheet.Cells[namePic + 1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                                    itemsheet.Cells[namePic + 1, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                                    itemsheet.Row(namePic + 1).Height = 400;    //увеличиваем высоту строки, чтобы вмещалось изображение
+                                    pic.SetPosition(namePic, 10, 1, 10);        //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
+                                    namePic++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
 
             //обводка границ и авторастягивание столбцов
             details.Style.HorizontalAlignment = label.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
