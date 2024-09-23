@@ -170,9 +170,9 @@ namespace Metal_Code
             float price = 0;
 
             if (metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                price = Mold * MainWindow.M.MetalDict[metal.Name][work.type.S].Item3
+                price = Mold * MainWindow.M.MetalDict[metal.Name][work.type.S].Item3 * 0.7f
                     + Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1
-                    + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2;
+                    + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2 * 3;
 
             // стоимость резки трубы должна быть не ниже минимальной
             if (work.WorkDrop.SelectedItem is Work _work) price = price > 0 && price < _work.Price ? _work.Price : price;
@@ -234,7 +234,7 @@ namespace Metal_Code
             PopupMold.IsOpen = true;
 
             if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                MoldPrice.Text = $"Цена резки пог м\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item3} руб";
+                MoldPrice.Text = $"Цена резки пог м\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item3 * 0.7f} руб";
         }
 
         private void ViewPopupWay(object sender, MouseWheelEventArgs e)
@@ -250,7 +250,7 @@ namespace Metal_Code
             PopupPinhole.IsOpen = true;
 
             if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                PinholePrice.Text = $"Цена прокола\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item2} руб";
+                PinholePrice.Text = $"Цена прокола\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item2 * 3} руб";
         }
 
         private void LoadFiles(object sender, RoutedEventArgs e)
