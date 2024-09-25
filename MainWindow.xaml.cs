@@ -2408,6 +2408,8 @@ namespace Metal_Code
 
                     sum += TempWorksDict[key];
                 }
+                //по умолчанию "Цвет/цинк" - "БП" (без покраски)
+                if ($"{statsheet.Cells[temp, 18].Value}" == "") statsheet.Cells[temp, 18].Value = "БП";        
                 statsheet.Cells[temp, 22].Value = Math.Round(sum, 2);                                           //"Стоимость работ"
             }
 
