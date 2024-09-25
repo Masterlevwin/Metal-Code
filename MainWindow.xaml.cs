@@ -2458,7 +2458,15 @@ namespace Metal_Code
             scoresheet.Cells["D1"].Value = "Цена";
             scoresheet.Cells["E1"].Value = "Ед. изм.";
 
-            materials.Copy(scoresheet.Cells["F1"]);     //копируем стоимость материала из КП в файл для счета
+            materials.Copy(scoresheet.Cells["G1"]);     //копируем стоимость материала из КП в файл для счета
+            for (int i = 0; i < extable.Rows; i++)
+            {
+                if (float.TryParse($"{scoresheet.Cells[i + 2, 7].Value}", out float m)        //кусочек цены материала за 1 шт
+                   && float.TryParse($"{scoresheet.Cells[i + 2, 2].Value}", out float c))     //количество деталей
+                    scoresheet.Cells[i + 2, 6].Value = Math.Round(m * c, 2);
+            }
+            scoresheet.Column(7).Hidden = true;
+
 
             for (int i = 0; i < row; i++)
             {
@@ -2770,7 +2778,7 @@ namespace Metal_Code
                             if (type.CheckMetal.IsChecked == false) tasksheet.Cells[temp, 2].Value += "Давальч. ";
                             if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 2].Value += $"{type.Comment}";
                             //"Исполнитель"
-                            tasksheet.Cells[temp, 4].Value = $"Роман Гусев";
+                            tasksheet.Cells[temp, 4].Value = $"Вячеслав Серебряков";
                             //"Проект"
                             tasksheet.Cells[temp, 5].Value = "Лазерные работы";
                             //"Время на выполнение задачи в секундах"
@@ -2783,7 +2791,7 @@ namespace Metal_Code
                             //"Название"
                             tasksheet.Cells[temp, 1].Value += $"{description} Гибка";
                             //"Исполнитель"
-                            tasksheet.Cells[temp, 4].Value = $"Роман Гусев";
+                            tasksheet.Cells[temp, 4].Value = $"Вячеслав Серебряков";
                             //"Проект"
                             tasksheet.Cells[temp, 5].Value = "Гибочные работы";
                             //"Время на выполнение задачи в секундах"
@@ -2802,7 +2810,7 @@ namespace Metal_Code
                             if (type.CheckMetal.IsChecked == false) tasksheet.Cells[temp, 2].Value += "Давальч. ";
                             if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 2].Value += $"{type.Comment}";
                             //"Исполнитель"
-                            tasksheet.Cells[temp, 4].Value = $"Роман Гусев";
+                            tasksheet.Cells[temp, 4].Value = $"Вячеслав Серебряков";
                             //"Проект"
                             tasksheet.Cells[temp, 5].Value = "Труборез";
                             //"Время на выполнение задачи в секундах"
