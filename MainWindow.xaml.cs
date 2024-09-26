@@ -2466,6 +2466,8 @@ namespace Metal_Code
                 if (float.TryParse($"{scoresheet.Cells[i + 2, 7].Value}", out float m)        //кусочек цены материала за 1 шт
                    && float.TryParse($"{scoresheet.Cells[i + 2, 2].Value}", out float c))     //количество деталей
                     scoresheet.Cells[i + 2, 6].Value = Math.Round(m * c, 2);
+                if (float.TryParse($"{scoresheet.Cells[i + 2, 6].Value}", out float _m) && _m == 0)
+                    scoresheet.Cells[i + 2, 6].Value = 1;
             }
             scoresheet.Column(7).Hidden = true;
 
