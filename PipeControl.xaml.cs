@@ -697,7 +697,7 @@ namespace Metal_Code
                                     }
                                 Tube = TubeType.channel;
                             }
-                            else if (_tube.Contains("L tube(L)"))       //уголок равнополочный
+                            else if (_tube.Contains("L tube"))       //уголок равнополочный
                             {
                                 foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Уголок равнополочный")
                                     {
