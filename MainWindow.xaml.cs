@@ -2870,7 +2870,7 @@ namespace Metal_Code
 
             for (int row = 2; row < temp; row++)
             {
-                tasksheet.Cells[row, 3].Value = EndDate()?.ToString("g");
+                tasksheet.Cells[row, 3].Value = EndDate()?.AddDays(-5).ToString("g");
                 tasksheet.Cells[row, 7].Value = 1;
                 tasksheet.Cells[row, 8].Value = 1;
                 tasksheet.Cells[row, 9].Value = 1;
