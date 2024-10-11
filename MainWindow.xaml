@@ -219,6 +219,10 @@
                             </StackPanel>
                         </GroupBox>
 
+                        <Button Click="CreatePasport" ToolTip="Сформировать паспорт качества" HorizontalAlignment="Left" Margin="150,250,0,5" VerticalAlignment="Bottom" BorderThickness="0">
+                            <Image Source="/Images/list.png" MaxWidth="20" MaxHeight="20"/>
+                        </Button>
+                        
                         <Button Click="CreateComplect" ToolTip="Сформировать простую комплектацию" HorizontalAlignment="Left" Margin="180,250,0,5" VerticalAlignment="Bottom" BorderThickness="0">
                             <Image Source="/Images/complect2.png" MaxWidth="20" MaxHeight="20"/>
                         </Button>

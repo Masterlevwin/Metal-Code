@@ -25,7 +25,7 @@ using System.Text.RegularExpressions;
 using ACadSharp.IO;
 using ACadSharp;
 using System.Management;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
+using System.Windows.Shapes;
 
 namespace Metal_Code
 {
@@ -1811,8 +1811,8 @@ namespace Metal_Code
             {
                 worksheet.Cells[row + 4, 2].Value = "Самовывоз со склада Исполнителя по адресу: Ленинградская область, Всеволожский район, " +
                     "Колтуши, деревня Мяглово, ул. Дорожная, уч. 4Б.";
-                worksheet.Cells[row + 4, 2].Style.WrapText = true;
-            }
+            }  
+            worksheet.Cells[row + 4, 2].Style.WrapText = true;
 
                 //приводим float-значения типа 0,699999993 к формату 0,7
             foreach (var cell in worksheet.Cells[8, 2, row, 2])
@@ -2709,7 +2709,6 @@ namespace Metal_Code
                         if (files.Length > 0)
                         {
                             workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {CustomerDrop.Text} - комплектация.xlsx");
-
                             CreateRegistry(files[0], offer.Order);
 
                             StatusBegin($"Изменения в базе сохранены. Кроме того созданы файлы комплектации и списка задач в папке {Path.GetDirectoryName(files[0])}");
@@ -2722,6 +2721,7 @@ namespace Metal_Code
             else
             {
                 workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
+                //CreatePasport($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - паспорт.xlsx");
                 CreateRegistry(_path, Order.Text);
             }
 
@@ -2918,6 +2918,49 @@ namespace Metal_Code
 
             // ----- сохраняем книгу в файл Excel -----
             offerbook.SaveAs(offer.Act);      //сохраняем файл .xlsx
+        }
+
+        private void CreatePasport(object sender, RoutedEventArgs e)
+        {
+            if (ActiveOffer is not null) CreatePasport(ActiveOffer);
+        }
+        private void CreatePasport(Offer offer)                                     // метод создания паспорта качества
+        {
+            if (offer.Act is null || !File.Exists($"{Path.GetDirectoryName(offer.Act)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx")) return;
+            
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var complectbook = new ExcelPackage(new FileInfo($"{Path.GetDirectoryName(offer.Act)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx"));
+            ExcelWorksheet? complectsheet = complectbook.Workbook.Worksheets.FirstOrDefault(x => x.Name == "Комплектация");
+
+            complectbook.Workbook.Worksheets.Delete(complectbook.Workbook.Worksheets.SingleOrDefault(x => x.Name == "Этикетка"));
+            //complectbook.Workbook.Worksheets.Delete(complectbook.Workbook.Worksheets.SingleOrDefault(x => x.Name == "Раскладки"));
+
+            if (complectsheet is not null)
+            {
+                complectsheet.Name = "Паспорт";
+                complectsheet.InsertRow(1, 1);
+                complectsheet.Cells[1, 3].Value = "Паспорт качества";
+                complectsheet.Cells[2, 1].Value = "спец , упд ";
+                complectsheet.Cells[2, 2].Value = "ООО Лазерфлекс";
+                complectsheet.Row(2).Height = 16;
+                complectsheet.Cells[1, 1, 2, 9].Style.Font.Size = 12;
+                complectsheet.Cells[1, 1, 2, 9].Style.Font.Bold = true;
+                complectsheet.DeleteRow(Parts.Count + 5);
+                complectsheet.Cells[Parts.Count + 9, 3].Value = "Начальник производства";
+                complectsheet.Cells[Parts.Count + 9, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                complectsheet.Cells[Parts.Count + 9, 6].Value = "Серебряков В.";
+                complectsheet.Cells[Parts.Count + 9, 4, Parts.Count + 9, 5].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+
+                ExcelPicture signature = complectsheet.Drawings.AddPicture("signature", new FileInfo("C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Images\\signature2.jpg"));
+                signature.SetPosition(Parts.Count + 6, -5, 4, -5);
+                ExcelPicture print = complectsheet.Drawings.AddPicture("print", new FileInfo("C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Images\\print2.png"));
+                print.SetPosition(Parts.Count + 9, 0, 3, 0);
+
+                complectsheet.Cells.AutoFitColumns();
+                complectbook.SaveAs($"{Path.GetDirectoryName(offer.Act)}\\{Order.Text} {CustomerDrop.Text} - паспорт.xlsx");
+                StatusBegin($"Создан паспорт качества для текущего расчета: {Order.Text} {CustomerDrop.Text}");
+            }
         }
 
         private void CreateComplect(object sender, RoutedEventArgs e)
@@ -3962,5 +4005,6 @@ namespace Metal_Code
                 StatusBegin($"Расчет {offer.N} открыт для чтения");
             }
         }
+
     }
 }
