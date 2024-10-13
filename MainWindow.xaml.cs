@@ -75,154 +75,6 @@ namespace Metal_Code
         public ObservableCollection<Work> Works { get; set; } = new();
         public ObservableCollection<Metal> Metals { get; set; } = new();
 
-        public MainWindow()
-        {
-            InitializeComponent();
-            M = this;
-
-            //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
-
-            //if (!CheckVersion(out string _version)) Restart();
-            //UpdateDatabases();
-
-            //AutoRemoveOffers();
-
-            DataContext = ProductModel;
-            Loaded += LoadDataBases;
-        }
-
-        private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна
-        {
-            using TypeDetailContext dbT = new(IsLocal ? connections[2] : connections[3]);
-            dbT.TypeDetails.Load();
-            TypeDetails = dbT.TypeDetails.Local.ToObservableCollection();
-
-            using WorkContext dbW = new(IsLocal ? connections[4] : connections[5]);
-            dbW.Works.Load();
-            Works = dbW.Works.Local.ToObservableCollection();
-
-            using MetalContext dbM = new(IsLocal ? connections[6] : connections[7]);
-            dbM.Metals.Load();
-            Metals = dbM.Metals.Local.ToObservableCollection();
-            MetalDrop.ItemsSource = Metals;
-
-            InitializeDict();
-
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
-            db.Managers.Load();
-            Managers = db.Managers.Local.ToObservableCollection();
-
-            if (Managers.Count == 0) ShowWindow(new RegistrationWindow());  //если пользователей в базе нет, запускаем процесс регистрации
-            else if (!CheckMachine())                                       //проверяем защитный файл
-            {
-                MessageBox.Show($"Данная копия программы защищена. Ее невозможно запустить на этом компьютере!");
-                Environment.Exit(0);                  
-            }
-            else if (!CheckMachineName()) ShowWindow(new LoginWindow());    //проверяем пользователя
-            else NewProject();                                              //если все проверки пройдены, создаем новый проект
-        }
-
-        public static bool CheckMachine()
-        {
-            ManagementObjectSearcher searcher = new("SELECT * FROM Win32_PhysicalMedia");
-
-            foreach (ManagementObject hdd in searcher.Get().Cast<ManagementObject>())
-                if (DecryptFile(out string s) && s == $"{hdd["SerialNumber"]}") return true;
-
-            return false;
-        }
-
-        public static void EncryptFile()
-        {
-            if (File.Exists(Directory.GetCurrentDirectory() + "\\encrypt.dat")) return;
-
-            ManagementObjectSearcher searcher = new("SELECT * FROM Win32_PhysicalMedia");
-
-            foreach (ManagementObject hdd in searcher.Get().Cast<ManagementObject>())
-            {
-                using FileStream fs = File.Create(Directory.GetCurrentDirectory() + "\\encrypt.dat");
-                byte[] info = new UTF8Encoding(true).GetBytes($"{hdd["SerialNumber"]}");
-                fs.Write(info, 0, info.Length);
-                break;
-            }
-        }
-
-        public static bool DecryptFile(out string s)
-        {
-            s = "";
-            if (!File.Exists(Directory.GetCurrentDirectory() + "\\encrypt.dat")) return false;
-
-            using StreamReader sr = File.OpenText(Directory.GetCurrentDirectory() + "\\encrypt.dat");
-            s = sr.ReadLine();
-            return true;
-        }
-
-        private bool CheckMachineName()
-        {
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
-
-            db.Managers.Load();
-            Managers = db.Managers.Local.ToObservableCollection();
-
-            Manager? manager = Managers.FirstOrDefault(c => c.Contact == Environment.MachineName);
-
-            if (manager != null)
-            {
-                ManagerDrop.ItemsSource = Managers.Where(m => !m.IsEngineer);     //список ТОЛЬКО менеджеров (для выставления КП)
-                UserDrop.ItemsSource = Managers;                                  //список ВСЕХ пользователей (для отчетов)
-
-                db.Customers.Load();
-                Customers = db.Customers.Local.ToObservableCollection();
-
-                CurrentManager = manager;                                                       //определяем текущего менеджера
-                Login.Header = CurrentManager.Name;
-                if (ManagerDrop.Items.Contains(manager)) ManagerDrop.SelectedItem = manager;    //устанавливаем менеджера по умолчанию
-
-                UserDrop.SelectedItem = CurrentManager;
-                if (CurrentManager.IsEngineer)
-                {
-                    IsEnabled = false;
-                    if (CurrentManager.IsEngineer)
-                    {
-                        SetManagerWindow setManagerWindow = new();
-                        if (setManagerWindow.ShowDialog() == true) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
-                    }
-                    else ManagerDrop.SelectedItem = CurrentManager;
-                    IsEnabled = true;
-                }
-                return true;
-            }
-            return false;
-        }
-
-        private void ShowLoginWindow(object sender, RoutedEventArgs e)
-        {
-            MessageBoxResult response = MessageBox.Show("Сменить текущего пользователя?\nЕсли \"Да\", потребуется авторизация, и текущий расчет будет очищен!", "Сменить пользователя",
-                               MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-            if (response == MessageBoxResult.No) return;
-            else ShowWindow(new LoginWindow());
-        }
-                
-        private void ShowWindow(Window window)
-        {
-            IsEnabled = false;
-
-            if (window.ShowDialog() == true)
-            {
-                UserDrop.SelectedItem = CurrentManager;
-                if (CurrentManager.IsEngineer)
-                {
-                    SetManagerWindow setManagerWindow = new();
-                    if (setManagerWindow.ShowDialog() == true) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
-                }
-                else ManagerDrop.SelectedItem = CurrentManager;
-
-                IsEnabled = true;
-                NewProject();
-            }
-        }
-
-
         //временный словарь расчетов для синхронизации с основной базой (0 - новые, 1 - удаленные, 2 - измененные)
         private readonly Dictionary<byte, List<Offer>> TempOffersDict = new() { [0] = new(), [1] = new(), [2] = new() };
         private readonly Dictionary<string, float> TempWorksDict = new();                                       //временный словарь работ
@@ -231,68 +83,9 @@ namespace Metal_Code
         public Dictionary<string, Dictionary<float, (float, float, float)>> MetalDict = new();                  //словарь материалов
         public Dictionary<double, float> WideDict = new();                                                      //словарь отверстий
         public Dictionary<Metal, float> MetalRatioDict = new();                                                 //словарь коэффициентов за материал
-
-        private void InitializeDict()       //метод заполнения словарей значениями
-        {
-            foreach (Metal metal in Metals)
-            {
-                if (metal.Name != null && metal.WayPrice != null && metal.PinholePrice != null && metal.MoldPrice != null)
-                {
-                    Dictionary<float, (float, float, float)> prices = new();
-
-                    string[] _ways = metal.WayPrice.Split('/');
-                    string[] _pinholes = metal.PinholePrice.Split('/');
-                    string[] _molds = metal.MoldPrice.Split('/');
-
-                    for (int i = 0; i < _ways.Length; i++) prices[Destinies[i]] = (Parser(_ways[i]), Parser(_pinholes[i]), Parser(_molds[i]));
-
-                    MetalDict[metal.Name] = prices;
-                }
-            }
-
-            for (int i = 0; i < Destinies.Count; i++)
-            {
-                if (Destinies[i] <= 3) WideDict[Destinies[i]] = 0;
-                else WideDict[Destinies[i]] = (float)Math.Round(0.1f * (i + 2) - 1, 1);
-            }
-
-            foreach (Metal met in Metals)
-            {
-                if (met == null || met.Name == null) continue;
-
-                if (met.Name == "09г2с" || met.Name.Contains("амг")) MetalRatioDict[met] = 1.5f;
-                else if (met.Name.Contains("aisi")) MetalRatioDict[met] = 2;
-                else MetalRatioDict[met] = 1;
-            }
-        }
-
-        private void OpenSettings(object sender, RoutedEventArgs e)
-        {
-            IsEnabled = false;
-            if (sender == Settings.Items[0])
-            {
-                TypeDetailWindow typeDetailWindow = new();
-                typeDetailWindow.Show();
-            }
-            else if (sender == Settings.Items[1])
-            {
-                WorkWindow workWindow = new();
-                workWindow.Show();
-            }
-            else if (sender == Settings.Items[2])
-            {
-                ManagerWindow managerWindow = new();
-                managerWindow.Show();
-            }
-            else if (sender == Settings.Items[3])
-            {
-                MetalWindow metalWindow = new();
-                metalWindow.Show();
-            }
-        }
-
-
+        
         //----------Свойства и их основные методы---------//
+        #region
         private bool isLocal = true;    //запуск локальной версии
         //private bool isLocal = false;   //запуск основной версии
         public bool IsLocal
@@ -304,7 +97,7 @@ namespace Metal_Code
                 OnPropertyChanged(nameof(IsLocal));
             }
         }
-        #region
+        
         private Offer? activeOffer;
         public Offer? ActiveOffer
         {
@@ -560,6 +353,214 @@ namespace Metal_Code
         }
         #endregion
 
+        public MainWindow()
+        {
+            InitializeComponent();
+            M = this;
+
+            //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
+
+            //if (!CheckVersion(out string _version)) Restart();
+            //UpdateDatabases();
+
+            //AutoRemoveOffers();
+
+            DataContext = ProductModel;
+            Loaded += LoadDataBases;
+        }
+
+
+        //-------------Основные методы-----------//
+        #region
+        private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна
+        {
+            using TypeDetailContext dbT = new(IsLocal ? connections[2] : connections[3]);
+            dbT.TypeDetails.Load();
+            TypeDetails = dbT.TypeDetails.Local.ToObservableCollection();
+
+            using WorkContext dbW = new(IsLocal ? connections[4] : connections[5]);
+            dbW.Works.Load();
+            Works = dbW.Works.Local.ToObservableCollection();
+
+            using MetalContext dbM = new(IsLocal ? connections[6] : connections[7]);
+            dbM.Metals.Load();
+            Metals = dbM.Metals.Local.ToObservableCollection();
+            MetalDrop.ItemsSource = Metals;
+
+            InitializeDict();
+
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
+            db.Managers.Load();
+            Managers = db.Managers.Local.ToObservableCollection();
+
+            if (Managers.Count == 0) ShowWindow(new RegistrationWindow());  //если пользователей в базе нет, запускаем процесс регистрации
+            else if (!CheckMachine())                                       //проверяем защитный файл
+            {
+                MessageBox.Show($"Данная копия программы защищена. Ее невозможно запустить на этом компьютере!");
+                Environment.Exit(0);                  
+            }
+            else if (!CheckMachineName()) ShowWindow(new LoginWindow());    //проверяем пользователя
+            else NewProject();                                              //если все проверки пройдены, создаем новый проект
+        }
+
+        public static bool CheckMachine()
+        {
+            ManagementObjectSearcher searcher = new("SELECT * FROM Win32_PhysicalMedia");
+
+            foreach (ManagementObject hdd in searcher.Get().Cast<ManagementObject>())
+                if (DecryptFile(out string s) && s == $"{hdd["SerialNumber"]}") return true;
+
+            return false;
+        }
+
+        public static void EncryptFile()
+        {
+            if (File.Exists(Directory.GetCurrentDirectory() + "\\encrypt.dat")) return;
+
+            ManagementObjectSearcher searcher = new("SELECT * FROM Win32_PhysicalMedia");
+
+            foreach (ManagementObject hdd in searcher.Get().Cast<ManagementObject>())
+            {
+                using FileStream fs = File.Create(Directory.GetCurrentDirectory() + "\\encrypt.dat");
+                byte[] info = new UTF8Encoding(true).GetBytes($"{hdd["SerialNumber"]}");
+                fs.Write(info, 0, info.Length);
+                break;
+            }
+        }
+
+        public static bool DecryptFile(out string s)
+        {
+            s = "";
+            if (!File.Exists(Directory.GetCurrentDirectory() + "\\encrypt.dat")) return false;
+
+            using StreamReader sr = File.OpenText(Directory.GetCurrentDirectory() + "\\encrypt.dat");
+            s = sr.ReadLine();
+            return true;
+        }
+
+        private bool CheckMachineName()
+        {
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
+
+            db.Managers.Load();
+            Managers = db.Managers.Local.ToObservableCollection();
+
+            Manager? manager = Managers.FirstOrDefault(c => c.Contact == Environment.MachineName);
+
+            if (manager != null)
+            {
+                ManagerDrop.ItemsSource = Managers.Where(m => !m.IsEngineer);     //список ТОЛЬКО менеджеров (для выставления КП)
+                UserDrop.ItemsSource = Managers;                                  //список ВСЕХ пользователей (для отчетов)
+
+                db.Customers.Load();
+                Customers = db.Customers.Local.ToObservableCollection();
+
+                CurrentManager = manager;                                                       //определяем текущего менеджера
+                Login.Header = CurrentManager.Name;
+                if (ManagerDrop.Items.Contains(manager)) ManagerDrop.SelectedItem = manager;    //устанавливаем менеджера по умолчанию
+
+                UserDrop.SelectedItem = CurrentManager;
+                if (CurrentManager.IsEngineer)
+                {
+                    IsEnabled = false;
+                    if (CurrentManager.IsEngineer)
+                    {
+                        SetManagerWindow setManagerWindow = new();
+                        if (setManagerWindow.ShowDialog() == true) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
+                    }
+                    else ManagerDrop.SelectedItem = CurrentManager;
+                    IsEnabled = true;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private void ShowLoginWindow(object sender, RoutedEventArgs e)
+        {
+            MessageBoxResult response = MessageBox.Show("Сменить текущего пользователя?\nЕсли \"Да\", потребуется авторизация, и текущий расчет будет очищен!", "Сменить пользователя",
+                               MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+            if (response == MessageBoxResult.No) return;
+            else ShowWindow(new LoginWindow());
+        }
+                
+        private void ShowWindow(Window window)
+        {
+            IsEnabled = false;
+
+            if (window.ShowDialog() == true)
+            {
+                UserDrop.SelectedItem = CurrentManager;
+                if (CurrentManager.IsEngineer)
+                {
+                    SetManagerWindow setManagerWindow = new();
+                    if (setManagerWindow.ShowDialog() == true) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
+                }
+                else ManagerDrop.SelectedItem = CurrentManager;
+
+                IsEnabled = true;
+                NewProject();
+            }
+        }
+
+        private void InitializeDict()       //метод заполнения словарей значениями
+        {
+            foreach (Metal metal in Metals)
+            {
+                if (metal.Name != null && metal.WayPrice != null && metal.PinholePrice != null && metal.MoldPrice != null)
+                {
+                    Dictionary<float, (float, float, float)> prices = new();
+
+                    string[] _ways = metal.WayPrice.Split('/');
+                    string[] _pinholes = metal.PinholePrice.Split('/');
+                    string[] _molds = metal.MoldPrice.Split('/');
+
+                    for (int i = 0; i < _ways.Length; i++) prices[Destinies[i]] = (Parser(_ways[i]), Parser(_pinholes[i]), Parser(_molds[i]));
+
+                    MetalDict[metal.Name] = prices;
+                }
+            }
+
+            for (int i = 0; i < Destinies.Count; i++)
+            {
+                if (Destinies[i] <= 3) WideDict[Destinies[i]] = 0;
+                else WideDict[Destinies[i]] = (float)Math.Round(0.1f * (i + 2) - 1, 1);
+            }
+
+            foreach (Metal met in Metals)
+            {
+                if (met == null || met.Name == null) continue;
+
+                if (met.Name == "09г2с" || met.Name.Contains("амг")) MetalRatioDict[met] = 1.5f;
+                else if (met.Name.Contains("aisi")) MetalRatioDict[met] = 2;
+                else MetalRatioDict[met] = 1;
+            }
+        }
+
+        private void OpenSettings(object sender, RoutedEventArgs e)
+        {
+            IsEnabled = false;
+            if (sender == Settings.Items[0])
+            {
+                TypeDetailWindow typeDetailWindow = new();
+                typeDetailWindow.Show();
+            }
+            else if (sender == Settings.Items[1])
+            {
+                WorkWindow workWindow = new();
+                workWindow.Show();
+            }
+            else if (sender == Settings.Items[2])
+            {
+                ManagerWindow managerWindow = new();
+                managerWindow.Show();
+            }
+            else if (sender == Settings.Items[3])
+            {
+                MetalWindow metalWindow = new();
+                metalWindow.Show();
+            }
+        }
 
         //---------Общий результат расчета и его обновление-------//
         private float result;
@@ -604,6 +605,52 @@ namespace Metal_Code
                 foreach (TypeDetailControl t in d.TypeDetailControls) t.PriceChanged();
         }
 
+        //-------------Создание нового проекта-----------//
+        public void NewProject()
+        {
+            ClearDetails();     // удаляем все детали
+            ClearCalculate();   // очищаем расчет
+            AddDetail();        // добавляем пустой блок детали
+        }
+        private void ClearDetails(object sender, RoutedEventArgs e)     // метод очищения текущего расчета
+        {
+            NewProject();
+        }
+        private void ClearDetails()         // метод удаления всех деталей и очищения текущего расчета
+        {
+            while (DetailControls.Count > 0) DetailControls[^1].Remove();
+        }
+        private void ClearCalculate()
+        {
+            SetRatio(1);
+            SetCount(1);
+            Construct = 0;
+            HasDelivery = false;
+            CheckPaint.IsChecked = false;
+            CheckConstruct.IsChecked = false;
+            HasAssembly = false;
+            Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = ConstructRatio.Text = "";
+            ProductName.Text = $"Изделие";
+            ActiveOffer = null;
+        }
+
+        //-----------Добавление контрола детали----------//
+        public List<DetailControl> DetailControls = new();
+        private void AddDetail(object sender, RoutedEventArgs e)
+        {
+            AddDetail();
+        }
+        public void AddDetail()
+        {
+            DetailControl detail = new(new());
+
+            DetailControls.Add(detail);
+            detail.Counter.Content = DetailControls.IndexOf(detail) + 1;
+
+            DetailsStack.Children.Add(detail);
+
+            detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
+        }
 
         //-----------Формирование списка нарезанных деталей-------//
         public ObservableCollection<Part> Parts = new();
@@ -620,8 +667,9 @@ namespace Metal_Code
                                     parts.Add(p.Part);
             return parts;
         }
-        
-        
+        #endregion
+
+
         //-----------Подключения к базе расчетов------------------//
         #region
         private void ManagerChanged(object sender, SelectionChangedEventArgs e)
@@ -738,7 +786,6 @@ namespace Metal_Code
 
             End.SelectedDate = DateTime.UtcNow.AddDays(1);
         }
-
 
         //метод запуска процесса загрузки расчетов из основной базы в локальную
         private void RefreshOffers(object sender, RoutedEventArgs e) { CreateWorker(RefreshOffers, ActionState.refresh); }
@@ -1212,6 +1259,7 @@ namespace Metal_Code
 
 
         //-------------Фоновые процессы-----------//
+        #region
         public enum ActionState         //условия окончания работы фонового процесса
         {
             none,                       //по умолчанию
@@ -1323,103 +1371,11 @@ namespace Metal_Code
                     break;
             }
         }
-
-
-        //-------------Создание нового проекта-----------//
-        public void NewProject()
-        {
-            ClearDetails();     // удаляем все детали
-            ClearCalculate();   // очищаем расчет
-            AddDetail();        // добавляем пустой блок детали
-        }
-        private void ClearDetails(object sender, RoutedEventArgs e)     // метод очищения текущего расчета
-        {
-            NewProject();
-        }
-        private void ClearDetails()         // метод удаления всех деталей и очищения текущего расчета
-        {
-            while (DetailControls.Count > 0) DetailControls[^1].Remove();
-        }
-        private void ClearCalculate()
-        {
-            SetRatio(1);
-            SetCount(1);
-            Construct = 0;
-            HasDelivery = false;
-            CheckPaint.IsChecked = false;
-            CheckConstruct.IsChecked = false;
-            HasAssembly = false;
-            Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = ConstructRatio.Text = "";
-            ProductName.Text = $"Изделие";
-            ActiveOffer = null;
-        }
-
-
-        //-----------Добавление контрола детали----------//
-        public List<DetailControl> DetailControls = new();
-        private void AddDetail(object sender, RoutedEventArgs e)
-        {
-            AddDetail();
-        }
-        public void AddDetail()
-        {
-            DetailControl detail = new(new());
-
-            DetailControls.Add(detail);
-            detail.Counter.Content = DetailControls.IndexOf(detail) + 1;
-
-            DetailsStack.Children.Add(detail);
-
-            detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
-        }
-
-
-        //-------------Установка дат-----------//
-        private void SetDate(object sender, SelectionChangedEventArgs e)
-        {
-            if (datePicker.SelectedDate is not null) DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
-
-            static int GetBusinessDays(DateTime startD, DateTime endD)
-            {
-                int calcBusinessDays =
-                    (int)(1 + ((endD - startD).TotalDays * 5 -
-                    (startD.DayOfWeek - endD.DayOfWeek) * 2) / 7);
-
-                if (endD.DayOfWeek == DayOfWeek.Saturday) calcBusinessDays--;
-                if (startD.DayOfWeek == DayOfWeek.Sunday) calcBusinessDays--;
-
-                return calcBusinessDays;
-            }
-        }
-
-        public static string? DateFormat(DateTime? date)
-        {
-            return date?.ToString("d MMM");
-        }
-
-        private DateTime? EndDate()
-        {
-            if (int.TryParse(DateProduction.Text, out int days))
-            {
-                DateTime _date;
-                int workDays = days;
-
-                for (int i = 0; i <= days; i++)
-                {
-                    _date = DateTime.Now.AddDays(i);
-                    if (_date.DayOfWeek == DayOfWeek.Saturday || _date.DayOfWeek == DayOfWeek.Sunday) workDays++;
-                }
-
-                if (DateTime.Now.AddDays(workDays).DayOfWeek == DayOfWeek.Saturday) workDays++;
-                if (DateTime.Now.AddDays(workDays).DayOfWeek == DayOfWeek.Sunday) workDays++;
-
-                return DateTime.Now.AddDays(workDays);
-            }
-            else return null;
-        }
+        #endregion
 
 
         //---------Сохранение и загрузка контролов расчета--------//
+        #region
         public Product SaveProduct()
         {
             Product product = new()
@@ -1713,9 +1669,11 @@ namespace Metal_Code
                 }
             }
         }
+        #endregion
 
 
         //-------------Выходные файлы----------//
+        #region
         public void ExportToExcel(string path)      // метод оформления КП в формате excel
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
@@ -3099,7 +3057,6 @@ namespace Metal_Code
             StatusBegin($"Создана простая комплектация в папке {Path.GetDirectoryName(_paths[0])}");
         }
 
-
         //-------------Отчеты-----------------//
         private void CreateReport(object sender, RoutedEventArgs e)
         {
@@ -3477,9 +3434,11 @@ namespace Metal_Code
 
             return (types, works, count, bends, models, assemblies);
         }
+        #endregion
 
 
         //-------------Заказчики--------------//
+        #region
         private void CustomerChanged(object sender, SelectionChangedEventArgs e)        //метод смены заказчика
         {
             if (CustomerDrop.SelectedItem is Customer customer)
@@ -3604,7 +3563,6 @@ namespace Metal_Code
             }
         }
 
-
         //---Добавление заказчиков от одного менеджера к другому---//
         private void CopyCustomers(object sender, RoutedEventArgs e)
         {
@@ -3661,15 +3619,70 @@ namespace Metal_Code
                 }
             }
         }
+        #endregion
 
 
+        //-----------Вспомогательные методы-----------------------//
+        #region
+        //-------------Даты-----------//
+        private void SetDate(object sender, SelectionChangedEventArgs e)
+        {
+            if (datePicker.SelectedDate is not null) DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
+
+            static int GetBusinessDays(DateTime startD, DateTime endD)
+            {
+                int calcBusinessDays =
+                    (int)(1 + ((endD - startD).TotalDays * 5 -
+                    (startD.DayOfWeek - endD.DayOfWeek) * 2) / 7);
+
+                if (endD.DayOfWeek == DayOfWeek.Saturday) calcBusinessDays--;
+                if (startD.DayOfWeek == DayOfWeek.Sunday) calcBusinessDays--;
+
+                return calcBusinessDays;
+            }
+        }
+
+        private DateTime? EndDate()
+        {
+            if (int.TryParse(DateProduction.Text, out int days))
+            {
+                DateTime _date;
+                int workDays = days;
+
+                for (int i = 0; i <= days; i++)
+                {
+                    _date = DateTime.Now.AddDays(i);
+                    if (_date.DayOfWeek == DayOfWeek.Saturday || _date.DayOfWeek == DayOfWeek.Sunday) workDays++;
+                }
+
+                if (DateTime.Now.AddDays(workDays).DayOfWeek == DayOfWeek.Saturday) workDays++;
+                if (DateTime.Now.AddDays(workDays).DayOfWeek == DayOfWeek.Sunday) workDays++;
+
+                return DateTime.Now.AddDays(workDays);
+            }
+            else return null;
+        }
+
+        public void StatusBegin(string? notify = null)
+        {
+            if (notify != null) NotifyText.Text = notify;
+            ColorAnimation animation = new()
+            {
+                From = Colors.White,
+                To = Colors.Red,
+                Duration = new Duration(TimeSpan.FromSeconds(1)),
+                AutoReverse = true
+            };
+            Status.Background = new SolidColorBrush(Colors.White);
+            Status.Background.BeginAnimation(SolidColorBrush.ColorProperty, animation);
+        }
+        
         //------------Краткое руководство-------------------------//
         private void OpenExample(object sender, RoutedEventArgs e)
         {
             ExampleWindow exampleWindow = new();
             exampleWindow.Show();
         }
-
 
         //------------Таблица гибов-------------------------------//
         private void ShowTableOfBends(object sender, RoutedEventArgs e)
@@ -3680,7 +3693,6 @@ namespace Metal_Code
                 else TableOfBends.Visibility = Visibility.Hidden;
             }
         }
-
 
         //------------Смена темы----------------------------------//
         private static void ThemeChange(string style)
@@ -3695,25 +3707,7 @@ namespace Metal_Code
             Application.Current.Resources.MergedDictionaries.Add(resourceDict);
         }
 
-
-        //-----------Вспомогательные методы-----------------------//
-        #region
-        public void StatusBegin(string? notify = null)
-        {
-            if (notify != null) NotifyText.Text = notify;
-            ColorAnimation animation = new()
-            {
-                From = Colors.White,
-                To = Colors.Red,
-                Duration = new Duration(TimeSpan.FromSeconds(1)),
-                AutoReverse = true
-            };
-            Status.Background = new SolidColorBrush(Colors.White);
-            Status.Background.BeginAnimation(SolidColorBrush.ColorProperty, animation);
-        }
-
-
-        //метод запуска процесса конвертации файлов dwg в dxf
+        //------------Конвертер файлов dwg в dxf------------------//
         public string[]? fileNames;
         private void Convert_dwg_to_dxf(object sender, RoutedEventArgs e)
         {
@@ -3749,6 +3743,26 @@ namespace Metal_Code
             return $"Файлы в количестве {fileNames?.Length} шт успешно конвертированы";
         }
 
+        private void OpenOffer(object sender, RoutedEventArgs e)        //метод загрузки расчета в режиме чтения
+        {
+            if (OffersGrid.SelectedItem is not Offer offer) return;
+            if (offer.Data != null)
+            {
+                ProductWindow clon = new()
+                {
+                    Product = OpenOfferData(offer.Data),
+                    Title = $"{offer.N}  {offer.Company}",
+                };
+
+                if (clon.Product is not null)
+                {
+                    clon.Amount.Text = $"{offer.Amount} руб.";
+                    clon.Show();
+                    clon.LoadProduct();
+                }
+                StatusBegin($"Расчет {offer.N} открыт для чтения");
+            }
+        }
 
         private void SetAllMetal(object sender, RoutedEventArgs e)
         {
@@ -3799,7 +3813,7 @@ namespace Metal_Code
 
         private string CreateDelivery()     //метод построения строки запроса в логистику
         {
-            StringBuilder sb = new(DateFormat(EndDate()));      //инициализируем строку датой отгрузки в формате "d MMM"
+            StringBuilder sb = new(EndDate()?.ToString("d MMM"));    //инициализируем строку датой отгрузки в формате "d MMM"
 
             //если есть номер заказа, добавляем его; иначе добавляем номер КП
             if (ActiveOffer != null && ActiveOffer.Order != null) sb.Append($", №{ActiveOffer.Order}");
@@ -3914,6 +3928,7 @@ namespace Metal_Code
 
 
         //-------------Выход и перезагрузка-----------------------//
+        #region
         public void Exit(object sender, RoutedEventArgs e)
         {
             Environment.Exit(0);
@@ -3962,8 +3977,10 @@ namespace Metal_Code
             return serverVersionFile.Exists && localVersionFile.Exists
                 && File.ReadAllText(connections[9] + "\\version.txt") == File.ReadAllText(Directory.GetCurrentDirectory() + "\\version.txt");
         }
+        #endregion
 
 
+        //-------------Экспериметы и тесты-----------------------//
         private void AnalyseDateProduction(object sender, RoutedEventArgs e)
         {
             AnalyseDateProduction();
@@ -4002,27 +4019,5 @@ namespace Metal_Code
 
             StatusBegin($"Лазер: {Math.Round((decimal)timeLaser / 60 / 12)} дней; Гибка: {Math.Round((decimal)timeBend / 60 / 12)} дней; Кол-во папок в работе - {dirs.Length}");
         }
-
-        private void OpenOffer(object sender, RoutedEventArgs e)        //метод загрузки расчета в режиме чтения
-        {
-            if (OffersGrid.SelectedItem is not Offer offer) return;
-            if (offer.Data != null)
-            {
-                ProductWindow clon = new()
-                {
-                    Product = OpenOfferData(offer.Data),
-                    Title = $"{offer.N}  {offer.Company}",
-                };
-
-                if (clon.Product is not null)
-                {
-                    clon.Amount.Text = $"{offer.Amount} руб.";
-                    clon.Show();
-                    clon.LoadProduct();
-                }
-                StatusBegin($"Расчет {offer.N} открыт для чтения");
-            }
-        }
-
     }
 }
