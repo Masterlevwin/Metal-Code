@@ -25,7 +25,6 @@ using System.Text.RegularExpressions;
 using ACadSharp.IO;
 using ACadSharp;
 using System.Management;
-using System.Windows.Shapes;
 
 namespace Metal_Code
 {
@@ -38,7 +37,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.5.5";
+        readonly string version = "2.5.6";
 
         public readonly string[] connections =
         {
@@ -2923,44 +2922,63 @@ namespace Metal_Code
         private void CreatePasport(object sender, RoutedEventArgs e)
         {
             if (ActiveOffer is not null) CreatePasport(ActiveOffer);
+            else StatusBegin("Для создания паспорта необходимо загрузить расчет.");
         }
         private void CreatePasport(Offer offer)                                     // метод создания паспорта качества
         {
-            if (offer.Act is null || !File.Exists($"{Path.GetDirectoryName(offer.Act)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx")) return;
-            
+            //если путь к расчету не сохранен, или файла комплектации по этому пути нет, выходим из метода
+            if (offer.Act is null || !File.Exists($"{Path.GetDirectoryName(offer.Act)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx"))
+            {
+                StatusBegin("Не удалось найти ФАЙЛ комплектации для создания паспорта. Попробуйте пересохранить расчет заново.");
+                return;
+            }
+
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
+            //получаем файл комплектации, созданный ранее
             using var complectbook = new ExcelPackage(new FileInfo($"{Path.GetDirectoryName(offer.Act)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx"));
+            
+            //получаем лист комплектации
             ExcelWorksheet? complectsheet = complectbook.Workbook.Worksheets.FirstOrDefault(x => x.Name == "Комплектация");
 
-            complectbook.Workbook.Worksheets.Delete(complectbook.Workbook.Worksheets.SingleOrDefault(x => x.Name == "Этикетка"));
-            //complectbook.Workbook.Worksheets.Delete(complectbook.Workbook.Worksheets.SingleOrDefault(x => x.Name == "Раскладки"));
-
-            if (complectsheet is not null)
+            if (complectsheet is not null)      //если лист комплектации найден
             {
-                complectsheet.Name = "Паспорт";
+                //добавляем этот лист в книгу как новый с именем "Паспорт"
+                complectsheet = complectbook.Workbook.Worksheets.Add("Паспорт", complectsheet);
+
+                //и удаляем все остальные листы
+                while (complectbook.Workbook.Worksheets.Count > 1) complectbook.Workbook.Worksheets.Delete(complectbook.Workbook.Worksheets[0]);
+
+                //добавляем и настраиваем первую строку с заголовком
                 complectsheet.InsertRow(1, 1);
-                complectsheet.Cells[1, 3].Value = "Паспорт качества";
+                complectsheet.Cells[1, 1, 1, 9].Merge = true;
+                complectsheet.Cells[1, 1].Value = "Паспорт качества";
+                complectsheet.Cells[1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                complectsheet.Row(1).Style.Font.Bold = true;
+                
+                //редактируем остальные строки
                 complectsheet.Cells[2, 1].Value = "спец , упд ";
-                complectsheet.Cells[2, 2].Value = "ООО Лазерфлекс";
+                complectsheet.Cells[2, 4].Value = "Лазерфлекс";
                 complectsheet.Row(2).Height = 16;
                 complectsheet.Cells[1, 1, 2, 9].Style.Font.Size = 12;
-                complectsheet.Cells[1, 1, 2, 9].Style.Font.Bold = true;
                 complectsheet.DeleteRow(Parts.Count + 5);
                 complectsheet.Cells[Parts.Count + 9, 3].Value = "Начальник производства";
                 complectsheet.Cells[Parts.Count + 9, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
                 complectsheet.Cells[Parts.Count + 9, 6].Value = "Серебряков В.";
                 complectsheet.Cells[Parts.Count + 9, 4, Parts.Count + 9, 5].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
 
-                ExcelPicture signature = complectsheet.Drawings.AddPicture("signature", new FileInfo("C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Images\\signature2.jpg"));
+                //добавляем подпись и печать
+                ExcelPicture signature = complectsheet.Drawings.AddPicture("signature2", Application.GetResourceStream(new Uri("Images/signature2.jpg", UriKind.Relative)).Stream);
                 signature.SetPosition(Parts.Count + 6, -5, 4, -5);
-                ExcelPicture print = complectsheet.Drawings.AddPicture("print", new FileInfo("C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\Images\\print2.png"));
+                ExcelPicture print = complectsheet.Drawings.AddPicture("print2", Application.GetResourceStream(new Uri("Images/print2.png", UriKind.Relative)).Stream);
                 print.SetPosition(Parts.Count + 9, 0, 3, 0);
 
+                //выравниваем содержимое и сохраняем книгу в файл
                 complectsheet.Cells.AutoFitColumns();
                 complectbook.SaveAs($"{Path.GetDirectoryName(offer.Act)}\\{Order.Text} {CustomerDrop.Text} - паспорт.xlsx");
                 StatusBegin($"Создан паспорт качества для текущего расчета: {Order.Text} {CustomerDrop.Text}");
             }
+            else StatusBegin("Не удалось найти ЛИСТ комплектации для создания паспорта. Попробуйте пересохранить расчет заново.");
         }
 
         private void CreateComplect(object sender, RoutedEventArgs e)

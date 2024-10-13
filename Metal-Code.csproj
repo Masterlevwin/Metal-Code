@@ -40,6 +40,7 @@
     <None Remove="Images\save3.png" />
     <None Remove="Images\save4.png" />
     <None Remove="Images\signature.jpg" />
+    <None Remove="Images\signature2.jpg" />
     <None Remove="Images\tableofbends.jpg" />
     <None Remove="Images\update.jpg" />
     <None Remove="Images\update.png" />
@@ -116,6 +117,7 @@
     <Resource Include="Images\save3.png" />
     <Resource Include="Images\save4.png" />
     <Resource Include="Images\signature.jpg" />
+    <Resource Include="Images\signature2.jpg" />
     <Resource Include="Images\tableofbends.jpg" />
     <Resource Include="Images\update.png" />
     <Resource Include="Images\update4.png" />
