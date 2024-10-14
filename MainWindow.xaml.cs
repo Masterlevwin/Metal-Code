@@ -2920,6 +2920,7 @@ namespace Metal_Code
                 complectsheet.Row(2).Height = 16;
                 complectsheet.Cells[1, 1, 2, 9].Style.Font.Size = 12;
                 complectsheet.DeleteRow(Parts.Count + 5);
+                complectsheet.Cells[Parts.Count + 7, 3].Value = "Детали соответствуют конструкторской документации Заказчика";
                 complectsheet.Cells[Parts.Count + 9, 3].Value = "Начальник производства";
                 complectsheet.Cells[Parts.Count + 9, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
                 complectsheet.Cells[Parts.Count + 9, 6].Value = "Серебряков В.";
