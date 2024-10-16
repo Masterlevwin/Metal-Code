@@ -81,6 +81,13 @@ namespace Metal_Code
             set => wayTotal = value;
         }
 
+        private bool haveCut = true;
+        public bool HaveCut
+        {
+            get => haveCut;
+            set => haveCut = value;
+        }
+
         public List<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
         public List<Part>? PartDetails { get; set; } = new();
@@ -122,6 +129,10 @@ namespace Metal_Code
             OnPriceChanged();
         }
 
+        private void OnPriceChanged(object sender, RoutedEventArgs e)
+        {
+            OnPriceChanged();
+        }
         public void OnPriceChanged()
         {
             BtnEnabled();
@@ -138,7 +149,7 @@ namespace Metal_Code
                 // стоимость резки должна быть не ниже 10% от стоимости материала
                 if (_result > 0 && (price / _result) < 0.1f) price = _result * 0.1f;
 
-                work.SetResult(price, false);
+                work.SetResult(HaveCut ? price : 1, false);
             }
             else
             {
@@ -158,7 +169,7 @@ namespace Metal_Code
 
                     work.SetResult(price);
                 }
-                else work.SetResult(price, false);
+                else work.SetResult(HaveCut ? price : 1, false);
             }
         }
 
@@ -178,6 +189,7 @@ namespace Metal_Code
                 w.propsList.Add($"{Pinhole}");
                 w.propsList.Add($"{WayTotal}");
                 w.propsList.Add($"{MassTotal}");
+                w.propsList.Add($"{HaveCut}");
 
                 if (PartDetails?.Count > 0)
                     foreach (Part p in PartDetails)
@@ -195,6 +207,7 @@ namespace Metal_Code
                 SetPinhole(w.propsList[1]);
                 if (float.TryParse(w.propsList[2], out float _way)) WayTotal = _way;
                 if (float.TryParse(w.propsList[3], out float _mass)) MassTotal = _mass;
+                if (w.propsList.Count > 4 && bool.TryParse(w.propsList[4], out bool _haveCut)) HaveCut = _haveCut;
 
                 work.type.CreateSort();     //переопределяем содержимое SortDrop, если есть раскладки (List<LaserItem>))
             }
@@ -644,6 +657,7 @@ namespace Metal_Code
             if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
                 PinholePrice.Text = $"Цена прокола\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item2} руб";
         }
+
     }
 
     [Serializable]

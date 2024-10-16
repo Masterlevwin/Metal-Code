@@ -1478,7 +1478,7 @@ namespace Metal_Code
                             {
                                 foreach (Part p in _cut.PartDetails)
                                 {
-                                    p.Description = _cut is CutControl ? "Л" : "ТР";
+                                    p.Description = _cut is CutControl cut? cut.HaveCut ? "Л": "Б" : "Т";
                                     p.Accuracy = _cut is CutControl ? $"H14/h14 +-IT 14/2" : $"H12/h12 +-IT 12/2";
                                     p.Price = 0;
 
@@ -1832,14 +1832,15 @@ namespace Metal_Code
                 foreach (ExcelRangeBase cell in worksheet.Cells[8, 3, row + 8, 3])
                 {
                     if (cell.Value != null && $"{cell.Value}".Contains('Л') && !$"{worksheet.Cells[row + 5, 2].Value}".Contains('Л')) worksheet.Cells[row + 5, 2].Value += "Л - Лазер ";
+                    if (cell.Value != null && $"{cell.Value}".Contains('Б') && !$"{worksheet.Cells[row + 5, 2].Value}".Contains('Б')) worksheet.Cells[row + 5, 2].Value += "Б - Без лазера ";
+                    if (cell.Value != null && $"{cell.Value}".Contains('Т') && !$"{worksheet.Cells[row + 5, 2].Value}".Contains('Т')) worksheet.Cells[row + 5, 2].Value += "Т - Труборез ";
                     if (cell.Value != null && $"{cell.Value}".Contains("Г ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Г ")) worksheet.Cells[row + 5, 2].Value += "Г - Гибка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Св ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Св ")) worksheet.Cells[row + 5, 2].Value += "Св - Сварка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("О ")) worksheet.Cells[row + 5, 2].Value += "О - Окраска ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("В ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("В ")) worksheet.Cells[row + 5, 2].Value += "В - Вальцовка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("Р ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Р ")) worksheet.Cells[row + 5, 2].Value += "Р - Резьба ";
                     if (cell.Value != null && $"{cell.Value}".Contains("З ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("З ")) worksheet.Cells[row + 5, 2].Value += "З - Зенковка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("С ")) worksheet.Cells[row + 5, 2].Value += "С - Сверловка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("В ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("В ")) worksheet.Cells[row + 5, 2].Value += "В - Вальцовка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("ТР") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("ТР")) worksheet.Cells[row + 5, 2].Value += "ТР - Труборез ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Св ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Св ")) worksheet.Cells[row + 5, 2].Value += "Св - Сварка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("О ")) worksheet.Cells[row + 5, 2].Value += "О - Окраска ";
                     if (cell.Value != null && $"{cell.Value}".Contains("Доп ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Доп ")) worksheet.Cells[row + 5, 2].Value += "Доп - Дополнительные работы ";
                 }
                 worksheet.Cells[row + 5, 2, row + 5, 5].Merge = true;
@@ -2560,14 +2561,15 @@ namespace Metal_Code
                 foreach (ExcelRangeBase cell in complectsheet.Cells[3, 4, Parts.Count + 3, 4])
                 {
                     if (cell.Value != null && $"{cell.Value}".Contains('Л') && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains('Л')) complectsheet.Cells[Parts.Count + 5, 3].Value += "Л - Лазер ";
+                    if (cell.Value != null && $"{cell.Value}".Contains('Б') && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains('Б')) complectsheet.Cells[Parts.Count + 5, 3].Value += "Б - Без лазера ";
+                    if (cell.Value != null && $"{cell.Value}".Contains('Т') && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains('Т')) complectsheet.Cells[Parts.Count + 5, 3].Value += "Т - Труборез ";
                     if (cell.Value != null && $"{cell.Value}".Contains("Г ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("Г ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "Г - Гибка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Св ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("Св ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "Св - Сварка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("О ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "О - Окраска ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("В ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("В ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "В - Вальцовка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("Р ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("Р ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "Р - Резьба ";
                     if (cell.Value != null && $"{cell.Value}".Contains("З ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("З ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "З - Зенковка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("С ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "С - Сверловка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("В ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("В ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "В - Вальцовка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("ТР") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("ТР")) complectsheet.Cells[Parts.Count + 5, 3].Value += "ТР - Труборез ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Св ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("Св ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "Св - Сварка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("О ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "О - Окраска ";
                     if (cell.Value != null && $"{cell.Value}".Contains("Доп ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("Доп ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "Доп - Дополнительные работы ";
                 }
             }
