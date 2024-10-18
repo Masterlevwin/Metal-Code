@@ -2510,8 +2510,8 @@ namespace Metal_Code
                     if (Parts[i].PropsDict.ContainsKey(100) && Parts[i].PropsDict[100].Count > 2)   //габаритные размеры детали без отверстий
                     {
                         if (Parts[i].PropsDict[100][2].Contains('Ø'))
-                            complectsheet.Cells[i + 3, 6].Value = Parts[i].PropsDict[100][2].Remove(Parts[i].PropsDict[100][2].IndexOf('Ø'));
-                        else complectsheet.Cells[i + 3, 6].Value = Parts[i].PropsDict[100][2];
+                            complectsheet.Cells[i + 3, 6].Value = Parts[i].PropsDict[100][2].Remove(Parts[i].PropsDict[100][2].IndexOf('Ø')).Trim();
+                        else complectsheet.Cells[i + 3, 6].Value = Parts[i].PropsDict[100][2].Trim();
                     }
 
                     complectsheet.Cells[i + 3, 7].Value = Math.Round(Parts[i].Mass, 1);     //масса детали
