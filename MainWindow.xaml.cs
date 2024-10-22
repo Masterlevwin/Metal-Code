@@ -3991,7 +3991,8 @@ namespace Metal_Code
         //-------------Экспериметы и тесты-----------------------//
         private void AnalyseDateProduction(object sender, RoutedEventArgs e)
         {
-            AnalyseDateProduction();
+            //AnalyseDateProduction();
+            ShowRouteWindow();
         }
 
         private void AnalyseDateProduction(string path = "Y:\\Производство\\Laser rezka\\В работу")
@@ -4026,6 +4027,52 @@ namespace Metal_Code
             }
 
             StatusBegin($"Лазер: {Math.Round((decimal)timeLaser / 60 / 12)} дней; Гибка: {Math.Round((decimal)timeBend / 60 / 12)} дней; Кол-во папок в работе - {dirs.Length}");
+        }
+
+        private void ShowRouteWindow()
+        {
+            RouteWindow routeWindow = new();
+            if (Parts.Count > 0) foreach (Part part in Parts)
+                {
+                    PartViewControl _part = new(part);
+                    routeWindow.CutStack.Children.Add(_part);
+                    int ndx = routeWindow.CutStack.Children.IndexOf(_part);
+
+                    if (part.PropsDict.Count > 0) foreach (var key in part.PropsDict.Keys)
+                        {
+                            switch (key)
+                            {
+                                case 52:
+                                    while (ndx > routeWindow.BendStack.Children.Count) routeWindow.BendStack.Children.Add(new PlugControl());
+                                    routeWindow.BendStack.Children.Insert(ndx, new PartViewControl(part));
+                                    break;
+                                //case 53:
+                                //    routeWindow.WeldStack.Children.Add(new PartViewControl(part));
+                                //    break;
+                                //case 54:
+                                //    routeWindow.PaintStack.Children.Add(new PartViewControl(part));
+                                //    break;
+                                //case 55:
+                                //    routeWindow.ThreadStack.Children.Add(new PartViewControl(part));
+                                //    break;
+                                //case 56:
+                                //    routeWindow.CountersinkStack.Children.Add(new PartViewControl(part));
+                                //    break;
+                                //case 57:
+                                //    routeWindow.DrillingStack.Children.Add(new PartViewControl(part));
+                                //    break;
+                                //case 58:
+                                //    routeWindow.RollStack.Children.Add(new PartViewControl(part));
+                                //    break;
+                                default:
+                                    break;
+
+                            }
+                                                        //      50      51      52      53      54      55        56      57        58      59      60          61          62        (18)      (19)      (20)   (21)
+                            //List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "S,кв м", "цвет", "П" };
+                        }
+                }
+            routeWindow.Show();
         }
     }
 }

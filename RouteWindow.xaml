@@ -1,0 +1,33 @@
+﻿<Window x:Class="Metal_Code.RouteWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Metal_Code"
+        mc:Ignorable="d" Title="Маршрут производства" WindowStartupLocation="CenterScreen" ResizeMode="CanResizeWithGrip">
+    <Grid>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,0,0">
+            <TextBlock Text="Лазер/Труборез" MinWidth="150" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="5" MinHeight="30" FontSize="16" TextAlignment="Center"/>
+            <TextBlock Text="Гибка" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="120" Padding="5" MinHeight="30" FontSize="16" TextAlignment="Center"/>
+            <TextBlock Text="Вальцовка" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="120" Padding="5" MinHeight="30" FontSize="16" TextAlignment="Center"/>
+            <TextBlock Text="Сверловка" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="120" Padding="5" MinHeight="30" FontSize="16" TextAlignment="Center"/>
+            <TextBlock Text="Резьба" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="120" Padding="5" MinHeight="30" FontSize="16" TextAlignment="Center"/>
+            <TextBlock Text="Зенковка" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="120" Padding="5" MinHeight="30" FontSize="16" TextAlignment="Center"/>
+            <TextBlock Text="Сварка" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="120" Padding="5" MinHeight="30" FontSize="16" TextAlignment="Center"/>
+            <TextBlock Text="Окраска" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="120" Padding="5" MinHeight="30" FontSize="16" TextAlignment="Center"/>
+        </StackPanel>
+
+        <ScrollViewer Margin="0,50,0,0">
+            <StackPanel Orientation="Horizontal" Margin="0,30,0,0" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel x:Name="CutStack" VerticalAlignment="Top" Margin="10,0,0,0" MinWidth="150"/>
+                <StackPanel x:Name="BendStack" VerticalAlignment="Top" Margin="10,0,0,0" MinWidth="120"/>
+                <StackPanel x:Name="RollStack" VerticalAlignment="Top" Margin="10,0,0,0" MinWidth="120"/>
+                <StackPanel x:Name="DrillingStack" VerticalAlignment="Top" Margin="10,0,0,0" MinWidth="120"/>
+                <StackPanel x:Name="ThreadStack" VerticalAlignment="Top" Margin="10,0,0,0" MinWidth="120"/>
+                <StackPanel x:Name="CountersinkStack" VerticalAlignment="Top" Margin="10,0,0,0" MinWidth="120"/>
+                <StackPanel x:Name="WeldStack" VerticalAlignment="Top" Margin="10,0,0,0" MinWidth="120"/>
+                <StackPanel x:Name="PaintStack" VerticalAlignment="Top" Margin="10,0,10,0" MinWidth="120"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>
