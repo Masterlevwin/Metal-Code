@@ -2311,9 +2311,9 @@ namespace Metal_Code
 
             List<string> _headersP = new()
             {
-                "Дата", "№ и в покраску", "Наименование изделия\n/вид работы", "Кол-во", "ед изм.",
-                "Подразделение", "Компания", "Мастер", "Менеджер", "Инженер", "КД", "№ Лазера",
-                "№ труборез", "Дата отгрузки", "Готово к отгрузке", "Отгружено", "Готово \"V\"", "Цвет/цинк",
+                "Дата", "№ п/п", "№ Проекта / Лазера", "Наименование изделия\n/вид работы", "Кол-во",
+                "ед изм.", "Подразделение", "Компания", "Мастер", "Менеджер", "Инженер", "КД",
+                "Дата отгрузки", "Готово к отгрузке", "Отгружено", "Готово \"V\"", "Цвет/цинк",
                 "Примечание", "Ход проекта", "ОТГРУЗКИ _ дата и количество", "Стоимость работ"
             };
             for (int col = 0; col < _headersP.Count; col++) statsheet.Cells[temp, col + 1].Value = _headersP[col];
@@ -2330,8 +2330,8 @@ namespace Metal_Code
 
                     if (key.Contains("Окраска"))
                     {
-                        if (!$"{statsheet.Cells[temp, 3].Value}".Contains("Окраска"))
-                            statsheet.Cells[temp, 3].Value += $"{key.Remove(7)} ";
+                        if (!$"{statsheet.Cells[temp, 4].Value}".Contains("Окраска"))
+                            statsheet.Cells[temp, 4].Value += $"{key.Remove(7)} ";
 
                         int _count = 0;
                         float _square = 0;
@@ -2347,31 +2347,41 @@ namespace Metal_Code
                             }
                         }
 
-                        statsheet.Cells[temp, 18].Value += $"{key[14..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
+                        statsheet.Cells[temp, 17].Value += $"{key[14..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
                     }
-                    else statsheet.Cells[temp, 3].Value += $"{key} ";                                           //"Наименование изделия / вид работы"
-                    
-                    statsheet.Cells[temp, 3].Style.WrapText = true;
-                    statsheet.Cells[temp, 17].Style.WrapText = true;
+                    else statsheet.Cells[temp, 4].Value += $"{key} ";                                           //"Наименование изделия / вид работы"
+                    statsheet.Cells[temp, 4].Style.WrapText = true;
 
-                    statsheet.Cells[temp, 4].Value = 1;                                                         //"Кол-во"
-                    statsheet.Cells[temp, 5].Value = "шт";                                                      //"ед изм."
-                    statsheet.Cells[temp, 6].Value = Boss.Text;                                                 //"Подразделение"
-                    statsheet.Cells[temp, 7].Value = CustomerDrop.Text;                                         //"Компания"
-                    statsheet.Cells[temp, 9].Value = ManagerDrop.Text;                                          //"Менеджер"
-                    statsheet.Cells[temp, 10].Value = CurrentManager.Name;                                      //"Инженер"
-                    statsheet.Cells[temp, 14].Value = EndDate();                                                //"Дата отгрузки"
-                    statsheet.Cells[temp, 14].Style.Numberformat.Format = "d MMM";
-                    statsheet.Cells[temp, 19].Value = scoresheet.Cells[Parts.Count + 2, 21].Value + $" шт";     //"Примечание"
+                    statsheet.Cells[temp, 3].Value = Order.Text;                                                //"№ Проекта / Лазера"
+                    statsheet.Cells[temp, 5].Value = 1;                                                         //"Кол-во"
+                    statsheet.Cells[temp, 6].Value = "шт";                                                      //"ед изм."
+                    statsheet.Cells[temp, 7].Value = Boss.Text;                                                 //"Подразделение"
+                    statsheet.Cells[temp, 8].Value = CustomerDrop.Text;                                         //"Компания"
+                    statsheet.Cells[temp, 10].Value = ManagerDrop.Text;                                         //"Менеджер"
+                    statsheet.Cells[temp, 11].Value = CurrentManager.Name;                                      //"Инженер"
+                    
+                    statsheet.Cells[temp, 13].Value = EndDate();                                                //"Дата отгрузки"
+                    statsheet.Cells[temp, 13].Style.Numberformat.Format = "dd.mm.yy";
+
+                    statsheet.Cells[temp, 17].Style.WrapText = true;                                            //"Цвет/цинк"
+                    statsheet.Cells[temp, 18].Value = scoresheet.Cells[Parts.Count + 2, 21].Value + $" шт";     //"Примечание"
 
                     sum += TempWorksDict[key];
                 }
+
                 //по умолчанию "Цвет/цинк" - "БП" (без покраски)
-                if ($"{statsheet.Cells[temp, 18].Value}" == "") statsheet.Cells[temp, 18].Value = "БП";        
-                statsheet.Cells[temp, 22].Value = Math.Round(sum, 2);                                           //"Стоимость работ"
+                if ($"{statsheet.Cells[temp, 17].Value}" == "") statsheet.Cells[temp, 17].Value = "БП";
+                
+                statsheet.Cells[temp, 21].Value = Math.Round(sum, 2);                                           //"Стоимость работ"
+                statsheet.Cells[temp, 21].Style.Numberformat.Format = "#,##0.00";
             }
 
-            ExcelRange registryP = statsheet.Cells[beginP, 1, temp, 22];
+            ExcelRange registryP = statsheet.Cells[beginP, 1, temp, 21];
+            registryP.Style.Font.Name = "Arial";
+            registryP.Style.Font.Size = 10;
+            statsheet.Cells[temp, 13].Style.Font.Size = 11;
+            statsheet.Cells[temp, 3].Style.Font.Size = statsheet.Cells[temp, 21].Style.Font.Size = 14;
+            statsheet.Cells[temp, 1].Style.Font.Bold = statsheet.Cells[temp, 3].Style.Font.Bold = statsheet.Cells[temp, 13].Style.Font.Bold = true;
 
 
             // ----- обводка границ и авторастягивание столбцов -----
@@ -2866,11 +2876,6 @@ namespace Metal_Code
                         {
                             registrysheet.Cells[cell.Start.Row + i, cell.Start.Column].Value = offer.Order;
                         }  
-                    }
-
-                    if (cell.Value is not null && $"{cell.Value}" == "№ Лазера")
-                    {
-                        registrysheet.Cells[cell.Start.Row + 1, cell.Start.Column].Value = offer.Order;
                     }
                 }
             }
