@@ -4104,6 +4104,19 @@ namespace Metal_Code
                                                         //      50      51      52      53      54      55        56      57        58      59      60          61          62        (18)      (19)      (20)   (21)
                             //List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "S,кв м", "цвет", "П" };
                         }
+
+                    TextBox _comment = new()
+                    {
+                        Width = 120,
+                        Height = 70,
+                        Margin = new Thickness(5),
+                        Text = $"s{part.Destiny} {part.Metal}\n{part.Mass} кг\n{Math.Round(part.Way / 1000, 2)} м\n{Math.Ceiling(part.Price)} руб",
+                        TextWrapping = TextWrapping.Wrap,
+                        HorizontalContentAlignment = HorizontalAlignment.Center,
+                        VerticalContentAlignment = VerticalAlignment.Center,
+                    };
+                    routeWindow.CommentStack.Children.Add(_comment);
+
                 }
 
             foreach (var item in routeWindow.WorkStack.Children)
