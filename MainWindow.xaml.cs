@@ -25,6 +25,8 @@ using System.Text.RegularExpressions;
 using ACadSharp.IO;
 using ACadSharp;
 using System.Management;
+using System.Windows.Shapes;
+using System.Windows.Documents;
 
 namespace Metal_Code
 {
@@ -4034,36 +4036,67 @@ namespace Metal_Code
             RouteWindow routeWindow = new();
             if (Parts.Count > 0) foreach (Part part in Parts)
                 {
-                    PartViewControl _part = new(part);
-                    routeWindow.CutStack.Children.Add(_part);
-                    int ndx = routeWindow.CutStack.Children.IndexOf(_part);
+                    TextBox _part = new()
+                    {
+                        Width = 150,
+                        Height = 70,
+                        Margin = new Thickness(5),
+                        Text = part.Title,
+                        TextWrapping = TextWrapping.Wrap,
+                        HorizontalContentAlignment = HorizontalAlignment.Center,
+                        VerticalContentAlignment = VerticalAlignment.Center,
+                    };
+                    routeWindow.DetailStack.Children.Add(_part);
+                    int ndx = routeWindow.DetailStack.Children.IndexOf(_part);
 
                     if (part.PropsDict.Count > 0) foreach (var key in part.PropsDict.Keys)
                         {
                             switch (key)
                             {
+                                case 51:
+                                    while (ndx > routeWindow.CutStack.Children.Count) routeWindow.CutStack.Children.Add(new PlugControl());
+                                    routeWindow.CutStack.Children.Insert(ndx, new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
                                 case 52:
                                     while (ndx > routeWindow.BendStack.Children.Count) routeWindow.BendStack.Children.Add(new PlugControl());
-                                    routeWindow.BendStack.Children.Insert(ndx, new PartViewControl(part));
+                                    routeWindow.BendStack.Children.Insert(ndx, new PartViewControl(part) { Margin = new Thickness(5) });
                                     break;
-                                //case 53:
-                                //    routeWindow.WeldStack.Children.Add(new PartViewControl(part));
-                                //    break;
-                                //case 54:
-                                //    routeWindow.PaintStack.Children.Add(new PartViewControl(part));
-                                //    break;
-                                //case 55:
-                                //    routeWindow.ThreadStack.Children.Add(new PartViewControl(part));
-                                //    break;
-                                //case 56:
-                                //    routeWindow.CountersinkStack.Children.Add(new PartViewControl(part));
-                                //    break;
-                                //case 57:
-                                //    routeWindow.DrillingStack.Children.Add(new PartViewControl(part));
-                                //    break;
-                                //case 58:
-                                //    routeWindow.RollStack.Children.Add(new PartViewControl(part));
-                                //    break;
+                                case 53:
+                                    while (ndx > routeWindow.WeldStack.Children.Count) routeWindow.WeldStack.Children.Add(new PlugControl());
+                                    routeWindow.WeldStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 54:
+                                    while (ndx > routeWindow.PaintStack.Children.Count) routeWindow.PaintStack.Children.Add(new PlugControl());
+                                    routeWindow.PaintStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 55:
+                                    while (ndx > routeWindow.ThreadStack.Children.Count) routeWindow.ThreadStack.Children.Add(new PlugControl());
+                                    routeWindow.ThreadStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 56:
+                                    while (ndx > routeWindow.CountersinkStack.Children.Count) routeWindow.CountersinkStack.Children.Add(new PlugControl());
+                                    routeWindow.CountersinkStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 57:
+                                    while (ndx > routeWindow.DrillingStack.Children.Count) routeWindow.DrillingStack.Children.Add(new PlugControl());
+                                    routeWindow.DrillingStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 58:
+                                    while (ndx > routeWindow.RollStack.Children.Count) routeWindow.RollStack.Children.Add(new PlugControl());
+                                    routeWindow.RollStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 59:
+                                    while (ndx > routeWindow.ExtraStack.Children.Count) routeWindow.ExtraStack.Children.Add(new PlugControl());
+                                    routeWindow.ExtraStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 60:
+                                    while (ndx > routeWindow.ExtraStack.Children.Count) routeWindow.ExtraStack.Children.Add(new PlugControl());
+                                    routeWindow.ExtraStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 61:
+                                    while (ndx > routeWindow.PipeStack.Children.Count) routeWindow.PipeStack.Children.Add(new PlugControl());
+                                    routeWindow.PipeStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
                                 default:
                                     break;
 
@@ -4072,6 +4105,15 @@ namespace Metal_Code
                             //List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "S,кв м", "цвет", "П" };
                         }
                 }
+
+            foreach (var item in routeWindow.WorkStack.Children)
+            {
+                if (item is StackPanel stack)
+                {
+                    while (stack.Children.Count < routeWindow.DetailStack.Children.Count) stack.Children.Add(new PlugControl());
+                }
+            }
+
             routeWindow.Show();
         }
     }

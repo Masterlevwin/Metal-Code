@@ -5,12 +5,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="100" d:DesignWidth="175">
+             d:DesignHeight="70" d:DesignWidth="60">
     <Grid>
-        <TextBox x:Name="TitleBox" Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="90" MinWidth="90" MinHeight="50" MaxHeight="50" ToolTip="Наименование детали" HorizontalAlignment="Left" Margin="10,0,0,0"/>
-        <Border BorderBrush="Black" BorderThickness="1" Width="60" Height="60" HorizontalAlignment="Left" Margin="105,0,0,0"/>
-        <Image x:Name="Picture" Loaded="SetPicture" HorizontalAlignment="Left" Width="46" Height="46" Margin="112,0,0,0"/>
-        <TextBox Text="{Binding Count}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinHeight="20" MaxHeight="20" MaxLines="1" MaxWidth="40" MinWidth="40" ToolTip="Количество деталей" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="115,73,0,0"/>
+        <Border BorderBrush="Black" BorderThickness="1" Width="60" Height="60" VerticalAlignment="Top"/>
+        <Image x:Name="Picture" Loaded="SetPicture" Width="46" Height="46" VerticalAlignment="Top" Margin="0,4,0,0"/>
+        <TextBox Text="{Binding Count}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinHeight="20" MaxHeight="20" MaxLines="1" MaxWidth="40" MinWidth="40" ToolTip="Количество деталей" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,50,0,0"/>
 
     </Grid>
 </UserControl>
