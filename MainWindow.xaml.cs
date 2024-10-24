@@ -4038,7 +4038,7 @@ namespace Metal_Code
                 {
                     TextBox _part = new()
                     {
-                        Width = 150,
+                        Width = 125,
                         Height = 70,
                         Margin = new Thickness(5),
                         Text = part.Title,
@@ -4086,12 +4086,12 @@ namespace Metal_Code
                                     routeWindow.RollStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
                                     break;
                                 case 59:
-                                    while (ndx > routeWindow.ExtraStack.Children.Count) routeWindow.ExtraStack.Children.Add(new PlugControl());
-                                    routeWindow.ExtraStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    while (ndx > routeWindow.ExtraPStack.Children.Count) routeWindow.ExtraPStack.Children.Add(new PlugControl());
+                                    routeWindow.ExtraPStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
                                     break;
                                 case 60:
-                                    while (ndx > routeWindow.ExtraStack.Children.Count) routeWindow.ExtraStack.Children.Add(new PlugControl());
-                                    routeWindow.ExtraStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    while (ndx > routeWindow.ExtraLStack.Children.Count) routeWindow.ExtraLStack.Children.Add(new PlugControl());
+                                    routeWindow.ExtraLStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
                                     break;
                                 case 61:
                                     while (ndx > routeWindow.PipeStack.Children.Count) routeWindow.PipeStack.Children.Add(new PlugControl());
@@ -4101,31 +4101,25 @@ namespace Metal_Code
                                     break;
 
                             }
-                                                        //      50      51      52      53      54      55        56      57        58      59      60          61          62        (18)      (19)      (20)   (21)
-                            //List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "S,кв м", "цвет", "П" };
                         }
 
                     TextBox _comment = new()
                     {
-                        Width = 120,
+                        Width = 100,
                         Height = 70,
                         Margin = new Thickness(5),
-                        Text = $"s{part.Destiny} {part.Metal}\n{part.Mass} кг\n{Math.Round(part.Way / 1000, 2)} м\n{Math.Ceiling(part.Price)} руб",
+                        Text = $"s{part.Destiny} {part.Metal}\n{part.Mass} кг",
                         TextWrapping = TextWrapping.Wrap,
                         HorizontalContentAlignment = HorizontalAlignment.Center,
                         VerticalContentAlignment = VerticalAlignment.Center,
                     };
                     routeWindow.CommentStack.Children.Add(_comment);
-
                 }
 
             foreach (var item in routeWindow.WorkStack.Children)
-            {
                 if (item is StackPanel stack)
-                {
-                    while (stack.Children.Count < routeWindow.DetailStack.Children.Count) stack.Children.Add(new PlugControl());
-                }
-            }
+                    while (stack.Children.Count < routeWindow.DetailStack.Children.Count)
+                        stack.Children.Add(new PlugControl());
 
             routeWindow.Show();
         }

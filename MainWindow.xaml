@@ -211,21 +211,20 @@
                         <TextBox ToolTip="Коэффициент" x:Name="AssemblyRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" Margin="470,163,0,0"/>
                         <CheckBox Content="Таблица гибов" Click="ShowTableOfBends" Margin="15,250,0,20" HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
 
-                        <GroupBox Header="Переименовать файлы" VerticalAlignment="Bottom" HorizontalAlignment="Right" Height="40" Margin="0,250,10,0">
+                        <GroupBox Header="Дополнительные функции" Height="45" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,250,15,10">
                             <StackPanel Orientation="Horizontal">
-                                <Button Content="..." ToolTip="Выбрать файлы" Command="{Binding RenameCommand}" HorizontalAlignment="Left" MinWidth="40"/>
-                                <TextBox x:Name="Rename" ToolTip="Введите строку, она будет в конце имени выбранных файлов" Margin="10,0,0,0" Width="105" MinWidth="200" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                                <Button x:Name="ConvertBtn" Content="Конвертер" ToolTip="Выбрать файлы для конвертации" Margin="10,0,0,0" HorizontalAlignment="Left" MinWidth="40" Click="Convert_dwg_to_dxf"/>
+                                <Button Click="AnalyseDateProduction" ToolTip="Создать паспорт качества" HorizontalAlignment="Left" BorderThickness="0">
+                                    <Image Source="/Images/list.png" MaxWidth="20" MaxHeight="20"/>
+                                </Button>
+                                <Button Click="CreateComplect" ToolTip="Сформировать простую комплектацию" HorizontalAlignment="Left" BorderThickness="0" Margin="10,0,0,0">
+                                    <Image Source="/Images/complect2.png" MaxWidth="20" MaxHeight="20"/>
+                                </Button>
+                                <Button Content="..." ToolTip="Выбрать файлы" Command="{Binding RenameCommand}" MinWidth="40" Margin="10,0,0,0"/>
+                                <Rectangle Stroke="Black" VerticalAlignment="Center" MinWidth="10"/>
+                                <TextBox x:Name="Rename" ToolTip="Введите строку, она будет в конце имени выбранных файлов" Width="105" MinWidth="200" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                                <Button x:Name="ConvertBtn" Content="Конвертер" ToolTip="Выбрать файлы для конвертации" Margin="10,0,0,0" MinWidth="40" Click="Convert_dwg_to_dxf"/>
                             </StackPanel>
                         </GroupBox>
-
-                        <Button Click="AnalyseDateProduction" ToolTip="Создать паспорт качества" HorizontalAlignment="Left" Margin="150,250,0,5" VerticalAlignment="Bottom" BorderThickness="0">
-                            <Image Source="/Images/list.png" MaxWidth="20" MaxHeight="20"/>
-                        </Button>
-                        
-                        <Button Click="CreateComplect" ToolTip="Сформировать простую комплектацию" HorizontalAlignment="Left" Margin="180,250,0,5" VerticalAlignment="Bottom" BorderThickness="0">
-                            <Image Source="/Images/complect2.png" MaxWidth="20" MaxHeight="20"/>
-                        </Button>
 
                     </Grid>
                 </ScrollViewer>
