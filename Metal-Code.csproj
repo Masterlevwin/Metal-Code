@@ -15,6 +15,7 @@
     <None Remove="app_logo.jpeg" />
     <None Remove="app_logo.jpg" />
     <None Remove="Images\add.png" />
+    <None Remove="Images\change.png" />
     <None Remove="Images\comment.png" />
     <None Remove="Images\comment2.png" />
     <None Remove="Images\comment3.png" />
@@ -93,6 +94,7 @@
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </Resource>
     <Resource Include="Images\add.png" />
+    <Resource Include="Images\change.png" />
     <Resource Include="Images\comment.png" />
     <Resource Include="Images\comment2.png" />
     <Resource Include="Images\complect.png" />

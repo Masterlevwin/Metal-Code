@@ -158,7 +158,7 @@
                             <Image Source="/Images/del.png"/>
                         </Button>
                         <Button ToolTip="Перенести заказчиков" Click="CopyCustomers" HorizontalAlignment="Left" Margin="535,45,0,0" VerticalAlignment="Top" MinWidth="15" MinHeight="15" MaxWidth="15" MaxHeight="15" BorderThickness="0">
-                            <Image Source="/Images/convert.png"/>
+                            <Image Source="/Images/change.png"/>
                         </Button>
                         <ComboBox x:Name="FromManagerDrop" HorizontalAlignment="Left" Margin="430,65,0,0" VerticalAlignment="Top" Width="120" MinWidth="120" MaxWidth="120" DisplayMemberPath="Name" Visibility="Hidden" SelectionChanged="CopyCustomers"/>
 
@@ -221,8 +221,10 @@
                                 </Button>
                                 <Button Content="..." ToolTip="Выбрать файлы" Command="{Binding RenameCommand}" MinWidth="40" Margin="10,0,0,0"/>
                                 <Rectangle Stroke="Black" VerticalAlignment="Center" MinWidth="10"/>
-                                <TextBox x:Name="Rename" ToolTip="Введите строку, она будет в конце имени выбранных файлов" Width="105" MinWidth="200" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                                <Button x:Name="ConvertBtn" Content="Конвертер" ToolTip="Выбрать файлы для конвертации" Margin="10,0,0,0" MinWidth="40" Click="Convert_dwg_to_dxf"/>
+                                <TextBox x:Name="Rename" ToolTip="Введите строку, она будет в конце имени выбранных файлов" Width="105" MinWidth="100" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                                <Button x:Name="ConvertBtn" Click="Convert_dwg_to_dxf" ToolTip="Выбрать файлы для конвертации" HorizontalAlignment="Left" BorderThickness="0" Margin="10,0,0,0">
+                                    <Image Source="/Images/convert.png" MaxWidth="20" MaxHeight="20"/>
+                                </Button>
                             </StackPanel>
                         </GroupBox>
 

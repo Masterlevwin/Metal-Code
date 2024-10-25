@@ -2800,7 +2800,7 @@ namespace Metal_Code
                                 //"Название"
                                 tasksheet.Cells[temp, 1].Value += $"{_paint.Ral}";
                                 //"Исполнитель"
-                                tasksheet.Cells[temp, 4].Value = $"Всеволод Берестов";
+                                tasksheet.Cells[temp, 4].Value = $"Алексей Сергеев";
                                 //"Проект"
                                 tasksheet.Cells[temp, 5].Value = "Нанесение покрытий";
                                 //"Время на выполнение задачи в секундах"
@@ -2820,7 +2820,7 @@ namespace Metal_Code
                                 if (w.workType is ExtraControl extra) tasksheet.Cells[temp, 1].Value += $"{extra.NameExtra}";
                                 else tasksheet.Cells[temp, 1].Value += $"{work.Name}";
                                 //"Исполнитель"
-                                tasksheet.Cells[temp, 4].Value = $"Всеволод Берестов";
+                                tasksheet.Cells[temp, 4].Value = $"Алексей Сергеев";
                                 //"Проект"
                                 tasksheet.Cells[temp, 5].Value = "Производство";
                                 //"Время на выполнение задачи в секундах"
