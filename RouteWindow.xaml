@@ -20,9 +20,16 @@
                 <TextBlock Text="Доп П" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="100" Padding="5" MinHeight="30" FontSize="16" TextAlignment="Center"/>
                 <TextBlock Text="Окраска" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="100" Padding="5" MinHeight="30" FontSize="16" TextAlignment="Center"/>
                 <TextBlock Text="Примечание" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="100" Padding="5" MinHeight="30" FontSize="16" TextAlignment="Center"/>
+                <Button IsDefault="True" Click="CreateBitmapFromVisual" ToolTip="Сделать снимок окна" HorizontalAlignment="Left" BorderThickness="2" Margin="10,0,0,0" Background="White">
+                    <Image Source="/Images/screen.png" MaxWidth="20" MaxHeight="20"/>
+                </Button>
+                <Button HorizontalAlignment="Left" BorderThickness="2" Margin="10,0,0,0" Background="White" Content="Выше">
+                </Button>
+                <Button HorizontalAlignment="Left" BorderThickness="2" Margin="10,0,0,0" Background="White" Content="Ниже" Click="PageDown">
+                </Button>
             </StackPanel>
 
-            <ScrollViewer Margin="10,50,10,10">
+            <ScrollViewer x:Name="ScrollContent" Margin="10,50,10,10">
                 <StackPanel x:Name="WorkStack" Orientation="Horizontal">
                     <StackPanel x:Name="DetailStack" MinWidth="125"/>
                     <StackPanel x:Name="CutStack" MinWidth="100"/>

@@ -25,8 +25,7 @@ using System.Text.RegularExpressions;
 using ACadSharp.IO;
 using ACadSharp;
 using System.Management;
-using System.Windows.Shapes;
-using System.Windows.Documents;
+using System.Threading;
 
 namespace Metal_Code
 {
@@ -3812,13 +3811,14 @@ namespace Metal_Code
                 "Сергеев Алексей" => "ас",
                 "Серых Михаил" => "мс",
                 "Мешеронова Мария" => "м",
+                "Барабанов Дмитрий" => "дб",
                 _ => ""
             };
         }
 
         private void CreateDelivery(object sender, RoutedEventArgs e)
         {
-            StatusBegin($"Запрос в логистику: {CreateDelivery()}");
+            StatusBegin($"{CreateDelivery()}");
         }
 
         private string CreateDelivery()     //метод построения строки запроса в логистику
@@ -3933,6 +3933,31 @@ namespace Metal_Code
             image.EndInit();
             image.Freeze();
             return image;
+        }
+
+        public static void CreateBitmapFromVisual(Visual target, string fileName)   //метод создания снимка окна
+        {
+            var bounds = VisualTreeHelper.GetDescendantBounds(target);
+            var renderTarget = new RenderTargetBitmap(
+                (int)bounds.Width,
+                (int)bounds.Height,
+                96,
+                96,
+                PixelFormats.Pbgra32);
+
+            var visual = new DrawingVisual();
+
+            using (var context = visual.RenderOpen())
+            {
+                var visualBrush = new VisualBrush(target);
+                context.DrawRectangle(visualBrush, null, new Rect(new Point(), bounds.Size));
+            }
+
+            renderTarget.Render(visual);
+            var bitmapEncoder = new BmpBitmapEncoder();
+            bitmapEncoder.Frames.Add(BitmapFrame.Create(renderTarget));
+            using var stm = File.Create(fileName);
+            bitmapEncoder.Save(stm);
         }
         #endregion
 
