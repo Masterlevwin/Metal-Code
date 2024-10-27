@@ -25,7 +25,6 @@ using System.Text.RegularExpressions;
 using ACadSharp.IO;
 using ACadSharp;
 using System.Management;
-using System.Threading;
 
 namespace Metal_Code
 {
@@ -373,7 +372,7 @@ namespace Metal_Code
 
         //-------------Основные методы-----------//
         #region
-        private void LoadDataBases(object sender, RoutedEventArgs e)  // при загрузке окна
+        private void LoadDataBases(object sender, RoutedEventArgs e)    // при загрузке окна
         {
             using TypeDetailContext dbT = new(IsLocal ? connections[2] : connections[3]);
             dbT.TypeDetails.Load();
@@ -404,7 +403,66 @@ namespace Metal_Code
             else NewProject();                                              //если все проверки пройдены, создаем новый проект
         }
 
-        public static bool CheckMachine()
+        private void InitializeDict()       //метод заполнения словарей значениями
+        {
+            foreach (Metal metal in Metals)
+            {
+                if (metal.Name != null && metal.WayPrice != null && metal.PinholePrice != null && metal.MoldPrice != null)
+                {
+                    Dictionary<float, (float, float, float)> prices = new();
+
+                    string[] _ways = metal.WayPrice.Split('/');
+                    string[] _pinholes = metal.PinholePrice.Split('/');
+                    string[] _molds = metal.MoldPrice.Split('/');
+
+                    for (int i = 0; i < _ways.Length; i++) prices[Destinies[i]] = (Parser(_ways[i]), Parser(_pinholes[i]), Parser(_molds[i]));
+
+                    MetalDict[metal.Name] = prices;
+                }
+            }
+
+            for (int i = 0; i < Destinies.Count; i++)
+            {
+                if (Destinies[i] <= 3) WideDict[Destinies[i]] = 0;
+                else WideDict[Destinies[i]] = (float)Math.Round(0.1f * (i + 2) - 1, 1);
+            }
+
+            foreach (Metal met in Metals)
+            {
+                if (met == null || met.Name == null) continue;
+
+                if (met.Name == "09г2с" || met.Name.Contains("амг")) MetalRatioDict[met] = 1.5f;
+                else if (met.Name.Contains("aisi")) MetalRatioDict[met] = 2;
+                else MetalRatioDict[met] = 1;
+            }
+        }
+
+        private void OpenSettings(object sender, RoutedEventArgs e)     // пункт меню настройки баз
+        {
+            IsEnabled = false;
+            if (sender == Settings.Items[0])
+            {
+                TypeDetailWindow typeDetailWindow = new();
+                typeDetailWindow.Show();
+            }
+            else if (sender == Settings.Items[1])
+            {
+                WorkWindow workWindow = new();
+                workWindow.Show();
+            }
+            else if (sender == Settings.Items[2])
+            {
+                ManagerWindow managerWindow = new();
+                managerWindow.Show();
+            }
+            else if (sender == Settings.Items[3])
+            {
+                MetalWindow metalWindow = new();
+                metalWindow.Show();
+            }
+        }
+
+        public static bool CheckMachine()   // проверка серийного номера жесткого диска
         {
             ManagementObjectSearcher searcher = new("SELECT * FROM Win32_PhysicalMedia");
 
@@ -414,7 +472,7 @@ namespace Metal_Code
             return false;
         }
 
-        public static void EncryptFile()
+        public static void EncryptFile()    // создание защитного файла
         {
             if (File.Exists(Directory.GetCurrentDirectory() + "\\encrypt.dat")) return;
 
@@ -429,7 +487,7 @@ namespace Metal_Code
             }
         }
 
-        public static bool DecryptFile(out string s)
+        public static bool DecryptFile(out string s)    // проверка защитного файла
         {
             s = "";
             if (!File.Exists(Directory.GetCurrentDirectory() + "\\encrypt.dat")) return false;
@@ -439,7 +497,7 @@ namespace Metal_Code
             return true;
         }
 
-        private bool CheckMachineName()
+        private bool CheckMachineName()     // авторизация на основе имени компьютера
         {
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
 
@@ -477,7 +535,7 @@ namespace Metal_Code
             return false;
         }
 
-        private void ShowLoginWindow(object sender, RoutedEventArgs e)
+        private void ShowLoginWindow(object sender, RoutedEventArgs e)  // обработчик пункта меню "Сменить пользователя"
         {
             MessageBoxResult response = MessageBox.Show("Сменить текущего пользователя?\nЕсли \"Да\", потребуется авторизация, и текущий расчет будет очищен!", "Сменить пользователя",
                                MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
@@ -485,7 +543,7 @@ namespace Metal_Code
             else ShowWindow(new LoginWindow());
         }
                 
-        private void ShowWindow(Window window)
+        private void ShowWindow(Window window)          // установка текущего и выбранного менеджеров
         {
             IsEnabled = false;
 
@@ -504,64 +562,6 @@ namespace Metal_Code
             }
         }
 
-        private void InitializeDict()       //метод заполнения словарей значениями
-        {
-            foreach (Metal metal in Metals)
-            {
-                if (metal.Name != null && metal.WayPrice != null && metal.PinholePrice != null && metal.MoldPrice != null)
-                {
-                    Dictionary<float, (float, float, float)> prices = new();
-
-                    string[] _ways = metal.WayPrice.Split('/');
-                    string[] _pinholes = metal.PinholePrice.Split('/');
-                    string[] _molds = metal.MoldPrice.Split('/');
-
-                    for (int i = 0; i < _ways.Length; i++) prices[Destinies[i]] = (Parser(_ways[i]), Parser(_pinholes[i]), Parser(_molds[i]));
-
-                    MetalDict[metal.Name] = prices;
-                }
-            }
-
-            for (int i = 0; i < Destinies.Count; i++)
-            {
-                if (Destinies[i] <= 3) WideDict[Destinies[i]] = 0;
-                else WideDict[Destinies[i]] = (float)Math.Round(0.1f * (i + 2) - 1, 1);
-            }
-
-            foreach (Metal met in Metals)
-            {
-                if (met == null || met.Name == null) continue;
-
-                if (met.Name == "09г2с" || met.Name.Contains("амг")) MetalRatioDict[met] = 1.5f;
-                else if (met.Name.Contains("aisi")) MetalRatioDict[met] = 2;
-                else MetalRatioDict[met] = 1;
-            }
-        }
-
-        private void OpenSettings(object sender, RoutedEventArgs e)
-        {
-            IsEnabled = false;
-            if (sender == Settings.Items[0])
-            {
-                TypeDetailWindow typeDetailWindow = new();
-                typeDetailWindow.Show();
-            }
-            else if (sender == Settings.Items[1])
-            {
-                WorkWindow workWindow = new();
-                workWindow.Show();
-            }
-            else if (sender == Settings.Items[2])
-            {
-                ManagerWindow managerWindow = new();
-                managerWindow.Show();
-            }
-            else if (sender == Settings.Items[3])
-            {
-                MetalWindow metalWindow = new();
-                metalWindow.Show();
-            }
-        }
 
         //---------Общий результат расчета и его обновление-------//
         private float result;
@@ -671,7 +671,7 @@ namespace Metal_Code
         #endregion
 
 
-        //-----------Подключения к базе расчетов------------------//
+        //-----------Подключения к базе расчетов-----------------//
         #region
         private void ManagerChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -1259,7 +1259,7 @@ namespace Metal_Code
         #endregion
 
 
-        //-------------Фоновые процессы-----------//
+        //-------------Фоновые процессы----------//
         #region
         public enum ActionState         //условия окончания работы фонового процесса
         {
@@ -1375,7 +1375,7 @@ namespace Metal_Code
         #endregion
 
 
-        //---------Сохранение и загрузка контролов расчета--------//
+        //---------Сохранение и загрузка контролов расчета-------//
         #region
         public Product SaveProduct()
         {
@@ -1673,9 +1673,11 @@ namespace Metal_Code
         #endregion
 
 
-        //-------------Выходные файлы----------//
+        //-------------Выходные файлы-----------//
         #region
-        public void ExportToExcel(string path)      // метод оформления КП в формате excel
+
+        //-КП
+        public void ExportToExcel(string path)
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
@@ -2406,13 +2408,12 @@ namespace Metal_Code
             // ----- сохраняем книгу в файл Excel -----
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем файл .xlsx
 
-            CreateScore(worksheet, row - 8, path, materials);                      //создаем файл для счета на основе полученного КП
-            if (Parts.Count > 0) CreateComplect(path);                  //создаем файл комплектации
-            
-            CreateRegistry(path, Order.Text);                           //создаем файл для списка задач в Битрикс24
+            CreateScore(worksheet, row - 8, path, materials);                   //создаем файл для счета на основе полученного КП
+            if (Parts.Count > 0) CreateComplect(path);                          //создаем файл комплектации    
         }
-
-        private void CreateScore(ExcelWorksheet worksheet, int row, string _path, ExcelRange materials)       // метод создания файла для счета
+        
+        //-СЧЕТ
+        private void CreateScore(ExcelWorksheet worksheet, int row, string _path, ExcelRange materials)
         {
             // ----- основная таблица деталей для экспорта в 1С (Лист1 - "Счет") -----
 
@@ -2461,7 +2462,8 @@ namespace Metal_Code
             workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Файл для счета " + Order.Text + "_" + CustomerDrop.Text + " на сумму " + $"{Result}" + ".xlsx");
         }
 
-        private void CreateComplect(string _path, Offer? offer = null)                  // метод создания файла для комплектации
+        //-КОМПЛЕКТАЦИЯ
+        private void CreateComplect(string _path, Offer? offer = null)
         {
             if (offer != null && (offer.Order is null || offer?.Order?.Length < 4))
             {
@@ -2692,13 +2694,14 @@ namespace Metal_Code
             {
                 workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
                 //CreatePasport($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - паспорт.xlsx");
-                CreateRegistry(_path, Order.Text);
+                //CreateRegistry(_path, Order.Text);
             }
 
-            if (offer is not null) UpdateOffer(offer);
+            //if (offer is not null) UpdateOffer(offer);
         }
 
-        private void CreateRegistry(string _path, string _order)                        // метод создания файла для списка задач
+        //-ЗАДАЧИ
+        private void CreateRegistry(string _path, string _order)
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
@@ -2856,41 +2859,13 @@ namespace Metal_Code
             taskRange.SaveToText(file, format);
         }
 
-        private void UpdateOffer(Offer offer)                                           // метод добавления номера заказа в ячейки реестров
-        {
-            if (offer.Act is null || !File.Exists(offer.Act) ) return;
-
-            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
-
-            using var offerbook = new ExcelPackage(new FileInfo(offer.Act));
-            ExcelWorksheet? registrysheet = offerbook.Workbook.Worksheets.FirstOrDefault(x => x.Name == "Реестр");
-
-            if (registrysheet is not null)
-            {
-                foreach (var cell in registrysheet.Cells)
-                {
-                    if (cell.Value is not null && $"{cell.Value}" == "№ заказа")
-                    {
-                        int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count);
-
-                        for (int i = 1; i <= countTypeDetails; i++)
-                        {
-                            registrysheet.Cells[cell.Start.Row + i, cell.Start.Column].Value = offer.Order;
-                        }  
-                    }
-                }
-            }
-
-            // ----- сохраняем книгу в файл Excel -----
-            offerbook.SaveAs(offer.Act);      //сохраняем файл .xlsx
-        }
-
+        //-ПАСПОРТ
         private void CreatePasport(object sender, RoutedEventArgs e)
         {
             if (ActiveOffer is not null) CreatePasport(ActiveOffer);
             else StatusBegin("Для создания паспорта необходимо загрузить расчет.");
         }
-        private void CreatePasport(Offer offer)                                     // метод создания паспорта качества
+        private void CreatePasport(Offer offer)
         {
             //если путь к расчету не сохранен, или файла комплектации по этому пути нет, выходим из метода
             if (offer.Act is null || !File.Exists($"{Path.GetDirectoryName(offer.Act)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx"))
@@ -2948,6 +2923,7 @@ namespace Metal_Code
             else StatusBegin("Не удалось найти ЛИСТ комплектации для создания паспорта. Попробуйте пересохранить расчет заново.");
         }
 
+        //-ПРОСТАЯ КОМПЛЕКТАЦИЯ
         private void CreateComplect(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new()
@@ -2959,8 +2935,7 @@ namespace Metal_Code
             if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0) CreateComplect(openFileDialog.FileNames);
             else StatusBegin($"Не выбрано ни одного файла");
         }
-
-        private void CreateComplect(string[] _paths)                                    // метод создания файла ПРОСТОЙ комплектации
+        private void CreateComplect(string[] _paths)
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
@@ -3065,6 +3040,7 @@ namespace Metal_Code
             else workbook.SaveAs($"{Path.GetDirectoryName(_paths[0])}\\Простая комплектация.xlsx");
             StatusBegin($"Создана простая комплектация в папке {Path.GetDirectoryName(_paths[0])}");
         }
+
 
         //-------------Отчеты-----------------//
         private void CreateReport(object sender, RoutedEventArgs e)
@@ -3446,7 +3422,7 @@ namespace Metal_Code
         #endregion
 
 
-        //-------------Заказчики--------------//
+        //-------------Заказчики----------------//
         #region
         private void CustomerChanged(object sender, SelectionChangedEventArgs e)        //метод смены заказчика
         {
@@ -3631,8 +3607,9 @@ namespace Metal_Code
         #endregion
 
 
-        //-----------Вспомогательные методы-----------------------//
+        //-----------Вспомогательные методы----------------------//
         #region
+
         //-------------Даты-----------//
         private void SetDate(object sender, SelectionChangedEventArgs e)
         {
@@ -3962,7 +3939,7 @@ namespace Metal_Code
         #endregion
 
 
-        //-------------Выход и перезагрузка-----------------------//
+        //-------------Выход и перезагрузка----------------------//
         #region
         public void Exit(object sender, RoutedEventArgs e)
         {
@@ -4015,7 +3992,41 @@ namespace Metal_Code
         #endregion
 
 
+        //-------------------LEGACY методы-----------------------//
+        #region
+        private void UpdateOffer(Offer offer)   // метод добавления номера заказа в ячейки реестров
+        {
+            if (offer.Act is null || !File.Exists(offer.Act)) return;
+
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var offerbook = new ExcelPackage(new FileInfo(offer.Act));
+            ExcelWorksheet? registrysheet = offerbook.Workbook.Worksheets.FirstOrDefault(x => x.Name == "Реестр");
+
+            if (registrysheet is not null)
+            {
+                foreach (var cell in registrysheet.Cells)
+                {
+                    if (cell.Value is not null && $"{cell.Value}" == "№ заказа")
+                    {
+                        int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count);
+
+                        for (int i = 1; i <= countTypeDetails; i++)
+                        {
+                            registrysheet.Cells[cell.Start.Row + i, cell.Start.Column].Value = offer.Order;
+                        }
+                    }
+                }
+            }
+
+            // ----- сохраняем книгу в файл Excel -----
+            offerbook.SaveAs(offer.Act);      //сохраняем файл .xlsx
+        }
+        #endregion
+
+
         //-------------Экспериметы и тесты-----------------------//
+        #region
         private void AnalyseDateProduction(object sender, RoutedEventArgs e)
         {
             //AnalyseDateProduction();
@@ -4148,5 +4159,6 @@ namespace Metal_Code
 
             routeWindow.Show();
         }
+        #endregion
     }
 }

@@ -25,10 +25,5 @@ namespace Metal_Code
                 MainWindow.M.StatusBegin($"Маршрут производства для расчета {MainWindow.M.ActiveOffer?.N} сохранен");
             }
         }
-
-        private void PageDown(object sender, RoutedEventArgs e)
-        {
-            ScrollContent.PageDown();
-        }
     }
 }
