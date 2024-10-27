@@ -2494,96 +2494,162 @@ namespace Metal_Code
             List<string> _heads = new() { "№", "Вид", "Название детали", "Маршрут", "Кол-во", "Размеры детали", "Вес, кг", "Материал", "Толщина" };
             for (int head = 0; head < _heads.Count; head++) complectsheet.Cells[2, head + 1].Value = _heads[head];
 
+            //параллельно создаем лист с раскладками
+            ExcelWorksheet itemsheet = workbook.Workbook.Worksheets.Add("Раскладки");
+
+            int temp = 1;               //номер текущей строки
             float _totalMass = 0;       //счетчик общего веса деталей
+            int namePic = 0;            //порядковое имя картинки
 
-            if (Parts.Count > 0)        //перебираем нарезанные детали
-                for (int i = 0; i < Parts.Count; i++)
+            foreach (DetailControl det in DetailControls)
+            {
+                if (det.Detail.IsComplect)
                 {
-                    complectsheet.Cells[i + 3, 1].Value = i + 1;    //номер по порядку
-                    
-                    byte[]? bytes = Parts[i].ImageBytes;            //получаем изображение детали, если оно есть
-                    if (bytes is not null)
-                    {
-                        Stream? stream = new MemoryStream(bytes);
-                        ExcelPicture pic = complectsheet.Drawings.AddPicture($"{Parts[i].Title}", stream);
-                        complectsheet.Row(i + 3).Height = 32;       //увеличиваем высоту строки, чтобы вмещалось изображение
-                        pic.SetSize(32, 32);
-                        pic.SetPosition(i + 2, 5, 1, 5);            //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
-                    }
+                    foreach (TypeDetailControl type in det.TypeDetailControls)
+                        foreach (WorkControl work in type.WorkControls)
+                            if (work.workType is ICut cut)
+                            {
+                                //нарезанные детали
+                                if (cut.PartDetails?.Count > 0)
+                                    for (int i = 0; i < cut.PartDetails.Count; i++)
+                                    {
+                                        complectsheet.Cells[temp + 2, 1].Value = temp;  //номер детали по порядку
 
-                    complectsheet.Cells[i + 3, 3].Value = Parts[i].Title;           //наименование детали
+                                        byte[]? bytes = cut.PartDetails[i].ImageBytes;  //получаем изображение детали, если оно есть
+                                        if (bytes is not null)
+                                        {
+                                            Stream? stream = new MemoryStream(bytes);
+                                            ExcelPicture pic = complectsheet.Drawings.AddPicture($"{cut.PartDetails[i].Title}", stream);
+                                            complectsheet.Row(temp + 2).Height = 32;    //увеличиваем высоту строки, чтобы вмещалось изображение
+                                            pic.SetSize(32, 32);
+                                            pic.SetPosition(temp + 1, 5, 1, 5);         //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
+                                        }
 
-                    complectsheet.Cells[i + 3, 4].Value = Parts[i].Description;     //маршрут изготовления
-                    complectsheet.Cells[i + 3, 4].Style.WrapText = true;
+                                        complectsheet.Cells[temp + 2, 3].Value = cut.PartDetails[i].Title;           //наименование детали
 
-                    complectsheet.Cells[i + 3, 5].Value = Parts[i].Count;           //количество деталей
-                    complectsheet.Cells[i + 3, 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
-                    complectsheet.Cells[i + 3, 5].Style.Font.Bold = true;
+                                        complectsheet.Cells[temp + 2, 4].Value = cut.PartDetails[i].Description;     //маршрут изготовления
+                                        complectsheet.Cells[temp + 2, 4].Style.WrapText = true;
 
-                    if (Parts[i].PropsDict.ContainsKey(100) && Parts[i].PropsDict[100].Count > 2)   //габаритные размеры детали без отверстий
-                    {
-                        if (Parts[i].PropsDict[100][2].Contains('Ø'))
-                            complectsheet.Cells[i + 3, 6].Value = Parts[i].PropsDict[100][2].Remove(Parts[i].PropsDict[100][2].IndexOf('Ø')).Trim();
-                        else complectsheet.Cells[i + 3, 6].Value = Parts[i].PropsDict[100][2].Trim();
-                    }
+                                        complectsheet.Cells[temp + 2, 5].Value = cut.PartDetails[i].Count;           //количество деталей
+                                        complectsheet.Cells[temp + 2, 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                                        complectsheet.Cells[temp + 2, 5].Style.Font.Bold = true;
 
-                    complectsheet.Cells[i + 3, 7].Value = Math.Round(Parts[i].Mass, 1);     //масса детали
-                    _totalMass += Parts[i].Mass * Parts[i].Count;                           //дополнительно считаем общий вес
+                                        if (cut.PartDetails[i].PropsDict.ContainsKey(100) && cut.PartDetails[i].PropsDict[100].Count > 2)   //габаритные размеры детали без отверстий
+                                        {
+                                            if (cut.PartDetails[i].PropsDict[100][2].Contains('Ø'))
+                                                complectsheet.Cells[temp + 2, 6].Value = cut.PartDetails[i].PropsDict[100][2].Remove(cut.PartDetails[i].PropsDict[100][2].IndexOf('Ø')).Trim();
+                                            else complectsheet.Cells[temp + 2, 6].Value = cut.PartDetails[i].PropsDict[100][2].Trim();
+                                        }
 
-                    complectsheet.Cells[i + 3, 8].Value = Parts[i].Metal;                   //материал
+                                        complectsheet.Cells[temp + 2, 7].Value = Math.Round(cut.PartDetails[i].Mass, 1);     //масса детали
+                                        _totalMass += cut.PartDetails[i].Mass * cut.PartDetails[i].Count;                    //дополнительно считаем общий вес
 
-                    complectsheet.Cells[i + 3, 9].Value = Parts[i].Destiny;                 //толщина
-                    if (complectsheet.Cells[i + 2, 9].Value != null && $"{complectsheet.Cells[i + 2, 9].Value}" != $"{complectsheet.Cells[i + 3, 9].Value}")
-                        complectsheet.Cells[i + 2, 1, i + 2, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
-                    else complectsheet.Cells[i + 2, 1, i + 2, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                                        complectsheet.Cells[temp + 2, 8].Value = cut.PartDetails[i].Metal;                   //материал
+
+                                        complectsheet.Cells[temp + 2, 9].Value = cut.PartDetails[i].Destiny;                 //толщина
+                                        if (complectsheet.Cells[temp + 1, 9].Value != null && $"{complectsheet.Cells[temp + 1, 9].Value}" != $"{complectsheet.Cells[temp + 2, 9].Value}")
+                                            complectsheet.Cells[temp + 1, 1, temp + 1, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
+                                        else complectsheet.Cells[temp + 1, 1, temp + 1, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+
+                                        temp++;
+                                    }
+
+                                //раскладки
+                                if (cut.Items?.Count > 0)
+                                {
+                                    foreach (LaserItem item in cut.Items)
+                                    {
+                                        byte[]? bytes = item.imageBytes;                //получаем изображение раскладки, если оно есть
+                                        if (bytes is not null)
+                                        {
+                                            Stream? stream = new MemoryStream(bytes);
+                                            ExcelPicture pic = itemsheet.Drawings.AddPicture($"{namePic}", stream);
+                                            itemsheet.Cells[namePic + 1, 1].Value = $"s{type.S} {type.MetalDrop.Text}";
+                                            itemsheet.Cells[namePic + 1, 1].Style.Font.Bold = true;
+                                            itemsheet.Cells[namePic + 1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                                            itemsheet.Cells[namePic + 1, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                                            itemsheet.Row(namePic + 1).Height = 400;    //увеличиваем высоту строки, чтобы вмещалось изображение
+                                            pic.SetPosition(namePic, 10, 1, 10);        //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
+                                            namePic++;
+                                        }
+                                    }
+                                }
+
+                                break;
+                            }
                 }
+                else
+                {
+                    complectsheet.Cells[temp + 2, 1].Value = temp;                      //номер детали по порядку
+                    complectsheet.Cells[temp + 2, 3].Value = det.Detail.Title;          //наименование детали
+
+                    complectsheet.Cells[temp + 2, 4].Value = det.Detail.Description;    //маршрут изготовления
+                    complectsheet.Cells[temp + 2, 4].Style.WrapText = true;
+
+                    complectsheet.Cells[temp + 2, 5].Value = det.Detail.Count;          //количество деталей
+                    complectsheet.Cells[temp + 2, 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    complectsheet.Cells[temp + 2, 5].Style.Font.Bold = true;
+
+                    complectsheet.Cells[temp + 2, 7].Value = Math.Round(det.Detail.Mass, 1);    //масса детали
+                    _totalMass += det.Detail.Mass * det.Detail.Count;                   //дополнительно считаем общий вес
+
+                    complectsheet.Cells[temp + 2, 8].Value = det.Detail.Metal;          //материал
+
+                    complectsheet.Cells[temp + 2, 9].Value = det.Detail.Destiny;        //толщина
+                    if (complectsheet.Cells[temp + 1, 9].Value != null && $"{complectsheet.Cells[temp + 1, 9].Value}" != $"{complectsheet.Cells[temp + 2, 9].Value}")
+                        complectsheet.Cells[temp + 1, 1, temp + 1, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
+                    else complectsheet.Cells[temp + 1, 1, temp + 1, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+
+                    temp++;
+                }
+            }
 
             //приводим float-значения типа 0,699999993 к формату 0,7
-            foreach (var cell in complectsheet.Cells[3, 9, Parts.Count + 2, 9])
-                if (cell.Value != null && $"{cell.Value}".Contains("0,7") || $"{cell.Value}".Contains("0,8") || $"{cell.Value}".Contains("1,2") || $"{cell.Value}".Contains("3,2"))
-                    cell.Style.Numberformat.Format = "0.0";
+            foreach (var cell in complectsheet.Cells[3, 9, temp, 9])
+                if (cell.Value != null && $"{cell.Value}".Contains(',')) cell.Style.Numberformat.Format = "0.0";
+                    
             
-            complectsheet.Cells[Parts.Count + 3, 4].Value = "всего деталей:";
-            complectsheet.Cells[Parts.Count + 3, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
-            complectsheet.Names.Add("totalCount", complectsheet.Cells[3, 5, Parts.Count + 2, 5]);
-            complectsheet.Cells[Parts.Count + 3, 5].Formula = "=SUM(totalCount)";
-            complectsheet.Cells[Parts.Count + 3, 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            complectsheet.Cells[temp + 2, 4].Value = "всего деталей:";
+            complectsheet.Cells[temp + 2, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            complectsheet.Names.Add("totalCount", complectsheet.Cells[3, 5, temp + 1, 5]);
+            complectsheet.Cells[temp + 2, 5].Formula = "=SUM(totalCount)";
+            complectsheet.Cells[temp + 2, 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
-            complectsheet.Cells[Parts.Count + 3, 6].Value = "общий вес:";
-            complectsheet.Cells[Parts.Count + 3, 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
-            complectsheet.Cells[Parts.Count + 3, 7].Value = Math.Ceiling(_totalMass);
-            complectsheet.Cells[Parts.Count + 3, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            complectsheet.Cells[temp + 2, 6].Value = "общий вес:";
+            complectsheet.Cells[temp + 2, 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            complectsheet.Cells[temp + 2, 7].Value = Math.Ceiling(_totalMass);
+            complectsheet.Cells[temp + 2, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
-            complectsheet.Row(Parts.Count + 3).Style.Font.Bold = true;              //выделяем жирным шрифтом подсчитанные кол-во и вес
+            complectsheet.Row(temp + 2).Style.Font.Bold = true;     //выделяем жирным шрифтом подсчитанные кол-во и вес
             
-            ExcelRange details = complectsheet.Cells[2, 1, Parts.Count + 2, 9];     //получаем таблицу деталей для оформления
+            ExcelRange details = complectsheet.Cells[2, 1, temp + 1, 9];    //получаем таблицу деталей для оформления
 
             if (Parts.Count > 0)        //в случае с нарезанными деталями, оформляем расшифровку работ
             {
-                complectsheet.Cells[Parts.Count + 4, 1].Value = "Зачистка деталей";
-                complectsheet.Cells[Parts.Count + 4, 1, Parts.Count + 4, 2].Merge = true;
-                complectsheet.Cells[Parts.Count + 4, 3].Value = "(по необходимости / требованию)";
-                complectsheet.Cells[Parts.Count + 4, 3].Style.Font.Bold = true;
-                complectsheet.Cells[Parts.Count + 4, 3, Parts.Count + 4, 9].Merge = true;
+                complectsheet.Cells[temp + 3, 1].Value = "Зачистка деталей";
+                complectsheet.Cells[temp + 3, 1, temp + 3, 2].Merge = true;
+                complectsheet.Cells[temp + 3, 3].Value = "(по необходимости / требованию)";
+                complectsheet.Cells[temp + 3, 3].Style.Font.Bold = true;
+                complectsheet.Cells[temp + 3, 3, temp + 3, 9].Merge = true;
 
-                complectsheet.Cells[Parts.Count + 5, 1].Value = "Расшифровка:";
-                complectsheet.Cells[Parts.Count + 5, 1, Parts.Count + 5, 2].Merge = true;
-                complectsheet.Cells[Parts.Count + 5, 3].Value = "";
-                complectsheet.Cells[Parts.Count + 5, 3, Parts.Count + 5, 9].Merge = true;
+                complectsheet.Cells[temp + 4, 1].Value = "Расшифровка:";
+                complectsheet.Cells[temp + 4, 1, temp + 4, 2].Merge = true;
+                complectsheet.Cells[temp + 4, 3].Value = "";
+                complectsheet.Cells[temp + 4, 3, temp + 4, 9].Merge = true;
 
-                foreach (ExcelRangeBase cell in complectsheet.Cells[3, 4, Parts.Count + 3, 4])
+                foreach (ExcelRangeBase cell in complectsheet.Cells[3, 4, temp + 2, 4])
                 {
-                    if (cell.Value != null && $"{cell.Value}".Contains('Л') && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains('Л')) complectsheet.Cells[Parts.Count + 5, 3].Value += "Л - Лазер ";
-                    if (cell.Value != null && $"{cell.Value}".Contains('Б') && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains('Б')) complectsheet.Cells[Parts.Count + 5, 3].Value += "Б - Без лазера ";
-                    if (cell.Value != null && $"{cell.Value}".Contains('Т') && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains('Т')) complectsheet.Cells[Parts.Count + 5, 3].Value += "Т - Труборез ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Г ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("Г ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "Г - Гибка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("В ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("В ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "В - Вальцовка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Р ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("Р ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "Р - Резьба ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("З ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("З ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "З - Зенковка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("С ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "С - Сверловка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Св ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("Св ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "Св - Сварка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("О ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "О - Окраска ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Доп ") && !$"{complectsheet.Cells[Parts.Count + 5, 3].Value}".Contains("Доп ")) complectsheet.Cells[Parts.Count + 5, 3].Value += "Доп - Дополнительные работы ";
+                    if (cell.Value != null && $"{cell.Value}".Contains('Л') && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains('Л')) complectsheet.Cells[temp + 4, 3].Value += "Л - Лазер ";
+                    if (cell.Value != null && $"{cell.Value}".Contains('Б') && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains('Б')) complectsheet.Cells[temp + 4, 3].Value += "Б - Без лазера ";
+                    if (cell.Value != null && $"{cell.Value}".Contains('Т') && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains('Т')) complectsheet.Cells[temp + 4, 3].Value += "Т - Труборез ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Г ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("Г ")) complectsheet.Cells[temp + 4, 3].Value += "Г - Гибка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("В ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("В ")) complectsheet.Cells[temp + 4, 3].Value += "В - Вальцовка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Р ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("Р ")) complectsheet.Cells[temp + 4, 3].Value += "Р - Резьба ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("З ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("З ")) complectsheet.Cells[temp + 4, 3].Value += "З - Зенковка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("С ")) complectsheet.Cells[temp + 4, 3].Value += "С - Сверловка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Св ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("Св ")) complectsheet.Cells[temp + 4, 3].Value += "Св - Сварка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("О ")) complectsheet.Cells[temp + 4, 3].Value += "О - Окраска ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Доп ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("Доп ")) complectsheet.Cells[temp + 4, 3].Value += "Доп - Дополнительные работы ";
                 }
             }
 
@@ -2603,7 +2669,7 @@ namespace Metal_Code
             labelsheet.Cells[3, 1].Style.Font.Bold = true;
             labelsheet.Cells[3, 1, 3, 2].Merge = true;
             labelsheet.Cells[4, 1].Value = $"общее кол-во деталей:";
-            labelsheet.Names.Add("totalCount", complectsheet.Cells[3, 5, Parts.Count + 2, 5]);
+            labelsheet.Names.Add("totalCount", complectsheet.Cells[3, 5, temp + 1, 5]);
             labelsheet.Cells[4, 2].Formula = "=SUM(totalCount)";
             labelsheet.Cells[4, 1, 4, 2].Style.Font.Size = 16;
             labelsheet.Cells[4, 1, 4, 2].Style.Font.Bold = true;
@@ -2611,40 +2677,6 @@ namespace Metal_Code
             labelsheet.Cells[5, 1, 5, 2].Merge = true;
 
             ExcelRange label = labelsheet.Cells[1, 1, 5, 2];                        //получаем этикетку для оформления
-
-
-            //создаем лист с раскладками
-            ExcelWorksheet itemsheet = workbook.Workbook.Worksheets.Add("Раскладки");
-
-            int namePic = 0;
-            foreach (DetailControl det in DetailControls)
-            {
-                foreach (TypeDetailControl type in det.TypeDetailControls)
-                {
-                    foreach (WorkControl work in type.WorkControls)
-                    {
-                        if (work.workType is ICut cut && cut.Items?.Count > 0)
-                        {
-                            foreach (LaserItem item in cut.Items)
-                            {
-                                byte[]? bytes = item.imageBytes;                //получаем изображение раскладки, если оно есть
-                                if (bytes is not null)
-                                {
-                                    Stream? stream = new MemoryStream(bytes);
-                                    ExcelPicture pic = itemsheet.Drawings.AddPicture($"{namePic}", stream);
-                                    itemsheet.Cells[namePic + 1, 1].Value = $"s{type.S} {type.MetalDrop.Text}";
-                                    itemsheet.Cells[namePic + 1, 1].Style.Font.Bold = true;
-                                    itemsheet.Cells[namePic + 1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-                                    itemsheet.Cells[namePic + 1, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-                                    itemsheet.Row(namePic + 1).Height = 400;    //увеличиваем высоту строки, чтобы вмещалось изображение
-                                    pic.SetPosition(namePic, 10, 1, 10);        //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
-                                    namePic++;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
 
 
             //обводка границ и авторастягивание столбцов
@@ -3039,6 +3071,106 @@ namespace Metal_Code
             if (Order.Text != "" && CustomerDrop.Text != "") workbook.SaveAs($"{Path.GetDirectoryName(_paths[0])}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
             else workbook.SaveAs($"{Path.GetDirectoryName(_paths[0])}\\Простая комплектация.xlsx");
             StatusBegin($"Создана простая комплектация в папке {Path.GetDirectoryName(_paths[0])}");
+        }
+
+        //-МАРШРУТ ПРОИЗВОДСТВА
+        private void ShowRouteWindow(object sender, RoutedEventArgs e)
+        {
+            if (ActiveOffer is not null) ShowRouteWindow();
+            else StatusBegin("Для создания маршрута производства необходимо загрузить расчет.");
+        }
+        private void ShowRouteWindow()
+        {
+            RouteWindow routeWindow = new();
+            if (Parts.Count > 0) foreach (Part part in Parts)
+                {
+                    TextBox _part = new()
+                    {
+                        Width = 125,
+                        Height = 70,
+                        Margin = new Thickness(5),
+                        Text = part.Title,
+                        TextWrapping = TextWrapping.Wrap,
+                        HorizontalContentAlignment = HorizontalAlignment.Center,
+                        VerticalContentAlignment = VerticalAlignment.Center,
+                    };
+                    routeWindow.DetailStack.Children.Add(_part);
+                    int ndx = routeWindow.DetailStack.Children.IndexOf(_part);
+
+                    if (part.PropsDict.Count > 0) foreach (var key in part.PropsDict.Keys)
+                        {
+                            switch (key)
+                            {
+                                case 51:
+                                    while (ndx > routeWindow.CutStack.Children.Count) routeWindow.CutStack.Children.Add(new PlugControl());
+                                    routeWindow.CutStack.Children.Insert(ndx, new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 52:
+                                    while (ndx > routeWindow.BendStack.Children.Count) routeWindow.BendStack.Children.Add(new PlugControl());
+                                    routeWindow.BendStack.Children.Insert(ndx, new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 53:
+                                    while (ndx > routeWindow.WeldStack.Children.Count) routeWindow.WeldStack.Children.Add(new PlugControl());
+                                    routeWindow.WeldStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 54:
+                                    while (ndx > routeWindow.PaintStack.Children.Count) routeWindow.PaintStack.Children.Add(new PlugControl());
+                                    routeWindow.PaintStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 55:
+                                    while (ndx > routeWindow.ThreadStack.Children.Count) routeWindow.ThreadStack.Children.Add(new PlugControl());
+                                    routeWindow.ThreadStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 56:
+                                    while (ndx > routeWindow.CountersinkStack.Children.Count) routeWindow.CountersinkStack.Children.Add(new PlugControl());
+                                    routeWindow.CountersinkStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 57:
+                                    while (ndx > routeWindow.DrillingStack.Children.Count) routeWindow.DrillingStack.Children.Add(new PlugControl());
+                                    routeWindow.DrillingStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 58:
+                                    while (ndx > routeWindow.RollStack.Children.Count) routeWindow.RollStack.Children.Add(new PlugControl());
+                                    routeWindow.RollStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 59:
+                                    while (ndx > routeWindow.ExtraPStack.Children.Count) routeWindow.ExtraPStack.Children.Add(new PlugControl());
+                                    routeWindow.ExtraPStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 60:
+                                    while (ndx > routeWindow.ExtraLStack.Children.Count) routeWindow.ExtraLStack.Children.Add(new PlugControl());
+                                    routeWindow.ExtraLStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                case 61:
+                                    while (ndx > routeWindow.PipeStack.Children.Count) routeWindow.PipeStack.Children.Add(new PlugControl());
+                                    routeWindow.PipeStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                                    break;
+                                default:
+                                    break;
+
+                            }
+                        }
+
+                    TextBox _comment = new()
+                    {
+                        Width = 100,
+                        Height = 70,
+                        Margin = new Thickness(5),
+                        Text = $"s{part.Destiny} {part.Metal}\n{part.Mass} кг",
+                        TextWrapping = TextWrapping.Wrap,
+                        HorizontalContentAlignment = HorizontalAlignment.Center,
+                        VerticalContentAlignment = VerticalAlignment.Center,
+                    };
+                    routeWindow.CommentStack.Children.Add(_comment);
+                }
+
+            foreach (var item in routeWindow.WorkStack.Children)
+                if (item is StackPanel stack)
+                    while (stack.Children.Count < routeWindow.DetailStack.Children.Count)
+                        stack.Children.Add(new PlugControl());
+
+            routeWindow.Show();
+            StatusBegin($"Создан маршрут производства для расчета {ActiveOffer?.N}");
         }
 
 
@@ -4029,10 +4161,8 @@ namespace Metal_Code
         #region
         private void AnalyseDateProduction(object sender, RoutedEventArgs e)
         {
-            //AnalyseDateProduction();
-            ShowRouteWindow();
+            AnalyseDateProduction();
         }
-
         private void AnalyseDateProduction(string path = "Y:\\Производство\\Laser rezka\\В работу")
         {
             if (!File.Exists(path + "\\!Реестр ЗАКРЫВАЙТЕ.xlsx"))
@@ -4067,98 +4197,6 @@ namespace Metal_Code
             StatusBegin($"Лазер: {Math.Round((decimal)timeLaser / 60 / 12)} дней; Гибка: {Math.Round((decimal)timeBend / 60 / 12)} дней; Кол-во папок в работе - {dirs.Length}");
         }
 
-        private void ShowRouteWindow()
-        {
-            RouteWindow routeWindow = new();
-            if (Parts.Count > 0) foreach (Part part in Parts)
-                {
-                    TextBox _part = new()
-                    {
-                        Width = 125,
-                        Height = 70,
-                        Margin = new Thickness(5),
-                        Text = part.Title,
-                        TextWrapping = TextWrapping.Wrap,
-                        HorizontalContentAlignment = HorizontalAlignment.Center,
-                        VerticalContentAlignment = VerticalAlignment.Center,
-                    };
-                    routeWindow.DetailStack.Children.Add(_part);
-                    int ndx = routeWindow.DetailStack.Children.IndexOf(_part);
-
-                    if (part.PropsDict.Count > 0) foreach (var key in part.PropsDict.Keys)
-                        {
-                            switch (key)
-                            {
-                                case 51:
-                                    while (ndx > routeWindow.CutStack.Children.Count) routeWindow.CutStack.Children.Add(new PlugControl());
-                                    routeWindow.CutStack.Children.Insert(ndx, new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 52:
-                                    while (ndx > routeWindow.BendStack.Children.Count) routeWindow.BendStack.Children.Add(new PlugControl());
-                                    routeWindow.BendStack.Children.Insert(ndx, new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 53:
-                                    while (ndx > routeWindow.WeldStack.Children.Count) routeWindow.WeldStack.Children.Add(new PlugControl());
-                                    routeWindow.WeldStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 54:
-                                    while (ndx > routeWindow.PaintStack.Children.Count) routeWindow.PaintStack.Children.Add(new PlugControl());
-                                    routeWindow.PaintStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 55:
-                                    while (ndx > routeWindow.ThreadStack.Children.Count) routeWindow.ThreadStack.Children.Add(new PlugControl());
-                                    routeWindow.ThreadStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 56:
-                                    while (ndx > routeWindow.CountersinkStack.Children.Count) routeWindow.CountersinkStack.Children.Add(new PlugControl());
-                                    routeWindow.CountersinkStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 57:
-                                    while (ndx > routeWindow.DrillingStack.Children.Count) routeWindow.DrillingStack.Children.Add(new PlugControl());
-                                    routeWindow.DrillingStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 58:
-                                    while (ndx > routeWindow.RollStack.Children.Count) routeWindow.RollStack.Children.Add(new PlugControl());
-                                    routeWindow.RollStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 59:
-                                    while (ndx > routeWindow.ExtraPStack.Children.Count) routeWindow.ExtraPStack.Children.Add(new PlugControl());
-                                    routeWindow.ExtraPStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 60:
-                                    while (ndx > routeWindow.ExtraLStack.Children.Count) routeWindow.ExtraLStack.Children.Add(new PlugControl());
-                                    routeWindow.ExtraLStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 61:
-                                    while (ndx > routeWindow.PipeStack.Children.Count) routeWindow.PipeStack.Children.Add(new PlugControl());
-                                    routeWindow.PipeStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                default:
-                                    break;
-
-                            }
-                        }
-
-                    TextBox _comment = new()
-                    {
-                        Width = 100,
-                        Height = 70,
-                        Margin = new Thickness(5),
-                        Text = $"s{part.Destiny} {part.Metal}\n{part.Mass} кг",
-                        TextWrapping = TextWrapping.Wrap,
-                        HorizontalContentAlignment = HorizontalAlignment.Center,
-                        VerticalContentAlignment = VerticalAlignment.Center,
-                    };
-                    routeWindow.CommentStack.Children.Add(_comment);
-                }
-
-            foreach (var item in routeWindow.WorkStack.Children)
-                if (item is StackPanel stack)
-                    while (stack.Children.Count < routeWindow.DetailStack.Children.Count)
-                        stack.Children.Add(new PlugControl());
-
-            routeWindow.Show();
-        }
         #endregion
     }
 }

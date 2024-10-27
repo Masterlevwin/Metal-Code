@@ -213,18 +213,21 @@
 
                         <GroupBox Header="Дополнительные функции" Height="45" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,250,15,10">
                             <StackPanel Orientation="Horizontal">
-                                <Button Click="AnalyseDateProduction" ToolTip="Создать паспорт качества" HorizontalAlignment="Left" BorderThickness="0">
+                                <Button Click="ShowRouteWindow" ToolTip="Маршрут производства" HorizontalAlignment="Left" BorderThickness="0" Margin="5,0,0,0">
+                                    <Image Source="/Images/route.png" MaxWidth="20" MaxHeight="20"/>
+                                </Button>
+                                <Button Click="CreatePasport" ToolTip="Создать паспорт качества" HorizontalAlignment="Left" BorderThickness="0" Margin="10,0,0,0">
                                     <Image Source="/Images/list.png" MaxWidth="20" MaxHeight="20"/>
                                 </Button>
                                 <Button Click="CreateComplect" ToolTip="Сформировать простую комплектацию" HorizontalAlignment="Left" BorderThickness="0" Margin="10,0,0,0">
                                     <Image Source="/Images/complect2.png" MaxWidth="20" MaxHeight="20"/>
                                 </Button>
-                                <Button Content="..." ToolTip="Выбрать файлы" Command="{Binding RenameCommand}" MinWidth="40" Margin="10,0,0,0"/>
-                                <Rectangle Stroke="Black" VerticalAlignment="Center" MinWidth="10"/>
-                                <TextBox x:Name="Rename" ToolTip="Введите строку, она будет в конце имени выбранных файлов" Width="105" MinWidth="100" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
                                 <Button x:Name="ConvertBtn" Click="Convert_dwg_to_dxf" ToolTip="Выбрать файлы для конвертации" HorizontalAlignment="Left" BorderThickness="0" Margin="10,0,0,0">
                                     <Image Source="/Images/convert.png" MaxWidth="20" MaxHeight="20"/>
                                 </Button>
+                                <TextBox x:Name="Rename" ToolTip="Введите строку, она будет в конце имени выбранных файлов" Width="105" MinWidth="100" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="10,0,0,0"/>
+                                <Rectangle Stroke="Black" VerticalAlignment="Center" MinWidth="10"/>
+                                <Button Content="..." ToolTip="Выбрать файлы" Command="{Binding RenameCommand}" MinWidth="40" Margin="0,0,5,0"/>
                             </StackPanel>
                         </GroupBox>
 
