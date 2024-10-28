@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 using System.IO;
-using Microsoft.Win32;
+using System;
 
 namespace Metal_Code
 {
@@ -16,16 +16,22 @@ namespace Metal_Code
 
         private void CreateBitmapFromVisual(object sender, RoutedEventArgs e)
         {
-            SaveFileDialog saveFileDialog = new() { Filter = "Изображение (*.bmp)|*.bmp|All files (*.*)|*.*" };
-
-            if (saveFileDialog.ShowDialog() == true && saveFileDialog.FileNames != null)
+            if (MainWindow.M.ActiveOffer?.Act is null)
             {
-                string _path = Path.GetDirectoryName(saveFileDialog.FileNames[0])
-                    + "\\" + Path.GetFileNameWithoutExtension(saveFileDialog.FileNames[0]);
-
-                MainWindow.CreateBitmapFromVisual(this, _path + ".bmp");
-                MainWindow.M.StatusBegin($"Маршрут производства для расчета {MainWindow.M.ActiveOffer?.N} сохранен");
+                MessageBox.Show($"Не удалось создать маршрут производства для текущего расчета. Попробуйте пересохранить расчет заново.");
+                return;
             }
+
+            DirectoryInfo dir = Directory.CreateDirectory(Path.GetDirectoryName(MainWindow.M.ActiveOffer.Act) + "\\" + "Маршрут");
+
+            decimal pagesCount = Math.Ceiling(decimal.Parse($"{DetailStack.Children.Count / 9}"));
+            for (int i = 0; i < pagesCount + 1; i++)
+            {
+                MainWindow.CreateBitmapFromVisual(this, dir + "\\" + $"{i}.bmp");
+                ScrollContent.PageDown();
+                UpdateLayout();
+            }
+            MainWindow.M.StatusBegin($"Маршрут производства для расчета {MainWindow.M.ActiveOffer?.N} сохранен");
         }
     }
 }
