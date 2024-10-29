@@ -87,6 +87,9 @@
             <Button Command="{Binding LoadCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="470,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить раскладки (Ctrl+F)" Height="20" Width="20">
                 <Image Source="Images/xlsx_load.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
+            <Button HorizontalAlignment="Left" VerticalAlignment="Top" Margin="500,40,0,0" Padding="0" BorderThickness="0" ToolTip="Подготовить папки в работу" Click="CreateTech">
+                <Image Source="Images/complect.png" MaxWidth="20" MaxHeight="20"/>
+            </Button>
             <Button Command="{Binding UpdateCommand}" VerticalAlignment="Top" Margin="740,40,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" ToolTip="Обновить (F5)" Height="20" Width="20" HorizontalAlignment="Left">
                 <Image Source="/Images/update4.png"/>
             </Button>

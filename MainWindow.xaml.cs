@@ -4197,6 +4197,21 @@ namespace Metal_Code
             StatusBegin($"Лазер: {Math.Round((decimal)timeLaser / 60 / 12)} дней; Гибка: {Math.Round((decimal)timeBend / 60 / 12)} дней; Кол-во папок в работе - {dirs.Length}");
         }
 
+        private void CreateTech(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new()
+            {
+                Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*"
+            };
+
+            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
+            {
+                Tech tech = new(openFileDialog.FileNames[0]);
+                StatusBegin($"{tech.Run()}");
+            }
+            else StatusBegin($"Не выбрано ни одного файла");
+        }
         #endregion
+
     }
 }

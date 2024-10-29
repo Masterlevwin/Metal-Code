@@ -13,7 +13,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Runtime.Serialization;
-using System.Diagnostics;
 
 namespace Metal_Code
 {
