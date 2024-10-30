@@ -2713,7 +2713,7 @@ namespace Metal_Code
                         if (files.Length > 0)
                         {
                             workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {CustomerDrop.Text} - комплектация.xlsx");
-                            CreateRegistry(files[0], offer.Order);
+                            //CreateRegistry(files[0], offer.Order);
 
                             StatusBegin($"Изменения в базе сохранены. Кроме того созданы файлы комплектации и списка задач в папке {Path.GetDirectoryName(files[0])}");
                             break;
@@ -2725,11 +2725,39 @@ namespace Metal_Code
             else
             {
                 workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
-                //CreatePasport($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - паспорт.xlsx");
-                //CreateRegistry(_path, Order.Text);
             }
 
-            //if (offer is not null) UpdateOffer(offer);
+            if (offer is not null) UpdateOffer(offer);
+        }
+
+        //-РЕЕСТР
+        private void UpdateOffer(Offer offer)   // метод добавления номера заказа в ячейки реестров
+        {
+            if (offer.Act is null || !File.Exists(offer.Act)) return;
+
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var offerbook = new ExcelPackage(new FileInfo(offer.Act));
+            ExcelWorksheet? registrysheet = offerbook.Workbook.Worksheets.FirstOrDefault(x => x.Name == "Реестр");
+
+            if (registrysheet is not null)
+            {
+                foreach (var cell in registrysheet.Cells)
+                {
+                    if (cell.Value is not null && ($"{cell.Value}" == "№ заказа" || $"{cell.Value}" == "№ Проекта / Лазера"))
+                    {
+                        int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count);
+
+                        for (int i = 1; i <= countTypeDetails; i++)
+                        {
+                            registrysheet.Cells[cell.Start.Row + i, cell.Start.Column].Value = offer.Order;
+                        }
+                    }
+                }
+            }
+
+            // ----- сохраняем книгу в файл Excel -----
+            offerbook.SaveAs(offer.Act);      //сохраняем файл .xlsx
         }
 
         //-ЗАДАЧИ
@@ -4126,34 +4154,7 @@ namespace Metal_Code
 
         //-------------------LEGACY методы-----------------------//
         #region
-        private void UpdateOffer(Offer offer)   // метод добавления номера заказа в ячейки реестров
-        {
-            if (offer.Act is null || !File.Exists(offer.Act)) return;
 
-            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
-
-            using var offerbook = new ExcelPackage(new FileInfo(offer.Act));
-            ExcelWorksheet? registrysheet = offerbook.Workbook.Worksheets.FirstOrDefault(x => x.Name == "Реестр");
-
-            if (registrysheet is not null)
-            {
-                foreach (var cell in registrysheet.Cells)
-                {
-                    if (cell.Value is not null && $"{cell.Value}" == "№ заказа")
-                    {
-                        int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count);
-
-                        for (int i = 1; i <= countTypeDetails; i++)
-                        {
-                            registrysheet.Cells[cell.Start.Row + i, cell.Start.Column].Value = offer.Order;
-                        }
-                    }
-                }
-            }
-
-            // ----- сохраняем книгу в файл Excel -----
-            offerbook.SaveAs(offer.Act);      //сохраняем файл .xlsx
-        }
         #endregion
 
 

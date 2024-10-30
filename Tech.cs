@@ -23,7 +23,7 @@ namespace Metal_Code
         {
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
-            string notify = $"Не удается прочитать файл";
+            string notify = $"Не удается прочитать файл заявки";
 
             try
             {
@@ -97,7 +97,7 @@ namespace Metal_Code
                 }
             }
 
-            if (files.ToArray().Length > 0) notify = $"Обработано {TechItems.Count} строк и {files.ToArray().Length} {extension}-файлов";
+            if (files.ToArray().Length > 0) notify = $"Обработано {TechItems.Count} строк заявки и найдено {files.ToArray().Length} {extension}-файлов";
             else notify = $"Не найдено {extension}-файлов";
 
             return notify;
