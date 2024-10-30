@@ -48,45 +48,57 @@ namespace Metal_Code
                     TechItems.Add(techItem);
                 }
 
-                //создаем папку "Лазер" в директории Excel-файла
-                DirectoryInfo dirLaser = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Лазер");
-
                 //получаем коллекцию уникальных строк на основе группировки по материалу и толщине
                 var dirMaterials = TechItems.GroupBy(m => new { m.Material, m.Destiny })
                     .Select(g => $"{g.Key.Destiny} {g.Key.Material}");
 
-                //создаем папки для каждого материала в директории "Лазера"
-                foreach (var item in dirMaterials) Directory.CreateDirectory(dirLaser + "\\" + $"{item}");
+                //создаем папку "Чертежи" в директории Excel-файла
+                DirectoryInfo dirOther = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Чертежи");
+                notify = SortExtension(dirOther, dirMaterials, "pdf");
 
-                //получаем коллекцию dxf-файлов в папке с Excel-файлом
-                IEnumerable<string> files = Directory.EnumerateFiles(Path.GetDirectoryName(ExcelFile), "*.dxf", SearchOption.TopDirectoryOnly);
-
-                //сортируем полученные ранее объекты TechItem по соответствующим папкам
-                foreach (TechItem techItem in TechItems)
-                {
-                    //для этого перебираем dxf-файлы
-                    foreach (string file in files)
-                    {
-                        //и на основе имени без расширения
-                        string nameFile = Path.GetFileNameWithoutExtension(file);
-
-                        //находим совпадение TechItem и dxf-файла по номеру чертежа
-                        if (nameFile.Contains(techItem.NumberName))
-                        {
-                            //копируем исходный dxf-файл в нужный каталог с рабочим именем для нашего производства
-                            foreach (var item in dirMaterials)
-                                if ($"{techItem.Destiny} {techItem.Material}" == item)
-                                    File.Copy(file, dirLaser + "\\" + $"{item}" + "\\"
-                                        + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count}" + ".dxf");
-                            break;
-                        }
-                    }
-                }
-
-                if (files.ToArray().Length > 0) notify = $"Обработано {TechItems.Count} строк и {files.ToArray().Length} dxf-файлов";
-                else notify = $"Не найдено dxf-файлов";
+                //создаем папку "Лазер" в директории Excel-файла
+                DirectoryInfo dirLaser = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Лазер");
+                notify = SortExtension(dirLaser, dirMaterials, "dxf");
             }
             catch (Exception ex) { notify = ex.Message; }
+
+            return notify;
+        }
+
+        private string SortExtension(DirectoryInfo dirMain, IEnumerable<string> dirMaterials, string extension)
+        {
+            string notify;
+
+            //создаем папки для каждого материала в директории "Лазера"
+            foreach (var item in dirMaterials) Directory.CreateDirectory(dirMain + "\\" + $"{item}");
+
+            //получаем коллекцию dxf-файлов в папке с Excel-файлом
+            IEnumerable<string> files = Directory.EnumerateFiles(Path.GetDirectoryName(ExcelFile), $"*.{extension}", SearchOption.TopDirectoryOnly);
+
+            //сортируем полученные ранее объекты TechItem по соответствующим папкам
+            foreach (TechItem techItem in TechItems)
+            {
+                //для этого перебираем dxf-файлы
+                foreach (string file in files)
+                {
+                    //и на основе имени без расширения
+                    string nameFile = Path.GetFileNameWithoutExtension(file);
+
+                    //находим совпадение TechItem и dxf-файла по номеру чертежа
+                    if (nameFile.Contains(techItem.NumberName))
+                    {
+                        //копируем исходный dxf-файл в нужный каталог с рабочим именем для нашего производства
+                        foreach (var item in dirMaterials)
+                            if ($"{techItem.Destiny} {techItem.Material}" == item)
+                                File.Copy(file, dirMain + "\\" + $"{item}" + "\\"
+                                    + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count}" + $".{extension}");
+                        break;
+                    }
+                }
+            }
+
+            if (files.ToArray().Length > 0) notify = $"Обработано {TechItems.Count} строк и {files.ToArray().Length} {extension}-файлов";
+            else notify = $"Не найдено {extension}-файлов";
 
             return notify;
         }
