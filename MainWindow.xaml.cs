@@ -2753,7 +2753,8 @@ namespace Metal_Code
                             registrysheet.Cells[cell.Start.Row + i, cell.Start.Column].Value = offer.Order;
                         }
                     }
-                    else if (cell.Value is not null && $"{cell.Value}" == "№ Проекта / Лазера")
+                    
+                    if (cell.Value is not null && $"{cell.Value}" == "№ Проекта / Лазера")
                     {
                         registrysheet.Cells[cell.Start.Row + 1, cell.Start.Column].Value = offer.Order;
                     }
