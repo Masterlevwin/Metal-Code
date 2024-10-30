@@ -2713,7 +2713,7 @@ namespace Metal_Code
                         if (files.Length > 0)
                         {
                             workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {CustomerDrop.Text} - комплектация.xlsx");
-                            //CreateRegistry(files[0], offer.Order);
+                            CreateRegistry(files[0], offer.Order);
 
                             StatusBegin($"Изменения в базе сохранены. Кроме того созданы файлы комплектации и списка задач в папке {Path.GetDirectoryName(files[0])}");
                             break;
@@ -2744,7 +2744,7 @@ namespace Metal_Code
             {
                 foreach (var cell in registrysheet.Cells)
                 {
-                    if (cell.Value is not null && ($"{cell.Value}" == "№ заказа" || $"{cell.Value}" == "№ Проекта / Лазера"))
+                    if (cell.Value is not null && $"{cell.Value}" == "№ заказа")
                     {
                         int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count);
 
@@ -2752,6 +2752,10 @@ namespace Metal_Code
                         {
                             registrysheet.Cells[cell.Start.Row + i, cell.Start.Column].Value = offer.Order;
                         }
+                    }
+                    else if (cell.Value is not null && $"{cell.Value}" == "№ Проекта / Лазера")
+                    {
+                        registrysheet.Cells[cell.Start.Row + 1, cell.Start.Column].Value = offer.Order;
                     }
                 }
             }
