@@ -43,7 +43,8 @@ namespace Metal_Code
                         $"{table.Rows[i].ItemArray[2]}",        //наименование детали
                         $"{table.Rows[i].ItemArray[3]}",        //материал
                         $"s{table.Rows[i].ItemArray[4]}",       //толщина
-                        $"n{table.Rows[i].ItemArray[5]}");      //количество
+                        $"n{table.Rows[i].ItemArray[5]}",       //количество
+                        $"{table.Rows[i].ItemArray[6]}");       //маршрут
 
                     TechItems.Add(techItem);
                 }
@@ -52,20 +53,68 @@ namespace Metal_Code
                 var dirMaterials = TechItems.GroupBy(m => new { m.Material, m.Destiny })
                     .Select(g => $"{g.Key.Destiny} {g.Key.Material}");
 
-                //создаем папку "Чертежи" в директории Excel-файла
-                DirectoryInfo dirOther = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Чертежи");
-                notify = SortExtension(dirOther, dirMaterials, "pdf");
+                //получаем коллекцию, разбитую на группы по работам
+                var works = TechItems.GroupBy(w => w.Route);
+
+                foreach (var work in works)
+                    if (work.Key != "")
+                    {
+                        if (work.Key.Contains("гиб"))
+                        {
+                            DirectoryInfo dirBend = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Гибка");
+                            SortExtension(dirBend, dirMaterials, "pdf", work.Select(t => t).ToList());
+                        }
+                        
+                        if (work.Key.Contains("вальц"))
+                        {
+                            DirectoryInfo dirRoll = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Вальцовка");
+                            SortExtension(dirRoll, dirMaterials, "pdf", work.Select(t => t).ToList());
+                        }
+                        
+                        if (work.Key.Contains("рез"))
+                        {
+                            DirectoryInfo dirThread = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Резьба");
+                            SortExtension(dirThread, dirMaterials, "pdf", work.Select(t => t).ToList());
+                        }
+                        
+                        if (work.Key.Contains("зен"))
+                        {
+                            DirectoryInfo dirCountersink = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Зенковка");
+                            SortExtension(dirCountersink, dirMaterials, "pdf", work.Select(t => t).ToList());
+                        }
+                        
+                        if (work.Key.Contains("свер"))
+                        {
+                            DirectoryInfo dirDrilling = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Сверловка");
+                            SortExtension(dirDrilling, dirMaterials, "pdf", work.Select(t => t).ToList());
+                        }
+                        
+                        if (work.Key.Contains("свар"))
+                        {
+                            DirectoryInfo dirWeld = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Сварка");
+                            SortExtension(dirWeld, dirMaterials, "pdf", work.Select(t => t).ToList());
+                        }
+                        
+                        if (work.Key.Contains("окр"))
+                        {
+                            DirectoryInfo dirPaint = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Окраска");
+                            SortExtension(dirPaint, dirMaterials, "pdf", work.Select(t => t).ToList());
+                        }
+                    }
 
                 //создаем папку "Лазер" в директории Excel-файла
                 DirectoryInfo dirLaser = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Лазер");
-                notify = SortExtension(dirLaser, dirMaterials, "dxf");
+                notify = SortExtension(dirLaser, dirMaterials, "dxf", TechItems);
+
+                stream.Close();
+                ClearDirectories();
             }
             catch (Exception ex) { notify = ex.Message; }
 
             return notify;
         }
 
-        private string SortExtension(DirectoryInfo dirMain, IEnumerable<string> dirMaterials, string extension)
+        private string SortExtension(DirectoryInfo dirMain, IEnumerable<string> dirMaterials, string extension, List<TechItem> techItems)
         {
             string notify;
 
@@ -76,7 +125,7 @@ namespace Metal_Code
             IEnumerable<string> files = Directory.EnumerateFiles(Path.GetDirectoryName(ExcelFile), $"*.{extension}", SearchOption.TopDirectoryOnly);
 
             //сортируем полученные ранее объекты TechItem по соответствующим папкам
-            foreach (TechItem techItem in TechItems)
+            foreach (TechItem techItem in techItems)
             {
                 //для этого перебираем dxf-файлы
                 foreach (string file in files)
@@ -90,8 +139,19 @@ namespace Metal_Code
                         //копируем исходный dxf-файл в нужный каталог с рабочим именем для нашего производства
                         foreach (var item in dirMaterials)
                             if ($"{techItem.Destiny} {techItem.Material}" == item)
-                                File.Copy(file, dirMain + "\\" + $"{item}" + "\\"
-                                    + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count}" + $".{extension}");
+                            {
+                                if (techItems == TechItems)
+                                {
+                                    File.Copy(file, $"{techItem.Route}" == "" ?
+                                        dirMain + "\\" + $"{item}" + "\\"
+                                        + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count} {techItem.Route}" + $".{extension}"
+                                        : dirMain + "\\" + $"{item}" + "\\"
+                                        + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count} ({techItem.Route})" + $".{extension}");
+                                }
+                                else
+                                    File.Copy(file, dirMain + "\\" + $"{item}" + "\\"
+                                        + $"{techItem.NumberName} {techItem.Name} {techItem.Count}" + $".{extension}");
+                            }
                         break;
                     }
                 }
@@ -102,6 +162,20 @@ namespace Metal_Code
 
             return notify;
         }
+
+        public void ClearDirectories()
+        {
+            //удаляем пустые папки
+            string[] dirs = Directory.GetDirectories(Path.GetDirectoryName(ExcelFile));
+            if (dirs.Length > 0)
+                foreach (var dir in dirs)
+                {
+                    string[] dirMaterials = Directory.GetDirectories(dir);
+                    foreach (string dm in dirMaterials)
+                        if (Directory.GetFileSystemEntries(dm).Length == 0)
+                            Directory.Delete(dm);
+                }
+        }
     }
 
     public class TechItem
@@ -111,14 +185,16 @@ namespace Metal_Code
         public string Material { get; set; }
         public string Destiny { get; set; }
         public string Count { get; set; }
+        public string Route { get; set; }
 
-        public TechItem(string numberName, string name, string material, string destiny, string count)
+        public TechItem(string numberName, string name, string material, string destiny, string count, string route)
         {
             NumberName = numberName;
             Name = name;
             Material = material;
             Destiny = destiny;
             Count = count;
+            Route = route;
         }
     }
 }
