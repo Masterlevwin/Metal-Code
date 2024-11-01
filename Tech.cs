@@ -151,7 +151,7 @@ namespace Metal_Code
                                     File.Copy(file, destination);
                                 }
                                 else
-                                    File.Copy(file, dirMain + "\\" + $"{item}" + "\\"
+                                    File.Copy(file, dirMain + "\\" + $"{item}".Trim() + "\\"
                                         + $"{techItem.NumberName} {techItem.Name} {techItem.Count}" + $".{extension}");
                             }
                         break;
