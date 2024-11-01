@@ -21,6 +21,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <Expander x:Name="ExpanderComment" ToolTip="Добавить комментарий" VerticalAlignment="Bottom" HorizontalAlignment="Left">
@@ -44,9 +45,11 @@
                 </StackPanel>
             </Popup>
             <Button Content="+" Click="AddTypeDetail" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" ToolTip="Добавить заготовку" FontSize="8" Margin="50,5,0,0" MinWidth="10" MinHeight="10"/>
-            <Button Content="Х" MinWidth="10" MinHeight="10" FontWeight="Bold" Padding="0" MaxWidth="10" MaxHeight="10" FontSize="8" BorderThickness="0" Click="Remove" ToolTip="Удалить заготовку" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="670,0,0,0"/>
+            
+            <StackPanel x:Name="WorksStack" Grid.Column="1" Grid.ColumnSpan="2"/>
+            
+            <Button Content="Х"  Grid.Column="2" MinWidth="20" MinHeight="20" FontWeight="Bold" Padding="0" MaxWidth="20" MaxHeight="20" FontSize="16" BorderThickness="0" Click="Remove" ToolTip="Удалить заготовку" HorizontalAlignment="Left" VerticalAlignment="Top"/>
 
-            <StackPanel x:Name="WorksStack" Grid.Column="1"/>
         </Grid>
     </GroupBox>
 </UserControl>
