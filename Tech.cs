@@ -142,11 +142,13 @@ namespace Metal_Code
                             {
                                 if (techItems == TechItems)
                                 {
-                                    File.Copy(file, $"{techItem.Route}" == "" ?
-                                        dirMain + "\\" + $"{item}" + "\\"
+                                    string destination = $"{techItem.Route}" == "" ?
+                                        dirMain + "\\" + $"{item}".Trim() + "\\"
                                         + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count} {techItem.Route}" + $".{extension}"
-                                        : dirMain + "\\" + $"{item}" + "\\"
-                                        + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count} ({techItem.Route})" + $".{extension}");
+                                        : dirMain + "\\" + $"{item}".Trim() + "\\"
+                                        + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count} ({techItem.Route})" + $".{extension}";
+
+                                    File.Copy(file, destination);
                                 }
                                 else
                                     File.Copy(file, dirMain + "\\" + $"{item}" + "\\"
@@ -191,7 +193,8 @@ namespace Metal_Code
         {
             NumberName = numberName;
             Name = name;
-            Material = material;
+            if (material.ToLower().Contains("ст")) Material = "";
+            else Material = material;
             Destiny = destiny;
             Count = count;
             Route = route;
