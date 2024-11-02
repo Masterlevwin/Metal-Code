@@ -399,6 +399,7 @@ namespace Metal_Code
                     _ => metal.MassPrice * 1.15f,
                 };
             }
+            else if (S == 0) Price = metal.MassPrice;       //для кругов и квадратов
 
             if (det.Detail.IsComplect)
             {
