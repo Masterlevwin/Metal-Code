@@ -3266,8 +3266,11 @@ namespace Metal_Code
             {
                 try
                 {   //получаем список КП за выбранный период, которые выложены в работу, т.е. оплачены и имеют номер заказа
+                    DateTime start = ReportCalendar.SelectedDates[0];
+                    DateTime end = ReportCalendar.SelectedDates[^1];
+
                     _offers = db.Offers.Where(o => o.ManagerId == man.Id && o.Order != null && o.Order != "" &&
-                    o.CreatedDate >= ReportCalendar.SelectedDates[0] && o.CreatedDate <= ReportCalendar.SelectedDates[ReportCalendar.SelectedDates.Count - 1]).ToList();
+                    o.CreatedDate >= start && o.CreatedDate <= end).ToList();
 
                     if (_offers.Count == 0) return false;
                 }
