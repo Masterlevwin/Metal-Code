@@ -1,8 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using Brushes = System.Windows.Media.Brushes;
+using Color = System.Windows.Media.Color;
 
 namespace Metal_Code
 {
@@ -20,6 +25,8 @@ namespace Metal_Code
             InitializeComponent();
             Detail = detail;
             DataContext = Detail;
+
+            MetalDrop.ItemsSource = MainWindow.M.Metals;
         }
 
         private void AddDetail(object sender, RoutedEventArgs e)
@@ -40,7 +47,12 @@ namespace Metal_Code
 
         private void Remove(object sender, RoutedEventArgs e)
         {
-            if (MainWindow.M.DetailControls.Count == 1) return;
+            if (MainWindow.M.DetailControls.Count == 1)
+            {
+                MessageBox.Show("Нельзя удалить единственную деталь в расчете.\n" +
+                    "Вместо этого создайте новый проект или сначала добавьте новую деталь.");
+                return;
+            }
             Remove();
         }
         public void Remove()
@@ -103,6 +115,32 @@ namespace Metal_Code
             Detail.Price = (float)Math.Round(Detail.Total / Detail.Count, 2);
 
             MainWindow.M.TotalResult();
+        }
+
+        private void SetAllMetal(object sender, RoutedEventArgs e)
+        {
+            if (sender is CheckBox cBox)
+                foreach (TypeDetailControl t in TypeDetailControls) t.CheckMetal.IsChecked = cBox.IsChecked;
+            MainWindow.M.UpdateResult();
+        }
+
+        private void SetAllMaterial(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox cBox)
+                foreach (TypeDetailControl t in TypeDetailControls) t.MetalDrop.SelectedIndex = cBox.SelectedIndex;
+            MainWindow.M.UpdateResult();
+        }
+
+        private void EnterBorder(object sender, MouseEventArgs e)
+        {
+            DetailBox.BorderBrush = Brushes.Red;
+            DetailBox.BorderThickness = new Thickness(2);
+        }
+
+        private void LeaveBorder(object sender, MouseEventArgs e)
+        {
+            DetailBox.BorderBrush = new SolidColorBrush(Color.FromArgb(0, 213, 223, 229));  //#FFD5DFE5           
+            DetailBox.BorderThickness = new Thickness(1);
         }
     }
 }

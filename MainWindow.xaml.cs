@@ -385,7 +385,6 @@ namespace Metal_Code
             using MetalContext dbM = new(IsLocal ? connections[6] : connections[7]);
             dbM.Metals.Load();
             Metals = dbM.Metals.Local.ToObservableCollection();
-            MetalDrop.ItemsSource = Metals;
 
             InitializeDict();
 
@@ -3897,7 +3896,8 @@ namespace Metal_Code
             return $"Файлы в количестве {fileNames?.Length} шт успешно конвертированы";
         }
 
-        private void OpenOffer(object sender, RoutedEventArgs e)        //метод загрузки расчета в режиме чтения
+        //------------ Загрузка расчета в режиме чтения-----------//
+        private void OpenOffer(object sender, RoutedEventArgs e)        
         {
             if (OffersGrid.SelectedItem is not Offer offer) return;
             if (offer.Data != null)
@@ -3918,28 +3918,12 @@ namespace Metal_Code
             }
         }
 
-        private void SetAllMetal(object sender, RoutedEventArgs e)
-        {
-            if (sender is CheckBox cBox)
-                foreach (DetailControl d in DetailControls)
-                    foreach (TypeDetailControl t in d.TypeDetailControls) t.CheckMetal.IsChecked = cBox.IsChecked;
-            UpdateResult();
-        }
-
-        private void SetAllMaterial(object sender, SelectionChangedEventArgs e)
-        {
-            if (sender is ComboBox cBox)
-                foreach (DetailControl d in DetailControls)
-                    foreach (TypeDetailControl t in d.TypeDetailControls) t.MetalDrop.SelectedIndex = cBox.SelectedIndex;
-            UpdateResult();
-        }
 
         public float GetMetalPrice()
         {
             float metalprice = 0;
             foreach (DetailControl d in DetailControls)
                 foreach (TypeDetailControl t in d.TypeDetailControls) metalprice += t.Result;
-
             return (float)Math.Round(metalprice, 2);
         }
 

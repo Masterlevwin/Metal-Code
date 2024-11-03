@@ -72,7 +72,7 @@
             <TextBox x:Name="ProductName" Text="Изделие" AutoWordSelection="True" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" HorizontalAlignment="Left" FontSize="14" AllowDrop="False" />
             <TextBlock Text="Общий коэффициент" HorizontalAlignment="Left" Margin="550,40,0,0" VerticalAlignment="Top"/>
             <TextBox ToolTip="Введите наценку на всё КП" Text="{Binding Ratio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" AllowDrop="False" MaxLines="1" MinWidth="40" HorizontalContentAlignment="Center" Margin="680,40,0,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Left" MaxLength="4" FontSize="14" TextChanged="SetRatio" MaxWidth="40" MaxHeight="20"/>
-            <Button x:Name="ResultBtn" ToolTip="Общая стоимость, нажмите, чтобы обновить" Content="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" MinHeight="20" AllowDrop="False" VerticalAlignment="Top" Margin="770,40,0,0" FontSize="14" HorizontalContentAlignment="Stretch" MaxWidth="80" BorderThickness="0" Click="UpdateResult" MinWidth="20"/>
+            <TextBox Text="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" MinHeight="20" AllowDrop="False" VerticalAlignment="Top" Margin="770,40,0,0" FontSize="14" MaxWidth="80" BorderThickness="0" MinWidth="20" ToolTip="Общая стоимость расчета" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}"/>
             <TextBlock HorizontalAlignment="Left" Text="руб" VerticalAlignment="Top" Margin="850,40,0,0"/>
 
             <Button Command="{Binding NewProjectCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="380,40,0,0" Padding="0" BorderThickness="0" ToolTip="Создать новый расчет (Ctrl+Q)" Height="20" Width="20">
@@ -94,23 +94,11 @@
                 <Image Source="/Images/update4.png"/>
             </Button>
 
-            <Button ToolTip="Добавить деталь" Content="+" Margin="35,75,0,0" Click="AddDetail" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0" MinWidth="16" MinHeight="16"/>
-            <TextBlock Text="Деталь" HorizontalAlignment="Left" Margin="55,75,0,0" VerticalAlignment="Top" FontFamily="Century" Panel.ZIndex="1"/>
+            <Button ToolTip="Добавить новую деталь" Content="+" Margin="50,70,0,0" Click="AddDetail" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="14" BorderThickness="2" Width="24" Height="24"/>
 
             <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" Margin="20,20,10,10" MaxHeight="500">
                 <ScrollViewer VerticalAlignment="Top" Margin="0,60,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                    <Grid x:Name="ProductGrid" Margin="10,0,10,0">
-                        <TextBlock Text="A" HorizontalAlignment="Left" Margin="320,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <TextBlock Text="B" HorizontalAlignment="Left" Margin="365,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <TextBlock Text="S" HorizontalAlignment="Left" Margin="400,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <TextBlock Text="L" HorizontalAlignment="Left" Margin="440,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                        <TextBlock Text="Кол-во" HorizontalAlignment="Left" Margin="470,5,0,0" VerticalAlignment="Top" Height="14" Width="39" Panel.ZIndex="1"/>
-                        <ComboBox x:Name="MetalDrop" DisplayMemberPath="Name" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" MaxHeight="20" MinWidth="80" MaxWidth="80" SelectedIndex="0" ToolTip="Выберите материал" Margin="515,5,0,0" VerticalContentAlignment="Center" Height="20" Width="80" Panel.ZIndex="1" SelectionChanged="SetAllMaterial"/>
-                        <CheckBox ToolTip="Добавить к расчету стоимость материала ВСЕХ деталей" Margin="600,5,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="15" Width="16" Click="SetAllMetal" IsChecked="True" Panel.ZIndex="1"/>
-                        <TextBlock Text="Работа" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="745,5,0,0" Panel.ZIndex="1"/>
-                        <TextBlock Text="Коэф" ToolTip="Наценка или скидка на услуги" HorizontalAlignment="Left" Margin="985,5,0,0" VerticalAlignment="Top" Height="14" Width="30" Panel.ZIndex="1"/>
-                        <StackPanel x:Name="DetailsStack"/>
-                    </Grid>
+                    <StackPanel x:Name="DetailsStack"/>
                 </ScrollViewer>
             </GroupBox>
 

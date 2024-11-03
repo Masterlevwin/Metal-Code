@@ -13,8 +13,8 @@
             <MenuItem Header="Скопировать" Click="CopyTypeDetail"></MenuItem>
         </ContextMenu>
     </UserControl.ContextMenu>
-    <GroupBox Header="Заготовка">
-        <Grid x:Name="TypeDetailGrid" Margin="5">
+    <GroupBox x:Name="TypeDetailBox" Header="Заготовка" Margin="0,5,0,0">
+        <Grid Margin="5">
             <Grid.RowDefinitions>
                 <RowDefinition MinHeight="30"/>
             </Grid.RowDefinitions>
@@ -48,7 +48,7 @@
             
             <StackPanel x:Name="WorksStack" Grid.Column="1" Grid.ColumnSpan="2"/>
             
-            <Button Content="Х"  Grid.Column="2" MinWidth="20" MinHeight="20" FontWeight="Bold" Padding="0" MaxWidth="20" MaxHeight="20" FontSize="16" BorderThickness="0" Click="Remove" ToolTip="Удалить заготовку" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+            <Button Content="Х" Grid.Column="2" MinWidth="20" MinHeight="20" FontWeight="Bold" Padding="0" MaxWidth="20" MaxHeight="20" FontSize="16" BorderThickness="0" Click="Remove" ToolTip="Удалить заготовку" HorizontalAlignment="Left" VerticalAlignment="Top" MouseEnter="EnterBorder" MouseLeave="LeaveBorder"/>
 
         </Grid>
     </GroupBox>

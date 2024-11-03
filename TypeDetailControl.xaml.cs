@@ -6,6 +6,8 @@ using System.Runtime.CompilerServices;
 using System;
 using System.Runtime.Serialization;
 using System.Linq;
+using System.Windows.Media;
+using System.Windows.Input;
 
 namespace Metal_Code
 {
@@ -205,7 +207,12 @@ namespace Metal_Code
 
         private void Remove(object sender, RoutedEventArgs e)
         {
-            if (det.TypeDetailControls.Count == 1) return;
+            if (det.TypeDetailControls.Count == 1)
+            {
+                MessageBox.Show("Нельзя удалить единственную заготовку в детали.\n" +
+                    "Вместо этого удалите саму деталь или сначала добавьте новую заготовку.");
+                return;
+            }
             Remove();
         }
         public void Remove()
@@ -545,6 +552,18 @@ namespace Metal_Code
                 $" {(det.Detail.IsComplect ? (float)Math.Round(Mass, 2) : (float)Math.Round(Mass * Count, 2))} кг\n" +
                 $"Площадь одной / всех заготовок\n{(det.Detail.IsComplect ? 0 : (float)Math.Round(Square, 2))} кв м / " +
                 $" {(det.Detail.IsComplect ? (float)Math.Round(Square, 2) : (float)Math.Round(Square * Count, 2))} кв м";
+        }
+
+        private void EnterBorder(object sender, MouseEventArgs e)
+        {
+            TypeDetailBox.BorderBrush = Brushes.OrangeRed;
+            TypeDetailBox.BorderThickness = new Thickness(2);
+        }
+
+        private void LeaveBorder(object sender, MouseEventArgs e)
+        {
+            TypeDetailBox.BorderBrush = new SolidColorBrush(Color.FromArgb(0, 213, 223, 229));  //#FFD5DFE5           
+            TypeDetailBox.BorderThickness = new Thickness(1);
         }
     }
 }
