@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="30" d:DesignWidth="300" VerticalAlignment="Top">
+             d:DesignHeight="30" d:DesignWidth="300" VerticalAlignment="Top" Padding="3">
     <UserControl.ContextMenu>
         <ContextMenu>
             <MenuItem Header="Добавить" Click="AddWork"></MenuItem>
@@ -31,7 +31,7 @@
             </StackPanel>
         </Popup>
         <Button Click="AddWork" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="0,0,0,0" MinWidth="10" ToolTip="Добавить работу" Margin="5,10,0,0" FontSize="8" MinHeight="10" BorderThickness="1" Content="+"/>
-        <Button Click="Remove" ToolTip="Удалить работу" Content="Х" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" Padding="0,0,0,0" MaxWidth="10" MaxHeight="10" FontSize="8" BorderThickness="0,0,0,0" Height="10" Width="10" Panel.ZIndex="-1" Margin="150,0,0,0"/>
+        <Button Click="Remove" ToolTip="Удалить работу" Content="Х" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" Padding="0,0,0,0" MaxWidth="10" MaxHeight="10" FontSize="8" BorderThickness="0,0,0,0" Height="10" Width="10" Panel.ZIndex="-1" Margin="150,0,0,0" MouseEnter="EnterBorder" MouseLeave="LeaveBorder"/>
 
     </Grid>
 </UserControl>

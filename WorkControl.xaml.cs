@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace Metal_Code
@@ -239,12 +240,23 @@ namespace Metal_Code
             type.det.PriceResult();
         }
 
-        private void ViewPopupTimeSpan(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        private void ViewPopupTimeSpan(object sender, MouseWheelEventArgs e)
         {
             if (WorkDrop.SelectedItem is not Work work) return;
 
             PopupTimeSpan.IsOpen = true;
             TimeSpan.Text = $"Время работ - {Math.Ceiling(Result * work.Time / work.Price / Ratio)} мин";
+        }
+
+        private void EnterBorder(object sender, MouseEventArgs e)
+        {
+            BorderBrush = Brushes.OrangeRed;
+            BorderThickness = new Thickness(1);
+        }
+
+        private void LeaveBorder(object sender, MouseEventArgs e)
+        {
+            BorderBrush = null;
         }
     }
 
