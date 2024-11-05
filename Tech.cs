@@ -10,9 +10,9 @@ namespace Metal_Code
 {
     public class Tech
     {
-        public string ExcelFile;
-
-        public List<TechItem> TechItems = new();
+        public string ExcelFile;                        //путь к файлу
+        public List<TechItem> TechItems = new();        //список полученных объектов из строк файла
+        public List<TechItem> NotFoundItems = new();    //список ненайденных dxf-файлов
 
         public Tech(string path)
         {
@@ -56,6 +56,7 @@ namespace Metal_Code
                 //получаем коллекцию, разбитую на группы по работам
                 var works = TechItems.GroupBy(w => w.Route);
 
+                //сортируем pdf-файлы по папкам работ
                 foreach (var work in works)
                     if (work.Key != "")
                     {
@@ -107,7 +108,7 @@ namespace Metal_Code
                 notify = SortExtension(dirLaser, dirMaterials, "dxf", TechItems);
 
                 stream.Close();
-                ClearDirectories();
+                ClearDirectories();     //очищаем пустые папки
             }
             catch (Exception ex) { notify = ex.Message; }
 
@@ -116,7 +117,8 @@ namespace Metal_Code
 
         private string SortExtension(DirectoryInfo dirMain, IEnumerable<string> dirMaterials, string extension, List<TechItem> techItems)
         {
-            string notify;
+            string notify;              //сообщение пользователю
+            NotFoundItems.Clear();      //очищаем список ненайденных файлов
 
             //создаем папки для каждого материала в директории "Лазера"
             foreach (var item in dirMaterials) Directory.CreateDirectory(dirMain + "\\" + $"{item}");
@@ -127,6 +129,8 @@ namespace Metal_Code
             //сортируем полученные ранее объекты TechItem по соответствующим папкам
             foreach (TechItem techItem in techItems)
             {
+                bool wasFouned = false;         //найден ли файл
+
                 //для этого перебираем dxf-файлы
                 foreach (string file in files)
                 {
@@ -149,6 +153,7 @@ namespace Metal_Code
                                         + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count} ({techItem.Route})" + $".{extension}";
 
                                     File.Copy(file, destination);
+                                    wasFouned = true;           //файл найден
                                 }
                                 else
                                     File.Copy(file, dirMain + "\\" + $"{item}".Trim() + "\\"
@@ -157,15 +162,26 @@ namespace Metal_Code
                         break;
                     }
                 }
+                //если файл не найден, добавляем объект в список
+                if (!wasFouned) NotFoundItems.Add(techItem);
             }
 
-            if (files.ToArray().Length > 0) notify = $"Обработано {TechItems.Count} строк заявки и найдено {files.ToArray().Length} {extension}-файлов";
+            if (files.ToArray().Length > 0)
+            {
+                //создаем текстовый файл со списком ненайденных файлов
+                if (NotFoundItems.Count > 0)
+                {
+                    using StreamWriter stream = new(Path.GetDirectoryName(ExcelFile) + $"\\Не хватает файлов!.txt");
+                    foreach (TechItem item in NotFoundItems) stream.WriteLine(item.NumberName + " " + item.Name);
+                    notify = $"Обработано {TechItems.Count} строк заявки и найдено {files.ToArray().Length} {extension}-файлов. Создан перечень недостающих файлов.";                }
+                else notify = $"Обработано {TechItems.Count} строк заявки и найдено {files.ToArray().Length} {extension}-файлов";
+            }
             else notify = $"Не найдено {extension}-файлов";
 
             return notify;
         }
 
-        public void ClearDirectories()
+        public void ClearDirectories()      //метод очищения пустых директорий
         {
             //удаляем пустые папки
             string[] dirs = Directory.GetDirectories(Path.GetDirectoryName(ExcelFile));
