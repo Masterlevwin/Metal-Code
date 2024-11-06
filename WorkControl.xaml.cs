@@ -224,8 +224,6 @@ namespace Metal_Code
 
             Result = (float)Math.Round(addMin ? (price + work.Price) * Ratio * TechRatio : price * Ratio * TechRatio, 2);
 
-            //TimeSpan.Text = $"{Math.Ceiling(Result * work.Time / work.Price / Ratio)}";
-
             if (addMin)
             {
                 ResultText.Foreground = Brushes.Blue;       // если добавлена минималка, окрашиваем результат

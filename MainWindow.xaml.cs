@@ -2341,7 +2341,7 @@ namespace Metal_Code
                         for (int i = 0; i < Parts.Count; i++)
                         {
                             //если в столбце "цвет" не пусто, и данная окраска соответствует по RAL, считаем кол-во и площадь таких деталей
-                            if ($"{scoresheet.Cells[i + 2, 20].Value}" != "" && $"{key[14..]}".Contains($"{scoresheet.Cells[i + 2, 20].Value}"))
+                            if ($"{scoresheet.Cells[i + 2, 20].Value}" != "" && $"{key[14..]}".Trim() == $"{scoresheet.Cells[i + 2, 20].Value}".Trim())
                             {
                                 _count += (int)Parser($"{scoresheet.Cells[i + 2, 2].Value}");
                                 if (float.TryParse($"{scoresheet.Cells[i + 2, 19].Value}", out float s))
