@@ -25,6 +25,7 @@ using System.Text.RegularExpressions;
 using ACadSharp.IO;
 using ACadSharp;
 using System.Management;
+using System.Windows.Input;
 
 namespace Metal_Code
 {
@@ -588,6 +589,10 @@ namespace Metal_Code
             if (Result > 0) Parts = PartsSource();
         }
 
+        private void UpdateResult(object sender, MouseEventArgs e)
+        {
+            UpdateResult();
+        }
         private void UpdateResult(object sender, TextChangedEventArgs e)
         {
             UpdateResult();

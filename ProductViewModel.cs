@@ -60,6 +60,12 @@ namespace Metal_Code
             {
                 return newProjectCommand ??= new RelayCommand(obj =>
                 {
+                    MessageBoxResult response = MessageBox.Show(
+                        "Создать новый расчет?\nЕсли \"Да\", текущий расчет будет очищен!",
+                        "Создание расчета", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+
+                    if (response == MessageBoxResult.No) return;
+
                     MainWindow.M.NewProject();
                 });
             }
