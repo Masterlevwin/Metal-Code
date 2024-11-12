@@ -1695,8 +1695,11 @@ namespace Metal_Code
             //если есть нарезанные детали, вычисляем их общую стоимость, и оформляем их в КП
             if (Parts.Count > 0)
             {
-                for (int i = 0; i < Parts.Count; i++) Parts[i].Total = Parts[i].Count * Parts[i].Price;
-
+                for (int i = 0; i < Parts.Count; i++)
+                {
+                    Parts[i].Price = (float)Math.Round(Parts[i].Price, 1);
+                    Parts[i].Total = (float)Math.Round(Parts[i].Count * Parts[i].Price);
+                }
                 DataTable partTable = ToDataTable(Parts);
                 worksheet.Cells[row, 1].LoadFromDataTable(partTable, false);
                 row += partTable.Rows.Count;
@@ -1708,7 +1711,7 @@ namespace Metal_Code
                 {
                     //в этом случае, пересчитываем цену и стоимость деталей, которые НЕ "Комплект деталей" (их цена и стоимость пересчитываются в блоке SaveDetails())
                     d.Detail.Total -= Construct / DetailControls.Count;
-                    d.Detail.Price = (float)Math.Round(d.Detail.Total / d.Detail.Count, 2);
+                    d.Detail.Price = (float)Math.Round(d.Detail.Total / d.Detail.Count, 1);
                 }
 
             ObservableCollection<Detail> _details = new(ProductModel.Product.Details.Where(d => !d.IsComplect));
@@ -2785,6 +2788,8 @@ namespace Metal_Code
             };
             for (int col = 0; col < headers.Count; col++) tasksheet.Cells[1, col + 1].Value = headers[col];
 
+            string material = "";
+
             int temp = 2;
             foreach (DetailControl det in DetailControls)
             {
@@ -2821,7 +2826,18 @@ namespace Metal_Code
                             tasksheet.Cells[temp, 1].Value += $"{description}";
                             //"Описание"
                             tasksheet.Cells[temp, 2].Value += $", Количество материала: {_mass}, Комментарий: ";
-                            if (type.CheckMetal.IsChecked == false) tasksheet.Cells[temp, 2].Value += "Давальч. ";
+                            if (type.CheckMetal.IsChecked == false)     //если материал - давальческий
+                            {
+                                tasksheet.Cells[temp, 2].Value += "Давальч. ";
+                                if (cut.Items?.Count > 0)               //заполняем строку для задачи в снабжение
+                                {
+                                    var _items = cut.Items?.GroupBy(c => c.sheetSize);      //группируем все листы по размеру
+                                    if (_items is not null)
+                                        foreach (var item in _items)    //каждую группу листов одного размера и их количество записываем в одну строку
+                                            material += $"Лист {description} ({item.Key}) - {item.Sum(s => s.sheets)} шт, ";
+                                }
+                                else material += $"Лист {description} ({type.A}x{type.B}) - {type.Count} шт, ";
+                            }
                             if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 2].Value += $"{type.Comment}";
                             //"Исполнитель"
                             tasksheet.Cells[temp, 4].Value = $"Вячеслав Серебряков";
@@ -2853,7 +2869,18 @@ namespace Metal_Code
                             tasksheet.Cells[temp, 1].Value += $"{description}";
                             //"Описание"
                             tasksheet.Cells[temp, 2].Value += $", Количество материала: {_mass}, Комментарий: ";
-                            if (type.CheckMetal.IsChecked == false) tasksheet.Cells[temp, 2].Value += "Давальч. ";
+                            if (type.CheckMetal.IsChecked == false)     //если материал - давальческий
+                            {
+                                tasksheet.Cells[temp, 2].Value += "Давальч. ";
+                                if (pipe.Items?.Count > 0)              //заполняем строку для задачи в снабжение
+                                {
+                                    var _items = pipe.Items?.GroupBy(c => c.sheetSize);      //группируем все листы по размеру
+                                    if (_items is not null)
+                                        foreach (var item in _items)    //каждую группу листов одного размера и их количество записываем в одну строку
+                                            material += $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({item.Key}) - {item.Sum(s => s.sheets)} шт, ";
+                                }
+                                else material += $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({type.L}) - {type.Count} шт, ";
+                            }
                             if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 2].Value += $"{type.Comment}";
                             //"Исполнитель"
                             tasksheet.Cells[temp, 4].Value = $"Вячеслав Серебряков";
@@ -2908,6 +2935,20 @@ namespace Metal_Code
                         }
                     }
                 }
+            }
+
+            if (material != "")
+            {
+                //"Название"
+                tasksheet.Cells[temp, 1].Value = $"Закупка металла под заказ: {_order} {CustomerDrop.Text}";
+                //"Описание"
+                tasksheet.Cells[temp, 2].Value = material;
+                //"Исполнитель"
+                tasksheet.Cells[temp, 4].Value = $"Антон Сухоруков";
+                //"Время на выполнение задачи в секундах"
+                tasksheet.Cells[temp, 6].Value = 0;
+
+                temp++;
             }
 
             for (int row = 2; row < temp; row++)
@@ -3901,7 +3942,7 @@ namespace Metal_Code
             return $"Файлы в количестве {fileNames?.Length} шт успешно конвертированы";
         }
 
-        //------------ Загрузка расчета в режиме чтения-----------//
+        //------------Загрузка расчета в режиме чтения-----------//
         private void OpenOffer(object sender, RoutedEventArgs e)
         {
             if (OffersGrid.SelectedItem is not Offer offer) return;
@@ -3923,6 +3964,59 @@ namespace Metal_Code
             }
         }
 
+        //------------Сортировка файлов по папкам----------------//
+        private void CreateTech(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new()
+            {
+                Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*"
+            };
+
+            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
+            {
+                Tech tech = new(openFileDialog.FileNames[0]);
+                StatusBegin($"{tech.Run()}");
+            }
+            else StatusBegin($"Не выбрано ни одного файла");
+        }
+
+        public bool WarningSave()           //предупреждение о незаполненных полях
+        {
+            string _order = Order.Text;
+            string _customer = CustomerDrop.Text;
+            string _dateProduction = DateProduction.Text;
+
+            Brush _orderB = Order.BorderBrush;
+            Brush _customerB = CustomerDrop.BorderBrush;
+            Brush _dateProductionB = DateProduction.BorderBrush;
+
+            if (_order == "" || _customer == "" || _dateProduction == "")
+            {
+                Order.BorderBrush = CustomerDrop.BorderBrush = DateProduction.BorderBrush = Brushes.OrangeRed;
+                Order.BorderThickness = CustomerDrop.BorderThickness = DateProduction.BorderThickness = new Thickness(2);
+
+                MessageBoxResult response = MessageBox.Show(
+                    "Некоторые поля не заполнены. Все равно сохранить расчет?",
+                    "Сохранение расчета", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+                if (response == MessageBoxResult.No)
+                {
+                    Order.BorderBrush = _orderB;
+                    CustomerDrop.BorderBrush = _customerB;
+                    DateProduction.BorderBrush = _dateProductionB;
+                    Order.BorderThickness = CustomerDrop.BorderThickness = DateProduction.BorderThickness = new Thickness(1);
+                    return false;
+                }
+                else
+                {
+                    Order.BorderBrush = _orderB;
+                    CustomerDrop.BorderBrush = _customerB;
+                    DateProduction.BorderBrush = _dateProductionB;
+                    Order.BorderThickness = CustomerDrop.BorderThickness = DateProduction.BorderThickness = new Thickness(1);
+                }
+            }
+
+            return true;
+        }
 
         public float GetMetalPrice()
         {
@@ -4193,59 +4287,6 @@ namespace Metal_Code
             }
 
             StatusBegin($"Лазер: {Math.Round((decimal)timeLaser / 60 / 12)} дней; Гибка: {Math.Round((decimal)timeBend / 60 / 12)} дней; Кол-во папок в работе - {dirs.Length}");
-        }
-
-        private void CreateTech(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog openFileDialog = new()
-            {
-                Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*"
-            };
-
-            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
-            {
-                Tech tech = new(openFileDialog.FileNames[0]);
-                StatusBegin($"{tech.Run()}");
-            }
-            else StatusBegin($"Не выбрано ни одного файла");
-        }
-
-        public bool WarningSave()
-        {
-            string _order = Order.Text;
-            string _customer = CustomerDrop.Text;
-            string _dateProduction = DateProduction.Text;
-
-            Brush _orderB = Order.BorderBrush;
-            Brush _customerB = CustomerDrop.BorderBrush;
-            Brush _dateProductionB = DateProduction.BorderBrush;
-
-            if (_order == "" || _customer == "" || _dateProduction == "")
-            {
-                Order.BorderBrush = CustomerDrop.BorderBrush = DateProduction.BorderBrush = Brushes.OrangeRed;
-                Order.BorderThickness = CustomerDrop.BorderThickness = DateProduction.BorderThickness = new Thickness(2);
-
-                MessageBoxResult response = MessageBox.Show(
-                    "Некоторые поля не заполнены. Все равно сохранить расчет?",
-                    "Сохранение расчета", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-                if (response == MessageBoxResult.No)
-                {
-                    Order.BorderBrush = _orderB;
-                    CustomerDrop.BorderBrush = _customerB;
-                    DateProduction.BorderBrush = _dateProductionB;
-                    Order.BorderThickness = CustomerDrop.BorderThickness = DateProduction.BorderThickness = new Thickness(1);
-                    return false;
-                }
-                else
-                {
-                    Order.BorderBrush = _orderB;
-                    CustomerDrop.BorderBrush = _customerB;
-                    DateProduction.BorderBrush = _dateProductionB;
-                    Order.BorderThickness = CustomerDrop.BorderThickness = DateProduction.BorderThickness = new Thickness(1);
-                }
-            }
-
-            return true;
         }
         #endregion
 
