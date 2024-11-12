@@ -82,6 +82,8 @@ namespace Metal_Code
                       try
                       {
                           MainWindow.M.UpdateResult();
+                          if (!MainWindow.M.WarningSave()) return;
+
                           if (dialogService.SaveFileDialog() == true && dialogService.FilePaths != null)
                           {
                               string _path = Path.GetDirectoryName(dialogService.FilePaths[0])

@@ -84,7 +84,7 @@ namespace Metal_Code
         public Dictionary<string, Dictionary<float, (float, float, float)>> MetalDict = new();                  //словарь материалов
         public Dictionary<double, float> WideDict = new();                                                      //словарь отверстий
         public Dictionary<Metal, float> MetalRatioDict = new();                                                 //словарь коэффициентов за материал
-        
+
         //----------Свойства и их основные методы---------//
         #region
         private bool isLocal = true;    //запуск локальной версии
@@ -98,7 +98,7 @@ namespace Metal_Code
                 OnPropertyChanged(nameof(IsLocal));
             }
         }
-        
+
         private Offer? activeOffer;
         public Offer? ActiveOffer
         {
@@ -122,7 +122,7 @@ namespace Metal_Code
                     Boss.Text = $"ЛАЗЕРФЛЕКС  ";
                     Phone.Text = "тел:(812)509-60-11";
                     LaserRadioButton.IsChecked = true;
-                    ThemeChange("laserTheme"); 
+                    ThemeChange("laserTheme");
                 }
                 else
                 {
@@ -164,7 +164,7 @@ namespace Metal_Code
                 else if (radioButton.Name == "OOORadioButton") IsAgent = false;
             }
         }
-        
+
         private float ratio;
         public float Ratio
         {
@@ -230,7 +230,7 @@ namespace Metal_Code
                         if (customer.Address is not null) Adress.Text = customer.Address;
                         if (Delivery == 0) SetDelivery(customer.DeliveryPrice);
                     }
-                    
+
                     HasDelivery = true;
                 }
                 else if (radioButton.Name == "PickupRadioButton")
@@ -238,7 +238,7 @@ namespace Metal_Code
                     SetDelivery(0);
                     SetDeliveryRatio(1);
                     HasDelivery = false;
-                } 
+                }
             }
         }
 
@@ -397,7 +397,7 @@ namespace Metal_Code
             else if (!CheckMachine())                                       //проверяем защитный файл
             {
                 MessageBox.Show($"Данная копия программы защищена. Ее невозможно запустить на этом компьютере!");
-                Environment.Exit(0);                  
+                Environment.Exit(0);
             }
             else if (!CheckMachineName()) ShowWindow(new LoginWindow());    //проверяем пользователя
             else NewProject();                                              //если все проверки пройдены, создаем новый проект
@@ -542,7 +542,7 @@ namespace Metal_Code
             if (response == MessageBoxResult.No) return;
             else ShowWindow(new LoginWindow());
         }
-                
+
         private void ShowWindow(Window window)          // установка текущего и выбранного менеджеров
         {
             IsEnabled = false;
@@ -1391,7 +1391,7 @@ namespace Metal_Code
                 Production = DateProduction.Text,
                 Manager = Adress.Text,                  //поле "Manager" сохраняет ссылку на адрес доставки;
                                                         //не менял название поля, чтобы загружались старые сохранения
-                Ratio = Ratio,                
+                Ratio = Ratio,
                 Count = Count,
                 PaintRatio = PaintRatio.Text,
                 ConstructRatio = ConstructRatio.Text,
@@ -1483,7 +1483,7 @@ namespace Metal_Code
                             {
                                 foreach (Part p in _cut.PartDetails)
                                 {
-                                    p.Description = _cut is CutControl cut? cut.HaveCut ? "Л": "Б" : "Т";
+                                    p.Description = _cut is CutControl cut ? cut.HaveCut ? "Л" : "Б" : "Т";
                                     p.Accuracy = _cut is CutControl ? $"H14/h14 +-IT 14/2" : $"H12/h12 +-IT 12/2";
                                     p.Price = 0;
 
@@ -1692,7 +1692,7 @@ namespace Metal_Code
 
             int row = 8;        //счетчик строк деталей, начинаем с восьмой строки документа
 
-                //если есть нарезанные детали, вычисляем их общую стоимость, и оформляем их в КП
+            //если есть нарезанные детали, вычисляем их общую стоимость, и оформляем их в КП
             if (Parts.Count > 0)
             {
                 for (int i = 0; i < Parts.Count; i++) Parts[i].Total = Parts[i].Count * Parts[i].Price;
@@ -1775,15 +1775,15 @@ namespace Metal_Code
             {
                 worksheet.Cells[row + 4, 2].Value = "Самовывоз со склада Исполнителя по адресу: Ленинградская область, Всеволожский район, " +
                     "Колтуши, деревня Мяглово, ул. Дорожная, уч. 4Б.";
-            }  
+            }
             worksheet.Cells[row + 4, 2].Style.WrapText = true;
 
-                //приводим float-значения типа 0,699999993 к формату 0,7
+            //приводим float-значения типа 0,699999993 к формату 0,7
             foreach (var cell in worksheet.Cells[8, 2, row, 2])
                 if (cell.Value != null && $"{cell.Value}".Contains("0,7") || $"{cell.Value}".Contains("0,8") || $"{cell.Value}".Contains("1,2") || $"{cell.Value}".Contains("3,2"))
                     cell.Style.Numberformat.Format = "0.0";
 
-                //учитываем общий коэффициент в КП
+            //учитываем общий коэффициент в КП
             for (int i = 8; i < row; i++)
             {
                 if (worksheet.Cells[i, 6].Value != null && float.TryParse($"{worksheet.Cells[i, 6].Value}", out float c)
@@ -1794,7 +1794,7 @@ namespace Metal_Code
                 }
             }
 
-                //вычисляем итоговую сумму КП и оформляем соответствующим образом
+            //вычисляем итоговую сумму КП и оформляем соответствующим образом
             worksheet.Cells[row, 7].Value = IsAgent ? "ИТОГО:" : "ИТОГО с НДС:";
             worksheet.Cells[row, 7].Style.Font.Bold = true;
             worksheet.Cells[row, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
@@ -1869,7 +1869,7 @@ namespace Metal_Code
             worksheet.Cells[6, 5, 7, 5].Style.Fill.PatternType = ExcelFillStyle.Solid;
             worksheet.Cells[6, 5, 7, 5].Style.Fill.BackgroundColor.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
 
-                //оформляем стиль созданной таблицы
+            //оформляем стиль созданной таблицы
             ExcelRange table = worksheet.Cells[6, 1, row - 1, 9];
             table.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             table.Style.VerticalAlignment = ExcelVerticalAlignment.Top;
@@ -1877,14 +1877,14 @@ namespace Metal_Code
             table.Style.Border.Right.Style = ExcelBorderStyle.Thin;
             table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
-                //оформляем первую строку КП, где указываем название нашей компании и ее телефон
+            //оформляем первую строку КП, где указываем название нашей компании и ее телефон
             worksheet.Cells["A1"].Value = Boss.Text + Phone.Text;
             worksheet.Cells[1, 1, 1, 9].Merge = true;
             worksheet.Rows[1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
             worksheet.Cells[1, 1, 1, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
             worksheet.Cells[1, 1, 1, 9].Style.Border.Bottom.Color.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
 
-                //оформляем вторую строку, где указываем номер КП, контрагента и дату создания
+            //оформляем вторую строку, где указываем номер КП, контрагента и дату создания
             worksheet.Rows[2].Style.Font.Size = 16;
             worksheet.Rows[2].Style.Font.Bold = true;
             worksheet.Rows[2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
@@ -1893,7 +1893,7 @@ namespace Metal_Code
             worksheet.Cells[2, 3, 2, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
             worksheet.Cells[2, 3, 2, 9].Style.Border.Bottom.Color.SetColor(0, IsLaser ? 120 : 255, IsLaser ? 180 : 170, IsLaser ? 255 : 0);
 
-                //оформляем третью строку с предупреждением
+            //оформляем третью строку с предупреждением
             worksheet.Cells["A3"].Value = "Данный расчет действителен в течении 2-х банковских дней";
             worksheet.Cells[3, 1, 3, 9].Merge = true;
             worksheet.Rows[3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
@@ -1908,7 +1908,7 @@ namespace Metal_Code
                 worksheet.Cells["E4"].Style.Font.Bold = true;
             }
 
-                //выравниваем содержимое документа и оформляем нюансы
+            //выравниваем содержимое документа и оформляем нюансы
             worksheet.Cells.AutoFitColumns();
 
             if (worksheet.Rows[row + 4].Height < 35) worksheet.Rows[row + 4].Height = 35;       //оформляем строку, где указан порядок отгрузки
@@ -1920,14 +1920,14 @@ namespace Metal_Code
             if (IsLaser) worksheet.DeleteRow(4, 2);                                             //удаляем 4 и 5 строки, необходимые только для Провэлда
             if (Parts.Count == 0) worksheet.DeleteRow(row + 5, 1);       //удаляем строку, где указана расшифровка работ, если нет нарезанных деталей
 
-                //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
+            //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
             worksheet.PrinterSettings.FitToPage = true;
             worksheet.PrinterSettings.FitToWidth = 1;
             worksheet.PrinterSettings.FitToHeight = 0;
             worksheet.PrinterSettings.HorizontalCentered = true;
 
 
-                //заранее добавляем второй лист "Реестр" для удобства просмотра, но сначала заполняем третий лист "Статистика"
+            //заранее добавляем второй лист "Реестр" для удобства просмотра, но сначала заполняем третий лист "Статистика"
             ExcelWorksheet statsheet = workbook.Workbook.Worksheets.Add("Реестр");
 
 
@@ -1962,7 +1962,7 @@ namespace Metal_Code
 
             // ----- таблица разбивки цены детали по работам (Лист3 - "Статистика") -----
 
-                                        //      50      51      52      53      54      55        56      57        58      59      60          61          62        (18)      (19)      (20)   (21)
+            //      50      51      52      53      54      55        56      57        58      59      60          61          62        (18)      (19)      (20)   (21)
             List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "S,кв м", "цвет", "П" };
 
             if (Parts.Count > 0)
@@ -2232,7 +2232,7 @@ namespace Metal_Code
                         }
                         else if (w.workType is BendControl)
                         {
-                            statsheet.Cells[i + temp, 6].Value = "гибка";           
+                            statsheet.Cells[i + temp, 6].Value = "гибка";
                             statsheet.Cells[i + temp, 13].Value = Math.Ceiling(w.Result * 0.018f) / w.Ratio;        //"Гибка (время работ)"
                             statsheet.Cells[i + beginBitrix, 13].Value = Math.Ceiling(w.Result * 0.018f) / w.Ratio; //"Гибочные работы"
 
@@ -2366,7 +2366,7 @@ namespace Metal_Code
                     statsheet.Cells[temp, 8].Value = CustomerDrop.Text;                                         //"Компания"
                     statsheet.Cells[temp, 10].Value = ManagerDrop.Text;                                         //"Менеджер"
                     statsheet.Cells[temp, 11].Value = CurrentManager.Name;                                      //"Инженер"
-                    
+
                     statsheet.Cells[temp, 13].Value = EndDate();                                                //"Дата отгрузки"
                     statsheet.Cells[temp, 13].Style.Numberformat.Format = "dd.mm.yy";
 
@@ -2378,7 +2378,7 @@ namespace Metal_Code
 
                 //по умолчанию "Цвет/цинк" - "БП" (без покраски)
                 if ($"{statsheet.Cells[temp, 17].Value}" == "") statsheet.Cells[temp, 17].Value = "БП";
-                
+
                 statsheet.Cells[temp, 21].Value = Math.Round(sum, 2);                                           //"Стоимость работ"
                 statsheet.Cells[temp, 21].Style.Numberformat.Format = "#,##0.00";
             }
@@ -2415,7 +2415,7 @@ namespace Metal_Code
             CreateScore(worksheet, row - 8, path, materials);                   //создаем файл для счета на основе полученного КП
             if (Parts.Count > 0) CreateComplect(path);                          //создаем файл комплектации    
         }
-        
+
         //-СЧЕТ
         private void CreateScore(ExcelWorksheet worksheet, int row, string _path, ExcelRange materials)
         {
@@ -2611,8 +2611,8 @@ namespace Metal_Code
             //приводим float-значения типа 0,699999993 к формату 0,7
             foreach (var cell in complectsheet.Cells[3, 9, temp, 9])
                 if (cell.Value != null && $"{cell.Value}".Contains(',')) cell.Style.Numberformat.Format = "0.0";
-                    
-            
+
+
             complectsheet.Cells[temp + 2, 4].Value = "всего деталей:";
             complectsheet.Cells[temp + 2, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
             complectsheet.Names.Add("totalCount", complectsheet.Cells[3, 5, temp + 1, 5]);
@@ -2625,7 +2625,7 @@ namespace Metal_Code
             complectsheet.Cells[temp + 2, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
             complectsheet.Row(temp + 2).Style.Font.Bold = true;     //выделяем жирным шрифтом подсчитанные кол-во и вес
-            
+
             ExcelRange details = complectsheet.Cells[2, 1, temp + 1, 9];    //получаем таблицу деталей для оформления
 
             if (Parts.Count > 0)        //в случае с нарезанными деталями, оформляем расшифровку работ
@@ -2757,7 +2757,7 @@ namespace Metal_Code
                             registrysheet.Cells[cell.Start.Row + i, cell.Start.Column].Value = offer.Order;
                         }
                     }
-                    
+
                     if (cell.Value is not null && $"{cell.Value}" == "№ Проекта / Лазера")
                     {
                         registrysheet.Cells[cell.Start.Row + 1, cell.Start.Column].Value = offer.Order;
@@ -2904,7 +2904,7 @@ namespace Metal_Code
                             else if (w.workType is ExtraControl extra && !$"{tasksheet.Cells[rowProd, 1].Value}".Contains($"{extra.NameExtra}"))
                                 tasksheet.Cells[rowProd, 1].Value += $" {extra.NameExtra}";
                             else if (w.workType is not ExtraControl && !$"{tasksheet.Cells[rowProd, 1].Value}".Contains($"{work.Name}"))
-                                tasksheet.Cells[rowProd, 1].Value += $" {work.Name}";       
+                                tasksheet.Cells[rowProd, 1].Value += $" {work.Name}";
                         }
                     }
                 }
@@ -2947,7 +2947,7 @@ namespace Metal_Code
 
             //получаем файл комплектации, созданный ранее
             using var complectbook = new ExcelPackage(new FileInfo($"{Path.GetDirectoryName(offer.Act)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx"));
-            
+
             //получаем лист комплектации
             ExcelWorksheet? complectsheet = complectbook.Workbook.Worksheets.FirstOrDefault(x => x.Name == "Комплектация");
 
@@ -2965,7 +2965,7 @@ namespace Metal_Code
                 complectsheet.Cells[1, 1].Value = "Паспорт качества";
                 complectsheet.Cells[1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 complectsheet.Row(1).Style.Font.Bold = true;
-                
+
                 //редактируем остальные строки
                 complectsheet.Cells[2, 1].Value = "спец , упд ";
                 complectsheet.Cells[2, 4].Value = "Лазерфлекс";
@@ -3029,7 +3029,7 @@ namespace Metal_Code
             List<string> _heads = new() { "№", "Название детали", "Кол-во" };
             for (int head = 0; head < _heads.Count; head++) complectsheet.Cells[2, head + 1].Value = _heads[head];
 
-            for (int i =  0; i < _paths.Length; i++)
+            for (int i = 0; i < _paths.Length; i++)
             {
                 string path = Path.GetFileNameWithoutExtension(_paths[i]);
 
@@ -3428,7 +3428,7 @@ namespace Metal_Code
             worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Аванс:";
             worksheet.Cells[16 + _agentFalse.Count + _agentTrue.Count, 1].Value = "На карту:";
 
-            worksheet.Names.Add("totalPlus",worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 2, 14 + _agentFalse.Count + _agentTrue.Count, 2]);
+            worksheet.Names.Add("totalPlus", worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 2, 14 + _agentFalse.Count + _agentTrue.Count, 2]);
             worksheet.Names.Add("totalMinus", worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 2, 16 + _agentFalse.Count + _agentTrue.Count, 2]);
 
             worksheet.Cells[18 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Итоговая за месяц:";
@@ -3495,10 +3495,10 @@ namespace Metal_Code
                     StatusBegin(ex.Message);
                 }
             }
-            
+
             (int, int, int, int, int, int) _values;
 
-            if (_offers.Count > 0 )
+            if (_offers.Count > 0)
                 for (int i = 0; i < _offers.Count; i++)
                 {
                     _values = TypesAndWorks(_offers[i]);
@@ -3553,7 +3553,7 @@ namespace Metal_Code
 
         private (int, int, int, int, int, int) TypesAndWorks(Offer offer)
         {
-            if (offer.Data is null) return (0, 0, 0, 0, 0 ,0);
+            if (offer.Data is null) return (0, 0, 0, 0, 0, 0);
 
             int types = 0; int works = 0; int count = 0; int bends = 0; int models = 0; int assemblies = 0;
 
@@ -3608,7 +3608,7 @@ namespace Metal_Code
         private void AddCustomer(object sender, RoutedEventArgs e)                      //метод добавления нового заказчика в базу
         {
             if (CustomerDrop.Text is null || CustomerDrop.Text == "" || ManagerDrop.SelectedItem is not Manager man) return;
-            
+
             if (!IsLocal && !CurrentManager.IsAdmin)
             {
                 StatusBegin($"Для добавления нового заказчика в базу обратитесь к администратору.");
@@ -3620,7 +3620,7 @@ namespace Metal_Code
             if (isAvalaible)
             {               //если база свободна, проверяем введенное имя заказчика на совпадение с именами в базе
                 Customer? _customer = db.Customers.FirstOrDefault(x => x.Name == CustomerDrop.Text);
-                
+
                 if (_customer is null)
                 {           //если заказчика с таким именем еще нет в базе, ищем менеджера согласно выбранному
                     Manager? _man = db.Managers.Where(m => m.Id == man.Id).Include(c => c.Customers).FirstOrDefault();
@@ -3834,7 +3834,7 @@ namespace Metal_Code
             Status.Background = new SolidColorBrush(Colors.White);
             Status.Background.BeginAnimation(SolidColorBrush.ColorProperty, animation);
         }
-        
+
         //------------Краткое руководство-------------------------//
         private void OpenExample(object sender, RoutedEventArgs e)
         {
@@ -3902,7 +3902,7 @@ namespace Metal_Code
         }
 
         //------------ Загрузка расчета в режиме чтения-----------//
-        private void OpenOffer(object sender, RoutedEventArgs e)        
+        private void OpenOffer(object sender, RoutedEventArgs e)
         {
             if (OffersGrid.SelectedItem is not Offer offer) return;
             if (offer.Data != null)
@@ -3966,7 +3966,7 @@ namespace Metal_Code
             sb.Append($", {CustomerDrop.Text}({ShortManager()})");   //добавляем заказчика и менеджера в сокращенном виде
             sb.Append($", примерно {GetTotalMass()} кг;");      //добавляем массу всех деталей
             sb.Append($" {Adress.Text}");                       //и, наконец, адрес доставки и контакт
-            
+
             return $"{sb}";
         }
 
@@ -3974,9 +3974,9 @@ namespace Metal_Code
         {
             float total = 0;
 
-                //если есть нарезанные детали, подсчитываем их массу
+            //если есть нарезанные детали, подсчитываем их массу
             if (Parts.Count > 0) foreach (Part part in Parts) total += part.Mass * part.Count;
-                //подсчитываем массу всех деталей, если они не "Комплект деталей!
+            //подсчитываем массу всех деталей, если они не "Комплект деталей!
             foreach (DetailControl det in DetailControls.Where(d => !d.Detail.IsComplect)) total += det.Detail.Mass;
 
             return (float)Math.Ceiling(total);      //округляем до целого в большую сторону
@@ -4208,6 +4208,44 @@ namespace Metal_Code
                 StatusBegin($"{tech.Run()}");
             }
             else StatusBegin($"Не выбрано ни одного файла");
+        }
+
+        public bool WarningSave()
+        {
+            string _order = Order.Text;
+            string _customer = CustomerDrop.Text;
+            string _dateProduction = DateProduction.Text;
+
+            Brush _orderB = Order.BorderBrush;
+            Brush _customerB = CustomerDrop.BorderBrush;
+            Brush _dateProductionB = DateProduction.BorderBrush;
+
+            if (_order == "" || _customer == "" || _dateProduction == "")
+            {
+                Order.BorderBrush = CustomerDrop.BorderBrush = DateProduction.BorderBrush = Brushes.OrangeRed;
+                Order.BorderThickness = CustomerDrop.BorderThickness = DateProduction.BorderThickness = new Thickness(2);
+
+                MessageBoxResult response = MessageBox.Show(
+                    "Некоторые поля не заполнены. Все равно сохранить расчет?",
+                    "Сохранение расчета", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+                if (response == MessageBoxResult.No)
+                {
+                    Order.BorderBrush = _orderB;
+                    CustomerDrop.BorderBrush = _customerB;
+                    DateProduction.BorderBrush = _dateProductionB;
+                    Order.BorderThickness = CustomerDrop.BorderThickness = DateProduction.BorderThickness = new Thickness(1);
+                    return false;
+                }
+                else
+                {
+                    Order.BorderBrush = _orderB;
+                    CustomerDrop.BorderBrush = _customerB;
+                    DateProduction.BorderBrush = _dateProductionB;
+                    Order.BorderThickness = CustomerDrop.BorderThickness = DateProduction.BorderThickness = new Thickness(1);
+                }
+            }
+
+            return true;
         }
         #endregion
 
