@@ -26,6 +26,7 @@ using ACadSharp.IO;
 using ACadSharp;
 using System.Management;
 using System.Windows.Input;
+using System.Windows.Shapes;
 
 namespace Metal_Code
 {
@@ -2826,10 +2827,10 @@ namespace Metal_Code
                             tasksheet.Cells[temp, 1].Value += $"{description}";
                             //"Описание"
                             tasksheet.Cells[temp, 2].Value += $", Количество материала: {_mass}, Комментарий: ";
-                            if (type.CheckMetal.IsChecked == false)     //если материал - давальческий
-                            {
-                                tasksheet.Cells[temp, 2].Value += "Давальч. ";
-                                if (cut.Items?.Count > 0)               //заполняем строку для задачи в снабжение
+                            if (type.CheckMetal.IsChecked == false) tasksheet.Cells[temp, 2].Value += "Давальч. ";
+                            else
+                            {   //если требуется закупить материал, заполняем строку для задачи в снабжение
+                                if (cut.Items?.Count > 0)
                                 {
                                     var _items = cut.Items?.GroupBy(c => c.sheetSize);      //группируем все листы по размеру
                                     if (_items is not null)
@@ -2869,10 +2870,10 @@ namespace Metal_Code
                             tasksheet.Cells[temp, 1].Value += $"{description}";
                             //"Описание"
                             tasksheet.Cells[temp, 2].Value += $", Количество материала: {_mass}, Комментарий: ";
-                            if (type.CheckMetal.IsChecked == false)     //если материал - давальческий
-                            {
-                                tasksheet.Cells[temp, 2].Value += "Давальч. ";
-                                if (pipe.Items?.Count > 0)              //заполняем строку для задачи в снабжение
+                            if (type.CheckMetal.IsChecked == false) tasksheet.Cells[temp, 2].Value += "Давальч. ";
+                            else
+                            {   //если требуется закупить материал, заполняем строку для задачи в снабжение
+                                if (pipe.Items?.Count > 0)
                                 {
                                     var _items = pipe.Items?.GroupBy(c => c.sheetSize);      //группируем все листы по размеру
                                     if (_items is not null)
@@ -3131,7 +3132,7 @@ namespace Metal_Code
             //обводка границ и авторастягивание столбцов
             details.Style.HorizontalAlignment = label.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             details.Style.VerticalAlignment = label.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            details.Style.Border.Right.Style = label.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.Right.Style = details.Style.Border.Bottom.Style = label.Style.Border.Right.Style = label.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
             details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             label.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
@@ -3978,6 +3979,56 @@ namespace Metal_Code
                 StatusBegin($"{tech.Run()}");
             }
             else StatusBegin($"Не выбрано ни одного файла");
+        }
+
+        //------------Создание заявки за клиента-----------------//
+        private void CreateRequest(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new()
+            {
+                Filter = "All files (*.*)|*.*",
+                Multiselect = true
+            };
+
+            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0) CreateRequest(openFileDialog.FileNames);
+            else StatusBegin($"Не выбрано ни одного файла");
+
+        }
+        public void CreateRequest(string[] _paths)
+        {
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var workbook = new ExcelPackage();
+            ExcelWorksheet requestsheet = workbook.Workbook.Worksheets.Add("Заявка");
+
+            //устанавливаем заголовки таблицы
+            List<string> _heads = new() { "№", "№ чертежа", "Наименование детали", "Металл", "Толщина", "Кол-во деталей", "Маршрут" };
+            for (int head = 0; head < _heads.Count; head++) requestsheet.Cells[1, head + 1].Value = _heads[head];
+
+            for (int i = 0; i < _paths.Length; i++)
+                requestsheet.Cells[i + 2, 2].Value = Path.GetFileNameWithoutExtension(_paths[i]);
+
+            ExcelRange details = requestsheet.Cells[1, 1, _paths.Length + 1, 7];     //получаем таблицу деталей для оформления
+
+            //обводка границ и авторастягивание столбцов
+            details.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            details.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            details.Style.Border.Right.Style = details.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+
+            requestsheet.Cells.AutoFitColumns();
+            requestsheet.Cells[1, 1, 1, 7].Style.WrapText = true;
+            requestsheet.Cells[1, 1, 1, 7].Style.Font.Bold = true;
+
+            //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
+            requestsheet.PrinterSettings.FitToPage = true;
+            requestsheet.PrinterSettings.FitToWidth = 1;
+            requestsheet.PrinterSettings.FitToHeight = 0;
+            requestsheet.PrinterSettings.HorizontalCentered = true;
+
+            //сохраняем книгу в файл Excel
+            workbook.SaveAs($"{Path.GetDirectoryName(_paths[0])}\\Заявка.xlsx");
+            StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(_paths[0])}");
         }
 
         public bool WarningSave()           //предупреждение о незаполненных полях
