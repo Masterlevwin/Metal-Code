@@ -26,7 +26,6 @@ using ACadSharp.IO;
 using ACadSharp;
 using System.Management;
 using System.Windows.Input;
-using System.Windows.Shapes;
 
 namespace Metal_Code
 {
@@ -39,7 +38,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.5.6";
+        readonly string version = "2.5.7";
 
         public readonly string[] connections =
         {
