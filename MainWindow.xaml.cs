@@ -38,7 +38,6 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public static MainWindow M = new();
-        readonly string version = "2.5.7";
 
         public readonly string[] connections =
         {
@@ -97,6 +96,13 @@ namespace Metal_Code
                 isLocal = value;
                 OnPropertyChanged(nameof(IsLocal));
             }
+        }
+
+        private string version = "2.5.7";
+        public string Version
+        {
+            get => version;
+            set => version = value;
         }
 
         private Offer? activeOffer;
@@ -1021,6 +1027,8 @@ namespace Metal_Code
                         Customer? _customer = db.Customers.FirstOrDefault(x => x.Name == CustomerDrop.Text);
                         if (_customer is null)
                             MessageBox.Show($"Заказчик {CustomerDrop.Text} не сохранен в базе. Добавьте его данные в базу, чтобы использовать их повторно.");
+
+                        if (!CheckVersion(out string _version)) MessageBox.Show($"Текущая версия не актуальна. Рекомендуется обновить программу.");
                     }
                 }
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
@@ -4005,7 +4013,10 @@ namespace Metal_Code
             for (int head = 0; head < _heads.Count; head++) requestsheet.Cells[1, head + 1].Value = _heads[head];
 
             for (int i = 0; i < _paths.Length; i++)
+            {
+                requestsheet.Cells[i + 2, 1].Value = i + 1;
                 requestsheet.Cells[i + 2, 2].Value = Path.GetFileNameWithoutExtension(_paths[i]);
+            }
 
             ExcelRange details = requestsheet.Cells[1, 1, _paths.Length + 1, 7];     //получаем таблицу деталей для оформления
 
@@ -4278,7 +4289,7 @@ namespace Metal_Code
         {
             if (!File.Exists(connections[9] + "\\version.txt"))
             {
-                _version = $"{version}, без подключения к серверу.";
+                _version = $"{Version}, без подключения к серверу.";
                 return true;
             }
 

@@ -43,7 +43,7 @@
                 <Separator/>
                 <MenuItem Header="_Выход" Click="Exit"/>
             </MenuItem>
-            <MenuItem x:Name="Settings" Header="Параметры">
+            <MenuItem x:Name="Settings" Header="Базы">
                 <MenuItem Header="База типовых деталей" Click="OpenSettings"/>
                 <MenuItem Header="База работ" Click="OpenSettings"/>
                 <MenuItem Header="База менеджеров" Click="OpenSettings"/>
@@ -56,6 +56,7 @@
                 <MenuItem Header="Обновить программу" Click="Restart"/>
             </MenuItem>
             <MenuItem ToolTip="Сменить пользователя" x:Name="Login" Click="ShowLoginWindow"/>
+            <MenuItem ToolTip="Версия программы" Header="{Binding Version, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"/>
 
         </Menu>
 

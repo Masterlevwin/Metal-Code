@@ -157,7 +157,8 @@ namespace Metal_Code
 
                 if (metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
                 {
-                    price = Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1 + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2;
+                    price = Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1
+                        + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2;
 
                     // проверяем стоимость материала
                     float _result = (float)Math.Round((work.type.det.Detail.IsComplect ? 1 : work.type.Count) *
