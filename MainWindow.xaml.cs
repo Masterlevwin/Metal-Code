@@ -3964,6 +3964,7 @@ namespace Metal_Code
 
                 if (clon.Product is not null)
                 {
+                    clon.Ratio.Text = $"{Ratio}";                
                     clon.Amount.Text = $"{offer.Amount} руб.";
                     clon.Show();
                     clon.LoadProduct();

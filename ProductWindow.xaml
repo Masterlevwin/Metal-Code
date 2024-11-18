@@ -3,29 +3,21 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" WindowStartupLocation="CenterScreen" FontFamily="Century">
+        mc:Ignorable="d" WindowStartupLocation="CenterScreen" FontFamily="Century" Width="800">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition/>
             <RowDefinition/>
         </Grid.RowDefinitions>
         <TextBox x:Name="ProductName" Text="Изделие" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" Margin="35,40,0,0" VerticalContentAlignment="Center" HorizontalAlignment="Left" FontSize="14" IsReadOnly="True"/>
-        <TextBlock Text="Детали" HorizontalAlignment="Left" Margin="55,75,0,0" VerticalAlignment="Top" FontFamily="Century" Panel.ZIndex="1"/>
-        <TextBlock x:Name="Amount" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="500,40,0,0" FontSize="14"/>
+        <TextBlock Text="Общий коэффициент" Margin="400,40,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+        <TextBlock x:Name="Ratio" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="530,40,0,0" FontSize="14" FontWeight="Bold"/>
+        <TextBlock Text="Стоимость" Margin="570,40,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+        <TextBlock x:Name="Amount" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="640,40,0,0" FontSize="14" FontWeight="Bold"/>
 
         <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" Margin="20,20,10,10">
             <ScrollViewer VerticalAlignment="Top" Margin="0,60,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                <Grid x:Name="ProductGrid" Margin="10,0,10,0">
-                    <TextBlock Text="A" HorizontalAlignment="Left" Margin="320,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                    <TextBlock Text="B" HorizontalAlignment="Left" Margin="365,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                    <TextBlock Text="S" HorizontalAlignment="Left" Margin="400,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                    <TextBlock Text="L" HorizontalAlignment="Left" Margin="440,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                    <TextBlock Text="Кол-во" HorizontalAlignment="Left" Margin="475,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                    <TextBlock Text="Материал" HorizontalAlignment="Left" Margin="525,5,0,0" VerticalAlignment="Top" Panel.ZIndex="1"/>
-                    <TextBlock Text="Работа" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="745,5,0,0" Panel.ZIndex="1"/>
-                    <TextBlock Text="Коэф" ToolTip="Наценка или скидка на услуги" HorizontalAlignment="Left" Margin="985,5,0,0" VerticalAlignment="Top" Width="30" Panel.ZIndex="1"/>
-                    <StackPanel x:Name="DetailsStack"/>
-                </Grid>
+                <StackPanel x:Name="DetailsStack"/>
             </ScrollViewer>
         </GroupBox>
 

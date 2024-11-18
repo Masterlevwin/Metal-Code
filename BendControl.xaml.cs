@@ -240,7 +240,7 @@ namespace Metal_Code
                         // стоимость данной гибки должна быть не ниже минимальной
                         _price = _price > 0 && _price < _work.Price ? _work.Price : _price;
 
-                        price += _price;
+                        price += _price * Difficult(p.UserControls.OfType<BendControl>().Count());
                     }
 
                 // стоимость всей гибки должна быть не ниже 3-x минималок
@@ -249,6 +249,19 @@ namespace Metal_Code
                 work.SetResult(price, false);
             }
             else work.SetResult(Price(Bend * work.type.Count, work, work.type.Mass, work.type.Square));
+        }
+
+        private float Difficult(int bends)
+        {
+            return bends switch
+            {
+                <= 4 => 1,
+                5 => 1.2f,
+                6 => 1.4f,
+                7 => 1.6f,
+                8 => 1.8f,
+                _ => 2
+            };
         }
 
         private float Price(float _count, WorkControl work, float _mass, float _square)
@@ -312,7 +325,9 @@ namespace Metal_Code
                                 float _price = Price(Bend * p.Part.Count, p.work, p.Part.Mass, p.Square);
                                 
                                 // стоимость данной гибки должна быть не ниже минимальной
-                                _price = _price > 0 && _price < _work.Price ? _work.Price * _w.Ratio * _w.TechRatio : _price * _w.Ratio * _w.TechRatio;
+                                _price = _price > 0 && _price < _work.Price ?
+                                    _work.Price * Difficult(p.UserControls.OfType<BendControl>().Count()) * _w.Ratio * _w.TechRatio
+                                    : _price * Difficult(p.UserControls.OfType<BendControl>().Count()) * _w.Ratio * _w.TechRatio;
 
                                 _send = _price / p.Part.Count;
                             }                                                       
