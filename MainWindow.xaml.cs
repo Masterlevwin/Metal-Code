@@ -4288,7 +4288,7 @@ namespace Metal_Code
 
         public bool CheckVersion(out string _version)                   //метод проверки версии приложения
         {
-            if (IsLocal || !File.Exists(connections[9] + "\\version.txt"))
+            if (!IsLocal || !File.Exists(connections[9] + "\\version.txt"))
             {
                 _version = $"{Version}, без подключения к серверу.";
                 return true;
