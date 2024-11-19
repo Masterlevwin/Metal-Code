@@ -1,0 +1,20 @@
+﻿<UserControl x:Class="Metal_Code.SawControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"          
+             xmlns:local="clr-namespace:Metal_Code"
+             mc:Ignorable="d" 
+             d:DesignHeight="30" d:DesignWidth="140" VerticalAlignment="Top">
+    <Grid>
+        <TextBlock HorizontalAlignment="Left" Margin="6,-3,0,0" Text="Л" VerticalAlignment="Top" FontWeight="Bold" MouseWheel="ShowManual"/>
+        <CheckBox Content="Помощник" IsChecked="{Binding UsedAssistant, RelativeSource={RelativeSource AncestorType={x:Type local:SawControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="50,0,0,0" VerticalAlignment="Top" ToolTip="Добавить помощника" Click="SetAssistant"/>
+
+        <Popup x:Name="PopupSaw" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5" Placement="Mouse">
+            <StackPanel Background="Snow">
+                <TextBlock x:Name="Manual" Padding="3" TextAlignment="Center"/>
+            </StackPanel>
+        </Popup>
+
+    </Grid>
+</UserControl>

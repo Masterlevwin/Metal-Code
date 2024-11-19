@@ -207,6 +207,12 @@ namespace Metal_Code
                     Grid.SetColumn(extraL, 1);
                     workType = extraL;
                     break;
+                case "Лентопил":
+                    SawControl saw = new(this);
+                    WorkGrid.Children.Add(saw);
+                    Grid.SetColumn(saw, 1);
+                    workType = saw;
+                    break;
                 default:
                     if (type.det.Detail.IsComplect)
                     {
