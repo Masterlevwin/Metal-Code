@@ -216,7 +216,7 @@ namespace Metal_Code
             Amount = amount;
             Material = material;
             Services = services;
-            CreatedDate = DateTime.Now;
+            CreatedDate = DateTime.UtcNow;
         }
     }
 
