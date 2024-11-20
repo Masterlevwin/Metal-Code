@@ -367,10 +367,10 @@ namespace Metal_Code
 
             //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
 
-            if (!CheckVersion(out string _version)) Restart();
+            //if (!CheckVersion(out string _version)) Restart();
             //UpdateDatabases();
 
-            AutoRemoveOffers();
+            //AutoRemoveOffers();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -1973,8 +1973,8 @@ namespace Metal_Code
 
             // ----- таблица разбивки цены детали по работам (Лист3 - "Статистика") -----
 
-                                        //      50      51      52      53      54      55        56      57        58      59      60          61          62        (18)      (19)      (20)   (21)   (63)
-            List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "S,кв м", "цвет", "П", "Лентопил" };
+                                        //      50      51      52      53      54      55        56      57        58      59      60          61          62        (18)      (19)      (20)   (21)
+            List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "S,кв м", "цвет", "П" };
 
             if (Parts.Count > 0)
             {
@@ -2279,6 +2279,17 @@ namespace Metal_Code
                                 }
                             }
                         }
+                        else if (w.workType is SawControl _saw)         //для лентопила указываем вид заготовки по аналогии с труборезом
+                        {
+                            //"Толщина и марка металла"
+                            statsheet.Cells[i + temp, 4].Value = $"(ЛП) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+                            //"Лазер (время работ)"                                 //"Время лазерных работ"
+                            statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
+                            
+                            notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({type.L})";
+                            notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
+                            tempNote++;
+                        }
                         else if (w.workType is ExtraControl _extra)     //для доп работы её наименование добавляем к наименованию работы - особый случай
                         {
                             statsheet.Cells[i + temp, 8].Value += $"{_extra.NameExtra} ";
@@ -2344,7 +2355,7 @@ namespace Metal_Code
 
                 foreach (string key in TempWorksDict.Keys)
                 {
-                    if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key.Contains("(Л)")) continue;
+                    if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key == "Лентопил" || key.Contains("(Л)")) continue;
 
                     if (key.Contains("Окраска"))
                     {

@@ -232,16 +232,29 @@
 
             <GroupBox Header="Список расчетов" Grid.Column="1" Margin="10,0,20,20" Grid.Row="1">
                 <Grid>
-                    <DataGrid x:Name="OffersGrid" CanUserReorderColumns="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,5,10,5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False" HeadersVisibility="Column" BorderBrush="Red" ClipboardCopyMode="IncludeHeader" EnableRowVirtualization="False">
-                        <DataGrid.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="Загрузить" Command="{Binding OpenOfferCommand}"/>
-                                <MenuItem Header="Удалить" x:Name="DeleteOffer" Command="{Binding RemoveOfferCommand}"/>
-                                <MenuItem Header="Сохранить изменения" Click="UpdateOffer"/>
-                                <MenuItem Header="Открыть для чтения" Click="OpenOffer"/>
-                            </ContextMenu>
-                        </DataGrid.ContextMenu>
-                    </DataGrid>
+                    <TabControl Padding="0,0,0,0" Grid.IsSharedSizeScope="True">
+                        <TabItem Header="Расчеты">
+                            <DataGrid x:Name="OffersGrid" CanUserReorderColumns="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,5,10,5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False" HeadersVisibility="Column" BorderBrush="Red" ClipboardCopyMode="IncludeHeader" EnableRowVirtualization="False">
+                                <DataGrid.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Загрузить" Command="{Binding OpenOfferCommand}"/>
+                                        <MenuItem Header="Удалить" x:Name="DeleteOffer" Command="{Binding RemoveOfferCommand}"/>
+                                        <MenuItem Header="Сохранить изменения" Click="UpdateOffer"/>
+                                        <MenuItem Header="Открыть для чтения" Click="OpenOffer"/>
+                                    </ContextMenu>
+                                </DataGrid.ContextMenu>
+                            </DataGrid>
+                        </TabItem>
+                        <TabItem Header="Отчет">
+                            <DataGrid x:Name="ReportGrid" CanUserReorderColumns="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="15,5,10,5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserAddRows="False" BorderBrush="Red" ClipboardCopyMode="IncludeHeader" HeadersVisibility="Column">
+                                <DataGrid.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Удалить из отчета"/>
+                                    </ContextMenu>
+                                </DataGrid.ContextMenu>
+                            </DataGrid>
+                        </TabItem>
+                    </TabControl>
                     <Image x:Name="TableOfBends" Source="/Images/tableofbends.jpg" Stretch="Fill" Visibility="Hidden"/>
                 </Grid>
             </GroupBox>
