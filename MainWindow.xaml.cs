@@ -707,14 +707,22 @@ namespace Metal_Code
                     if (_man != null)
                     {
                         Offers = _man.Offers.TakeLast(count).ToList();        //показываем последние "count" расчетов
-                        ReportOffers = _man.Offers.Where(o => o.Order != null && o.Order != "").ToList();
+                        if (man == CurrentManager)
+                        {
+                            DateTime now = DateTime.Now;
+                            DateTime thisMonth = new(now.Year, now.Month, 1);
+                            DateTime futureMonth = thisMonth.AddMonths(1);
+
+                            ReportOffers = _man.Offers.Where(o => o.Order != null && o.Order != ""
+                                            && o.CreatedDate >= thisMonth && o.CreatedDate < futureMonth).ToList();
+                            if (ReportOffers?.Count > 0) ReportGrid.ItemsSource = ReportOffers;
+                        }
                         CustomerDrop.ItemsSource = Customers.Where(c => c.ManagerId == _man.Id).OrderBy(s => s.Name);
                     }
                 }
             }
 
-            if (Offers?.Count > 0)OffersGrid.ItemsSource = Offers;
-            if (ReportOffers?.Count > 0)ReportGrid.ItemsSource = ReportOffers;
+            if (Offers?.Count > 0) OffersGrid.ItemsSource = Offers;
         }
 
         private void SearchOffers(object sender, RoutedEventArgs e)         //метод фильтра расчетов по номеру, компании или диапазону дат
@@ -852,7 +860,7 @@ namespace Metal_Code
             {
                 try
                 {
-                    AddManagerToMainDatabase(db, man);        //добавляем нового зарегистрированного менеджера в основную базу
+                    //AddManagerToMainDatabase(db, man);        //добавляем нового зарегистрированного менеджера в основную базу
 
                     //перебираем список расчетов на синхронизацию изменений
                     if (TempOffersDict.TryGetValue(2, out List<Offer>? changeList) && changeList.Count > 0)
@@ -999,6 +1007,8 @@ namespace Metal_Code
                                 DataGridRow row = (DataGridRow)OffersGrid.ItemContainerGenerator.ContainerFromIndex(OffersGrid.SelectedIndex);
                                 SolidColorBrush _deleteBrush = new(Colors.Gray);
                                 row.Background = _deleteBrush;
+
+                                if (ReportOffers.Contains(offer)) ReportOffers.Remove(offer);
                             }
                         }
                     }
@@ -2981,7 +2991,7 @@ namespace Metal_Code
             {
                 tasksheet.Cells[row, 3].Value = EndDate()?.AddDays(-5).ToString("g");
                 tasksheet.Cells[row, 7].Value = 1;
-                tasksheet.Cells[row, 8].Value = 1;
+                tasksheet.Cells[row, 8].Value = 0;
                 tasksheet.Cells[row, 9].Value = 1;
             }
             ExcelRange taskRange = tasksheet.Cells[1, 1, temp - 1, 9];
@@ -3525,6 +3535,45 @@ namespace Metal_Code
             workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
 
             return true;
+        }
+
+        private void ReportView(object sender, RoutedEventArgs e)
+        {
+            ReportView();
+        }
+        private void ReportView()
+        {
+            if (ReportOffers.Count == 0) return;
+            
+            List<Offer> _agentFalse = ReportOffers.Where(o => o.Agent == false).ToList();   //ООО
+            List<Offer> _agentTrue = ReportOffers.Where(o => o.Agent == true).ToList();     //ИП и ПК
+
+            float totalS1 = _agentFalse.Sum(s => s.Services);
+            float totalM1 = _agentFalse.Sum(m => m.Material);
+            float total1 = _agentFalse.Sum(a => a.Amount);
+
+            float totalS2 = _agentTrue.Sum(s => s.Services);
+            float totalM2 = _agentTrue.Sum(m => m.Material);
+            float total2 = _agentTrue.Sum(a => a.Amount);
+
+            double bonusOOO = 0, salary = 0;
+
+            double plan = Math.Ceiling((totalS1 - totalS1 / 1.3f) / 1.2f + (totalS2 - totalS2 / 1.3f) / 1.2f + (totalM1 - totalM1 / 1.15f) / 1.2f + (totalM2 - totalM2 / 1.15f));
+            Plan.Text = $"{plan}";
+            if (plan >= 150000)
+            {
+                Plan.BorderBrush = Brushes.Green;
+                bonusOOO = Math.Ceiling(((totalS1 - totalS1 / 1.3f) / 1.2f + (totalS2 - totalS2 / 1.3f) / 1.2f + (totalM1 - totalM1 / 1.15f) / 1.2f + (totalM2 - totalM2 / 1.15f) - 150000) * 0.15f);
+            }
+            else Plan.BorderBrush = Brushes.Red;
+
+            BonusOOO.Text = $"{bonusOOO}";
+
+            double bonusIP = Math.Ceiling(total2 * 0.2f - total2 / 6);
+            BonusIP.Text = $"{bonusIP}";
+
+            salary = Math.Ceiling(bonusOOO > 0 ? bonusOOO + bonusIP + 50000 : bonusIP + 30000);
+            Salary.Text = $"{salary}";
         }
 
         public static string ExtractAgent(Offer offer)
