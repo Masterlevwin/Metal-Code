@@ -41,27 +41,27 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {
-            "Data Source=managers.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
-            "Data Source=typedetails.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
-            "Data Source=works.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
-            "Data Source=metals.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
-            $"C:\\Users\\Михаил\\Desktop\\Тесты\\Производство",
-            $"C:\\ProgramData\\Metal-Code"                                                                                    //дом
-
             //"Data Source=managers.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            //$"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
             //"Data Source=typedetails.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            //$"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
             //"Data Source=works.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            //$"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
             //"Data Source=metals.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
-            //$"Y:\\Производство\\Laser rezka\\В работу",
-            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"                        //прод
+            //$"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
+            //$"C:\\Users\\Михаил\\Desktop\\Тесты\\Производство",
+            //$"C:\\ProgramData\\Metal-Code"                                                                                    //дом
+
+            "Data Source=managers.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            "Data Source=typedetails.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            "Data Source=works.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            "Data Source=metals.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
+            $"Y:\\Производство\\Laser rezka\\В работу",
+            $"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"                        //прод
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -1041,15 +1041,29 @@ namespace Metal_Code
                 {
                     Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
                     if (_offer != null)
-                    {                               //менять можно только агента, номер счета, дату создания и номер заказа
-                        _offer.Agent = offer.Agent;
-                        db.Entry(_offer).Property(o => o.Agent).IsModified = true;
-                        _offer.Invoice = offer.Invoice;
-                        db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
-                        _offer.CreatedDate = offer.CreatedDate;
-                        db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
-                        _offer.Order = offer.Order;
-                        db.Entry(_offer).Property(o => o.Order).IsModified = true;
+                    {                   //менять можно только агента, номер счета, дату создания и номер заказа
+                        if (_offer.Agent != offer.Agent)
+                        {
+                            _offer.Agent = offer.Agent;
+                            db.Entry(_offer).Property(o => o.Agent).IsModified = true;
+                        }
+                        if (_offer.Invoice != offer.Invoice)
+                        {
+                            _offer.Invoice = offer.Invoice;
+                            db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
+                        }
+                        if (_offer.CreatedDate != offer.CreatedDate)
+                        {
+                            _offer.CreatedDate = offer.CreatedDate;
+                            db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
+                        }
+                        if (_offer.Order != offer.Order)
+                        {
+                            _offer.Order = offer.Order;
+                            db.Entry(_offer).Property(o => o.Order).IsModified = true;
+                            _offer.CreatedDate = DateTime.UtcNow;
+                            db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
+                        }
 
                         //добавляем расчет во временный список для синхронизации с основной базой
                         if (IsLocal && ManagerDrop.SelectedItem is Manager man && CurrentManager == man)
