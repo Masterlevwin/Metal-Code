@@ -3600,14 +3600,6 @@ namespace Metal_Code
         }
         private void ReportView()
         {
-            if (ReportOffers.Count == 0)
-            {
-                if (ReportStack.Children.Count > 0)
-                    foreach (TextBox tBox in ReportStack.Children.OfType<TextBox>())
-                        tBox.Text = "";
-                return;
-            }
-
             List<Offer> _agentFalse = ReportOffers.Where(o => o.Agent == false).ToList();   //ООО
             List<Offer> _agentTrue = ReportOffers.Where(o => o.Agent == true).ToList();     //ИП и ПК
 
