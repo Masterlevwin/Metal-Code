@@ -41,27 +41,27 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {
-            //"Data Source=managers.db",
-            //$"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
-            //"Data Source=typedetails.db",
-            //$"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
-            //"Data Source=works.db",
-            //$"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
-            //"Data Source=metals.db",
-            //$"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
-            //$"C:\\Users\\Михаил\\Desktop\\Тесты\\Производство",
-            //$"C:\\ProgramData\\Metal-Code"                                                                                    //дом
-
             "Data Source=managers.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            $"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
             "Data Source=typedetails.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            $"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
             "Data Source=works.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            $"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
             "Data Source=metals.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
-            $"Y:\\Производство\\Laser rezka\\В работу",
-            $"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"                        //прод
+            $"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
+            $"C:\\Users\\Михаил\\Desktop\\Тесты\\Производство",
+            $"C:\\ProgramData\\Metal-Code"                                                                                    //дом
+
+            //"Data Source=managers.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            //"Data Source=typedetails.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            //"Data Source=works.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            //"Data Source=metals.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
+            //$"Y:\\Производство\\Laser rezka\\В работу",
+            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"                        //прод
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -357,6 +357,39 @@ namespace Metal_Code
             {
                 hasAssembly = value;
                 OnPropertyChanged(nameof(HasAssembly));
+            }
+        }
+
+        private string search = "";
+        public string Search
+        {
+            get => search;
+            set
+            {
+                search = value;
+                OnPropertyChanged(nameof(Search));
+            }
+        }
+
+        private DateTime startDay = new(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+        public DateTime StartDay
+        {
+            get => startDay;
+            set
+            {
+                startDay = value;
+                OnPropertyChanged(nameof(StartDay));
+            }
+        }
+
+        private DateTime endDay = DateTime.UtcNow;
+        public DateTime EndDay
+        {
+            get => endDay;
+            set
+            {
+                endDay = value;
+                OnPropertyChanged(nameof(EndDay));
             }
         }
         #endregion
@@ -689,11 +722,17 @@ namespace Metal_Code
             if (ManagerDrop.SelectedItem is Manager man)
             {
                 IsLaser = man.IsLaser;
-                ViewOffersGrid(man);
+                TargetManager = man;
+                ViewOffersGrid();
             }
         }
 
-        private void ViewOffersGrid(Manager man, List<Offer>? offers = null, int count = 23)
+        private void ViewOffersGrid(object sender, RoutedEventArgs e)       //кнопка обновления подотчетных расчетов
+        {
+            ViewOffersGrid();
+            ReportView();
+        }
+        private void ViewOffersGrid(List<Offer>? offers = null)
         {
             if (offers?.Count > 0) Offers = offers;
             else
@@ -703,11 +742,11 @@ namespace Metal_Code
                 if (isAvalaible)
                 {
                     //при смене менеджера загружаем ТОЛЬКО ЕГО и ЕГО коллекцию расчетов
-                    Manager? _man = db.Managers.Where(m => m.Name == man.Name).Include(o => o.Offers).FirstOrDefault();
+                    Manager? _man = db.Managers.Where(m => m.Name == TargetManager.Name).Include(o => o.Offers).FirstOrDefault();
                     if (_man != null)
                     {
-                        Offers = _man.Offers.TakeLast(count).ToList();        //показываем последние "count" расчетов
-                        if (man == CurrentManager)
+                        Offers = _man.Offers.TakeLast(23).ToList();        //показываем последние "count" расчетов
+                        if (TargetManager == CurrentManager)
                         {
                             DateTime now = DateTime.Now;
                             DateTime thisMonth = new(now.Year, now.Month, 1);
@@ -723,42 +762,6 @@ namespace Metal_Code
             }
 
             if (Offers?.Count > 0) OffersGrid.ItemsSource = Offers;
-        }
-
-        private void SearchOffers(object sender, RoutedEventArgs e)         //метод фильтра расчетов по номеру, компании или диапазону дат
-        {
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);       //подключаемся к базе данных
-            bool isAvalaible = db.Database.CanConnect();                                    //проверяем, свободна ли база для подключения
-
-            if (isAvalaible && ManagerDrop.SelectedItem is Manager man)
-            {
-                try
-                {
-                    //ищем менеджера по имени соответствующего выбранному, при этом загружаем его расчеты
-                    Manager? _man = db.Managers.Where(m => m.Name == man.Name).Include(c => c.Offers).FirstOrDefault();
-
-                    List<Offer>? offers = _man?.Offers.ToList();        //сначала получаем все расчеты менеджера
-
-                    //затем ищем все КП согласно введенному номеру расчета или названию компании
-                    if (Search.Text is not null && Search.Text != "") offers = offers?.Where(o => (o.N is not null && o.N.ToLower().Contains(Search.Text.ToLower()))
-                                                                                    || (o.Company is not null && o.Company.ToLower().Contains(Search.Text.ToLower()))).ToList();
-                    //наконец, выполняем выборку расчетов по дате или диапазону
-                    if (Start.SelectedDate != null) offers = offers?.Where(o => o.CreatedDate >= Start.SelectedDate).ToList();
-                    if (End.SelectedDate != null) offers = offers?.Where(o => o.CreatedDate <= End.SelectedDate).ToList();
-
-                    if (offers == null || offers.Count == 0)
-                    {
-                        StatusBegin($"Расчетов по выбранным параметрам не найдено");
-                        return;
-                    }
-                    else
-                    {
-                        StatusBegin($"Найдено {offers.Count} расчетов");
-                        ViewOffersGrid(man, offers);
-                    }
-                }
-                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
-            }
         }
 
         private void AutoRemoveOffers()                                     //метод удаления старых расчетов из локальной базы
@@ -783,17 +786,48 @@ namespace Metal_Code
 
         private void ResetDates(object sender, RoutedEventArgs e)           //метод сброса дат на начало текущего месяца до начала дня
         {
-            Search.Text = "";
-
+            Search = "";
             DateTime date = DateTime.UtcNow;
-            Start.SelectedDate = new DateTime(date.Year, date.Month, 1);
+            StartDay = new DateTime(date.Year, date.Month, 1);
+            EndDay = DateTime.UtcNow.AddDays(1);
+        }
 
-            End.SelectedDate = DateTime.UtcNow.AddDays(1);
+        //метод запуска процесса поиска расчетов по номеру, компании или диапазону дат
+        private void SearchOffers(object sender, RoutedEventArgs e) { CreateWorker(SearchOffers, ActionState.search); }
+        private string SearchOffers()
+        {
+            List<Offer>? offers = new();
+
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);       //подключаемся к базе данных
+            bool isAvalaible = db.Database.CanConnect();                                    //проверяем, свободна ли база для подключения
+
+            if (isAvalaible)
+            {
+                try
+                {
+                    //ищем менеджера по имени соответствующего выбранному, при этом загружаем его расчеты
+                    Manager? _man = db.Managers.Where(m => m.Name == TargetManager.Name).Include(c => c.Offers).FirstOrDefault();
+
+                    offers = _man?.Offers.ToList();        //сначала получаем все расчеты менеджера
+
+                    //затем ищем все КП согласно введенному номеру расчета или названию компании
+                    if (Search != "") offers = offers?.Where(o => (o.N is not null && o.N.ToLower().Contains(Search.ToLower()))
+                                                    || (o.Company is not null && o.Company.ToLower().Contains(Search.ToLower()))).ToList();
+                    //наконец, выполняем выборку расчетов по дате или диапазону
+                    offers = offers?.Where(o => o.CreatedDate >= StartDay).ToList();
+                    offers = offers?.Where(o => o.CreatedDate <= EndDay).ToList();
+
+                    if (offers == null || offers.Count == 0) return $"Расчетов по выбранным параметрам не найдено";
+                    else Offers = offers;
+                }
+                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
+            }
+            return $"Найдено {offers?.Count} расчетов";
         }
 
         //метод запуска процесса загрузки расчетов из основной базы в локальную
         private void RefreshOffers(object sender, RoutedEventArgs e) { CreateWorker(RefreshOffers, ActionState.refresh); }
-        private string RefreshOffers(Manager man)
+        private string RefreshOffers()
         {
             if (!IsLocal) return "Загружена основная база расчетов. Обновление не требуется.";
 
@@ -809,10 +843,10 @@ namespace Metal_Code
                     using ManagerContext dbLocal = new(connections[0]);
 
                     //ищем менеджера в основной базе по имени соответствующего выбранному, при этом загружаем его расчеты
-                    Manager? _man = db.Managers.Where(m => m.Name == man.Name).Include(c => c.Offers).FirstOrDefault();
+                    Manager? _man = db.Managers.Where(m => m.Name == TargetManager.Name).Include(c => c.Offers).FirstOrDefault();
 
                     //ищем менеджера в локальной базе по имени соответствующего локальному, при этом загружаем его расчеты
-                    Manager? _manLocal = dbLocal.Managers.Where(m => m.Name == man.Name).Include(c => c.Offers).FirstOrDefault();
+                    Manager? _manLocal = dbLocal.Managers.Where(m => m.Name == TargetManager.Name).Include(c => c.Offers).FirstOrDefault();
 
                     if (_man?.Offers.Count > 0)
                         foreach (Offer offer in _man.Offers)
@@ -847,7 +881,7 @@ namespace Metal_Code
 
         //метод запуска процесса синхронизации расчетов с основной базой
         private void InsertDatabase(object sender, RoutedEventArgs e) { CreateWorker(InsertDatabase, ActionState.insert); }
-        private string InsertDatabase(Manager man)
+        private string InsertDatabase()
         {
             if (!IsLocal || (TempOffersDict[0].Count == 0 && TempOffersDict[1].Count == 0 && TempOffersDict[2].Count == 0))
                 return "Нет изменений для отправки в основную базу";
@@ -896,7 +930,7 @@ namespace Metal_Code
                         foreach (Offer offer in addList)
                             if (offer.Manager is not null)
                             {
-                                //ищем менеджера по имени соответствующего выбранному, при этом загружаем его расчеты
+                                //ищем менеджера по имени соответствующего менеджера расчета
                                 Manager? _man = db.Managers.FirstOrDefault(m => m.Name == offer.Manager.Name);
 
                                 //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
@@ -954,13 +988,13 @@ namespace Metal_Code
         {
             //подключаемся к базе данных
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
-            bool isAvalaible = db.Database.CanConnect();                            //проверяем, свободна ли база для подключения
-            if (isAvalaible && ManagerDrop.SelectedItem is Manager man)             //если база свободна, получаем выбранного менеджера
+            bool isAvalaible = db.Database.CanConnect();                    //проверяем, свободна ли база для подключения
+            if (isAvalaible)                                                //если база свободна, получаем выбранного менеджера
             {
                 try
                 {
                     //ищем менеджера в базе по имени соответствующего выбранному, при этом загружаем его расчеты
-                    Manager? _man = db.Managers.FirstOrDefault(m => m.Id == man.Id);
+                    Manager? _man = db.Managers.FirstOrDefault(m => m.Id == TargetManager.Id);
 
                     if (isSave)     //если метод запущен с параметром true, то есть в режиме сохранения
                     {
@@ -991,7 +1025,7 @@ namespace Metal_Code
                             if (_offer != null)
                             {
                                 //добавляем расчет во временный список для удаления из основной базы, если текущий менеджер - владелец расчета
-                                if (IsLocal && CurrentManager == man)
+                                if (IsLocal && CurrentManager == TargetManager)
                                 {
                                     if (TempOffersDict.TryGetValue(0, out List<Offer>? addList))
                                     {
@@ -1017,7 +1051,7 @@ namespace Metal_Code
 
                     if (isSave)
                     {
-                        ViewOffersGrid(man);    //и обновляем datagrid, если появился новый расчет
+                        ViewOffersGrid();       //и обновляем datagrid, если появился новый расчет
 
                         Customer? _customer = db.Customers.FirstOrDefault(x => x.Name == CustomerDrop.Text);
                         if (_customer is null)
@@ -1310,6 +1344,7 @@ namespace Metal_Code
             convert,                    //конвертация файлов dwg в dxf
             refresh,                    //получение расчетов из основной базы
             insert,                     //отправка расчетов в основную базу
+            search,                     //поиск расчетов
             restartBases,               //перезапуск программы при обновлении баз
             restartApp,                 //перезапуск программы при обновлении программы
             exit,                       //выход из программы
@@ -1317,13 +1352,9 @@ namespace Metal_Code
 
         public ActionState State = ActionState.none;
 
-        private void CreateWorker(Func<Manager, string> func, ActionState state)        //метод создания фонового процесса
+        private void CreateWorker(Func<string> func, ActionState state)        //метод создания фонового процесса
         {
-            if (ManagerDrop.SelectedItem is not Manager man) return;
-
-            TargetManager = man;
             State = state;
-
             InsertProgressBar.Visibility = Visibility.Visible;
 
             switch (State)
@@ -1342,6 +1373,11 @@ namespace Metal_Code
                     StatusBegin($"Подождите, идет отправка расчетов в основную базу...");
                     InsertTb.Text = "Отправление...";
                     InsertBtn.IsEnabled = false;
+                    break;
+                case ActionState.search:
+                    StatusBegin($"Подождите, идет поиск расчетов по заданным параметрам...");
+                    SearchBtn.Content = "Поиск...";
+                    SearchBtn.IsEnabled = false;
                     break;
                 case ActionState.restartBases:
                     StatusBegin($"Подождите, идет обновление локальных баз с последующей перезагрузкой...");
@@ -1370,7 +1406,7 @@ namespace Metal_Code
 
         void Worker_DoWork(object sender, DoWorkEventArgs e)                            //обработчик события запуска фонового процесса
         {
-            if (e.Argument is Func<Manager, string> func) e.Result = func(TargetManager);
+            if (e.Argument is Func<string> func) e.Result = func();
         }
 
         void Worker_ProgressChanged(object sender, ProgressChangedEventArgs e)          //обработчик промежуточных результатов фонового процесса
@@ -1392,13 +1428,20 @@ namespace Metal_Code
                     StatusBegin($"{e.Result}");
                     RefreshBtn.IsEnabled = true;
                     RefreshTb.Text = "Получить";
+                    ViewOffersGrid();
                     InsertProgressBar.Visibility = Visibility.Collapsed;
-                    ViewOffersGrid(TargetManager);
                     break;
                 case ActionState.insert:
                     StatusBegin($"{e.Result}");
                     InsertBtn.IsEnabled = true;
                     InsertTb.Text = "Отправить";
+                    InsertProgressBar.Visibility = Visibility.Collapsed;
+                    break;
+                case ActionState.search:
+                    StatusBegin($"{e.Result}");
+                    SearchBtn.IsEnabled = true;
+                    SearchBtn.Content = "Поиск";
+                    ViewOffersGrid(Offers);
                     InsertProgressBar.Visibility = Visibility.Collapsed;
                     break;
                 case ActionState.restartBases:
@@ -2946,9 +2989,9 @@ namespace Metal_Code
                             if (!isPaint)
                             {
                                 //"Название"
-                                tasksheet.Cells[temp, 1].Value += $"{_paint.Ral}";
+                                tasksheet.Cells[temp, 1].Value += $"{CustomerDrop.Text}({ShortManager()}) {_paint.Ral}";
                                 //"Исполнитель"
-                                tasksheet.Cells[temp, 4].Value = $"Алексей Сергеев";
+                                tasksheet.Cells[temp, 4].Value = $"Леонид Шишлин";
                                 //"Проект"
                                 tasksheet.Cells[temp, 5].Value = "Нанесение покрытий";
                                 //"Время на выполнение задачи в секундах"
@@ -2965,10 +3008,10 @@ namespace Metal_Code
                             if (!isProd)
                             {
                                 //"Название"
-                                if (w.workType is ExtraControl extra) tasksheet.Cells[temp, 1].Value += $"{extra.NameExtra}";
-                                else tasksheet.Cells[temp, 1].Value += $"{work.Name}";
+                                if (w.workType is ExtraControl extra) tasksheet.Cells[temp, 1].Value += $"{CustomerDrop.Text}({ShortManager()}) {extra.NameExtra}";
+                                else tasksheet.Cells[temp, 1].Value += $"{CustomerDrop.Text}({ShortManager()}) {work.Name}";
                                 //"Исполнитель"
-                                tasksheet.Cells[temp, 4].Value = $"Алексей Сергеев";
+                                tasksheet.Cells[temp, 4].Value = $"Леонид Шишлин";
                                 //"Проект"
                                 tasksheet.Cells[temp, 5].Value = "Производство";
                                 //"Время на выполнение задачи в секундах"
@@ -3557,8 +3600,14 @@ namespace Metal_Code
         }
         private void ReportView()
         {
-            if (ReportOffers.Count == 0) return;
-            
+            if (ReportOffers.Count == 0)
+            {
+                if (ReportStack.Children.Count > 0)
+                    foreach (TextBox tBox in ReportStack.Children.OfType<TextBox>())
+                        tBox.Text = "";
+                return;
+            }
+
             List<Offer> _agentFalse = ReportOffers.Where(o => o.Agent == false).ToList();   //ООО
             List<Offer> _agentTrue = ReportOffers.Where(o => o.Agent == true).ToList();     //ИП и ПК
 
@@ -3588,6 +3637,8 @@ namespace Metal_Code
 
             salary = Math.Ceiling(bonusOOO > 0 ? bonusOOO + bonusIP + 50000 : bonusIP + 30000);
             Salary.Text = $"{salary}";
+
+            StatusBegin($"Отчет успешно обновлен. Количество подотчетных расчетов - {ReportOffers.Count}");
         }
 
         public static string ExtractAgent(Offer offer)
@@ -4010,7 +4061,7 @@ namespace Metal_Code
                 CreateWorker(Convert_dwg_to_dxf, ActionState.convert);
             }
         }
-        public string Convert_dwg_to_dxf(Manager man)
+        public string Convert_dwg_to_dxf()
         {
             try
             {
@@ -4432,6 +4483,5 @@ namespace Metal_Code
             StatusBegin($"Лазер: {Math.Round((decimal)timeLaser / 60 / 12)} дней; Гибка: {Math.Round((decimal)timeBend / 60 / 12)} дней; Кол-во папок в работе - {dirs.Length}");
         }
         #endregion
-
     }
 }
