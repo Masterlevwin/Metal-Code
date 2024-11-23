@@ -2,6 +2,7 @@
 using System.Linq;
 using System;
 using System.Windows;
+using System.IO;
 
 namespace Metal_Code
 {
@@ -89,7 +90,33 @@ namespace Metal_Code
 
             DialogResult = true;
 
+            AddManagerToMainDatabase(manager);    //добавляем нового зарегистрированного менеджера в основную базу
+
             MessageBox.Show($"Обязательно запомните или запишите свой пароль \"{password}\"\nФункция восстановления пароля не предусмотрена!");
+        }
+
+        private void AddManagerToMainDatabase(Manager man)
+        {
+            if (!MainWindow.M.IsLocal || !File.Exists(MainWindow.M.connections[1])) return;
+
+            using ManagerContext db = new(MainWindow.M.connections[1]);
+
+            //проверяем наличие менеджера в основной базе по имени
+            Manager? manager = db.Managers.FirstOrDefault(x => x.Name == man.Name);
+
+            if (manager is null)
+            {
+                Manager _man = new()
+                {
+                    Name = man.Name,
+                    Contact = man.Contact,
+                    Password = man.Password,
+                    IsAdmin = man.IsAdmin,
+                    IsEngineer = man.IsEngineer,
+                    IsLaser = man.IsLaser,
+                };
+                db.Managers.Add(_man);
+            }
         }
 
         private void Exit(object sender, RoutedEventArgs e)
