@@ -185,7 +185,7 @@
 
                         <TextBlock Text="Ваш менеджер:" HorizontalAlignment="Left" Margin="15,165,0,0" VerticalAlignment="Top"/>
                         <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged" HorizontalAlignment="Left" Margin="110,160,0,0" VerticalAlignment="Top" Width="148" MinHeight="20"/>
-                        <Button Margin="265,160,0,0" BorderThickness="0" Click="UpdateOffersCollection" ToolTip="Обновить" HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <Button x:Name="UpdateBtn" Margin="265,160,0,0" BorderThickness="0" Click="UpdateOffersCollection" ToolTip="Обновить" HorizontalAlignment="Left" VerticalAlignment="Top">
                             <Image Source="/Images/update.png" MaxWidth="20" MaxHeight="20"/>
                         </Button>
 

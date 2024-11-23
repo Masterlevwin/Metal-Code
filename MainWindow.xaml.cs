@@ -983,7 +983,7 @@ namespace Metal_Code
 
                         _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
                         ActiveOffer = _offer;
-                        StatusBegin($"Расчет {_offer.N} {_offer.Company} сохранен.");
+                        message = $"Расчет {_offer.N} {_offer.Company} сохранен.";
                     }
                     else            //если метод запущен с параметром false, то есть в режиме удаления
                     {
@@ -1213,16 +1213,21 @@ namespace Metal_Code
                     StatusBegin($"Подождите, идет получение расчетов из основной базы...");
                     RefreshTb.Text = "Получение...";
                     RefreshBtn.IsEnabled = false;
+                    InsertBtn.IsEnabled = false;
+                    UpdateBtn.IsEnabled = false;
                     break;
                 case ActionState.insert:
                     StatusBegin($"Подождите, идет отправка расчетов в основную базу...");
                     InsertTb.Text = "Отправление...";
                     InsertBtn.IsEnabled = false;
+                    RefreshBtn.IsEnabled = false;
+                    UpdateBtn.IsEnabled = false;
                     break;
                 case ActionState.search:
                     StatusBegin($"Подождите, идет поиск расчетов по заданным параметрам...");
                     SearchBtn.Content = "Поиск...";
                     SearchBtn.IsEnabled = false;
+                    UpdateBtn.IsEnabled = false;
                     break;
                 case ActionState.update:
                     StatusBegin($"Подождите, идет обновление базы...");
@@ -1275,17 +1280,18 @@ namespace Metal_Code
                     ConvertBtn.Content = "Конвертер";
                     InsertProgressBar.Visibility = Visibility.Collapsed;
                     break;
-                case ActionState.get:
-                    RefreshBtn.IsEnabled = true;
+                case ActionState.get:             
                     RefreshTb.Text = "Получить";
+                    RefreshBtn.IsEnabled = true;
+                    InsertBtn.IsEnabled = true;
                     InsertProgressBar.Visibility = Visibility.Collapsed;
                     message = $"{e.Result}";
                     CreateWorker(UpdateOffersCollection, ActionState.update);
                     break;
                 case ActionState.insert:
-                    StatusBegin($"{e.Result}");
-                    InsertBtn.IsEnabled = true;
                     InsertTb.Text = "Отправить";
+                    InsertBtn.IsEnabled = true;
+                    RefreshBtn.IsEnabled = true;
                     InsertProgressBar.Visibility = Visibility.Collapsed;
                     message = $"{e.Result}";
                     CreateWorker(UpdateOffersCollection, ActionState.update);
@@ -1300,9 +1306,10 @@ namespace Metal_Code
                 case ActionState.update:
                     ManagerChanged();
                     StatusBegin($"{e.Result}");
-                    IsEnabled = true;
-                    InsertProgressBar.Visibility = Visibility.Collapsed;
                     message = null;
+                    IsEnabled = true;
+                    UpdateBtn.IsEnabled = true;
+                    InsertProgressBar.Visibility = Visibility.Collapsed;
                     break;
                 case ActionState.restartBases:
                     System.Windows.Forms.Application.Restart();

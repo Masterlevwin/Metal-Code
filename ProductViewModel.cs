@@ -119,7 +119,7 @@ namespace Metal_Code
                               MainWindow.M.ActiveOffer = null;
                               Product = fileService.Open(dialogService.FilePaths[0]);
                               MainWindow.M.LoadProduct();
-                              MainWindow.M.StatusBegin($"Файл открыт");
+                              MainWindow.M.StatusBegin($"Расчет {Product?.Order} открыт.");
                           }
                       }
                       catch (Exception ex)
@@ -146,7 +146,7 @@ namespace Metal_Code
                               MainWindow.M.ActiveOffer = offer;
                               Product = MainWindow.OpenOfferData(offer.Data);
                               MainWindow.M.LoadProduct();
-                              MainWindow.M.StatusBegin($"Расчет {MainWindow.M.ActiveOffer.N} загружен");
+                              MainWindow.M.StatusBegin($"Расчет {MainWindow.M.ActiveOffer.N} загружен.");
                           }
                       }
                       catch (Exception ex)
