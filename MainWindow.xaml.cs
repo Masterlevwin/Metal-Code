@@ -40,7 +40,7 @@ namespace Metal_Code
         public static MainWindow M = new();
 
         public readonly string[] connections =
-        {
+        {   //дом
             "Data Source=managers.db",
             $"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
             "Data Source=typedetails.db",
@@ -50,8 +50,10 @@ namespace Metal_Code
             "Data Source=metals.db",
             $"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
             $"C:\\Users\\Михаил\\Desktop\\Тесты\\Производство",
-            $"C:\\ProgramData\\Metal-Code"                                                                                    //дом
+            $"C:\\ProgramData\\Metal-Code",
+            $"C:\\ProgramData"
 
+            //прод
             //"Data Source=managers.db",
             //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
             //"Data Source=typedetails.db",
@@ -61,8 +63,11 @@ namespace Metal_Code
             //"Data Source=metals.db",
             //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
             //$"Y:\\Производство\\Laser rezka\\В работу",
-            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"                        //прод
+            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local",
+            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер"
         };
+
+        //public BaseContext db = new(M.connections[10]);
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
 

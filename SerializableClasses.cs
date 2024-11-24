@@ -330,4 +330,23 @@ namespace Metal_Code
             optionsBuilder.UseSqlite(connectionString);
         }
     }
+
+    public class BaseContext : DbContext
+    {
+        public DbSet<Manager> Managers { get; set; } = null!;
+        public DbSet<Offer> Offers { get; set; } = null!;
+        public DbSet<Customer> Customers { get; set; } = null!;
+
+        public string connectionString;
+
+        public BaseContext(string connectionString)
+        {
+            this.connectionString = connectionString;   // получаем извне строку подключения
+            Database.EnsureCreated();
+        }
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseNpgsql($"Host={connectionString};Port=5432;Database=managersdb;Username=postgres;Password=laserpro");
+        }
+    }
 }
