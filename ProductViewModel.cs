@@ -71,8 +71,8 @@ namespace Metal_Code
             {
                 return saveCommand ??= new RelayCommand(obj =>
                   {
-                      try
-                      {
+                      //try
+                      //{
                           MainWindow.M.UpdateResult();
                           if (dialogService.SaveFileDialog() == true && dialogService.FilePaths != null)
                           {
@@ -83,13 +83,14 @@ namespace Metal_Code
 
                               fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());     //сохраняем расчет в папке
                               MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);           //формируем КП в формате excel
-                              MainWindow.M.SaveOrRemoveOffer(true);                             //сохраняем расчет в базе данных
+                              MainWindow.M.SaveOffer(dialogService.FilePaths[0]);               //сохраняем расчет в базе данных
+                              //MainWindow.M.SaveOrRemoveOffer(true, dialogService.FilePaths[0]); //сохраняем расчет в базе данных
                           }
-                      }
-                      catch (Exception ex)
-                      {
-                          dialogService.ShowMessage(ex.Message);
-                      }
+                      //}
+                      //catch (Exception ex)
+                      //{
+                      //    dialogService.ShowMessage(ex.Message);
+                      //}
                   });
             }
         }
@@ -269,7 +270,8 @@ namespace Metal_Code
                               MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
                           if (response == MessageBoxResult.No) return;
                       }
-                      MainWindow.M.SaveOrRemoveOffer(false);
+                      MainWindow.M.RemoveOffer((Offer)MainWindow.M.OffersGrid.SelectedItem);
+                      //MainWindow.M.SaveOrRemoveOffer(false);
                   });
             }
         }

@@ -46,9 +46,10 @@ namespace Metal_Code
             "Data Source=works.db",
             $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\works.db",
             "Data Source=metals.db",
-            $"Data Source = C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы\\metals.db",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\bin\\Release\\net7.0-windows",
-            $"C:\\Users\\User\\source\\repos\\Masterlevwin\\Metal-Code\\ver.2.4.3_Восстановить базы"                            //рабочий комп
+            $"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
+            $"C:\\Users\\Михаил\\Desktop\\Тесты\\Производство",
+            $"C:\\ProgramData\\Metal-Code",
+            $"localhost"
 
             //"Data Source=managers.db",
             //$"Data Source = C:\\Users\\maste\\Metal-Code\\ver.2.4.3_Восстановить базы\\managers.db",
@@ -72,6 +73,8 @@ namespace Metal_Code
             //$"Y:\\Производство\\Laser rezka\\В работу",
             //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local"                        //прод
         };
+
+        public BaseContext db;
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
 
@@ -521,6 +524,266 @@ namespace Metal_Code
         #endregion
 
 
+            //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
+
+            //if (!CheckVersion(out string _version)) Restart();
+            //UpdateDatabases();
+
+            //AutoRemoveOffers();
+
+            db = new(M.connections[10]);
+            DataContext = ProductModel;
+            Loaded += LoadDataBases;
+        }
+
+
+        //-------------Основные методы-----------//
+        #region
+        private void LoadDataBases(object sender, RoutedEventArgs e)    // при загрузке окна
+        {
+            using TypeDetailContext dbT = new(IsLocal ? connections[2] : connections[3]);
+            dbT.TypeDetails.Load();
+            TypeDetails = dbT.TypeDetails.Local.ToObservableCollection();
+
+            using WorkContext dbW = new(IsLocal ? connections[4] : connections[5]);
+            dbW.Works.Load();
+            Works = dbW.Works.Local.ToObservableCollection();
+
+            using MetalContext dbM = new(IsLocal ? connections[6] : connections[7]);
+            dbM.Metals.Load();
+            Metals = dbM.Metals.Local.ToObservableCollection();
+
+            InitializeDict();
+
+            //using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
+            db.Managers.Load();
+            Managers = db.Managers.Local.ToObservableCollection();
+            ManagerDrop.ItemsSource = Managers;
+
+            db.Offers.Load();
+            Offers = db.Offers.Local.ToObservableCollection();
+
+            db.Customers.Load();
+            Customers = db.Customers.Local.ToObservableCollection();
+
+            //if (Managers.Count == 0) ShowWindow(new RegistrationWindow());  //если пользователей в базе нет, запускаем процесс регистрации
+            //else if (!CheckMachine())                                       //проверяем защитный файл
+            //{
+            //    MessageBox.Show($"Данная копия программы защищена. Ее невозможно запустить на этом компьютере!");
+            //    Environment.Exit(0);
+            //}
+            //else if (!CheckMachineName()) ShowWindow(new LoginWindow());    //проверяем пользователя
+            //else NewProject();                                              //если все проверки пройдены, создаем новый проект
+        }
+
+        private void InitializeDict()       //метод заполнения словарей значениями
+        {
+            foreach (Metal metal in Metals)
+            {
+                if (metal.Name != null && metal.WayPrice != null && metal.PinholePrice != null && metal.MoldPrice != null)
+                {
+                    Dictionary<float, (float, float, float)> prices = new();
+
+                    string[] _ways = metal.WayPrice.Split('/');
+                    string[] _pinholes = metal.PinholePrice.Split('/');
+                    string[] _molds = metal.MoldPrice.Split('/');
+
+                    for (int i = 0; i < _ways.Length; i++) prices[Destinies[i]] = (Parser(_ways[i]), Parser(_pinholes[i]), Parser(_molds[i]));
+
+                    MetalDict[metal.Name] = prices;
+                }
+            }
+
+            for (int i = 0; i < Destinies.Count; i++)
+            {
+                if (Destinies[i] <= 3) WideDict[Destinies[i]] = 0;
+                else WideDict[Destinies[i]] = (float)Math.Round(0.1f * (i + 2) - 1, 1);
+            }
+
+            foreach (Metal met in Metals)
+            {
+                if (met == null || met.Name == null) continue;
+
+                if (met.Name == "09г2с" || met.Name.Contains("амг")) MetalRatioDict[met] = 1.5f;
+                else if (met.Name.Contains("aisi")) MetalRatioDict[met] = 2;
+                else MetalRatioDict[met] = 1;
+            }
+        }
+
+        private void OpenSettings(object sender, RoutedEventArgs e)     // пункт меню настройки баз
+        {
+            IsEnabled = false;
+            if (sender == Settings.Items[0])
+            {
+                TypeDetailWindow typeDetailWindow = new();
+                typeDetailWindow.Show();
+            }
+            else if (sender == Settings.Items[1])
+            {
+                WorkWindow workWindow = new();
+                workWindow.Show();
+            }
+            else if (sender == Settings.Items[2])
+            {
+                ManagerWindow managerWindow = new();
+                managerWindow.Show();
+            }
+            else if (sender == Settings.Items[3])
+            {
+                MetalWindow metalWindow = new();
+                metalWindow.Show();
+            }
+        }
+
+        public static bool CheckMachine()   // проверка серийного номера жесткого диска
+        {
+            ManagementObjectSearcher searcher = new("SELECT * FROM Win32_PhysicalMedia");
+
+            foreach (ManagementObject hdd in searcher.Get().Cast<ManagementObject>())
+                if (DecryptFile(out string s) && s == $"{hdd["SerialNumber"]}") return true;
+
+            return false;
+        }
+
+        public static void EncryptFile()    // создание защитного файла
+        {
+            if (File.Exists(Directory.GetCurrentDirectory() + "\\encrypt.dat")) return;
+
+            ManagementObjectSearcher searcher = new("SELECT * FROM Win32_PhysicalMedia");
+
+            foreach (ManagementObject hdd in searcher.Get().Cast<ManagementObject>())
+            {
+                using FileStream fs = File.Create(Directory.GetCurrentDirectory() + "\\encrypt.dat");
+                byte[] info = new UTF8Encoding(true).GetBytes($"{hdd["SerialNumber"]}");
+                fs.Write(info, 0, info.Length);
+                break;
+            }
+        }
+
+        public static bool DecryptFile(out string s)    // проверка защитного файла
+        {
+            s = "";
+            if (!File.Exists(Directory.GetCurrentDirectory() + "\\encrypt.dat")) return false;
+
+            using StreamReader sr = File.OpenText(Directory.GetCurrentDirectory() + "\\encrypt.dat");
+            s = sr.ReadLine();
+            return true;
+        }
+
+        private bool CheckMachineName()     // авторизация на основе имени компьютера
+        {
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
+
+            db.Managers.Load();
+            Managers = db.Managers.Local.ToObservableCollection();
+
+            Manager? manager = Managers.FirstOrDefault(c => c.Contact == Environment.MachineName);
+
+            if (manager != null)
+            {
+                ManagerDrop.ItemsSource = Managers.Where(m => !m.IsEngineer);     //список ТОЛЬКО менеджеров (для выставления КП)
+                UserDrop.ItemsSource = Managers;                                  //список ВСЕХ пользователей (для отчетов)
+
+                db.Customers.Load();
+                Customers = db.Customers.Local.ToObservableCollection();
+
+                CurrentManager = manager;                                                       //определяем текущего менеджера
+                Login.Header = CurrentManager.Name;
+                if (ManagerDrop.Items.Contains(manager)) ManagerDrop.SelectedItem = manager;    //устанавливаем менеджера по умолчанию
+
+                UserDrop.SelectedItem = CurrentManager;
+                if (CurrentManager.IsEngineer)
+                {
+                    IsEnabled = false;
+                    if (CurrentManager.IsEngineer)
+                    {
+                        SetManagerWindow setManagerWindow = new();
+                        if (setManagerWindow.ShowDialog() == true) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
+                    }
+                    else ManagerDrop.SelectedItem = CurrentManager;
+                    IsEnabled = true;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private void ShowLoginWindow(object sender, RoutedEventArgs e)  // обработчик пункта меню "Сменить пользователя"
+        {
+            MessageBoxResult response = MessageBox.Show("Сменить текущего пользователя?\nЕсли \"Да\", потребуется авторизация, и текущий расчет будет очищен!", "Сменить пользователя",
+                               MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+            if (response == MessageBoxResult.No) return;
+            else ShowWindow(new LoginWindow());
+        }
+
+        private void ShowWindow(Window window)          // установка текущего и выбранного менеджеров
+        {
+            IsEnabled = false;
+
+            if (window.ShowDialog() == true)
+            {
+                UserDrop.SelectedItem = CurrentManager;
+                if (CurrentManager.IsEngineer)
+                {
+                    SetManagerWindow setManagerWindow = new();
+                    if (setManagerWindow.ShowDialog() == true) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
+                }
+                else ManagerDrop.SelectedItem = CurrentManager;
+
+                IsEnabled = true;
+                NewProject();
+            }
+        }
+
+        private void ManagerChanged(object sender, SelectionChangedEventArgs e)     //при смене менеджера
+        {
+            if (ManagerDrop.SelectedItem is Manager man)
+            {
+                TargetManager = man;
+                IsLaser = TargetManager.IsLaser;
+                ManagerChanged();
+            }
+        }
+        private void ManagerChanged()
+        {
+            CustomerDrop.ItemsSource = Customers.Where(m => m.ManagerId == TargetManager.Id).OrderBy(s => s.Name);
+            OffersGrid.ItemsSource = Offers.Where(m => m.ManagerId == TargetManager.Id);
+
+            if (TargetManager == CurrentManager)
+            {
+                DateTime now = DateTime.Now;
+                DateTime thisMonth = new(now.Year, now.Month, 1);
+                DateTime futureMonth = thisMonth.AddMonths(1);
+
+                ReportOffers = Offers.Where(o => o.Order != null && o.Order != ""
+                                && o.CreatedDate >= thisMonth && o.CreatedDate < futureMonth).ToList();
+                ReportGrid.ItemsSource = ReportOffers;
+                ReportView();
+            }
+            else ReportOffers.Clear();
+        }
+        //private void ManagerChanged()
+        //{
+        //    CurrentCustomers = Customers.Where(m => m.ManagerId == TargetManager.Id).OrderBy(s => s.Name).ToList();
+        //    CustomerDrop.ItemsSource = CurrentCustomers;
+
+        //    CurrentOffers = Offers.Where(m => m.ManagerId == TargetManager.Id).TakeLast(23).ToList();
+        //    OffersGrid.ItemsSource = CurrentOffers;
+
+        //    if (TargetManager == CurrentManager)
+        //    {
+        //        DateTime now = DateTime.Now;
+        //        DateTime thisMonth = new(now.Year, now.Month, 1);
+        //        DateTime futureMonth = thisMonth.AddMonths(1);
+
+        //        ReportOffers = Offers.Where(o => o.Order != null && o.Order != ""
+        //                        && o.CreatedDate >= thisMonth && o.CreatedDate < futureMonth).ToList();
+        //        ReportGrid.ItemsSource = ReportOffers;
+        //        ReportView();
+        //    }
+        //    else ReportOffers.Clear();
+        //}
+
         //---------Общий результат расчета и его обновление-------//
         private float result;
         public float Result
@@ -635,8 +898,11 @@ namespace Metal_Code
 
         private void SearchOffers(object sender, RoutedEventArgs e)         //метод фильтра расчетов по номеру, компании или диапазону дат
         {
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);       //подключаемся к базе данных
-            bool isAvalaible = db.Database.CanConnect();                                    //проверяем, свободна ли база для подключения
+            //using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
+            db.Offers.Load();
+            Offers = db.Offers.Local.ToObservableCollection();
+            db.Customers.Load();
+            Customers = db.Customers.Local.ToObservableCollection();
 
             if (isAvalaible && ManagerDrop.SelectedItem is Manager man)
             {
@@ -816,7 +1082,46 @@ namespace Metal_Code
         }
 
 
-        public void SaveOrRemoveOffer(bool isSave)                          //метод сохранения и удаления расчета
+        public void SaveOffer(string path)
+        {
+            //сначала создаем новое КП
+            Offer offer = new(Order.Text, CustomerDrop.Text, Result, GetMetalPrice(), GetServices())
+            {
+                Agent = IsAgent,
+                EndDate = EndDate(),
+                Manager = TargetManager,
+                Data = SaveOfferData(),     //сериализуем расчет в виде строки json
+                Act = path                  //запоминаем путь к расчету
+            };
+
+            //при необходимости перезаписываем имя автора расчета
+            if (ActiveOffer?.Autor == CurrentManager.Name || ActiveOffer is null) offer.Autor = CurrentManager.Name;
+            else offer.Autor = $"{ActiveOffer?.Autor}\n{CurrentManager.Name} ({offer.CreatedDate})";
+
+            //ищем менеджера в базе по имени соответствующего выбранному
+            Manager? _man = db.Managers.FirstOrDefault(m => m.Id == TargetManager.Id);
+
+            _man?.Offers.Add(offer);       //добавляем созданный расчет в базу этого менеджера
+            ActiveOffer = offer;
+            message = $"Расчет {offer.N} {offer.Company} сохранен.";
+            db.SaveChanges();              //сохраняем изменения в базе данных
+            CreateWorker(UpdateOffersCollection, ActionState.update);
+
+            Customer? _customer = db.Customers.FirstOrDefault(x => x.Name == CustomerDrop.Text);
+            if (_customer is null)
+                MessageBox.Show($"Заказчик {CustomerDrop.Text} не сохранен в базе. Добавьте его данные в базу, чтобы использовать их повторно.");
+            if (!CheckVersion(out string _version)) MessageBox.Show($"Текущая версия не актуальна. Рекомендуется обновить программу.");
+        }
+
+        public void RemoveOffer(Offer offer)
+        {
+            db.Offers.Remove(offer);
+            message = $"Расчет {offer.N} {offer.Company} удален.";
+            db.SaveChanges();
+            CreateWorker(UpdateOffersCollection, ActionState.update);
+        }
+
+        public void SaveOrRemoveOffer(bool isSave, string? path = null)     //метод сохранения и удаления расчета
         {
             //подключаемся к базе данных
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
@@ -893,46 +1198,89 @@ namespace Metal_Code
 
         private void UpdateOffer(object sender, RoutedEventArgs e)          //метод сохранения изменений в расчете
         {
-            //подключаемся к базе данных
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
-            bool isAvalaible = db.Database.CanConnect();                        //проверяем, свободна ли база для подключения
-            if (isAvalaible && OffersGrid.SelectedItem is Offer offer)          //если база свободна, получаем выбранный расчет
-            {
-                try
-                {
-                    Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
-                    if (_offer != null)
-                    {                               //менять можно только агента, номер счета, дату создания и номер заказа
-                        _offer.Agent = offer.Agent;
-                        db.Entry(_offer).Property(o => o.Agent).IsModified = true;
-                        _offer.Invoice = offer.Invoice;
-                        db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
-                        _offer.CreatedDate = offer.CreatedDate;
-                        db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
-                        _offer.Order = offer.Order;
-                        db.Entry(_offer).Property(o => o.Order).IsModified = true;
+            if (OffersGrid.SelectedItem is Offer offer) UpdateOffer(offer);
+        }
+                            db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
+        public void UpdateOffer(Offer offer)
+        {
+            db.SaveChanges();                                               //сохраняем изменения в базе данных
+            message = $"Расчет {offer.N} {offer.Company} изменен.";
+            CreateWorker(UpdateOffersCollection, ActionState.update);
 
-                        //добавляем расчет во временный список для синхронизации с основной базой
+            if (ActiveOffer?.CreatedDate == offer.CreatedDate && Parts.Count > 0)
+                CreateComplect(connections[8], offer);                     //создаем файлы комплектации и списка задач
+        }
                         if (IsLocal && ManagerDrop.SelectedItem is Manager man && CurrentManager == man)
                         {
                             if (TempOffersDict.TryGetValue(0, out List<Offer>? addList))
                             {
-                                Offer? off = addList.FirstOrDefault(o => o.Data == offer.Data);
+                                Offer? off = addList.FirstOrDefault(o => o.CreatedDate == offer.CreatedDate);
                                 if (off != null)
                                 {
                                     off.Agent = offer.Agent;
                                     off.Invoice = offer.Invoice;
-                                    off.CreatedDate = offer.CreatedDate;
                                     off.Order = offer.Order;
                                 }
                             }
                             TempOffersDict[2].Add(_offer);
                         }
 
-                        db.SaveChanges();                                               //сохраняем изменения в базе данных
-                        StatusBegin("Изменения в базе сохранены");
+        //private void UpdateOffer(object sender, RoutedEventArgs e)          //метод сохранения изменений в расчете
+        //{
+        //    //подключаемся к базе данных
+        //    using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
+        //    bool isAvalaible = db.Database.CanConnect();                        //проверяем, свободна ли база для подключения
+        //    if (isAvalaible && OffersGrid.SelectedItem is Offer offer)          //если база свободна, получаем выбранный расчет
+        //    {
+        //        try
+        //        {
+        //            Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
+        //            if (_offer != null)
+        //            {                   //менять можно только агента, номер счета, дату создания и номер заказа
+        //                if (_offer.Agent != offer.Agent)
+        //                {
+        //                    _offer.Agent = offer.Agent;
+        //                    db.Entry(_offer).Property(o => o.Agent).IsModified = true;
+        //                }
+        //                if (_offer.Invoice != offer.Invoice)
+        //                {
+        //                    _offer.Invoice = offer.Invoice;
+        //                    db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
+        //                }
+        //                if (_offer.CreatedDate != offer.CreatedDate)
+        //                {
+        //                    _offer.CreatedDate = offer.CreatedDate;
+        //                    db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
+        //                }
+        //                if (_offer.Order != offer.Order)
+        //                {
+        //                    _offer.Order = offer.Order;
+        //                    db.Entry(_offer).Property(o => o.Order).IsModified = true;
+        //                    _offer.CreatedDate = DateTime.UtcNow;
+        //                    db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
+        //                }
 
-                        if (ActiveOffer?.Data == _offer.Data && Parts.Count > 0) CreateComplect(connections[8], _offer);    //создаем файл комплектации
+        //                //добавляем расчет во временный список для синхронизации с основной базой
+        //                if (IsLocal && ManagerDrop.SelectedItem is Manager man && CurrentManager == man)
+        //                {
+        //                    if (TempOffersDict.TryGetValue(0, out List<Offer>? addList))
+        //                    {
+        //                if (ActiveOffer?.CreatedDate == _offer.CreatedDate && Parts.Count > 0)
+        //                    CreateComplect(connections[8], _offer);                     //создаем файлы комплектации и списка задач
+        //            }
+        //        }
+        //        catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
+        //    }
+        //}
+        //                    }
+        //                    TempOffersDict[2].Add(_offer);
+        //                }
+
+        //                db.SaveChanges();                                               //сохраняем изменения в базе данных
+        //                StatusBegin("Изменения в базе сохранены");
+
+                        if (ActiveOffer?.CreatedDate == _offer.CreatedDate && Parts.Count > 0)
+                            CreateComplect(connections[8], _offer);                     //создаем файлы комплектации и списка задач
                     }
                 }
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
@@ -2471,25 +2819,332 @@ namespace Metal_Code
             complectsheet.PrinterSettings.FitToPage = true;
             complectsheet.PrinterSettings.FitToWidth = 1;
             complectsheet.PrinterSettings.FitToHeight = 0;
-            complectsheet.PrinterSettings.HorizontalCentered = true;
+                        if (files.Length > 0)
+                        {
+                            workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {CustomerDrop.Text} - комплектация.xlsx");
+                            CreateRegistry(files[0], offer.Order);
 
-            //устанавливаем колонтитул (в данном случае будет подчеркнутое название файла)            
-            complectsheet.HeaderFooter.OddFooter.RightAlignedText = $"&24&U&\"Arial Rounded MT Bold\" {Path.GetFileNameWithoutExtension(ExcelHeaderFooter.FileName)}";
-
-            //сохраняем книгу в файл Excel
-            if (offer is not null && offer.Order is not null && Directory.Exists(_path))    //если в параметре передан расчет, подразумевается, что заказ создан
-            {                                                           //и файл комплектации нужно сохранить в папке заказа
-                string[] dirs = Directory.GetDirectories(_path);        //для этого получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
-                foreach (string s in dirs)
-                {
-                    if (s.Contains(offer.Order.Remove(4)))                    //ищем подкаталог с номером заказа
-                    {
-                        string[] files = Directory.GetFileSystemEntries(s);   //получаем все файлы в папке заказа, чтобы сохранить файл комплектации в директории этих файлов
-                        workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {CustomerDrop.Text} - комплектация.xlsx");
-                        StatusBegin($"Изменения в базе сохранены. Кроме того создан файл комплектации в папке {Path.GetDirectoryName(files[0])}");
-                        break;
+                            StatusBegin($"Изменения в базе сохранены. Кроме того созданы файлы комплектации и списка задач в папке {Path.GetDirectoryName(files[0])}");
+                            break;
+                        }
+                        else StatusBegin($"Изменения в базе сохранены. Но файл комплектации не создан, так как в папке заказа нет файлов.");
                     }
                 }
+            }
+            else
+            {
+                workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
+            }
+
+            if (offer is not null) UpdateRegistry(offer);
+        }
+
+        //-РЕЕСТР
+        private void UpdateRegistry(Offer offer)   // метод добавления номера заказа в ячейки реестров
+        {
+            if (offer.Act is null || !File.Exists(offer.Act)) return;
+
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var offerbook = new ExcelPackage(new FileInfo(offer.Act));
+            ExcelWorksheet? registrysheet = offerbook.Workbook.Worksheets.FirstOrDefault(x => x.Name == "Реестр");
+
+            if (registrysheet is not null)
+            {
+                foreach (var cell in registrysheet.Cells)
+                {
+                    if (cell.Value is not null && $"{cell.Value}" == "№ заказа")
+                    {
+                        int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count);
+
+                        for (int i = 1; i <= countTypeDetails; i++)
+                        {
+                            registrysheet.Cells[cell.Start.Row + i, cell.Start.Column].Value = offer.Order;
+                        }
+                    }
+
+                    if (cell.Value is not null && $"{cell.Value}" == "№ Проекта / Лазера")
+                    {
+                        registrysheet.Cells[cell.Start.Row + 1, cell.Start.Column].Value = offer.Order;
+                    }
+                }
+            }
+
+            // ----- сохраняем книгу в файл Excel -----
+            offerbook.SaveAs(offer.Act);      //сохраняем файл .xlsx
+        }
+
+        //-ЗАДАЧИ
+        private void CreateRegistry(string _path, string _order)
+        {
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var CSVbook = new ExcelPackage();
+            ExcelWorksheet tasksheet = CSVbook.Workbook.Worksheets.Add("Задачи");
+
+            List<string> headers = new()
+            {
+                "Название", "Описание", "Крайний срок", "Исполнитель", "Проект",
+                "Время на выполнение задачи в секундах", "Разрешить ответственному менять сроки задачи",
+                "Проконтролировать задачу после завершения", "Автоматически завершать задачу при завершении подзадач"
+            };
+            for (int col = 0; col < headers.Count; col++) tasksheet.Cells[1, col + 1].Value = headers[col];
+
+            string material = "";
+
+            int temp = 2;
+            foreach (DetailControl det in DetailControls)
+            {
+                bool isPaint = false;       //создана ли задача на "Нанесение покрытий"
+                int rowPaint = 0;           //номер задачи на "Нанесение покрытий"
+
+                bool isProd = false;        //создана ли задача на "Производство"
+                int rowProd = 0;            //номер задачи на "Производство"
+
+                foreach (TypeDetailControl type in det.TypeDetailControls)
+                {
+                    string description = "";        //Описание заготовки
+                    double _mass = Math.Ceiling(det.Detail.IsComplect ? type.Mass : type.Mass * type.Count);    //Масса
+
+                    foreach (WorkControl w in type.WorkControls)            //анализируем работы каждой типовой детали
+                    {
+                        if (w.Result == 0) continue;                        //пропускаем добавление нулевых работ
+
+                        //"Название"
+                        tasksheet.Cells[temp, 1].Value = $"{_order} ";
+                        //"Описание"
+                        tasksheet.Cells[temp, 2].Value = $"Заказчик: {CustomerDrop.Text}";
+
+                        if (w.workType is CutControl cut)
+                        {
+                            if ((type.MetalDrop.Text.Contains("ст") && type.S >= 3) || (type.MetalDrop.Text.Contains("хк") && type.S < 3)) description = $"s{type.S}";
+                            else if (type.MetalDrop.Text.Contains("амг2")) description = $"al{type.S}";
+                            else if (type.MetalDrop.Text.Contains("амг") || type.MetalDrop.Text.Contains("д16")) description = $"al{type.S} {type.MetalDrop.Text}";
+                            else if (type.MetalDrop.Text.Contains("латунь")) description = $"br{type.S}";
+                            else if (type.MetalDrop.Text.Contains("медь")) description = $"cu{type.S}";
+                            else description = $"s{type.S} {type.MetalDrop.Text}";
+
+                            //"Название"
+                            tasksheet.Cells[temp, 1].Value += $"{description}";
+                            //"Описание"
+                            tasksheet.Cells[temp, 2].Value += $", Количество материала: {_mass}, Комментарий: ";
+                            if (type.CheckMetal.IsChecked == false) tasksheet.Cells[temp, 2].Value += "Давальч. ";
+                            else
+                            {   //если требуется закупить материал, заполняем строку для задачи в снабжение
+                                if (cut.Items?.Count > 0)
+                                {
+                                    var _items = cut.Items?.GroupBy(c => c.sheetSize);      //группируем все листы по размеру
+                                    if (_items is not null)
+                                        foreach (var item in _items)    //каждую группу листов одного размера и их количество записываем в одну строку
+                                            material += $"Лист {description} ({item.Key}) - {item.Sum(s => s.sheets)} шт, ";
+                                }
+                                else material += $"Лист {description} ({type.A}x{type.B}) - {type.Count} шт, ";
+                            }
+                            if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 2].Value += $"{type.Comment}";
+                            //"Исполнитель"
+                            tasksheet.Cells[temp, 4].Value = $"Вячеслав Серебряков";
+                            //"Проект"
+                            tasksheet.Cells[temp, 5].Value = "Лазерные работы";
+                            //"Время на выполнение задачи в секундах"
+                            tasksheet.Cells[temp, 6].Value = Math.Ceiling(w.Result * 0.012f * 60) / w.Ratio;
+
+                            temp++;
+                        }
+                        else if (w.workType is BendControl)
+                        {
+                            //"Название"
+                            tasksheet.Cells[temp, 1].Value += $"{description} Гибка";
+                            //"Исполнитель"
+                            tasksheet.Cells[temp, 4].Value = $"Вячеслав Серебряков";
+                            //"Проект"
+                            tasksheet.Cells[temp, 5].Value = "Гибочные работы";
+                            //"Время на выполнение задачи в секундах"
+                            tasksheet.Cells[temp, 6].Value = Math.Ceiling(w.Result * 0.018f * 60) / w.Ratio;
+
+                            temp++;
+                        }
+                        else if (w.workType is PipeControl pipe)
+                        {
+                            description = $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+
+                            //"Название"
+                            tasksheet.Cells[temp, 1].Value += $"{description}";
+                            //"Описание"
+                            tasksheet.Cells[temp, 2].Value += $", Количество материала: {_mass}, Комментарий: ";
+                            if (type.CheckMetal.IsChecked == false) tasksheet.Cells[temp, 2].Value += "Давальч. ";
+                            else
+                            {   //если требуется закупить материал, заполняем строку для задачи в снабжение
+                                if (pipe.Items?.Count > 0)
+                                {
+                                    var _items = pipe.Items?.GroupBy(c => c.sheetSize);      //группируем все листы по размеру
+                                    if (_items is not null)
+                                        foreach (var item in _items)    //каждую группу листов одного размера и их количество записываем в одну строку
+                                            material += $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({item.Key}) - {item.Sum(s => s.sheets)} шт, ";
+                                }
+                                else material += $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({type.L}) - {type.Count} шт, ";
+                            }
+                            if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 2].Value += $"{type.Comment}";
+                            //"Исполнитель"
+                            tasksheet.Cells[temp, 4].Value = $"Вячеслав Серебряков";
+                            //"Проект"
+                            tasksheet.Cells[temp, 5].Value = "Труборез";
+                            //"Время на выполнение задачи в секундах"
+                            tasksheet.Cells[temp, 6].Value = Math.Ceiling(w.Result * 0.012f * 60) / w.Ratio;
+
+                            temp++;
+                        }
+                        else if (w.workType is PaintControl _paint)
+                        {
+                            if (!isPaint)
+                            {
+                                //"Название"
+                                tasksheet.Cells[temp, 1].Value += $"{CustomerDrop.Text}({ShortManager()}) {_paint.Ral}";
+                                //"Исполнитель"
+                                tasksheet.Cells[temp, 4].Value = $"Леонид Шишлин";
+                                //"Проект"
+                                tasksheet.Cells[temp, 5].Value = "Нанесение покрытий";
+                                //"Время на выполнение задачи в секундах"
+                                tasksheet.Cells[temp, 6].Value = Math.Ceiling(w.Result * 0.012f * 60) / w.Ratio;
+
+                                isPaint = true;
+                                rowPaint = temp;
+                                temp++;
+                            }
+                            else if (!$"{tasksheet.Cells[rowPaint, 1].Value}".Contains($"{_paint.Ral}")) tasksheet.Cells[rowPaint, 1].Value += $" {_paint.Ral}";
+                        }
+                        else if (w.WorkDrop.SelectedItem is Work work)
+                        {
+                            if (!isProd)
+                            {
+                                //"Название"
+                                if (w.workType is ExtraControl extra) tasksheet.Cells[temp, 1].Value += $"{CustomerDrop.Text}({ShortManager()}) {extra.NameExtra}";
+                                else tasksheet.Cells[temp, 1].Value += $"{CustomerDrop.Text}({ShortManager()}) {work.Name}";
+                                //"Исполнитель"
+                                tasksheet.Cells[temp, 4].Value = $"Леонид Шишлин";
+                                //"Проект"
+                                tasksheet.Cells[temp, 5].Value = "Производство";
+                                //"Время на выполнение задачи в секундах"
+                                tasksheet.Cells[temp, 6].Value = Math.Ceiling(w.Result * 0.012f * 60) / w.Ratio;
+
+                                isProd = true;
+                                rowProd = temp;
+                                temp++;
+                            }
+                            else if (w.workType is ExtraControl extra && !$"{tasksheet.Cells[rowProd, 1].Value}".Contains($"{extra.NameExtra}"))
+                                tasksheet.Cells[rowProd, 1].Value += $" {extra.NameExtra}";
+                            else if (w.workType is not ExtraControl && !$"{tasksheet.Cells[rowProd, 1].Value}".Contains($"{work.Name}"))
+                                tasksheet.Cells[rowProd, 1].Value += $" {work.Name}";
+                        }
+                    }
+                }
+            }
+
+            if (material != "")
+            {
+                //"Название"
+                tasksheet.Cells[temp, 1].Value = $"Закупка металла под заказ: {_order} {CustomerDrop.Text}";
+                //"Описание"
+                tasksheet.Cells[temp, 2].Value = material;
+                //"Исполнитель"
+                tasksheet.Cells[temp, 4].Value = $"Антон Сухоруков";
+                //"Время на выполнение задачи в секундах"
+                tasksheet.Cells[temp, 6].Value = 0;
+
+                temp++;
+            }
+
+            for (int row = 2; row < temp; row++)
+            {
+                tasksheet.Cells[row, 3].Value = EndDate()?.AddDays(-5).ToString("g");
+                tasksheet.Cells[row, 7].Value = 1;
+                tasksheet.Cells[row, 8].Value = 0;
+                tasksheet.Cells[row, 9].Value = 1;
+            }
+            ExcelRange taskRange = tasksheet.Cells[1, 1, temp - 1, 9];
+
+            var file = new FileInfo($"{Path.GetDirectoryName(_path)}\\{_order} {CustomerDrop.Text} - список задач.csv");
+            var format = new ExcelOutputTextFormat
+            {
+                Delimiter = ';',
+                Encoding = new UTF8Encoding(),
+            };
+            taskRange.SaveToText(file, format);
+        }
+
+        //-ПАСПОРТ
+        private void CreatePasport(object sender, RoutedEventArgs e)
+        {
+            if (ActiveOffer is not null) CreatePasport(ActiveOffer);
+            else StatusBegin("Для создания паспорта необходимо загрузить расчет.");
+        }
+        private void CreatePasport(Offer offer)
+        {
+            //если путь к расчету не сохранен, или файла комплектации по этому пути нет, выходим из метода
+            if (offer.Act is null || !File.Exists($"{Path.GetDirectoryName(offer.Act)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx"))
+            {
+                StatusBegin("Не удалось найти ФАЙЛ комплектации для создания паспорта. Попробуйте пересохранить расчет заново.");
+                return;
+            }
+
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            //получаем файл комплектации, созданный ранее
+            using var complectbook = new ExcelPackage(new FileInfo($"{Path.GetDirectoryName(offer.Act)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx"));
+
+            //получаем лист комплектации
+            ExcelWorksheet? complectsheet = complectbook.Workbook.Worksheets.FirstOrDefault(x => x.Name == "Комплектация");
+
+            if (complectsheet is not null)      //если лист комплектации найден
+            {
+                //добавляем этот лист в книгу как новый с именем "Паспорт"
+                complectsheet = complectbook.Workbook.Worksheets.Add("Паспорт", complectsheet);
+
+                //и удаляем все остальные листы
+                while (complectbook.Workbook.Worksheets.Count > 1) complectbook.Workbook.Worksheets.Delete(complectbook.Workbook.Worksheets[0]);
+
+                //добавляем и настраиваем первую строку с заголовком
+                complectsheet.InsertRow(1, 1);
+                complectsheet.Cells[1, 1, 1, 9].Merge = true;
+                complectsheet.Cells[1, 1].Value = "Паспорт качества";
+                complectsheet.Cells[1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                complectsheet.Row(1).Style.Font.Bold = true;
+
+                //редактируем остальные строки
+                complectsheet.Cells[2, 1].Value = "спец , упд ";
+                complectsheet.Cells[2, 4].Value = "Лазерфлекс";
+                complectsheet.Row(2).Height = 16;
+                complectsheet.Cells[1, 1, 2, 9].Style.Font.Size = 12;
+                complectsheet.DeleteRow(Parts.Count + 5);
+                complectsheet.Cells[Parts.Count + 7, 3].Value = "Детали соответствуют конструкторской документации Заказчика";
+                complectsheet.Cells[Parts.Count + 9, 3].Value = "Начальник производства";
+                complectsheet.Cells[Parts.Count + 9, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                complectsheet.Cells[Parts.Count + 9, 6].Value = "Серебряков В.";
+                complectsheet.Cells[Parts.Count + 9, 4, Parts.Count + 9, 5].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+
+                //добавляем подпись и печать
+                ExcelPicture signature = complectsheet.Drawings.AddPicture("signature2", Application.GetResourceStream(new Uri("Images/signature2.jpg", UriKind.Relative)).Stream);
+                signature.SetPosition(Parts.Count + 6, -5, 4, -5);
+                ExcelPicture print = complectsheet.Drawings.AddPicture("print2", Application.GetResourceStream(new Uri("Images/print2.png", UriKind.Relative)).Stream);
+                print.SetPosition(Parts.Count + 9, 0, 3, 0);
+
+                //выравниваем содержимое и сохраняем книгу в файл
+                complectsheet.Cells.AutoFitColumns();
+                complectbook.SaveAs($"{Path.GetDirectoryName(offer.Act)}\\{Order.Text} {CustomerDrop.Text} - паспорт.xlsx");
+                StatusBegin($"Создан паспорт качества для текущего расчета: {Order.Text} {CustomerDrop.Text}");
+                complectsheet.Cells[Parts.Count + 9, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                complectsheet.Cells[Parts.Count + 9, 6].Value = "Серебряков В.";
+                complectsheet.Cells[Parts.Count + 9, 4, Parts.Count + 9, 5].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+
+                //добавляем подпись и печать
+                ExcelPicture signature = complectsheet.Drawings.AddPicture("signature2", Application.GetResourceStream(new Uri("Images/signature2.jpg", UriKind.Relative)).Stream);
+                signature.SetPosition(Parts.Count + 6, -5, 4, -5);
+                ExcelPicture print = complectsheet.Drawings.AddPicture("print2", Application.GetResourceStream(new Uri("Images/print2.png", UriKind.Relative)).Stream);
+                print.SetPosition(Parts.Count + 9, 0, 3, 0);
+
+                //выравниваем содержимое и сохраняем книгу в файл
+                complectsheet.Cells.AutoFitColumns();
+                complectbook.SaveAs($"{Path.GetDirectoryName(offer.Act)}\\{Order.Text} {CustomerDrop.Text} - паспорт.xlsx");
+                StatusBegin($"Создан паспорт качества для текущего расчета: {Order.Text} {CustomerDrop.Text}");
             }
             else workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
         }
@@ -3100,20 +3755,120 @@ namespace Metal_Code
             {
                 MessageBoxResult response = MessageBox.Show("Уверены? Заказчик будет удален из базы!", "Удаление заказчика",
                     MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-                if (response == MessageBoxResult.No) return;
             }
+        }
 
+        //---Добавление заказчиков от одного менеджера к другому---//
+        private void CopyCustomers(object sender, RoutedEventArgs e)
+        {
+            FromManagerDrop.ItemsSource = Managers;
+            FromManagerDrop.Visibility = Visibility.Visible;
+        }
+        private void CopyCustomers(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox box && box.SelectedItem is Manager manFrom
+                && ManagerDrop.SelectedItem is Manager manTo)
+            {
+                FromManagerDrop.Visibility = Visibility.Hidden;
+                CopyCustomers(manFrom, manTo);
+            }
+        }
+        private void CopyCustomers(Manager manFrom, Manager manTo)
+        {
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);   //подключаемся к базе данных
             bool isAvalaible = db.Database.CanConnect();                                //проверяем, свободна ли база для подключения
             if (isAvalaible)
             {
-                Customer? _customer = db.Customers.FirstOrDefault(x => x.Id == customer.Id);
-                if (_customer is not null)
+                //ищем менеджера, которому копируем заказчиков
+                Manager? _manTo = db.Managers.Where(m => m.Id == manTo.Id).Include(c => c.Customers).FirstOrDefault();
+
+                if (_manTo is not null)                                   //и добавляем нового заказчика ему в базу
                 {
-                    db.Customers.Remove(_customer);
+                    //ищем менеджера, заказчиков которого копируем
+                    Manager? _manFrom = db.Managers.Where(m => m.Id == manFrom.Id).Include(c => c.Customers).FirstOrDefault();
+
+                    int count = 0;
+
+                    if (_manFrom is not null)
+                    {
+                        foreach (Customer c in _manFrom.Customers)
+                        {
+                            Customer? _customer = _manTo.Customers.FirstOrDefault(x => x.Name == c.Name);
+                            if (_customer is not null) continue;
+
+                            Customer customer = new()
+                            {
+                                Name = c.Name,
+                                Address = c.Address,
+                                Agent = c.Agent,
+                                DeliveryPrice = c.DeliveryPrice
+                            };
+
+                            _manTo.Customers.Add(c);
+                            count++;
+                        }
+                    }
+
                     db.SaveChanges();
-                    StatusBegin($"Заказчик {customer.Name} удален из базы.");
+                    StatusBegin($"Добавлено {count} заказчиков. Теперь в базе {_manTo.Name} - {_manTo?.Customers.Count} заказчиков.");
                 }
+            }
+        }
+        #endregion
+
+
+        //-----------Вспомогательные методы----------------------//
+        #region
+
+        //-------------Даты-----------//
+        private void SetDate(object sender, SelectionChangedEventArgs e)
+        {
+            if (datePicker.SelectedDate is not null) DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
+
+            static int GetBusinessDays(DateTime startD, DateTime endD)
+            {
+                int calcBusinessDays =
+                    (int)(1 + ((endD - startD).TotalDays * 5 -
+                    (startD.DayOfWeek - endD.DayOfWeek) * 2) / 7);
+
+                if (endD.DayOfWeek == DayOfWeek.Saturday) calcBusinessDays--;
+                if (startD.DayOfWeek == DayOfWeek.Sunday) calcBusinessDays--;
+
+                return calcBusinessDays;
+            }
+        }
+
+        private DateTime? EndDate()
+        {
+            if (int.TryParse(DateProduction.Text, out int days))
+            {
+                DateTime _date;
+                int workDays = days;
+
+                for (int i = 0; i <= days; i++)
+                {
+                    _date = DateTime.Now.AddDays(i);
+                    if (_date.DayOfWeek == DayOfWeek.Saturday || _date.DayOfWeek == DayOfWeek.Sunday) workDays++;
+                }
+
+                if (DateTime.Now.AddDays(workDays).DayOfWeek == DayOfWeek.Saturday) workDays++;
+                if (DateTime.Now.AddDays(workDays).DayOfWeek == DayOfWeek.Sunday) workDays++;
+
+                return DateTime.UtcNow.AddDays(workDays);
+            {
+                DateTime _date;
+                int workDays = days;
+
+                for (int i = 0; i <= days; i++)
+                {
+                    _date = DateTime.Now.AddDays(i);
+                    if (_date.DayOfWeek == DayOfWeek.Saturday || _date.DayOfWeek == DayOfWeek.Sunday) workDays++;
+                }
+
+                if (DateTime.Now.AddDays(workDays).DayOfWeek == DayOfWeek.Saturday) workDays++;
+                if (DateTime.Now.AddDays(workDays).DayOfWeek == DayOfWeek.Sunday) workDays++;
+
+                return DateTime.Now.AddDays(workDays);
             }
         }
 
