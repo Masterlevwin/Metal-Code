@@ -26,6 +26,7 @@ using ACadSharp.IO;
 using ACadSharp;
 using System.Management;
 using System.Windows.Input;
+using static ACadSharp.Objects.XRecord;
 
 namespace Metal_Code
 {
@@ -635,7 +636,7 @@ namespace Metal_Code
                 DateTime thisMonth = new(now.Year, now.Month, 1);
                 DateTime futureMonth = thisMonth.AddMonths(1);
 
-                ReportOffers = CurrentOffers.Where(o => o.Order != null && o.Order != ""
+                ReportOffers = Offers.Where(o => o.Order != null && o.Order != ""
                                 && o.CreatedDate >= thisMonth && o.CreatedDate < futureMonth).ToList();
                 ReportGrid.ItemsSource = ReportOffers;
                 ReportView();
@@ -2328,7 +2329,7 @@ namespace Metal_Code
                     statsheet.Cells[temp, 4].Style.WrapText = true;
 
                     statsheet.Cells[temp, 3].Value = Order.Text;                                                //"№ Проекта / Лазера"
-                    statsheet.Cells[temp, 5].Value = 1;                                                         //"Кол-во"
+                    statsheet.Cells[temp, 5].Value = scoresheet.Cells[Parts.Count + 2, 21].Value;               //"Кол-во"
                     statsheet.Cells[temp, 6].Value = "шт";                                                      //"ед изм."
                     statsheet.Cells[temp, 7].Value = Boss.Text;                                                 //"Подразделение"
                     statsheet.Cells[temp, 8].Value = CustomerDrop.Text;                                         //"Компания"
@@ -2339,7 +2340,6 @@ namespace Metal_Code
                     statsheet.Cells[temp, 13].Style.Numberformat.Format = "dd.mm.yy";
 
                     statsheet.Cells[temp, 17].Style.WrapText = true;                                            //"Цвет/цинк"
-                    statsheet.Cells[temp, 18].Value = scoresheet.Cells[Parts.Count + 2, 21].Value + $" шт";     //"Примечание"
 
                     sum += TempWorksDict[key];
                 }
@@ -2702,41 +2702,6 @@ namespace Metal_Code
             if (offer is not null) UpdateOffer(offer);
         }
 
-        //-РЕЕСТР
-        private void UpdateOffer(Offer offer)   // метод добавления номера заказа в ячейки реестров
-        {
-            if (offer.Act is null || !File.Exists(offer.Act)) return;
-
-            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
-
-            using var offerbook = new ExcelPackage(new FileInfo(offer.Act));
-            ExcelWorksheet? registrysheet = offerbook.Workbook.Worksheets.FirstOrDefault(x => x.Name == "Реестр");
-
-            if (registrysheet is not null)
-            {
-                foreach (var cell in registrysheet.Cells)
-                {
-                    if (cell.Value is not null && $"{cell.Value}" == "№ заказа")
-                    {
-                        int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count);
-
-                        for (int i = 1; i <= countTypeDetails; i++)
-                        {
-                            registrysheet.Cells[cell.Start.Row + i, cell.Start.Column].Value = offer.Order;
-                        }
-                    }
-
-                    if (cell.Value is not null && $"{cell.Value}" == "№ Проекта / Лазера")
-                    {
-                        registrysheet.Cells[cell.Start.Row + 1, cell.Start.Column].Value = offer.Order;
-                    }
-                }
-            }
-
-            // ----- сохраняем книгу в файл Excel -----
-            offerbook.SaveAs(offer.Act);      //сохраняем файл .xlsx
-        }
-
         //-ЗАДАЧИ
         private void CreateRegistry(string _path, string _order)
         {
@@ -2758,9 +2723,6 @@ namespace Metal_Code
             int temp = 2;
             foreach (DetailControl det in DetailControls)
             {
-                bool isPaint = false;       //создана ли задача на "Нанесение покрытий"
-                int rowPaint = 0;           //номер задачи на "Нанесение покрытий"
-
                 bool isProd = false;        //создана ли задача на "Производство"
                 int rowProd = 0;            //номер задачи на "Производство"
 
@@ -2775,8 +2737,6 @@ namespace Metal_Code
 
                         //"Название"
                         tasksheet.Cells[temp, 1].Value = $"{_order} ";
-                        //"Описание"
-                        tasksheet.Cells[temp, 2].Value = $"Заказчик: {CustomerDrop.Text}";
 
                         if (w.workType is CutControl cut)
                         {
@@ -2790,7 +2750,7 @@ namespace Metal_Code
                             //"Название"
                             tasksheet.Cells[temp, 1].Value += $"{description}";
                             //"Описание"
-                            tasksheet.Cells[temp, 2].Value += $", Количество материала: {_mass}, Комментарий: ";
+                            tasksheet.Cells[temp, 2].Value = $"Заказчик: {CustomerDrop.Text}, Количество материала: {_mass}, Комментарий: ";
                             if (type.CheckMetal.IsChecked == false) tasksheet.Cells[temp, 2].Value += "Давальч. ";
                             else
                             {   //если требуется закупить материал, заполняем строку для задачи в снабжение
@@ -2817,6 +2777,8 @@ namespace Metal_Code
                         {
                             //"Название"
                             tasksheet.Cells[temp, 1].Value += $"{description} Гибка";
+                            //"Описание"
+                            tasksheet.Cells[temp, 2].Value = $"Заказчик: {CustomerDrop.Text}";
                             //"Исполнитель"
                             tasksheet.Cells[temp, 4].Value = $"Вячеслав Серебряков";
                             //"Проект"
@@ -2833,7 +2795,7 @@ namespace Metal_Code
                             //"Название"
                             tasksheet.Cells[temp, 1].Value += $"{description}";
                             //"Описание"
-                            tasksheet.Cells[temp, 2].Value += $", Количество материала: {_mass}, Комментарий: ";
+                            tasksheet.Cells[temp, 2].Value = $"Заказчик: {CustomerDrop.Text}, Количество материала: {_mass}, Комментарий: ";
                             if (type.CheckMetal.IsChecked == false) tasksheet.Cells[temp, 2].Value += "Давальч. ";
                             else
                             {   //если требуется закупить материал, заполняем строку для задачи в снабжение
@@ -2856,47 +2818,33 @@ namespace Metal_Code
 
                             temp++;
                         }
-                        else if (w.workType is PaintControl _paint)
-                        {
-                            if (!isPaint)
-                            {
-                                //"Название"
-                                tasksheet.Cells[temp, 1].Value += $"{CustomerDrop.Text}({ShortManager()}) {_paint.Ral}";
-                                //"Исполнитель"
-                                tasksheet.Cells[temp, 4].Value = $"Леонид Шишлин";
-                                //"Проект"
-                                tasksheet.Cells[temp, 5].Value = "Нанесение покрытий";
-                                //"Время на выполнение задачи в секундах"
-                                tasksheet.Cells[temp, 6].Value = Math.Ceiling(w.Result * 0.012f * 60) / w.Ratio;
-
-                                isPaint = true;
-                                rowPaint = temp;
-                                temp++;
-                            }
-                            else if (!$"{tasksheet.Cells[rowPaint, 1].Value}".Contains($"{_paint.Ral}")) tasksheet.Cells[rowPaint, 1].Value += $" {_paint.Ral}";
-                        }
                         else if (w.WorkDrop.SelectedItem is Work work)
                         {
                             if (!isProd)
                             {
                                 //"Название"
-                                if (w.workType is ExtraControl extra) tasksheet.Cells[temp, 1].Value += $"{CustomerDrop.Text}({ShortManager()}) {extra.NameExtra}";
-                                else tasksheet.Cells[temp, 1].Value += $"{CustomerDrop.Text}({ShortManager()}) {work.Name}";
+                                tasksheet.Cells[temp, 1].Value += $"{CustomerDrop.Text}";
+                                //"Описание"
+                                if (w.workType is PaintControl _paint) tasksheet.Cells[temp, 2].Value = $"Окраска в {_paint.Ral}";
+                                else if (w.workType is ExtraControl _extra) tasksheet.Cells[temp, 2].Value = $"{_extra.NameExtra}";
+                                else tasksheet.Cells[temp, 2].Value = $"{work.Name}";
                                 //"Исполнитель"
                                 tasksheet.Cells[temp, 4].Value = $"Леонид Шишлин";
                                 //"Проект"
                                 tasksheet.Cells[temp, 5].Value = "Производство";
                                 //"Время на выполнение задачи в секундах"
-                                tasksheet.Cells[temp, 6].Value = Math.Ceiling(w.Result * 0.012f * 60) / w.Ratio;
+                                tasksheet.Cells[temp, 6].Value = 0;
 
                                 isProd = true;
                                 rowProd = temp;
                                 temp++;
                             }
-                            else if (w.workType is ExtraControl extra && !$"{tasksheet.Cells[rowProd, 1].Value}".Contains($"{extra.NameExtra}"))
-                                tasksheet.Cells[rowProd, 1].Value += $" {extra.NameExtra}";
-                            else if (w.workType is not ExtraControl && !$"{tasksheet.Cells[rowProd, 1].Value}".Contains($"{work.Name}"))
-                                tasksheet.Cells[rowProd, 1].Value += $" {work.Name}";
+                            else if (w.workType is PaintControl paint && !$"{tasksheet.Cells[rowProd, 2].Value}".Contains($"Окраска в {paint.Ral}"))
+                                tasksheet.Cells[rowProd, 2].Value += $", Окраска в {paint.Ral}";
+                            else if (w.workType is ExtraControl extra && !$"{tasksheet.Cells[rowProd, 2].Value}".Contains($"{extra.NameExtra}"))
+                                tasksheet.Cells[rowProd, 2].Value += $", {extra.NameExtra}";
+                            else if (!$"{tasksheet.Cells[rowProd, 2].Value}".Contains($"{work.Name}"))
+                                tasksheet.Cells[rowProd, 2].Value += $", {work.Name}";
                         }
                     }
                 }
@@ -2932,6 +2880,41 @@ namespace Metal_Code
                 Encoding = new UTF8Encoding(),
             };
             taskRange.SaveToText(file, format);
+        }
+
+        //-РЕЕСТР
+        private void UpdateOffer(Offer offer)   // метод добавления номера заказа в ячейки реестров
+        {
+            if (offer.Act is null || !File.Exists(offer.Act)) return;
+
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var offerbook = new ExcelPackage(new FileInfo(offer.Act));
+            ExcelWorksheet? registrysheet = offerbook.Workbook.Worksheets.FirstOrDefault(x => x.Name == "Реестр");
+
+            if (registrysheet is not null)
+            {
+                foreach (var cell in registrysheet.Cells)
+                {
+                    if (cell.Value is not null && $"{cell.Value}" == "№ заказа")
+                    {
+                        int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count);
+
+                        for (int i = 1; i <= countTypeDetails; i++)
+                        {
+                            registrysheet.Cells[cell.Start.Row + i, cell.Start.Column].Value = offer.Order;
+                        }
+                    }
+
+                    if (cell.Value is not null && $"{cell.Value}" == "№ Проекта / Лазера")
+                    {
+                        registrysheet.Cells[cell.Start.Row + 1, cell.Start.Column].Value = offer.Order;
+                    }
+                }
+            }
+
+            // ----- сохраняем книгу в файл Excel -----
+            offerbook.SaveAs(offer.Act);      //сохраняем файл .xlsx
         }
 
         //-ПАСПОРТ
