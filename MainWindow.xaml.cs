@@ -67,8 +67,6 @@ namespace Metal_Code
             //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер"
         };
 
-        //public BaseContext db = new(M.connections[10]);
-
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
 
         public Manager CurrentManager = new();      //текущий авторизованный менеджер
@@ -1040,12 +1038,12 @@ namespace Metal_Code
         {
             //подключаемся к базе данных
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
-            bool isAvalaible = db.Database.CanConnect();                        //проверяем, свободна ли база для подключения
-            if (isAvalaible && OffersGrid.SelectedItem is Offer offer)          //если база свободна, получаем выбранный расчет
+            bool isAvalaible = db.Database.CanConnect();                    //проверяем, свободна ли база для подключения
+            if (isAvalaible && OffersGrid.SelectedItem is Offer offer)      //если база свободна, получаем выбранный расчет
             {
                 try
                 {
-                    Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
+                    Offer? _offer = db.Offers.FirstOrDefault(o => o.N == offer.N);      //ищем этот расчет по N
                     if (_offer != null)
                     {                   //менять можно только агента, номер счета, дату создания и номер заказа
                         if (_offer.Agent != offer.Agent)
@@ -1076,22 +1074,23 @@ namespace Metal_Code
                         {
                             if (TempOffersDict.TryGetValue(0, out List<Offer>? addList))
                             {
-                                Offer? off = addList.FirstOrDefault(o => o.CreatedDate == offer.CreatedDate);
+                                Offer? off = addList.FirstOrDefault(o => o.N == offer.N);
                                 if (off != null)
                                 {
                                     off.Agent = offer.Agent;
                                     off.Invoice = offer.Invoice;
                                     off.Order = offer.Order;
+                                    off.CreatedDate = offer.CreatedDate;
                                 }
                             }
                             TempOffersDict[2].Add(_offer);
                         }
 
-                        db.SaveChanges();                                               //сохраняем изменения в базе данных
+                        db.SaveChanges();
                         StatusBegin("Изменения в базе сохранены");
 
-                        if (ActiveOffer?.CreatedDate == _offer.CreatedDate && Parts.Count > 0)
-                            CreateComplect(connections[8], _offer);                     //создаем файлы комплектации и списка задач
+                        //создаем файлы комплектации и списка задач
+                        if (ActiveOffer?.N == _offer.N && Parts.Count > 0) CreateComplect(connections[8], _offer);
                     }
                 }
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
@@ -2674,8 +2673,9 @@ namespace Metal_Code
 
             //сохраняем книгу в файл Excel
             if (offer is not null && offer.Order is not null && Directory.Exists(_path))    //если в параметре передан расчет, подразумевается, что заказ создан
-            {                                                           //и файл комплектации нужно сохранить в папке заказа
-                string[] dirs = Directory.GetDirectories(_path);        //для этого получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
+            {                                                                               //и файл комплектации нужно сохранить в папке заказа
+                UpdateOffer(offer);                                 //добавляем номер заказа в ячейки реестров
+                string[] dirs = Directory.GetDirectories(_path);    //получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
                 foreach (string s in dirs)
                 {
                     if (s.Contains(offer.Order.Remove(4)))                    //ищем подкаталог с номером заказа
@@ -2693,12 +2693,7 @@ namespace Metal_Code
                     }
                 }
             }
-            else
-            {
-                workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
-            }
-
-            if (offer is not null) UpdateOffer(offer);
+            else workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
         }
 
         //-ЗАДАЧИ
