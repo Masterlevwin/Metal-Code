@@ -41,30 +41,30 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {   //дом
-            //"Data Source=managers.db",
-            //$"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
-            //"Data Source=typedetails.db",
-            //$"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
-            //"Data Source=works.db",
-            //$"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
-            //"Data Source=metals.db",
-            //$"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
-            //$"C:\\Users\\Михаил\\Desktop\\Тесты\\Производство",
-            //$"C:\\ProgramData\\Metal-Code",
-            //$"C:\\ProgramData"
+            "Data Source=managers.db",
+            $"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
+            "Data Source=typedetails.db",
+            $"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
+            "Data Source=works.db",
+            $"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
+            "Data Source=metals.db",
+            $"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
+            $"C:\\Users\\Михаил\\Desktop\\Тесты\\Производство",
+            $"C:\\ProgramData\\Metal-Code",
+            $"C:\\ProgramData"
 
             //прод
-            "Data Source=managers.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
-            "Data Source=typedetails.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
-            "Data Source=works.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
-            "Data Source=metals.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
-            $"Y:\\Производство\\Laser rezka\\В работу",
-            $"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local",
-            $"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер"
+            //"Data Source=managers.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            //"Data Source=typedetails.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            //"Data Source=works.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            //"Data Source=metals.db",
+            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
+            //$"Y:\\Производство\\Laser rezka\\В работу",
+            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local",
+            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер"
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -406,10 +406,10 @@ namespace Metal_Code
 
             //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
 
-            if (!CheckVersion(out string _version)) Restart();
-            UpdateDatabases();
+            //if (!CheckVersion(out string _version)) Restart();
+            //UpdateDatabases();
 
-            AutoRemoveOffers();
+            //AutoRemoveOffers();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -836,7 +836,9 @@ namespace Metal_Code
                         foreach (Offer offer in _man.Offers)
                         {
                             //проверяем наличие идентичного КП в локальной базе, и если такое уже есть, пропускаем копирование
-                            Offer? tempOffer = _manLocal?.Offers.FirstOrDefault(o => o.CreatedDate == offer.CreatedDate);
+                            Offer? tempOffer = _manLocal?.Offers.Where(o => o.N == offer.N
+                                                                && o.Company == offer.Company
+                                                                && o.Amount == offer.Amount).FirstOrDefault();
                             if (tempOffer != null) continue;
 
                             //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
@@ -882,7 +884,9 @@ namespace Metal_Code
                     if (TempOffersDict.TryGetValue(2, out List<Offer>? changeList) && changeList.Count > 0)
                         foreach (Offer offer in changeList)
                         {
-                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.N == offer.N);
+                            Offer? tempOffer = db.Offers.Where(o => o.N == offer.N
+                                                                && o.Company == offer.Company
+                                                                && o.Amount == offer.Amount).FirstOrDefault();
                             if (tempOffer != null)
                             {
                                 tempOffer.CreatedDate = offer.CreatedDate;
@@ -901,7 +905,9 @@ namespace Metal_Code
                     if (TempOffersDict.TryGetValue(1, out List<Offer>? removeList) && removeList.Count > 0)
                         foreach (Offer offer in removeList)
                         {
-                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.N == offer.N);
+                            Offer? tempOffer = db.Offers.Where(o => o.N == offer.N
+                                                                && o.Company == offer.Company
+                                                                && o.Amount == offer.Amount).FirstOrDefault();
                             if (tempOffer != null)
                             {
                                 db.Offers.Remove(tempOffer);
@@ -1043,7 +1049,7 @@ namespace Metal_Code
             {
                 try
                 {
-                    Offer? _offer = db.Offers.FirstOrDefault(o => o.N == offer.N);      //ищем этот расчет по N
+                    Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);      //ищем этот расчет по N
                     if (_offer != null)
                     {                   //менять можно только агента, номер счета, дату создания и номер заказа
                         if (_offer.Agent != offer.Agent)
@@ -1074,13 +1080,12 @@ namespace Metal_Code
                         {
                             if (TempOffersDict.TryGetValue(0, out List<Offer>? addList))
                             {
-                                Offer? off = addList.FirstOrDefault(o => o.N == offer.N);
+                                Offer? off = addList.FirstOrDefault(o => o.CreatedDate == offer.CreatedDate);
                                 if (off != null)
                                 {
                                     off.Agent = offer.Agent;
                                     off.Invoice = offer.Invoice;
                                     off.Order = offer.Order;
-                                    off.CreatedDate = offer.CreatedDate;
                                 }
                             }
                             TempOffersDict[2].Add(_offer);
@@ -1090,7 +1095,7 @@ namespace Metal_Code
                         StatusBegin("Изменения в базе сохранены");
 
                         //создаем файлы комплектации и списка задач
-                        if (ActiveOffer?.N == _offer.N && Parts.Count > 0) CreateComplect(connections[8], _offer);
+                        if (ActiveOffer?.Data == _offer.Data && Parts.Count > 0) CreateComplect(connections[8], _offer);
                     }
                 }
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
@@ -1305,6 +1310,7 @@ namespace Metal_Code
                     StatusBegin($"{e.Result}");
                     SearchBtn.IsEnabled = true;
                     SearchBtn.Content = "Поиск";
+                    UpdateBtn.IsEnabled = true;
                     InsertProgressBar.Visibility = Visibility.Collapsed;
                     break;
                 case ActionState.update:
