@@ -41,30 +41,30 @@ namespace Metal_Code
 
         public readonly string[] connections =
         {   //дом
-            "Data Source=managers.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
-            "Data Source=typedetails.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
-            "Data Source=works.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
-            "Data Source=metals.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
-            $"C:\\Users\\Михаил\\Desktop\\Тесты\\Производство",
-            $"C:\\ProgramData\\Metal-Code",
-            $"C:\\ProgramData"
+            //"Data Source=managers.db",
+            //$"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
+            //"Data Source=typedetails.db",
+            //$"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
+            //"Data Source=works.db",
+            //$"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
+            //"Data Source=metals.db",
+            //$"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
+            //$"C:\\Users\\Михаил\\Desktop\\Тесты\\Производство",
+            //$"C:\\ProgramData\\Metal-Code",
+            //$"C:\\ProgramData"
 
             //прод
-            //"Data Source=managers.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
-            //"Data Source=typedetails.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
-            //"Data Source=works.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
-            //"Data Source=metals.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
-            //$"Y:\\Производство\\Laser rezka\\В работу",
-            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local",
-            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер"
+            "Data Source=managers.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            "Data Source=typedetails.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
+            "Data Source=works.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
+            "Data Source=metals.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
+            $"Y:\\Производство\\Laser rezka\\В работу",
+            $"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local",
+            $"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер"
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -406,10 +406,10 @@ namespace Metal_Code
 
             //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
 
-            //if (!CheckVersion(out string _version)) Restart();
-            //UpdateDatabases();
+            if (!CheckVersion(out string _version)) Restart();
+            UpdateDatabases();
 
-            //AutoRemoveOffers();
+            AutoRemoveOffers();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -882,7 +882,7 @@ namespace Metal_Code
                     if (TempOffersDict.TryGetValue(2, out List<Offer>? changeList) && changeList.Count > 0)
                         foreach (Offer offer in changeList)
                         {
-                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.N == offer.N);
                             if (tempOffer != null)
                             {
                                 tempOffer.CreatedDate = offer.CreatedDate;
@@ -901,7 +901,7 @@ namespace Metal_Code
                     if (TempOffersDict.TryGetValue(1, out List<Offer>? removeList) && removeList.Count > 0)
                         foreach (Offer offer in removeList)
                         {
-                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.Data == offer.Data);
+                            Offer? tempOffer = db.Offers.FirstOrDefault(o => o.N == offer.N);
                             if (tempOffer != null)
                             {
                                 db.Offers.Remove(tempOffer);
