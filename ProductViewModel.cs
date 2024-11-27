@@ -472,7 +472,8 @@ namespace Metal_Code
         {
             SaveFileDialog saveFileDialog = new()
             {
-                Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*"
+                Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*",
+                FileName = $"КП {MainWindow.M.Order.Text}"
             };
             if (saveFileDialog.ShowDialog() == true)
             {

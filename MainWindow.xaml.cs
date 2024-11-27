@@ -26,7 +26,6 @@ using ACadSharp.IO;
 using ACadSharp;
 using System.Management;
 using System.Windows.Input;
-using static ACadSharp.Objects.XRecord;
 
 namespace Metal_Code
 {
