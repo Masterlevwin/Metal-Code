@@ -110,6 +110,10 @@ namespace Metal_Code
                 DirectoryInfo dirLaser = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Лазер");
                 IEnumerable<string> files = SortExtension(dirLaser, dirMaterials, "dxf", TechItems);
 
+                //создаем папку "Труборез" в директории Excel-файла
+                DirectoryInfo dirPipe = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Труборез");
+                SortExtension(dirPipe, dirMaterials, "igs", TechItems);
+
                 ClearDirectories();                     //очищаем пустые папки
                 notify = RequestReport(files, "dxf");   //создаем отчет по заявке
             }

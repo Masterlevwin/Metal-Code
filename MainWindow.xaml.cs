@@ -2308,7 +2308,7 @@ namespace Metal_Code
                 {
                     if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key == "Лентопил" || key.Contains("(Л)")) continue;
 
-                    if (key.Contains("Окраска"))
+                    if (key.Contains("Окраска") && key.Length > 14)
                     {
                         if (!$"{statsheet.Cells[temp, 4].Value}".Contains("Окраска"))
                             statsheet.Cells[temp, 4].Value += $"{key.Remove(7)} ";
@@ -4016,6 +4016,10 @@ namespace Metal_Code
 
             //сохраняем книгу в файл Excel
             workbook.SaveAs($"{Path.GetDirectoryName(_paths[0])}\\Заявка.xlsx");
+
+            //создаем папку "КП" в директории заявки
+            Directory.CreateDirectory(Path.GetDirectoryName(_paths[0]) + "\\" + "КП");
+
             StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(_paths[0])}");
         }
 

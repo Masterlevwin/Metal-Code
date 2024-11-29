@@ -106,8 +106,7 @@ namespace Metal_Code
             }
 
             // добавляем окраску, если она отмечена галочкой или квадратиком
-            if (MainWindow.M.CheckPaint.IsChecked != false && !Detail.IsComplect)
-                Detail.Total += MainWindow.M.Paint / MainWindow.M.DetailControls.Count(d => !d.Detail.IsComplect);
+            Detail.Total += MainWindow.M.Paint / MainWindow.M.DetailControls.Count;
 
             // добавляем конструкторские работы
             Detail.Total += MainWindow.M.Construct / MainWindow.M.DetailControls.Count;
