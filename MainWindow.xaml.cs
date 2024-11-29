@@ -71,6 +71,7 @@ namespace Metal_Code
 
         public Manager CurrentManager = new();      //текущий авторизованный менеджер
         public Manager TargetManager = new();       //выбранный менеджер из списка
+        public Customer TargetCustomer = new();     //выбранный заказчик из списка
         public ObservableCollection<Manager> Managers { get; set; } = new();
         public ObservableCollection<Offer> Offers { get; set; } = new();
         public List<Offer> CurrentOffers { get; set; } = new();
@@ -623,6 +624,7 @@ namespace Metal_Code
         {
             CurrentCustomers = Customers.Where(m => m.ManagerId == TargetManager.Id).OrderBy(s => s.Name).ToList();
             CustomerDrop.ItemsSource = CurrentCustomers;
+            if (TargetCustomer is not null) CustomerDrop.SelectedItem = TargetCustomer;
 
             CurrentOffers = Offers.Where(m => m.ManagerId == TargetManager.Id).TakeLast(23).ToList();
             OffersGrid.ItemsSource = CurrentOffers;
@@ -2292,7 +2294,7 @@ namespace Metal_Code
             List<string> _headersP = new()
             {
                 "Дата", "№ п/п", "№ Проекта / Лазера", "Наименование изделия\n/вид работы", "Кол-во",
-                "ед изм.", "Подразделение", "Компания", "Мастер", "Менеджер", "Инженер", "КД",
+                "ед изм.", "Подразделение", "Компания", "Мастер", "Менеджер", "Инженер", "Время работ",
                 "Дата отгрузки", "Готово к отгрузке", "Отгружено", "Готово \"V\"", "Цвет/цинк",
                 "Примечание", "Ход проекта", "ОТГРУЗКИ _ дата и количество", "Стоимость работ"
             };
@@ -2329,29 +2331,29 @@ namespace Metal_Code
 
                         statsheet.Cells[temp, 17].Value += $"{key[14..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
                     }
-                    else statsheet.Cells[temp, 4].Value += $"{key} ";                                           //"Наименование изделия / вид работы"
-                    statsheet.Cells[temp, 4].Style.WrapText = true;
-
-                    statsheet.Cells[temp, 3].Value = Order.Text;                                                //"№ Проекта / Лазера"
-                    statsheet.Cells[temp, 5].Value = scoresheet.Cells[Parts.Count + 2, 21].Value;               //"Кол-во"
-                    statsheet.Cells[temp, 6].Value = "шт";                                                      //"ед изм."
-                    statsheet.Cells[temp, 7].Value = Boss.Text;                                                 //"Подразделение"
-                    statsheet.Cells[temp, 8].Value = CustomerDrop.Text;                                         //"Компания"
-                    statsheet.Cells[temp, 10].Value = ManagerDrop.Text;                                         //"Менеджер"
-                    statsheet.Cells[temp, 11].Value = CurrentManager.Name;                                      //"Инженер"
-
-                    statsheet.Cells[temp, 13].Value = EndDate();                                                //"Дата отгрузки"
-                    statsheet.Cells[temp, 13].Style.Numberformat.Format = "dd.mm.yy";
-
-                    statsheet.Cells[temp, 17].Style.WrapText = true;                                            //"Цвет/цинк"
+                    else statsheet.Cells[temp, 4].Value += $"{key} ";                                       //"Наименование изделия / вид работы"
 
                     sum += TempWorksDict[key];
                 }
 
+                statsheet.Cells[temp, 3].Value = Order.Text;                                                //"№ Проекта / Лазера"
+                statsheet.Cells[temp, 4].Style.WrapText = true;
+                statsheet.Cells[temp, 5].Value = scoresheet.Cells[Parts.Count + 2, 21].Value;               //"Кол-во"
+                statsheet.Cells[temp, 6].Value = "шт";                                                      //"ед изм."
+                statsheet.Cells[temp, 7].Value = Boss.Text;                                                 //"Подразделение"
+                statsheet.Cells[temp, 8].Value = CustomerDrop.Text;                                         //"Компания"
+                statsheet.Cells[temp, 10].Value = ManagerDrop.Text;                                         //"Менеджер"
+                statsheet.Cells[temp, 11].Value = CurrentManager.Name;                                      //"Инженер"
+                statsheet.Cells[temp, 12].Value =
+                    statsheet.Cells[beginBitrix, 15].Value = Math.Ceiling(sum * 60/ 2000);                  //"Время работ"
+                statsheet.Cells[temp, 13].Value = EndDate();                                                //"Дата отгрузки"
+                statsheet.Cells[temp, 13].Style.Numberformat.Format = "dd.mm.yy";
+
                 //по умолчанию "Цвет/цинк" - "БП" (без покраски)
                 if ($"{statsheet.Cells[temp, 17].Value}" == "") statsheet.Cells[temp, 17].Value = "БП";
+                statsheet.Cells[temp, 17].Style.WrapText = true;                                            //"Цвет/цинк"
 
-                statsheet.Cells[temp, 21].Value = Math.Round(sum, 2);                                           //"Стоимость работ"
+                statsheet.Cells[temp, 21].Value = Math.Round(sum, 2);                                       //"Стоимость работ"
                 statsheet.Cells[temp, 21].Style.Numberformat.Format = "#,##0.00";
             }
 
@@ -3628,6 +3630,7 @@ namespace Metal_Code
             {
                 IsAgent = customer.Agent;
                 if (HasDelivery) HasDelivery = false;
+                TargetCustomer = customer;
             }
         }
 
