@@ -13,8 +13,8 @@ namespace Metal_Code
     {
         public string? Name, Order, Company, Production, Manager, PaintRatio, ConstructRatio;       //поле "Manager" сохраняет ссылку на адрес доставки
         public int Count, Delivery, DeliveryRatio;
-        public bool IsLaser, IsAgent, HasDelivery;
-        public bool? HasConstruct, HasPaint;
+        public bool IsLaser, IsAgent;
+        public bool? HasConstruct, HasPaint, HasDelivery;
 
         [OptionalField]             //атрибут, который позволяет игнорировать это поле при загрузке старых сохранений
         public float Ratio = 1;

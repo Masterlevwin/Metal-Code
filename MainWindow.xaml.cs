@@ -220,38 +220,27 @@ namespace Metal_Code
             TotalResult();
         }
 
-        private bool hasDelivery;
-        public bool HasDelivery
+        private bool? hasDelivery;
+        public bool? HasDelivery
         {
             get => hasDelivery;
             set
             {
                 hasDelivery = value;
-                if (HasDelivery) DeliveryRadioButton.IsChecked = true;
-                else PickupRadioButton.IsChecked = true;
-                OnPropertyChanged(nameof(IsLaser));
+                if (hasDelivery == false)
+                {
+                    SetDelivery(0);
+                    SetDeliveryRatio(1);
+                }
+                OnPropertyChanged(nameof(HasDelivery));
             }
         }
         private void HasDeliveryChanged(object sender, RoutedEventArgs e)
         {
-            if (sender is RadioButton radioButton)
+            if (HasDelivery != false && CustomerDrop.SelectedItem is Customer customer)
             {
-                if (radioButton.Name == "DeliveryRadioButton")
-                {
-                    if (CustomerDrop.SelectedItem is Customer customer)
-                    {
-                        if (customer.Address is not null) Adress.Text = customer.Address;
-                        if (Delivery == 0) SetDelivery(customer.DeliveryPrice);
-                    }
-
-                    HasDelivery = true;
-                }
-                else if (radioButton.Name == "PickupRadioButton")
-                {
-                    SetDelivery(0);
-                    SetDeliveryRatio(1);
-                    HasDelivery = false;
-                }
+                Adress.Text = customer.Address;
+                SetDelivery(customer.DeliveryPrice);
             }
         }
 
@@ -270,7 +259,7 @@ namespace Metal_Code
         }
         private void SetDelivery(object sender, TextChangedEventArgs e)
         {
-            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int d)) SetDelivery(d);
+            if (sender is TextBox tBox && int.TryParse(tBox.Text, out int delivery)) SetDelivery(delivery);
         }
         public void SetDelivery(int _delivery)
         {
@@ -287,14 +276,13 @@ namespace Metal_Code
                 if (value != deliveryRatio)
                 {
                     deliveryRatio = value;
-                    if (deliveryRatio <= 0) deliveryRatio = 1;
                     OnPropertyChanged(nameof(DeliveryRatio));
                 }
             }
         }
         private void SetDeliveryRatio(object sender, TextChangedEventArgs e)
         {
-            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int r)) SetDeliveryRatio(r);
+            if (sender is TextBox tBox && int.TryParse(tBox.Text, out int ratio)) SetDeliveryRatio(ratio);
         }
         public void SetDeliveryRatio(int _ratio)
         {
@@ -778,18 +766,28 @@ namespace Metal_Code
             catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
         }
 
-        //метод запуска процесса обновления расчетов и заказчиков
+        //метод запуска процесса обновления расчетов
         private void UpdateOffersCollection(object sender, RoutedEventArgs e) { CreateWorker(UpdateOffersCollection, ActionState.update); }
         private string UpdateOffersCollection(string? message = null)
         {
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
             db.Offers.Load();
             Offers = db.Offers.Local.ToObservableCollection();
+
+            if (message != null && message != "") return message;
+            return $"Список расчетов обновлен. Расчетов в базе - {Offers.Count}.";
+        }
+
+        //метод запуска процесса обновления заказчиков
+        private void UpdateCustomersCollection(object sender, RoutedEventArgs e) { CreateWorker(UpdateCustomersCollection, ActionState.update); }
+        private string UpdateCustomersCollection(string? message = null)
+        {
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
             db.Customers.Load();
             Customers = db.Customers.Local.ToObservableCollection();
 
             if (message != null && message != "") return message;
-            return $"Списки расчетов и заказчиков обновлены. Расчетов в базе - {Offers.Count}. Заказчиков - {Customers.Count}.";
+            return $"Список заказчиков обновлен. Заказчиков в базе - {Customers.Count}.";
         }
 
         //метод запуска процесса поиска расчетов по номеру, компании или диапазону дат
@@ -1464,6 +1462,19 @@ namespace Metal_Code
                                             p.PropsDict[62] = new() { $"{p.Price}" };
                                         }
                                     }
+
+                                    //добавляем доставку в цену детали, если ее необходимо "размазать"
+                                    if (HasDelivery == true)
+                                    {
+                                        DetailControl? dc = DetailControls.FirstOrDefault(d => d.Detail.IsComplect);
+                                        if (dc != null)
+                                        {
+                                            float _send = Delivery * DeliveryRatio / DetailControls.Count / dc.TypeDetailControls.Count / _cut.PartDetails.Sum(p => p.Count);
+                                            p.Price += _send;
+                                            p.PropsDict[63] = new() { $"{_send}" };
+                                        }
+                                    }
+
                                     //"размазываем" доп работы
                                     foreach (WorkControl w in work.type.WorkControls)
                                         if (w.workType is ExtraControl)
@@ -1727,13 +1738,16 @@ namespace Metal_Code
                 row++;
             }
 
-            if (HasDelivery)                            //если требуется доставка
+            if (HasDelivery != false)                    
             {
-                worksheet.Cells[row, 5].Value = "Доставка";
-                worksheet.Cells[row, 6].Value = DeliveryRatio;
-                worksheet.Cells[row, 7].Value = Delivery;
-                worksheet.Cells[row, 8].Value = DeliveryRatio * Delivery;
-                row++;
+                if (HasDelivery is null)                //если требуется указать доставку отдельной строкой
+                {
+                    worksheet.Cells[row, 5].Value = "Доставка";
+                    worksheet.Cells[row, 6].Value = DeliveryRatio;
+                    worksheet.Cells[row, 7].Value = Delivery;
+                    worksheet.Cells[row, 8].Value = DeliveryRatio * Delivery;
+                    row++;
+                }
                 worksheet.Cells[row + 4, 2].Value = $"Доставка силами Исполнителя по адресу: {Adress.Text}.";
             }
             else
@@ -1927,7 +1941,7 @@ namespace Metal_Code
 
             // ----- таблица разбивки цены детали по работам (Лист3 - "Статистика") -----
 
-                                        //      50      51      52      53      54      55        56      57        58      59      60          61          62        (18)      (19)      (20)   (21)
+                                        //      50      51      52      53      54      55        56      57        58      59      60          61          62         63      (19)      (20)   (21)
             List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "S,кв м", "цвет", "П" };
 
             if (Parts.Count > 0)
@@ -1997,7 +2011,7 @@ namespace Metal_Code
             scoresheet.Cells[extable.Rows + 2, 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             scoresheet.Cells[extable.Rows + 2, 1].Style.Font.Bold = scoresheet.Cells[extable.Rows + 2, 2].Style.Font.Bold = true;
 
-            if (HasDelivery)
+            if (HasDelivery is null)
             {
                 scoresheet.Cells[extable.Rows + 1, 18].Value = scoresheet.Cells[extable.Rows + 1, 2].Value;
                 scoresheet.Cells[extable.Rows + 2, 18].Value = scoresheet.Cells[extable.Rows + 1, 3].Value;
@@ -2123,7 +2137,7 @@ namespace Metal_Code
                     statsheet.Cells[i + temp, 2].Value = statsheet.Cells[i + beginBitrix, 8].Value = CustomerDrop.Text; //"Заказчик"
                     statsheet.Cells[i + temp, 3].Value = statsheet.Cells[i + beginBitrix, 9].Value = ShortManager();    //"Менеджер"
 
-                    if (HasDelivery)
+                    if (HasDelivery != false)
                     {
                         statsheet.Cells[i + temp, 8].Value = statsheet.Cells[i + beginBitrix, 17].Value = "Доставка ";  //"Логистика"
                     }
@@ -3630,7 +3644,7 @@ namespace Metal_Code
             if (CustomerDrop.SelectedItem is Customer customer)
             {
                 IsAgent = customer.Agent;
-                if (HasDelivery) HasDelivery = false;
+                if (HasDelivery != false) HasDelivery = false;
                 TargetCustomer = customer;
             }
         }
@@ -3667,7 +3681,9 @@ namespace Metal_Code
 
                         _man.Customers.Add(_customer);
                         db.SaveChanges();
-                        StatusBegin($"Заказчик {_customer.Name} добавлен в базу {_man.Name}.");
+                        message = $"Заказчик {_customer.Name} добавлен в базу {_man.Name}.";
+
+                        CreateWorker(UpdateCustomersCollection, ActionState.update);
                     }
                 }
                 else StatusBegin($"Заказчик {_customer.Name} уже существует.");
@@ -3711,7 +3727,9 @@ namespace Metal_Code
                     db.Entry(_customer).Property(o => o.DeliveryPrice).IsModified = true;
 
                     db.SaveChanges();
-                    StatusBegin($"Данные заказчика {customer.Name} изменены.");
+                    message = $"Данные заказчика {customer.Name} изменены.";
+
+                    CreateWorker(UpdateCustomersCollection, ActionState.update);
                 }
             }
         }
@@ -3745,7 +3763,9 @@ namespace Metal_Code
                 {
                     db.Customers.Remove(_customer);
                     db.SaveChanges();
-                    StatusBegin($"Заказчик {customer.Name} удален из базы.");
+                    message = $"Заказчик {customer.Name} удален из базы.";
+
+                    CreateWorker(UpdateCustomersCollection, ActionState.update);
                 }
             }
         }

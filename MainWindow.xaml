@@ -155,17 +155,16 @@
                         </Button>
                         <ComboBox x:Name="FromManagerDrop" HorizontalAlignment="Left" Margin="430,65,0,0" VerticalAlignment="Top" Width="120" MinWidth="120" MaxWidth="120" DisplayMemberPath="Name" Visibility="Hidden" SelectionChanged="CopyCustomers"/>
 
-                        <TextBlock Text="Срок изготовления:" HorizontalAlignment="Left" Margin="15,65,0,0" VerticalAlignment="Top"/>
+                        <TextBlock Text="Срок изготовления" HorizontalAlignment="Left" Margin="15,65,0,0" VerticalAlignment="Top"/>
                         <TextBox ToolTip="Введите срок изготовления" x:Name="DateProduction" Margin="135,65,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50"/>
                         <TextBlock Text="раб/дней" HorizontalAlignment="Left" Margin="200,65,0,0" VerticalAlignment="Top"/>
                         <DatePicker x:Name="datePicker" HorizontalAlignment="Left" Margin="300,60,0,0" VerticalAlignment="Top" FirstDayOfWeek="Monday" SelectedDateChanged="SetDate" ToolTip="Выберите дату изготовления"/>
 
-                        <RadioButton GroupName="Delivery" x:Name="PickupRadioButton" Content="Самовывоз" HorizontalAlignment="Left" Margin="15,90,0,0" VerticalAlignment="Top" Checked="HasDeliveryChanged" IsChecked="True"/>
-                        <RadioButton GroupName="Delivery" x:Name="DeliveryRadioButton" Content="Доставка" HorizontalAlignment="Left" Margin="110,90,0,0" VerticalAlignment="Top" Checked="HasDeliveryChanged"/>
-                        <TextBox Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="DeliveryPrice" HorizontalAlignment="Left" Margin="190,88,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите цену доставки" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" TextChanged="SetDelivery" MinWidth="60"/>
-                        <TextBox Text="{Binding DeliveryRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MaxLines="1" ToolTip="Коэффициент" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" Margin="260,88,0,0" TextChanged="SetDeliveryRatio"/>
-                        <TextBox x:Name="Adress" HorizontalAlignment="Left" Margin="15,110,0,0" VerticalAlignment="Top" Width="275" Height="45" ToolTip="Введите адрес доставки" Text="Адрес доставки:" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}" TextWrapping="Wrap"/>
-                        <Button ToolTip="Создать запрос в логистику" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,88,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" Click="CreateDelivery" IsEnabled="{Binding IsChecked, ElementName=DeliveryRadioButton}">
+                        <CheckBox x:Name="DeliveryCheck" Content="Доставка" IsChecked="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="v - доставка включена в цены деталей, ■ - отдельной строкой в КП" Margin="50,90,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="HasDeliveryChanged" IsThreeState="True"/>
+                        <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="DeliveryPrice" HorizontalAlignment="Left" Margin="135,90,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите цену доставки" TextChanged="SetDelivery" Width="50"/>
+                        <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding DeliveryRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MaxLines="1" ToolTip="Количество доставок" Margin="230,90,0,0" TextChanged="SetDeliveryRatio"/>
+                        <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="Adress" HorizontalAlignment="Left" Margin="15,110,0,0" VerticalAlignment="Top" Width="275" Height="45" ToolTip="Введите адрес доставки" TextWrapping="Wrap"/>
+                        <Button IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать запрос в логистику" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,85,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" Click="CreateDelivery">
                             <Image Source="/Images/new.png"/>
                         </Button>
 
@@ -181,16 +180,16 @@
                         <CheckBox HorizontalAlignment="Left" Margin="390,165,0,0" VerticalAlignment="Top" IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"/>
                         <TextBlock Text="Коэф" HorizontalAlignment="Left" Margin="470,90,0,0" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
 
-                        <TextBlock Text="Ваш менеджер:" HorizontalAlignment="Left" Margin="15,165,0,0" VerticalAlignment="Top"/>
-                        <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged" HorizontalAlignment="Left" Margin="110,160,0,0" VerticalAlignment="Top" Width="148" MinHeight="20"/>
-                        <Button x:Name="UpdateBtn" Margin="265,160,0,0" BorderThickness="0" Click="UpdateOffersCollection" ToolTip="Обновить" HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <TextBlock Text="Ваш менеджер:" HorizontalAlignment="Left" Margin="50,165,0,0" VerticalAlignment="Top"/>
+                        <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged" HorizontalAlignment="Left" Margin="142,160,0,0" VerticalAlignment="Top" Width="148" MinHeight="20"/>
+                        <Button x:Name="UpdateBtn" Margin="20,160,0,0" BorderThickness="0" Click="UpdateOffersCollection" ToolTip="Обновить" HorizontalAlignment="Left" VerticalAlignment="Top">
                             <Image Source="/Images/update.png" MaxWidth="20" MaxHeight="20"/>
                         </Button>
 
                         <Button x:Name="RefreshBtn" ToolTip="Получить новые расчеты из основной базы" Click="GetOffers_WithoutMainBase" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,200,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
                             <Image Source="/Images/open2.png"/>
                         </Button>
-                        <TextBlock x:Name="RefreshTb" Text="Получить" HorizontalAlignment="Left" Margin="50,203,0,0" VerticalAlignment="Top"/>
+                        <TextBlock x:Name="RefreshTb" Text="Получить" HorizontalAlignment="Left" Margin="50,205,0,0" VerticalAlignment="Top"/>
 
                         <TextBox ToolTip="Введите номер расчета или название компании" Text="{Binding Search, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" MinWidth="200" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="140,200,0,0"/>
                         <TextBlock Text="от" HorizontalAlignment="Left" Margin="120,230,0,0" VerticalAlignment="Top"/>
@@ -202,7 +201,7 @@
                         <Button x:Name="InsertBtn" ToolTip="Отправить новые расчеты в основную базу" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,200,0,0" Padding="0" BorderThickness="0" MaxWidth="20" MaxHeight="20" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Click="InsertDatabase">
                             <Image Source="/Images/save3.png"/>
                         </Button>
-                        <TextBlock x:Name="InsertTb" Text="Отправить" HorizontalAlignment="Left" Margin="460,203,0,0" VerticalAlignment="Top"/>
+                        <TextBlock x:Name="InsertTb" Text="Отправить" HorizontalAlignment="Left" Margin="460,205,0,0" VerticalAlignment="Top"/>
                         <Button Content="Х" HorizontalAlignment="Left" Margin="385,228,0,0" VerticalAlignment="Top" MinWidth="20" MinHeight="20" Click="ResetDates" BorderBrush="#FFFF0046" ToolTip="Сбросить даты"/>
                         <TextBox ToolTip="Коэффициент" x:Name="AssemblyRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" Margin="470,163,0,0"/>
 
@@ -210,7 +209,7 @@
                             <Image Source="Images/save.png" MaxWidth="20" MaxHeight="20"/>
                         </Button>
                         <TextBlock HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="60,0,0,15" Text="КП в файл"/>
-                        
+
                         <GroupBox Header="Дополнительные функции" Height="45" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,250,15,10">
                             <StackPanel Orientation="Horizontal">
                                 <Button Click="ShowTableOfBends" ToolTip="Таблица гибов" HorizontalAlignment="Left" BorderThickness="0" Margin="5,0,0,0">
@@ -233,6 +232,8 @@
                                 <Button Content="..." ToolTip="Выбрать файлы" Command="{Binding RenameCommand}" MinWidth="40" Margin="0,0,5,0"/>
                             </StackPanel>
                         </GroupBox>
+                        <TextBlock HorizontalAlignment="Left" Margin="200,90,0,0" TextWrapping="Wrap" Text="руб" VerticalAlignment="Top"/>
+                        <TextBlock HorizontalAlignment="Left" Margin="270,90,0,0" TextWrapping="Wrap" Text="шт" VerticalAlignment="Top"/>
 
                     </Grid>
                 </ScrollViewer>
