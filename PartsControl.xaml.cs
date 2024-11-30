@@ -65,6 +65,13 @@ namespace Metal_Code
             }
         }
 
+        private void SetProperty(object sender, RoutedEventArgs e)      //обработчик события LostFocus для текстового поля окраски
+        {
+            if (Parts.Count > 0 && sender is TextBox tBox && tBox.Text != "")
+                foreach (PartControl p in Parts)
+                    foreach (PaintControl item in p.UserControls.OfType<PaintControl>()) item.SetRal(tBox.Text);
+        }
+
         private void SetProperty(object sender, TextChangedEventArgs e)
         {
             if (Parts.Count > 0 && sender is TextBox tBox)
@@ -78,10 +85,6 @@ namespace Metal_Code
                     case "Weld":
                         foreach (PartControl p in Parts)
                             foreach (WeldControl item in p.UserControls.OfType<WeldControl>()) item.SetWeld(tBox.Text);
-                        break;
-                    case "Paint":
-                        foreach (PartControl p in Parts)
-                            foreach (PaintControl item in p.UserControls.OfType<PaintControl>()) item.SetRal(tBox.Text);
                         break;
                     case "Wide1":
                         foreach (PartControl p in Parts)
@@ -229,5 +232,6 @@ namespace Metal_Code
                 }
             }
         }
+
     }
 }

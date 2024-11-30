@@ -28,7 +28,7 @@
             <TextBlock Text="S" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="400,0,0,0"/>
             <TextBlock Text="L" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="440,0,0,0"/>
             <TextBlock Text="Кол-во" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="470,0,0,0"/>
-            <ComboBox x:Name="MetalDrop" DisplayMemberPath="Name" ToolTip="Выберите материал для ВСЕХ заготовок" SelectionChanged="SetAllMaterial" Margin="515,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom" MinHeight="20" MaxHeight="20" MinWidth="80" MaxWidth="80" SelectedIndex="0" VerticalContentAlignment="Center"/>
+            <ComboBox x:Name="MetalDrop" DisplayMemberPath="Name" ToolTip="Выберите материал для ВСЕХ заготовок" SelectionChanged="SetAllMaterial" Margin="515,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom" MinHeight="20" MaxHeight="20" MinWidth="80" MaxWidth="80" VerticalContentAlignment="Center"/>
             <CheckBox ToolTip="Добавить к расчету стоимость материала ВСЕХ заготовок" Click="SetAllMetal" Margin="600,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsChecked="True"/>
             <TextBlock Text="Работа" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="745,0,0,0"/>
             <TextBlock Text="Коэф" ToolTip="Наценка или скидка на работы" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="985,0,0,0"/>

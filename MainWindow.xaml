@@ -82,23 +82,21 @@
             <Button Command="{Binding OpenCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="400,40,0,0" Padding="0" BorderThickness="0" ToolTip="Открыть сохраненный расчет (Ctrl+S)" Height="20" Width="20">
                 <Image Source="Images/open4.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button Command="{Binding SaveCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,40,0,0" Padding="0" BorderThickness="0" ToolTip="Сохранить расчет (Ctrl+D)" Height="20" Width="20">
-                <Image Source="Images/save.png" MaxWidth="20" MaxHeight="20"/>
-            </Button>
-            <Button Command="{Binding LoadCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="460,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить раскладки (Ctrl+F)" Height="20" Width="20">
-                <Image Source="Images/xlsx_load.png" MaxWidth="20" MaxHeight="20"/>
+            <Button HorizontalAlignment="Left" VerticalAlignment="Top" Margin="460,40,0,0" Padding="0" BorderThickness="0" ToolTip="Создать заявку за клиента" Click="CreateRequest">
+                <Image Source="Images/comment.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
             <Button HorizontalAlignment="Left" VerticalAlignment="Top" Margin="490,40,0,0" Padding="0" BorderThickness="0" ToolTip="Подготовить папки в работу" Click="CreateTech">
                 <Image Source="Images/complect.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button HorizontalAlignment="Left" VerticalAlignment="Top" Margin="520,40,0,0" Padding="0" BorderThickness="0" ToolTip="Создать заявку за клиента" Click="CreateRequest">
-                <Image Source="Images/comment.png" MaxWidth="20" MaxHeight="20"/>
+            <Button Command="{Binding LoadCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="520,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить раскладки (Ctrl+F)" Height="20" Width="20">
+                <Image Source="Images/xlsx_load.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
+
             <Button Command="{Binding UpdateCommand}" VerticalAlignment="Top" Margin="740,40,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" ToolTip="Обновить (F5)" Height="20" Width="20" HorizontalAlignment="Left">
                 <Image Source="/Images/update4.png"/>
             </Button>
 
-            <Button ToolTip="Добавить новую деталь" Content="+" Margin="50,70,0,0" Click="AddDetail" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="14" BorderThickness="2" Width="24" Height="24"/>
+            <Button ToolTip="Добавить новую деталь" Content="+" Margin="50,70,0,0" Click="AddDetail" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="14" BorderThickness="2" Width="24" Height="24" IsEnabled="False"/>
 
             <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" Margin="20,20,10,10" MaxHeight="500">
                 <ScrollViewer VerticalAlignment="Top" Margin="0,60,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
@@ -199,7 +197,7 @@
                         <DatePicker SelectedDate="{Binding StartDay, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="140,225,0,0" VerticalAlignment="Top"/>
                         <TextBlock Text="до" HorizontalAlignment="Left" Margin="250,230,0,0" VerticalAlignment="Top"/>
                         <DatePicker SelectedDate="{Binding EndDay, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="270,225,0,0" VerticalAlignment="Top"/>
-                        <Button x:Name="SearchBtn" Content="Поиск" Click="SearchOffers" HorizontalAlignment="Left" Margin="350,200,0,0" VerticalAlignment="Top" MinWidth="40" MinHeight="20" BorderBrush="#FF00C800"/>
+                        <Button x:Name="SearchBtn" Content="Поиск" Click="SearchOffers" HorizontalAlignment="Left" Margin="350,200,0,0" VerticalAlignment="Top" MinWidth="40" MinHeight="20" BorderBrush="#FF00C800" IsDefault="True"/>
 
                         <Button x:Name="InsertBtn" ToolTip="Отправить новые расчеты в основную базу" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,200,0,0" Padding="0" BorderThickness="0" MaxWidth="20" MaxHeight="20" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Click="InsertDatabase">
                             <Image Source="/Images/save3.png"/>
@@ -207,11 +205,18 @@
                         <TextBlock x:Name="InsertTb" Text="Отправить" HorizontalAlignment="Left" Margin="460,203,0,0" VerticalAlignment="Top"/>
                         <Button Content="Х" HorizontalAlignment="Left" Margin="385,228,0,0" VerticalAlignment="Top" MinWidth="20" MinHeight="20" Click="ResetDates" BorderBrush="#FFFF0046" ToolTip="Сбросить даты"/>
                         <TextBox ToolTip="Коэффициент" x:Name="AssemblyRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" Margin="470,163,0,0"/>
-                        <CheckBox Content="Таблица гибов" Click="ShowTableOfBends" Margin="15,250,0,20" HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
 
+                        <Button Command="{Binding SaveCommand}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="20,0,0,10" Padding="0" BorderThickness="0" ToolTip="Сохранить расчет (Ctrl+D)" Height="20" Width="20" MinWidth="30" MinHeight="30">
+                            <Image Source="Images/save.png" MaxWidth="20" MaxHeight="20"/>
+                        </Button>
+                        <TextBlock HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="60,0,0,15" Text="КП в файл"/>
+                        
                         <GroupBox Header="Дополнительные функции" Height="45" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,250,15,10">
                             <StackPanel Orientation="Horizontal">
-                                <Button Click="ShowRouteWindow" ToolTip="Маршрут производства" HorizontalAlignment="Left" BorderThickness="0" Margin="5,0,0,0">
+                                <Button Click="ShowTableOfBends" ToolTip="Таблица гибов" HorizontalAlignment="Left" BorderThickness="0" Margin="5,0,0,0">
+                                    <Image Source="/Images/bends.png" MaxWidth="20" MaxHeight="20"/>
+                                </Button>
+                                <Button Click="ShowRouteWindow" ToolTip="Маршрут производства" HorizontalAlignment="Left" BorderThickness="0" Margin="10,0,0,0">
                                     <Image Source="/Images/route.png" MaxWidth="20" MaxHeight="20"/>
                                 </Button>
                                 <Button Click="CreatePasport" ToolTip="Создать паспорт качества" HorizontalAlignment="Left" BorderThickness="0" Margin="10,0,0,0">
@@ -220,7 +225,7 @@
                                 <Button Click="CreateComplect" ToolTip="Сформировать простую комплектацию" HorizontalAlignment="Left" BorderThickness="0" Margin="10,0,0,0">
                                     <Image Source="/Images/complect2.png" MaxWidth="20" MaxHeight="20"/>
                                 </Button>
-                                <Button x:Name="ConvertBtn" Click="Convert_dwg_to_dxf" ToolTip="Выбрать файлы для конвертации" HorizontalAlignment="Left" BorderThickness="0" Margin="10,0,0,0">
+                                <Button x:Name="ConvertBtn" Click="Convert_dwg_to_dxf" ToolTip="Конвертировать DWG в DXF" HorizontalAlignment="Left" BorderThickness="0" Margin="10,0,0,0">
                                     <Image Source="/Images/convert.png" MaxWidth="20" MaxHeight="20"/>
                                 </Button>
                                 <TextBox x:Name="Rename" ToolTip="Введите строку, она будет в конце имени выбранных файлов" Width="105" MinWidth="100" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="10,0,0,0"/>

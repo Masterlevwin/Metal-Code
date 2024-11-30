@@ -624,7 +624,8 @@ namespace Metal_Code
         {
             CurrentCustomers = Customers.Where(m => m.ManagerId == TargetManager.Id).OrderBy(s => s.Name).ToList();
             CustomerDrop.ItemsSource = CurrentCustomers;
-            if (TargetCustomer is not null) CustomerDrop.SelectedItem = TargetCustomer;
+            Customer? customer = CurrentCustomers.FirstOrDefault(x => x.Name == TargetCustomer.Name);
+            if (customer is not null) CustomerDrop.SelectedItem = customer;
 
             CurrentOffers = Offers.Where(m => m.ManagerId == TargetManager.Id).TakeLast(23).ToList();
             OffersGrid.ItemsSource = CurrentOffers;
@@ -2294,7 +2295,7 @@ namespace Metal_Code
             List<string> _headersP = new()
             {
                 "Дата", "№ п/п", "№ Проекта / Лазера", "Наименование изделия\n/вид работы", "Кол-во",
-                "ед изм.", "Подразделение", "Компания", "Мастер", "Менеджер", "Инженер", "Время работ",
+                "ед изм.", "Подразделение", "Компания", "Мастер", "Менеджер", "Инженер", "Время работ, мин",
                 "Дата отгрузки", "Готово к отгрузке", "Отгружено", "Готово \"V\"", "Цвет/цинк",
                 "Примечание", "Ход проекта", "ОТГРУЗКИ _ дата и количество", "Стоимость работ"
             };
@@ -2345,7 +2346,7 @@ namespace Metal_Code
                 statsheet.Cells[temp, 10].Value = ManagerDrop.Text;                                         //"Менеджер"
                 statsheet.Cells[temp, 11].Value = CurrentManager.Name;                                      //"Инженер"
                 statsheet.Cells[temp, 12].Value =
-                    statsheet.Cells[beginBitrix, 15].Value = Math.Ceiling(sum * 60/ 2000);                  //"Время работ"
+                    statsheet.Cells[beginBitrix, 15].Value = Math.Ceiling(sum * 60/ 2000);                  //"Время работ, мин"
                 statsheet.Cells[temp, 13].Value = EndDate();                                                //"Дата отгрузки"
                 statsheet.Cells[temp, 13].Style.Numberformat.Format = "dd.mm.yy";
 
@@ -3871,14 +3872,12 @@ namespace Metal_Code
             exampleWindow.Show();
         }
 
+        private bool viewBends = false;
         //------------Таблица гибов-------------------------------//
         private void ShowTableOfBends(object sender, RoutedEventArgs e)
-        {
-            if (sender is CheckBox cBox && cBox is not null)
-            {
-                if (cBox.IsChecked is true) TableOfBends.Visibility = Visibility.Visible;
-                else TableOfBends.Visibility = Visibility.Hidden;
-            }
+        {            
+            viewBends = !viewBends;
+            TableOfBends.Visibility = viewBends ? Visibility.Visible : Visibility.Hidden;
         }
 
         //------------Смена темы----------------------------------//

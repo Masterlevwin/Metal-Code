@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
@@ -63,9 +63,20 @@ namespace Metal_Code
             else if (owner is PartControl part)
             {
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+            }
+        }
 
-                foreach (WorkControl w in part.work.type.WorkControls)
-                    if (w.workType is PaintControl) return;
+        private void SetRal(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox tBox && tBox.Text != "") SetRal(tBox.Text);
+        }
+        public void SetRal(string _ral)
+        {
+            Ral = _ral;
+            if (owner is PartControl part)
+            {
+                foreach (var item in part.work.type.WorkControls)
+                    if (item.workType is PaintControl paint && paint.Ral == Ral) return;
 
                 part.work.type.AddWork();
 
@@ -73,27 +84,10 @@ namespace Metal_Code
                 foreach (Work w in MainWindow.M.Works) if (w.Name == "Окраска")
                     {
                         part.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
+                        if (part.work.type.WorkControls[^1].workType is PaintControl _paint) _paint.SetRal(Ral);
                         break;
                     }
             }
-        }
-
-        private void SetRal(object sender, TextChangedEventArgs e)
-        {
-            if (sender is TextBox tBox) SetRal(tBox.Text);
-        }
-        public void SetRal(string _ral)
-        {
-            Ral = _ral;
-
-            if (owner is PartControl part)
-                foreach (WorkControl work in part.work.type.WorkControls)
-                    if (work.workType is PaintControl paint)
-                    {
-                        paint.SetRal(Ral);
-                        break;
-                    }
-
             OnPriceChanged();
         }
 
@@ -122,11 +116,11 @@ namespace Metal_Code
 
             float price = 0;
 
-            if (Parts != null && Parts.Count > 0)
+            if (Parts?.Count > 0)
             {
                 foreach (PartControl p in Parts)
                     foreach (PaintControl item in p.UserControls.OfType<PaintControl>())
-                        if (item.Ral != null && item.Ral != "")
+                        if (item.Ral != null && item.Ral == Ral)
                         {
                             if (p.Square > 0 && p.Square < .05f) p.Square = .05f;       //расчетная площадь окраски должна быть не меньше 0,05 кв м
                                                                         //к деталям площадью менее 0,2 кв м добавляем стоимость 0,1 кв м за подвес
@@ -141,7 +135,7 @@ namespace Metal_Code
 
                 work.SetResult(price, false);
             }
-            else if (Ral != null && Ral != "" && work.type.Square > 0 && work.type.Mass > 0)
+            else if (Ral != null && work.type.Square > 0 && work.type.Mass > 0)
             {
                 if (work.type.Square > 0 && work.type.Square < .05f) work.type.Square = .05f;
                 if (work.type.Square >= .05f && work.type.Square < .2f) price += TypeDict[$"{TypeDrop.SelectedItem}"] * work.type.Count / 10;
@@ -194,7 +188,7 @@ namespace Metal_Code
 
                     if (p.owner is ICut _cut && _cut.PartsControl != null) foreach (PartControl _p in _cut.PartsControl.Parts)
                             foreach (PaintControl item in _p.UserControls.OfType<PaintControl>())
-                                if (item.Ral != null && item.Ral != "") count += _p.Part.Count;
+                                if (item.Ral != null && item.Ral == Ral) count += _p.Part.Count;
 
                     // стоимость всей работы должна быть не ниже минимальной
                     foreach (WorkControl _w in p.work.type.WorkControls)            // находим окраску среди работ и получаем её минималку
@@ -239,5 +233,6 @@ namespace Metal_Code
                 $"необходимо создать раскладки соответствующих деталей на каждый цвет!\r\n" +
                 $"(так нужно, чтобы в реестре были указаны все цвета для заказа краски)";
         }
+
     }
 }

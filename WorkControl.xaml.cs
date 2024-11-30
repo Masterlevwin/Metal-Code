@@ -87,9 +87,24 @@ namespace Metal_Code
 
                 if (response == MessageBoxResult.No) return;
 
-                foreach (PartControl p in _work.Parts)
-                    foreach (UserControl item in p.UserControls.Where(w => w.GetType() == workType.GetType()).ToList()) p.RemoveControl(item);
-                    //нужно учесть резьбу и зенковку, пока не знаю как...         
+                if (workType is PaintControl paint)
+                {                                           //удаляем окраску деталей определенного цвета
+                    foreach (PartControl p in _work.Parts)
+                        foreach (PaintControl item in p.UserControls.OfType<PaintControl>().Where(p => p.Ral == paint.Ral).ToList())
+                            p.RemoveControl(item);
+                }
+                else if (workType is ThreadControl thread)
+                {                                           //удаляем определенную обработку отверстий
+                    foreach (PartControl p in _work.Parts)
+                        foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>().Where(p => p.CharName == thread.CharName).ToList())
+                            p.RemoveControl(item);
+                }
+                else
+                {                                           //удаляем работу соответствующего типа
+                    foreach (PartControl p in _work.Parts)
+                        foreach (UserControl item in p.UserControls.Where(w => w.GetType() == workType.GetType()).ToList())
+                            p.RemoveControl(item);
+                }
             }
             Remove();
         }
