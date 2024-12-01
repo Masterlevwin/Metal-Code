@@ -105,7 +105,7 @@ namespace Metal_Code
             }
         }
 
-        private string version = "2.5.7";
+        private string version = "2.5.8";
         public string Version
         {
             get => version;
@@ -352,6 +352,33 @@ namespace Metal_Code
                 hasAssembly = value;
                 OnPropertyChanged(nameof(HasAssembly));
             }
+        }
+        private void SetExpress(object sender, RoutedEventArgs e)
+        {
+            if (!HasAssembly)
+            {
+                SetExpress(1);
+                DateProduction.Text = "";
+            }
+            else
+            {
+                if (AssemblyRatio.Text == "") AssemblyRatio.Text = "2";
+                SetExpress(Parser(AssemblyRatio.Text));
+                DateProduction.Text = "3";
+            }
+        }
+        private void SetExpress(object sender, TextChangedEventArgs e)
+        {
+            if (!HasAssembly || sender is not TextBox tBox) return;
+            SetExpress(Parser(tBox.Text));
+        }
+        public void SetExpress(float express)
+        {
+            if (express <= 0) return;
+            foreach (DetailControl det in DetailControls)
+                foreach (TypeDetailControl type in det.TypeDetailControls)
+                    foreach (WorkControl work in type.WorkControls)
+                        work.Ratio = express;
         }
 
         private string search = "";
@@ -703,7 +730,7 @@ namespace Metal_Code
             CheckPaint.IsChecked = false;
             CheckConstruct.IsChecked = false;
             HasAssembly = false;
-            Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = ConstructRatio.Text = "";
+            Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = ConstructRatio.Text = AssemblyRatio.Text = "";
             ProductName.Text = $"Изделие";
             ActiveOffer = null;
         }
@@ -1801,6 +1828,12 @@ namespace Metal_Code
             worksheet.Cells[row + 2, 2].Value = DateProduction.Text + " раб/дней.";
             worksheet.Cells[row + 2, 2].Style.Font.Bold = true;
             worksheet.Cells[row + 2, 2, row + 2, 3].Merge = true;
+
+            if (HasAssembly)
+            {
+                worksheet.Cells[row + 2, 4].Value = "ЭКСПРЕСС";
+                worksheet.Cells[row + 2, 4].Style.Font.Bold = true;
+            }
 
             worksheet.Cells[row + 3, 1].Value = "Условия оплаты:";
             worksheet.Cells[row + 3, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;

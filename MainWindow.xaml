@@ -167,6 +167,8 @@
                         <Button IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать запрос в логистику" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,85,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" Click="CreateDelivery">
                             <Image Source="/Images/new.png"/>
                         </Button>
+                        
+                        <TextBlock Text="Коэф" HorizontalAlignment="Left" Margin="470,90,0,0" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
 
                         <TextBlock Text="Окраска" HorizontalAlignment="Left" Margin="305,115,0,0" VerticalAlignment="Top" TextWrapping="NoWrap"/>
                         <CheckBox x:Name="CheckPaint" Content="{Binding Paint, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="390,115,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="False"/>
@@ -176,9 +178,9 @@
                         <CheckBox x:Name="CheckConstruct" Content="{Binding Construct, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="390,140,0,0" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="False"/>
                         <TextBox x:Name="ConstructRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Коэффициент" Height="20" Width="30" Margin="470,138,0,0" TextChanged="UpdateResult"/>
 
-                        <TextBlock Text="Сборка" HorizontalAlignment="Left" Margin="305,165,0,0" VerticalAlignment="Top"/>
-                        <CheckBox HorizontalAlignment="Left" Margin="390,165,0,0" VerticalAlignment="Top" IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"/>
-                        <TextBlock Text="Коэф" HorizontalAlignment="Left" Margin="470,90,0,0" VerticalAlignment="Top" ToolTip="Наценка - действует только на услуги!"/>
+                        <TextBlock Text="Экспресс" HorizontalAlignment="Left" Margin="305,165,0,0" VerticalAlignment="Top"/>
+                        <CheckBox HorizontalAlignment="Left" Margin="390,165,0,0" VerticalAlignment="Top" IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Click="SetExpress" ToolTip="Добавить наценку за срочность"/>
+                        <TextBox x:Name="AssemblyRatio" ToolTip="Коэффициент" Margin="470,163,0,0" TextChanged="SetExpress" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1"/>
 
                         <TextBlock Text="Ваш менеджер:" HorizontalAlignment="Left" Margin="50,165,0,0" VerticalAlignment="Top"/>
                         <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged" HorizontalAlignment="Left" Margin="142,160,0,0" VerticalAlignment="Top" Width="148" MinHeight="20"/>
@@ -197,13 +199,12 @@
                         <TextBlock Text="до" HorizontalAlignment="Left" Margin="250,230,0,0" VerticalAlignment="Top"/>
                         <DatePicker SelectedDate="{Binding EndDay, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="270,225,0,0" VerticalAlignment="Top"/>
                         <Button x:Name="SearchBtn" Content="Поиск" Click="SearchOffers" HorizontalAlignment="Left" Margin="350,200,0,0" VerticalAlignment="Top" MinWidth="40" MinHeight="20" BorderBrush="#FF00C800" IsDefault="True"/>
+                        <Button Content="Х" HorizontalAlignment="Left" Margin="385,228,0,0" VerticalAlignment="Top" MinWidth="20" MinHeight="20" Click="ResetDates" BorderBrush="#FFFF0046" ToolTip="Сбросить даты"/>
 
                         <Button x:Name="InsertBtn" ToolTip="Отправить новые расчеты в основную базу" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,200,0,0" Padding="0" BorderThickness="0" MaxWidth="20" MaxHeight="20" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Click="InsertDatabase">
                             <Image Source="/Images/save3.png"/>
                         </Button>
                         <TextBlock x:Name="InsertTb" Text="Отправить" HorizontalAlignment="Left" Margin="460,205,0,0" VerticalAlignment="Top"/>
-                        <Button Content="Х" HorizontalAlignment="Left" Margin="385,228,0,0" VerticalAlignment="Top" MinWidth="20" MinHeight="20" Click="ResetDates" BorderBrush="#FFFF0046" ToolTip="Сбросить даты"/>
-                        <TextBox ToolTip="Коэффициент" x:Name="AssemblyRatio" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MinHeight="20" MaxWidth="30" MaxHeight="20" MaxLines="1" Margin="470,163,0,0"/>
 
                         <Button Command="{Binding SaveCommand}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="20,0,0,10" Padding="0" BorderThickness="0" ToolTip="Сохранить расчет (Ctrl+D)" Height="20" Width="20" MinWidth="30" MinHeight="30">
                             <Image Source="Images/save.png" MaxWidth="20" MaxHeight="20"/>

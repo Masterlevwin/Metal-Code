@@ -11,7 +11,7 @@ namespace Metal_Code
     [Serializable]
     public class Product
     {
-        public string? Name, Order, Company, Production, Manager, PaintRatio, ConstructRatio;       //поле "Manager" сохраняет ссылку на адрес доставки
+        public string? Name, Order, Company, Production, Manager, PaintRatio, ConstructRatio;   //поле "Manager" сохраняет ссылку на адрес доставки
         public int Count, Delivery, DeliveryRatio;
         public bool IsLaser, IsAgent;
         public bool? HasConstruct, HasPaint, HasDelivery;
@@ -20,7 +20,7 @@ namespace Metal_Code
         public float Ratio = 1;
 
         [OptionalField]
-        public bool HasAssembly = false;
+        public bool HasAssembly = false;    //это поле сохраняет ссылку на экспресс-изготовление
 
         public ObservableCollection<Detail> Details { get; set; } = new();
         public Product()
