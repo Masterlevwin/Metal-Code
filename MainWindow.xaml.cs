@@ -4072,9 +4072,6 @@ namespace Metal_Code
             //сохраняем книгу в файл Excel
             workbook.SaveAs($"{Path.GetDirectoryName(_paths[0])}\\Заявка.xlsx");
 
-            //создаем папку "КП" в директории заявки
-            Directory.CreateDirectory(Path.GetDirectoryName(_paths[0]) + "\\" + "КП");
-
             StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(_paths[0])}");
         }
 

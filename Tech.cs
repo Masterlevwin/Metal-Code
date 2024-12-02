@@ -65,57 +65,71 @@ namespace Metal_Code
                     {
                         if (work.Key.Contains("гиб"))
                         {
-                            DirectoryInfo dirBend = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Гибка");
+                            DirectoryInfo dirBend = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Гибка");
                             SortExtension(dirBend, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                         
                         if (work.Key.Contains("вальц"))
                         {
-                            DirectoryInfo dirRoll = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Вальцовка");
+                            DirectoryInfo dirRoll = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Вальцовка");
                             SortExtension(dirRoll, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                         
                         if (work.Key.Contains("рез"))
                         {
-                            DirectoryInfo dirThread = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Резьба");
+                            DirectoryInfo dirThread = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Резьба");
                             SortExtension(dirThread, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                         
                         if (work.Key.Contains("зен"))
                         {
-                            DirectoryInfo dirCountersink = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Зенковка");
+                            DirectoryInfo dirCountersink = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Зенковка");
                             SortExtension(dirCountersink, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                         
                         if (work.Key.Contains("свер"))
                         {
-                            DirectoryInfo dirDrilling = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Сверловка");
+                            DirectoryInfo dirDrilling = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Сверловка");
                             SortExtension(dirDrilling, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                         
                         if (work.Key.Contains("свар"))
                         {
-                            DirectoryInfo dirWeld = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Сварка");
+                            DirectoryInfo dirWeld = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Сварка");
                             SortExtension(dirWeld, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                         
                         if (work.Key.Contains("окр"))
                         {
-                            DirectoryInfo dirPaint = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Окраска");
+                            DirectoryInfo dirPaint = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Окраска");
                             SortExtension(dirPaint, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                     }
 
-                //создаем папку "Лазер" в директории Excel-файла
-                DirectoryInfo dirLaser = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Лазер");
-                IEnumerable<string> files = SortExtension(dirLaser, dirMaterials, "dxf", TechItems);
+                //получаем коллекцию файлов "igs" в папке с Excel-файлом
+                IEnumerable<string> _igs = Directory.EnumerateFiles(Path.GetDirectoryName(ExcelFile), $"*.igs", SearchOption.TopDirectoryOnly);
+                if (_igs.Any())
+                {
+                    //создаем папку "Труборез" в директории Excel-файла
+                    DirectoryInfo dirPipe = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Труборез");
+                    IEnumerable<string> files = SortExtension(dirPipe, dirMaterials, "igs", TechItems);
+                    notify = RequestReport(files, "igs");       //создаем отчет по заявке
+                }
 
-                //создаем папку "Труборез" в директории Excel-файла
-                DirectoryInfo dirPipe = Directory.CreateDirectory(Path.GetDirectoryName(ExcelFile) + "\\" + "Труборез");
-                SortExtension(dirPipe, dirMaterials, "igs", TechItems);
+                //получаем коллекцию файлов "dxf" в папке с Excel-файлом
+                IEnumerable<string> _dxf = Directory.EnumerateFiles(Path.GetDirectoryName(ExcelFile), $"*.dxf", SearchOption.TopDirectoryOnly);
+                if (_dxf.Any())
+                {
+                    //создаем папку "Лазер" в директории Excel-файла
+                    DirectoryInfo dirLaser = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Лазер");
+                    IEnumerable<string> files = SortExtension(dirLaser, dirMaterials, "dxf", TechItems);
+                    notify = RequestReport(files, "dxf");       //создаем отчет по заявке
+                }
 
-                ClearDirectories();                     //очищаем пустые папки
-                notify = RequestReport(files, "dxf");   //создаем отчет по заявке
+                //создаем папку "КП" в директории заявки
+                Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "КП");
+
+                ClearDirectories();     //очищаем пустые папки
             }
             catch (Exception ex) { notify = ex.Message; }
 
@@ -177,7 +191,7 @@ namespace Metal_Code
         public void ClearDirectories()      //метод очищения пустых директорий
         {
             //удаляем пустые папки
-            string[] dirs = Directory.GetDirectories(Path.GetDirectoryName(ExcelFile));
+            string[] dirs = Directory.GetDirectories(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)));
             if (dirs.Length > 0)
                 foreach (var dir in dirs)
                 {

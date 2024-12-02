@@ -76,7 +76,7 @@ namespace Metal_Code
                 + MainWindow.M.MetalRatioDict[_metal]       //+ коэф за металл
                 + MainWindow.MassRatio(work.type.Mass))     //+ коэф за вес заготовки)
             * (UsedAssistant ? 1.5f : 1) * 2000 / 60        //* коэф за помощника
-            * work.type.Count * work.type.det.Detail.Count  //* количество заготовок * количество деталей
+            * work.type.det.Detail.Count                    //* количество деталей
             , false);
         }
 
