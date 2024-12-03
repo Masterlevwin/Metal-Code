@@ -1765,17 +1765,15 @@ namespace Metal_Code
                 row++;
             }
 
-            if (HasDelivery != false)                    
+            if (HasDelivery is null)                //если требуется указать доставку отдельной строкой
             {
-                if (HasDelivery is null)                //если требуется указать доставку отдельной строкой
-                {
-                    worksheet.Cells[row, 5].Value = "Доставка";
-                    worksheet.Cells[row, 6].Value = DeliveryRatio;
-                    worksheet.Cells[row, 7].Value = Delivery;
-                    worksheet.Cells[row, 8].Value = DeliveryRatio * Delivery;
-                    row++;
-                }
+                worksheet.Cells[row, 5].Value = "Доставка";
+                worksheet.Cells[row, 6].Value = DeliveryRatio;
+                worksheet.Cells[row, 7].Value = Delivery;
+                worksheet.Cells[row, 8].Value = DeliveryRatio * Delivery;
+                row++;
                 worksheet.Cells[row + 4, 2].Value = $"Доставка силами Исполнителя по адресу: {Adress.Text}.";
+
             }
             else
             {

@@ -96,7 +96,7 @@
                 <Image Source="/Images/update4.png"/>
             </Button>
 
-            <Button ToolTip="Добавить новую деталь" Content="+" Margin="50,70,0,0" Click="AddDetail" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="14" BorderThickness="2" Width="24" Height="24" IsEnabled="False"/>
+            <Button ToolTip="Добавить новую деталь" Content="+" Margin="50,70,0,0" Click="AddDetail" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="14" BorderThickness="2" Width="24" Height="24"/>
 
             <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" Margin="20,20,10,10" MaxHeight="500">
                 <ScrollViewer VerticalAlignment="Top" Margin="0,60,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
@@ -198,7 +198,7 @@
                         <DatePicker SelectedDate="{Binding StartDay, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="140,225,0,0" VerticalAlignment="Top"/>
                         <TextBlock Text="до" HorizontalAlignment="Left" Margin="250,230,0,0" VerticalAlignment="Top"/>
                         <DatePicker SelectedDate="{Binding EndDay, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="270,225,0,0" VerticalAlignment="Top"/>
-                        <Button x:Name="SearchBtn" Content="Поиск" Click="SearchOffers" HorizontalAlignment="Left" Margin="350,200,0,0" VerticalAlignment="Top" MinWidth="40" MinHeight="20" BorderBrush="#FF00C800" IsDefault="True"/>
+                        <Button x:Name="SearchBtn" Content="Поиск" Click="SearchOffers" HorizontalAlignment="Left" Margin="350,200,0,0" VerticalAlignment="Top" MinWidth="40" MinHeight="20" BorderBrush="#FF00C800"/>
                         <Button Content="Х" HorizontalAlignment="Left" Margin="385,228,0,0" VerticalAlignment="Top" MinWidth="20" MinHeight="20" Click="ResetDates" BorderBrush="#FFFF0046" ToolTip="Сбросить даты"/>
 
                         <Button x:Name="InsertBtn" ToolTip="Отправить новые расчеты в основную базу" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,200,0,0" Padding="0" BorderThickness="0" MaxWidth="20" MaxHeight="20" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Click="InsertDatabase">
