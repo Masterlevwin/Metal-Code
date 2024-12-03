@@ -1482,24 +1482,17 @@ namespace Metal_Code
                                     //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
                                     if (CheckConstruct.IsChecked == true)
                                     {
-                                        DetailControl? dc = DetailControls.FirstOrDefault(d => d.Detail.IsComplect);
-                                        if (dc != null)
-                                        {
-                                            p.Price += Construct / DetailControls.Count / dc.TypeDetailControls.Count / _cut.PartDetails.Sum(p => p.Count);
-                                            p.PropsDict[62] = new() { $"{p.Price}" };
-                                        }
+                                        float _send = (float)Math.Round((double)Construct / DetailControls.Count / det.TypeDetailControls.Count / _cut.PartDetails.Sum(p => p.Count), 2);
+                                        p.Price += _send;
+                                        p.PropsDict[62] = new() { $"{_send}" };
                                     }
 
                                     //добавляем доставку в цену детали, если ее необходимо "размазать"
-                                    if (HasDelivery == true)
+                                    if (HasDelivery is null)
                                     {
-                                        DetailControl? dc = DetailControls.FirstOrDefault(d => d.Detail.IsComplect);
-                                        if (dc != null)
-                                        {
-                                            float _send = Delivery * DeliveryRatio / DetailControls.Count / dc.TypeDetailControls.Count / _cut.PartDetails.Sum(p => p.Count);
-                                            p.Price += _send;
-                                            p.PropsDict[63] = new() { $"{_send}" };
-                                        }
+                                        float _send = (float)Math.Round((double)Delivery * DeliveryRatio / DetailControls.Where(d => d.Detail.IsComplect).Count() / det.TypeDetailControls.Count / _cut.PartDetails.Sum(p => p.Count), 2);
+                                        p.Price += _send;
+                                        p.PropsDict[63] = new() { $"{_send}" };
                                     }
 
                                     //"размазываем" доп работы
@@ -1765,7 +1758,7 @@ namespace Metal_Code
                 row++;
             }
 
-            if (HasDelivery is null)                //если требуется указать доставку отдельной строкой
+            if (HasDelivery is true)                //если требуется указать доставку отдельной строкой
             {
                 worksheet.Cells[row, 5].Value = "Доставка";
                 worksheet.Cells[row, 6].Value = DeliveryRatio;
@@ -2042,7 +2035,7 @@ namespace Metal_Code
             scoresheet.Cells[extable.Rows + 2, 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             scoresheet.Cells[extable.Rows + 2, 1].Style.Font.Bold = scoresheet.Cells[extable.Rows + 2, 2].Style.Font.Bold = true;
 
-            if (HasDelivery is null)
+            if (HasDelivery is true)
             {
                 scoresheet.Cells[extable.Rows + 1, 18].Value = scoresheet.Cells[extable.Rows + 1, 2].Value;
                 scoresheet.Cells[extable.Rows + 2, 18].Value = scoresheet.Cells[extable.Rows + 1, 3].Value;
