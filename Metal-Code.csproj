@@ -25,8 +25,12 @@
     <None Remove="Images\convert.png" />
     <None Remove="Images\del.png" />
     <None Remove="Images\edit.png" />
+    <None Remove="Images\exampe0.png" />
     <None Remove="Images\exampe1.png" />
     <None Remove="Images\exampe2.png" />
+    <None Remove="Images\exampe3.png" />
+    <None Remove="Images\exampe4.png" />
+    <None Remove="Images\exampe5.png" />
     <None Remove="Images\list.png" />
     <None Remove="Images\new.png" />
     <None Remove="Images\new2.png" />
@@ -109,8 +113,12 @@
     <Resource Include="Images\convert.png" />
     <Resource Include="Images\del.png" />
     <Resource Include="Images\edit.png" />
+    <Resource Include="Images\exampe0.png" />
     <Resource Include="Images\exampe1.png" />
     <Resource Include="Images\exampe2.png" />
+    <Resource Include="Images\exampe3.png" />
+    <Resource Include="Images\exampe4.png" />
+    <Resource Include="Images\exampe5.png" />
     <Resource Include="Images\list.png" />
     <Resource Include="Images\new.png" />
     <Resource Include="Images\new2.png" />

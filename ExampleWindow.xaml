@@ -4,14 +4,26 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Примеры расчетов">
+        Title="Краткое руководство">
     <Grid>
         <TabControl>
-            <TabItem Header="1 пример">
+            <TabItem Header="Порядок действий">
+                <Image Source="/Images/exampe0.png" />
+            </TabItem>
+            <TabItem Header="1 шаг: Создание заявки">
                 <Image Source="/Images/exampe1.png" />
             </TabItem>
-            <TabItem Header="2 пример">
+            <TabItem Header="2 шаг: Подготовка папок в работу">
                 <Image Source="/Images/exampe2.png" />
+            </TabItem>
+            <TabItem Header="3 шаг: Загрузка раскладок">
+                <Image Source="/Images/exampe3.png" />
+            </TabItem>
+            <TabItem Header="4 шаг: Формирование расчета">
+                <Image Source="/Images/exampe4.png" />
+            </TabItem>
+            <TabItem Header="Результат">
+                <Image Source="/Images/exampe5.png" />
             </TabItem>
         </TabControl>
     </Grid>
