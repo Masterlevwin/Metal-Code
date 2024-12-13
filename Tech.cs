@@ -168,7 +168,7 @@ namespace Metal_Code
                                 {
                                     string destination = $"{techItem.Route}" == "" ?
                                         dirMain + "\\" + $"{item}".Trim() + "\\"
-                                        + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count} {techItem.Route}" + $".{extension}"
+                                        + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count}" + $".{extension}"
                                         : dirMain + "\\" + $"{item}".Trim() + "\\"
                                         + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count} ({techItem.Route})" + $".{extension}";
 

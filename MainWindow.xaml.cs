@@ -639,8 +639,8 @@ namespace Metal_Code
         {
             CurrentCustomers = Customers.Where(m => m.ManagerId == TargetManager.Id).OrderBy(s => s.Name).ToList();
             CustomerDrop.ItemsSource = CurrentCustomers;
-            Customer? customer = CurrentCustomers.FirstOrDefault(x => x.Name == TargetCustomer.Name);
-            if (customer is not null) CustomerDrop.SelectedItem = customer;
+            //Customer? customer = CurrentCustomers.FirstOrDefault(x => x.Name == TargetCustomer.Name);
+            //if (customer is not null) CustomerDrop.SelectedItem = customer;
 
             CurrentOffers = Offers.Where(m => m.ManagerId == TargetManager.Id).TakeLast(23).ToList();
             OffersGrid.ItemsSource = CurrentOffers;
@@ -845,6 +845,8 @@ namespace Metal_Code
 
             int count = 0;
 
+            if (!File.Exists(Path.GetDirectoryName(connections[1]))) return $"Не существует базы по пути: {connections[1]}";
+
             using ManagerContext db = new(connections[1]);      //подключаемся к основной базе данных
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
             if (isAvalaible)
@@ -901,6 +903,8 @@ namespace Metal_Code
                 return "Нет изменений для отправки в основную базу";
 
             int countChange = 0; int countRemove = 0; int countAdd = 0;
+
+            if (!File.Exists(Path.GetDirectoryName(connections[1]))) return $"Не существует базы по пути: {connections[1]}";
 
             using ManagerContext db = new(connections[1]);      //подключаемся к основной базе данных
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
@@ -4032,17 +4036,21 @@ namespace Metal_Code
             using var workbook = new ExcelPackage();
             ExcelWorksheet requestsheet = workbook.Workbook.Worksheets.Add("Заявка");
 
+            requestsheet.Cells[1, 1].Value = "Расшифровка работ: гиб - гибка, вальц - вальцовка, зен - зенковка, рез - резьба," +
+                " свар - сварка, окр - окраска, грав - гравировка";
+            requestsheet.Cells[1, 1, 1, 7].Merge = true;
+
             //устанавливаем заголовки таблицы
             List<string> _heads = new() { "№", "№ чертежа", "Наименование детали", "Металл", "Толщина", "Кол-во деталей", "Маршрут" };
-            for (int head = 0; head < _heads.Count; head++) requestsheet.Cells[1, head + 1].Value = _heads[head];
+            for (int head = 0; head < _heads.Count; head++) requestsheet.Cells[2, head + 1].Value = _heads[head];
 
             for (int i = 0; i < _paths.Length; i++)
             {
-                requestsheet.Cells[i + 2, 1].Value = i + 1;
-                requestsheet.Cells[i + 2, 2].Value = Path.GetFileNameWithoutExtension(_paths[i]);
+                requestsheet.Cells[i + 3, 1].Value = i + 1;
+                requestsheet.Cells[i + 3, 2].Value = Path.GetFileNameWithoutExtension(_paths[i]);
             }
 
-            ExcelRange details = requestsheet.Cells[1, 1, _paths.Length + 1, 7];     //получаем таблицу деталей для оформления
+            ExcelRange details = requestsheet.Cells[2, 1, _paths.Length + 2, 7];     //получаем таблицу деталей для оформления
 
             //обводка границ и авторастягивание столбцов
             details.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
@@ -4051,8 +4059,8 @@ namespace Metal_Code
             details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             requestsheet.Cells.AutoFitColumns();
-            requestsheet.Cells[1, 1, 1, 7].Style.WrapText = true;
-            requestsheet.Cells[1, 1, 1, 7].Style.Font.Bold = true;
+            requestsheet.Cells[2, 1, 2, 7].Style.WrapText = true;
+            requestsheet.Cells[2, 1, 2, 7].Style.Font.Bold = true;
 
             //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
             requestsheet.PrinterSettings.FitToPage = true;
