@@ -31,5 +31,6 @@
         <Button x:Name="CountersinkBtn" Content="З+" HorizontalAlignment="Left" Margin="73,120,0,0" VerticalAlignment="Top" ToolTip="Добавить зенковку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
         <Button x:Name="DrillingBtn" Content="С+" HorizontalAlignment="Left" Margin="89,120,0,0" VerticalAlignment="Top" ToolTip="Добавить сверловку" Click="AddControl" FontWeight="Bold" FontSize="8" MinHeight="16" MaxHeight="16" MinWidth="16" MaxWidth="16"/>
         <Button x:Name="RollingBtn" Content="В+" HorizontalAlignment="Left" Margin="105,120,0,0" VerticalAlignment="Top" ToolTip="Добавить вальцовку" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
+        <Button x:Name="ZincBtn" Content="Ц+" HorizontalAlignment="Left" Margin="121,120,0,0" VerticalAlignment="Top" ToolTip="Добавить цинкование" Click="AddControl" FontWeight="Bold" FontSize="8" MaxWidth="16" MinWidth="16" MinHeight="16" MaxHeight="16"/>
     </Grid>
 </UserControl>

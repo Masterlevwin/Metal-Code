@@ -84,7 +84,6 @@ namespace Metal_Code
 
             if (Part.PropsDict[100].Count > 2) Dimensions = Part.PropsDict[100][2];     //если присутствует строка размеров, показать ее
             //данной проверкой мы избегаем исключения по индексу в случае, если загружаются старые расчеты (элемент PropsDict[100][2] был добавлен позже)
-
         }
 
         private void ViewPopupDimensions(object sender, System.Windows.Input.MouseWheelEventArgs e)
@@ -118,6 +117,9 @@ namespace Metal_Code
                     case "RollingBtn":
                         AddControl(6);
                         break;
+                    case "ZincBtn":
+                        AddControl(7);
+                        break;
                 }
         }
         public void AddControl(int index)
@@ -149,6 +151,14 @@ namespace Metal_Code
                         return;
                     }
                     AddControl(new RollingControl(this));
+                    break;
+                case 7:
+                    if (UserControls.Count > 0 && UserControls.Any(r => r is ZincControl))
+                    {
+                        MainWindow.M.StatusBegin("Нельзя добавить больше одной оцинковки на деталь");
+                        return;
+                    }
+                    AddControl(new ZincControl(this));
                     break;
             }
         }

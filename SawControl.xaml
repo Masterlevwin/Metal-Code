@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"          
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="30" d:DesignWidth="140" VerticalAlignment="Top">
+             d:DesignHeight="30" VerticalAlignment="Top" MinWidth="140">
     <Grid>
         <TextBlock HorizontalAlignment="Left" Margin="6,-3,0,0" Text="Л" VerticalAlignment="Top" FontWeight="Bold" MouseWheel="ShowManual"/>
         <CheckBox Content="Помощник" IsChecked="{Binding UsedAssistant, RelativeSource={RelativeSource AncestorType={x:Type local:SawControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="50,0,0,0" VerticalAlignment="Top" ToolTip="Добавить помощника" Click="SetAssistant"/>

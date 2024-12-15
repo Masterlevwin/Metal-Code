@@ -228,6 +228,12 @@ namespace Metal_Code
                     Grid.SetColumn(saw, 1);
                     workType = saw;
                     break;
+                case "Цинкование":
+                    ZincControl zinc = new(this);
+                    WorkGrid.Children.Add(zinc);
+                    Grid.SetColumn(zinc, 1);
+                    workType = zinc;
+                    break;
                 default:
                     if (type.det.Detail.IsComplect)
                     {

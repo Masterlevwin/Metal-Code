@@ -61,6 +61,9 @@ namespace Metal_Code
                         case "RollingBtn":
                             p.AddControl(6);
                             break;
+                        case "ZincBtn":
+                            p.AddControl(7);
+                            break;
                     }
             }
         }
@@ -188,6 +191,11 @@ namespace Metal_Code
                         partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
                             p.UserControls.FirstOrDefault(u => u is RollingControl))).Union(Parts.Where(p => !p.UserControls.Contains(
                             p.UserControls.FirstOrDefault(u => u is RollingControl)))).ToList();
+                        break;
+                    case "Ц>":
+                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is ZincControl))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is ZincControl)))).ToList();
                         break;
                 }
         }
