@@ -1855,6 +1855,7 @@ namespace Metal_Code
                     if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("С ")) worksheet.Cells[row + 5, 2].Value += "С - Сверловка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("Св ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Св ")) worksheet.Cells[row + 5, 2].Value += "Св - Сварка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("О ")) worksheet.Cells[row + 5, 2].Value += "О - Окраска ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Ц ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Ц ")) worksheet.Cells[row + 5, 2].Value += "Ц - Цинкование ";
                     if (cell.Value != null && $"{cell.Value}".Contains("Доп ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Доп ")) worksheet.Cells[row + 5, 2].Value += "Доп - Дополнительные работы ";
                 }
                 worksheet.Cells[row + 5, 2, row + 5, 5].Merge = true;
@@ -2670,6 +2671,7 @@ namespace Metal_Code
                     if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("С ")) complectsheet.Cells[temp + 4, 3].Value += "С - Сверловка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("Св ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("Св ")) complectsheet.Cells[temp + 4, 3].Value += "Св - Сварка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("О ")) complectsheet.Cells[temp + 4, 3].Value += "О - Окраска ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Ц ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("Ц ")) complectsheet.Cells[temp + 4, 3].Value += "Ц - Цинкование ";
                     if (cell.Value != null && $"{cell.Value}".Contains("Доп ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("Доп ")) complectsheet.Cells[temp + 4, 3].Value += "Доп - Дополнительные работы ";
                 }
             }

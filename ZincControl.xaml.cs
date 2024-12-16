@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Controls;
@@ -100,7 +101,24 @@ namespace Metal_Code
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
         {
-
+            if (isSaved)
+            {
+                if (uc is WorkControl w)
+                {
+                    w.propsList.Clear();
+                }
+                else if (uc is PartControl p)
+                {
+                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{7}" };
+                    if (p.Part.Description != null && !p.Part.Description.Contains(" + Ц ")) p.Part.Description += " + Ц ";
+                    
+                    if (p.work.type.MetalDrop.SelectedItem is Metal metal)
+                    {
+                        p.Part.Price += p.Part.Mass * metal.MassPrice;
+                        p.Part.PropsDict[64] = new() { $"{p.Part.Mass * metal.MassPrice}" };
+                    }
+                }
+            }
         }
 
         private void ShowManual(object sender, MouseWheelEventArgs e)
