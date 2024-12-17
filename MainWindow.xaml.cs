@@ -845,8 +845,6 @@ namespace Metal_Code
 
             int count = 0;
 
-            if (!File.Exists(Path.GetDirectoryName(connections[1]))) return $"Не существует базы по пути: {connections[1]}";
-
             using ManagerContext db = new(connections[1]);      //подключаемся к основной базе данных
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
             if (isAvalaible)
@@ -903,8 +901,6 @@ namespace Metal_Code
                 return "Нет изменений для отправки в основную базу";
 
             int countChange = 0; int countRemove = 0; int countAdd = 0;
-
-            if (!File.Exists(Path.GetDirectoryName(connections[1]))) return $"Не существует базы по пути: {connections[1]}";
 
             using ManagerContext db = new(connections[1]);      //подключаемся к основной базе данных
             bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
