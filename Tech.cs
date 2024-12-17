@@ -12,8 +12,9 @@ namespace Metal_Code
     public class Tech
     {
         public string ExcelFile;                        //путь к файлу
+        public int CountTechItems = 0;                  //кол-во строк заявки
         public List<TechItem> TechItems = new();        //список полученных объектов из строк файла
-        public List<TechItem> NotFoundItems = new();    //список ненайденных dxf-файлов
+        public List<TechItem> FoundItems = new();       //список найденных файлов
 
         public Tech(string path)
         {
@@ -35,7 +36,7 @@ namespace Metal_Code
                 DataTable table = result.Tables[0];
 
                 //перебираем строки таблицы и заполняем список объектами TechItem
-                for (int i = 1; i < table.Rows.Count; i++)
+                for (int i = 2; i < table.Rows.Count; i++)
                 {
                     if ($"{table.Rows[i].ItemArray[1]}" is null || $"{table.Rows[i].ItemArray[1]}" == "") continue;
 
@@ -47,8 +48,26 @@ namespace Metal_Code
                         $"n{table.Rows[i].ItemArray[5]}",       //количество
                         $"{table.Rows[i].ItemArray[6]}");       //маршрут
 
+                    if (techItem.Material.Contains("al") || techItem.Material.Contains("амг2"))
+                    {
+                        techItem.Material = "";
+                        techItem.Destiny = $"al{table.Rows[i].ItemArray[4]}";
+                    }
+                    else if (techItem.Material.Contains("амг")) techItem.Destiny = $"al{table.Rows[i].ItemArray[4]}";
+                    else if (techItem.Material.Contains("br"))
+                    {
+                        techItem.Material = "";
+                        techItem.Destiny = $"br{table.Rows[i].ItemArray[4]}";
+                    }
+                    else if (techItem.Material.Contains("cu"))
+                    {
+                        techItem.Material = "";
+                        techItem.Destiny = $"cu{table.Rows[i].ItemArray[4]}";
+                    }
+
                     TechItems.Add(techItem);
                 }
+                CountTechItems = TechItems.Count;
 
                 stream.Close();
 
@@ -113,7 +132,9 @@ namespace Metal_Code
                     //создаем папку "Труборез" в директории Excel-файла
                     DirectoryInfo dirPipe = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Труборез");
                     IEnumerable<string> files = SortExtension(dirPipe, dirMaterials, "igs", TechItems);
-                    notify = RequestReport(files, "igs");       //создаем отчет по заявке
+
+                    //удаляем найденные объекты заявки из общего списка
+                    if (FoundItems.Count > 0) TechItems = TechItems.Except(FoundItems).ToList();
                 }
 
                 //получаем коллекцию файлов "dxf" в папке с Excel-файлом
@@ -123,7 +144,9 @@ namespace Metal_Code
                     //создаем папку "Лазер" в директории Excel-файла
                     DirectoryInfo dirLaser = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Лазер");
                     IEnumerable<string> files = SortExtension(dirLaser, dirMaterials, "dxf", TechItems);
-                    notify = RequestReport(files, "dxf");       //создаем отчет по заявке
+
+                    //удаляем найденные объекты заявки из общего списка
+                    if (FoundItems.Count > 0) TechItems = TechItems.Except(FoundItems).ToList();
                 }
 
                 //создаем папку "КП" в директории заявки
@@ -133,12 +156,12 @@ namespace Metal_Code
             }
             catch (Exception ex) { notify = ex.Message; }
 
-            return notify;
+            return RequestReport();
         }
 
         private IEnumerable<string> SortExtension(DirectoryInfo dirMain, IEnumerable<string> dirMaterials, string extension, List<TechItem> techItems)
         {
-            NotFoundItems.Clear();      //очищаем список ненайденных файлов
+            FoundItems.Clear();      //очищаем список ненайденных файлов
 
             //создаем папки для каждого материала в директории работы
             foreach (var item in dirMaterials) Directory.CreateDirectory(dirMain + "\\" + $"{item}");
@@ -149,8 +172,6 @@ namespace Metal_Code
             //сортируем полученные ранее объекты TechItem по соответствующим папкам
             foreach (TechItem techItem in techItems)
             {
-                bool wasFouned = false;         //найден ли файл
-
                 //для этого перебираем файлы
                 foreach (string file in files)
                 {
@@ -173,7 +194,7 @@ namespace Metal_Code
                                         + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count} ({techItem.Route})" + $".{extension}";
 
                                     File.Copy(file, destination);
-                                    wasFouned = true;           //файл найден
+                                    FoundItems.Add(techItem);           //файл найден
                                 }
                                 else
                                     File.Copy(file, dirMain + "\\" + $"{item}".Trim() + "\\"
@@ -182,8 +203,6 @@ namespace Metal_Code
                         break;
                     }
                 }
-                //если файл не найден, добавляем объект в список
-                if (!wasFouned) NotFoundItems.Add(techItem);
             }
             return files;
         }
@@ -202,42 +221,39 @@ namespace Metal_Code
                 }
         }
 
-        private string RequestReport(IEnumerable<string> files, string extension)
+        private string RequestReport()
         {
             string notify;                  //сообщение пользователю
 
-            if (files.ToArray().Length > 0)
+            if (TechItems.Count > 0)
             {
-                if (NotFoundItems.Count > 0)
-                {
-                    //открываем заявку для редактирования
-                    ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-                    using var requestbook = new ExcelPackage(new FileInfo(ExcelFile));
-                    ExcelWorksheet? registrysheet = requestbook.Workbook.Worksheets[0];
-                
-                    //создаем текстовый файл со списком ненайденных файлов
-                    using StreamWriter stream = new(Path.GetDirectoryName(ExcelFile) + $"\\Не хватает файлов!.txt");
-                    
-                    //перебираем список ненайденных файлов
-                    foreach (TechItem item in NotFoundItems)
-                    {
-                        //окрашиваем строчку ненайденного файла в желтый цвет
-                        foreach (var cell in registrysheet.Cells)
-                            if (cell.Value is not null && $"{cell.Value}".Contains(item.NumberName))
-                            {
-                                cell.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
-                                cell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Yellow);
-                            }
+                //открываем заявку для редактирования
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                using var requestbook = new ExcelPackage(new FileInfo(ExcelFile));
+                ExcelWorksheet? registrysheet = requestbook.Workbook.Worksheets[0];
 
-                        //добавляем имя файла в текстовый отчет
-                        stream.WriteLine(item.NumberName + " " + item.Name);
-                    }
-                    requestbook.Save();     //сохраняем книгу
-                    notify = $"Обработано {TechItems.Count} строк заявки и найдено {files.ToArray().Length} {extension}-файлов. Создан перечень недостающих файлов.";
+                //создаем текстовый файл со списком ненайденных файлов
+                using StreamWriter stream = new(Path.GetDirectoryName(ExcelFile) + $"\\Не хватает файлов!.txt");
+
+                //перебираем список ненайденных файлов
+                foreach (TechItem item in TechItems)
+                {
+                    //окрашиваем строчку ненайденного файла в желтый цвет
+                    foreach (var cell in registrysheet.Cells)
+                        if (cell.Value is not null && $"{cell.Value}".Contains(item.NumberName))
+                        {
+                            cell.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+                            cell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Yellow);
+                        }
+
+                    //добавляем имя файла в текстовый отчет
+                    stream.WriteLine(item.NumberName + " " + item.Name);
                 }
-                else notify = $"Обработано {TechItems.Count} строк заявки и найдено {files.ToArray().Length} {extension}-файлов";
+                requestbook.Save();     //сохраняем книгу
+                notify = $"Обработано {CountTechItems} строк заявки. Создан перечень недостающих {TechItems.Count} файлов.";
             }
-            else notify = $"Не найдено {extension}-файлов";
+            else notify = $"Обработано {CountTechItems} строк заявки. Все файлы найдены.";
+
             return notify;
         }
     }
