@@ -1690,8 +1690,8 @@ namespace Metal_Code
             {
                 for (int i = 0; i < Parts.Count; i++)
                 {
-                    Parts[i].Price = (float)Math.Round(Parts[i].Price, 1);
-                    Parts[i].Total = (float)Math.Round(Parts[i].Count * Parts[i].Price);
+                    Parts[i].Price = (float)Math.Ceiling(Parts[i].Price * Ratio);
+                    Parts[i].Total = Parts[i].Count * Parts[i].Price;
                 }
                 DataTable partTable = ToDataTable(Parts);
                 worksheet.Cells[row, 1].LoadFromDataTable(partTable, false);
@@ -1704,7 +1704,7 @@ namespace Metal_Code
                 {
                     //в этом случае, пересчитываем цену и стоимость деталей, которые НЕ "Комплект деталей" (их цена и стоимость пересчитываются в блоке SaveDetails())
                     d.Detail.Total -= Construct / DetailControls.Count;
-                    d.Detail.Price = (float)Math.Round(d.Detail.Total / d.Detail.Count, 1);
+                    d.Detail.Price = (float)Math.Ceiling(d.Detail.Total * Ratio / d.Detail.Count);
                 }
 
             ObservableCollection<Detail> _details = new(ProductModel.Product.Details.Where(d => !d.IsComplect));
@@ -1737,7 +1737,7 @@ namespace Metal_Code
             {
                 worksheet.Cells[row, 5].Value = "Окраска";
                 worksheet.Cells[row, 6].Value = 1;
-                worksheet.Cells[row, 7].Value = worksheet.Cells[row, 8].Value = Paint;
+                worksheet.Cells[row, 7].Value = worksheet.Cells[row, 8].Value = (float)Math.Ceiling(Paint * Ratio);
                 row++;
             }
 
@@ -1747,14 +1747,14 @@ namespace Metal_Code
                 if (float.TryParse(ConstructRatio.Text, out float c) && c > 1)
                 {
                     worksheet.Cells[row, 6].Value = c;
-                    worksheet.Cells[row, 7].Value = Construct / c;
+                    worksheet.Cells[row, 7].Value = (float)Math.Ceiling(Construct * Ratio / c);
                 }
                 else
                 {
                     worksheet.Cells[row, 6].Value = 1;
-                    worksheet.Cells[row, 7].Value = Construct;
+                    worksheet.Cells[row, 7].Value = (float)Math.Ceiling(Construct * Ratio);
                 }
-                worksheet.Cells[row, 8].Value = Construct;
+                worksheet.Cells[row, 8].Value = (float)Math.Ceiling(Construct * Ratio);
                 row++;
             }
 
@@ -1762,8 +1762,8 @@ namespace Metal_Code
             {
                 worksheet.Cells[row, 5].Value = "Доставка";
                 worksheet.Cells[row, 6].Value = DeliveryRatio;
-                worksheet.Cells[row, 7].Value = Delivery;
-                worksheet.Cells[row, 8].Value = DeliveryRatio * Delivery;
+                worksheet.Cells[row, 7].Value = (float)Math.Ceiling(Delivery * Ratio);
+                worksheet.Cells[row, 8].Value = (float)Math.Ceiling(DeliveryRatio * Delivery * Ratio);
                 row++;
                 worksheet.Cells[row + 4, 2].Value = $"Доставка силами Исполнителя по адресу: {Adress.Text}.";
 
@@ -1780,23 +1780,14 @@ namespace Metal_Code
                 if (cell.Value != null && $"{cell.Value}".Contains("0,7") || $"{cell.Value}".Contains("0,8") || $"{cell.Value}".Contains("1,2") || $"{cell.Value}".Contains("3,2"))
                     cell.Style.Numberformat.Format = "0.0";
 
-            //учитываем общий коэффициент в КП
-            for (int i = 8; i < row; i++)
-            {
-                if (worksheet.Cells[i, 6].Value != null && float.TryParse($"{worksheet.Cells[i, 6].Value}", out float c)
-                    && worksheet.Cells[i, 7].Value != null && float.TryParse($"{worksheet.Cells[i, 7].Value}", out float p))
-                {
-                    worksheet.Cells[i, 7].Value = p * Ratio;
-                    worksheet.Cells[i, 8].Value = c * p * Ratio;
-                }
-            }
-
             //вычисляем итоговую сумму КП и оформляем соответствующим образом
             worksheet.Cells[row, 7].Value = IsAgent ? "ИТОГО:" : "ИТОГО с НДС:";
             worksheet.Cells[row, 7].Style.Font.Bold = true;
             worksheet.Cells[row, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             worksheet.Names.Add("totalOrder", worksheet.Cells[8, 8, row - 1, 8]);
-            worksheet.Cells[row, 8].Formula = "=SUM(totalOrder)";
+            worksheet.Cells[row, 8].Formula = "=SUM(totalOrder)";       //вводим формулу в ячейку общей стоимости
+            worksheet.Cells[row, 8].Calculate();                        //считаем значение по введенной формуле 
+            Result = Parser($"{worksheet.Cells[row, 8].Value}");        //показываем полученный результат пользователю
             worksheet.Cells[row, 8].Style.Font.Bold = true;
             worksheet.Cells[row, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             worksheet.Cells[row, 1, row, 8].Style.Border.BorderAround(ExcelBorderStyle.Medium);
