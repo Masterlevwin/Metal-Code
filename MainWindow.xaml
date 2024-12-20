@@ -82,6 +82,9 @@
             <Button Command="{Binding OpenCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="400,40,0,0" Padding="0" BorderThickness="0" ToolTip="Открыть сохраненный расчет (Ctrl+S)" Height="20" Width="20">
                 <Image Source="Images/open4.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
+            <Button HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить отчет Металикса" Height="20" Width="20" Click="CreateMetalix">
+                <Image Source="Images/metalix.png" MaxWidth="20" MaxHeight="20"/>
+            </Button>
             <Button HorizontalAlignment="Left" VerticalAlignment="Top" Margin="460,40,0,0" Padding="0" BorderThickness="0" ToolTip="Создать заявку за клиента" Click="CreateRequest">
                 <Image Source="Images/comment.png" MaxWidth="20" MaxHeight="20"/>
             </Button>

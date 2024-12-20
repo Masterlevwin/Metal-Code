@@ -312,7 +312,7 @@ namespace Metal_Code
             }
         }
 
-        private void PartTitleAnalysis(PartControl part)        //метод анализа наименования детали, для автоматического создания блоков работ
+        public void PartTitleAnalysis(PartControl part)        //метод анализа наименования детали, для автоматического создания блоков работ
         {
             // если в наименовании детали есть скобки...
             if (part.Part.Title != null && part.Part.Title.Length > 0 && part.Part.Title.Contains('(') && part.Part.Title.Contains(')'))
@@ -668,6 +668,10 @@ namespace Metal_Code
         public float way, mass, price;
         [OptionalField]
         public byte[]? imageBytes;
+        [OptionalField]
+        public string metal = "ст3";
+        [OptionalField]
+        public string destiny = "1";
     }
 
     public class ExcelDialogService : IDialogService

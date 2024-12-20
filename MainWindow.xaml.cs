@@ -717,11 +717,11 @@ namespace Metal_Code
         {
             NewProject();
         }
-        private void ClearDetails()         // метод удаления всех деталей и очищения текущего расчета
+        public void ClearDetails()         // метод удаления всех деталей и очищения текущего расчета
         {
             while (DetailControls.Count > 0) DetailControls[^1].Remove();
         }
-        private void ClearCalculate()
+        public void ClearCalculate()
         {
             SetRatio(1);
             SetCount(1);
@@ -2798,6 +2798,8 @@ namespace Metal_Code
                                 else material += $"Лист {description} ({type.A}x{type.B}) - {type.Count} шт, ";
                             }
                             if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 2].Value += $"{type.Comment}";
+                            //"Крайний срок"
+                            tasksheet.Cells[temp, 3].Value = DateTime.UtcNow.AddDays(3).ToString("g");
                             //"Исполнитель"
                             tasksheet.Cells[temp, 4].Value = $"Вячеслав Серебряков";
                             //"Проект"
@@ -2813,6 +2815,8 @@ namespace Metal_Code
                             tasksheet.Cells[temp, 1].Value += $"{description} Гибка";
                             //"Описание"
                             tasksheet.Cells[temp, 2].Value = $"Заказчик: {CustomerDrop.Text}";
+                            //"Крайний срок"
+                            tasksheet.Cells[temp, 3].Value = DateTime.UtcNow.AddDays(5).ToString("g");
                             //"Исполнитель"
                             tasksheet.Cells[temp, 4].Value = $"Вячеслав Серебряков";
                             //"Проект"
@@ -2843,6 +2847,8 @@ namespace Metal_Code
                                 else material += $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({type.L}) - {type.Count} шт, ";
                             }
                             if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 2].Value += $"{type.Comment}";
+                            //"Крайний срок"
+                            tasksheet.Cells[temp, 3].Value = DateTime.UtcNow.AddDays(3).ToString("g");
                             //"Исполнитель"
                             tasksheet.Cells[temp, 4].Value = $"Вячеслав Серебряков";
                             //"Проект"
@@ -2862,6 +2868,8 @@ namespace Metal_Code
                                 if (w.workType is PaintControl _paint) tasksheet.Cells[temp, 2].Value = $"Окраска в {_paint.Ral}";
                                 else if (w.workType is ExtraControl _extra) tasksheet.Cells[temp, 2].Value = $"{_extra.NameExtra}";
                                 else tasksheet.Cells[temp, 2].Value = $"{work.Name}";
+                                //"Крайний срок"
+                                tasksheet.Cells[temp, 3].Value = DateTime.UtcNow.AddDays(10).ToString("g");
                                 //"Исполнитель"
                                 tasksheet.Cells[temp, 4].Value = $"Леонид Шишлин";
                                 //"Проект"
@@ -2890,6 +2898,8 @@ namespace Metal_Code
                 tasksheet.Cells[temp, 1].Value = $"Закупка металла под заказ: {_order} {CustomerDrop.Text}";
                 //"Описание"
                 tasksheet.Cells[temp, 2].Value = material;
+                //"Крайний срок"
+                tasksheet.Cells[temp, 3].Value = DateTime.UtcNow.AddDays(1).ToString("g");
                 //"Исполнитель"
                 tasksheet.Cells[temp, 4].Value = $"Антон Сухоруков";
                 //"Время на выполнение задачи в секундах"
@@ -2900,7 +2910,6 @@ namespace Metal_Code
 
             for (int row = 2; row < temp; row++)
             {
-                tasksheet.Cells[row, 3].Value = EndDate()?.AddDays(-5).ToString("g");
                 tasksheet.Cells[row, 7].Value = 1;
                 tasksheet.Cells[row, 8].Value = 0;
                 tasksheet.Cells[row, 9].Value = 1;
@@ -4061,6 +4070,20 @@ namespace Metal_Code
             workbook.SaveAs($"{Path.GetDirectoryName(_paths[0])}\\Заявка.xlsx");
 
             StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(_paths[0])}");
+        }
+
+        //------------Загрузка отчета Металикса------------------//
+        private void CreateMetalix(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new() { Filter = "Excel (*.xlsx)|*.xlsx|All files (*.*)|*.*" };
+
+            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
+            {
+                Metalix metalix = new(openFileDialog.FileNames[0]);
+                StatusBegin($"{metalix.Run()}");
+            }
+            else StatusBegin($"Не выбрано ни одного файла");
+
         }
 
         public bool WarningSave()           //предупреждение о незаполненных полях

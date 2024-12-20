@@ -330,12 +330,22 @@ namespace Metal_Code
                 A = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item1);
                 B = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item2);
 
-                if (TypeDetailDrop.SelectedItem is TypeDetail type && type.Name == "Швеллер")
+                TypeDetail? type = TypeDetailDrop.SelectedItem as TypeDetail;
+                if (type?.Name == "Швеллер")
                     S = (A / 10) switch
                     {
                         <= 22 => 5,
                         <= 30 => 6,
                         _ => 8
+                    };
+                else if (type?.Name == "Труба круглая ВГП")
+                    S = A switch
+                    {
+                        <= 21 => 2,
+                        <= 26.8f => 3,
+                        <= 42.3f => 3.2f,
+                        <= 60 => 3.5f,
+                        _ => 4
                     };
             }
             MassCalculate();
