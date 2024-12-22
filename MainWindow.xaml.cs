@@ -420,7 +420,7 @@ namespace Metal_Code
             InitializeComponent();
             M = this;
 
-            //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
+            if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
 
             //if (!CheckVersion(out string _version)) Restart();
             //UpdateDatabases();

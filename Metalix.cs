@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using ACadSharp.Objects;
 
 namespace Metal_Code
 {
@@ -32,6 +33,9 @@ namespace Metal_Code
                 {
                     if (table.Rows[i] is null) continue;
 
+                    int sheets = (int)MainWindow.Parser($"{table.Rows[3].ItemArray[3]}");
+                    int pinholes = (int)MainWindow.Parser($"{table.Rows[5].ItemArray[6]}");
+
                     // считываем раскладки
                     if ($"{table.Rows[i].ItemArray[0]}".Contains("Субраскладки в заказе"))
                     {
@@ -44,18 +48,17 @@ namespace Metal_Code
                         for (int layout = i + 2; !$"{table.Rows[layout].ItemArray[0]}".Contains("Детали в субраскладках"); layout++)
                         {
                             LaserItem item = new()
-                            {
-                                sheetSize = $"{table.Rows[layout].ItemArray[2]}X{table.Rows[layout].ItemArray[3]}",
-                                metal = $"{table.Rows[layout].ItemArray[4]}",
-                                destiny = $"{table.Rows[layout].ItemArray[5]}",
-                                sheets = (int)MainWindow.Parser($"{table.Rows[layout].ItemArray[9]}"),
-                                pinholes = (int)MainWindow.Parser($"{table.Rows[layout].ItemArray[9]}"),
-                                mass = (float)Math.Ceiling(MainWindow.Parser($"{table.Rows[layout].ItemArray[10]}")),
-                                way = (float)Math.Ceiling(MainWindow.Parser($"{table.Rows[layout].ItemArray[10]}")),
+                            {                              
+                                sheets = (int)MainWindow.Parser($"{table.Rows[layout].ItemArray[2]}"),
+                                metal = $"{table.Rows[layout].ItemArray[3]}",
+                                destiny = $"{table.Rows[layout].ItemArray[4]}",
+                                sheetSize = $"{table.Rows[layout].ItemArray[5]}X{table.Rows[layout].ItemArray[6]}",
+                                mass = (float)Math.Ceiling(MainWindow.Parser($"{table.Rows[layout].ItemArray[7]}")),
                             };
-
                             items.Add(item);
                         }
+
+                        foreach (LaserItem item in items) item.pinholes = pinholes / sheets;
 
                         List<List<LaserItem>> _grouped = items.GroupBy(m => new { m.metal, m.destiny })
                             .Select(g => g.ToList()).ToList();
@@ -77,7 +80,8 @@ namespace Metal_Code
                                     Metal = $"{table.Rows[detail].ItemArray[3]}",
                                     Destiny = MainWindow.Parser($"{table.Rows[detail].ItemArray[4]}"),
                                     Mass = MainWindow.Parser($"{table.Rows[detail].ItemArray[7]}"),
-                                    Way = (float)Math.Round(MainWindow.Parser($"{table.Rows[detail].ItemArray[14]}") / 1000, 2)
+                                    Count = (int)MainWindow.Parser($"{table.Rows[detail].ItemArray[8]}"),
+                                    Way = (float)Math.Round(MainWindow.Parser($"{table.Rows[detail].ItemArray[11]}") / 1000, 2)
                                 };
                                 part.PropsDict[100] = new() { $"{table.Rows[detail].ItemArray[5]}", $"{table.Rows[detail].ItemArray[6]}", $"{table.Rows[detail].ItemArray[5]}x{table.Rows[detail].ItemArray[6]}" };
                                 MainWindow.M.Parts.Add(part);
@@ -117,8 +121,8 @@ namespace Metal_Code
 
                                 if (type.WorkControls[0].workType is CutControl cut)
                                 {
-                                    cut.MassTotal = _grouped[k].Sum(m => m.mass);
-                                    cut.WayTotal = _grouped[k].Sum(w => w.way);
+                                    cut.MassTotal = grouped[k].Sum(w => w.Mass * w.Count);
+                                    cut.WayTotal = (float)Math.Ceiling(grouped[k].Sum(w => w.Way * w.Count));
                                     cut.Items = _grouped[k];
                                     cut.SumProperties(cut.Items);
 
