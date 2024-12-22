@@ -7,6 +7,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using ACadSharp.Objects;
+using System.Windows;
 
 namespace Metal_Code
 {
@@ -60,8 +61,7 @@ namespace Metal_Code
 
                         foreach (LaserItem item in items) item.pinholes = pinholes / sheets;
 
-                        List<List<LaserItem>> _grouped = items.GroupBy(m => new { m.metal, m.destiny })
-                            .Select(g => g.ToList()).ToList();
+                        var groupedItems = items.GroupBy(m => new { m.metal, m.destiny });
 
                         i += items.Count + 3;
 
@@ -87,13 +87,9 @@ namespace Metal_Code
                                 MainWindow.M.Parts.Add(part);
                             }
 
-                            List<List<Part>> grouped = MainWindow.M.Parts.GroupBy(m => new { m.Metal, m.Destiny })
-                                           .Select(g => g.ToList()).ToList();
+                            var _groupedParts = MainWindow.M.Parts.GroupBy(m => new { m.Metal, m.Destiny });
 
-                            if (grouped.Count != _grouped.Count)
-                                return "Состав раскладок не соответствует составу деталей. Вероятно существует ошибка в отчете.";
-
-                            for (int k = 0; k < _grouped.Count; k++)
+                            foreach (var item in groupedItems)
                             {
                                 TypeDetailControl type = MainWindow.M.DetailControls[^1].TypeDetailControls[^1];
 
@@ -105,12 +101,12 @@ namespace Metal_Code
                                     }
 
                                 // устанавливаем металл
-                                foreach (Metal metal in MainWindow.M.Metals) if (metal.Name == _grouped[k].First().metal)
+                                foreach (Metal metal in MainWindow.M.Metals) if (metal.Name == item.Key.metal)
                                     {
                                         type.MetalDrop.SelectedItem = metal;
                                         break;
                                     }
-                                type.S = MainWindow.Parser(_grouped[k].First().destiny);        // устанавливаем толщину
+                                type.S = MainWindow.Parser(item.Key.destiny);        // устанавливаем толщину
 
                                 // устанавливаем "Лазерная резка"
                                 foreach (Work w in MainWindow.M.Works) if (w.Name == "Лазерная резка")
@@ -119,14 +115,18 @@ namespace Metal_Code
                                         break;
                                     }
 
-                                if (type.WorkControls[0].workType is CutControl cut)
-                                {
-                                    cut.MassTotal = grouped[k].Sum(w => w.Mass * w.Count);
-                                    cut.WayTotal = (float)Math.Ceiling(grouped[k].Sum(w => w.Way * w.Count));
-                                    cut.Items = _grouped[k];
-                                    cut.SumProperties(cut.Items);
+                                var _item = _groupedParts.FirstOrDefault(m => m.Key.Metal == item.Key.metal
+                                                                    && $"{m.Key.Destiny}" == item.Key.destiny);
 
-                                    cut.PartDetails = grouped[k];
+                                if (type.WorkControls[0].workType is CutControl cut && _item is not null)
+                                {
+                                    cut.MassTotal = _item.Sum(w => w.Mass * w.Count);
+                                    cut.WayTotal = (float)Math.Ceiling(_item.Sum(w => w.Way * w.Count));
+                                    foreach (LaserItem laser in item)
+                                        laser.way = (float)Math.Ceiling(cut.WayTotal / _item.Count());
+                                    cut.Items = item.ToList();
+                                    cut.SumProperties(cut.Items);
+                                    cut.PartDetails = _item.ToList();
                                     cut.Parts = cut.PartList();
                                     cut.PartsControl = new(cut, cut.Parts);
                                     cut.AddPartsTab();
@@ -138,7 +138,7 @@ namespace Metal_Code
                                             cut.PartTitleAnalysis(part);
                                 }
 
-                                if (MainWindow.M.DetailControls[^1].TypeDetailControls.Count != _grouped.Count)
+                                if (MainWindow.M.DetailControls[^1].TypeDetailControls.Count != groupedItems.Count())
                                     MainWindow.M.DetailControls[^1].AddTypeDetail();
                             }
                         }
