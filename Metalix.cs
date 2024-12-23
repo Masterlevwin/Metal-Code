@@ -1,13 +1,9 @@
 ﻿using ExcelDataReader;
-using OfficeOpenXml.Drawing;
-using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
-using ACadSharp.Objects;
-using System.Windows;
 
 namespace Metal_Code
 {
@@ -123,7 +119,7 @@ namespace Metal_Code
                                     cut.MassTotal = _item.Sum(w => w.Mass * w.Count);
                                     cut.WayTotal = (float)Math.Ceiling(_item.Sum(w => w.Way * w.Count));
                                     foreach (LaserItem laser in item)
-                                        laser.way = (float)Math.Ceiling(cut.WayTotal / _item.Count());
+                                        laser.way = (float)Math.Ceiling(cut.WayTotal / _item.Count() / laser.sheets);
                                     cut.Items = item.ToList();
                                     cut.SumProperties(cut.Items);
                                     cut.PartDetails = _item.ToList();
@@ -150,28 +146,6 @@ namespace Metal_Code
             catch (Exception ex) { notify = ex.Message; }
 
             return notify;
-        }
-
-        public void SetImagesForParts(FileStream stream)        //метод извлечения картинок из файла и установки их для каждой детали в виде массива байтов
-        {
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-
-            using var workbook = new ExcelPackage(stream);                      //получаем книгу Excel из потока
-            ExcelWorksheet worksheet = workbook.Workbook.Worksheets[0];
-
-            //извлекаем все изображения на листе в список картинок
-            List<ExcelPicture> pictures = worksheet.Drawings.Where(x => x.DrawingType == eDrawingType.Picture).Select(x => x.As.Picture).ToList();
-
-            //if (Parts?.Count > 0)
-            //    for (int i = 0; i < Parts.Count; i++)
-            //        Parts[i].Part.ImageBytes = pictures[i].Image.ImageBytes;    //для каждой детали записываем массив байтов соответствующей картинки
-
-            ////получаем выборку изображений самих раскладок на основе размера массива байтов
-            //var images = pictures.Where(x => x.Image.ImageBytes.Length > 9999).ToList();
-
-            //if (Items?.Count > 0)
-            //    for (int j = 0; j < Items.Count; j++)
-            //        Items[j].imageBytes = images[j].Image.ImageBytes;           //для каждой раскладки записываем массив байтов соответствующей картинки
         }
     }
 }
