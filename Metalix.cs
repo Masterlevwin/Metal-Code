@@ -1,4 +1,6 @@
 ﻿using ExcelDataReader;
+using NPOI.SS.UserModel;
+using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -84,6 +86,13 @@ namespace Metal_Code
                             }
 
                             var _groupedParts = MainWindow.M.Parts.GroupBy(m => new { m.Metal, m.Destiny });
+
+                            stream.Close();
+
+                            IWorkbook workbook = new XSSFWorkbook(File.Open(ExcelFile, FileMode.Open, FileAccess.Read));
+                            if (workbook.GetAllPictures() is List<XSSFPictureData> pictures)
+                                for (int pic = 0; pic < MainWindow.M.Parts.Count; pic++)
+                                    MainWindow.M.Parts[pic].ImageBytes = pictures[pic + items.Count].Data;
 
                             foreach (var item in groupedItems)
                             {

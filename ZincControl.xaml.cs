@@ -96,7 +96,8 @@ namespace Metal_Code
 
             if (owner is not WorkControl work || work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
-            work.SetResult(Mass * metal.MassPrice, false);
+            if (metal.Name == "ст3" || metal.Name == "хк" || metal.Name == "09г2с") work.SetResult(Mass * 110, false);
+            else MainWindow.M.StatusBegin($"Детали из {metal.Name} на оцинковку не отправляем!");
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
@@ -109,13 +110,14 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p)
                 {
-                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{7}" };
-                    if (p.Part.Description != null && !p.Part.Description.Contains(" + Ц ")) p.Part.Description += " + Ц ";
-                    
-                    if (p.work.type.MetalDrop.SelectedItem is Metal metal)
+                    if (p.work.type.MetalDrop.SelectedItem is Metal metal &&
+                        (metal.Name == "ст3" || metal.Name == "хк" || metal.Name == "09г2с"))
                     {
-                        p.Part.Price += p.Part.Mass * metal.MassPrice;
-                        p.Part.PropsDict[64] = new() { $"{p.Part.Mass * metal.MassPrice}" };
+                        p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{7}" };
+                        if (p.Part.Description != null && !p.Part.Description.Contains(" + Ц ")) p.Part.Description += " + Ц ";
+
+                        p.Part.Price += p.Part.Mass * 110;
+                        p.Part.PropsDict[64] = new() { $"{p.Part.Mass * 110}" };
                     }
                 }
             }

@@ -3000,7 +3000,7 @@ namespace Metal_Code
 
                 //редактируем остальные строки
                 complectsheet.Cells[2, 1].Value = "спец , упд ";
-                complectsheet.Cells[2, 4].Value = "Лазерфлекс";
+                complectsheet.Cells[2, 4].Value = "ООО Лазерфлекс";
                 complectsheet.Row(2).Height = 16;
                 complectsheet.Cells[1, 1, 2, 9].Style.Font.Size = 12;
                 complectsheet.DeleteRow(Parts.Count + 5);
