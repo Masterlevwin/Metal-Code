@@ -1,4 +1,6 @@
 ﻿using ExcelDataReader;
+using NPOI.OpenXmlFormats.Dml.Chart;
+using NPOI.OpenXmlFormats.Wordprocessing;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using System;
@@ -6,6 +8,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Windows;
 
 namespace Metal_Code
 {
@@ -57,7 +60,9 @@ namespace Metal_Code
                             items.Add(item);
                         }
 
-                        foreach (LaserItem item in items) item.pinholes = pinholes / sheets;
+                        foreach (LaserItem item in items)
+                            item.pinholes = item.metal.Contains("шлиф") || item.metal.Contains("зер") ?
+                                2 * pinholes / sheets : pinholes / sheets;
 
                         var groupedItems = items.GroupBy(m => new { m.metal, m.destiny });
 
@@ -91,8 +96,13 @@ namespace Metal_Code
 
                             IWorkbook workbook = new XSSFWorkbook(File.Open(ExcelFile, FileMode.Open, FileAccess.Read));
                             if (workbook.GetAllPictures() is List<XSSFPictureData> pictures)
-                                for (int pic = 0; pic < MainWindow.M.Parts.Count; pic++)
-                                    MainWindow.M.Parts[pic].ImageBytes = pictures[pic + items.Count].Data;
+                            {
+                                if (pictures.Count < items.Count + MainWindow.M.Parts.Count)
+                                    MessageBox.Show($"Количество изображений в отчете не совпадает с количеством деталей. " +
+                                        $"Возможно развертки некоторых деталей повторяются.");
+                                else for (int pic = 0; pic < MainWindow.M.Parts.Count; pic++)
+                                        MainWindow.M.Parts[pic].ImageBytes = pictures[pic + items.Count].Data;
+                            }
 
                             foreach (var item in groupedItems)
                             {
@@ -127,8 +137,9 @@ namespace Metal_Code
                                 {
                                     cut.MassTotal = _item.Sum(w => w.Mass * w.Count);
                                     cut.WayTotal = (float)Math.Ceiling(_item.Sum(w => w.Way * w.Count));
+                                    if (item.Key.metal.Contains("шлиф") || item.Key.metal.Contains("зер")) cut.WayTotal *= 2;
                                     foreach (LaserItem laser in item)
-                                        laser.way = (float)Math.Ceiling(cut.WayTotal / _item.Count() / laser.sheets);
+                                        laser.way = (float)Math.Ceiling(cut.WayTotal / item.Count() / laser.sheets);
                                     cut.Items = item.ToList();
                                     cut.SumProperties(cut.Items);
                                     cut.PartDetails = _item.ToList();
