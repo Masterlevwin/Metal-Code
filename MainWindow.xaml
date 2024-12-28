@@ -49,7 +49,7 @@
                 <Separator/>
                 <MenuItem Header="Обновить базы" Click="UpdateDatabases"/>
                 <Separator/>
-                <MenuItem Header="Получить новые расчеты" Click="GetOffers_WithoutMainBase" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
+                <MenuItem Header="Получить новые расчеты" x:Name="GetBtn" Click="GetOffers_WithoutMainBase" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
                     <MenuItem.Icon>
                         <Image Source="/Images/open2.png"/>
                     </MenuItem.Icon>
@@ -102,19 +102,19 @@
             <TextBox x:Name="ProductName" Text="Изделие" AutoWordSelection="True" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="200" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" HorizontalAlignment="Left" FontSize="14" AllowDrop="False" />
             <Button ToolTip="Добавить новую деталь" Content="+" Margin="250,40,0,0" Click="AddDetail" VerticalAlignment="Top" HorizontalAlignment="Left" BorderThickness="2" Width="20" Height="20" FontWeight="Bold"/>
             
-            <Button Command="{Binding NewProjectCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="330,40,0,0" Padding="0" BorderThickness="0" ToolTip="Создать новый расчет (Ctrl+Q)" Height="20" Width="20">
+            <Button Command="{Binding NewProjectCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="360,40,0,0" Padding="0" BorderThickness="0" ToolTip="Создать новый расчет (Ctrl+Q)" Height="20" Width="20">
                 <Image Source="Images/new3.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button Command="{Binding OpenCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="360,40,0,0" Padding="0" BorderThickness="0" ToolTip="Открыть сохраненный расчет (Ctrl+S)" Height="20" Width="20">
+            <Button Command="{Binding OpenCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="395,40,0,0" Padding="0" BorderThickness="0" ToolTip="Открыть сохраненный расчет (Ctrl+S)" Height="20" Width="20">
                 <Image Source="Images/open4.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button HorizontalAlignment="Left" VerticalAlignment="Top" Margin="460,40,0,0" Padding="0" BorderThickness="0" ToolTip="Создать заявку за клиента" Click="CreateRequest">
+            <Button HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,40,0,0" Padding="0" BorderThickness="0" ToolTip="Создать заявку за клиента" Click="CreateRequest">
                 <Image Source="Images/comment.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button HorizontalAlignment="Left" VerticalAlignment="Top" Margin="490,40,0,0" Padding="0" BorderThickness="0" ToolTip="Подготовить папки в работу" Click="CreateTech">
+            <Button HorizontalAlignment="Left" VerticalAlignment="Top" Margin="465,40,0,0" Padding="0" BorderThickness="0" ToolTip="Подготовить папки в работу" Click="CreateTech">
                 <Image Source="Images/complect.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
-            <Button Command="{Binding LoadCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="520,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить раскладки (Ctrl+F)" Height="20" Width="20">
+            <Button Command="{Binding LoadCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="500,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить раскладки (Ctrl+F)" Height="20" Width="20">
                 <Image Source="Images/xlsx_load.png" MaxWidth="20" MaxHeight="20"/>
             </Button>
 

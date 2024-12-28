@@ -1247,6 +1247,7 @@ namespace Metal_Code
                     break;
                 case ActionState.get:
                     StatusBegin($"Подождите, идет получение расчетов из основной базы...");
+                    GetBtn.IsEnabled = false;
                     InsertBtn.IsEnabled = false;
                     UpdateBtn.IsEnabled = false;
                     break;
@@ -1311,7 +1312,8 @@ namespace Metal_Code
                     StatusBegin($"{e.Result}");
                     InsertProgressBar.Visibility = Visibility.Collapsed;
                     break;
-                case ActionState.get:             
+                case ActionState.get:
+                    GetBtn.IsEnabled = true;
                     InsertBtn.IsEnabled = true;
                     InsertProgressBar.Visibility = Visibility.Collapsed;
                     message = $"{e.Result}";
