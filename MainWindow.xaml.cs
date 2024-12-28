@@ -419,6 +419,7 @@ namespace Metal_Code
         {
             InitializeComponent();
             M = this;
+            Title = $"Metal-Code {Version}";
 
             //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
 
@@ -1243,13 +1244,9 @@ namespace Metal_Code
             {
                 case ActionState.convert:
                     StatusBegin($"Подождите, идет конвертация файлов dwg в dxf...");
-                    ConvertBtn.Content = "...";
-                    ConvertBtn.IsEnabled = false;
                     break;
                 case ActionState.get:
                     StatusBegin($"Подождите, идет получение расчетов из основной базы...");
-                    RefreshTb.Text = "Получение...";
-                    RefreshBtn.IsEnabled = false;
                     InsertBtn.IsEnabled = false;
                     UpdateBtn.IsEnabled = false;
                     break;
@@ -1257,7 +1254,6 @@ namespace Metal_Code
                     StatusBegin($"Подождите, идет отправка расчетов в основную базу...");
                     InsertTb.Text = "Отправление...";
                     InsertBtn.IsEnabled = false;
-                    RefreshBtn.IsEnabled = false;
                     UpdateBtn.IsEnabled = false;
                     break;
                 case ActionState.search:
@@ -1313,13 +1309,9 @@ namespace Metal_Code
             {
                 case ActionState.convert:
                     StatusBegin($"{e.Result}");
-                    ConvertBtn.IsEnabled = true;
-                    ConvertBtn.Content = "Конвертер";
                     InsertProgressBar.Visibility = Visibility.Collapsed;
                     break;
                 case ActionState.get:             
-                    RefreshTb.Text = "Получить";
-                    RefreshBtn.IsEnabled = true;
                     InsertBtn.IsEnabled = true;
                     InsertProgressBar.Visibility = Visibility.Collapsed;
                     message = $"{e.Result}";
@@ -1328,7 +1320,6 @@ namespace Metal_Code
                 case ActionState.insert:
                     InsertTb.Text = "Отправить";
                     InsertBtn.IsEnabled = true;
-                    RefreshBtn.IsEnabled = true;
                     InsertProgressBar.Visibility = Visibility.Collapsed;
                     message = $"{e.Result}";
                     CreateWorker(UpdateOffersCollection, ActionState.update);
@@ -2574,6 +2565,7 @@ namespace Metal_Code
                                             Stream? stream = new MemoryStream(bytes);
                                             ExcelPicture pic = itemsheet.Drawings.AddPicture($"{namePic}", stream);
                                             itemsheet.Cells[namePic + 1, 1].Value = $"s{type.S} {type.MetalDrop.Text}";
+                                            itemsheet.Cells[namePic + 1, 1].Style.TextRotation = 90;
                                             itemsheet.Cells[namePic + 1, 1].Style.Font.Bold = true;
                                             itemsheet.Cells[namePic + 1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                                             itemsheet.Cells[namePic + 1, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
@@ -3921,9 +3913,15 @@ namespace Metal_Code
         private bool viewBends = false;
         //------------Таблица гибов-------------------------------//
         private void ShowTableOfBends(object sender, RoutedEventArgs e)
-        {            
-            viewBends = !viewBends;
-            TableOfBends.Visibility = viewBends ? Visibility.Visible : Visibility.Hidden;
+        {
+            if (sender is MenuItem item)
+            {
+                string header = $"{item.Header}";
+                ExtraWindow extraWindow = new(header);
+                Image image = new() { Source = new BitmapImage(new Uri("Images/tableofbends.jpg", UriKind.Relative)) };
+                extraWindow.ContentGrid.Children.Add(image);
+                extraWindow.Show();
+            }
         }
 
         //------------Смена темы----------------------------------//
@@ -4070,20 +4068,6 @@ namespace Metal_Code
             workbook.SaveAs($"{Path.GetDirectoryName(_paths[0])}\\Заявка.xlsx");
 
             StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(_paths[0])}");
-        }
-
-        //------------Загрузка отчета Металикса------------------//
-        private void CreateMetalix(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog openFileDialog = new() { Filter = "Excel (*.xlsx)|*.xlsx|All files (*.*)|*.*" };
-
-            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
-            {
-                Metalix metalix = new(openFileDialog.FileNames[0]);
-                StatusBegin($"{metalix.Run()}");
-            }
-            else StatusBegin($"Не выбрано ни одного файла");
-
         }
 
         public bool WarningSave()           //предупреждение о незаполненных полях

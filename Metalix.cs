@@ -1,6 +1,4 @@
 ﻿using ExcelDataReader;
-using NPOI.OpenXmlFormats.Dml.Chart;
-using NPOI.OpenXmlFormats.Wordprocessing;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using System;

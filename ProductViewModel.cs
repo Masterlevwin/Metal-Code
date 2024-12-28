@@ -185,7 +185,7 @@ namespace Metal_Code
 
                           if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames != null)
                           {
-                              List<string> _lasers = new(), _tubes = new();
+                              List<string> _lasers = new(), _tubes = new(), _metalix = new();
 
                               foreach (string path in openFileDialog.FileNames)
                               {
@@ -194,12 +194,21 @@ namespace Metal_Code
                                   DataSet result = reader.AsDataSet();
                                   DataTable table = result.Tables[0];
 
-                                  if ($"{table.Rows[0].ItemArray[0]}".Contains("Полный список вакансий")) _lasers.Add(path);
+                                  if ($"{table.Rows[0].ItemArray[0]}".Contains("Заказ")) _metalix.Add(path);
+                                  else if ($"{table.Rows[0].ItemArray[0]}".Contains("Полный список вакансий")) _lasers.Add(path);
                                   else _tubes.Add(path);
+                              }
+
+                              if (_metalix.Count > 0)
+                              {
+                                  Metalix metalix = new(_metalix[0]);
+                                  MainWindow.M.StatusBegin($"{metalix.Run()}");
                               }
 
                               if (_lasers.Count > 0)
                               {
+                                  if (_metalix.Count > 0) MainWindow.M.AddDetail();
+
                                   // устанавливаем "Лазерная резка" в работу по умолчанию
                                   foreach (Work w in MainWindow.M.Works) if (w.Name == "Лазерная резка")
                                       {
@@ -212,7 +221,7 @@ namespace Metal_Code
 
                               if (_tubes.Count > 0)
                               {
-                                  if (_lasers.Count > 0) MainWindow.M.AddDetail();
+                                  if (_lasers.Count > 0 || _metalix.Count > 0) MainWindow.M.AddDetail();
 
                                   // устанавливаем "Труба профильная" в заготовке по умолчанию
                                   foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба профильная")
@@ -380,38 +389,6 @@ namespace Metal_Code
                   });
             }
         }
-
-        // команда переименования файла
-        private RelayCommand renameCommand;
-        public RelayCommand RenameCommand
-        {
-            get
-            {
-                return renameCommand ??= new RelayCommand(obj =>
-                {
-                    try
-                    {
-                        OpenFileDialog openFileDialog = new()
-                        {
-                            Multiselect = true
-                        };
-                        if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames != null)
-                        {
-                            foreach (string _name in openFileDialog.FileNames)
-                                File.Move(_name, Path.GetDirectoryName(_name) + "\\" + Path.GetFileNameWithoutExtension(_name)
-                                    + $" {MainWindow.M.Rename.Text}" + Path.GetExtension(_name));
-
-                            MainWindow.M.StatusBegin("Файлы успешно переименованы");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        dialogService.ShowMessage(ex.Message);
-                    }
-                });
-            }
-        }
-
     }
 
     public class RelayCommand : ICommand

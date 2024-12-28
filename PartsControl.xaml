@@ -71,7 +71,7 @@
             <Button  Content="В&gt;" ToolTip="По вальцовке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,200,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
             <Button  Content="Ц&gt;" ToolTip="По оцинковке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,225,0,0" MinWidth="25" MaxWidth="25" MinHeight="20" MaxHeight="20"/>
 
-            <CheckBox Content="Показать раскладки" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,230,10,10" Click="ShowNesting"/>
+            <CheckBox Content="Показать раскладки" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ShowNesting" Margin="0,275,10,0"/>
             <ListBox x:Name="imagesList" Padding="5,0,0,0" Grid.Column="1" VerticalAlignment="Top" VerticalContentAlignment="Top" Visibility="Collapsed">
                 <ListBox.ItemsPanel>
                     <ItemsPanelTemplate>
