@@ -15,8 +15,10 @@
     <None Remove="app_logo.jpeg" />
     <None Remove="app_logo.jpg" />
     <None Remove="Images\add.png" />
+    <None Remove="Images\assembly.png" />
     <None Remove="Images\bends.png" />
     <None Remove="Images\change.png" />
+    <None Remove="Images\check.png" />
     <None Remove="Images\comment.png" />
     <None Remove="Images\comment2.png" />
     <None Remove="Images\comment3.png" />
@@ -31,6 +33,9 @@
     <None Remove="Images\exampe3.png" />
     <None Remove="Images\exampe4.png" />
     <None Remove="Images\exampe5.png" />
+    <None Remove="Images\exit.png" />
+    <None Remove="Images\greenplus.png" />
+    <None Remove="Images\lamp.png" />
     <None Remove="Images\list.png" />
     <None Remove="Images\metalix.png" />
     <None Remove="Images\new.png" />
@@ -40,8 +45,11 @@
     <None Remove="Images\open2.png" />
     <None Remove="Images\open3.png" />
     <None Remove="Images\open4.png" />
+    <None Remove="Images\plus.png" />
     <None Remove="Images\print.jpg" />
     <None Remove="Images\print2.png" />
+    <None Remove="Images\question.png" />
+    <None Remove="Images\report.png" />
     <None Remove="Images\route.png" />
     <None Remove="Images\save.png" />
     <None Remove="Images\save2.png" />
@@ -106,8 +114,10 @@
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </Resource>
     <Resource Include="Images\add.png" />
+    <Resource Include="Images\assembly.png" />
     <Resource Include="Images\bends.png" />
     <Resource Include="Images\change.png" />
+    <Resource Include="Images\check.png" />
     <Resource Include="Images\comment.png" />
     <Resource Include="Images\comment2.png" />
     <Resource Include="Images\complect.png" />
@@ -121,6 +131,9 @@
     <Resource Include="Images\exampe3.png" />
     <Resource Include="Images\exampe4.png" />
     <Resource Include="Images\exampe5.png" />
+    <Resource Include="Images\exit.png" />
+    <Resource Include="Images\greenplus.png" />
+    <Resource Include="Images\lamp.png" />
     <Resource Include="Images\list.png" />
     <Resource Include="Images\metalix.png" />
     <Resource Include="Images\new.png" />
@@ -130,8 +143,11 @@
     <Resource Include="Images\open2.png" />
     <Resource Include="Images\open3.png" />
     <Resource Include="Images\open4.png" />
+    <Resource Include="Images\plus.png" />
     <Resource Include="Images\print.jpg" />
     <Resource Include="Images\print2.png" />
+    <Resource Include="Images\question.png" />
+    <Resource Include="Images\report.png" />
     <Resource Include="Images\route.png" />
     <Resource Include="Images\save.png" />
     <Resource Include="Images\save2.png" />

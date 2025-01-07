@@ -109,9 +109,22 @@
     <Style TargetType="{x:Type Button}">
         <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.InfoBrushKey}}"/>
         <Setter Property="BorderBrush" Value="#FFFF7D00"/>
+        <Setter Property="Padding" Value="2"/>
     </Style>
     <Style TargetType="{x:Type CheckBox}">
         <Setter Property="BorderBrush" Value="#FFFF7D00"/>
+    </Style>
+    <Style TargetType="{x:Type TreeView}">
+        <Setter Property="FontFamily" Value="Century"/>
+        <Setter Property="BorderBrush" Value="#FFFF7D00"/>
+        <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
+    </Style>
+    <Style TargetType="{x:Type TreeViewItem}">
+        <Setter Property="IsExpanded" Value="true"/>
+    </Style>
+    <Style TargetType="{x:Type GroupBox}">
+        <Setter Property="FontFamily" Value="Century"/>
+        <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
     </Style>
 
     <!-- ComboBox and ComboBoxItems-->

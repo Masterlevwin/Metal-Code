@@ -33,8 +33,9 @@ namespace Metal_Code
                 {
                     if (table.Rows[i] is null) continue;
 
-                    int sheets = (int)MainWindow.Parser($"{table.Rows[3].ItemArray[3]}");
-                    int pinholes = (int)MainWindow.Parser($"{table.Rows[5].ItemArray[6]}");
+                    int averagePinholes = (int)Math.Ceiling(
+                        MainWindow.Parser($"{table.Rows[5].ItemArray[6]}")
+                        / MainWindow.Parser($"{table.Rows[4].ItemArray[3]}") );
 
                     // считываем раскладки
                     if ($"{table.Rows[i].ItemArray[0]}".Contains("Субраскладки в заказе"))
@@ -54,13 +55,13 @@ namespace Metal_Code
                                 destiny = $"{table.Rows[layout].ItemArray[4]}",
                                 sheetSize = $"{table.Rows[layout].ItemArray[5]}X{table.Rows[layout].ItemArray[6]}",
                                 mass = (float)Math.Ceiling(MainWindow.Parser($"{table.Rows[layout].ItemArray[7]}")),
+                                pinholes = averagePinholes * (int)MainWindow.Parser($"{table.Rows[layout].ItemArray[8]}")
                             };
                             items.Add(item);
                         }
 
                         foreach (LaserItem item in items)
-                            item.pinholes = item.metal.Contains("шлиф") || item.metal.Contains("зер") ?
-                                2 * pinholes / sheets : pinholes / sheets;
+                            if (item.metal.Contains("шлиф") || item.metal.Contains("зер")) item.pinholes *= 2;
 
                         var groupedItems = items.GroupBy(m => new { m.metal, m.destiny });
 
@@ -135,7 +136,11 @@ namespace Metal_Code
                                 {
                                     cut.MassTotal = _item.Sum(w => w.Mass * w.Count);
                                     cut.WayTotal = (float)Math.Ceiling(_item.Sum(w => w.Way * w.Count));
-                                    if (item.Key.metal.Contains("шлиф") || item.Key.metal.Contains("зер")) cut.WayTotal *= 2;
+                                    if (item.Key.metal.Contains("шлиф") || item.Key.metal.Contains("зер"))
+                                    {
+                                        cut.WayTotal *= 2;
+                                        foreach (Part p in _item) p.Way *= 2;
+                                    }
                                     foreach (LaserItem laser in item)
                                         laser.way = (float)Math.Ceiling(cut.WayTotal / item.Count() / laser.sheets);
                                     cut.Items = item.ToList();

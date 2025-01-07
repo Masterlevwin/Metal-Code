@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 
 namespace Metal_Code
@@ -21,6 +22,9 @@ namespace Metal_Code
 
         [OptionalField]
         public bool HasAssembly = false;    //это поле сохраняет ссылку на экспресс-изготовление
+        
+        [OptionalField]
+        public ObservableCollection<Assembly> Assemblies = new();
 
         public ObservableCollection<Detail> Details { get; set; } = new();
         public Product()
@@ -75,9 +79,6 @@ namespace Metal_Code
         [OptionalField]
         public byte[]? ImageBytes;
 
-        [OptionalField]
-        public bool MakeModel;
-
         public Dictionary<int, List<string>> PropsDict = new();
 
         public Part(string? _name = null, int _count = 1, string? _accuracy = null)
@@ -86,6 +87,60 @@ namespace Metal_Code
             Count = _count;
             Accuracy = _accuracy;
         }
+    }
+
+    [Serializable]
+    public class Particle : Part, INotifyPropertyChanged
+    {
+        [field: NonSerialized]
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        private int count;
+        public new int Count
+        {
+            get => count;
+            set
+            {
+                if (value != count)
+                {
+                    count = value;
+                    OnPropertyChanged(nameof(Count));
+                }
+            }
+        }
+
+        public Particle() { }
+    }
+
+    [Serializable]
+    public class Assembly : INotifyPropertyChanged
+    {
+        [field: NonSerialized]
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+        
+        public string Title { get; set; } = "Новая сборка";
+
+        private int count = 1;
+        public int Count
+        {
+            get => count;
+            set
+            {
+                if (value != count)
+                {
+                    count = value;
+                    OnPropertyChanged(nameof(Count));
+                }
+            }
+        }
+
+        public float Price { get; set; } = 0;
+        public float Total { get; set; } = 0;
+        public ObservableCollection<Particle> Particles { get; set; } = new();
+
+        public Assembly() { }
     }
 
     [Serializable]

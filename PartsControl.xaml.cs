@@ -200,13 +200,6 @@ namespace Metal_Code
                 }
         }
 
-        private void SetAllMakeModel(object sender, RoutedEventArgs e)          //метод, который устанавливает ВСЕМ деталям свойство отрисовки инженером
-        {
-            if (sender is CheckBox cBox && cBox.IsChecked is not null)
-                foreach (PartControl p in Parts)
-                    p.MakeModel = (bool)cBox.IsChecked;
-        }
-
         private void ShowNesting(object sender, RoutedEventArgs e)
         {
             if (sender is CheckBox cBox && cBox is not null)
@@ -241,5 +234,12 @@ namespace Metal_Code
             }
         }
 
+        private void ShowAssemblyWindow(object sender, RoutedEventArgs e)
+        {
+            AssemblyWindow.A.CurrentParts.Clear();
+            foreach (Part part in Parts.Select(p => p.Part))
+                AssemblyWindow.A.CurrentParts.Add(part);
+            AssemblyWindow.A.Show();
+        }
     }
 }

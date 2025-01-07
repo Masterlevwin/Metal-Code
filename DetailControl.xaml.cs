@@ -103,9 +103,6 @@ namespace Metal_Code
                 foreach (WorkControl w in t.WorkControls) Detail.Total += w.Result;
             }
 
-            // добавляем окраску, если она отмечена галочкой или квадратиком
-            Detail.Total += MainWindow.M.Paint / MainWindow.M.DetailControls.Count;
-
             // добавляем конструкторские работы
             Detail.Total += MainWindow.M.Construct / MainWindow.M.DetailControls.Count;
 

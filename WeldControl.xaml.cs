@@ -3,10 +3,7 @@ using System.Data;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Windows;
 using System.Linq;
-using SQLitePCL;
-using System;
 
 namespace Metal_Code
 {

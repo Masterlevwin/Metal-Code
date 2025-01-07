@@ -44,16 +44,6 @@ namespace Metal_Code
             }
         }
 
-        public bool MakeModel           //отрисована ли деталь инженером
-        {                               //это свойство ссылается на аналогичное поле в детали
-            get => Part.MakeModel;
-            set
-            {
-                Part.MakeModel = value;
-                OnPropertyChanged(nameof(MakeModel));
-            }
-        }
-
         public delegate void PropsChanged(UserControl uc, bool b);
         public PropsChanged? PropertiesChanged;
 
@@ -182,6 +172,13 @@ namespace Metal_Code
         private void SetPicture(object sender, RoutedEventArgs e)       //метод вызывается при загрузке элемента Image (Image.Loaded) 
         {
             if (Part.ImageBytes != null) Picture.Source = MainWindow.CreateBitmap(Part.ImageBytes);
+        }
+
+        private void ShowAssemblyWindow(object sender, RoutedEventArgs e)
+        {
+            AssemblyWindow.A.CurrentParts.Clear();
+            AssemblyWindow.A.CurrentParts.Add(Part);
+            AssemblyWindow.A.Show();
         }
     }
 

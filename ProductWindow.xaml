@@ -3,29 +3,34 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" WindowStartupLocation="CenterScreen" FontFamily="Century" Width="800">
+        mc:Ignorable="d" WindowStartupLocation="CenterScreen" MinHeight="800" MinWidth="600">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition/>
             <RowDefinition/>
         </Grid.RowDefinitions>
-        <TextBox x:Name="ProductName" Text="Изделие" VerticalAlignment="Top" MinWidth="330" HorizontalContentAlignment="Center" Margin="35,40,0,0" VerticalContentAlignment="Center" HorizontalAlignment="Left" FontSize="14" IsReadOnly="True"/>
-        <TextBlock Text="Общий коэффициент" Margin="400,40,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-        <TextBlock x:Name="Ratio" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="530,40,0,0" FontSize="14" FontWeight="Bold"/>
-        <TextBlock Text="Стоимость" Margin="570,40,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-        <TextBlock x:Name="Amount" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="640,40,0,0" FontSize="14" FontWeight="Bold"/>
-
-        <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" Margin="20,20,10,10">
-            <ScrollViewer VerticalAlignment="Top" Margin="0,60,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                <StackPanel x:Name="DetailsStack"/>
-            </ScrollViewer>
+        
+        <GroupBox x:Name="ProductBox" Header="{Binding Text, ElementName=ProductName}" Margin="10,10,10,5">
+            <Grid>
+                <StackPanel Orientation="Horizontal" MaxHeight="20" Margin="10" VerticalAlignment="Top">
+                    <TextBox x:Name="ProductName" Text="Изделие" VerticalAlignment="Center" MinWidth="200" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="14" IsReadOnly="True" Margin="10,0,0,0"/>
+                    <TextBlock Text="Общий коэффициент" VerticalAlignment="Center" Margin="50,0,0,0"/>
+                    <TextBlock x:Name="Ratio" VerticalAlignment="Center" FontSize="14" FontWeight="Bold" MinWidth="40" Margin="10,0,0,0"/>
+                    <TextBlock Text="Стоимость" VerticalAlignment="Center" Margin="20,0,0,0"/>
+                    <TextBlock x:Name="Amount" VerticalAlignment="Center" FontSize="14" FontWeight="Bold" Margin="10,0,0,0"/>
+                </StackPanel>
+                <ScrollViewer VerticalAlignment="Top" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Margin="10,40,10,10">
+                    <StackPanel x:Name="DetailsStack"/>
+                </ScrollViewer>
+            </Grid>
         </GroupBox>
 
-        <Button Content="Скопировать" Click="CopyUserControls" Margin="200,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Grid.Row="1" MinHeight="20" Panel.ZIndex="1"/>
-
-        <GroupBox x:Name="PartsBox" Header="Список нарезанных деталей" Margin="20,0,10,10" Grid.Row="1">
-            <TabControl x:Name="PartsTab" Margin="5"/>
+        <GroupBox x:Name="PartsBox" Header="Список нарезанных деталей" Margin="10,5,10,10" Grid.Row="1">
+            <Grid>
+                <Button Content="Скопировать" Click="CopyUserControls" MinHeight="20" ToolTip="Перенести работы в основной расчет" VerticalAlignment="Top" HorizontalAlignment="Right"/>
+                <TabControl x:Name="PartsTab" Margin="10,20,10,10"/>
+            </Grid>
         </GroupBox>
-
+        
     </Grid>
 </Window>

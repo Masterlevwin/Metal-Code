@@ -92,6 +92,16 @@ namespace Metal_Code
                               _path += $" с материалом {MainWindow.M.GetMetalPrice()}";
 
                               fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());     //сохраняем расчет в папке
+
+                              if (AssemblyWindow.A.Assemblies.Count > 0)
+                              {
+                                  MessageBoxResult response = MessageBox.Show(
+                                      "Сформировать сборочное КП?\nЕсли \"Да\", в КП будут отражены СБОРКИ.\nЕсли \"Нет\", в КП будут отражены ДЕТАЛИ!",
+                                      "Выбор формата КП", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                                  if (response == MessageBoxResult.Yes) MainWindow.M.isAssemblyOffer = true;
+                                  else MainWindow.M.isAssemblyOffer = false;
+                              }
                               MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);           //формируем КП в формате excel
                               MainWindow.M.SaveOrRemoveOffer(true, dialogService.FilePaths[0]); //сохраняем расчет в базе данных
                           }
