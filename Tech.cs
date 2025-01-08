@@ -35,6 +35,10 @@ namespace Metal_Code
                 DataSet result = reader.AsDataSet();
                 DataTable table = result.Tables[0];
 
+                int countAssembly = 1;      //количество комплектов
+                if ($"{table.Rows[^1].ItemArray[5]}" is not null && ((int)MainWindow.Parser($"{table.Rows[^1].ItemArray[5]}") > 0))
+                    countAssembly = (int)MainWindow.Parser($"{table.Rows[^1].ItemArray[5]}");
+
                 //перебираем строки таблицы и заполняем список объектами TechItem
                 for (int i = 2; i < table.Rows.Count; i++)
                 {
@@ -45,7 +49,7 @@ namespace Metal_Code
                         $"{table.Rows[i].ItemArray[2]}",        //наименование детали
                         $"{table.Rows[i].ItemArray[3]}",        //материал
                         $"s{table.Rows[i].ItemArray[4]}",       //толщина
-                        $"n{table.Rows[i].ItemArray[5]}",       //количество
+                        $"n{(int)MainWindow.Parser($"{table.Rows[i].ItemArray[5]}") * countAssembly}",  //количество
                         $"{table.Rows[i].ItemArray[6]}");       //маршрут
 
                     if (techItem.Material.Contains("al") || techItem.Material.Contains("амг2"))

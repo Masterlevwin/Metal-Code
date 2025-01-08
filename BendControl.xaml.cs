@@ -471,9 +471,9 @@ namespace Metal_Code
         }
 
         //инструкция
-        private void ShowManual(object sender, MouseWheelEventArgs e)
+        private void ShowPopup(object sender, MouseEventArgs e)
         {
-            PopupBend.IsOpen = true;
+            Popup.IsOpen = true;
             Manual.Text = $"Максимальная длина гиба – 2450 мм.\r\n" +
                 $"Коэффициент для развертки – 0,5 мм.\r\n" +
                 $"Проверить усилие станка по таблице гибов:\r\n" +

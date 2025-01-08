@@ -4,7 +4,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:self="clr-namespace:Metal_Code"
-        xmlns:local="clr-namespace:Metal_Code"
         mc:Ignorable="d"
         d:DesignHeight="150" d:DesignWidth="500" Title="Управление сборками" Closing="HideWindow" SizeToContent="Width" WindowStartupLocation="CenterScreen" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}">
     <Grid>
