@@ -5,13 +5,13 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="30" d:DesignWidth="140" Unloaded="RemovePartsTab">
-    <Grid>
-        <CheckBox IsChecked="{Binding IsMassPipe, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Top" Click="SetMassPipe" ToolTip="Посчитать материал самих деталей"/>
-        <Button x:Name="CutBtn" Click="LoadFiles" Content=". . ." ToolTip="Загрузить отчет трубы" HorizontalAlignment="Left" Margin="15,0,0,0" VerticalAlignment="Top" FontWeight="Bold" MinWidth="20" MinHeight="20"/>
-        <TextBox Text="{Binding Mold, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetMold" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" MinWidth="30" ToolTip="Длина трубы, пог м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="40,0,0,0" MouseWheel="ViewPopupMold" MaxWidth="30" MaxHeight="20"/>
-        <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetWay" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" MinWidth="30" ToolTip="Длина пути резки, м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="75,0,0,0" MouseWheel="ViewPopupWay" MaxWidth="30" MaxHeight="20"/>
-        <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetPinhole" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" MinWidth="30" ToolTip="Количество проколов, шт" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="110,0,0,0" MouseWheel="ViewPopupPinhole" MaxWidth="30" MaxHeight="20"/>
+             d:DesignHeight="30" d:DesignWidth="150" Unloaded="RemovePartsTab">
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="20">
+        <CheckBox IsChecked="{Binding IsMassPipe, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" Click="SetMassPipe" ToolTip="Посчитать материал самих деталей" Margin="2,0,0,0" VerticalAlignment="Center"/>
+        <Button x:Name="CutBtn" Click="LoadFiles" Content=". . ." ToolTip="Загрузить отчет трубы" FontWeight="Bold" Margin="2,0,0,0" MinWidth="25"/>
+        <TextBox Text="{Binding Mold, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetMold" ToolTip="Длина трубы, пог м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MouseWheel="ViewPopupMold" MaxWidth="30" MinWidth="30"/>
+        <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetWay" MinWidth="25" ToolTip="Длина пути резки, м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MouseWheel="ViewPopupWay" MaxWidth="25" Margin="5,0,0,0"/>
+        <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetPinhole" MinWidth="25" ToolTip="Количество проколов, шт" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MouseWheel="ViewPopupPinhole" MaxWidth="25" Margin="5,0,0,0"/>
         <Popup x:Name="PopupMold" StaysOpen="False" Placement="Mouse" MaxWidth="120" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5">
             <StackPanel Background="Snow">
                 <TextBlock x:Name="MoldPrice" TextAlignment="Center" Padding="3"/>
@@ -27,5 +27,16 @@
                 <TextBlock x:Name="PinholePrice" TextAlignment="Center" Padding="3"/>
             </StackPanel>
         </Popup>
-    </Grid>
+
+        <Image Source="/Images/question.png" MaxWidth="10" Margin="2,0,0,0" VerticalAlignment="Top">
+            <Image.ToolTip>
+                <ToolTip Background="Snow" BorderBrush="Red" Padding="5" BorderThickness="1">
+                    <StackPanel >
+                        <TextBlock Text="Стоимость трубореза = кол пог метров * цена пог метра * 0,7 + кол метров резки * цена метра + кол проколов * цена проколов * 3" TextWrapping="Wrap" MaxWidth="300"/>
+                    </StackPanel>
+                </ToolTip>
+            </Image.ToolTip>
+        </Image>
+
+    </StackPanel>
 </UserControl>

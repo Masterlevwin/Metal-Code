@@ -5,16 +5,20 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"          
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="30" VerticalAlignment="Top" MinWidth="140">
-    <Grid>
-        <TextBlock HorizontalAlignment="Left" Margin="6,-3,0,0" Text="Л" VerticalAlignment="Top" FontWeight="Bold" MouseWheel="ShowManual"/>
-        <CheckBox Content="Помощник" IsChecked="{Binding UsedAssistant, RelativeSource={RelativeSource AncestorType={x:Type local:SawControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" Margin="50,0,0,0" VerticalAlignment="Top" ToolTip="Добавить помощника" Click="SetAssistant"/>
+             d:DesignHeight="30" d:DesignWidth="150">
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="20">
+        <TextBlock Text="Л" FontWeight="Bold" Margin="5,0,0,0" MinWidth="10"/>
+        <CheckBox Content="Помощник" IsChecked="{Binding UsedAssistant, RelativeSource={RelativeSource AncestorType={x:Type local:SawControl}, Mode=FindAncestor}}" ToolTip="Добавить помощника" Click="SetAssistant" Margin="40,0,0,0" MaxWidth="85" MinWidth="85" VerticalAlignment="Center"/>
 
-        <Popup x:Name="PopupSaw" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5" Placement="Mouse">
-            <StackPanel Background="Snow">
-                <TextBlock x:Name="Manual" Padding="3" TextAlignment="Center"/>
-            </StackPanel>
-        </Popup>
+        <Image Source="/Images/question.png" MaxWidth="10" Margin="2,0,0,0" VerticalAlignment="Top">
+            <Image.ToolTip>
+                <ToolTip Background="Snow" BorderBrush="Red" Padding="5" BorderThickness="1">
+                    <StackPanel >
+                        <TextBlock Text="Стоимость лентопила = цена работы + (цена минуты + коэф за толщину + коэф за металл + коэф за вес) * коэф за помощника * 2000 / 60 * кол деталей" TextWrapping="Wrap" MaxWidth="320"/>
+                    </StackPanel>
+                </ToolTip>
+            </Image.ToolTip>
+        </Image>
 
-    </Grid>
+    </StackPanel>
 </UserControl>

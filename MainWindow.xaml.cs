@@ -3929,8 +3929,29 @@ namespace Metal_Code
             {
                 string header = $"{item.Header}";
                 ExtraWindow extraWindow = new(header);
-                Image image = new() { Source = new BitmapImage(new Uri("Images/tableofbends.jpg", UriKind.Relative)) };
-                extraWindow.ContentGrid.Children.Add(image);
+                Image image = new() { Source = new BitmapImage(new Uri("Images/tableofbends.jpg", UriKind.Relative)), MaxWidth = 800 };
+                extraWindow.ContentStack.Children.Add(image);
+                TextBlock tb = new()
+                {
+                    Text = $"Максимальная длина гиба – 2450 мм.\r\n" +
+                    $"Коэффициент для развертки – 0,5 мм.\r\n" +
+                    $"Проверить усилие станка по таблице гибов:\r\n" +
+                    $"1. Определяем № матрицы.\r\n" +
+                    $"2. На пересечении матрицы и толщины металла\r\n" +
+                    $"получаем количество тонн на метр гиба.\r\n" +
+                    $"3. Умножаем это значение на фактический размер гиба.\r\n" +
+                    $"4. Если результат меньше 100 тонн, значит согнём!\r\n" +
+                    $"Проверить размер полки выбранной матрицы:\r\n" +
+                    $"1. Берем половину от № матрицы.\r\n" +
+                    $"2. Добавляем толщину металла и 1 мм на зацеп.\r\n" +
+                    $"3. Полученный результат – минимальная полка гиба.\r\n" +
+                    $"Проверить внутренний размер между гибами:\r\n" +
+                    $"если этот размер меньше полок, второй гиб может не получиться из-за того,\r\n" +
+                    $"что полка первого гиба будет упираться в станок.\r\n" +
+                    $"Этот момент уточняется экспериментальным путем у специалиста - гибщика!",
+                    Margin = new Thickness(20),
+                };
+                extraWindow.ContentStack.Children.Add(tb);
                 extraWindow.Show();
             }
         }

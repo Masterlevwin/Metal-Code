@@ -122,11 +122,5 @@ namespace Metal_Code
                 }
             }
         }
-
-        private void ShowManual(object sender, MouseWheelEventArgs e)
-        {
-            PopupZinc.IsOpen = true;
-            Manual.Text = $"Цинкование";
-        }
     }
 }

@@ -93,11 +93,5 @@ namespace Metal_Code
                 UsedAssistant = prop;
             }
         }
-
-        private void ShowManual(object sender, MouseWheelEventArgs e)
-        {
-            PopupSaw.IsOpen = true;
-            Manual.Text = $"Лентопил";
-        }
     }
 }

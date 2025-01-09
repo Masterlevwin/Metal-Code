@@ -248,12 +248,12 @@ namespace Metal_Code
             }
         }
 
-        private void ShowManual(object sender, MouseWheelEventArgs e)
-        {
-            PopupThread.IsOpen = true;
-            if (CharName == 'З') Manual.Text = $"Проверить развертки деталей на предмет выявления стороны," +
-                $"\r\nв которой будет осуществлена зенковка." +
-                $"\r\nДиаметр вырезаемых отверстий должен быть меньше диаметра зенковки.";
-        }
+        //private void ShowManual(object sender, MouseWheelEventArgs e)
+        //{
+        //    PopupThread.IsOpen = true;
+        //    if (CharName == 'З') Manual.Text = $"Проверить развертки деталей на предмет выявления стороны," +
+        //        $"\r\nв которой будет осуществлена зенковка." +
+        //        $"\r\nДиаметр вырезаемых отверстий должен быть меньше диаметра зенковки.";
+        //}
     }
 }
