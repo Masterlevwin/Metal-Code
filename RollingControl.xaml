@@ -6,6 +6,12 @@
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
              d:DesignHeight="30" d:DesignWidth="150">
+    <UserControl.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="Удалить" Click="Remove"/>
+        </ContextMenu>
+    </UserControl.ContextMenu>
+
     <StackPanel Orientation="Horizontal" MaxHeight="20" VerticalAlignment="Top">
         <TextBlock Text="В" FontWeight="Bold" MouseWheel="ShowManual" MinWidth="10" Margin="5,0,0,0"/>
         <TextBlock Text="{Binding Side, RelativeSource={RelativeSource AncestorType={x:Type local:RollingControl}, Mode=FindAncestor}}" Margin="5,0,0,0" MinWidth="35" MaxWidth="35" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"/>

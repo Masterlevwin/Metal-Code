@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
@@ -209,5 +210,7 @@ namespace Metal_Code
                 $"\r\nЕсли требуется сварка сплошным швом – добавлять сварку в расчете." +
                 $"\r\nПо требованию производства – создать шаблон на лазер.";
         }
+
+        private void Remove(object sender, RoutedEventArgs e) { if (owner is PartControl part) part.RemoveControl(this); }
     }
 }

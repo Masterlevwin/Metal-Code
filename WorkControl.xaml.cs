@@ -22,7 +22,7 @@ namespace Metal_Code
         public delegate void PropsChanged(UserControl w, bool b);
         public PropsChanged? PropertiesChanged;
         
-        private float result = 0;
+        private float result;
         public float Result
         {
             get => result;

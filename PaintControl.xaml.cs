@@ -175,7 +175,7 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p)       // первый элемент списка {2} - это (MenuItem)PartControl.Controls.Items[2]
                 {
-                    if (Ral == null || Ral == "")
+                    if (Ral == null || Ral == "" || Ral == "0")
                     {
                         p.RemoveControl(this);
                         return;
@@ -223,5 +223,7 @@ namespace Metal_Code
                 }
             }
         }
+
+        private void Remove(object sender, RoutedEventArgs e) { if (owner is PartControl part) part.RemoveControl(this); }
     }
 }

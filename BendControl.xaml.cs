@@ -467,5 +467,7 @@ namespace Metal_Code
                 }
             }
         }
+
+        private void Remove(object sender, RoutedEventArgs e) { if (owner is PartControl part) part.RemoveControl(this); }
     }
 }

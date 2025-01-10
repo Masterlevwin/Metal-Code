@@ -6,6 +6,12 @@
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
              d:DesignHeight="30" d:DesignWidth="150">
+    <UserControl.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="Удалить" Click="Remove"/>
+        </ContextMenu>
+    </UserControl.ContextMenu>
+
     <StackPanel Orientation="Horizontal" MinHeight="20" VerticalAlignment="Top">
         <TextBlock TextWrapping="Wrap" Text="Св" FontWeight="Bold" MinWidth="15" Margin="5,0,0,0"/>
         <TextBox Text="{Binding Weld, RelativeSource={RelativeSource AncestorType={x:Type local:WeldControl}, Mode=FindAncestor}}" TextChanged="SetWeld" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите длину свариваемой поверхности, мм" MinWidth="60" MaxWidth="60" Margin="5,0,0,0"/>

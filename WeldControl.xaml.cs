@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Linq;
+using System.Windows;
 
 namespace Metal_Code
 {
@@ -281,7 +282,7 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p)
                 {
-                    if (Weld == null || Weld == "")
+                    if (Weld == null || Weld == "" || ParserWeld(Weld) == 0)
                     {
                         p.RemoveControl(this);
                         return;
@@ -328,5 +329,7 @@ namespace Metal_Code
                 }
             }
         }
+
+        private void Remove(object sender, RoutedEventArgs e) { if (owner is PartControl part) part.RemoveControl(this); }
     }
 }

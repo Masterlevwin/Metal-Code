@@ -6,6 +6,12 @@
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d"
              d:DesignHeight="30" d:DesignWidth="150">
+    <UserControl.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="Удалить" Click="Remove"/>
+        </ContextMenu>
+    </UserControl.ContextMenu>
+
     <StackPanel Orientation="Horizontal" MinHeight="20" VerticalAlignment="Top">
         <TextBlock Text="Ц" FontWeight="Bold" MinWidth="10" Margin="5,0,0,0"/>
         <TextBox Text="{Binding Mass, RelativeSource={RelativeSource AncestorType={x:Type local:ZincControl}, Mode=FindAncestor}}" MinWidth="50" MaxWidth="50" IsReadOnly="True" ToolTip="Текущий вес деталей на оцинковку" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="55,0,0,0" TextAlignment="Center"/>

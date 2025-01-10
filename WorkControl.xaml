@@ -35,7 +35,7 @@
         <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Top" MinHeight="20">
             <TextBox Text="{Binding Ratio}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="20" MaxWidth="20" MaxLines="1" ToolTip="Коммерческий" Margin="5,0,0,0" TextChanged="SetRatio" Grid.Column="2"/>
             <TextBox x:Name="TechRatioText" Text="{Binding TechRatio}" MaxLines="1" ToolTip="Производственный" TextChanged="SetRatio" Grid.Column="2" MinWidth="20" MaxWidth="20" Margin="5,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-            <TextBlock x:Name="ResultText" Text="{Binding Result, Converter={StaticResource CostConverter}}" Grid.Column="2" TextTrimming="CharacterEllipsis" Margin="5,0,0,0" MinWidth="80" MaxWidth="80"/>
+            <TextBlock x:Name="ResultText" Text="{Binding Result, Converter={StaticResource CostConverter}}" Grid.Column="2" Margin="5,0,0,0" MinWidth="80" MaxWidth="80"/>
             <Button Click="Remove" ToolTip="Удалить работу" Content="Х" Grid.Column="2" FontWeight="Bold" Padding="0,0,0,0" FontSize="8" BorderThickness="0,0,0,0" Panel.ZIndex="-1" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" VerticalAlignment="Top" Margin="5,0,0,0" MaxWidth="10" MaxHeight="10"/>
         </StackPanel>
 

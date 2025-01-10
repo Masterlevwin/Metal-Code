@@ -9,6 +9,8 @@ namespace Metal_Code
         public object Convert(object value, Type targetType, object parameter,
             System.Globalization.CultureInfo culture)
         {
+            if ((float)value == 0) return 0 + " руб";
+
             // Возвращаем строку в формате 123 456 789 руб.
             return ((float)value).ToString("# ### ###", culture) + " руб";
         }
