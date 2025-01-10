@@ -9,24 +9,9 @@
     <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="20">
         <CheckBox IsChecked="{Binding IsMassPipe, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" Click="SetMassPipe" ToolTip="Посчитать материал самих деталей" Margin="2,0,0,0" VerticalAlignment="Center"/>
         <Button x:Name="CutBtn" Click="LoadFiles" Content=". . ." ToolTip="Загрузить отчет трубы" FontWeight="Bold" Margin="2,0,0,0" MinWidth="25"/>
-        <TextBox Text="{Binding Mold, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetMold" ToolTip="Длина трубы, пог м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MouseWheel="ViewPopupMold" MaxWidth="30" MinWidth="30"/>
-        <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetWay" MinWidth="25" ToolTip="Длина пути резки, м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MouseWheel="ViewPopupWay" MaxWidth="25" Margin="5,0,0,0"/>
-        <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetPinhole" MinWidth="25" ToolTip="Количество проколов, шт" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MouseWheel="ViewPopupPinhole" MaxWidth="25" Margin="5,0,0,0"/>
-        <Popup x:Name="PopupMold" StaysOpen="False" Placement="Mouse" MaxWidth="120" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5">
-            <StackPanel Background="Snow">
-                <TextBlock x:Name="MoldPrice" TextAlignment="Center" Padding="3"/>
-            </StackPanel>
-        </Popup>
-        <Popup x:Name="PopupWay" StaysOpen="False" Placement="Mouse" MaxWidth="120" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5">
-            <StackPanel Background="Snow">
-                <TextBlock x:Name="WayPrice" TextAlignment="Center" Padding="3"/>
-            </StackPanel>
-        </Popup>
-        <Popup x:Name="PopupPinhole" StaysOpen="False" Placement="Mouse" MaxWidth="120" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5">
-            <StackPanel Background="Snow">
-                <TextBlock x:Name="PinholePrice" TextAlignment="Center" Padding="3"/>
-            </StackPanel>
-        </Popup>
+        <TextBox Text="{Binding Mold, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetMold" ToolTip="Длина трубы, пог м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxWidth="30" MinWidth="30" ToolTipOpening="SetToolTipForMold"/>
+        <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetWay" MinWidth="25" ToolTip="Длина пути резки, м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="25" Margin="5,0,0,0" ToolTipOpening="SetToolTipForWay"/>
+        <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetPinhole" MinWidth="25" ToolTip="Количество проколов, шт" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="25" Margin="5,0,0,0" ToolTipOpening="SetToolTipForPinhole"/>
 
         <Image Source="/Images/question.png" MaxWidth="10" Margin="2,0,0,0" VerticalAlignment="Top">
             <Image.ToolTip>

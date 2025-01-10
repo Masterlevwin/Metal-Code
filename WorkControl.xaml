@@ -6,6 +6,9 @@
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
              d:DesignHeight="30" d:DesignWidth="300" VerticalAlignment="Top" Padding="3">
+    <UserControl.Resources>
+        <local:CostConverter x:Key="CostConverter"/>
+    </UserControl.Resources>
     <UserControl.ContextMenu>
         <ContextMenu>
             <MenuItem Header="Добавить" Click="AddWork"></MenuItem>
@@ -21,19 +24,20 @@
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <ComboBox x:Name="WorkDrop" DisplayMemberPath="Name" MinWidth="120" MinHeight="20" Height="20" Margin="20,0,0,0" VerticalContentAlignment="Center" SelectionChanged="CreateWork" ToolTip="Выберите работу" VerticalAlignment="Top" HorizontalAlignment="Left"/>
-        <TextBox Text="{Binding Ratio, RelativeSource={RelativeSource AncestorType={x:Type local:WorkControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="25" MinHeight="20" MaxWidth="25" MaxHeight="20" MaxLines="1" ToolTip="Коммерческий" Margin="10,0,0,0" TextChanged="SetRatio" Grid.Column="2"/>
-        <TextBox x:Name="TechRatioText" Text="{Binding TechRatio, RelativeSource={RelativeSource AncestorType={x:Type local:WorkControl}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="25" MinHeight="20" MaxWidth="25" MaxHeight="20" MaxLines="1" ToolTip="Производственный" Margin="40,0,0,0" TextChanged="SetRatio" Grid.Column="2"/>
-        <TextBlock x:Name="ResultText" Text="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:WorkControl}, Mode=FindAncestor}}" MouseWheel="ViewPopupTimeSpan" MinHeight="20" MaxHeight="20" HorizontalAlignment="Left" Margin="75,0,0,0" Grid.Column="2" MaxWidth="70" VerticalAlignment="Top" TextTrimming="CharacterEllipsis"/>
-        <Popup x:Name="PopupTimeSpan" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5" Placement="Mouse">
-            <StackPanel Background="Snow">
-                <TextBlock x:Name="TimeSpan" Padding="3" TextAlignment="Center"/>
-            </StackPanel>
-        </Popup>
-        <Button Click="AddWork" ToolTip="Добавить работу" VerticalAlignment="Top" HorizontalAlignment="Left" MaxWidth="14" Margin="3,5,0,0">
-            <Image Source="Images/plus.png"/>
-        </Button>
-        <Button Click="Remove" ToolTip="Удалить работу" Content="Х" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="10" MinHeight="10" FontWeight="Bold" Padding="0,0,0,0" MaxWidth="10" MaxHeight="10" FontSize="8" BorderThickness="0,0,0,0" Height="10" Width="10" Panel.ZIndex="-1" Margin="150,0,0,0" MouseEnter="EnterBorder" MouseLeave="LeaveBorder"/>
+        
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="20">
+            <Button Click="AddWork" ToolTip="Добавить работу" MaxWidth="14" MaxHeight="14" VerticalAlignment="Center" Margin="3,0,0,0">
+                <Image Source="Images/plus.png"/>
+            </Button>
+            <ComboBox x:Name="WorkDrop" DisplayMemberPath="Name" SelectionChanged="CreateWork" ToolTip="Выберите работу" Margin="3,0,0,0" MinWidth="120" MaxWidth="120"/>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Top" MinHeight="20">
+            <TextBox Text="{Binding Ratio}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="20" MaxWidth="20" MaxLines="1" ToolTip="Коммерческий" Margin="5,0,0,0" TextChanged="SetRatio" Grid.Column="2"/>
+            <TextBox x:Name="TechRatioText" Text="{Binding TechRatio}" MaxLines="1" ToolTip="Производственный" TextChanged="SetRatio" Grid.Column="2" MinWidth="20" MaxWidth="20" Margin="5,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+            <TextBlock x:Name="ResultText" Text="{Binding Result, Converter={StaticResource CostConverter}}" Grid.Column="2" TextTrimming="CharacterEllipsis" Margin="5,0,0,0" MinWidth="80" MaxWidth="80"/>
+            <Button Click="Remove" ToolTip="Удалить работу" Content="Х" Grid.Column="2" FontWeight="Bold" Padding="0,0,0,0" FontSize="8" BorderThickness="0,0,0,0" Panel.ZIndex="-1" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" VerticalAlignment="Top" Margin="5,0,0,0" MaxWidth="10" MaxHeight="10"/>
+        </StackPanel>
 
     </Grid>
 </UserControl>

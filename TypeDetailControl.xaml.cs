@@ -92,7 +92,7 @@ namespace Metal_Code
         private float mass;
         public float Mass
         {
-            get { return mass; }
+            get { return (float)Math.Ceiling(mass); }
             set
             {
                 mass = value;
@@ -186,6 +186,7 @@ namespace Metal_Code
         {
             InitializeComponent();
             det = d;
+            DataContext = this;
             TypeDetailDrop.ItemsSource = MainWindow.M.TypeDetails;
             MetalDrop.ItemsSource = MainWindow.M.Metals;
             HasMetal = true;
@@ -555,15 +556,6 @@ namespace Metal_Code
             det.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedIndex = WorkControls[0].WorkDrop.SelectedIndex;
         }
 
-        private void ViewPopupMass(object sender, System.Windows.Input.MouseWheelEventArgs e)
-        {
-            PopupMass.IsOpen = true;
-            MassPrice.Text = $"Масса одной / всех заготовок\n{(det.Detail.IsComplect ? 0 : (float)Math.Round(Mass, 2))} кг /" +
-                $" {(det.Detail.IsComplect ? (float)Math.Round(Mass, 2) : (float)Math.Round(Mass * Count, 2))} кг\n" +
-                $"Площадь одной / всех заготовок\n{(det.Detail.IsComplect ? 0 : (float)Math.Round(Square, 2))} кв м / " +
-                $" {(det.Detail.IsComplect ? (float)Math.Round(Square, 2) : (float)Math.Round(Square * Count, 2))} кв м";
-        }
-
         private void EnterBorder(object sender, MouseEventArgs e)
         {
             TypeDetailBox.BorderBrush = Brushes.OrangeRed;
@@ -574,6 +566,20 @@ namespace Metal_Code
         {
             TypeDetailBox.BorderBrush = new SolidColorBrush(Color.FromArgb(0, 213, 223, 229));  //#FFD5DFE5           
             TypeDetailBox.BorderThickness = new Thickness(1);
+        }
+
+        private void SetToolTipForResult(object sender, ToolTipEventArgs e)
+        {
+            if (sender is TextBox box && MetalDrop.SelectedItem is Metal metal
+                && metal.Name is not null && MainWindow.M.MetalDict[metal.Name].ContainsKey(S))
+            {
+                box.ToolTip = S switch
+                {
+                    < 14 => $"Стоимость материала, руб\n(цена металла - {metal.MassPrice} руб)",
+                    < 18 => $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(metal.MassPrice * 1.05f)} руб)",
+                    _ => $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(metal.MassPrice * 1.15f)} руб)"
+                };
+            }
         }
     }
 }

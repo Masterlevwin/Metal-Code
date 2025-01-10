@@ -22,7 +22,7 @@ namespace Metal_Code
         public delegate void PropsChanged(UserControl w, bool b);
         public PropsChanged? PropertiesChanged;
         
-        private float result;
+        private float result = 0;
         public float Result
         {
             get => result;
@@ -67,6 +67,7 @@ namespace Metal_Code
         {
             InitializeComponent();
             type = t;
+            DataContext = this;
             WorkDrop.ItemsSource = MainWindow.M.Works;
         }
 
@@ -254,23 +255,15 @@ namespace Metal_Code
             if (addMin)
             {
                 ResultText.Foreground = Brushes.Blue;       // если добавлена минималка, окрашиваем результат
-                ResultText.ToolTip = "Стоимость работы\nДобавлена минималка";
+                ResultText.ToolTip = $"Стоимость работы (добавлена минималка), руб\n(время работ - {Math.Ceiling(Result * work.Time / work.Price / Ratio)} мин)";
             }
             else
             {
                 ResultText.Foreground = Brushes.Black;
-                ResultText.ToolTip = "Стоимость работы";
+                ResultText.ToolTip = $"Стоимость работы, руб\n(время работ - {Math.Ceiling(Result * work.Time / work.Price / Ratio)} мин)";
             }
 
             type.det.PriceResult();
-        }
-
-        private void ViewPopupTimeSpan(object sender, MouseWheelEventArgs e)
-        {
-            if (WorkDrop.SelectedItem is not Work work) return;
-
-            PopupTimeSpan.IsOpen = true;
-            TimeSpan.Text = $"Время работ - {Math.Ceiling(Result * work.Time / work.Price / Ratio)} мин";
         }
 
         private void EnterBorder(object sender, MouseEventArgs e)

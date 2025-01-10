@@ -4,13 +4,14 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d" 
-             d:DesignHeight="100" d:DesignWidth="1000" VerticalAlignment="Top">
+             d:DesignHeight="100" d:DesignWidth="1100" VerticalAlignment="Top">
     <UserControl.ContextMenu>
         <ContextMenu>
             <MenuItem Header="Добавить" Click="AddDetail"></MenuItem>
             <MenuItem Header="Удалить" Click="Remove"></MenuItem>
         </ContextMenu>
     </UserControl.ContextMenu>
+    
     <GroupBox x:Name="DetailBox" Header="Деталь" Margin="5">
         <Grid Margin="5">
             <Grid.RowDefinitions>
@@ -18,22 +19,25 @@
                 <RowDefinition/>
             </Grid.RowDefinitions>
 
-            <Button x:Name="Counter" Margin="0,2,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="16" MinHeight="16" MaxWidth="16" MaxHeight="16" Padding="0,0,0,0"/>
-            <TextBox ToolTip="Введите наименование детали" Text="{Binding Title}" TextChanged="SetName" x:Name="DetailName" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="130" MinHeight="20" MaxWidth="130" MaxLines="1" HorizontalAlignment="Left" VerticalAlignment="Top" MaxHeight="20" Margin="20,0,0,0"/>
-            <TextBox ToolTip="Введите количество деталей" Text="{Binding Count}" TextChanged="SetCount" x:Name="Count" HorizontalAlignment="Left" Margin="160,0,0,0" VerticalAlignment="Top" MaxWidth="40" MaxHeight="20" MinWidth="40" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-            <Button Content="Х" HorizontalAlignment="Left" Margin="210,0,0,0" VerticalAlignment="Top" FontWeight="Bold" FontSize="16" BorderThickness="0" Click="Remove" ToolTip="Удалить деталь" Padding="0,0,0,0" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" Width="20" Height="20"/>
-
-            <TextBlock Text="A" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="320,0,0,0"/>
-            <TextBlock Text="B" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="365,0,0,0"/>
-            <TextBlock Text="S" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="400,0,0,0"/>
-            <TextBlock Text="L" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="440,0,0,0"/>
-            <TextBlock Text="Кол-во" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="470,0,0,0"/>
-            <ComboBox x:Name="MetalDrop" DisplayMemberPath="Name" ToolTip="Выберите материал для ВСЕХ заготовок" SelectionChanged="SetAllMaterial" Margin="515,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom" MinHeight="20" MaxHeight="20" MinWidth="80" MaxWidth="80" VerticalContentAlignment="Center"/>
-            <CheckBox ToolTip="Добавить к расчету стоимость материала ВСЕХ заготовок" Click="SetAllMetal" Margin="600,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsChecked="True"/>
-            <TextBlock Text="Работа" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="745,0,0,0"/>
-            <TextBlock Text="Коэф" ToolTip="Наценка или скидка на работы" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="985,0,0,0"/>
-
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="20">
+                <Button x:Name="Counter" Margin="5,0,0,0" MinWidth="20"/>
+                <TextBox ToolTip="Введите наименование детали" Text="{Binding Title}" TextChanged="SetName" x:Name="DetailName" MinWidth="130" MaxWidth="130" MaxLines="1" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                <TextBox ToolTip="Введите количество деталей" Text="{Binding Count}" TextChanged="SetCount" x:Name="Count" MaxWidth="35" MinWidth="35" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="10,0,0,0"/>
+                <Button Content="Х" FontWeight="Bold" FontSize="16" BorderThickness="0" Click="Remove" ToolTip="Удалить деталь" Padding="0" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" Margin="10,0,0,0" MinWidth="20"/>
+                <TextBlock Text="A" MinWidth="20" Margin="45,0,0,0" VerticalAlignment="Bottom"/>
+                <TextBlock Text="B" MinWidth="20" Margin="20,0,0,0" VerticalAlignment="Bottom"/>
+                <TextBlock Text="S" MinWidth="20" Margin="20,0,0,0" VerticalAlignment="Bottom" />
+                <TextBlock Text="L" MinWidth="20" Margin="20,0,0,0" VerticalAlignment="Bottom" />
+                <TextBlock Text="Кол" MinWidth="25" Margin="15,0,0,0" VerticalAlignment="Bottom" />
+                <TextBlock Text="Вес" Margin="20,0,0,0" VerticalAlignment="Bottom" MinWidth="20" />
+                <ComboBox x:Name="MetalDrop" DisplayMemberPath="Name" ToolTip="Выберите материал для ВСЕХ заготовок" SelectionChanged="SetAllMaterial" MinWidth="80" MaxWidth="80" Margin="15,0,0,0" VerticalAlignment="Bottom"/>
+                <CheckBox ToolTip="Добавить к расчету стоимость материала ВСЕХ заготовок" Click="SetAllMetal" VerticalAlignment="Bottom" IsChecked="True" Margin="5,0,0,0"/>
+                <TextBlock Text="Работа" VerticalAlignment="Bottom" Margin="125,0,0,0"/>
+                <TextBlock Text="Коэф" ToolTip="Наценка или скидка на работы" VerticalAlignment="Bottom" Margin="200,0,0,0"/>
+            </StackPanel>
+            
             <StackPanel x:Name="BilletsStack" Grid.Row="1"/>
+            
         </Grid>
     </GroupBox>
 </UserControl>

@@ -231,28 +231,25 @@ namespace Metal_Code
             }
         }
 
-        private void ViewPopupMold(object sender, MouseWheelEventArgs e)
+        private void SetToolTipForMold(object sender, ToolTipEventArgs e)
         {
-            PopupMold.IsOpen = true;
-
-            if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                MoldPrice.Text = $"Цена резки пог м\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item3 * 0.7f} руб";
+            if (sender is TextBox box && work.type.MetalDrop.SelectedItem is Metal metal
+                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+                box.ToolTip = $"Длина трубы, пог м\n(цена резки пог м - {MainWindow.M.MetalDict[metal.Name][work.type.S].Item3 * 0.7f} руб)";
         }
 
-        private void ViewPopupWay(object sender, MouseWheelEventArgs e)
+        private void SetToolTipForWay(object sender, ToolTipEventArgs e)
         {
-            PopupWay.IsOpen = true;
-
-            if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                WayPrice.Text = $"Цена метра резки\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item1} руб";
+            if (sender is TextBox box && work.type.MetalDrop.SelectedItem is Metal metal
+                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+                box.ToolTip = $"Длина пути резки, м\n(цена метра резки - {MainWindow.M.MetalDict[metal.Name][work.type.S].Item1} руб)";
         }
 
-        private void ViewPopupPinhole(object sender, MouseWheelEventArgs e)
+        private void SetToolTipForPinhole(object sender, ToolTipEventArgs e)
         {
-            PopupPinhole.IsOpen = true;
-
-            if (work.type.MetalDrop.SelectedItem is Metal metal && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                PinholePrice.Text = $"Цена прокола\n{MainWindow.M.MetalDict[metal.Name][work.type.S].Item2 * 3} руб";
+            if (sender is TextBox box && work.type.MetalDrop.SelectedItem is Metal metal
+                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+                box.ToolTip = $"Количество проколов, шт\n(цена прокола - {MainWindow.M.MetalDict[metal.Name][work.type.S].Item2 * 3} руб)";
         }
 
         private void LoadFiles(object sender, RoutedEventArgs e)
@@ -1019,6 +1016,5 @@ namespace Metal_Code
                     PartDetails[i].ImageBytes = pictures[0].Image.ImageBytes;   //для каждой детали записываем массив байтов соответствующей картинки
                                                                                 //в случае с трубами на данный момент картинка одна и та же!
         }
-
     }
 }
