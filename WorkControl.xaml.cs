@@ -97,7 +97,7 @@ namespace Metal_Code
                 else if (workType is ThreadControl thread)
                 {                                           //удаляем определенную обработку отверстий
                     foreach (PartControl p in _work.Parts)
-                        foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>().Where(p => p.CharName == thread.CharName).ToList())
+                        foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>().Where(p => p.CharName == thread.CharName && p.Wide == thread.Wide).ToList())
                             p.RemoveControl(item);
                 }
                 else

@@ -68,6 +68,32 @@ namespace Metal_Code
             }
         }
 
+
+        private void SetPropertyThread(object sender, RoutedEventArgs e)      //обработчик события LostFocus для текстовых полей диаметра отверстий
+        {
+            if (Parts.Count > 0 && sender is TextBox tBox && tBox.Text != "")
+            {
+                switch (tBox.Name)
+                {
+                    case "Wide1":
+                        foreach (PartControl p in Parts)
+                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
+                                if (item.CharName == 'Р') item.SetWide(tBox.Text);
+                        break;
+                    case "Wide2":
+                        foreach (PartControl p in Parts)
+                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
+                                if (item.CharName == 'З') item.SetWide(tBox.Text);
+                        break;
+                    case "Wide3":
+                        foreach (PartControl p in Parts)
+                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
+                                if (item.CharName == 'С') item.SetWide(tBox.Text);
+                        break;
+                }
+            }
+        }
+
         private void SetProperty(object sender, RoutedEventArgs e)      //обработчик события LostFocus для текстового поля окраски
         {
             if (Parts.Count > 0 && sender is TextBox tBox && tBox.Text != "")
@@ -77,7 +103,7 @@ namespace Metal_Code
 
         private void SetProperty(object sender, TextChangedEventArgs e)
         {
-            if (Parts.Count > 0 && sender is TextBox tBox)
+            if (Parts.Count > 0 && sender is TextBox tBox && tBox.Text != "")
             {
                 switch (tBox.Name)
                 {
@@ -89,30 +115,15 @@ namespace Metal_Code
                         foreach (PartControl p in Parts)
                             foreach (WeldControl item in p.UserControls.OfType<WeldControl>()) item.SetWeld(tBox.Text);
                         break;
-                    case "Wide1":
-                        foreach (PartControl p in Parts)
-                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
-                                if (item.CharName == 'Р') item.SetWide(tBox.Text);
-                        break;
                     case "Holes1":
                         foreach (PartControl p in Parts)
                             foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
                                 if (item.CharName == 'Р') item.SetHoles(tBox.Text);
                         break;
-                    case "Wide2":
-                        foreach (PartControl p in Parts)
-                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
-                                if (item.CharName == 'З') item.SetWide(tBox.Text);
-                        break;
                     case "Holes2":
                         foreach (PartControl p in Parts)
                             foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
                                 if (item.CharName == 'З') item.SetHoles(tBox.Text);
-                        break;
-                    case "Wide3":
-                        foreach (PartControl p in Parts)
-                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
-                                if (item.CharName == 'С') item.SetWide(tBox.Text);
                         break;
                     case "Holes3":
                         foreach (PartControl p in Parts)

@@ -15,7 +15,7 @@
     <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="20">
         <TextBlock Text="{Binding CharName, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" MinWidth="10" FontWeight="Bold" Margin="5,0,0,0"/>
         <TextBlock Margin="30,0,0,0" Text="Ø" VerticalAlignment="Center" MinWidth="10"/>
-        <TextBox Text="{Binding Wide, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" ToolTip="Введите диаметр отверстия" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30" TextChanged="SetWide" Margin="5,0,0,0"/>
+        <TextBox Text="{Binding Wide, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" ToolTip="Введите диаметр отверстия" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30" Margin="5,0,0,0" LostFocus="SetWide"/>
         <TextBlock Text="N" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="10"/>
         <TextBox Text="{Binding Holes, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" ToolTip="Введите количество отверстий" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30" TextChanged="SetHoles" Margin="5,0,0,0"/>
         

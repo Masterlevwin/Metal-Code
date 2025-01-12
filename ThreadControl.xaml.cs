@@ -87,36 +87,42 @@ namespace Metal_Code
             else if (owner is PartControl part)
             {
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-
-                foreach (WorkControl w in part.work.type.WorkControls)
-                    if (w.workType is ThreadControl thread && thread.CharName == CharName) return;
-
-                part.work.type.AddWork();
-
-                // добавляем "Резьбу" или "Зенковку" в список общих работ "Комплекта деталей"
-                switch (CharName)
-                {
-                    case 'Р':
-                        part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Резьба");
-                        break;
-                    case 'З':
-                        part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Зенковка");
-                        break;
-                    case 'С':
-                        part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Сверловка");
-                        break;
-
-                }
             }
         }
 
-        private void SetWide(object sender, TextChangedEventArgs e)
+        private void SetWide(object sender, RoutedEventArgs e)
         {
-            if (sender is TextBox tBox) SetWide(tBox.Text);
+            if (sender is TextBox tBox && tBox.Text != "") SetWide(tBox.Text);
         }
         public void SetWide(string _wide)
         {
             if (float.TryParse(_wide, out float d)) Wide = d;
+            if (owner is PartControl part)
+            {
+                foreach (var item in part.work.type.WorkControls)
+                    if (item.workType is ThreadControl thread && thread.CharName == CharName && thread.Wide == Wide) return;
+
+                part.work.type.AddWork();
+
+                // добавляем работу в список общих работ "Комплекта деталей"
+                foreach (Work w in MainWindow.M.Works)
+                    switch (CharName)
+                    {
+                        case 'Р':
+                            part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Резьба");
+                            if (part.work.type.WorkControls[^1].workType is ThreadControl _threadR) _threadR.Wide = Wide;
+                            break;
+                        case 'З':
+                            part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Зенковка");
+                            if (part.work.type.WorkControls[^1].workType is ThreadControl _threadZ) _threadZ.Wide = Wide;
+                            break;
+                        case 'С':
+                            part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Сверловка");
+                            if (part.work.type.WorkControls[^1].workType is ThreadControl _threadS) _threadS.Wide = Wide;
+                            break;
+
+                    }
+            }
             OnPriceChanged();
         }
 
@@ -136,11 +142,17 @@ namespace Metal_Code
 
             float price = 0;
 
-            if (Parts != null && Parts.Count > 0)
+            if (Parts?.Count > 0)
             {
+                int count = 0;      //счетчик общего количества отверстий
+
                 foreach (PartControl p in Parts)
-                    foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) if (item.CharName == CharName && item.Holes > 0)
-                        price += (_work.Price + Time(p.Part.Mass, item.Wide, work) * 2000 / 60 * p.Part.Count * item.Holes) * RatioHoles(p.Part.Count * item.Holes);
+                    foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) if (item.CharName == CharName && item.Holes > 0 && item.Wide == Wide)
+                            count += p.Part.Count * item.Holes;
+
+                foreach (PartControl p in Parts)
+                    foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) if (item.CharName == CharName && item.Holes > 0 && item.Wide == Wide)
+                            price += (_work.Price + Time(p.Part.Mass, item.Wide, work) * 2000 / 60 * p.Part.Count * item.Holes) * RatioHoles(count);
             }
             else if (work.type.Mass > 0)
             {
@@ -220,10 +232,16 @@ namespace Metal_Code
                         key = 57;
                     }
 
+                    int count = 0;      //счетчик общего количества отверстий
+
+                    if (p.owner is ICut _cut && _cut.PartsControl != null) foreach (PartControl _p in _cut.PartsControl.Parts)
+                            foreach (ThreadControl item in _p.UserControls.OfType<ThreadControl>())
+                                if (item.CharName == CharName && item.Holes > 0 && item.Wide == Wide) count += _p.Part.Count * item.Holes;
+
                     foreach (WorkControl _w in p.work.type.WorkControls)        // получаем минималку работы
-                        if (_w.workType is ThreadControl thread && thread.CharName == CharName && _w.WorkDrop.SelectedItem is Work _work)
+                        if (_w.workType is ThreadControl thread && thread.CharName == CharName && thread.Wide == Wide && _w.WorkDrop.SelectedItem is Work _work)
                         {
-                            float _send = (_work.Price + Time(p.Part.Mass, Wide, _w) * 2000 / 60 * p.Part.Count * Holes) * RatioHoles(p.Part.Count * Holes) * _w.Ratio * _w.TechRatio / p.Part.Count;
+                            float _send = (_work.Price + Time(p.Part.Mass, Wide, _w) * 2000 / 60 * p.Part.Count * Holes) * RatioHoles(count) * _w.Ratio * _w.TechRatio / p.Part.Count;
                             p.Part.Price += _send;
 
                             if (p.Part.PropsDict.ContainsKey(key) && float.TryParse(p.Part.PropsDict[key][0], out float value))
