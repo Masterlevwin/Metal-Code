@@ -10,26 +10,36 @@ namespace Metal_Code
     /// </summary>
     public partial class ProductWindow : Window
     {
-        public static ProductWindow P = new();
+        public string ProductName { get; set; } = "Изделие";
+        public float Ratio { get; set; } = 1;
+        public bool? HasDelivery { get; set; } = false;
+        public int Delivery { get; set; } = 0;
+        public int DeliveryRatio { get; set; } = 1;
+        public bool? HasConstruct { get; set; } = false;
+        public float Construct {  get; set; } = 0;
+        public string? ConstructRatio { get; set; }
 
         public Product Product { get; set; } = new();
         public List<PartControl> Parts { get; set; } = new();
 
-        public ProductWindow()
+        public ProductWindow(Product product)
         {
             InitializeComponent();
-            P = this;
+            DataContext = this;
+            Product = product;
+
+            ProductName = product.Name;
+            Ratio = Product.Ratio;
+            HasDelivery = product.HasDelivery;
+            Delivery = product.Delivery;
+            DeliveryRatio = product.DeliveryRatio;
+            HasConstruct = product.HasConstruct;
+            ConstructRatio = product.ConstructRatio;
+            if (ConstructRatio is not null) Construct = MainWindow.Parser(ConstructRatio) * 1500;
+            if (Product.Details.Count > 0) LoadDetails(Product.Details);
         }
 
-        public void LoadProduct()
-        {
-            if (Product == null) return;
-
-            ProductName.Text = Product.Name;
-
-            LoadDetails(Product.Details);
-        }
-
+        //-----------Загрузка контролов----------------------------------//
         public void LoadDetails(ObservableCollection<Detail> details)
         {
             for (int i = 0; i < details.Count; i++)
@@ -80,13 +90,13 @@ namespace Metal_Code
                                 if (_cut.Items?.Count > 0) cut.SumProperties(_cut.Items);
                                 cut.Parts = cut.PartList();
                                 cut.PartsControl = new(cut, cut.Parts);
-                                cut.AddPartsTab(true);
+                                cut.AddPartsTab(this);
                             }
                             else if (_cut is PipeControl pipe)
                             {
                                 pipe.Parts = pipe.PartList();
                                 pipe.PartsControl = new(pipe, pipe.Parts);
-                                pipe.AddPartsTab(true);
+                                pipe.AddPartsTab(this);
                                 pipe.SetTotalProperties();
                             }
 
@@ -116,8 +126,7 @@ namespace Metal_Code
             }
         }
 
-
-        //-----------Добавление контрола детали----------//
+        //-----------Добавление контрола детали--------------------------//
         public List<DetailControl> DetailControls = new();
         private void AddDetail(object sender, RoutedEventArgs e)
         {
@@ -150,24 +159,21 @@ namespace Metal_Code
             for (int i = 0; i < MainWindow.M.PartsTab.Items.Count; i++)
             {
                 TabItem? _tab = MainWindow.M.PartsTab.Items[i] as TabItem;
-                if (_tab is not null)
+                if (_tab is not null && _tab.Content is PartsControl _partsMain)
                 {
-                    if (_tab.Content is PartsControl _partsMain)
+                    foreach (PartControl partMain in _partsMain.Parts)
                     {
-                        foreach (PartControl partMain in _partsMain.Parts)
-                        {
-                            while (partMain.UserControls.Count > 0) partMain.RemoveControl(partMain.UserControls[^1]);
+                        while (partMain.UserControls.Count > 0) partMain.RemoveControl(partMain.UserControls[^1]);
 
-                            foreach (PartControl _part in Parts)
+                        foreach (PartControl _part in Parts)
+                        {
+                            if (partMain.Part.Title?[..$"{partMain.Part.Title}".ToLower().LastIndexOf('n')] == _part.Part.Title?[.._part.Part.Title.ToLower().LastIndexOf('n')])
                             {
-                                if (partMain.Part.Title?[..$"{partMain.Part.Title}".ToLower().LastIndexOf('n')] == _part.Part.Title?[.._part.Part.Title.ToLower().LastIndexOf('n')])
-                                {
-                                    if (_part.Part.PropsDict.Count > 0)
-                                        foreach (int key in _part.Part.PropsDict.Keys) if (key < 50)
-                                                partMain.AddControl((int)MainWindow.Parser(_part.Part.PropsDict[key][0]));
-                                    partMain.PropertiesChanged?.Invoke(_part, false);
-                                    isMatch = true;
-                                }
+                                if (_part.Part.PropsDict.Count > 0)
+                                    foreach (int key in _part.Part.PropsDict.Keys) if (key < 50)
+                                            partMain.AddControl((int)MainWindow.Parser(_part.Part.PropsDict[key][0]));
+                                partMain.PropertiesChanged?.Invoke(_part, false);
+                                isMatch = true;
                             }
                         }
                     }

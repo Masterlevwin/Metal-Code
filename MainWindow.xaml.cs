@@ -799,9 +799,6 @@ namespace Metal_Code
             //затем ищем все КП согласно введенному номеру расчета или названию компании
             if (Search != "") offers = offers?.Where(o => (o.N is not null && o.N.ToLower().Contains(Search.ToLower()))
                                             || (o.Company is not null && o.Company.ToLower().Contains(Search.ToLower()))).ToList();
-            //наконец, выполняем выборку расчетов по дате или диапазону
-            //offers = offers?.Where(o => o.CreatedDate >= StartDay).ToList();
-            //offers = offers?.Where(o => o.CreatedDate <= EndDay).ToList();
 
             if (offers?.Count == 0) return $"Расчетов по выбранным параметрам не найдено";
             else CurrentOffers = offers;
@@ -2430,8 +2427,7 @@ namespace Metal_Code
                 statsheet.Cells[temp, 8].Value = CustomerDrop.Text;                                         //"Компания"
                 statsheet.Cells[temp, 10].Value = ManagerDrop.Text;                                         //"Менеджер"
                 statsheet.Cells[temp, 11].Value = CurrentManager.Name;                                      //"Инженер"
-                statsheet.Cells[temp, 12].Value =
-                    statsheet.Cells[beginBitrix, 15].Value = Math.Ceiling(sum * 60/ 2000);                  //"Время работ, мин"
+                statsheet.Cells[temp, 12].Value = Math.Ceiling(sum * 60/ 2000);                             //"Время работ, мин"
                 statsheet.Cells[temp, 13].Value = EndDate();                                                //"Дата отгрузки"
                 statsheet.Cells[temp, 13].Style.Numberformat.Format = "dd.mm.yy";
 
@@ -4011,19 +4007,16 @@ namespace Metal_Code
             if (OffersGrid.SelectedItem is not Offer offer) return;
             if (offer.Data != null)
             {
-                ProductWindow clon = new()
+                Product? product = OpenOfferData(offer.Data);
+                if (product is null)
                 {
-                    Product = OpenOfferData(offer.Data),
-                    Title = $"{offer.N}  {offer.Company}",
-                };
-
-                if (clon.Product is not null)
-                {
-                    clon.Ratio.Text = $"{Ratio}";                
-                    clon.Amount.Text = $"{offer.Amount} руб.";
-                    clon.Show();
-                    clon.LoadProduct();
+                    StatusBegin("Не удалось открыть расчет для чтения");
+                    return;
                 }
+
+                ProductWindow clon = new(product) { Title = $"{offer.N}  {offer.Company}" };
+                clon.Amount.Text = $"{offer.Amount} руб";
+                clon.Show();
                 StatusBegin($"Расчет {offer.N} открыт для чтения");
             }
         }

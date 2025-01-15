@@ -6,7 +6,9 @@
         xmlns:local="clr-namespace:Metal_Code"
         x:Class="Metal_Code.MainWindow"
         mc:Ignorable="d" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" d:DesignHeight="805.736" d:DesignWidth="1907.931" Closing="Exit" WindowState="Maximized" Icon="/app_logo.jpeg" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveCaptionTextBrushKey}}" FontFamily="Century" MinWidth="1280" MinHeight="720">
-
+    <Window.Resources>
+        <local:CostConverter x:Key="CostConverter"/>
+    </Window.Resources>
     <Window.InputBindings>
         <KeyBinding Key="Q"
               Modifiers="Control" 
@@ -119,35 +121,35 @@
                 <ColumnDefinition MaxWidth="600"/>
             </Grid.ColumnDefinitions>
 
-            <TextBox x:Name="ProductName" Text="Изделие" AutoWordSelection="True" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="200" HorizontalContentAlignment="Center" MaxLines="1" MaxLength="48" MinHeight="20" Margin="35,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" HorizontalAlignment="Left" FontSize="14" AllowDrop="False" />
-
-            <Button Click="AddDetail" ToolTip="Добавить новую деталь" Margin="250,40,0,0" BorderThickness="0" VerticalAlignment="Top" HorizontalAlignment="Left" MaxWidth="20">
+            <Button Click="AddDetail" ToolTip="Добавить новую деталь" Margin="35,60,0,0" BorderThickness="0" VerticalAlignment="Top" HorizontalAlignment="Left" MaxWidth="20">
                 <Image Source="Images/plus.png"/>
             </Button>
-            <Button Command="{Binding NewProjectCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="360,40,0,0" Padding="0" BorderThickness="0" ToolTip="Создать новый расчет (Ctrl+Q)" Height="20" Width="20">
-                <Image Source="Images/new3.png" MaxWidth="20" MaxHeight="20"/>
-            </Button>
-            <Button Command="{Binding OpenCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="395,40,0,0" Padding="0" BorderThickness="0" ToolTip="Открыть сохраненный расчет (Ctrl+S)" Height="20" Width="20">
-                <Image Source="Images/open4.png" MaxWidth="20" MaxHeight="20"/>
-            </Button>
-            <Button HorizontalAlignment="Left" VerticalAlignment="Top" Margin="430,40,0,0" Padding="0" BorderThickness="0" ToolTip="Создать заявку за клиента" Click="CreateRequest">
-                <Image Source="Images/comment.png" MaxWidth="20" MaxHeight="20"/>
-            </Button>
-            <Button HorizontalAlignment="Left" VerticalAlignment="Top" Margin="465,40,0,0" Padding="0" BorderThickness="0" ToolTip="Подготовить папки в работу" Click="CreateTech">
-                <Image Source="Images/complect.png" MaxWidth="20" MaxHeight="20"/>
-            </Button>
-            <Button Command="{Binding LoadCommand}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="500,40,0,0" Padding="0" BorderThickness="0" ToolTip="Загрузить раскладки (Ctrl+F)" Height="20" Width="20">
-                <Image Source="Images/xlsx_load.png" MaxWidth="20" MaxHeight="20"/>
-            </Button>
+            <TextBox x:Name="ProductName" Text="Изделие" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="200" HorizontalContentAlignment="Center" MaxLines="1" MinHeight="20" Margin="65,60,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" HorizontalAlignment="Left" FontSize="14" AllowDrop="False" />
 
-            <Button Command="{Binding UpdateCommand}" VerticalAlignment="Top" Margin="740,40,0,0" MaxWidth="20" MaxHeight="20" Padding="0" BorderThickness="0" ToolTip="Обновить (F5)" Height="20" Width="20" HorizontalAlignment="Left">
-                <Image Source="/Images/update4.png"/>
-            </Button>
+            <StackPanel Orientation="Horizontal" MinHeight="22" VerticalAlignment="Top" Margin="0,38,0,0">
+                <Button ToolTip="Создать новый расчет (Ctrl+Q)" Command="{Binding NewProjectCommand}" Padding="0" BorderThickness="0" Margin="360,0,0,0" MaxWidth="22">
+                    <Image Source="Images/new3.png"/>
+                </Button>
+                <Button ToolTip="Открыть сохраненный расчет (Ctrl+S)" Command="{Binding OpenCommand}" Padding="0" BorderThickness="0" Margin="15,0,0,0" MaxWidth="22">
+                    <Image Source="Images/open4.png"/>
+                </Button>
+                <Button ToolTip="Создать заявку за клиента" Click="CreateRequest" Padding="0" BorderThickness="0" Margin="15,0,0,0" MaxWidth="22">
+                    <Image Source="Images/comment.png"/>
+                </Button>
+                <Button ToolTip="Подготовить папки в работу" Click="CreateTech" Padding="0" BorderThickness="0" Margin="15,0,0,0" MaxWidth="22">
+                    <Image Source="Images/complect.png"/>
+                </Button>
+                <Button ToolTip="Загрузить раскладки (Ctrl+F)" Command="{Binding LoadCommand}" Padding="0" BorderThickness="0" Margin="15,0,0,0" MaxWidth="22">
+                    <Image Source="Images/xlsx_load.png"/>
+                </Button>
+                <TextBlock Text="Общий коэффициент" VerticalAlignment="Center" Margin="30,0,0,0"/>
+                <TextBox ToolTip="Введите наценку на всё КП" Text="{Binding Ratio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" AllowDrop="False" MaxLines="1" MaxLength="4" FontSize="14" TextChanged="SetRatio" Margin="10,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="40" MaxWidth="40"/>
+                <Button ToolTip="Обновить (F5)" Command="{Binding UpdateCommand}" Padding="0" BorderThickness="0" Margin="20,0,0,0" MaxWidth="22">
+                    <Image Source="/Images/update4.png"/>
+                </Button>
+                <TextBox Text="{Binding Result, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" AllowDrop="False" FontSize="14" BorderThickness="0" ToolTip="Общая стоимость расчета" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" MouseEnter="UpdateResult" Margin="10,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="50" IsReadOnly="True"/>
+            </StackPanel>
 
-            <TextBlock Text="Общий коэффициент" HorizontalAlignment="Left" Margin="550,40,0,0" VerticalAlignment="Top"/>
-            <TextBox ToolTip="Введите наценку на всё КП" Text="{Binding Ratio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" AllowDrop="False" MaxLines="1" MinWidth="40" HorizontalContentAlignment="Center" Margin="680,40,0,0" VerticalAlignment="Top" MinHeight="20" HorizontalAlignment="Left" MaxLength="4" FontSize="14" TextChanged="SetRatio" MaxWidth="40" MaxHeight="20"/>
-            <TextBox Text="{Binding Result, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" MinHeight="20" AllowDrop="False" VerticalAlignment="Top" Margin="770,40,0,0" FontSize="14" MaxWidth="80" BorderThickness="0" MinWidth="20" ToolTip="Общая стоимость расчета" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" MouseEnter="UpdateResult"/>
-            <TextBlock HorizontalAlignment="Left" Text="руб" VerticalAlignment="Top" Margin="850,40,0,0"/>
 
             <GroupBox x:Name="ProductBox" Margin="20,20,10,20" MaxHeight="500">
                 <GroupBox.Header>

@@ -402,12 +402,12 @@ namespace Metal_Code
             }
         }
 
-        public void AddPartsTab(bool isClon = false)                        //метод добавления вкладки для PartsControl
+        public void AddPartsTab(ProductWindow? clon = null)                 //метод добавления вкладки для PartsControl
         {
             TabItem.Header = new TextBlock { Text = $"s{work.type.S} {work.type.MetalDrop.Text} ({PartDetails?.Sum(x => x.Count)} шт)" }; // установка заголовка вкладки
             TabItem.Content = PartsControl;                                 // установка содержимого вкладки
 
-            if (isClon) ProductWindow.P.PartsTab.Items.Add(TabItem);
+            if (clon is not null) clon.PartsTab.Items.Add(TabItem);
             else MainWindow.M.PartsTab.Items.Add(TabItem);
         }
 

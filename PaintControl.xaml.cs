@@ -192,7 +192,7 @@ namespace Metal_Code
 
                     // стоимость всей работы должна быть не ниже минимальной
                     foreach (WorkControl _w in p.work.type.WorkControls)            // находим окраску среди работ и получаем её минималку
-                        if (_w.workType is PaintControl && _w.WorkDrop.SelectedItem is Work _work)
+                        if (_w.workType is PaintControl paint && paint.Ral == Ral && _w.WorkDrop.SelectedItem is Work _work)
                         {
                             float _send;
                             // если чистая стоимость работы ниже минимальной, к цене детали добавляем
@@ -204,7 +204,6 @@ namespace Metal_Code
 
                             p.Part.Price += _send;
                             p.Part.PropsDict[54] = new() { $"{_send}", $"{p.Square}", $"{Ral}" };
-
                             break;
                         }
                 }
