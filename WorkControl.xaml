@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="30" d:DesignWidth="300" VerticalAlignment="Top" Padding="3">
+             d:DesignHeight="30" d:DesignWidth="300" VerticalAlignment="Top" Padding="3" BorderThickness="1">
     <UserControl.Resources>
         <local:CostConverter x:Key="CostConverter"/>
     </UserControl.Resources>
@@ -15,6 +15,7 @@
             <MenuItem Header="Удалить" Click="Remove"></MenuItem>
         </ContextMenu>
     </UserControl.ContextMenu>
+
     <Grid x:Name="WorkGrid">
         <Grid.RowDefinitions>
             <RowDefinition MinHeight="30"/>

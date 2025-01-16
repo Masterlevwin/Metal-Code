@@ -529,6 +529,7 @@
     </Style>
 
     <!-- -_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_- -->
+    
     <Style TargetType="{x:Type DataGrid}">
         <Setter Property="AlternatingRowBackground" Value="#FFC8F0FF"/>
         <Setter Property="AlternationCount" Value="2"/>
@@ -540,4 +541,8 @@
         <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}"/>
         <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
     </Style>
+    <Style TargetType="{x:Type ToolTip}">
+        <Setter Property="FontFamily" Value="Century"/>
+    </Style>
+    
 </ResourceDictionary>

@@ -391,6 +391,9 @@ namespace Metal_Code
         public DbSet<Manager> Managers { get; set; } = null!;
         public DbSet<Offer> Offers { get; set; } = null!;
         public DbSet<Customer> Customers { get; set; } = null!;
+        public DbSet<TypeDetail> TypeDetails { get; set; } = null!;
+        public DbSet<Work> Works { get; set; } = null!;
+        public DbSet<Metal> Metals { get; set; } = null!;
 
         public string connectionString;
 
@@ -401,7 +404,7 @@ namespace Metal_Code
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseNpgsql($"Host={connectionString};Port=5432;Database=managersdb;Username=postgres;Password=laserpro");
+            optionsBuilder.UseNpgsql(connectionString);
         }
     }
 }

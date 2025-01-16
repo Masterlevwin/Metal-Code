@@ -51,7 +51,8 @@ namespace Metal_Code
             $"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
             $"C:\\Users\\Михаил\\Desktop\\Тесты\\Производство",
             $"C:\\Users\\Михаил\\Desktop\\Тест\\Файлы",
-            $"C:\\ProgramData"
+            $"C:\\ProgramData",
+            $"Host=srv-fs-laser;Port=5432;Database=metalcodedb;Username=postgres;Password=lazerpro"
 
             //прод
             //"Data Source=managers.db",
@@ -64,7 +65,8 @@ namespace Metal_Code
             //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
             //$"Y:\\Производство\\Laser rezka\\В работу",
             //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code_Local\\Metal-Code_Local",
-            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code"
+            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code",
+            //$"Host=srv-fs-laser;Port=5432;Database=metalcodedb;Username=postgres;Password=lazerpro"
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -4048,7 +4050,6 @@ namespace Metal_Code
 
             if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0) CreateRequest(openFileDialog.FileNames);
             else StatusBegin($"Не выбрано ни одного файла");
-
         }
         public void CreateRequest(string[] _paths)
         {

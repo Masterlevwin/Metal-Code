@@ -269,7 +269,6 @@ namespace Metal_Code
         private void EnterBorder(object sender, MouseEventArgs e)
         {
             BorderBrush = Brushes.OrangeRed;
-            BorderThickness = new Thickness(1);
         }
 
         private void LeaveBorder(object sender, MouseEventArgs e)
