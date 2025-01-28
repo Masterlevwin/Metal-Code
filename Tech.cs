@@ -57,7 +57,7 @@ namespace Metal_Code
                         techItem.Material = "";
                         techItem.Destiny = $"al{table.Rows[i].ItemArray[4]}";
                     }
-                    else if (techItem.Material.Contains("амг")) techItem.Destiny = $"al{table.Rows[i].ItemArray[4]}";
+                    else if (techItem.Material.Contains("амг") || techItem.Material.Contains("д16")) techItem.Destiny = $"al{table.Rows[i].ItemArray[4]}";
                     else if (techItem.Material.Contains("br"))
                     {
                         techItem.Material = "";

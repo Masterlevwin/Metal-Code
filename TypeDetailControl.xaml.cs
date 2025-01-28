@@ -187,8 +187,8 @@ namespace Metal_Code
             InitializeComponent();
             det = d;
             DataContext = this;
-            TypeDetailDrop.ItemsSource = MainWindow.M.TypeDetails;
-            MetalDrop.ItemsSource = MainWindow.M.Metals;
+            TypeDetailDrop.ItemsSource = MainWindow.M.TypeDetails.OrderBy(x => x.Id);
+            MetalDrop.ItemsSource = MainWindow.M.Metals.OrderBy(x => x.Id);
             HasMetal = true;
             CreateSort();
         }

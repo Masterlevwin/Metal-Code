@@ -68,7 +68,7 @@ namespace Metal_Code
             InitializeComponent();
             type = t;
             DataContext = this;
-            WorkDrop.ItemsSource = MainWindow.M.Works;
+            WorkDrop.ItemsSource = MainWindow.M.Works.OrderBy(x => x.Id);
         }
 
         private void AddWork(object sender, RoutedEventArgs e)
