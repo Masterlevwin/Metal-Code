@@ -16,15 +16,16 @@
         <Image x:Name="Picture" MouseWheel="ViewPopupDimensions" HorizontalAlignment="Left" Margin="100,0,0,0" VerticalAlignment="Top" Width="60" Height="60" Loaded="SetPicture"/>
 
         <Popup x:Name="PopupDimensions" StaysOpen="False" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5">
-            <StackPanel Background="Lavender">
-                <TextBlock Text="{Binding Dimensions, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" TextAlignment="Center" Padding="3"/>
+            <StackPanel Background="Lavender" Orientation="Horizontal">
+                <TextBlock Text="{Binding Square, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" TextAlignment="Center" Padding="3"/>
+                <TextBlock Text="кв м" MouseWheel="ViewPopupDimensions" VerticalAlignment="Center" Padding="3"/>
             </StackPanel>
         </Popup>
 
         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,65,0,0" MaxHeight="20">
             <TextBox Text="{Binding Count}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Количество вырезанных деталей" MinWidth="40" MinHeight="20" Margin="5,0,0,0" VerticalAlignment="Center"/>
-            <TextBlock Text="{Binding Square, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" ToolTip="Площадь детали" Margin="30,0,0,0" VerticalAlignment="Center"/>
-            <TextBlock Text="кв м" MouseWheel="ViewPopupDimensions" Margin="5,0,0,0" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding Dimensions, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" ToolTip="Размеры детали" Margin="30,0,0,0" VerticalAlignment="Center"/>
+            <TextBlock Text="мм" MouseWheel="ViewPopupDimensions" Margin="5,0,0,0" VerticalAlignment="Center"/>
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,90,0,0" MaxHeight="20">
