@@ -36,7 +36,7 @@ namespace Metal_Code
                 DataTable table = result.Tables[0];
 
                 int countAssembly = 1;      //количество комплектов
-                if ($"{table.Rows[^1].ItemArray[5]}" is not null && ((int)MainWindow.Parser($"{table.Rows[^1].ItemArray[5]}") > 0))
+                if ($"{table.Rows[^1].ItemArray[4]}" == "Кол-во комплектов" && $"{table.Rows[^1].ItemArray[5]}" is not null && ((int)MainWindow.Parser($"{table.Rows[^1].ItemArray[5]}") > 0))
                     countAssembly = (int)MainWindow.Parser($"{table.Rows[^1].ItemArray[5]}");
 
                 //перебираем строки таблицы и заполняем список объектами TechItem
