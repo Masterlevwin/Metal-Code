@@ -4,7 +4,8 @@
              xmlns:databinding="clr-namespace:Metal_Code"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-        <databinding:CostConverter x:Key="CostConverter"></databinding:CostConverter>
-        <databinding:MassConverter x:Key="MassConverter"></databinding:MassConverter>
+        <databinding:CostConverter x:Key="CostConverter"/>
+        <databinding:MassConverter x:Key="MassConverter"/>
+        <databinding:DestinyConverter x:Key="DestinyConverter"/>
     </Application.Resources>
 </Application>

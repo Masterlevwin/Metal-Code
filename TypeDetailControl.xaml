@@ -8,6 +8,7 @@
              d:DesignHeight="70" d:DesignWidth="750" VerticalAlignment="Top">
     <UserControl.Resources>
         <local:MassConverter x:Key="MassConverter"/>
+        <local:DestinyConverter x:Key="DestinyConverter"/>
     </UserControl.Resources>
 
     <UserControl.ContextMenu>
@@ -34,7 +35,7 @@
                 <ComboBox x:Name="SortDrop" ToolTip="Выберите вид детали" SelectionChanged="ChangeSort" Margin="5,0,0,0" MinWidth="75" MaxWidth="75"/>
                 <TextBox x:Name="A_prop" Text="{Binding A, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" MinWidth="35" MaxWidth="35" MaxLines="1" ToolTip="Высота, мм" TextChanged="SetProperty" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                 <TextBox x:Name="B_prop" Text="{Binding B, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" MinWidth="35" MaxWidth="35" MaxLines="1" ToolTip="Ширина, мм" TextChanged="SetProperty" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                <TextBox x:Name="S_prop" Text="{Binding S, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" MaxLines="1" ToolTip="Толщина, мм" TextChanged="SetProperty" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" MaxLength="3" MinWidth="35" MaxWidth="35" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                <TextBox x:Name="S_prop" Foreground="{Binding S, Converter={StaticResource DestinyConverter}}" Text="{Binding S, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" MaxLines="1" ToolTip="Толщина, мм" TextChanged="SetProperty" MaxLength="3" MinWidth="35" MaxWidth="35" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                 <TextBox x:Name="L_prop" Text="{Binding L, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" MinWidth="35" MaxWidth="35" MaxLines="1" ToolTip="Длина, мм" TextChanged="SetProperty" MaxLength="5" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                 <TextBox Text="{Binding Count, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}" MinWidth="35" ToolTip="Введите количество заготовок" TextChanged="SetCount" MaxLength="4" MaxLines="1" MaxWidth="35" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                 <TextBlock Text="{Binding Mass, Converter={StaticResource MassConverter}}" MinWidth="45" Margin="5,0,0,0" MaxWidth="45" VerticalAlignment="Center" TextAlignment="Center"/>
@@ -47,9 +48,9 @@
                 <TextBox Text="{Binding Comment, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" TextChanged="SetComment" TextWrapping="Wrap" Width="200"/>
             </Expander>
 
-            <StackPanel x:Name="WorksStack" Grid.Column="1" Grid.ColumnSpan="2"/>
+            <StackPanel x:Name="WorksStack" Grid.Column="1"/>
 
-            <Button Content="Х" Grid.Column="2" MinWidth="20" MinHeight="20" FontWeight="Bold" Padding="0" MaxWidth="20" MaxHeight="20" FontSize="16" BorderThickness="0" Click="Remove" ToolTip="Удалить заготовку" HorizontalAlignment="Left" VerticalAlignment="Top" MouseEnter="EnterBorder" MouseLeave="LeaveBorder"/>
+            <Button Content="Х" Grid.Column="2" MinWidth="20" MinHeight="20" FontWeight="Bold" Padding="0" MaxWidth="20" MaxHeight="20" FontSize="16" BorderThickness="0" Click="Remove" ToolTip="Удалить заготовку" HorizontalAlignment="Left" VerticalAlignment="Top" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" Margin="5,0,0,0"/>
 
         </Grid>
     </GroupBox>

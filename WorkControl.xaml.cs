@@ -33,6 +33,20 @@ namespace Metal_Code
             }
         }
 
+        private float extraresult;
+        public float ExtraResult
+        {
+            get { return extraresult; }
+            set
+            {
+                if (value != extraresult)
+                {
+                    extraresult = value;
+                    OnPropertyChanged(nameof(ExtraResult));
+                }
+            }
+        }
+
         private float ratio = 1;
         public float Ratio
         {
@@ -117,8 +131,25 @@ namespace Metal_Code
             type.WorksStack.Children.Remove(this);
         }
 
+        private void ResultTextEnabled(object sender, MouseButtonEventArgs e)
+        {
+            ResultText.IsReadOnly = false;
+        }
+        private void SetExtraResult(object sender, RoutedEventArgs e)
+        {
+            if (float.TryParse(ResultText.Text, out float extra)) SetExtraResult(extra);
+        }
+        public void SetExtraResult(float extra)
+        {
+            ExtraResult = extra;
+            ResultText.IsReadOnly = true;
+            Ratio = extra / Result;
+        }
+
         private void SetRatio(object sender, TextChangedEventArgs e)
         {
+            if (ExtraResult > 0) return;
+
             if (sender is TextBox tBox)
                 switch (tBox.Name)
                 {
@@ -250,12 +281,17 @@ namespace Metal_Code
         {
             if (WorkDrop.SelectedItem is not Work work) return;
 
-            Result = (float)Math.Round(addMin ? (price + work.Price) * Ratio * TechRatio : price * Ratio * TechRatio, 2);
+            Result = ExtraResult > 0 ? ExtraResult : (float)Math.Round(addMin ? (price + work.Price) * Ratio * TechRatio : price * Ratio * TechRatio, 2);
 
             if (addMin)
             {
                 ResultText.Foreground = Brushes.Blue;       // если добавлена минималка, окрашиваем результат
                 ResultText.ToolTip = $"Стоимость работы (добавлена минималка), руб\n(время работ - {Math.Ceiling(Result * work.Time / work.Price / Ratio)} мин)";
+            }
+            else if (ExtraResult > 0)
+            {
+                ResultText.Foreground = Brushes.Green;      // если стоимость установлена вручную, окрашиваем результат
+                ResultText.ToolTip = $"Стоимость работы установлена вручную, руб\n(время работ - {Math.Ceiling(Result * work.Time / work.Price / Ratio)} мин)";
             }
             else
             {

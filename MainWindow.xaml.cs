@@ -691,6 +691,7 @@ namespace Metal_Code
         {
             while (DetailControls.Count > 0) DetailControls[^1].Remove();
             AssemblyWindow.A.Assemblies.Clear();
+            isAssemblyOffer = false;
         }
         public void ClearCalculate()
         {
@@ -703,7 +704,6 @@ namespace Metal_Code
             Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = ConstructRatio.Text = AssemblyRatio.Text = "";
             ProductName.Text = $"Изделие";
             ActiveOffer = null;
-            isAssemblyOffer = false;
         }
 
         //-----------Добавление контрола детали----------//
@@ -1379,7 +1379,6 @@ namespace Metal_Code
                     if (type.MetalDrop.SelectedItem is Metal _metal)
                         _detail.Metal += $"{_metal.Name}" + string.Join("", Enumerable.Repeat('\n', type.WorkControls.Count));
                     _detail.Destiny += $"{type.S}" + string.Join("", Enumerable.Repeat('\n', type.WorkControls.Count));
-                    _detail.Accuracy = $"H12/h12 +-IT 12/2";
 
                     //удаляем крайний перенос строки
                     if (j == det.TypeDetailControls.Count - 1)
@@ -1431,13 +1430,16 @@ namespace Metal_Code
                                 foreach (Part p in _cut.PartDetails)
                                 {
                                     p.Description = _cut is CutControl cut ? cut.HaveCut ? "Л" : "Б" : "Т";
-                                    p.Accuracy = _cut is CutControl ? $"H14/h14 +-IT 14/2" : $"H12/h12 +-IT 12/2";
+                                    if (p.PropsDict.ContainsKey(100) && p.PropsDict[100].Count > 2)
+                                        p.Accuracy = _cut is CutControl laser ?
+                                            $"{p.PropsDict[100][0].Trim()}x{p.PropsDict[100][1].Trim()}"
+                                            : $"{p.PropsDict[100][2].Trim()} мм";
                                     p.Price = 0;
 
-                                    (string, string, string) tuple = ("0", "0", "0");                   //получаем габариты детали
-                                    if (p.PropsDict.ContainsKey(100)) tuple = (p.PropsDict[100][0], p.PropsDict[100][1], p.PropsDict[100].Count > 2 ? p.PropsDict[100][2] : "0");
-                                    p.PropsDict.Clear();                                                //очищаем словарь свойств
-                                    p.PropsDict[100] = new() { tuple.Item1, tuple.Item2, tuple.Item3 }; //записываем габариты обратно в словарь свойств
+                                    //(string, string, string) tuple = ("0", "0", "0");                   //получаем габариты детали
+                                    //if (p.PropsDict.ContainsKey(100)) tuple = (p.PropsDict[100][0], p.PropsDict[100][1], p.PropsDict[100].Count > 2 ? p.PropsDict[100][2] : "0");
+                                    //p.PropsDict.Clear();                                                //очищаем словарь свойств
+                                    //p.PropsDict[100] = new() { tuple.Item1, tuple.Item2, tuple.Item3 }; //записываем габариты обратно в словарь свойств
 
                                     //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
                                     if (CheckConstruct.IsChecked == true)
@@ -1714,7 +1716,7 @@ namespace Metal_Code
                 }
 
             //оформляем заголовки таблицы
-            List<string> _headersD = new() { "Материал", "Толщина", "Работы", "Точность", "Наименование", "Кол-во, шт", "Цена за шт, руб", "Стоимость, руб" };
+            List<string> _headersD = new() { "Материал", "Толщина", "Работы", "Размеры, мм", "Наименование", "Кол-во, шт", "Цена за шт, руб", "Стоимость, руб" };
             for (int col = 0; col < _headersD.Count; col++)
             {
                 worksheet.Cells[6, col + 1].Value = _headersD[col];
@@ -1811,36 +1813,39 @@ namespace Metal_Code
             worksheet.Cells[row + 4, 1, row + 4, 2].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
             worksheet.Cells[row + 4, 2, row + 4, 8].Merge = true;
 
+            worksheet.Cells[row + 5, 1].Value = "Точность:";
+            worksheet.Cells[row + 5, 2].Value = "H14/h14 +-IT 14/2";
+
             if (Parts.Count > 0)        //в случае с нарезанными деталями, оформляем расшифровку работ
             {
-                worksheet.Cells[row + 5, 1].Value = "Расшифровка работ: ";
-                worksheet.Cells[row + 5, 2].Value = "";
+                worksheet.Cells[row + 6, 1].Value = "Расшифровка работ: ";
+                worksheet.Cells[row + 6, 2].Value = "";
                 foreach (ExcelRangeBase cell in worksheet.Cells[8, 3, row + 8, 3])
                 {
-                    if (cell.Value != null && $"{cell.Value}".Contains('Л') && !$"{worksheet.Cells[row + 5, 2].Value}".Contains('Л')) worksheet.Cells[row + 5, 2].Value += "Л - Лазер ";
-                    if (cell.Value != null && $"{cell.Value}".Contains('Б') && !$"{worksheet.Cells[row + 5, 2].Value}".Contains('Б')) worksheet.Cells[row + 5, 2].Value += "Б - Без лазера ";
-                    if (cell.Value != null && $"{cell.Value}".Contains('Т') && !$"{worksheet.Cells[row + 5, 2].Value}".Contains('Т')) worksheet.Cells[row + 5, 2].Value += "Т - Труборез ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Г ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Г ")) worksheet.Cells[row + 5, 2].Value += "Г - Гибка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("В ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("В ")) worksheet.Cells[row + 5, 2].Value += "В - Вальцовка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Р ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Р ")) worksheet.Cells[row + 5, 2].Value += "Р - Резьба ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("З ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("З ")) worksheet.Cells[row + 5, 2].Value += "З - Зенковка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("С ")) worksheet.Cells[row + 5, 2].Value += "С - Сверловка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Св ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Св ")) worksheet.Cells[row + 5, 2].Value += "Св - Сварка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("О ")) worksheet.Cells[row + 5, 2].Value += "О - Окраска ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Ц ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Ц ")) worksheet.Cells[row + 5, 2].Value += "Ц - Цинкование ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Доп ") && !$"{worksheet.Cells[row + 5, 2].Value}".Contains("Доп ")) worksheet.Cells[row + 5, 2].Value += "Доп - Дополнительные работы ";
+                    if (cell.Value != null && $"{cell.Value}".Contains('Л') && !$"{worksheet.Cells[row + 6, 2].Value}".Contains('Л')) worksheet.Cells[row + 6, 2].Value += "Л - Лазер ";
+                    if (cell.Value != null && $"{cell.Value}".Contains('Б') && !$"{worksheet.Cells[row + 6, 2].Value}".Contains('Б')) worksheet.Cells[row + 6, 2].Value += "Б - Без лазера ";
+                    if (cell.Value != null && $"{cell.Value}".Contains('Т') && !$"{worksheet.Cells[row + 6, 2].Value}".Contains('Т')) worksheet.Cells[row + 6, 2].Value += "Т - Труборез ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Г ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Г ")) worksheet.Cells[row + 6, 2].Value += "Г - Гибка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("В ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("В ")) worksheet.Cells[row + 6, 2].Value += "В - Вальцовка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Р ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Р ")) worksheet.Cells[row + 6, 2].Value += "Р - Резьба ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("З ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("З ")) worksheet.Cells[row + 6, 2].Value += "З - Зенковка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("С ")) worksheet.Cells[row + 6, 2].Value += "С - Сверловка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Св ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Св ")) worksheet.Cells[row + 6, 2].Value += "Св - Сварка ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("О ")) worksheet.Cells[row + 6, 2].Value += "О - Окраска ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Ц ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Ц ")) worksheet.Cells[row + 6, 2].Value += "Ц - Цинкование ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Доп ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Доп ")) worksheet.Cells[row + 6, 2].Value += "Доп - Дополнительные работы ";
                 }
-                worksheet.Cells[row + 5, 2, row + 5, 8].Merge = true;
-                if (isAssemblyOffer) worksheet.Cells[row + 5, 2].Value += "  Внимание - в КП присутствуют сборочные единицы!";
+                worksheet.Cells[row + 6, 2, row + 6, 8].Merge = true;
+                if (isAssemblyOffer) worksheet.Cells[row + 6, 2].Value += "  Внимание - в КП присутствуют сборочные единицы!";
             }
 
-            worksheet.Cells[row + 6, 1].Value = "Ваш менеджер:";
-            worksheet.Cells[row + 6, 2].Value = ManagerDrop.Text;
-            worksheet.Cells[row + 6, 2].Style.Font.Bold = true;
-            worksheet.Cells[row + 6, 2, row + 6, 4].Merge = true;
+            worksheet.Cells[row + 7, 1].Value = "Ваш менеджер:";
+            worksheet.Cells[row + 7, 2].Value = ManagerDrop.Text;
+            worksheet.Cells[row + 7, 2].Style.Font.Bold = true;
+            worksheet.Cells[row + 7, 2, row + 7, 4].Merge = true;
 
-            worksheet.Cells[row + 6, 8].Value = "версия: " + version;
-            worksheet.Cells[row + 6, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            worksheet.Cells[row + 7, 8].Value = "версия: " + version;
+            worksheet.Cells[row + 7, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
 
             worksheet.InsertColumn(5, 1);
             for (int i = 1; i < row - 7; i++) worksheet.Cells[i + 7, 5].Value = i;
@@ -2603,9 +2608,10 @@ namespace Metal_Code
 
                                         if (cut.PartDetails[i].PropsDict.ContainsKey(100) && cut.PartDetails[i].PropsDict[100].Count > 2)   //габаритные размеры детали без отверстий
                                         {
-                                            if (cut.PartDetails[i].PropsDict[100][2].Contains('Ø'))
-                                                complectsheet.Cells[temp + 2, 6].Value = cut.PartDetails[i].PropsDict[100][2].Remove(cut.PartDetails[i].PropsDict[100][2].IndexOf('Ø')).Trim();
-                                            else complectsheet.Cells[temp + 2, 6].Value = cut.PartDetails[i].PropsDict[100][2].Trim();
+                                            complectsheet.Cells[temp + 2, 6].Value =
+                                                cut is CutControl laser ?
+                                                $"{cut.PartDetails[i].PropsDict[100][0].Trim()}x{cut.PartDetails[i].PropsDict[100][1].Trim()}"
+                                                : $"{cut.PartDetails[i].PropsDict[100][2].Trim()} мм";
                                         }
 
                                         complectsheet.Cells[temp + 2, 7].Value = Math.Round(cut.PartDetails[i].Mass, 1);     //масса детали
