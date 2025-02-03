@@ -290,7 +290,7 @@ namespace Metal_Code
             }
             else if (ExtraResult > 0)
             {
-                ResultText.Foreground = Brushes.Green;      // если стоимость установлена вручную, окрашиваем результат
+                ResultText.Foreground = Brushes.Blue;       // если стоимость установлена вручную, окрашиваем результат
                 ResultText.ToolTip = $"Стоимость работы установлена вручную, руб\n(время работ - {Math.Ceiling(Result * work.Time / work.Price / Ratio)} мин)";
             }
             else

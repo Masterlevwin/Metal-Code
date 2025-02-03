@@ -9,6 +9,7 @@
     <UserControl.Resources>
         <local:MassConverter x:Key="MassConverter"/>
         <local:DestinyConverter x:Key="DestinyConverter"/>
+        <local:CostConverter x:Key="CostConverter"/>
     </UserControl.Resources>
 
     <UserControl.ContextMenu>
@@ -41,7 +42,7 @@
                 <TextBlock Text="{Binding Mass, Converter={StaticResource MassConverter}}" MinWidth="45" Margin="5,0,0,0" MaxWidth="45" VerticalAlignment="Center" TextAlignment="Center"/>
                 <ComboBox x:Name="MetalDrop" DisplayMemberPath="Name" MinWidth="80" MaxWidth="80" SelectedIndex="0" ToolTip="Выберите материал" SelectionChanged="MassCalculate" Margin="5,0,0,0"/>
                 <CheckBox x:Name="CheckMetal" IsChecked="{Binding HasMetal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}" Click="HasMetalChanged" ToolTip="Если не отмечено, материал - давальческий" Margin="5,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="ResultText" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" Text="{Binding Result, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}" BorderThickness="0" TextChanged="SetExtraResult" MouseDoubleClick="ResultTextEnabled" IsReadOnly="True" MaxWidth="55" MinWidth="55" ToolTipOpening="SetToolTipForResult" ToolTip="Стоимость материала, руб" Margin="5,0,0,0" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="ResultText" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" Text="{Binding Result, Converter={StaticResource CostConverter}}" BorderThickness="0" MouseDoubleClick="ResultTextEnabled" IsReadOnly="True" MaxWidth="65" MinWidth="65" ToolTipOpening="SetToolTipForResult" ToolTip="Стоимость материала, руб" Margin="5,0,0,0" VerticalContentAlignment="Center" LostFocus="SetExtraResult"/>
             </StackPanel>
 
             <Expander x:Name="ExpanderComment" ToolTip="Добавить комментарий" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="5,0,0,0">

@@ -118,6 +118,7 @@ namespace Metal_Code
                         _work.PropertiesChanged?.Invoke(_work, false);
                         _work.Ratio = details[i].TypeDetails[j].Works[k].Ratio;
                         _work.TechRatio = details[i].TypeDetails[j].Works[k].TechRatio;
+                        _work.ExtraResult = details[i].TypeDetails[j].Works[k].ExtraResult;
 
                         if (_type.WorkControls.Count < details[i].TypeDetails[j].Works.Count) _type.AddWork();
                     }

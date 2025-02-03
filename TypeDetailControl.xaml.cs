@@ -234,13 +234,19 @@ namespace Metal_Code
             PriceChanged();
         }
 
-        private void SetExtraResult(object sender, TextChangedEventArgs e)
+        private void ResultTextEnabled(object sender, MouseButtonEventArgs e)
         {
-            if (sender is TextBox tBox) if (float.TryParse(tBox.Text, out float extra)) SetExtraResult(extra);
+            SetCount(1);
+            ResultText.IsReadOnly = false;
+        }
+        private void SetExtraResult(object sender, RoutedEventArgs e)
+        {
+            if (float.TryParse(ResultText.Text, out float extra)) SetExtraResult(extra);
         }
         public void SetExtraResult(float extra)
         {
             ExtraResult = extra;
+            ResultText.IsReadOnly = true;
             PriceChanged();
         }
 
@@ -390,12 +396,6 @@ namespace Metal_Code
             ["Двутавр широк"] = new() { (30.6f, 33.8f), (36.2f, 30.9f), (42.7f, 28.6f), (49.2f, 25.9f), (53.6f, 26), (61, 23.4f), (68.3f, 21.1f), (75.1f, 22.7f), (82.2f, 20.8f), (91.3f, 19.1f) },
             ["Двутавр колон"] = new() { (41.5f, 29.6f), (46.9f, 26.1f), (52.2f, 27.5f), (59.5f, 25.7f), (65.2f, 26.1f), (73.2f, 23.3f), (83.1f, 20.9f), (84.8f, 21.4f), (93.6f, 19.9f), (108.9f, 18.3f) }
         };
-
-        private void ResultTextEnabled(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            SetCount(1);
-            ResultText.IsReadOnly = false;
-        }
 
         private void MassCalculate(object sender, SelectionChangedEventArgs e)
         {

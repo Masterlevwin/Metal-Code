@@ -610,8 +610,6 @@ namespace Metal_Code
         {
             CurrentCustomers = Customers.Where(m => m.ManagerId == TargetManager.Id).OrderBy(s => s.Name).ToList();
             CustomerDrop.ItemsSource = CurrentCustomers;
-            //Customer? customer = CurrentCustomers.FirstOrDefault(x => x.Title == TargetCustomer.Title);
-            //if (customer is not null) CustomerDrop.SelectedItem = customer;
 
             CurrentOffers = Offers.Where(m => m.ManagerId == TargetManager.Id).TakeLast(23).ToList();
             OffersGrid.ItemsSource = CurrentOffers;
@@ -1424,6 +1422,7 @@ namespace Metal_Code
                             }
 
                             SaveWork _saveWork = new(_work.Name, work.Ratio, work.TechRatio);
+                            _saveWork.ExtraResult = work.ExtraResult;
 
                             if (work.workType is ICut _cut && _cut.PartDetails?.Count > 0 && _cut.Items?.Count > 0)
                             {
@@ -1435,11 +1434,6 @@ namespace Metal_Code
                                             $"{p.PropsDict[100][0].Trim()}x{p.PropsDict[100][1].Trim()}"
                                             : $"{p.PropsDict[100][2].Trim()} мм";
                                     p.Price = 0;
-
-                                    //(string, string, string) tuple = ("0", "0", "0");                   //получаем габариты детали
-                                    //if (p.PropsDict.ContainsKey(100)) tuple = (p.PropsDict[100][0], p.PropsDict[100][1], p.PropsDict[100].Count > 2 ? p.PropsDict[100][2] : "0");
-                                    //p.PropsDict.Clear();                                                //очищаем словарь свойств
-                                    //p.PropsDict[100] = new() { tuple.Item1, tuple.Item2, tuple.Item3 }; //записываем габариты обратно в словарь свойств
 
                                     //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
                                     if (CheckConstruct.IsChecked == true)
@@ -1566,6 +1560,7 @@ namespace Metal_Code
                         {
                             work.Ratio = item.Ratio;
                             work.TechRatio = item.TechRatio;
+                            work.ExtraResult = item.ExtraResult;
                             continue;
                         }
                         else
@@ -1614,6 +1609,7 @@ namespace Metal_Code
                         _work.PropertiesChanged?.Invoke(_work, false);
                         _work.Ratio = item.Ratio;
                         _work.TechRatio = item.TechRatio;
+                        _work.ExtraResult = item.ExtraResult;
 
                         if (_type.WorkControls.Count < details[i].TypeDetails[j].Works.Count) _type.AddWork();
                     }

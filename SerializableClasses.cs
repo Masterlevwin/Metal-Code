@@ -178,6 +178,9 @@ namespace Metal_Code
         [OptionalField]
         public float TechRatio = 1;
 
+        [OptionalField]
+        public float ExtraResult = 0;
+
         public List<string>? PropsList = new();
 
         public List<LaserItem>? Items = new();
