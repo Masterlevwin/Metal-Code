@@ -33,7 +33,7 @@
                 <ComboBox x:Name="MetalDrop" DisplayMemberPath="Name" ToolTip="Выберите материал для ВСЕХ заготовок" SelectionChanged="SetAllMaterial" MinWidth="80" MaxWidth="80" Margin="15,0,0,0" VerticalAlignment="Bottom"/>
                 <CheckBox ToolTip="Добавить к расчету стоимость материала ВСЕХ заготовок" Click="SetAllMetal" VerticalAlignment="Bottom" IsChecked="True" Margin="5,0,0,0"/>
                 <TextBlock Text="Работа" VerticalAlignment="Bottom" Margin="125,0,0,0"/>
-                <TextBlock Text="Коэф" ToolTip="Наценка или скидка на работы" VerticalAlignment="Bottom" Margin="200,0,0,0"/>
+                <TextBlock Text="Коэф" ToolTip="Наценка или скидка на работы" VerticalAlignment="Bottom" Margin="210,0,0,0"/>
             </StackPanel>
             
             <StackPanel x:Name="BilletsStack" Grid.Row="1"/>

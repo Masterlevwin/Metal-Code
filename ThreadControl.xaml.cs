@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NPOI.SS.Formula.Functions;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -6,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace Metal_Code
 {
@@ -59,6 +61,20 @@ namespace Metal_Code
             }
         }
 
+        private float ratio = 1;
+        public float Ratio
+        {
+            get => ratio;
+            set
+            {
+                if (value != ratio)
+                {
+                    ratio = value;
+                    OnPropertyChanged(nameof(Ratio));
+                }
+            }
+        }
+
         public List<PartControl>? Parts { get; set; }
 
         public readonly UserControl owner;
@@ -87,6 +103,7 @@ namespace Metal_Code
             else if (owner is PartControl part)
             {
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+                RatioBlock.Visibility = Visibility.Hidden;
             }
         }
 
@@ -136,6 +153,15 @@ namespace Metal_Code
             OnPriceChanged();
         }
 
+        public void SetRatio(float _ratio)
+        {
+            if (_ratio <= 0) return;
+            Ratio = _ratio;
+
+            RatioBlock.Foreground = Brushes.Blue;
+            RatioBlock.ToolTip = $"Коэффициент за общее кол-во отверстий";
+        }
+
         public void OnPriceChanged()
         {
             if (owner is not WorkControl work || work.WorkDrop.SelectedItem is not Work _work) return;
@@ -150,15 +176,19 @@ namespace Metal_Code
                     foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) if (item.CharName == CharName && item.Holes > 0 && item.Wide == Wide)
                             count += p.Part.Count * item.Holes;
 
+                SetRatio(RatioHoles(count));
+
                 foreach (PartControl p in Parts)
                     foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) if (item.CharName == CharName && item.Holes > 0 && item.Wide == Wide)
-                            price += (_work.Price + Time(p.Part.Mass, item.Wide, work) * 2000 / 60 * p.Part.Count * item.Holes) * RatioHoles(count);
+                            price += (_work.Price + Time(p.Part.Mass, item.Wide, work) * 2000 / 60 * p.Part.Count * item.Holes) * Ratio;
             }
             else if (work.type.Mass > 0)
             {
                 if (Wide == 0 || Holes == 0) return;
 
-                price = (_work.Price + Time(work.type.Mass, Wide, work) * 2000 / 60 * work.type.Count * Holes) * RatioHoles(work.type.Count * Holes);
+                SetRatio(RatioHoles(work.type.Count * Holes));
+
+                price = (_work.Price + Time(work.type.Mass, Wide, work) * 2000 / 60 * work.type.Count * Holes) * Ratio;
             }
             work.SetResult(price, false);
         }
@@ -203,6 +233,7 @@ namespace Metal_Code
                     w.propsList.Clear();
                     w.propsList.Add($"{Wide}");
                     w.propsList.Add($"{Holes}");
+                    w.propsList.Add($"{Ratio}");
                 }
                 else if (uc is PartControl p)
                 {
@@ -258,6 +289,7 @@ namespace Metal_Code
                 {
                     SetWide(w.propsList[0]);
                     SetHoles(w.propsList[1]);
+                    if (w.propsList.Count > 2) SetRatio(MainWindow.Parser(w.propsList[2]));
                 }
                 else if (uc is PartControl p && owner is PartControl _owner)
                 {

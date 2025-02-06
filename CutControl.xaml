@@ -5,22 +5,32 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="30" d:DesignWidth="150" Unloaded="RemovePartsTab" >
-    <StackPanel Orientation="Horizontal" MaxHeight="20" VerticalAlignment="Top">
-        <CheckBox IsChecked="{Binding HaveCut, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" ToolTip="Убрать стоимость лазера из расчета" Click="OnPriceChanged" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="2,0,0,0"/>
-        <Button x:Name="CutBtn" Click="LoadFiles" Content=". . ." MinWidth="30" ToolTip="Загрузить раскладки" FontWeight="Bold" Margin="2,0,0,0"/>
-        <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" TextChanged="SetWay" ToolTip="Длина пути резки, м" Margin="5,0,0,0" MinWidth="40" MaxWidth="40" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" ToolTipOpening="SetToolTipForWay"/>
-        <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" TextChanged="SetPinhole" ToolTip="Количество проколов, шт" MaxWidth="40" MinWidth="40" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" ToolTipOpening="SetToolTipForPinhole"/>
+             d:DesignHeight="45" d:DesignWidth="150" Unloaded="RemovePartsTab">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
 
-        <Image Source="/Images/question.png" VerticalAlignment="Top" MaxWidth="10" Margin="2,0,0,0">
-            <Image.ToolTip>
-                <ToolTip Background="Snow" BorderBrush="Red" Padding="5" BorderThickness="1">
-                    <StackPanel >
-                        <TextBlock Text="Стоимость лазерной резки = кол метров резки * цена метра + кол проколов * цена проколов" TextWrapping="Wrap" MaxWidth="280"/>
-                    </StackPanel>
-                </ToolTip>
-            </Image.ToolTip>
-        </Image>
+        <StackPanel Orientation="Horizontal" MaxHeight="20" VerticalAlignment="Top">
+            <Button x:Name="CutBtn" Click="LoadFiles" Content=". . ." MinWidth="40" ToolTip="Загрузить раскладки" FontWeight="Bold" Margin="5,0,0,0"/>
+            <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" TextChanged="SetWay" ToolTip="Длина пути резки, м" Margin="5,0,0,0" MinWidth="40" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" ToolTipOpening="SetToolTipForWay"/>
+            <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" TextChanged="SetPinhole" ToolTip="Количество проколов, шт" MinWidth="45" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" ToolTipOpening="SetToolTipForPinhole"/>
 
-    </StackPanel>
+            <Image Source="/Images/question.png" VerticalAlignment="Top" MaxWidth="10" Margin="2,0,0,0">
+                <Image.ToolTip>
+                    <ToolTip Background="Snow" BorderBrush="Red" Padding="5" BorderThickness="1">
+                        <StackPanel >
+                            <TextBlock Text="Стоимость лазерной резки = кол метров резки * цена метра + кол проколов * цена проколов" TextWrapping="Wrap" MaxWidth="280"/>
+                        </StackPanel>
+                    </ToolTip>
+                </Image.ToolTip>
+            </Image>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" MaxHeight="20" Grid.Row="1" Margin="0,5,0,0" VerticalAlignment="Top">
+            <CheckBox Content="Кислород" IsChecked="{Binding HaveCut, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" ToolTip="Убрать стоимость лазера из расчета" Click="OnPriceChanged" Margin="5,0,0,0"/>
+            <CheckBox Content="Азот" IsChecked="{Binding HaveNitro, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" Click="OnPriceChanged" Margin="15,0,0,0"/>
+        </StackPanel>
+    </Grid>
 </UserControl>

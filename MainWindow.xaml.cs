@@ -395,8 +395,8 @@ namespace Metal_Code
 
             //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
 
-            if (!CheckVersion(out string _version)) Restart();
-            AutoRemoveOffers();
+            //if (!CheckVersion(out string _version)) Restart();
+            //AutoRemoveOffers();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -1428,7 +1428,7 @@ namespace Metal_Code
                             {
                                 foreach (Part p in _cut.PartDetails)
                                 {
-                                    p.Description = _cut is CutControl cut ? cut.HaveCut ? "Л" : "Б" : "Т";
+                                    p.Description = _cut is CutControl cut ? cut.HaveCut || cut.HaveNitro ? "Л" : "Б" : "Т";
                                     if (p.PropsDict.ContainsKey(100) && p.PropsDict[100].Count > 2)
                                         p.Accuracy = _cut is CutControl laser ?
                                             $"{p.PropsDict[100][0].Trim()}x{p.PropsDict[100][1].Trim()}"

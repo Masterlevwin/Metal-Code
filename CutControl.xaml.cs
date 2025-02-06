@@ -87,6 +87,13 @@ namespace Metal_Code
             set => haveCut = value;
         }
 
+        private bool haveNitro = false;
+        public bool HaveNitro
+        {
+            get => haveNitro;
+            set => haveNitro = value;
+        }
+
         public List<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
         public List<Part>? PartDetails { get; set; } = new();
@@ -130,6 +137,20 @@ namespace Metal_Code
 
         private void OnPriceChanged(object sender, RoutedEventArgs e)
         {
+            if (HaveNitro)
+            {
+                string? comment = work.type.Comment;
+
+                if (comment is null || comment == "") work.type.SetComment(" Азот!");
+                else if (!comment.Contains(" Азот")) work.type.SetComment(comment.Insert(comment.Length, " Азот!"));
+
+                work.Ratio = 1.5f;
+            }
+            else
+            {
+                if (work.type.Comment is not null && work.type.Comment.Contains(" Азот"))
+                    work.type.SetComment(work.type.Comment.Replace(" Азот!", ""));
+            }
             OnPriceChanged();
         }
         public void OnPriceChanged()
@@ -148,7 +169,7 @@ namespace Metal_Code
                 // стоимость резки должна быть не ниже 10% от стоимости материала
                 if (_result > 0 && (price / _result) < 0.1f) price = _result * 0.1f;
 
-                work.SetResult(HaveCut ? price : 1, false);
+                work.SetResult(HaveCut || HaveNitro ? price : 1, false);
             }
             else
             {
@@ -169,7 +190,7 @@ namespace Metal_Code
 
                     work.SetResult(price);
                 }
-                else work.SetResult(HaveCut ? price : 1, false);
+                else work.SetResult(HaveCut || HaveNitro ? price : 1, false);
             }
         }
 
@@ -190,6 +211,7 @@ namespace Metal_Code
                 w.propsList.Add($"{WayTotal}");
                 w.propsList.Add($"{MassTotal}");
                 w.propsList.Add($"{HaveCut}");
+                w.propsList.Add($"{HaveNitro}");
 
                 if (PartDetails?.Count > 0)
                     foreach (Part p in PartDetails)
@@ -208,6 +230,7 @@ namespace Metal_Code
                 if (float.TryParse(w.propsList[2], out float _way)) WayTotal = _way;
                 if (float.TryParse(w.propsList[3], out float _mass)) MassTotal = _mass;
                 if (w.propsList.Count > 4 && bool.TryParse(w.propsList[4], out bool _haveCut)) HaveCut = _haveCut;
+                if (w.propsList.Count > 5 && bool.TryParse(w.propsList[5], out bool _haveNitro)) HaveNitro = _haveNitro;
 
                 work.type.CreateSort();     //переопределяем содержимое SortDrop, если есть раскладки (List<LaserItem>))
             }
