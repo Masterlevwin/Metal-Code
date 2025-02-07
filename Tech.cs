@@ -6,6 +6,7 @@ using ExcelDataReader;
 using System.Data;
 using System;
 using OfficeOpenXml;
+using System.Windows;
 
 namespace Metal_Code
 {
@@ -14,7 +15,7 @@ namespace Metal_Code
         public string ExcelFile;                        //путь к файлу
         public int CountTechItems = 0;                  //кол-во строк заявки
         public List<TechItem> TechItems = new();        //список полученных объектов из строк файла
-        public List<TechItem> FoundItems = new();       //список найденных файлов
+        public List<TechItem> FoundItems = new();       //список найденных строк
 
         public Tech(string path)
         {
@@ -191,18 +192,28 @@ namespace Metal_Code
                             {
                                 if (techItems == TechItems)
                                 {
-                                    string destination = $"{techItem.Route}" == "" ?
-                                        dirMain + "\\" + $"{item}".Trim() + "\\"
-                                        + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count}" + $".{extension}"
-                                        : dirMain + "\\" + $"{item}".Trim() + "\\"
-                                        + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count} ({techItem.Route})" + $".{extension}";
+                                    TechItem? isFounded = FoundItems.FirstOrDefault(x => x.Path == file);
+                                    if (isFounded is null)
+                                    {
+                                        string destination = $"{techItem.Route}" == "" ?
+                                            dirMain + "\\" + $"{item}".Trim() + "\\"
+                                            + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count}" + $".{extension}"
+                                            : dirMain + "\\" + $"{item}".Trim() + "\\"
+                                            + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count} ({techItem.Route})" + $".{extension}";
 
-                                    File.Copy(file, destination);
-                                    FoundItems.Add(techItem);           //файл найден
+                                        File.Copy(file, destination);
+                                        techItem.Path = file;
+                                        FoundItems.Add(techItem);           //файл найден
+                                    }
+                                    else MessageBox.Show($"Проверьте файлы с именами {isFounded.NumberName} и {techItem.NumberName}.\n" +
+                                        $"Из-за сходства имён они могли быть обработаны неверно.\n" +
+                                        $"Проверьте их по пути {file} и скопируйте вручную.");
                                 }
                                 else
+                                {
                                     File.Copy(file, dirMain + "\\" + $"{item}".Trim() + "\\"
                                         + $"{techItem.NumberName} {techItem.Name} {techItem.Count}" + $".{extension}");
+                                }
                             }
                         break;
                     }
@@ -270,6 +281,7 @@ namespace Metal_Code
         public string Destiny { get; set; }
         public string Count { get; set; }
         public string Route { get; set; }
+        public string? Path { get; set; }
 
         public TechItem(string numberName, string name, string material, string destiny, string count, string route)
         {
