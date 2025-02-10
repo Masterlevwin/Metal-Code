@@ -310,7 +310,7 @@
                             <TabItem.Header>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Text="Отчет за" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                                    <ComboBox x:Name="ReportDrop" MinWidth="120" Margin="5,0,0,0" />
+                                    <ComboBox x:Name="ReportDrop" MinWidth="120" Margin="5,0,0,0" SelectionChanged="ReportChanged" />
                                 </StackPanel>
                             </TabItem.Header>
                             <Grid>

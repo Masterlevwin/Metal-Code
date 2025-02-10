@@ -616,17 +616,40 @@ namespace Metal_Code
 
             if (TargetManager == CurrentManager)
             {
-                DateTime now = DateTime.Now;
-                DateTime thisMonth = new(now.Year, now.Month, 1);
-                DateTime futureMonth = thisMonth.AddMonths(1);
-
-                ReportOffers = Offers.Where(o => o.Order != null && o.Order != ""
-                                && o.CreatedDate >= thisMonth && o.CreatedDate < futureMonth).ToList();
-                ReportGrid.ItemsSource = ReportOffers;
-                ReportView();
+                ReportDrop.ItemsSource = Months;
+                ReportDrop.SelectedItem = Months[DateTime.Now.Month - 1];
             }
             else ReportOffers.Clear();
         }
+
+        readonly string[] Months = { "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь" };
+
+        private void ReportChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (TargetManager != CurrentManager) return;
+            if (ReportDrop.SelectedItem is string name)
+            {
+                foreach (string month in Months)
+                    if (month == name)
+                    {
+                        DateTime now = DateTime.Now;
+                        if (now.Month >= Array.IndexOf(Months, month) + 1)
+                            ReportChanged(new(now.Year, Array.IndexOf(Months, month) + 1, 1));
+                        else ReportChanged(new(now.Year - 1, Array.IndexOf(Months, month) + 1, 1));
+                    }
+            }
+        }
+        private void ReportChanged(DateTime target)
+        {
+            DateTime start = new(target.Year, target.Month, 1);
+            DateTime end = start.AddMonths(1);
+
+            ReportOffers = Offers.Where(o => o.Order != null && o.Order != ""
+                            && o.CreatedDate >= start && o.CreatedDate < end).ToList();
+            ReportGrid.ItemsSource = ReportOffers;
+            ReportView();
+        }
+
 
         //---------Общий результат расчета и его обновление-------//
         private float result;
@@ -4550,6 +4573,5 @@ namespace Metal_Code
         //-------------Экспериметы и тесты-----------------------//
         #region
         #endregion
-
     }
 }
