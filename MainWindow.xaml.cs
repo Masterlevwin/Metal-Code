@@ -618,6 +618,7 @@ namespace Metal_Code
             {
                 ReportDrop.ItemsSource = Months;
                 ReportDrop.SelectedItem = Months[DateTime.Now.Month - 1];
+                ReportChanged(Months[DateTime.Now.Month - 1]);
             }
             else ReportOffers.Clear();
         }
@@ -627,17 +628,18 @@ namespace Metal_Code
         private void ReportChanged(object sender, SelectionChangedEventArgs e)
         {
             if (TargetManager != CurrentManager) return;
-            if (ReportDrop.SelectedItem is string name)
-            {
-                foreach (string month in Months)
-                    if (month == name)
-                    {
-                        DateTime now = DateTime.Now;
-                        if (now.Month >= Array.IndexOf(Months, month) + 1)
-                            ReportChanged(new(now.Year, Array.IndexOf(Months, month) + 1, 1));
-                        else ReportChanged(new(now.Year - 1, Array.IndexOf(Months, month) + 1, 1));
-                    }
-            }
+            if (ReportDrop.SelectedItem is string name) ReportChanged(name);
+        }
+        private void ReportChanged(string name)
+        {
+            foreach (string month in Months)
+                if (month == name)
+                {
+                    DateTime now = DateTime.Now;
+                    if (now.Month >= Array.IndexOf(Months, month) + 1)
+                        ReportChanged(new DateTime(now.Year, Array.IndexOf(Months, month) + 1, 1));
+                    else ReportChanged(new DateTime(now.Year - 1, Array.IndexOf(Months, month) + 1, 1));
+                }
         }
         private void ReportChanged(DateTime target)
         {
@@ -2884,7 +2886,7 @@ namespace Metal_Code
                             //"Крайний срок"
                             tasksheet.Cells[temp, 3].Value = DateTime.UtcNow.AddDays(3).ToString("g");
                             //"Исполнитель"
-                            tasksheet.Cells[temp, 4].Value = $"Вячеслав Серебряков";
+                            tasksheet.Cells[temp, 4].Value = $"Павел Березкин";
                             //"Проект"
                             tasksheet.Cells[temp, 5].Value = "Лазерные работы";
                             //"Время на выполнение задачи в секундах"
@@ -2901,7 +2903,7 @@ namespace Metal_Code
                             //"Крайний срок"
                             tasksheet.Cells[temp, 3].Value = DateTime.UtcNow.AddDays(5).ToString("g");
                             //"Исполнитель"
-                            tasksheet.Cells[temp, 4].Value = $"Вячеслав Серебряков";
+                            tasksheet.Cells[temp, 4].Value = $"Павел Березкин";
                             //"Проект"
                             tasksheet.Cells[temp, 5].Value = "Гибочные работы";
                             //"Время на выполнение задачи в секундах"
@@ -2933,7 +2935,7 @@ namespace Metal_Code
                             //"Крайний срок"
                             tasksheet.Cells[temp, 3].Value = DateTime.UtcNow.AddDays(3).ToString("g");
                             //"Исполнитель"
-                            tasksheet.Cells[temp, 4].Value = $"Вячеслав Серебряков";
+                            tasksheet.Cells[temp, 4].Value = $"Павел Березкин";
                             //"Проект"
                             tasksheet.Cells[temp, 5].Value = "Труборез";
                             //"Время на выполнение задачи в секундах"

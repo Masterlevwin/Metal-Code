@@ -471,7 +471,7 @@ namespace Metal_Code
                             {
                                 (float, float) tuple = SizesDetail($"{table.Rows[j].ItemArray[3]}");    //получаем габариты детали
                                 //записываем полученные габариты и саму строку для их отображения в словарь свойств
-                                part.PropsDict[100] = new() { $"{tuple.Item1}", $"{tuple.Item2}", $"{table.Rows[j].ItemArray[3]}" };
+                                part.PropsDict[100] = new() { $"{tuple.Item1}", $"{tuple.Item2}", $"{tuple.Item1}x{tuple.Item2}" };
 
                                 _parts.Add(new(this, work, part));
                                 PartDetails?.Add(part);
