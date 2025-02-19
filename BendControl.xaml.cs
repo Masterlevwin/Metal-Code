@@ -41,119 +41,119 @@ namespace Metal_Code
                 ["до 0.5"] = 15,
                 ["0.5-1"] = 20,
                 ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
+                ["1.3-2.55"] = 70
             },
             [.7f] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 15,
                 ["0.5-1"] = 20,
                 ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
+                ["1.3-2.55"] = 70
             },
             [.8f] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 15,
                 ["0.5-1"] = 20,
                 ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
+                ["1.3-2.55"] = 70
             },
             [1] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 15,
                 ["0.5-1"] = 20,
                 ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
+                ["1.3-2.55"] = 70
             },
             [1.2f] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 15,
                 ["0.5-1"] = 20,
                 ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
+                ["1.3-2.55"] = 70
             },
             [1.5f] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 15,
                 ["0.5-1"] = 20,
                 ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
+                ["1.3-2.55"] = 70
             },
             [2] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 15,
                 ["0.5-1"] = 20,
                 ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
+                ["1.3-2.55"] = 70
             },
             [2.5f] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 15,
                 ["0.5-1"] = 20,
                 ["1-1.3"] = 25,
-                ["1.3-2.45"] = 70
+                ["1.3-2.55"] = 70
             },
             [3] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 20,
                 ["0.5-1"] = 30,
                 ["1-1.3"] = 35,
-                ["1.3-2.45"] = 100
+                ["1.3-2.55"] = 100
             },
             [4] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 20,
                 ["0.5-1"] = 30,
                 ["1-1.3"] = 35,
-                ["1.3-2.45"] = 100
+                ["1.3-2.55"] = 100
             },
             [5] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 30,
                 ["0.5-1"] = 45,
                 ["1-1.3"] = 65,
-                ["1.3-2.45"] = 200
+                ["1.3-2.55"] = 200
             },
             [6] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 45,
                 ["0.5-1"] = 67.5f,
                 ["1-1.3"] = 97.5f,
-                ["1.3-2.45"] = 300
+                ["1.3-2.55"] = 300
             },
             [8] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 45,
                 ["0.5-1"] = 67.5f,
                 ["1-1.3"] = 97.5f,
-                ["1.3-2.45"] = 300
+                ["1.3-2.55"] = 300
             },
             [10] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 45,
                 ["0.5-1"] = 67.5f,
                 ["1-1.3"] = 97.5f,
-                ["1.3-2.45"] = 300
+                ["1.3-2.55"] = 300
             },
             [12] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 45,
                 ["0.5-1"] = 67.5f,
                 ["1-1.3"] = 97.5f,
-                ["1.3-2.45"] = 300
+                ["1.3-2.55"] = 300
             },
             [14] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 45,
                 ["0.5-1"] = 67.5f,
                 ["1-1.3"] = 97.5f,
-                ["1.3-2.45"] = 300
+                ["1.3-2.55"] = 300
             },
             [16] = new Dictionary<string, float>
             {
                 ["до 0.5"] = 45,
                 ["0.5-1"] = 67.5f,
                 ["1-1.3"] = 97.5f,
-                ["1.3-2.45"] = 300
+                ["1.3-2.55"] = 300
             }
         };
 
@@ -185,9 +185,6 @@ namespace Metal_Code
             else if (owner is PartControl part)
             {
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-
-                //PartBtn.Visibility = Visibility.Visible;
-                //PartBtn.Click += (o, e) => { part.RemoveControl(this); };
 
                 foreach (WorkControl w in part.work.type.WorkControls)
                     if (w.workType is BendControl) return;
@@ -303,6 +300,8 @@ namespace Metal_Code
                         p.RemoveControl(this);
                         return;
                     }
+
+                    ValidateShelf();
 
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{0}", $"{Bend}", $"{ShelfDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + Г ")) p.Part.Description += " + Г ";
@@ -459,6 +458,37 @@ namespace Metal_Code
                     ShelfDrop.BorderBrush = new SolidColorBrush(Colors.Red);
                     ShelfDrop.BorderThickness = new Thickness(2);
                     MainWindow.M.StatusBegin($"Возможно мы не согнём некоторые детали. Уточните возможность гибки у специалиста!");
+                }
+                else
+                {
+                    ShelfDrop.BorderBrush = new SolidColorBrush(Colors.Gray);
+                    ShelfDrop.BorderThickness = new Thickness(1);
+                }
+            }
+        }
+
+        private void ValidateShelf()        //метод, в котором проверяется выбранная длина гиба
+        {
+            if (owner is not PartControl p || !MatrixDict.ContainsKey(p.work.type.S)) return;
+
+            Regex shelf = new(@"((\d+\.?\d*)|(\.\d+))");
+
+            List<Match> matches = shelf.Matches($"{ShelfDrop.SelectedItem}").ToList();
+
+            if (matches.Count > 0)
+            {
+                //максимальная длина гиба выбранного диапазона
+                float _shelf = MainWindow.Parser($"{matches[^1]}") * 1000;     
+
+                float _height = MainWindow.Parser($"{p.Part.PropsDict[100][0]}");
+                float _width = MainWindow.Parser($"{p.Part.PropsDict[100][1]}");
+
+                if (_shelf < _height || _shelf < _width)    //если выбранная максимальная длина гиба меньше любой из сторон детали
+                {                                           //выдаем предупреждение
+                    ShelfDrop.BorderBrush = new SolidColorBrush(Colors.Red);
+                    ShelfDrop.BorderThickness = new Thickness(2);
+                    if (MainWindow.M.Log is null || !MainWindow.M.Log.Contains("Проверьте выбранные стороны гиба у деталей!"))
+                        MainWindow.M.Log += "\nПроверьте выбранные стороны гиба у деталей!\n";
                 }
                 else
                 {

@@ -11,7 +11,6 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Text.RegularExpressions;
-using System.Windows.Input;
 
 
 namespace Metal_Code
@@ -171,10 +170,12 @@ namespace Metal_Code
 
             float price = 0;
 
-            if (metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                price = Mold * MainWindow.M.MetalDict[metal.Name][work.type.S].Item3 * 0.7f
-                    + Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1
-                    + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2 * 3;
+            float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
+
+            if (metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
+                price = Mold * MainWindow.M.MetalDict[metal.Name][destiny].Item3 * 0.7f
+                    + Way * MainWindow.M.MetalDict[metal.Name][destiny].Item1
+                    + Pinhole * MainWindow.M.MetalDict[metal.Name][destiny].Item2 * 3;
 
             // проверяем стоимость материала
             float _result = (float)Math.Round((work.type.det.Detail.IsComplect ? 1 : work.type.Count) *
@@ -233,23 +234,29 @@ namespace Metal_Code
 
         private void SetToolTipForMold(object sender, ToolTipEventArgs e)
         {
+            float destiny = MainWindow.M.CorrectDestiny(work.type.S);
+
             if (sender is TextBox box && work.type.MetalDrop.SelectedItem is Metal metal
-                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                box.ToolTip = $"Длина трубы, пог м\n(цена резки пог м - {MainWindow.M.MetalDict[metal.Name][work.type.S].Item3 * 0.7f} руб)";
+                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
+                box.ToolTip = $"Длина трубы, пог м\n(цена резки пог м - {MainWindow.M.MetalDict[metal.Name][destiny].Item3 * 0.7f} руб)";
         }
 
         private void SetToolTipForWay(object sender, ToolTipEventArgs e)
         {
+            float destiny = MainWindow.M.CorrectDestiny(work.type.S);
+
             if (sender is TextBox box && work.type.MetalDrop.SelectedItem is Metal metal
-                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                box.ToolTip = $"Длина пути резки, м\n(цена метра резки - {MainWindow.M.MetalDict[metal.Name][work.type.S].Item1} руб)";
+                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
+                box.ToolTip = $"Длина пути резки, м\n(цена метра резки - {MainWindow.M.MetalDict[metal.Name][destiny].Item1} руб)";
         }
 
         private void SetToolTipForPinhole(object sender, ToolTipEventArgs e)
         {
+            float destiny = MainWindow.M.CorrectDestiny(work.type.S);
+
             if (sender is TextBox box && work.type.MetalDrop.SelectedItem is Metal metal
-                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                box.ToolTip = $"Количество проколов, шт\n(цена прокола - {MainWindow.M.MetalDict[metal.Name][work.type.S].Item2 * 3} руб)";
+                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
+                box.ToolTip = $"Количество проколов, шт\n(цена прокола - {MainWindow.M.MetalDict[metal.Name][destiny].Item2 * 3} руб)";
         }
 
         private void LoadFiles(object sender, RoutedEventArgs e)
@@ -668,7 +675,7 @@ namespace Metal_Code
                     if (work.type.S == 0)
                     {
                         Regex destinyEng = new(@"x[+-]?((\d+\.?\d*)|(\.\d+))", RegexOptions.IgnoreCase);
-                        List<Match> matchesEng = destinyEng.Matches(PartDetails[0].Title.ToLower().Replace('х', 'x')).ToList();
+                        List<Match> matchesEng = destinyEng.Matches(PartDetails[0].Title.ToLower().Replace('х', 'x').Replace(',', '.')).ToList();
                         if (matchesEng.Count > 0) work.type.S = MainWindow.Parser(matchesEng[^1].Value.Trim('x'));
                     }
                 }

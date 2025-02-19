@@ -11,7 +11,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Runtime.Serialization;
 
 namespace Metal_Code
@@ -176,10 +175,12 @@ namespace Metal_Code
                 if (Way == 0 || Pinhole == 0) return;
                 if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
-                if (metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+                float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
+
+                if (metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
                 {
-                    price = Way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1
-                        + Pinhole * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2;
+                    price = Way * MainWindow.M.MetalDict[metal.Name][destiny].Item1
+                        + Pinhole * MainWindow.M.MetalDict[metal.Name][destiny].Item2;
 
                     // проверяем стоимость материала
                     float _result = (float)Math.Round((work.type.det.Detail.IsComplect ? 1 : work.type.Count) *
@@ -619,10 +620,12 @@ namespace Metal_Code
 
             _item.price = 0;
 
-            if (metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
+            float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
+
+            if (metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
             {
-                _item.price = _item.way * MainWindow.M.MetalDict[metal.Name][work.type.S].Item1
-                    + _item.pinholes * MainWindow.M.MetalDict[metal.Name][work.type.S].Item2;
+                _item.price = _item.way * MainWindow.M.MetalDict[metal.Name][destiny].Item1
+                    + _item.pinholes * MainWindow.M.MetalDict[metal.Name][destiny].Item2;
 
                 // стоимость резки должна быть не ниже минимальной
                 if (work.WorkDrop.SelectedItem is Work _work) _item.price = _item.price > 0 && _item.price < _work.Price ? _work.Price : _item.price;
@@ -669,16 +672,20 @@ namespace Metal_Code
 
         private void SetToolTipForWay(object sender, ToolTipEventArgs e)
         {
+            float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
+
             if (sender is TextBox box && work.type.MetalDrop.SelectedItem is Metal metal
-                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                box.ToolTip = $"Длина пути резки, м\n(цена метра - {MainWindow.M.MetalDict[metal.Name][work.type.S].Item1} руб)";
+                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
+                box.ToolTip = $"Длина пути резки, м\n(цена метра - {MainWindow.M.MetalDict[metal.Name][destiny].Item1} руб)";
         }
 
         private void SetToolTipForPinhole(object sender, ToolTipEventArgs e)
         {
+            float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
+
             if (sender is TextBox box && work.type.MetalDrop.SelectedItem is Metal metal
-                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(work.type.S))
-                box.ToolTip = $"Количество проколов, шт\n(цена прокола - {MainWindow.M.MetalDict[metal.Name][work.type.S].Item2} руб)";
+                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
+                box.ToolTip = $"Количество проколов, шт\n(цена прокола - {MainWindow.M.MetalDict[metal.Name][destiny].Item2} руб)";
         }
     }
 

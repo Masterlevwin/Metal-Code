@@ -385,6 +385,17 @@ namespace Metal_Code
                 OnPropertyChanged(nameof(EndDay));
             }
         }
+        
+        private string? log;
+        public string? Log
+        {
+            get => log;
+            set
+            {
+                log = value;
+                OnPropertyChanged(nameof(Log));
+            }
+        }
         #endregion
 
         public MainWindow()
@@ -396,6 +407,7 @@ namespace Metal_Code
             //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
 
             //if (!CheckVersion(out string _version)) Restart();
+            //else UpdateDatabases();
             //AutoRemoveOffers();
 
             DataContext = ProductModel;
@@ -1051,9 +1063,13 @@ namespace Metal_Code
                         CreateWorker(UpdateOffersCollection, ActionState.update);   //и обновляем списки, если появился новый расчет
 
                         Customer? _customer = db.Customers.FirstOrDefault(x => x.Name == CustomerDrop.Text);
-                        if (_customer is null)
-                            MessageBox.Show($"Заказчик {CustomerDrop.Text} не сохранен в базе. Добавьте его данные в базу, чтобы использовать их повторно.");
-                        if (!CheckVersion(out string _version)) MessageBox.Show($"Текущая версия не актуальна. Рекомендуется обновить программу.");
+                        if (_customer is null) Log += $"\nЗаказчик {CustomerDrop.Text} не сохранен в базе. Добавьте его данные в базу, чтобы использовать их повторно.\n";
+
+                        if (!CheckVersion(out string _version) && (Log is null || !Log.Contains("Текущая версия не актуальна. Рекомендуется обновить программу.")))
+                            Log += $"\nТекущая версия не актуальна. Рекомендуется обновить программу.\n";
+
+                        if (Log is not null && Log != "") MessageBox.Show(Log, "Обратите внимание!", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        Log = null;
                     }
                 }
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
@@ -1397,6 +1413,8 @@ namespace Metal_Code
                     TypeDetailControl type = det.TypeDetailControls[j];
                     SaveTypeDetail _typeDetail = new(type.TypeDetailDrop.SelectedIndex, type.Count, type.MetalDrop.SelectedIndex, type.HasMetal,
                         (type.SortDrop.SelectedIndex, type.A, type.B, type.S, type.L), type.ExtraResult, type.Comment);
+
+                    if (!Destinies.Contains(type.S) && (Log is null || !Log.Contains("Проверьте толщину заготовок во всех деталях!"))) Log += "\nПроверьте толщину заготовок во всех деталях!\n";
 
                     //с помощью повторения символа переноса строки визуализируем дерево деталей и работ
                     if (type.MetalDrop.SelectedItem is Metal _metal)
@@ -3956,7 +3974,7 @@ namespace Metal_Code
                 extraWindow.ContentStack.Children.Add(image);
                 TextBlock tb = new()
                 {
-                    Text = $"Максимальная длина гиба – 2450 мм.\r\n" +
+                    Text = $"Максимальная длина гиба – 2550 мм.\r\n" +
                     $"Коэффициент для развертки – 0,5 мм.\r\n" +
                     $"Проверить усилие станка по таблице гибов:\r\n" +
                     $"1. Определяем № матрицы.\r\n" +
@@ -4129,6 +4147,33 @@ namespace Metal_Code
             StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(_paths[0])}");
         }
 
+        //------------Управление сборками------------------------//
+        private void ShowAssemblyWindow(object sender, RoutedEventArgs e)
+        {
+            if (Parts.Count == 0)
+            {
+                StatusBegin($"Нет деталей для добавления в сборку!");
+                return;
+            }
+            AssemblyWindow.A.CurrentParts.Clear();
+            foreach (Part part in Parts) AssemblyWindow.A.CurrentParts.Add(part);
+            AssemblyWindow.A.Show();
+        }
+
+
+        public float CorrectDestiny(float _destiny)     //метод определения расчетной толщины
+        {
+            if (_destiny < 0.5f || _destiny > 30) return 0;
+
+            //если введенная толщина заготовки соответствует возможной толщине, возвращаем толщину как есть
+            if (Destinies.Contains(_destiny)) return _destiny;
+
+            //если введенная толщина заготовки,округленная до большего целого, соответствует возможной толщине, возвращаем округленную толщину
+            if (Destinies.Contains((float)Math.Ceiling(_destiny))) return (float)Math.Ceiling(_destiny);
+
+            return CorrectDestiny(++_destiny);  //увеличиваем толщину на единицу и запускаем метод заново (рекурсия)
+        }
+
         public bool WarningSave()           //предупреждение о незаполненных полях
         {
             string _order = Order.Text;
@@ -4165,19 +4210,6 @@ namespace Metal_Code
             }
 
             return true;
-        }
-
-        //------------Управление сборками------------------------//
-        private void ShowAssemblyWindow(object sender, RoutedEventArgs e)
-        {
-            if (Parts.Count == 0)
-            {
-                StatusBegin($"Нет деталей для добавления в сборку!");
-                return;
-            }
-            AssemblyWindow.A.CurrentParts.Clear();
-            foreach (Part part in Parts) AssemblyWindow.A.CurrentParts.Add(part);
-            AssemblyWindow.A.Show();
         }
 
         public float GetMetalPrice()
