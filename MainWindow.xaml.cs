@@ -1478,6 +1478,10 @@ namespace Metal_Code
                                             : $"{p.PropsDict[100][2].Trim()} мм";
                                     p.Price = 0;
 
+                                    if (p.PropsDict.Count > 0)
+                                        for (int key = 50; key < 70; key++)     //пробегаемся по ключам от 50 до 70, которые зарезервированы под конкретные работы
+                                            p.PropsDict.Remove(key);
+
                                     //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
                                     if (CheckConstruct.IsChecked == true)
                                     {
