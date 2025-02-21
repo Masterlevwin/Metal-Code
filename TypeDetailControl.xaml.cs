@@ -261,7 +261,7 @@ namespace Metal_Code
         }
 
 
-        public Dictionary<string, (string, string)> Kinds = new();
+        public Dictionary<string, (string, string, string)> Kinds = new();
 
         private void CreateSort(object sender, SelectionChangedEventArgs e)
         {
@@ -304,7 +304,7 @@ namespace Metal_Code
                                 if (cut is CutControl && item.Key is not null && item.Key.Contains('X'))
                                 {
                                     string[] props = item.Key.Split('X');
-                                    if (props.Length > 1) Kinds[$"{item.Key} - {item.Sum(s => s.sheets)} шт"] = (props[0], props[1]);
+                                    if (props.Length > 1) Kinds[$"{item.Key} - {item.Sum(s => s.sheets)} шт"] = (props[0], props[1], "");
                                 }
                             }
                     }
@@ -316,7 +316,7 @@ namespace Metal_Code
             else if (type.Sort is not null && type.Sort != "")
             {
                 string[] strings = type.Sort.Split(',');
-                for (int i = 0; i < strings.Length; i += 3) Kinds[strings[i]] = (strings[i + 1], strings[i + 2]);
+                for (int i = 0; i < strings.Length; i += 4) Kinds[strings[i]] = (strings[i + 1], strings[i + 2], strings[i + 3]);
 
                 foreach (string s in Kinds.Keys) SortDrop.Items.Add(s);
 
@@ -336,24 +336,10 @@ namespace Metal_Code
             {
                 A = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item1);
                 B = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item2);
+                S = MainWindow.Parser(Kinds[$"{SortDrop.SelectedItem}"].Item3);
 
-                TypeDetail? type = TypeDetailDrop.SelectedItem as TypeDetail;
-                if (type?.Name == "Швеллер")
-                    S = (A / 10) switch
-                    {
-                        <= 22 => 5,
-                        <= 30 => 6,
-                        _ => 8
-                    };
-                else if (type?.Name == "Труба круглая ВГП")
-                    S = A switch
-                    {
-                        <= 21 => 2,
-                        <= 26.8f => 3,
-                        <= 42.3f => 3.2f,
-                        <= 60 => 3.5f,
-                        _ => 4
-                    };
+                SortDrop.BorderBrush = new SolidColorBrush(Colors.Gray);
+                SortDrop.BorderThickness = new Thickness(1);
             }
             MassCalculate();
         }

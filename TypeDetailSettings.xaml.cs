@@ -20,9 +20,9 @@ namespace Metal_Code
             if (TypeDetail.Sort != null && TypeDetail.Sort != "")
             {
                 string[] strings = TypeDetail.Sort.Split(',');
-                if (strings.Length > 0 && strings.Length % 3 != 0)
+                if (strings.Length > 0 && strings.Length % 4 != 0)
                 {
-                    MessageBox.Show("Недостаточно данных.\nПроверьте: Виды - количество значений должно быть кратно 3-м!");
+                    MessageBox.Show("Недостаточно данных.\nПроверьте: Виды - количество значений должно быть кратно 4-м!");
                     return;
                 }
             }

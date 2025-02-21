@@ -11,7 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Text.RegularExpressions;
-
+using System.Windows.Media;
 
 namespace Metal_Code
 {
@@ -394,28 +394,17 @@ namespace Metal_Code
                     }
                     else if (_tube.Contains("Швеллер") || _tube.Contains("Труба U"))
                     {
-                        foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Швеллер")
+                        foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Швеллер П")
                             {
                                 work.type.TypeDetailDrop.SelectedItem = t;
 
-                                string _match = $"{MainWindow.Parser(matchesTube[0].Value) / 10}".Replace(',', '.');
+                                string _match = $"{MainWindow.Parser(matchesTube[0].Value) / 10}".Replace(',', '.') + 'П';
 
                                 foreach (string s in work.type.SortDrop.Items)
                                     if (s == _match)
                                     {
-                                        {
-                                            work.type.SortDrop.SelectedItem = s;
-                                            if (int.TryParse(_match, out int destiny))
-                                            {
-                                                work.type.S = destiny switch
-                                                {
-                                                    <= 22 => 5,
-                                                    <= 30 => 6,
-                                                    _ => 8
-                                                };
-                                            }
-                                            break;
-                                        }
+                                        work.type.SortDrop.SelectedItem = s;
+                                        break;
                                     }
                                 break;
                             }
@@ -432,10 +421,8 @@ namespace Metal_Code
                                 foreach (string s in work.type.SortDrop.Items)
                                     if (s == _match)
                                     {
-                                        {
-                                            work.type.SortDrop.SelectedItem = s;
-                                            break;
-                                        }
+                                        work.type.SortDrop.SelectedItem = s;
+                                        break;
                                     }
                                 break;
                             }
@@ -452,10 +439,8 @@ namespace Metal_Code
                                 foreach (string s in work.type.SortDrop.Items)
                                     if (s == _match)
                                     {
-                                        {
-                                            work.type.SortDrop.SelectedItem = s;
-                                            break;
-                                        }
+                                        work.type.SortDrop.SelectedItem = s;
+                                        break;
                                     }
                                 break;
                             }
@@ -477,10 +462,8 @@ namespace Metal_Code
                                         foreach (string s in work.type.SortDrop.Items)
                                             if (s == str)
                                             {
-                                                {
-                                                    work.type.SortDrop.SelectedItem = s;
-                                                    break;
-                                                }
+                                                work.type.SortDrop.SelectedItem = s;
+                                                break;
                                             }
                                         break;
                                     }
@@ -680,7 +663,8 @@ namespace Metal_Code
                     }
                 }
 
-                float destinyTube = work.type.S;      //кэшируем установленную толщину заготовки
+                float destiny = work.type.S;    //кэшируем ссылку на толщину заготовки, потому что в дальнейшем
+                            //при установке сорта заготовки толщина сбрасывается в ноль, и ее нужно установить вновь
 
                 //определяем вид заготовки
                 string _tube = $"{tables[0].Rows[1].ItemArray[1]}";
@@ -748,28 +732,23 @@ namespace Metal_Code
                     //швеллер
                     else if (_tube.Contains("U tube"))
                     {
-                        foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Швеллер")
+                        foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Швеллер П")
                             {
                                 work.type.TypeDetailDrop.SelectedItem = t;
 
-                                string _match = $"{MainWindow.Parser(matches[0].Value) / 10}".Replace(',', '.');
+                                string _match = $"{MainWindow.Parser(matches[0].Value) / 10}".Replace(',', '.') + 'П';
 
                                 foreach (string s in work.type.SortDrop.Items)
                                     if (s == _match)
                                     {
-                                        {
-                                            work.type.SortDrop.SelectedItem = s;
-                                            if (int.TryParse(_match, out int destiny))
-                                            {
-                                                destinyTube = destiny switch
-                                                {
-                                                    <= 22 => 5,
-                                                    <= 30 => 6,
-                                                    _ => 8
-                                                };
-                                            }
-                                            break;
-                                        }
+                                        work.type.SortDrop.SelectedItem = s;
+                                        destiny = MainWindow.Parser(work.type.Kinds[$"{work.type.SortDrop.SelectedItem}"].Item3);
+
+                                        work.type.SortDrop.BorderBrush = new SolidColorBrush(Colors.Red);
+                                        work.type.SortDrop.BorderThickness = new Thickness(2);
+                                        MainWindow.M.StatusBegin($"Обратите внимание на типы заготовки и их толщины!");
+
+                                        break;
                                     }
                                 break;
                             }
@@ -787,10 +766,8 @@ namespace Metal_Code
                                 foreach (string s in work.type.SortDrop.Items)
                                     if (s == _match)
                                     {
-                                        {
-                                            work.type.SortDrop.SelectedItem = s;
-                                            break;
-                                        }
+                                        work.type.SortDrop.SelectedItem = s;
+                                        break;
                                     }
                                 break;
                             }
@@ -811,10 +788,8 @@ namespace Metal_Code
                                     foreach (string s in work.type.SortDrop.Items)
                                         if (s == _match)
                                         {
-                                            {
-                                                work.type.SortDrop.SelectedItem = s;
-                                                break;
-                                            }
+                                            work.type.SortDrop.SelectedItem = s;
+                                            break;
                                         }
                                     break;
                                 }
@@ -831,10 +806,8 @@ namespace Metal_Code
                                     foreach (string s in work.type.SortDrop.Items)
                                         if (s == _match)
                                         {
-                                            {
-                                                work.type.SortDrop.SelectedItem = s;
-                                                break;
-                                            }
+                                            work.type.SortDrop.SelectedItem = s;
+                                            break;
                                         }
                                     break;
                                 }
@@ -857,10 +830,8 @@ namespace Metal_Code
                                         foreach (string s in work.type.SortDrop.Items)
                                             if (s == str)
                                             {
-                                                {
-                                                    work.type.SortDrop.SelectedItem = s;
-                                                    break;
-                                                }
+                                                work.type.SortDrop.SelectedItem = s;
+                                                break;
                                             }
                                         break;
                                     }
@@ -872,10 +843,10 @@ namespace Metal_Code
                 }
                 else MainWindow.M.StatusBegin("Не удалось определить размеры трубы");
 
-                work.type.S = destinyTube;
-
                 if (float.TryParse($"{tables[2].Rows[3].ItemArray[4]}", out float l)) work.type.L = l;      //Длина первой трубы(mm)
                 SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");             //переносим погонные метры из типовой детали
+
+                work.type.S = destiny;      //возвращаем сохраненную толщину
 
                 //дополняем свойства деталей рассчитанными значениями
                 if (PartDetails?.Count > 0)
