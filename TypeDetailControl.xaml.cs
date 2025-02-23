@@ -304,7 +304,7 @@ namespace Metal_Code
                                 if (cut is CutControl && item.Key is not null && item.Key.Contains('X'))
                                 {
                                     string[] props = item.Key.Split('X');
-                                    if (props.Length > 1) Kinds[$"{item.Key} - {item.Sum(s => s.sheets)} шт"] = (props[0], props[1], "");
+                                    if (props.Length > 1) Kinds[$"{item.Key} - {item.Sum(s => s.sheets)} шт"] = (props[0], props[1], $"{S}");
                                 }
                             }
                     }
