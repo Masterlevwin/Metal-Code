@@ -558,7 +558,7 @@ namespace Metal_Code
                 if (table.Rows[i].ItemArray[0]?.ToString() == "Размер листа")
                 {
                     item.sheetSize = $"{table.Rows[i].ItemArray[1]}".TrimEnd('m').Trim();
-                    SetSheetSize(item.sheetSize);
+                    //SetSheetSize(item.sheetSize);
                 }
 
                 if (table.Rows[i].ItemArray[2]?.ToString() == "Кол-во повторов")
