@@ -1171,9 +1171,9 @@ namespace Metal_Code
         }
         private void UpdateDatabases()                              //обновление баз заготовок, работ и материалов посредством замены файлов
         {
-            if (!IsLocal || !Directory.Exists(connections[10])) return;     //если запущена основная база или нет директории, выходим из метода
+            if (!IsLocal || !Directory.Exists(connections[9])) return;     //если запущена основная база или нет директории, выходим из метода
 
-            string path = connections[10];    //путь к основным базам данных
+            string path = connections[9];    //путь к основным базам данных
 
             if (File.Exists(path + "\\typedetails.db"))
             {
