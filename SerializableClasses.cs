@@ -22,7 +22,10 @@ namespace Metal_Code
 
         [OptionalField]
         public bool HasAssembly = false;    //это поле сохраняет ссылку на экспресс-изготовление
-        
+
+        [OptionalField]
+        public string Comment = "";
+
         [OptionalField]
         public ObservableCollection<Assembly> Assemblies = new();
 

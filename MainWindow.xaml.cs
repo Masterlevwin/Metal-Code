@@ -736,7 +736,7 @@ namespace Metal_Code
             HasDelivery = false;
             CheckConstruct.IsChecked = false;
             HasAssembly = false;
-            Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = ConstructRatio.Text = AssemblyRatio.Text = "";
+            Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = Comment.Text = ConstructRatio.Text = AssemblyRatio.Text = "";
             ProductName.Text = $"Изделие";
             ActiveOffer = null;
         }
@@ -1378,6 +1378,7 @@ namespace Metal_Code
                 Production = DateProduction.Text,
                 Manager = Adress.Text,                  //поле "Manager" сохраняет ссылку на адрес доставки;
                                                         //не менял название поля, чтобы загружались старые сохранения
+                Comment = Comment.Text,
                 Ratio = Ratio,
                 Count = Count,
                 ConstructRatio = ConstructRatio.Text,
@@ -1550,6 +1551,7 @@ namespace Metal_Code
             CustomerDrop.Text = ProductModel.Product.Company;
             DateProduction.Text = ProductModel.Product.Production;
             Adress.Text = ProductModel.Product.Manager;
+            Comment.Text = ProductModel.Product.Comment;
             CheckConstruct.IsChecked = ProductModel.Product.HasConstruct;
             ConstructRatio.Text = ProductModel.Product.ConstructRatio;
             SetRatio(ProductModel.Product.Ratio);
@@ -1882,13 +1884,17 @@ namespace Metal_Code
                 if (isAssemblyOffer) worksheet.Cells[row + 6, 2].Value += "  Внимание - в КП присутствуют сборочные единицы!";
             }
 
-            worksheet.Cells[row + 7, 1].Value = "Ваш менеджер:";
-            worksheet.Cells[row + 7, 2].Value = ManagerDrop.Text;
-            worksheet.Cells[row + 7, 2].Style.Font.Bold = true;
-            worksheet.Cells[row + 7, 2, row + 7, 4].Merge = true;
+            worksheet.Cells[row + 7, 1].Value = "Примечание:";
+            worksheet.Cells[row + 7, 2].Value = Comment.Text;
+            worksheet.Cells[row + 7, 2, row + 7, 8].Merge = true;
 
-            worksheet.Cells[row + 7, 8].Value = "версия: " + version;
-            worksheet.Cells[row + 7, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            worksheet.Cells[row + 8, 1].Value = "Ваш менеджер:";
+            worksheet.Cells[row + 8, 2].Value = ManagerDrop.Text;
+            worksheet.Cells[row + 8, 2].Style.Font.Bold = true;
+            worksheet.Cells[row + 8, 2, row + 8, 4].Merge = true;
+
+            worksheet.Cells[row + 8, 8].Value = "версия: " + version;
+            worksheet.Cells[row + 8, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
 
             worksheet.InsertColumn(5, 1);
             for (int i = 1; i < row - 7; i++) worksheet.Cells[i + 7, 5].Value = i;
@@ -1947,7 +1953,6 @@ namespace Metal_Code
             if (worksheet.Columns[6].Width < 15) worksheet.Columns[6].Width = 15;               //оформляем столбец, где указано наименование детали
             worksheet.Cells[8, 1, row, 3].Style.WrapText = true;                                //переносим текст при необходимости
             if (IsLaser) worksheet.DeleteRow(4, 2);                                             //удаляем 4 и 5 строки, необходимые только для Провэлда
-            if (Parts.Count == 0) worksheet.DeleteRow(row + 5, 1);       //удаляем строку, где указана расшифровка работ, если нет нарезанных деталей
 
             //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
             worksheet.PrinterSettings.FitToPage = true;
@@ -2459,6 +2464,9 @@ namespace Metal_Code
                         }
 
                         statsheet.Cells[temp, 17].Value += $"{key[14..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
+                        notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{key[14..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
+                        notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = $"{Math.Ceiling(_square * 0.14f)} кг";
+                        tempNote++;
                     }
                     else statsheet.Cells[temp, 4].Value += $"{key} ";                                       //"Наименование изделия / вид работы"
 
@@ -3006,7 +3014,7 @@ namespace Metal_Code
                 //"Описание"
                 tasksheet.Cells[temp, 2].Value = material;
                 //"Крайний срок"
-                tasksheet.Cells[temp, 3].Value = DateTime.UtcNow.AddDays(1).ToString("g");
+                tasksheet.Cells[temp, 3].Value = DateTime.UtcNow.AddDays(2).ToString("g");
                 //"Исполнитель"
                 tasksheet.Cells[temp, 4].Value = $"Антон Сухоруков";
                 //"Время на выполнение задачи в секундах"
@@ -3908,23 +3916,6 @@ namespace Metal_Code
         #region
 
         //-------------Даты-----------//
-        private void SetDate(object sender, SelectionChangedEventArgs e)
-        {
-            if (datePicker.SelectedDate is not null) DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
-
-            static int GetBusinessDays(DateTime startD, DateTime endD)
-            {
-                int calcBusinessDays =
-                    (int)(1 + ((endD - startD).TotalDays * 5 -
-                    (startD.DayOfWeek - endD.DayOfWeek) * 2) / 7);
-
-                if (endD.DayOfWeek == DayOfWeek.Saturday) calcBusinessDays--;
-                if (startD.DayOfWeek == DayOfWeek.Sunday) calcBusinessDays--;
-
-                return calcBusinessDays;
-            }
-        }
-
         private DateTime? EndDate()
         {
             if (int.TryParse(DateProduction.Text, out int days))
@@ -3945,6 +3936,23 @@ namespace Metal_Code
             }
             else return null;
         }
+
+        //private void SetDate(object sender, SelectionChangedEventArgs e)
+        //{
+        //    if (datePicker.SelectedDate is not null) DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
+
+        //    static int GetBusinessDays(DateTime startD, DateTime endD)
+        //    {
+        //        int calcBusinessDays =
+        //            (int)(1 + ((endD - startD).TotalDays * 5 -
+        //            (startD.DayOfWeek - endD.DayOfWeek) * 2) / 7);
+
+        //        if (endD.DayOfWeek == DayOfWeek.Saturday) calcBusinessDays--;
+        //        if (startD.DayOfWeek == DayOfWeek.Sunday) calcBusinessDays--;
+
+        //        return calcBusinessDays;
+        //    }
+        //}
 
         public void StatusBegin(string? notify = null)
         {
@@ -3979,7 +3987,7 @@ namespace Metal_Code
                 TextBlock tb = new()
                 {
                     Text = $"Максимальная длина гиба – 2550 мм.\r\n" +
-                    $"Коэффициент для развертки – 0,5 мм.\r\n" +
+                    $"Коэффициент для развертки – 0,4 мм.\r\n" +
                     $"Проверить усилие станка по таблице гибов:\r\n" +
                     $"1. Определяем № матрицы.\r\n" +
                     $"2. На пересечении матрицы и толщины металла\r\n" +

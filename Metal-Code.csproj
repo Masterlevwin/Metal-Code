@@ -15,6 +15,7 @@
     <None Remove="app_logo.jpeg" />
     <None Remove="app_logo.jpg" />
     <None Remove="Images\add.png" />
+    <None Remove="Images\address.png" />
     <None Remove="Images\assembly.png" />
     <None Remove="Images\bends.png" />
     <None Remove="Images\change.png" />
@@ -26,6 +27,7 @@
     <None Remove="Images\complect2.png" />
     <None Remove="Images\convert.png" />
     <None Remove="Images\del.png" />
+    <None Remove="Images\delivery.png" />
     <None Remove="Images\edit.png" />
     <None Remove="Images\exampe0.png" />
     <None Remove="Images\exampe1.png" />
@@ -114,6 +116,7 @@
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </Resource>
     <Resource Include="Images\add.png" />
+    <Resource Include="Images\address.png" />
     <Resource Include="Images\assembly.png" />
     <Resource Include="Images\bends.png" />
     <Resource Include="Images\change.png" />
@@ -124,6 +127,7 @@
     <Resource Include="Images\complect2.png" />
     <Resource Include="Images\convert.png" />
     <Resource Include="Images\del.png" />
+    <Resource Include="Images\delivery.png" />
     <Resource Include="Images\edit.png" />
     <Resource Include="Images\exampe0.png" />
     <Resource Include="Images\exampe1.png" />

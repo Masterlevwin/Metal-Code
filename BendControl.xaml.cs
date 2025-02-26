@@ -6,7 +6,6 @@ using System.Linq;
 using System.Windows;
 using System.Text.RegularExpressions;
 using System.Windows.Media;
-using System.Windows.Input;
 
 namespace Metal_Code
 {

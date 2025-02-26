@@ -220,40 +220,38 @@
                             </Button>
                         </StackPanel>
 
-                        <StackPanel Orientation="Horizontal" Margin="0,75,0,0" MaxHeight="25" VerticalAlignment="Top">
-                            <TextBlock Text="Срок изготовления" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="11,0,0,0"/>
-                            <TextBox ToolTip="Введите срок изготовления" x:Name="DateProduction" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" MaxWidth="50" Margin="10,0,0,0" MinHeight="20"/>
-                            <TextBlock Text="раб/дней" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                            <DatePicker x:Name="datePicker" HorizontalAlignment="Left" VerticalAlignment="Center" FirstDayOfWeek="Monday" SelectedDateChanged="SetDate" ToolTip="Выберите дату изготовления" Margin="10,0,0,0"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,80,0,0" VerticalAlignment="Top" MinHeight="25">
+                            <TextBlock Text="Срок изготовления" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="15,0,0,0" MinWidth="110"/>
+                            <TextBox ToolTip="Введите срок изготовления" x:Name="DateProduction" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" Margin="10,0,0,0" MinHeight="20" MaxWidth="50"/>
+                            <TextBlock Text="раб/дней" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0" MinWidth="55"/>
+                            <TextBlock Text="Экспресс" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="50,0,0,0" MinWidth="75"/>
+                            <CheckBox HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Click="SetExpress" ToolTip="Добавить наценку за срочность" Margin="10,0,0,0" MinWidth="60"/>
+                            <TextBox x:Name="AssemblyRatio" ToolTip="Коэффициент" TextChanged="SetExpress" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MinWidth="40" MinHeight="20" Margin="20,0,0,0"/>
                         </StackPanel>
 
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,105,0,0" MinHeight="25">
+                        <StackPanel Orientation="Horizontal" Margin="0,110,0,0" MinHeight="30" VerticalAlignment="Top">
                             <Button IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать запрос в логистику" HorizontalAlignment="Left" VerticalAlignment="Center" Padding="0" BorderThickness="0" Click="CreateDelivery" Margin="15,0,0,0" MaxWidth="20">
                                 <Image Source="/Images/new.png"/>
                             </Button>
-                            <CheckBox x:Name="DeliveryCheck" Content="Доставка" IsChecked="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="v - отдельной строкой в КП, ■ - включена в цены деталей" HorizontalAlignment="Left" VerticalAlignment="Center" Click="HasDeliveryChanged" IsThreeState="True" Margin="10,0,0,0"/>
-                            <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="DeliveryPrice" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите цену доставки" TextChanged="SetDelivery" Margin="10,0,0,0" Width="50" MinHeight="20"/>
-                            <TextBlock Text="руб"  HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            <CheckBox x:Name="DeliveryCheck" Content="Доставка" IsChecked="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="v - отдельной строкой в КП, ■ - включена в цены деталей" HorizontalAlignment="Left" VerticalAlignment="Center" Click="HasDeliveryChanged" IsThreeState="True" Margin="10,0,0,0" MinWidth="80"/>
+                            <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="DeliveryPrice" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите цену доставки" TextChanged="SetDelivery" Margin="10,0,0,0" Width="50" MinHeight="20" MinWidth="50" MaxWidth="50"/>
+                            <TextBlock Text="руб"  HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0" MinWidth="20"/>
                             <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding DeliveryRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MaxLines="1" ToolTip="Количество доставок" TextChanged="SetDeliveryRatio" Margin="10,0,0,0" MinHeight="20"/>
-                            <TextBlock Text="шт" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0"/>
-                            <TextBlock Text="Коэф" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTip="Наценка - действует только на услуги!" Margin="200,0,0,0"/>
-                        </StackPanel>
-
-                        <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="Adress" HorizontalAlignment="Left" Margin="15,135,0,0" VerticalAlignment="Top" ToolTip="Введите адрес доставки" TextWrapping="Wrap" Width="250" Height="40"/>
-
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="20" Margin="300,135,0,0" HorizontalAlignment="Left">
-                            <TextBlock Text="Конструктор" HorizontalAlignment="Left" VerticalAlignment="Center" TextWrapping="NoWrap"/>
+                            <TextBlock Text="шт" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="20"/>
+                            <TextBlock Text="Конструктор" HorizontalAlignment="Left" VerticalAlignment="Center" TextWrapping="NoWrap" Margin="20,0,0,0" MinWidth="75"/>
                             <CheckBox x:Name="CheckConstruct" Content="{Binding Construct, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="False" Margin="10,0,0,0" MinWidth="60"/>
                             <TextBox x:Name="ConstructRatio" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Коэффициент" TextChanged="UpdateResult" MinHeight="20" MinWidth="40" Margin="20,0,0,0"/>
                         </StackPanel>
 
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="20" Margin="300,160,0,0" HorizontalAlignment="Left">
-                            <TextBlock Text="Экспресс" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                            <CheckBox HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Click="SetExpress" ToolTip="Добавить наценку за срочность" Margin="30,0,0,0" MinWidth="60"/>
-                            <TextBox x:Name="AssemblyRatio" ToolTip="Коэффициент" TextChanged="SetExpress" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MinWidth="40" MinHeight="20" Margin="20,0,0,0"/>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,145,0,0" MinHeight="45">
+                            <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="Adress" ToolTip="Введите адрес доставки" TextWrapping="Wrap" Width="255" Height="45" Margin="15,0,0,0"/>
+                            <TextBox x:Name="Comment" ToolTip="Введите комментарий" TextWrapping="Wrap" Width="255" Height="45" Margin="15,0,0,0"/>
                         </StackPanel>
 
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,185,0,0" MinHeight="25">
+                        <Image Source="/Images/address.png" MaxWidth="20" Margin="260,140,0,0" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+                        <Image Source="/Images/comment2.png" MaxWidth="20" Margin="530,140,0,0" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+
+                        <StackPanel Orientation="Horizontal" MinHeight="25" Margin="0,200,0,0" VerticalAlignment="Top">
                             <Button x:Name="UpdateBtn" BorderThickness="0" Click="UpdateOffersCollection" ToolTip="Обновить" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="15,0,0,0" MaxWidth="20">
                                 <Image Source="/Images/update.png" MaxWidth="20" MaxHeight="20"/>
                             </Button>
