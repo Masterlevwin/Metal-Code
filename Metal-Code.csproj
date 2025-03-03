@@ -27,6 +27,7 @@
     <None Remove="Images\complect2.png" />
     <None Remove="Images\convert.png" />
     <None Remove="Images\del.png" />
+    <None Remove="Images\delete.png" />
     <None Remove="Images\delivery.png" />
     <None Remove="Images\edit.png" />
     <None Remove="Images\exampe0.png" />
@@ -53,6 +54,7 @@
     <None Remove="Images\question.png" />
     <None Remove="Images\report.png" />
     <None Remove="Images\route.png" />
+    <None Remove="Images\ruble.png" />
     <None Remove="Images\save.png" />
     <None Remove="Images\save2.png" />
     <None Remove="Images\save3.png" />
@@ -127,6 +129,7 @@
     <Resource Include="Images\complect2.png" />
     <Resource Include="Images\convert.png" />
     <Resource Include="Images\del.png" />
+    <Resource Include="Images\delete.png" />
     <Resource Include="Images\delivery.png" />
     <Resource Include="Images\edit.png" />
     <Resource Include="Images\exampe0.png" />
@@ -153,6 +156,7 @@
     <Resource Include="Images\question.png" />
     <Resource Include="Images\report.png" />
     <Resource Include="Images\route.png" />
+    <Resource Include="Images\ruble.png" />
     <Resource Include="Images\save.png" />
     <Resource Include="Images\save2.png" />
     <Resource Include="Images\save3.png" />

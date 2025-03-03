@@ -1076,7 +1076,8 @@ namespace Metal_Code
             }
         }
 
-        private void UpdateOffer(object sender, RoutedEventArgs e)          //метод сохранения изменений в расчете
+        private void UpdateOffer(object sender, RoutedEventArgs e) { UpdateOffer(); }
+        private void UpdateOffer()          //метод сохранения изменений в расчете
         {
             //подключаемся к базе данных
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
@@ -1128,7 +1129,7 @@ namespace Metal_Code
                         }
 
                         db.SaveChanges();
-                        StatusBegin("Изменения в базе сохранены");
+                        StatusBegin($"Данные расчета {offer.N} изменены");
 
                         //создаем файлы комплектации и списка задач
                         if (ActiveOffer?.Data == _offer.Data && Parts.Count > 0) CreateComplect(connections[8], _offer);
@@ -1220,6 +1221,70 @@ namespace Metal_Code
             ((DataGridTextColumn)dg.Columns[6]).Binding.StringFormat = "d.MM.y";
             ((DataGridTextColumn)dg.Columns[9]).Binding.StringFormat = "d.MM.y";
             dg.FrozenColumnCount = 2;
+        }
+
+        private void DataGrid_LoadingRow(object sender, DataGridRowEventArgs e)
+        {
+            Button btn = new()
+            {
+                Height = 20,
+                Width = 20,
+                BorderThickness = new Thickness(0),
+            };
+
+            if (e.Row.Item is Offer offer)
+            {
+                if (offer.Order is not null && offer.Order != "")
+                {
+                    btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/delete.png", UriKind.Relative)) };
+                    btn.ToolTip = "Удалить из отчета";
+                    btn.Click += RemoveOfferFromReport;
+                }
+                else
+                {
+                    btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/ruble.png", UriKind.Relative)) };
+                    btn.ToolTip = "Добавить в отчет";
+                    btn.Click += AddOfferToReport;
+                }
+            }
+
+            btn.MouseEnter += (sender, k) => { e.Row.IsSelected = true; };
+            btn.MouseLeave += (sender, k) => { e.Row.IsSelected = false; };
+            e.Row.Header = btn;
+        }
+
+        private void AddOfferToReport(object sender, RoutedEventArgs e)
+        {
+            if (OffersGrid.SelectedItem is Offer offer)
+            {
+                offer.Order = offer.N;
+                UpdateOffer();
+
+                if (sender is Button btn)
+                {
+                    btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/delete.png", UriKind.Relative)) };
+                    btn.ToolTip = "Удалить из отчета";
+                    btn.Click -= AddOfferToReport;
+                    btn.Click += RemoveOfferFromReport;
+                }
+            }
+        }
+
+        private void RemoveOfferFromReport(object sender, RoutedEventArgs e)
+        {
+            if (OffersGrid.SelectedItem is Offer offer)
+            {
+                offer.Order = "";
+                UpdateOffer();
+
+                if (sender is Button btn)
+                {
+                    btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/ruble.png", UriKind.Relative)) };
+                    btn.ToolTip = "Добавить в отчет";
+                    btn.Click -= RemoveOfferFromReport;
+                    btn.Click += AddOfferToReport;
+                }
+            }
         }
         #endregion
 
@@ -2588,9 +2653,9 @@ namespace Metal_Code
         //-КОМПЛЕКТАЦИЯ
         private void CreateComplect(string _path, Offer? offer = null)
         {
-            if (offer != null && (offer.Order is null || offer?.Order?.Length < 4))
+            if (offer != null && (offer.Order is null || offer?.Order?.Length != 4))
             {
-                StatusBegin($"Изменения в базе сохранены. Но файл комплектации не создан, так как номер заказа короче 4-х цифр");
+                StatusBegin($"Данные расчета изменены. Но файл комплектации не создан, так как номер заказа введен некорректно.");
                 return;
             }
 
@@ -3047,32 +3112,36 @@ namespace Metal_Code
 
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
-            using var offerbook = new ExcelPackage(new FileInfo(offer.Act));
-            ExcelWorksheet? registrysheet = offerbook.Workbook.Worksheets.FirstOrDefault(x => x.Name == "Реестр");
-
-            if (registrysheet is not null)
+            try
             {
-                foreach (var cell in registrysheet.Cells)
-                {
-                    if (cell.Value is not null && $"{cell.Value}" == "№ заказа")
-                    {
-                        int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count);
+                using var offerbook = new ExcelPackage(new FileInfo(offer.Act));
+                ExcelWorksheet? registrysheet = offerbook.Workbook.Worksheets.FirstOrDefault(x => x.Name == "Реестр");
 
-                        for (int i = 1; i <= countTypeDetails; i++)
+                if (registrysheet is not null)
+                {
+                    foreach (var cell in registrysheet.Cells)
+                    {
+                        if (cell.Value is not null && $"{cell.Value}" == "№ заказа")
                         {
-                            registrysheet.Cells[cell.Start.Row + i, cell.Start.Column].Value = offer.Order;
+                            int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count);
+
+                            for (int i = 1; i <= countTypeDetails; i++)
+                            {
+                                registrysheet.Cells[cell.Start.Row + i, cell.Start.Column].Value = offer.Order;
+                            }
+                        }
+
+                        if (cell.Value is not null && $"{cell.Value}" == "№ Проекта / Лазера")
+                        {
+                            registrysheet.Cells[cell.Start.Row + 1, cell.Start.Column].Value = offer.Order;
                         }
                     }
-
-                    if (cell.Value is not null && $"{cell.Value}" == "№ Проекта / Лазера")
-                    {
-                        registrysheet.Cells[cell.Start.Row + 1, cell.Start.Column].Value = offer.Order;
-                    }
                 }
-            }
 
-            // ----- сохраняем книгу в файл Excel -----
-            offerbook.SaveAs(offer.Act);      //сохраняем файл .xlsx
+                // ----- сохраняем книгу в файл Excel -----
+                offerbook.SaveAs(offer.Act);      //сохраняем файл .xlsx
+            }
+            catch (Exception ex) { MessageBox.Show($"{ex.Message}\nВозможно файл КП открыт и не удается внести изменения реестра, закройте его и поворите попытку."); }
         }
 
         //-ПАСПОРТ
@@ -4619,5 +4688,6 @@ namespace Metal_Code
         //-------------Экспериметы и тесты-----------------------//
         #region
         #endregion
+
     }
 }
