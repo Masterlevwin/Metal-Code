@@ -3487,7 +3487,7 @@ namespace Metal_Code
                 try
                 {   //получаем список КП за выбранный период, которые выложены в работу, т.е. оплачены и имеют номер заказа
                     DateTime start = ReportCalendar.SelectedDates[0];
-                    DateTime end = ReportCalendar.SelectedDates[^1];
+                    DateTime end = ReportCalendar.SelectedDates[^1].AddDays(1);
 
                     _offers = db.Offers.Where(o => o.ManagerId == man.Id && o.Order != null && o.Order != "" &&
                     o.CreatedDate >= start && o.CreatedDate <= end).ToList();
