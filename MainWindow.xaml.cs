@@ -2737,7 +2737,7 @@ namespace Metal_Code
                                         complectsheet.Cells[temp + 2, 8].Value = cut.PartDetails[i].Metal;                   //материал
 
                                         complectsheet.Cells[temp + 2, 9].Value = cut.PartDetails[i].Destiny;                 //толщина
-                                        if (complectsheet.Cells[temp + 1, 9].Value != null && $"{complectsheet.Cells[temp + 1, 9].Value}" != $"{complectsheet.Cells[temp + 2, 9].Value}")
+                                        if ($"{complectsheet.Cells[temp + 1, 9].Value}" != $"{complectsheet.Cells[temp + 2, 9].Value}" || $"{complectsheet.Cells[temp + 1, 8].Value}" != $"{complectsheet.Cells[temp + 2, 8].Value}")
                                             complectsheet.Cells[temp + 1, 1, temp + 1, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
                                         else complectsheet.Cells[temp + 1, 1, temp + 1, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
 
@@ -2915,82 +2915,6 @@ namespace Metal_Code
                 }
             }
             else workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
-        }
-
-        private string LaunchToWork(Offer offer)
-        {
-            if (!Directory.Exists(connections[8])) return $"Не удалось запустить в производство!\n" +
-                    $"Нет подключения к папке \"В работу\"";
-
-            if (ActiveOffer is null || ActiveOffer.Data != offer.Data) return $"Не удалось запустить в производство!\n" +
-                    $"Расчет {offer.N} не загружен (не является активным).";
-
-            string notify = $"Расчет {offer.N} запущен в производство с номером заказа ";
-
-            string[] dirs = Directory.GetDirectories(connections[8]);   //получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
-            List<int> orders = new();                                   //список номеров заказов
-
-            //получаем все номера заказов в виде чисел
-            foreach (string s in dirs) orders.Add((int)Parser(new DirectoryInfo(s).Name.Remove(4)));
-
-            int nextOrder = orders.Max() + 1;                   //получаем следующий по порядку номер заказа
-            offer.Order = $"{nextOrder}";                       //присваиваем этот номер заказа текущему расчету
-
-            //создаем папку нового заказа
-            string destinationDir = $"{Directory.CreateDirectory(connections[8] + "\\" + $"{nextOrder} {offer.Company}({ShortManager()})")}";
-
-            if (offer.Act is null || !File.Exists(offer.Act)) return $"Создана папка {destinationDir},\n" +
-                    $"но рабочие файлы не добавлены, так как не найден путь к КП.\n" +
-                    $"Пересохраните расчет и повторите попытку запуска в производство.";
-            else
-            {
-                string? sourceDir = Path.GetDirectoryName(Path.GetDirectoryName(offer.Act));
-                if (sourceDir is not null) CopyDirectoryToWork(sourceDir, destinationDir, true);
-            }
-
-            UpdateOffer();                  //сохраняем изменения данных текущего расчета в базе
-
-            return notify + nextOrder;
-        }
-
-        private void LaunchToWork(object sender, RoutedEventArgs e)
-        {
-            if (OffersGrid.SelectedItem is Offer offer) MessageBox.Show(LaunchToWork(offer));
-        }
-
-        private void CopyDirectoryToWork(string sourceDir, string destinationDir, bool recursive)
-        {
-            // Get information about the source directory
-            var dir = new DirectoryInfo(sourceDir);
-
-            // Check if the source directory exists
-            if (!dir.Exists)
-                throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
-
-            // Cache directories before we start copying
-            DirectoryInfo[] dirs = dir.GetDirectories();
-
-            // Create the destination directory
-            Directory.CreateDirectory(destinationDir);
-
-            // Get the files in the source directory and copy to the destination directory
-            foreach (FileInfo file in dir.GetFiles())
-            {
-                if (sourceDir == Path.GetDirectoryName(Path.GetDirectoryName(ActiveOffer?.Act))) continue;
-                string targetFilePath = Path.Combine(destinationDir, file.Name);
-                file.CopyTo(targetFilePath);
-            }
-
-            // If recursive and copying subdirectories, recursively call this method
-            if (recursive)
-            {
-                foreach (DirectoryInfo subDir in dirs)
-                {
-                    if (subDir.Name.ToLower().Contains("кп") || subDir.Name.ToLower().Contains("тз")) continue;
-                    string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
-                    CopyDirectoryToWork(subDir.FullName, newDestinationDir, true);
-                }
-            }
         }
 
         //-ЗАДАЧИ
@@ -4316,6 +4240,81 @@ namespace Metal_Code
             AssemblyWindow.A.CurrentParts.Clear();
             foreach (Part part in Parts) AssemblyWindow.A.CurrentParts.Add(part);
             AssemblyWindow.A.Show();
+        }
+
+        //------------Запуск в производство----------------------//
+        private void LaunchToWork(object sender, RoutedEventArgs e)
+        {
+            if (OffersGrid.SelectedItem is Offer offer) MessageBox.Show(LaunchToWork(offer));
+        }
+        private string LaunchToWork(Offer offer)
+        {
+            if (!Directory.Exists(connections[8])) return $"Не удалось запустить в производство!\n" +
+                    $"Нет подключения к папке \"В работу\"";
+
+            if (ActiveOffer is null || ActiveOffer.Data != offer.Data) return $"Не удалось запустить в производство!\n" +
+                    $"Расчет {offer.N} не загружен (не является активным).";
+
+            string notify = $"Расчет {offer.N} запущен в производство с номером заказа ";
+
+            string[] dirs = Directory.GetDirectories(connections[8]);   //получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
+            List<int> orders = new();                                   //список номеров заказов
+
+            //получаем все номера заказов в виде чисел
+            foreach (string s in dirs) orders.Add((int)Parser(new DirectoryInfo(s).Name.Remove(4)));
+
+            int nextOrder = orders.Max() + 1;                   //получаем следующий по порядку номер заказа
+            offer.Order = $"{nextOrder}";                       //присваиваем этот номер заказа текущему расчету
+
+            //создаем папку нового заказа
+            string destinationDir = $"{Directory.CreateDirectory(connections[8] + "\\" + $"{nextOrder} {offer.Company}({ShortManager()})" + (HasAssembly ? " ЭКСПРЕСС" : ""))}";
+
+            if (offer.Act is null || !File.Exists(offer.Act)) return $"Создана папка {destinationDir},\n" +
+                    $"но рабочие файлы не добавлены, так как не найден путь к КП.\n" +
+                    $"Пересохраните расчет и повторите попытку запуска в производство.";
+            else
+            {
+                string? sourceDir = Path.GetDirectoryName(Path.GetDirectoryName(offer.Act));
+                if (sourceDir is not null) CopyDirectoryToWork(sourceDir, destinationDir, true);
+            }
+
+            UpdateOffer();                  //сохраняем изменения данных текущего расчета в базе
+
+            return notify + nextOrder;
+        }
+        private void CopyDirectoryToWork(string sourceDir, string destinationDir, bool recursive)
+        {
+            // Get information about the source directory
+            var dir = new DirectoryInfo(sourceDir);
+
+            // Check if the source directory exists
+            if (!dir.Exists)
+                throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
+
+            // Cache directories before we start copying
+            DirectoryInfo[] dirs = dir.GetDirectories();
+
+            // Create the destination directory
+            Directory.CreateDirectory(destinationDir);
+
+            // Get the files in the source directory and copy to the destination directory
+            foreach (FileInfo file in dir.GetFiles())
+            {
+                if (sourceDir == Path.GetDirectoryName(Path.GetDirectoryName(ActiveOffer?.Act))) continue;
+                string targetFilePath = Path.Combine(destinationDir, file.Name);
+                file.CopyTo(targetFilePath);
+            }
+
+            // If recursive and copying subdirectories, recursively call this method
+            if (recursive)
+            {
+                foreach (DirectoryInfo subDir in dirs)
+                {
+                    if (subDir.Name.ToLower().Contains("кп") || subDir.Name.ToLower().Contains("тз")) continue;
+                    string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
+                    CopyDirectoryToWork(subDir.FullName, newDestinationDir, true);
+                }
+            }
         }
 
 
