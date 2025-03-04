@@ -49,7 +49,8 @@ namespace Metal_Code
             $"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
             "Data Source=metals.db",
             $"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
-            $"C:\\Users\\Михаил\\Desktop\\Тесты\\Производство",
+            //$"C:\\Users\\Михаил\\Desktop\\Тесты\\Производство",
+            $"Y:\\Производство\\Laser rezka\\В работу",
             $"M:\\Metal-Code",
             $"C:\\ProgramData",
             $"Host=srv-fs-laser;Port=5432;Database=metalcodedb;Username=postgres;Password=lazerpro"
@@ -2916,6 +2917,82 @@ namespace Metal_Code
             else workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
         }
 
+        private string LaunchToWork(Offer offer)
+        {
+            if (!Directory.Exists(connections[8])) return $"Не удалось запустить в производство!\n" +
+                    $"Нет подключения к папке \"В работу\"";
+
+            if (ActiveOffer is null || ActiveOffer.Data != offer.Data) return $"Не удалось запустить в производство!\n" +
+                    $"Расчет {offer.N} не загружен (не является активным).";
+
+            string notify = $"Расчет {offer.N} запущен в производство с номером заказа ";
+
+            string[] dirs = Directory.GetDirectories(connections[8]);   //получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
+            List<int> orders = new();                                   //список номеров заказов
+
+            //получаем все номера заказов в виде чисел
+            foreach (string s in dirs) orders.Add((int)Parser(new DirectoryInfo(s).Name.Remove(4)));
+
+            int nextOrder = orders.Max() + 1;                   //получаем следующий по порядку номер заказа
+            offer.Order = $"{nextOrder}";                       //присваиваем этот номер заказа текущему расчету
+
+            //создаем папку нового заказа
+            string destinationDir = $"{Directory.CreateDirectory(connections[8] + "\\" + $"{nextOrder} {offer.Company}({ShortManager()})")}";
+
+            if (offer.Act is null || !File.Exists(offer.Act)) return $"Создана папка {destinationDir},\n" +
+                    $"но рабочие файлы не добавлены, так как не найден путь к КП.\n" +
+                    $"Пересохраните расчет и повторите попытку запуска в производство.";
+            else
+            {
+                string? sourceDir = Path.GetDirectoryName(Path.GetDirectoryName(offer.Act));
+                if (sourceDir is not null) CopyDirectoryToWork(sourceDir, destinationDir, true);
+            }
+
+            UpdateOffer();                  //сохраняем изменения данных текущего расчета в базе
+
+            return notify + nextOrder;
+        }
+
+        private void LaunchToWork(object sender, RoutedEventArgs e)
+        {
+            if (OffersGrid.SelectedItem is Offer offer) MessageBox.Show(LaunchToWork(offer));
+        }
+
+        private void CopyDirectoryToWork(string sourceDir, string destinationDir, bool recursive)
+        {
+            // Get information about the source directory
+            var dir = new DirectoryInfo(sourceDir);
+
+            // Check if the source directory exists
+            if (!dir.Exists)
+                throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
+
+            // Cache directories before we start copying
+            DirectoryInfo[] dirs = dir.GetDirectories();
+
+            // Create the destination directory
+            Directory.CreateDirectory(destinationDir);
+
+            // Get the files in the source directory and copy to the destination directory
+            foreach (FileInfo file in dir.GetFiles())
+            {
+                if (sourceDir == Path.GetDirectoryName(Path.GetDirectoryName(ActiveOffer?.Act))) continue;
+                string targetFilePath = Path.Combine(destinationDir, file.Name);
+                file.CopyTo(targetFilePath);
+            }
+
+            // If recursive and copying subdirectories, recursively call this method
+            if (recursive)
+            {
+                foreach (DirectoryInfo subDir in dirs)
+                {
+                    if (subDir.Name.ToLower().Contains("кп") || subDir.Name.ToLower().Contains("тз")) continue;
+                    string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
+                    CopyDirectoryToWork(subDir.FullName, newDestinationDir, true);
+                }
+            }
+        }
+
         //-ЗАДАЧИ
         private void CreateRegistry(string _path, string _order)
         {
@@ -4461,6 +4538,39 @@ namespace Metal_Code
             bitmapEncoder.Frames.Add(BitmapFrame.Create(renderTarget));
             using var stm = File.Create(fileName);
             bitmapEncoder.Save(stm);
+        }
+
+        static void CopyDirectory(string sourceDir, string destinationDir, bool recursive)
+        {
+            // Get information about the source directory
+            var dir = new DirectoryInfo(sourceDir);
+
+            // Check if the source directory exists
+            if (!dir.Exists)
+                throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
+
+            // Cache directories before we start copying
+            DirectoryInfo[] dirs = dir.GetDirectories();
+
+            // Create the destination directory
+            Directory.CreateDirectory(destinationDir);
+
+            // Get the files in the source directory and copy to the destination directory
+            foreach (FileInfo file in dir.GetFiles())
+            {
+                string targetFilePath = Path.Combine(destinationDir, file.Name);
+                file.CopyTo(targetFilePath);
+            }
+
+            // If recursive and copying subdirectories, recursively call this method
+            if (recursive)
+            {
+                foreach (DirectoryInfo subDir in dirs)
+                {
+                    string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
+                    CopyDirectory(subDir.FullName, newDestinationDir, true);
+                }
+            }
         }
         #endregion
 
