@@ -31,6 +31,11 @@ namespace Metal_Code
         {
             MainWindow.M.AddDetail();
         }
+
+        private void AddTypeDetail(object sender, RoutedEventArgs e)
+        {
+            AddTypeDetail();
+        }
         public void AddTypeDetail()
         {
             TypeDetailControl type = new(this);
@@ -38,8 +43,8 @@ namespace Metal_Code
             TypeDetailControls.Add(type);
             type.Priced += MassCalculate;       // подписка на изменение типовой детали для расчета общей массы детали
             
-            BilletsStack.Children.Add(type);
-            
+            BilletsStack.Children.Insert(BilletsStack.Children.Count - 1, type);
+
             type.AddWork();   // при добавлении дропа типовой детали добавляем дроп работ
         }
 

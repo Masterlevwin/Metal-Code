@@ -121,10 +121,17 @@
                 <ColumnDefinition MaxWidth="600"/>
             </Grid.ColumnDefinitions>
 
-            <Button Click="AddDetail" ToolTip="Добавить новую деталь" Margin="35,60,0,0" BorderThickness="0" VerticalAlignment="Top" HorizontalAlignment="Left" MaxWidth="20">
+            <Button Click="AddDetail" ToolTip="Добавить новую деталь" Margin="35,40,0,0" BorderThickness="0" VerticalAlignment="Top" HorizontalAlignment="Left" MaxWidth="20" Visibility="Hidden">
                 <Image Source="Images/plus.png"/>
             </Button>
-            <TextBox x:Name="ProductName" Text="Изделие" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="200" HorizontalContentAlignment="Center" MaxLines="1" MinHeight="20" Margin="65,60,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" HorizontalAlignment="Left" FontSize="14" AllowDrop="False" />
+
+            <TextBox x:Name="ProductName" Text="Изделие" ToolTip="Введите наименование изделия" VerticalAlignment="Top" MinWidth="200" HorizontalContentAlignment="Center" MaxLines="1" MinHeight="20" Margin="65,40,0,0" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" HorizontalAlignment="Left" FontSize="14" AllowDrop="False"/>
+            <Button Click="AddDetail" Margin="100,65,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                <StackPanel Orientation="Horizontal" MaxHeight="14" Margin="2">
+                    <Image Source="Images/plus.png"/>
+                    <TextBlock Text="Добавить деталь" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                </StackPanel>
+            </Button>
 
             <StackPanel Orientation="Horizontal" MinHeight="22" VerticalAlignment="Top" Margin="0,38,0,0">
                 <Button ToolTip="Создать новый расчет (Ctrl+Q)" Command="{Binding NewProjectCommand}" Padding="0" BorderThickness="0" Margin="360,0,0,0" MaxWidth="22">

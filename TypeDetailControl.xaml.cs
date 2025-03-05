@@ -203,7 +203,7 @@ namespace Metal_Code
             WorkControl work = new(this);
 
             WorkControls.Add(work);
-            WorksStack.Children.Add(work);
+            WorksStack.Children.Insert(WorksStack.Children.Count - 1, work);
         }
 
         private void Remove(object sender, RoutedEventArgs e)
@@ -257,7 +257,7 @@ namespace Metal_Code
         public void SetComment(string? _comment)
         {
             Comment = _comment;
-            if (Comment != null && Comment != "" && ExpanderComment.IsExpanded == false) ExpanderComment.IsExpanded = true;
+            if (Comment != null && Comment != "" && CommentExpander.IsExpanded == false) CommentExpander.IsExpanded = true;
         }
 
 
@@ -566,6 +566,11 @@ namespace Metal_Code
                     _ => $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(metal.MassPrice * 1.15f)} руб)"
                 };
             }
+        }
+
+        private void AddWork(object sender, RoutedEventArgs e)
+        {
+            AddWork();
         }
     }
 }

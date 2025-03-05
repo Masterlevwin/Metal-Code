@@ -28,8 +28,12 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <StackPanel Orientation="Horizontal" MaxHeight="20" VerticalAlignment="Top">
-                <Button Click="AddTypeDetail" ToolTip="Добавить заготовку" Margin="30,0,0,0" MaxWidth="14" MaxHeight="14">
+            <Expander x:Name="CommentExpander" Margin="0,5,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                <TextBox Text="{Binding Comment}" TextChanged="SetComment" HorizontalAlignment="Left" TextWrapping="Wrap" MinWidth="200" MaxWidth="200" MinHeight="20" MaxHeight="30"/>
+            </Expander>
+
+            <StackPanel Orientation="Horizontal" MaxHeight="25" VerticalAlignment="Top">
+                <Button Click="AddTypeDetail" ToolTip="Добавить заготовку" Margin="20,0,0,0" MaxWidth="14" MaxHeight="14" Visibility="Hidden">
                     <Image Source="Images/plus.png"/>
                 </Button>
                 <ComboBox x:Name="TypeDetailDrop" DisplayMemberPath="Name" SelectedIndex="0" ToolTip="Выберите заготовку" SelectionChanged="CreateSort" MinWidth="120" MaxWidth="120" Margin="6,0,0,0"/>
@@ -45,11 +49,14 @@
                 <TextBox x:Name="ResultText" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" Text="{Binding Result, Converter={StaticResource CostConverter}}" BorderThickness="0" MouseDoubleClick="ResultTextEnabled" IsReadOnly="True" MaxWidth="65" MinWidth="65" ToolTipOpening="SetToolTipForResult" ToolTip="Стоимость материала, руб" Margin="5,0,0,0" VerticalContentAlignment="Center" LostFocus="SetExtraResult"/>
             </StackPanel>
 
-            <Expander x:Name="ExpanderComment" ToolTip="Добавить комментарий" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="5,0,0,0">
-                <TextBox Text="{Binding Comment, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" TextChanged="SetComment" TextWrapping="Wrap" Width="200"/>
-            </Expander>
-
-            <StackPanel x:Name="WorksStack" Grid.Column="1"/>
+            <StackPanel x:Name="WorksStack" Grid.Column="1">
+                <Button Click="AddWork" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="23,0,0,0">
+                    <StackPanel Orientation="Horizontal" MaxHeight="12" Margin="2">
+                        <Image Source="Images/plus.png"/>
+                        <TextBlock Text="Добавить работу" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
 
             <Button Content="Х" Grid.Column="2" MinWidth="20" MinHeight="20" FontWeight="Bold" Padding="0" MaxWidth="20" MaxHeight="20" FontSize="16" BorderThickness="0" Click="Remove" ToolTip="Удалить заготовку" HorizontalAlignment="Left" VerticalAlignment="Top" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" Margin="5,0,0,0"/>
 

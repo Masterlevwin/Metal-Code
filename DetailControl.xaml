@@ -23,8 +23,7 @@
                 <Button x:Name="Counter" Margin="5,0,0,0" MinWidth="20"/>
                 <TextBox ToolTip="Введите наименование детали" Text="{Binding Title}" TextChanged="SetName" x:Name="DetailName" MinWidth="130" MaxWidth="130" MaxLines="1" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                 <TextBox ToolTip="Введите количество деталей" Text="{Binding Count}" TextChanged="SetCount" x:Name="Count" MaxWidth="35" MinWidth="35" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="10,0,0,0"/>
-                <Button Content="Х" FontWeight="Bold" FontSize="16" BorderThickness="0" Click="Remove" ToolTip="Удалить деталь" Padding="0" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" Margin="10,0,0,0" MinWidth="20"/>
-                <TextBlock Text="A" MinWidth="20" Margin="45,0,0,0" VerticalAlignment="Bottom"/>
+                <TextBlock Text="A" MinWidth="20" Margin="65,0,0,0" VerticalAlignment="Bottom"/>
                 <TextBlock Text="B" MinWidth="20" Margin="20,0,0,0" VerticalAlignment="Bottom"/>
                 <TextBlock Text="S" MinWidth="20" Margin="20,0,0,0" VerticalAlignment="Bottom" />
                 <TextBlock Text="L" MinWidth="20" Margin="20,0,0,0" VerticalAlignment="Bottom" />
@@ -34,10 +33,24 @@
                 <CheckBox ToolTip="Добавить к расчету стоимость материала ВСЕХ заготовок" Click="SetAllMetal" VerticalAlignment="Bottom" IsChecked="True" Margin="5,0,0,0"/>
                 <TextBlock Text="Работа" VerticalAlignment="Bottom" Margin="125,0,0,0"/>
                 <TextBlock Text="Коэф" ToolTip="Наценка или скидка на работы" VerticalAlignment="Bottom" Margin="210,0,0,0"/>
+                <Button Click="Remove" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="30,5,0,0" MouseEnter="EnterBorder" MouseLeave="LeaveBorder">
+                    <StackPanel Orientation="Horizontal" MaxHeight="12" Margin="2">
+                        <TextBlock Text="Х" FontSize="16" FontWeight="Bold" Padding="0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Удалить деталь" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </Button>
+
             </StackPanel>
-            
-            <StackPanel x:Name="BilletsStack" Grid.Row="1"/>
-            
+
+            <StackPanel x:Name="BilletsStack" Grid.Row="1">
+                <Button Click="AddTypeDetail" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="50,5,0,0">
+                    <StackPanel Orientation="Horizontal" MaxHeight="12" Margin="2">
+                        <Image Source="Images/plus.png"/>
+                        <TextBlock Text="Добавить заготовку" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+
         </Grid>
     </GroupBox>
 </UserControl>
