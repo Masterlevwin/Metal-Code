@@ -33,10 +33,10 @@
                 <CheckBox ToolTip="Добавить к расчету стоимость материала ВСЕХ заготовок" Click="SetAllMetal" VerticalAlignment="Bottom" IsChecked="True" Margin="5,0,0,0"/>
                 <TextBlock Text="Работа" VerticalAlignment="Bottom" Margin="125,0,0,0"/>
                 <TextBlock Text="Коэф" ToolTip="Наценка или скидка на работы" VerticalAlignment="Bottom" Margin="210,0,0,0"/>
-                <Button Click="Remove" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="30,5,0,0" MouseEnter="EnterBorder" MouseLeave="LeaveBorder">
+                <Button Click="Remove" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="60,5,0,0" MouseEnter="EnterBorder" MouseLeave="LeaveBorder">
                     <StackPanel Orientation="Horizontal" MaxHeight="12" Margin="2">
                         <TextBlock Text="Х" FontSize="16" FontWeight="Bold" Padding="0" VerticalAlignment="Center"/>
-                        <TextBlock Text="Удалить деталь" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                        <TextBlock Text="Удалить" VerticalAlignment="Center" Margin="5,0,0,0"/>
                     </StackPanel>
                 </Button>
 

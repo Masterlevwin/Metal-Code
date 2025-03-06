@@ -4255,6 +4255,9 @@ namespace Metal_Code
             if (ActiveOffer is null || ActiveOffer.Data != offer.Data) return $"Не удалось запустить в производство!\n" +
                     $"Расчет {offer.N} не загружен (не является активным).";
 
+            if (offer.Act is null || !File.Exists(offer.Act)) return $"Не удалось запустить в производство!\n" +
+                    $"Не найден путь к КП. Пересохраните расчет и повторите попытку.";
+
             string notify = $"Расчет {offer.N} запущен в производство с номером заказа ";
 
             string[] dirs = Directory.GetDirectories(connections[8]);   //получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
@@ -4269,13 +4272,28 @@ namespace Metal_Code
             //создаем папку нового заказа
             string destinationDir = $"{Directory.CreateDirectory(connections[8] + "\\" + $"{nextOrder} {offer.Company}({ShortManager()})" + (HasAssembly ? " ЭКСПРЕСС" : ""))}";
 
-            if (offer.Act is null || !File.Exists(offer.Act)) return $"Создана папка {destinationDir},\n" +
-                    $"но рабочие файлы не добавлены, так как не найден путь к КП.\n" +
-                    $"Пересохраните расчет и повторите попытку запуска в производство.";
-            else
+            //получаем путь к сохраненному расчету на диске (КП)
+            string? sourceDir = Path.GetDirectoryName(Path.GetDirectoryName(offer.Act));
+            if (sourceDir is not null)
             {
-                string? sourceDir = Path.GetDirectoryName(Path.GetDirectoryName(offer.Act));
-                if (sourceDir is not null) CopyDirectoryToWork(sourceDir, destinationDir, true);
+                //копируем папки с рабочими файлами в папку созданного заказа
+                CopyDirectoryToWork(sourceDir, destinationDir, true);
+
+                //ищем счет в корневой папке расчета
+                DirectoryInfo dir = new(sourceDir);
+
+                if (dir.GetFiles().Length == 0) offer.Invoice = "нал";
+                else
+                {
+                    foreach (FileInfo file in dir.GetFiles())
+                    {
+                        if (file.Name.ToLower().Contains("счет") && file.Name.Contains('№'))
+                        {
+                            offer.Invoice = file.Name.Substring(file.Name.IndexOf('№'), 6);
+                            break;
+                        }
+                    }
+                }
             }
 
             UpdateOffer();                  //сохраняем изменения данных текущего расчета в базе
