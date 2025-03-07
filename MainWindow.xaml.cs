@@ -3192,7 +3192,7 @@ namespace Metal_Code
                 complectsheet.Cells[Parts.Count + 7, 3].Value = "Детали соответствуют конструкторской документации Заказчика";
                 complectsheet.Cells[Parts.Count + 9, 3].Value = "Начальник производства";
                 complectsheet.Cells[Parts.Count + 9, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
-                complectsheet.Cells[Parts.Count + 9, 6].Value = "Серебряков В.";
+                complectsheet.Cells[Parts.Count + 9, 6].Value = "Березкин П.";
                 complectsheet.Cells[Parts.Count + 9, 4, Parts.Count + 9, 5].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
 
                 //добавляем подпись и печать
@@ -4245,7 +4245,26 @@ namespace Metal_Code
         //------------Запуск в производство----------------------//
         private void LaunchToWork(object sender, RoutedEventArgs e)
         {
-            if (OffersGrid.SelectedItem is Offer offer) MessageBox.Show(LaunchToWork(offer));
+            if (OffersGrid.SelectedItem is Offer offer && offer.Act is not null)
+            {
+                string? dirOffers = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(offer.Act)));
+
+                if (dirOffers is not null)
+                {
+                    DirectoryInfo dir = new(dirOffers);
+
+                    foreach (var name in dir.GetDirectories())
+                    {
+                        if (offer.Act.Contains(name.Name.Remove(5)))
+                        {
+                            offer.Act = name.FullName;
+                            break;
+                        }
+                    }
+
+                    MessageBox.Show(LaunchToWork(offer));
+                }
+            }
         }
         private string LaunchToWork(Offer offer)
         {
@@ -4297,6 +4316,8 @@ namespace Metal_Code
             }
 
             UpdateOffer();                  //сохраняем изменения данных текущего расчета в базе
+
+            Process.Start("explorer.exe", destinationDir);
 
             return notify + nextOrder;
         }

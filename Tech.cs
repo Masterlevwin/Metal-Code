@@ -53,22 +53,25 @@ namespace Metal_Code
                         $"n{(int)MainWindow.Parser($"{table.Rows[i].ItemArray[5]}") * countAssembly}",  //количество
                         $"{table.Rows[i].ItemArray[6]}");       //маршрут
 
-                    if (techItem.Material.Contains("al") || techItem.Material.Contains("амг2"))
+                    if (techItem.Material.ToLower().Contains("al") || techItem.Material.ToLower().Contains("амг2"))
                     {
                         techItem.Material = "";
                         techItem.Destiny = $"al{table.Rows[i].ItemArray[4]}";
                     }
-                    else if (techItem.Material.Contains("амг") || techItem.Material.Contains("д16")) techItem.Destiny = $"al{table.Rows[i].ItemArray[4]}";
-                    else if (techItem.Material.Contains("br"))
+                    else if (techItem.Material.ToLower().Contains("амг") || techItem.Material.ToLower().Contains("д16")) techItem.Destiny = $"al{table.Rows[i].ItemArray[4]}";
+                    else if (techItem.Material.ToLower().Contains("br"))
                     {
                         techItem.Material = "";
                         techItem.Destiny = $"br{table.Rows[i].ItemArray[4]}";
                     }
-                    else if (techItem.Material.Contains("cu"))
+                    else if (techItem.Material.ToLower().Contains("cu"))
                     {
                         techItem.Material = "";
                         techItem.Destiny = $"cu{table.Rows[i].ItemArray[4]}";
                     }
+
+                    if (techItem.Destiny.ToLower().Contains('x') || techItem.Destiny.ToLower().Contains('х'))
+                        techItem.Destiny = techItem.Destiny.TrimStart('s');
 
                     TechItems.Add(techItem);
                 }
@@ -87,43 +90,43 @@ namespace Metal_Code
                 foreach (var work in works)
                     if (work.Key != "")
                     {
-                        if (work.Key.Contains("гиб"))
+                        if (work.Key.ToLower().Contains("гиб"))
                         {
                             DirectoryInfo dirBend = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Гибка");
                             SortExtension(dirBend, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                         
-                        if (work.Key.Contains("вальц"))
+                        if (work.Key.ToLower().Contains("вальц"))
                         {
                             DirectoryInfo dirRoll = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Вальцовка");
                             SortExtension(dirRoll, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                         
-                        if (work.Key.Contains("рез"))
+                        if (work.Key.ToLower().Contains("рез"))
                         {
                             DirectoryInfo dirThread = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Резьба");
                             SortExtension(dirThread, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                         
-                        if (work.Key.Contains("зен"))
+                        if (work.Key.ToLower().Contains("зен"))
                         {
                             DirectoryInfo dirCountersink = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Зенковка");
                             SortExtension(dirCountersink, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                         
-                        if (work.Key.Contains("свер"))
+                        if (work.Key.ToLower().Contains("свер"))
                         {
                             DirectoryInfo dirDrilling = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Сверловка");
                             SortExtension(dirDrilling, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                         
-                        if (work.Key.Contains("свар"))
+                        if (work.Key.ToLower().Contains("свар"))
                         {
                             DirectoryInfo dirWeld = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Сварка");
                             SortExtension(dirWeld, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                         
-                        if (work.Key.Contains("окр"))
+                        if (work.Key.ToLower().Contains("окр"))
                         {
                             DirectoryInfo dirPaint = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Окраска");
                             SortExtension(dirPaint, dirMaterials, "pdf", work.Select(t => t).ToList());

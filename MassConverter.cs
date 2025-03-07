@@ -9,7 +9,7 @@ namespace Metal_Code
         public object Convert(object value, Type targetType, object parameter,
             System.Globalization.CultureInfo culture)
         {
-            if ((float)value >= 1000) return ((float)Math.Ceiling((float)value / 1000)).ToString(culture) + " т";
+            if ((float)value >= 1000) return ((float)Math.Round((float)value / 1000, 2)).ToString(culture) + " т";
             return ((float)value).ToString(culture) + " кг";
         }
 

@@ -214,9 +214,9 @@
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Margin="0,50,0,0" MaxHeight="20" VerticalAlignment="Top">
-                            <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет от ООО" HorizontalAlignment="Left" VerticalAlignment="Center" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;" Margin="10,0,0,0"/>
-                            <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет от ИП или ПК" HorizontalAlignment="Left" VerticalAlignment="Center" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;" Margin="10,0,0,0"/>
-                            <Button ToolTip="Добавить заказчика" Click="AddCustomer" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="0" Margin="175,0,0,0">
+                            <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет с НДС" HorizontalAlignment="Left" VerticalAlignment="Center" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;" Margin="10,0,0,0"/>
+                            <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет без НДС" HorizontalAlignment="Left" VerticalAlignment="Center" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;" Margin="10,0,0,0"/>
+                            <Button ToolTip="Добавить заказчика" Click="AddCustomer" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="0" Margin="220,0,0,0">
                                 <Image Source="/Images/add.png"/>
                             </Button>
                             <Button ToolTip="Изменить данные заказчика" Click="EditCustomer" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="0" Margin="20,0,0,0">
