@@ -97,7 +97,15 @@ namespace Metal_Code
 
             if (owner is not WorkControl work || work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
-            if (metal.Name == "ст3" || metal.Name == "хк" || metal.Name == "09г2с") work.SetResult(Mass * 110, false);
+            if (metal.Name == "ст3" || metal.Name == "хк" || metal.Name == "09г2с")
+                work.SetResult(Mass * (work.type.S switch
+                {
+                    <= 3 => 150,
+                    <= 5 => 140,
+                    <= 8 => 125,
+                    _ => 110
+                }),
+                false);
             else MainWindow.M.StatusBegin($"Детали из {metal.Name} на оцинковку не отправляем!");
         }
 
@@ -117,8 +125,15 @@ namespace Metal_Code
                         p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{7}" };
                         if (p.Part.Description != null && !p.Part.Description.Contains(" + Ц ")) p.Part.Description += " + Ц ";
 
-                        p.Part.Price += p.Part.Mass * 110;
-                        p.Part.PropsDict[64] = new() { $"{p.Part.Mass * 110}" };
+                        float price = p.work.type.S switch
+                        {
+                            <= 3 => 150,
+                            <= 5 => 140,
+                            <= 8 => 125,
+                            _ => 110
+                        };
+                        p.Part.Price += p.Part.Mass * price;
+                        p.Part.PropsDict[64] = new() { $"{p.Part.Mass * price}" };
                     }
                 }
             }

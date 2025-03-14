@@ -2367,7 +2367,7 @@ namespace Metal_Code
                             statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + beginBitrix, 11].Value = description;  //"Лазерные работы"
 
                             //"Лазер (время работ)"                                 //"Время лазерных работ"
-                            statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.012f) / w.Ratio;
+                            statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
 
                             if (w.Ratio != 1) _lkk += w.Ratio;
                             if (w.TechRatio > 1) _lpk += w.TechRatio;
@@ -2895,7 +2895,7 @@ namespace Metal_Code
             //сохраняем книгу в файл Excel
             if (offer is not null && offer.Order is not null && Directory.Exists(_path))    //если в параметре передан расчет, подразумевается, что заказ создан
             {                                                                               //и файл комплектации нужно сохранить в папке заказа
-                UpdateOffer(offer);                                 //добавляем номер заказа в ячейки реестров
+                //UpdateOffer(offer);                                 //добавляем номер заказа в ячейки реестров
                 string[] dirs = Directory.GetDirectories(_path);    //получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
                 foreach (string s in dirs)
                 {
@@ -2905,7 +2905,7 @@ namespace Metal_Code
                         if (files.Length > 0)
                         {
                             workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {CustomerDrop.Text} - комплектация.xlsx");
-                            CreateRegistry(files[0], offer.Order);
+                            //CreateRegistry(files[0], offer.Order);
 
                             StatusBegin($"Изменения в базе сохранены. Кроме того созданы файлы комплектации и списка задач в папке {Path.GetDirectoryName(files[0])}");
                             break;
@@ -4245,26 +4245,7 @@ namespace Metal_Code
         //------------Запуск в производство----------------------//
         private void LaunchToWork(object sender, RoutedEventArgs e)
         {
-            if (OffersGrid.SelectedItem is Offer offer && offer.Act is not null)
-            {
-                string? dirOffers = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(offer.Act)));
-
-                if (dirOffers is not null)
-                {
-                    DirectoryInfo dir = new(dirOffers);
-
-                    foreach (var name in dir.GetDirectories())
-                    {
-                        if (offer.Act.Contains(name.Name.Remove(5)))
-                        {
-                            offer.Act = name.FullName;
-                            break;
-                        }
-                    }
-
-                    MessageBox.Show(LaunchToWork(offer));
-                }
-            }
+            if (OffersGrid.SelectedItem is Offer offer) MessageBox.Show(LaunchToWork(offer));
         }
         private string LaunchToWork(Offer offer)
         {
@@ -4274,7 +4255,30 @@ namespace Metal_Code
             if (ActiveOffer is null || ActiveOffer.Data != offer.Data) return $"Не удалось запустить в производство!\n" +
                     $"Расчет {offer.N} не загружен (не является активным).";
 
-            if (offer.Act is null || !File.Exists(offer.Act)) return $"Не удалось запустить в производство!\n" +
+            string? sourceDir = null;       //путь к сохраненному расчету на диске (КП)
+
+            //проверяем путь к КП, и пытаемся обновить его по номеру расчета, если пути нет
+            if (File.Exists(offer.Act)) sourceDir = Path.GetDirectoryName(Path.GetDirectoryName(offer.Act));
+            else if (offer.Act is not null && !File.Exists(offer.Act))
+            {
+                string? dirOffers = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(offer.Act)));
+
+                if (dirOffers is not null)
+                {
+                    DirectoryInfo dir = new(dirOffers);
+
+                    foreach (DirectoryInfo name in dir.GetDirectories())
+                    {
+                        if (offer.Act.Contains(name.Name.Remove(5)))
+                        {
+                            sourceDir = name.FullName;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if (sourceDir is null || sourceDir == "") return $"Не удалось запустить в производство!\n" +
                     $"Не найден путь к КП. Пересохраните расчет и повторите попытку.";
 
             string notify = $"Расчет {offer.N} запущен в производство с номером заказа ";
@@ -4291,12 +4295,10 @@ namespace Metal_Code
             //создаем папку нового заказа
             string destinationDir = $"{Directory.CreateDirectory(connections[8] + "\\" + $"{nextOrder} {offer.Company}({ShortManager()})" + (HasAssembly ? " ЭКСПРЕСС" : ""))}";
 
-            //получаем путь к сохраненному расчету на диске (КП)
-            string? sourceDir = Path.GetDirectoryName(Path.GetDirectoryName(offer.Act));
-            if (sourceDir is not null)
+            if (sourceDir is not null && sourceDir != "")
             {
                 //копируем папки с рабочими файлами в папку созданного заказа
-                CopyDirectoryToWork(sourceDir, destinationDir, true);
+                CopyDirectoryToWork(sourceDir, destinationDir, true, sourceDir);
 
                 //ищем счет в корневой папке расчета
                 DirectoryInfo dir = new(sourceDir);
@@ -4321,7 +4323,7 @@ namespace Metal_Code
 
             return notify + nextOrder;
         }
-        private void CopyDirectoryToWork(string sourceDir, string destinationDir, bool recursive)
+        private void CopyDirectoryToWork(string sourceDir, string destinationDir, bool recursive, string mainDir)
         {
             // Get information about the source directory
             var dir = new DirectoryInfo(sourceDir);
@@ -4339,7 +4341,7 @@ namespace Metal_Code
             // Get the files in the source directory and copy to the destination directory
             foreach (FileInfo file in dir.GetFiles())
             {
-                if (sourceDir == Path.GetDirectoryName(Path.GetDirectoryName(ActiveOffer?.Act))) continue;
+                if (sourceDir == mainDir) continue;
                 string targetFilePath = Path.Combine(destinationDir, file.Name);
                 file.CopyTo(targetFilePath);
             }
@@ -4351,7 +4353,7 @@ namespace Metal_Code
                 {
                     if (subDir.Name.ToLower().Contains("кп") || subDir.Name.ToLower().Contains("тз")) continue;
                     string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
-                    CopyDirectoryToWork(subDir.FullName, newDestinationDir, true);
+                    CopyDirectoryToWork(subDir.FullName, newDestinationDir, true, mainDir);
                 }
             }
         }
