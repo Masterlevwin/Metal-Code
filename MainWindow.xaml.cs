@@ -442,11 +442,11 @@ namespace Metal_Code
             Offers = db.Offers.Local.ToObservableCollection();
 
             if (Managers.Count == 0) ShowWindow(new RegistrationWindow());  //если пользователей в базе нет, запускаем процесс регистрации
-            else if (!CheckMachine())                                       //проверяем защитный файл
-            {
-                MessageBox.Show($"Данная копия программы защищена. Ее невозможно запустить на этом компьютере!");
-                Environment.Exit(0);
-            }
+            //else if (!CheckMachine())                                       //проверяем защитный файл
+            //{
+            //    MessageBox.Show($"Данная копия программы защищена. Ее невозможно запустить на этом компьютере!");
+            //    Environment.Exit(0);
+            //}
             else if (!CheckMachineName()) ShowWindow(new LoginWindow());    //проверяем пользователя
             else NewProject();                                              //если все проверки пройдены, создаем новый проект
         }
@@ -2397,8 +2397,8 @@ namespace Metal_Code
                         else if (w.workType is BendControl)
                         {
                             statsheet.Cells[i + temp, 6].Value = "гибка";
-                            statsheet.Cells[i + temp, 13].Value = Math.Ceiling(w.Result * 0.018f) / w.Ratio;        //"Гибка (время работ)"
-                            statsheet.Cells[i + beginBitrix, 13].Value = Math.Ceiling(w.Result * 0.018f) / w.Ratio; //"Гибочные работы"
+                            //"Гибка (время работ)"                                 //"Гибочные работы"
+                            statsheet.Cells[i + temp, 13].Value = statsheet.Cells[i + beginBitrix, 13].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
 
                             if (w.Ratio != 1) _bkk += w.Ratio;
                             if (w.TechRatio > 1) _bpk += w.TechRatio;
@@ -4292,8 +4292,23 @@ namespace Metal_Code
             int nextOrder = orders.Max() + 1;                   //получаем следующий по порядку номер заказа
             offer.Order = $"{nextOrder}";                       //присваиваем этот номер заказа текущему расчету
 
+            //проверяем наличие трубореза среди работ
+            bool hasPipe = false;
+
+            foreach (DetailControl det in DetailControls)
+                foreach (TypeDetailControl type in det.TypeDetailControls)
+                    foreach (WorkControl work in type.WorkControls)
+                        if (work.workType is PipeControl)
+                        {
+                            hasPipe = true;
+                            break;
+                        }
+
             //создаем папку нового заказа
-            string destinationDir = $"{Directory.CreateDirectory(connections[8] + "\\" + $"{nextOrder} {offer.Company}({ShortManager()})" + (HasAssembly ? " ЭКСПРЕСС" : ""))}";
+            string destinationDir = $"{Directory.CreateDirectory(connections[8] + "\\"
+                + (hasPipe ? "(ТР) " : "")
+                + $"{nextOrder} {offer.Company}({ShortManager()})"
+                + (HasAssembly ? " ЭКСПРЕСС" : ""))}";
 
             if (sourceDir is not null && sourceDir != "")
             {

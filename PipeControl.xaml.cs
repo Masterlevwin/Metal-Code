@@ -673,7 +673,7 @@ namespace Metal_Code
                 if (matches.Count > 0)
                 {
                     //профильная труба
-                    if (_tube.Contains("Rect tube"))
+                    if (_tube.Contains("Rect tube") || _tube.Contains("Free Form"))
                     {
                         work.type.A = MainWindow.Parser(matches[0].Value);
                         work.type.B = MainWindow.Parser(matches[1].Value);
@@ -754,27 +754,8 @@ namespace Metal_Code
                             }
                         Tube = TubeType.channel;
                     }
-                    //уголок равнополочный
+                    //уголки 
                     else if (_tube.Contains("L tube"))
-                    {
-                        foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Уголок равнополочный")
-                            {
-                                work.type.TypeDetailDrop.SelectedItem = t;
-
-                                string _match = $"{MainWindow.Parser(matches[0].Value)}".Replace(',', '.');
-
-                                foreach (string s in work.type.SortDrop.Items)
-                                    if (s == _match)
-                                    {
-                                        work.type.SortDrop.SelectedItem = s;
-                                        break;
-                                    }
-                                break;
-                            }
-                        Tube = TubeType.corner;
-                    }
-                    //уголки (свободная форма)
-                    else if (_tube.Contains("Free Form"))
                     {
                         if (matches.Count > 1 && $"{MainWindow.Parser(matches[0].Value)}".Replace(',', '.') == $"{MainWindow.Parser(matches[1].Value)}".Replace(',', '.'))
                         {
@@ -796,6 +777,7 @@ namespace Metal_Code
                             Tube = TubeType.corner;
                         }
                         else if (matches.Count > 1)
+                        {
                             foreach (TypeDetail t in MainWindow.M.TypeDetails)
                                 if (t.Name == "Уголок неравнополочный")
                                 {
@@ -811,7 +793,8 @@ namespace Metal_Code
                                         }
                                     break;
                                 }
-                        Tube = TubeType.freeform;
+                            Tube = TubeType.freeform;
+                        }
                     }
                     //двутавр парал
                     else if (_tube.Contains("H-beam"))
