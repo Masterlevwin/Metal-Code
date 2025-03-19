@@ -94,6 +94,12 @@ namespace Metal_Code
         {
             if (type.WorkControls.Count == 1) return;
 
+            if (workType != null) RemoveControls(workType);
+            Remove();
+        }
+
+        public void RemoveControls(UserControl workType)
+        {
             if (workType != null && workType is IPriceChanged _work && _work.Parts != null && _work.Parts.Count > 0)
             {
                 MessageBoxResult response = MessageBox.Show(
@@ -121,7 +127,6 @@ namespace Metal_Code
                             p.RemoveControl(item);
                 }
             }
-            Remove();
         }
 
         public void Remove()

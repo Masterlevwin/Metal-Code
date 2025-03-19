@@ -17,7 +17,8 @@ namespace Metal_Code
         {
             InitializeComponent();
             owner = _owner;
-            partsList.ItemsSource = Parts = _parts.OrderBy(p => p.Part.Title).ToList();
+            Parts = _parts.OrderBy(p => p.Part.Title).ToList();
+            partsList.ItemsSource = Parts;
 
             BendControl Bend = new(owner);
             // формирование списка длин стороны гиба

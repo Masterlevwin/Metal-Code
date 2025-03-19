@@ -180,6 +180,57 @@ namespace Metal_Code
             AssemblyWindow.A.CurrentParts.Add(Part);
             AssemblyWindow.A.Show();
         }
+
+        private void RemovePart(object sender, RoutedEventArgs e)
+        {
+            if (owner is ICut cut && cut.PartsControl is not null && cut.PartsControl.Parts.Contains(this))
+            {
+                if (cut.PartsControl.Parts.Count == 1)
+                {
+                    MessageBox.Show("Нельзя удалить единственную деталь в заготовке.\n" +
+                        "Вместо этого удалите саму заготовку.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                MessageBoxResult response = MessageBox.Show(
+                    "Уверены, что хотите удалить деталь?\n" +
+                    "В случае удаления, стоимость расчета не изменится,\n" +
+                    "но КП будет сохранено с другой суммой без этой детали.\n" +
+                    "Не рекомендуется удалять детали вручную - лучше сделать раскладку заново!",
+                    "Удаление детали", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+
+                if (response == MessageBoxResult.No) return;
+
+                if (UserControls.Count > 0)
+                    foreach (UserControl uc in UserControls)
+                    {
+                        foreach (WorkControl _work in work.type.WorkControls)
+                            if (_work.workType is ThreadControl thread &&
+                                uc is ThreadControl _thread &&
+                                thread.CharName == _thread.CharName &&
+                                thread.Wide == _thread.Wide)
+                            {
+                                thread.Parts?.Remove(this);
+                            }
+                            else if (_work.workType is PaintControl paint &&
+                                uc is PaintControl _paint &&
+                                paint.Ral == _paint.Ral)
+                            {
+                                paint.Parts?.Remove(this);
+                            }
+                            else if (_work.workType?.GetType() == uc.GetType() && _work.workType is IPriceChanged w)
+                            {
+                                w.Parts?.Remove(this);
+                                break;
+                            }
+                    }
+
+                cut.PartsControl.Parts.Remove(this);
+                cut.PartsControl?.partsList.Items.Refresh();
+                cut.PartDetails?.Remove(Part);
+                MainWindow.M.StatusBegin($"Деталь \"{Part.Title}\" удалена.");
+            }
+        }
     }
 
     public interface ICut
