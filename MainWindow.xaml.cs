@@ -740,6 +740,7 @@ namespace Metal_Code
             Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = Comment.Text = ConstructRatio.Text = AssemblyRatio.Text = "";
             ProductName.Text = $"Изделие";
             ActiveOffer = null;
+            Log = null;
         }
 
         //-----------Добавление контрола детали----------//
@@ -4269,7 +4270,7 @@ namespace Metal_Code
 
                     foreach (DirectoryInfo name in dir.GetDirectories())
                     {
-                        if (offer.Act.Contains(name.Name.Remove(5)))
+                        if (name.Name.Length > 5 && offer.Act.Contains(name.Name.Remove(5)))
                         {
                             sourceDir = name.FullName;
                             break;
@@ -4306,8 +4307,9 @@ namespace Metal_Code
 
             //создаем папку нового заказа
             string destinationDir = $"{Directory.CreateDirectory(connections[8] + "\\"
-                + (hasPipe ? "(ТР) " : "")
-                + $"{nextOrder} {offer.Company}({ShortManager()})"
+                + $"{nextOrder}"
+                + (hasPipe ? " (ТР) " : " ")
+                + $"{offer.Company}({ShortManager()})"
                 + (HasAssembly ? " ЭКСПРЕСС" : ""))}";
 
             if (sourceDir is not null && sourceDir != "")
@@ -4440,7 +4442,7 @@ namespace Metal_Code
             return ManagerDrop.Text switch
             {
                 "Спильная Марина" => "мр",
-                "Гамолина Светлана" => "с",
+                "Гамолина Светлана" => "сг",
                 "Андрейченко Алексей" => "аа",
                 "Сергеев Юрий" => "ю",
                 "Сергеев Алексей" => "ас",

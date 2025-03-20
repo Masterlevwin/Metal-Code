@@ -167,7 +167,7 @@ namespace Metal_Code
             }
         }
 
-        // команда загрузки раскладок и отчетов Excel
+        // команда загрузки раскладок и отчетов Excel общей кнопкой
         private RelayCommand loadCommand;
         public RelayCommand LoadCommand
         {
@@ -248,6 +248,12 @@ namespace Metal_Code
                                       pipe.LoadExcel(_tubes.ToArray());
                               }
                           }
+
+                          if (MainWindow.M.Log is not null && MainWindow.M.Log != "")
+                          {
+                              MessageBox.Show(MainWindow.M.Log, "Обратите внимание!", MessageBoxButton.OK, MessageBoxImage.Warning);
+                              MainWindow.M.Log = null;
+                          }
                       }
                       catch (Exception ex)
                       {
@@ -257,7 +263,7 @@ namespace Metal_Code
             }
         }
 
-        // команда загрузки раскладок Excel
+        // команда загрузки раскладок Excel из блока работы
         private RelayCommand loadExcelCommand;
         public RelayCommand LoadExcelCommand
         {

@@ -304,7 +304,29 @@ namespace Metal_Code
                                 if (cut is CutControl && item.Key is not null && item.Key.Contains('X'))
                                 {
                                     string[] props = item.Key.Split('X');
-                                    if (props.Length > 1) Kinds[$"{item.Key} - {item.Sum(s => s.sheets)} шт"] = (props[0], props[1], $"{S}");
+
+                                    if (props.Length > 1)
+                                    {
+                                        Kinds[$"{item.Key} - {item.Sum(s => s.sheets)} шт"] = (props[0], props[1], $"{S}");
+
+                                        int a = (int)MainWindow.Parser(props[0]);
+                                        int b = (int)MainWindow.Parser(props[1]);
+
+                                        if (MetalDrop.SelectedItem is Metal metal)
+                                        {
+                                            if ((metal.Name == "хк" || metal.Name == "ст3" || metal.Name == "09г2с" || metal.Name == "цинк")
+                                                && S < 3 && (a > 2500 || b > 1250))
+                                            {
+                                                if (MainWindow.M.Log is null || !MainWindow.M.Log.Contains($"Проверьте раскрой листов!\nДля материала {metal.Name} толщиной до 3 мм используется лист 2500х1250."))
+                                                    MainWindow.M.Log += $"\nПроверьте раскрой листов!\nДля материала {metal.Name} толщиной до 3 мм используется раскрой 2500х1250.\n";
+                                            }
+                                            else if ((metal.Name == "латунь" || metal.Name == "медь") && (a > 1500 || b > 600))
+                                            {
+                                                if (MainWindow.M.Log is null || !MainWindow.M.Log.Contains($"Проверьте раскрой листов!\nДля материала {metal.Name} используется лист 1500х600."))
+                                                    MainWindow.M.Log += $"\nПроверьте раскрой листов!\nДля материала {metal.Name} используется раскрой 1500х600.\n";
+                                            }
+                                        }
+                                    }
                                 }
                             }
                     }
