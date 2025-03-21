@@ -154,7 +154,7 @@
                 <Button ToolTip="Обновить (F5)" Command="{Binding UpdateCommand}" Padding="0" BorderThickness="0" Margin="20,0,0,0" MaxWidth="22">
                     <Image Source="/Images/update4.png"/>
                 </Button>
-                <TextBox Text="{Binding Result, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" AllowDrop="False" FontSize="14" BorderThickness="0" ToolTip="Общая стоимость расчета" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" MouseEnter="UpdateResult" Margin="10,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="50" IsReadOnly="True"/>
+                <TextBox x:Name="ResultTB" Text="{Binding Result, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" AllowDrop="False" FontSize="14" BorderThickness="0" ToolTip="Общая стоимость расчета" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" MouseEnter="UpdateResult" Margin="10,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="50" IsReadOnly="True"/>
             </StackPanel>
 
 

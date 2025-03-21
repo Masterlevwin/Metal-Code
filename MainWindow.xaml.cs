@@ -1437,6 +1437,8 @@ namespace Metal_Code
         #region
         public Product SaveProduct()
         {
+            Log = null;         //очищаем логи об анализе раскладок и прочие
+
             Product product = new()
             {
                 Name = ProductName.Text,
@@ -4389,7 +4391,7 @@ namespace Metal_Code
             return CorrectDestiny(++_destiny);  //увеличиваем толщину на единицу и запускаем метод заново (рекурсия)
         }
 
-        public bool WarningSave()           //предупреждение о незаполненных полях
+        public bool WarningSave()           //предупреждение о незаполненных полях и недостаточной суммы КП
         {
             string _order = Order.Text;
             string _customer = CustomerDrop.Text;
@@ -4407,6 +4409,7 @@ namespace Metal_Code
                 MessageBoxResult response = MessageBox.Show(
                     "Некоторые поля не заполнены. Все равно сохранить расчет?",
                     "Сохранение расчета", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+
                 if (response == MessageBoxResult.No)
                 {
                     Order.BorderBrush = _orderB;
@@ -4421,6 +4424,32 @@ namespace Metal_Code
                     CustomerDrop.BorderBrush = _customerB;
                     DateProduction.BorderBrush = _dateProductionB;
                     Order.BorderThickness = CustomerDrop.BorderThickness = DateProduction.BorderThickness = new Thickness(1);
+                }
+            }
+
+            Brush _resultB = ResultTB.BorderBrush;
+
+            if ((!IsAgent && Result < 4000) || (IsAgent && Result < 2500))
+            {
+                ResultTB.BorderBrush = Brushes.OrangeRed;
+                ResultTB.BorderThickness = new Thickness(2);
+
+                MessageBoxResult response = MessageBox.Show("Проверьте стоимость КП:\n" +
+                    "Стоимость КП с НДС не должна быть меньше 4000 руб!\n" +
+                    "Стоимость КП без НДС не должна быть меньше 2500 руб!\n" +
+                    "Все равно сохранить расчет?",
+                    "Сохранение расчета", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+
+                if (response == MessageBoxResult.No)
+                {
+                    ResultTB.BorderBrush = _resultB;
+                    ResultTB.BorderThickness = new Thickness(0);
+                    return false;
+                }
+                else
+                {
+                    ResultTB.BorderBrush = _resultB;
+                    ResultTB.BorderThickness = new Thickness(0);
                 }
             }
 

@@ -291,12 +291,16 @@ namespace Metal_Code
                 L = 6000;
             }
 
-            if (det.Detail.IsComplect && type.Name == "Лист металла")
+            if (det.Detail.IsComplect && type.Name == "Лист металла" && MetalDrop.SelectedItem is Metal metal)
             {
                 foreach (WorkControl w in WorkControls)
                 {
                     if (w.workType is ICut cut && cut.Items?.Count > 0)
                     {
+                        float squareParts = 0;        //общая площадь нарезанных деталей
+                        if (cut.Parts?.Count > 0) squareParts = (float)Math.Round(cut.Parts.Sum(p => p.Square * p.Part.Count) / 2, 2);
+
+                        float squareItems = 0;        //общая площадь листов раскладки
                         var _items = cut.Items?.GroupBy(c => c.sheetSize);      //группируем все листы по размеру
                         if (_items is not null)
                             foreach (var item in _items)
@@ -309,26 +313,34 @@ namespace Metal_Code
                                     {
                                         Kinds[$"{item.Key} - {item.Sum(s => s.sheets)} шт"] = (props[0], props[1], $"{S}");
 
-                                        int a = (int)MainWindow.Parser(props[0]);
-                                        int b = (int)MainWindow.Parser(props[1]);
+                                        float a = MainWindow.Parser(props[0]);
+                                        float b = MainWindow.Parser(props[1]);
 
-                                        if (MetalDrop.SelectedItem is Metal metal)
+                                        //добавляем общую площадь листов этой группы
+                                        squareItems += (float)Math.Round(a * b * item.Sum(s => s.sheets) / 1000000, 2);
+
+                                        if ((metal.Name == "хк" || metal.Name == "ст3" || metal.Name == "09г2с" || metal.Name == "цинк")
+                                            && S < 3 && (a > 2500 || b > 1250))
                                         {
-                                            if ((metal.Name == "хк" || metal.Name == "ст3" || metal.Name == "09г2с" || metal.Name == "цинк")
-                                                && S < 3 && (a > 2500 || b > 1250))
-                                            {
-                                                if (MainWindow.M.Log is null || !MainWindow.M.Log.Contains($"Проверьте раскрой листов!\nДля материала {metal.Name} толщиной до 3 мм используется лист 2500х1250."))
-                                                    MainWindow.M.Log += $"\nПроверьте раскрой листов!\nДля материала {metal.Name} толщиной до 3 мм используется раскрой 2500х1250.\n";
-                                            }
-                                            else if ((metal.Name == "латунь" || metal.Name == "медь") && (a > 1500 || b > 600))
-                                            {
-                                                if (MainWindow.M.Log is null || !MainWindow.M.Log.Contains($"Проверьте раскрой листов!\nДля материала {metal.Name} используется лист 1500х600."))
-                                                    MainWindow.M.Log += $"\nПроверьте раскрой листов!\nДля материала {metal.Name} используется раскрой 1500х600.\n";
-                                            }
+                                            if (MainWindow.M.Log is null || !MainWindow.M.Log.Contains($"Проверьте раскрой листов!\nДля материала {metal.Name} толщиной до 3 мм используется лист 2500х1250."))
+                                                MainWindow.M.Log += $"\nПроверьте раскрой листов!\nДля материала {metal.Name} толщиной до 3 мм используется раскрой 2500х1250.\n";
+                                        }
+                                        else if ((metal.Name == "латунь" || metal.Name == "медь") && (a > 1500 || b > 600))
+                                        {
+                                            if (MainWindow.M.Log is null || !MainWindow.M.Log.Contains($"Проверьте раскрой листов!\nДля материала {metal.Name} используется лист 1500х600."))
+                                                MainWindow.M.Log += $"\nПроверьте раскрой листов!\nДля материала {metal.Name} используется раскрой 1500х600.\n";
                                         }
                                     }
                                 }
                             }
+                        //определяем плотность раскладки
+                        if (squareParts > 0 && squareItems > 0)
+                        {
+                            float delta = (float)Math.Round(squareParts * 100 / squareItems, 1);
+                            MainWindow.M.Log += $"\nАнализ заготовки {type.Name} s{S} {metal.Name}:\n" +
+                                $"Общая площадь деталей - {squareParts} м2.\n" +
+                                $"Общая площадь листов - {squareItems} м2.\nПлотность раскладки - {delta}%.\n";
+                        }
                     }
                     break;
                 }
