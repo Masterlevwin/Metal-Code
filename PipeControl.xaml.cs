@@ -135,7 +135,7 @@ namespace Metal_Code
         {
             if (sender is TextBox tBox) SetMold(tBox.Text);
         }
-        private void SetMold(string _mold)
+        public void SetMold(string _mold)
         {
             if (float.TryParse(_mold, out float m)) Mold = m;
             OnPriceChanged();

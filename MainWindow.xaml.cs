@@ -1543,7 +1543,7 @@ namespace Metal_Code
                                 {
                                     p.Description = _cut is CutControl cut ? cut.HaveCut || cut.HaveNitro ? "Л" : "Б" : "Т";
                                     if (p.PropsDict.ContainsKey(100) && p.PropsDict[100].Count > 2)
-                                        p.Accuracy = _cut is CutControl laser ?
+                                        p.Accuracy = _cut is CutControl ?
                                             $"{p.PropsDict[100][0].Trim()}x{p.PropsDict[100][1].Trim()}"
                                             : $"{p.PropsDict[100][2].Trim()} мм";
                                     p.Price = 0;
@@ -4427,30 +4427,35 @@ namespace Metal_Code
                 }
             }
 
-            Brush _resultB = ResultTB.BorderBrush;
-
-            if ((!IsAgent && Result < 4000) || (IsAgent && Result < 2500))
+            if (((!IsAgent && Result < 4000) || (IsAgent && Result < 2500)) && LimitCheck.IsChecked == false)
             {
-                ResultTB.BorderBrush = Brushes.OrangeRed;
+                Brush _resultB = ResultTB.BorderBrush;
+                Brush _limitB = LimitCheck.BorderBrush;
+
+                ResultTB.BorderBrush = LimitCheck.BorderBrush = Brushes.OrangeRed;
                 ResultTB.BorderThickness = new Thickness(2);
 
-                MessageBoxResult response = MessageBox.Show("Проверьте стоимость КП:\n" +
+                ColorAnimation animation = new()
+                {
+                    From = Colors.White,
+                    To = Colors.OrangeRed,
+                    Duration = new Duration(TimeSpan.FromSeconds(1)),
+                    AutoReverse = true
+                };
+                LimitCheck.Background = new SolidColorBrush(Colors.White);
+                LimitCheck.Background.BeginAnimation(SolidColorBrush.ColorProperty, animation);
+
+                MessageBox.Show("Проверьте стоимость КП:\n" +
                     "Стоимость КП с НДС не должна быть меньше 4000 руб!\n" +
                     "Стоимость КП без НДС не должна быть меньше 2500 руб!\n" +
-                    "Все равно сохранить расчет?",
-                    "Сохранение расчета", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+                    "Снимите ограничение, если хотите все равно сохранить расчет.",
+                    "Сохранение расчета", MessageBoxButton.OK, MessageBoxImage.Exclamation);
 
-                if (response == MessageBoxResult.No)
-                {
-                    ResultTB.BorderBrush = _resultB;
-                    ResultTB.BorderThickness = new Thickness(0);
-                    return false;
-                }
-                else
-                {
-                    ResultTB.BorderBrush = _resultB;
-                    ResultTB.BorderThickness = new Thickness(0);
-                }
+                ResultTB.BorderBrush = _resultB;
+                LimitCheck.BorderBrush = _limitB;
+                ResultTB.BorderThickness = new Thickness(0);
+
+                return false;
             }
 
             return true;

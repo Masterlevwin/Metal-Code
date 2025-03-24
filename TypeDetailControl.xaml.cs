@@ -12,7 +12,7 @@ using System.Windows.Input;
 namespace Metal_Code
 {
     /// <summary>
-    /// Логика взаимодействия для TypeDetailControl.xaml
+    /// Логика взаимодействия для Billet.xaml
     /// </summary>
     public partial class TypeDetailControl : UserControl, INotifyPropertyChanged
     {
@@ -337,9 +337,11 @@ namespace Metal_Code
                         if (squareParts > 0 && squareItems > 0)
                         {
                             float delta = (float)Math.Round(squareParts * 100 / squareItems, 1);
-                            MainWindow.M.Log += $"\nАнализ заготовки {type.Name} s{S} {metal.Name}:\n" +
-                                $"Общая площадь деталей - {squareParts} м2.\n" +
-                                $"Общая площадь листов - {squareItems} м2.\nПлотность раскладки - {delta}%.\n";
+                            if (delta < 60)
+                                MainWindow.M.Log += $"\nАнализ заготовки {type.Name} s{S} {metal.Name}:\n" +
+                                    $"Общая площадь деталей - {squareParts} м2.\n" +
+                                    $"Общая площадь листов - {squareItems} м2.\n" +
+                                    $"Плотность раскладки - {delta}%.\n";
                         }
                     }
                     break;
