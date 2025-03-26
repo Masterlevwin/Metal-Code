@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NPOI.SS.Formula.Functions;
+using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
@@ -16,7 +17,7 @@ namespace Metal_Code
     {
         public List<TypeDetailControl> TypeDetailControls = new();
 
-        public Detail Detail {  get; set; }
+        public Detail Detail { get; set; }
 
         public DetailControl(Detail detail)
         {
@@ -44,6 +45,8 @@ namespace Metal_Code
             type.Priced += MassCalculate;       // подписка на изменение типовой детали для расчета общей массы детали
             
             BilletsStack.Children.Insert(BilletsStack.Children.Count - 1, type);
+
+            MainWindow.M.DetailsScroll.PageDown();
 
             type.AddWork();   // при добавлении дропа типовой детали добавляем дроп работ
         }

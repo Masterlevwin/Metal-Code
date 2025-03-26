@@ -757,6 +757,7 @@ namespace Metal_Code
             detail.Counter.Content = DetailControls.IndexOf(detail) + 1;
 
             DetailsStack.Children.Add(detail);
+            DetailsScroll.ScrollToEnd();
 
             detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
         }
@@ -1955,11 +1956,11 @@ namespace Metal_Code
 
             worksheet.Cells[row + 7, 1].Value = "Примечание:";
             worksheet.Cells[row + 7, 2].Value = Comment.Text;
+            worksheet.Cells[row + 7, 2].Style.Font.Bold = true;
             worksheet.Cells[row + 7, 2, row + 7, 8].Merge = true;
 
             worksheet.Cells[row + 8, 1].Value = "Ваш менеджер:";
             worksheet.Cells[row + 8, 2].Value = ManagerDrop.Text;
-            worksheet.Cells[row + 8, 2].Style.Font.Bold = true;
             worksheet.Cells[row + 8, 2, row + 8, 4].Merge = true;
 
             worksheet.Cells[row + 8, 8].Value = "версия: " + version;
@@ -4458,6 +4459,7 @@ namespace Metal_Code
                 return false;
             }
 
+            LimitCheck.IsChecked = false;
             return true;
         }
 

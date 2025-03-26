@@ -233,7 +233,7 @@ namespace Metal_Code
                 if (w.propsList.Count > 4 && bool.TryParse(w.propsList[4], out bool _haveCut)) HaveCut = _haveCut;
                 if (w.propsList.Count > 5 && bool.TryParse(w.propsList[5], out bool _haveNitro)) HaveNitro = _haveNitro;
 
-                work.type.CreateSort();     //переопределяем содержимое SortDrop, если есть раскладки (List<LaserItem>))
+                if (Items?.Count > 0) work.type.CreateSort();     //переопределяем содержимое SortDrop, если есть раскладки (List<LaserItem>))
             }
         }
 

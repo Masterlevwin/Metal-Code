@@ -162,7 +162,7 @@
                 <GroupBox.Header>
                     <TextBlock Text="{Binding Text, ElementName=ProductName}" FontWeight="Bold"/>
                 </GroupBox.Header>
-                <ScrollViewer VerticalAlignment="Top" Margin="0,60,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                <ScrollViewer x:Name="DetailsScroll" VerticalAlignment="Top" Margin="0,60,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                     <StackPanel x:Name="DetailsStack"/>
                 </ScrollViewer>
             </GroupBox>

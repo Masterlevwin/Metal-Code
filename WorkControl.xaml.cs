@@ -132,8 +132,8 @@ namespace Metal_Code
         public void Remove()
         {
             type.WorkControls.Remove(this);
-            type.det.PriceResult();
             type.WorksStack.Children.Remove(this);
+            type.det.PriceResult();
         }
 
         private void ResultTextEnabled(object sender, MouseButtonEventArgs e)

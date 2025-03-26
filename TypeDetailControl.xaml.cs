@@ -204,6 +204,8 @@ namespace Metal_Code
 
             WorkControls.Add(work);
             WorksStack.Children.Insert(WorksStack.Children.Count - 1, work);
+
+            MainWindow.M.DetailsScroll.PageDown();
         }
 
         private void Remove(object sender, RoutedEventArgs e)

@@ -131,6 +131,12 @@ namespace Metal_Code
                             DirectoryInfo dirPaint = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Окраска");
                             SortExtension(dirPaint, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
+                        
+                        if (work.Key.ToLower().Contains("оц"))
+                        {
+                            DirectoryInfo dirZinc = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Оцинковка");
+                            SortExtension(dirZinc, dirMaterials, "pdf", work.Select(t => t).ToList());
+                        }
                     }
 
                 //получаем коллекцию файлов "igs" в папке с Excel-файлом
@@ -189,36 +195,45 @@ namespace Metal_Code
                     //находим совпадение TechItem и файла по номеру чертежа
                     if (nameFile.Contains(techItem.NumberName))
                     {
-                        //копируем исходный файл в нужный каталог с рабочим именем для нашего производства
-                        foreach (var item in dirMaterials)
-                            if ($"{techItem.Destiny} {techItem.Material}" == item)
-                            {
-                                if (techItems == TechItems)
+                        //находим сборочные чертежи на основе метки "СБ" и копируем их в корень директории работы
+                        if (techItem.NumberName.Contains("СБ"))
+                        {
+                            TechItems.Remove(techItem);
+                            File.Copy(file, dirMain + "\\" + $"{techItem.NumberName}.{extension}");
+                        }
+                        else
+                        {
+                            //копируем исходный файл в нужный каталог с рабочим именем для нашего производства
+                            foreach (var item in dirMaterials)
+                                if ($"{techItem.Destiny} {techItem.Material}" == item)
                                 {
-                                    TechItem? isFounded = FoundItems.FirstOrDefault(x => x.Path == file);
-                                    if (isFounded is null)
+                                    if (techItems == TechItems)
                                     {
-                                        string destination = $"{techItem.Route}" == "" ?
-                                            dirMain + "\\" + $"{item}".Trim() + "\\"
-                                            + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count}" + $".{extension}"
-                                            : dirMain + "\\" + $"{item}".Trim() + "\\"
-                                            + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count} ({techItem.Route})" + $".{extension}";
+                                        TechItem? isFounded = FoundItems.FirstOrDefault(x => x.Path == file);
+                                        if (isFounded is null)
+                                        {
+                                            string destination = $"{techItem.Route}" == "" ?
+                                                dirMain + "\\" + $"{item}".Trim() + "\\"
+                                                + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count}" + $".{extension}"
+                                                : dirMain + "\\" + $"{item}".Trim() + "\\"
+                                                + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count} ({techItem.Route})" + $".{extension}";
 
-                                        File.Copy(file, destination);
-                                        techItem.Path = file;
-                                        FoundItems.Add(techItem);           //файл найден
+                                            File.Copy(file, destination);
+                                            techItem.Path = file;
+                                            FoundItems.Add(techItem);           //файл найден
+                                        }
+                                        else MessageBox.Show($"Проверьте файлы с именами {isFounded.NumberName} и {techItem.NumberName}.\n" +
+                                            $"Из-за сходства имён они могли быть обработаны неверно.\n" +
+                                            $"Проверьте их по пути {file} и скопируйте вручную.");
                                     }
-                                    else MessageBox.Show($"Проверьте файлы с именами {isFounded.NumberName} и {techItem.NumberName}.\n" +
-                                        $"Из-за сходства имён они могли быть обработаны неверно.\n" +
-                                        $"Проверьте их по пути {file} и скопируйте вручную.");
+                                    else
+                                    {
+                                        File.Copy(file, dirMain + "\\" + $"{item}".Trim() + "\\"
+                                            + $"{techItem.NumberName} {techItem.Name} {techItem.Count}" + $".{extension}");
+                                    }
                                 }
-                                else
-                                {
-                                    File.Copy(file, dirMain + "\\" + $"{item}".Trim() + "\\"
-                                        + $"{techItem.NumberName} {techItem.Name} {techItem.Count}" + $".{extension}");
-                                }
-                            }
-                        break;
+                            break;
+                        }
                     }
                 }
             }
