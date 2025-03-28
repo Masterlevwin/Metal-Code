@@ -37,6 +37,7 @@
     <None Remove="Images\exampe4.png" />
     <None Remove="Images\exampe5.png" />
     <None Remove="Images\exit.png" />
+    <None Remove="Images\express.png" />
     <None Remove="Images\greenplus.png" />
     <None Remove="Images\lamp.png" />
     <None Remove="Images\list.png" />
@@ -139,6 +140,7 @@
     <Resource Include="Images\exampe4.png" />
     <Resource Include="Images\exampe5.png" />
     <Resource Include="Images\exit.png" />
+    <Resource Include="Images\express.png" />
     <Resource Include="Images\greenplus.png" />
     <Resource Include="Images\lamp.png" />
     <Resource Include="Images\list.png" />

@@ -26,6 +26,9 @@ using ACadSharp.IO;
 using ACadSharp;
 using System.Management;
 using System.Windows.Input;
+using ACadSharp.Tables.Collections;
+using ACadSharp.Tables;
+using ACadSharp.Entities;
 
 namespace Metal_Code
 {
@@ -4152,22 +4155,6 @@ namespace Metal_Code
             }
         }
 
-        //------------Сортировка файлов по папкам----------------//
-        private void CreateTech(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog openFileDialog = new()
-            {
-                Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*"
-            };
-
-            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
-            {
-                Tech tech = new(openFileDialog.FileNames[0]);
-                StatusBegin($"{tech.Run()}");
-            }
-            else StatusBegin($"Не выбрано ни одного файла");
-        }
-
         //------------Создание заявки за клиента-----------------//
         private void CreateRequest(object sender, RoutedEventArgs e)
         {
@@ -4189,8 +4176,12 @@ namespace Metal_Code
 
             //оформляем статичные ячейки по умолчанию
             requestsheet.Cells[1, 1].Value = "Расшифровка работ: гиб - гибка, вальц - вальцовка, зен - зенковка, рез - резьба," +
-                " свар - сварка, окр - окраска, грав - гравировка";
+                " свар - сварка,\nокр - окраска, оц - оцинковка, грав - гравировка";
             requestsheet.Cells[1, 1, 1, 7].Merge = true;
+            requestsheet.Cells[1, 1, 1, 7].Style.WrapText = true;
+            requestsheet.Cells[1, 1, 1, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            requestsheet.Cells[1, 1, 1, 7].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            requestsheet.Row(1).Height = 30;
             requestsheet.Cells[_paths.Length + 3, 5].Value = "Кол-во комплектов";
             requestsheet.Cells[_paths.Length + 3, 6].Value = 1;
             requestsheet.Cells[_paths.Length + 3, 6].Style.Font.Color.SetColor(System.Drawing.Color.Red);
@@ -4200,13 +4191,14 @@ namespace Metal_Code
             requestsheet.Cells[_paths.Length + 3, 5, _paths.Length + 3, 6].Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             //устанавливаем заголовки таблицы
-            List<string> _heads = new() { "№", "№ чертежа", "Наименование детали", "Металл", "Толщина", "Кол-во деталей", "Маршрут" };
+            List<string> _heads = new() { "№", "№ чертежа", "Размеры", "Металл", "Толщина", "Кол-во деталей", "Маршрут" };
             for (int head = 0; head < _heads.Count; head++) requestsheet.Cells[2, head + 1].Value = _heads[head];
 
             for (int i = 0; i < _paths.Length; i++)
             {
                 requestsheet.Cells[i + 3, 1].Value = i + 1;
                 requestsheet.Cells[i + 3, 2].Value = Path.GetFileNameWithoutExtension(_paths[i]);
+                requestsheet.Cells[i + 3, 3].Value = GetSizes(_paths[i]);
             }
 
             ExcelRange details = requestsheet.Cells[2, 1, _paths.Length + 2, 7];     //получаем таблицу деталей для оформления
@@ -4231,6 +4223,69 @@ namespace Metal_Code
             workbook.SaveAs($"{Path.GetDirectoryName(_paths[0])}\\Заявка.xlsx");
 
             StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(_paths[0])}");
+        }
+
+        //------------Получение габаритов детали из dxf----------//
+        private string GetSizes(string path)
+        {
+            if (Path.GetExtension(path).ToLower() != ".dxf") return "";
+
+            using DxfReader reader = new(path);
+            CadDocument doc = reader.Read();
+
+            if (doc.Entities.Count > 0)
+            {
+                List<Line> lines = new();
+                foreach (var e in doc.Entities) if (e is Line line) lines.Add(line);
+
+                var pointsStartX = lines.Select(p => p.StartPoint.X);
+                var pointsEndX = lines.Select(p => p.EndPoint.X);
+
+                if (pointsStartX.Any() && pointsEndX.Any())
+                {
+                    var pointsX = pointsStartX.Union(pointsEndX);
+                    double xMax = pointsX.Max();
+                    double xMin = pointsX.Min();
+                    double width = Math.Ceiling(xMax - xMin);
+
+                    var pointsStartY = lines.Select(p => p.StartPoint.Y);
+                    var pointsEndY = lines.Select(p => p.EndPoint.Y);
+
+                    if (pointsStartY.Any() && pointsEndY.Any())
+                    {
+                        var pointsY = pointsStartY.Union(pointsEndY);
+                        double yMax = pointsY.Max();
+                        double yMin = pointsY.Min();
+                        double height = Math.Ceiling(yMax - yMin);
+
+                        return $"{width}x{height}";
+                    }
+                }
+            }
+
+            return "";
+        }
+
+        //------------Сортировка файлов по папкам----------------//
+        private void CreateTech(object sender, RoutedEventArgs e)
+        {
+            MessageBoxResult response = MessageBox.Show(
+                "Создать быстрый расчет на основе заявки?\nЕсли \"Да\", текущий расчет будет очищен!",
+                "Создание расчета", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+
+            if (response == MessageBoxResult.Yes) NewProject();
+                
+            OpenFileDialog openFileDialog = new()
+            {
+                Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*"
+            };
+
+            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
+            {
+                Tech tech = new(openFileDialog.FileNames[0]);
+                StatusBegin(tech.Run());
+            }
+            else StatusBegin($"Не выбрано ни одного файла");
         }
 
         //------------Управление сборками------------------------//
@@ -4623,7 +4678,7 @@ namespace Metal_Code
             using (var context = visual.RenderOpen())
             {
                 var visualBrush = new VisualBrush(target);
-                context.DrawRectangle(visualBrush, null, new Rect(new Point(), bounds.Size));
+                context.DrawRectangle(visualBrush, null, new Rect(new System.Windows.Point(), bounds.Size));
             }
 
             renderTarget.Render(visual);

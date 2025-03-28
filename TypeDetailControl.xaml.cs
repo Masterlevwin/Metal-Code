@@ -307,9 +307,9 @@ namespace Metal_Code
                         if (_items is not null)
                             foreach (var item in _items)
                             {
-                                if (cut is CutControl && item.Key is not null && item.Key.Contains('X'))
+                                if (cut is CutControl && item.Key is not null && item.Key.ToLower().Contains('x'))
                                 {
-                                    string[] props = item.Key.Split('X');
+                                    string[] props = item.Key.ToLower().Split('x');
 
                                     if (props.Length > 1)
                                     {

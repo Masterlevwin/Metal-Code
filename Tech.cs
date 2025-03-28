@@ -17,10 +17,7 @@ namespace Metal_Code
         public List<TechItem> TechItems = new();        //список полученных объектов из строк файла
         public List<TechItem> FoundItems = new();       //список найденных строк
 
-        public Tech(string path)
-        {
-            ExcelFile = path;
-        }
+        public Tech(string path) { ExcelFile = path; }
 
         public string Run()
         {
@@ -44,40 +41,48 @@ namespace Metal_Code
                 for (int i = 2; i < table.Rows.Count; i++)
                 {
                     if ($"{table.Rows[i].ItemArray[1]}" is null || $"{table.Rows[i].ItemArray[1]}" == "") continue;
-
+                    
                     TechItem techItem = new(
                         $"{table.Rows[i].ItemArray[1]}",        //номер чертежа
-                        $"{table.Rows[i].ItemArray[2]}",        //наименование детали
+                        $"{table.Rows[i].ItemArray[2]}",        //размеры
                         $"{table.Rows[i].ItemArray[3]}",        //материал
-                        $"s{table.Rows[i].ItemArray[4]}",       //толщина
-                        $"n{(int)MainWindow.Parser($"{table.Rows[i].ItemArray[5]}") * countAssembly}",  //количество
+                        $"{table.Rows[i].ItemArray[4]}",        //толщина
+                        $"{(int)MainWindow.Parser($"{table.Rows[i].ItemArray[5]}") * countAssembly}",  //количество
                         $"{table.Rows[i].ItemArray[6]}");       //маршрут
-
-                    if (techItem.Material.ToLower().Contains("al") || techItem.Material.ToLower().Contains("амг2"))
-                    {
-                        techItem.Material = "";
-                        techItem.Destiny = $"al{table.Rows[i].ItemArray[4]}";
-                    }
-                    else if (techItem.Material.ToLower().Contains("амг") || techItem.Material.ToLower().Contains("д16")) techItem.Destiny = $"al{table.Rows[i].ItemArray[4]}";
-                    else if (techItem.Material.ToLower().Contains("br"))
-                    {
-                        techItem.Material = "";
-                        techItem.Destiny = $"br{table.Rows[i].ItemArray[4]}";
-                    }
-                    else if (techItem.Material.ToLower().Contains("cu"))
-                    {
-                        techItem.Material = "";
-                        techItem.Destiny = $"cu{table.Rows[i].ItemArray[4]}";
-                    }
-
-                    if (techItem.Destiny.ToLower().Contains('x') || techItem.Destiny.ToLower().Contains('х'))
-                        techItem.Destiny = techItem.Destiny.TrimStart('s');
 
                     TechItems.Add(techItem);
                 }
                 CountTechItems = TechItems.Count;
 
                 stream.Close();
+
+                //сначала формируем предварительный расчет, для этого создаем заготовки и работы
+                CreateExpressOffer();
+
+                //затем переопределяем материалы и толщины для формирования имен деталей
+                foreach (TechItem techItem in TechItems)
+                {
+                    if (techItem.Material.ToLower().Contains("al") || techItem.Material.ToLower().Contains("амг2"))
+                    {
+                        techItem.Material = "";
+                        techItem.Destiny = $"al{techItem.Destiny}";
+                    }
+                    else if (techItem.Material.ToLower().Contains("амг") || techItem.Material.ToLower().Contains("д16")) techItem.Destiny = $"al{techItem.Destiny}";
+                    else if (techItem.Material.ToLower().Contains("br"))
+                    {
+                        techItem.Material = "";
+                        techItem.Destiny = $"br{techItem.Destiny}";
+                    }
+                    else if (techItem.Material.ToLower().Contains("cu"))
+                    {
+                        techItem.Material = "";
+                        techItem.Destiny = $"cu{techItem.Destiny}";
+                    }
+                    else techItem.Destiny = $"s{techItem.Destiny}";
+
+                    if (techItem.Destiny.ToLower().Contains('x') || techItem.Destiny.ToLower().Contains('х'))
+                        techItem.Destiny = techItem.Destiny.TrimStart('s');
+                }
 
                 //получаем коллекцию уникальных строк на основе группировки по материалу и толщине
                 var dirMaterials = TechItems.GroupBy(m => new { m.Material, m.Destiny })
@@ -214,9 +219,9 @@ namespace Metal_Code
                                         {
                                             string destination = $"{techItem.Route}" == "" ?
                                                 dirMain + "\\" + $"{item}".Trim() + "\\"
-                                                + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count}" + $".{extension}"
+                                                + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count}" + $".{extension}"
                                                 : dirMain + "\\" + $"{item}".Trim() + "\\"
-                                                + $"{techItem.NumberName} {techItem.Name} {techItem.Material} {techItem.Destiny} {techItem.Count} ({techItem.Route})" + $".{extension}";
+                                                + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route})" + $".{extension}";
 
                                             File.Copy(file, destination);
                                             techItem.Path = file;
@@ -229,7 +234,7 @@ namespace Metal_Code
                                     else
                                     {
                                         File.Copy(file, dirMain + "\\" + $"{item}".Trim() + "\\"
-                                            + $"{techItem.NumberName} {techItem.Name} {techItem.Count}" + $".{extension}");
+                                            + $"{techItem.NumberName} n{techItem.Count}" + $".{extension}");
                                     }
                                 }
                             break;
@@ -280,7 +285,7 @@ namespace Metal_Code
                         }
 
                     //добавляем имя файла в текстовый отчет
-                    stream.WriteLine(item.NumberName + " " + item.Name);
+                    stream.WriteLine(item.NumberName + " " + item.Sizes);
                 }
                 requestbook.Save();     //сохраняем книгу
                 notify = $"Обработано {CountTechItems} строк заявки. Создан перечень недостающих {TechItems.Count} файлов.";
@@ -289,22 +294,145 @@ namespace Metal_Code
 
             return notify;
         }
+
+        private string CreateExpressOffer()
+        {
+            string notify = $"Создано {TechItems.Count} деталей.";
+
+            //группируем детали по материалу и толщине
+            var groups = TechItems.GroupBy(m => new { m.Material, m.Destiny });
+
+            foreach (var group in groups)
+            {
+                int sortIndex = 0;
+
+                //определяем раскрой листа группы по умолчанию
+                if (group.Key.Material.ToLower() == "br" ||
+                    group.Key.Material.ToLower() == "cu")
+                    sortIndex = 3;
+                else if (group.Key.Material.ToLower().Contains("aisi") ||
+                    group.Key.Material.ToLower().Contains("цинк") ||
+                    MainWindow.Parser(group.Key.Destiny) < 3)
+                    sortIndex = 1;
+                else sortIndex = 0;
+
+                TypeDetailControl type = MainWindow.M.DetailControls[0].TypeDetailControls[^1];
+
+                float density = 7.8f;      //плотность материала по умолчанию
+
+                //устанавливаем "Лист металла" и заполняем эту заготовку
+                foreach (TypeDetail t in MainWindow.M.TypeDetails)
+                    if (t.Name == "Лист металла")
+                    {
+                        type.TypeDetailDrop.SelectedItem = t;
+                        type.CreateSort(sortIndex);
+                        type.S = MainWindow.Parser(group.Key.Destiny);
+
+                        //определяем материал заготовки
+                        string met = group.Key.Material.ToLower() switch
+                        {
+                            "br" => "латунь",
+                            "cu" => "медь",
+                            "al" => "амг2",
+                            "" => "ст3",
+                            _ => group.Key.Material.ToLower()
+                        };
+                        foreach (Metal metal in type.MetalDrop.Items)
+                            if (metal.Name == met)
+                            {
+                                type.MetalDrop.SelectedItem = metal;
+                                density = metal.Density;
+                                break;
+                            }
+                    }
+
+                //устанавливаем "Лазерная резка" и заполняем эту резку
+                foreach (Work w in MainWindow.M.Works)
+                    if (w.Name == "Лазерная резка")
+                    {
+                        type.WorkControls[^1].WorkDrop.SelectedItem = w;
+                        if (type.WorkControls[^1].workType is CutControl cut)
+                        {
+                            List<Part> parts = new();       //список нарезанных деталей
+
+                            //рассчитываем количество листов заготовки, путь резки и проколы
+                            float square = 0, way = 0, pinholes = 0;
+                            foreach (var item in group)
+                            {
+                                string[] properties = item.Sizes.ToLower().Split('x');
+                                if (properties.Length > 1)
+                                {
+                                    square += (MainWindow.Parser(properties[0]) + 10)
+                                            * (MainWindow.Parser(properties[1]) + 10)
+                                            * MainWindow.Parser(item.Count);
+                                    way += (MainWindow.Parser(properties[0]) + MainWindow.Parser(properties[1]) + 10)
+                                            * 2 * MainWindow.Parser(item.Count);
+                                    pinholes += MainWindow.Parser(item.Count);
+
+                                    Part part = new(item.NumberName, (int)MainWindow.Parser(item.Count))
+                                    {
+                                        Metal = group.Key.Material.ToLower(),
+                                        Destiny = MainWindow.Parser(group.Key.Destiny),
+                                        Way = (float)Math.Round((MainWindow.Parser(properties[0]) + MainWindow.Parser(properties[1]) + 10) / 500, 3),
+                                        Mass = (float)Math.Round((MainWindow.Parser(properties[0]) + 10) * (MainWindow.Parser(properties[1]) + 10) * type.S * density / 1000000, 3)
+                                    };
+                                    //записываем полученные габариты и саму строку для их отображения в словарь свойств
+                                    part.PropsDict[100] = new() { properties[0], properties[1], item.Sizes.ToLower() };
+                                    parts.Add(part);
+                                }
+                            }
+
+                            square += 300 * type.B;
+                            type.Count = (int)Math.Ceiling(square / type.A / type.B);
+                            type.A = (float)Math.Ceiling(square / type.Count / type.B / 100) * 100;
+
+                            cut.Way = cut.WayTotal = (int)Math.Ceiling(way / 1000);
+                            cut.Pinhole = (int)Math.Ceiling(pinholes);
+                            cut.Mass = cut.MassTotal = parts.Sum(p => p.Mass * p.Count);
+                                                        
+                            LaserItem laser = new() { sheetSize = $"{type.A}X{type.B}", sheets = type.Count };
+                            laser.way = cut.WayTotal / laser.sheets;
+                            laser.pinholes = cut.Pinhole / laser.sheets;
+                            laser.mass = cut.MassTotal / laser.sheets;
+                            cut.Items?.Add(laser);
+                            if (cut.Items?.Count > 0) cut.SumProperties(cut.Items);
+
+                            cut.PartDetails = parts;
+                            cut.Parts = cut.PartList();
+                            cut.PartsControl = new(cut, cut.Parts);
+                            cut.AddPartsTab();
+                        }
+                        break;
+                    }
+
+                if (groups.Count() > MainWindow.M.DetailControls[0].TypeDetailControls.Count)
+                    MainWindow.M.DetailControls[0].AddTypeDetail();
+            }
+
+            //определяем деталь, в которой загрузили раскладки, как комплект деталей
+            if (!MainWindow.M.DetailControls[0].Detail.IsComplect) MainWindow.M.DetailControls[0].IsComplectChanged("Комплект деталей");
+            if (MainWindow.M.DetailControls[0].TypeDetailControls.Count > 0)
+                foreach (TypeDetailControl type in MainWindow.M.DetailControls[0].TypeDetailControls)
+                    type.CreateSort();
+
+            return notify;
+        }
     }
 
     public class TechItem
     {
         public string NumberName { get; set; }
-        public string Name { get; set; }
+        public string Sizes { get; set; }
         public string Material { get; set; }
         public string Destiny { get; set; }
         public string Count { get; set; }
         public string Route { get; set; }
         public string? Path { get; set; }
 
-        public TechItem(string numberName, string name, string material, string destiny, string count, string route)
+        public TechItem(string numberName, string sizes, string material, string destiny, string count, string route)
         {
             NumberName = numberName;
-            Name = name;
+            Sizes = sizes;
             if (material.ToLower().Contains("ст")) Material = "";
             else Material = material;
             Destiny = destiny;

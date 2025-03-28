@@ -134,13 +134,13 @@
             </Button>
 
             <StackPanel Orientation="Horizontal" MinHeight="22" VerticalAlignment="Top" Margin="0,38,0,0">
-                <Button ToolTip="Создать новый расчет (Ctrl+Q)" Command="{Binding NewProjectCommand}" Padding="0" BorderThickness="0" Margin="360,0,0,0" MaxWidth="22">
+                <Button ToolTip="Создать новый расчет (Ctrl+Q)" Command="{Binding NewProjectCommand}" Padding="0" BorderThickness="0" Margin="300,0,0,0" MaxWidth="22">
                     <Image Source="Images/new3.png"/>
                 </Button>
                 <Button ToolTip="Открыть сохраненный расчет (Ctrl+S)" Command="{Binding OpenCommand}" Padding="0" BorderThickness="0" Margin="15,0,0,0" MaxWidth="22">
                     <Image Source="Images/open4.png"/>
                 </Button>
-                <Button ToolTip="Создать заявку за клиента" Click="CreateRequest" Padding="0" BorderThickness="0" Margin="15,0,0,0" MaxWidth="22">
+                <Button ToolTip="Создать заявку за клиента" Click="CreateRequest" Padding="0" BorderThickness="0" Margin="60,0,0,0" MaxWidth="22">
                     <Image Source="Images/comment.png"/>
                 </Button>
                 <Button ToolTip="Подготовить папки в работу" Click="CreateTech" Padding="0" BorderThickness="0" Margin="15,0,0,0" MaxWidth="22">
