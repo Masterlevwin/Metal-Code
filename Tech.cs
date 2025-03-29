@@ -300,7 +300,7 @@ namespace Metal_Code
             string notify = $"Создано {TechItems.Count} деталей.";
 
             //группируем детали по материалу и толщине
-            var groups = TechItems.GroupBy(m => new { m.Material, m.Destiny });
+            var groups = TechItems.Where(d => d.Destiny != "").GroupBy(m => new { m.Material, m.Destiny });
 
             foreach (var group in groups)
             {
@@ -355,17 +355,21 @@ namespace Metal_Code
                         {
                             List<Part> parts = new();       //список нарезанных деталей
 
-                            //рассчитываем количество листов заготовки, путь резки и проколы
-                            float square = 0, way = 0, pinholes = 0;
+                            float square = 0,   //площадь деталей
+                                    way = 0,    //путь резки
+                                pinholes = 0,   //проколы
+                                indent = 10;    //отступ
+                            
+                            //рассчитываем количество листов заготовки, путь резки и проколы, заодно заполняем коллекцию деталей
                             foreach (var item in group)
                             {
                                 string[] properties = item.Sizes.ToLower().Split('x');
                                 if (properties.Length > 1)
                                 {
-                                    square += (MainWindow.Parser(properties[0]) + 10)
-                                            * (MainWindow.Parser(properties[1]) + 10)
+                                    square += (MainWindow.Parser(properties[0]) + indent)
+                                            * (MainWindow.Parser(properties[1]) + indent)
                                             * MainWindow.Parser(item.Count);
-                                    way += (MainWindow.Parser(properties[0]) + MainWindow.Parser(properties[1]) + 10)
+                                    way += (MainWindow.Parser(properties[0]) + MainWindow.Parser(properties[1]) + indent)
                                             * 2 * MainWindow.Parser(item.Count);
                                     pinholes += MainWindow.Parser(item.Count);
 
@@ -373,8 +377,8 @@ namespace Metal_Code
                                     {
                                         Metal = group.Key.Material.ToLower(),
                                         Destiny = MainWindow.Parser(group.Key.Destiny),
-                                        Way = (float)Math.Round((MainWindow.Parser(properties[0]) + MainWindow.Parser(properties[1]) + 10) / 500, 3),
-                                        Mass = (float)Math.Round((MainWindow.Parser(properties[0]) + 10) * (MainWindow.Parser(properties[1]) + 10) * type.S * density / 1000000, 3)
+                                        Way = (float)Math.Round((MainWindow.Parser(properties[0]) + MainWindow.Parser(properties[1]) + indent) / 500, 3),
+                                        Mass = (float)Math.Round((MainWindow.Parser(properties[0]) + indent) * (MainWindow.Parser(properties[1]) + indent) * type.S * density / 1000000, 3)
                                     };
                                     //записываем полученные габариты и саму строку для их отображения в словарь свойств
                                     part.PropsDict[100] = new() { properties[0], properties[1], item.Sizes.ToLower() };
@@ -382,18 +386,40 @@ namespace Metal_Code
                                 }
                             }
 
-                            square += 300 * type.B;
+                            //получаем количество листов на основе общей площади деталей
                             type.Count = (int)Math.Ceiling(square / type.A / type.B);
-                            type.A = (float)Math.Ceiling(square / type.Count / type.B / 100) * 100;
 
-                            cut.Way = cut.WayTotal = (int)Math.Ceiling(way / 1000);
+                            //алгоритм определения обрезка
+                            var sizes = parts.SelectMany(p => p.PropsDict[100]);    //получаем габариты всех деталей как строки
+                            List<float> _sizes = new();                             //список габаритов в виде чисел кратных 100
+                            foreach (string size in sizes)
+                            {
+                                float _size = MainWindow.Parser(size);
+                                if (_size > 0) _sizes.Add((float)Math.Ceiling(_size / 100) * 100);
+                            }
+                            _sizes = _sizes.Distinct().OrderDescending().ToList();  //очищаем список от дубликатов и сортируем его
+
+                            float width = 0;                                        //ширина обрезка
+                            foreach (float _size in _sizes)                         
+                            {                                                       //располагаем габариты по ширине листа
+                                width += _size;                                     //до тех пор, пока полученной площади листа
+                                if (width * type.B * type.Count - square > 0)       //не хватит для обеспечений общей площади деталей
+                                {
+                                    type.A = width;                                 //таким образом определяем нужную ширину обрезка
+                                    break;
+                                }
+                            }
+
+                            cut.Way = (int)Math.Ceiling(way / 1000);
+                            cut.WayTotal = parts.Sum(p => p.Way * p.Count);
                             cut.Pinhole = (int)Math.Ceiling(pinholes);
-                            cut.Mass = cut.MassTotal = parts.Sum(p => p.Mass * p.Count);
-                                                        
+                            cut.Mass = type.Count * type.A * type.B * type.S * density / 1000000;
+                            cut.MassTotal = parts.Sum(p => p.Mass * p.Count);
+                            
                             LaserItem laser = new() { sheetSize = $"{type.A}X{type.B}", sheets = type.Count };
-                            laser.way = cut.WayTotal / laser.sheets;
+                            laser.way = cut.Way / laser.sheets;
                             laser.pinholes = cut.Pinhole / laser.sheets;
-                            laser.mass = cut.MassTotal / laser.sheets;
+                            laser.mass = cut.Mass / laser.sheets;
                             cut.Items?.Add(laser);
                             if (cut.Items?.Count > 0) cut.SumProperties(cut.Items);
 
