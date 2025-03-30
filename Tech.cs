@@ -19,7 +19,7 @@ namespace Metal_Code
 
         public Tech(string path) { ExcelFile = path; }
 
-        public string Run()
+        public string Run(bool createOffer)
         {
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
@@ -57,7 +57,7 @@ namespace Metal_Code
                 stream.Close();
 
                 //сначала формируем предварительный расчет, для этого создаем заготовки и работы
-                CreateExpressOffer();
+                if (createOffer) CreateExpressOffer();
 
                 //затем переопределяем материалы и толщины для формирования имен деталей
                 foreach (TechItem techItem in TechItems)
@@ -295,9 +295,9 @@ namespace Metal_Code
             return notify;
         }
 
-        private string CreateExpressOffer()
+        private void CreateExpressOffer()
         {
-            string notify = $"Создано {TechItems.Count} деталей.";
+            MainWindow.M.NewProject();
 
             //группируем детали по материалу и толщине
             var groups = TechItems.Where(d => d.Destiny != "").GroupBy(m => new { m.Material, m.Destiny });
@@ -440,8 +440,6 @@ namespace Metal_Code
             if (MainWindow.M.DetailControls[0].TypeDetailControls.Count > 0)
                 foreach (TypeDetailControl type in MainWindow.M.DetailControls[0].TypeDetailControls)
                     type.CreateSort();
-
-            return notify;
         }
     }
 
