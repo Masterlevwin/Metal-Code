@@ -7,6 +7,7 @@ using System.Data;
 using System;
 using OfficeOpenXml;
 using System.Windows;
+using System.Drawing;
 
 namespace Metal_Code
 {
@@ -57,7 +58,14 @@ namespace Metal_Code
                 stream.Close();
 
                 //сначала формируем предварительный расчет, для этого создаем заготовки и работы
-                if (createOffer) CreateExpressOffer();
+                if (createOffer)
+                {
+                    CreateExpressOffer();
+                    string message = "";
+                    foreach (TechItem techItem in TechItems)
+                        if (techItem.Sizes is null || techItem.Sizes == "") message += $"\n{techItem.NumberName}";
+                    if (message != "") MessageBox.Show(message.Insert(0, "Не удалось получить габариты следующих деталей:"));
+                }
 
                 //затем переопределяем материалы и толщины для формирования имен деталей
                 foreach (TechItem techItem in TechItems)
@@ -358,9 +366,9 @@ namespace Metal_Code
 
                             float square = 0,   //площадь деталей
                                     way = 0,    //путь резки
-                                pinholes = 0,   //проколы
                                 indent = 10;    //отступ
-                            
+                            int pinholes = 0;   //проколы
+
                             //рассчитываем количество листов заготовки, путь резки и проколы, заодно заполняем коллекцию деталей
                             foreach (var item in group)
                             {
@@ -372,7 +380,7 @@ namespace Metal_Code
                                             * MainWindow.Parser(item.Count);
                                     way += (MainWindow.Parser(properties[0]) + MainWindow.Parser(properties[1]) + indent)
                                             * 2 * MainWindow.Parser(item.Count);
-                                    pinholes += MainWindow.Parser(item.Count);
+                                    pinholes += (int)MainWindow.Parser(item.Count);
 
                                     Part part = new(item.NumberName, (int)MainWindow.Parser(item.Count))
                                     {
@@ -413,7 +421,7 @@ namespace Metal_Code
 
                             cut.Way = (int)Math.Ceiling(way / 1000);
                             cut.WayTotal = parts.Sum(p => p.Way * p.Count);
-                            cut.Pinhole = (int)Math.Ceiling(pinholes);
+                            cut.Pinhole = pinholes * 2;
                             cut.Mass = type.Count * type.A * type.B * type.S * density / 1000000;
                             cut.MassTotal = parts.Sum(p => p.Mass * p.Count);
                             
