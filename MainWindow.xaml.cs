@@ -4195,12 +4195,15 @@ namespace Metal_Code
             List<string> _heads = new() { "№", "№ чертежа", "Размеры", "Металл", "Толщина", "Кол-во деталей", "Маршрут" };
             for (int head = 0; head < _heads.Count; head++) requestsheet.Cells[2, head + 1].Value = _heads[head];
 
+            string message = "";
             for (int i = 0; i < _paths.Length; i++)
             {
                 requestsheet.Cells[i + 3, 1].Value = i + 1;
                 requestsheet.Cells[i + 3, 2].Value = Path.GetFileNameWithoutExtension(_paths[i]);
-                requestsheet.Cells[i + 3, 3].Value = GetSizes(_paths[i]);
+                if (Path.GetExtension(_paths[i]).ToLower() == ".dxf") requestsheet.Cells[i + 3, 3].Value = GetSizes(_paths[i]);
+                if ($"{requestsheet.Cells[i + 3, 3].Value}" == "") message += $"\n{requestsheet.Cells[i + 3, 2].Value}";
             }
+            if (message != "") MessageBox.Show(message.Insert(0, "Не удалось получить габариты следующих деталей:"));
 
             ExcelRange details = requestsheet.Cells[2, 1, _paths.Length + 2, 7];     //получаем таблицу деталей для оформления
 
@@ -4229,8 +4232,6 @@ namespace Metal_Code
         //------------Получение габаритов детали из dxf----------//
         private string GetSizes(string path)
         {
-            if (Path.GetExtension(path).ToLower() != ".dxf") return "";
-
             using DxfReader reader = new(path);
             CadDocument doc = reader.Read();
 
@@ -4947,8 +4948,6 @@ namespace Metal_Code
 
         //-------------Экспериметы и тесты-----------------------//
         #region
-
-
         private void TestMetod(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new()

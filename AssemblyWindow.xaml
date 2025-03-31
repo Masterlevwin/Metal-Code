@@ -60,14 +60,14 @@
             <TreeView.Resources>
                 <HierarchicalDataTemplate DataType="{x:Type self:Assembly}" ItemsSource="{Binding Particles}">
                     <StackPanel Orientation="Horizontal" MinHeight="20" Margin="10">
-                        <TextBox Text="{Binding Title}" MinWidth="100" MaxWidth="100" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите наименование сборки"/>
-                        <TextBox Text="{Binding Count}" Margin="10,0,0,0" MinWidth="40" MaxWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" TextChanged="SetAssemblyCount" ToolTip="Введите количество сборок"/>
-                        <Button Margin="20,0,0,0" Click="AddCurrentParts">
+                        <Button Click="AddCurrentParts">
                             <StackPanel Orientation="Horizontal" MaxHeight="20">
                                 <Image Source="/Images/assembly.png"/>
                                 <TextBlock Text="Добавить в эту сборку" Margin="5,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
+                        <TextBox Text="{Binding Title}" MinWidth="100" MaxWidth="100" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите наименование сборки" Margin="20,0,0,0"/>
+                        <TextBox Text="{Binding Count}" Margin="10,0,0,0" MinWidth="40" MaxWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" TextChanged="SetAssemblyCount" ToolTip="Введите количество сборок"/>
                         <Button Content="Х" Click="Remove" ToolTip="Удалить сборку" FontWeight="Bold" FontSize="12" BorderThickness="0" Margin="30,0,0,0"/>
                     </StackPanel>
                 </HierarchicalDataTemplate>

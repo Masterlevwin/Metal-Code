@@ -298,6 +298,7 @@ namespace Metal_Code
         private void CreateExpressOffer()
         {
             MainWindow.M.NewProject();
+            MainWindow.M.Comment.Text = "Предварительное КП";
 
             //группируем детали по материалу и толщине
             var groups = TechItems.Where(d => d.Destiny != "").GroupBy(m => new { m.Material, m.Destiny });
