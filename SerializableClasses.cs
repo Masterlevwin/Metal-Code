@@ -21,7 +21,10 @@ namespace Metal_Code
         public float Ratio = 1;
 
         [OptionalField]
-        public bool HasAssembly = false;    //это поле сохраняет ссылку на экспресс-изготовление
+        public bool IsExpressOffer = false;     //это поле сохраняет ссылку на предварительный расчет
+
+        [OptionalField]
+        public bool HasAssembly = false;        //это поле сохраняет ссылку на экспресс-изготовление
 
         [OptionalField]
         public string Comment = "";

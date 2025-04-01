@@ -27,7 +27,7 @@
     </Window.InputBindings>
 
     <Grid x:Name="MenuGrid">
-        <Menu Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" Padding="10,0,0,0" FontFamily="Leelawadee UI" DisplayMemberPath="{Binding CurrentManager.Name, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" VerticalAlignment="Top">
+        <Menu x:Name="MenuMain" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" Padding="10,0,0,0" FontFamily="Leelawadee UI" DisplayMemberPath="{Binding CurrentManager.Name, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" VerticalAlignment="Top">
             <MenuItem Header="_Файл">
                 <MenuItem Header="_Новый расчет" Command="{Binding NewProjectCommand}" InputGestureText="Ctrl+Q">
                     <MenuItem.Icon>

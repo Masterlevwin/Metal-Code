@@ -320,7 +320,33 @@ namespace Metal_Code
             return result;
         }
 
-        private bool hasAssembly;
+        private bool isExpressOffer;    //свойство, определяющее предварительный расчет
+        public bool IsExpressOffer
+        {
+            get => isExpressOffer;
+            set
+            {
+                isExpressOffer = value;
+                OnPropertyChanged(nameof(IsExpressOffer));
+                SetExpressOffer();
+            }
+        }
+
+        public void SetExpressOffer()
+        {
+            if (IsExpressOffer)
+            {
+                Comment.Text = "Предварительное КП";
+                MenuMain.Background = Brushes.Moccasin;
+            }
+            else
+            {
+                Comment.Text = "";
+                MenuMain.Background = Brushes.White;
+            }
+        }
+
+        private bool hasAssembly;       //свойство, определяющее экспресс-изготовление
         public bool HasAssembly
         {
             get => hasAssembly;
@@ -330,6 +356,7 @@ namespace Metal_Code
                 OnPropertyChanged(nameof(HasAssembly));
             }
         }
+
         private void SetExpress(object sender, RoutedEventArgs e)
         {
             if (!HasAssembly)
@@ -723,10 +750,6 @@ namespace Metal_Code
             ClearCalculate();   // очищаем расчет
             AddDetail();        // добавляем пустой блок детали
         }
-        private void ClearDetails(object sender, RoutedEventArgs e)     // метод очищения текущего расчета
-        {
-            NewProject();
-        }
         public void ClearDetails()         // метод удаления всех деталей и очищения текущего расчета
         {
             while (DetailControls.Count > 0) DetailControls[^1].Remove();
@@ -740,6 +763,7 @@ namespace Metal_Code
             Construct = 0;
             HasDelivery = false;
             CheckConstruct.IsChecked = false;
+            IsExpressOffer = false;
             HasAssembly = false;
             Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = Comment.Text = ConstructRatio.Text = AssemblyRatio.Text = "";
             ProductName.Text = $"Изделие";
@@ -840,7 +864,9 @@ namespace Metal_Code
 
             //затем ищем все КП согласно введенному номеру расчета или названию компании
             if (Search != "") offers = offers?.Where(o => (o.N is not null && o.N.ToLower().Contains(Search.ToLower()))
-                                            || (o.Company is not null && o.Company.ToLower().Contains(Search.ToLower()))).ToList();
+                                            || (o.Company is not null && o.Company.ToLower().Contains(Search.ToLower()))
+                                            || (o.Invoice is not null && o.Invoice.ToLower().Contains(Search.ToLower()))
+                                            || (o.Order is not null && o.Order.ToLower().Contains(Search.ToLower()))).ToList();
 
             if (offers?.Count == 0) return $"Расчетов по выбранным параметрам не найдено";
             else CurrentOffers = offers;
@@ -1461,7 +1487,8 @@ namespace Metal_Code
                 IsAgent = IsAgent,
                 HasDelivery = HasDelivery,
                 HasConstruct = CheckConstruct.IsChecked,
-                HasAssembly = HasAssembly
+                HasAssembly = HasAssembly,
+                IsExpressOffer = IsExpressOffer
             };
 
             product.Details = SaveDetails();
@@ -1635,6 +1662,7 @@ namespace Metal_Code
             IsAgent = ProductModel.Product.IsAgent;
             HasDelivery = ProductModel.Product.HasDelivery;
             HasAssembly = ProductModel.Product.HasAssembly;
+            IsExpressOffer = ProductModel.Product.IsExpressOffer;
 
             LoadDetails(ProductModel.Product.Details);
             if (ProductModel.Product.Assemblies?.Count > 0)
@@ -4227,6 +4255,8 @@ namespace Metal_Code
             workbook.SaveAs($"{Path.GetDirectoryName(_paths[0])}\\Заявка.xlsx");
 
             StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(_paths[0])}");
+
+            Process.Start("explorer.exe", $"{Path.GetDirectoryName(_paths[0])}\\Заявка.xlsx");
         }
 
         //------------Получение габаритов детали из dxf----------//

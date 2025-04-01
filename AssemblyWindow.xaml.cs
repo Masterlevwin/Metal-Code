@@ -82,7 +82,7 @@ namespace Metal_Code
             }
         }
 
-        private void SetAssemblyCount(object sender, TextChangedEventArgs e)
+        private void SetAssemblyCount(object sender, RoutedEventArgs e)
         {
             if (sender is TextBox box && (int)MainWindow.Parser(box.Text) > 0 && box.DataContext is Assembly assembly && assembly.Particles.Count > 0)
             {

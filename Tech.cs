@@ -7,7 +7,6 @@ using System.Data;
 using System;
 using OfficeOpenXml;
 using System.Windows;
-using System.Drawing;
 
 namespace Metal_Code
 {
@@ -306,7 +305,7 @@ namespace Metal_Code
         private void CreateExpressOffer()
         {
             MainWindow.M.NewProject();
-            MainWindow.M.Comment.Text = "Предварительное КП";
+            MainWindow.M.IsExpressOffer = true;
 
             //группируем детали по материалу и толщине
             var groups = TechItems.Where(d => d.Destiny != "").GroupBy(m => new { m.Material, m.Destiny });
