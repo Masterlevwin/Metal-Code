@@ -157,7 +157,7 @@ namespace Metal_Code
                 {
                     //создаем папку "Труборез" в директории Excel-файла
                     DirectoryInfo dirPipe = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Труборез");
-                    IEnumerable<string> files = SortExtension(dirPipe, dirMaterials, "igs", TechItems);
+                    SortExtension(dirPipe, dirMaterials, "igs", TechItems);
 
                     //удаляем найденные объекты заявки из общего списка
                     if (FoundItems.Count > 0) TechItems = TechItems.Except(FoundItems).ToList();
@@ -169,7 +169,7 @@ namespace Metal_Code
                 {
                     //создаем папку "Лазер" в директории Excel-файла
                     DirectoryInfo dirLaser = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Лазер");
-                    IEnumerable<string> files = SortExtension(dirLaser, dirMaterials, "dxf", TechItems);
+                    SortExtension(dirLaser, dirMaterials, "dxf", TechItems);
 
                     //удаляем найденные объекты заявки из общего списка
                     if (FoundItems.Count > 0) TechItems = TechItems.Except(FoundItems).ToList();
@@ -205,7 +205,7 @@ namespace Metal_Code
                     string nameFile = Path.GetFileNameWithoutExtension(file);
 
                     //находим совпадение TechItem и файла по номеру чертежа
-                    if (nameFile.Contains(techItem.NumberName))
+                    if (nameFile.Insert(nameFile.Length, " ").Contains(techItem.NumberName.Insert(techItem.NumberName.Length, " ")))
                     {
                         //находим сборочные чертежи на основе метки "СБ" и копируем их в корень директории работы
                         if (techItem.NumberName.Contains("СБ"))
@@ -235,8 +235,7 @@ namespace Metal_Code
                                             FoundItems.Add(techItem);           //файл найден
                                         }
                                         else MessageBox.Show($"Проверьте файлы с именами {isFounded.NumberName} и {techItem.NumberName}.\n" +
-                                            $"Из-за сходства имён они могли быть обработаны неверно.\n" +
-                                            $"Проверьте их по пути {file} и скопируйте вручную.");
+                                            $"Возможна ошибка!", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Exclamation);
                                     }
                                     else
                                     {
