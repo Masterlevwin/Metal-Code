@@ -135,14 +135,14 @@ namespace Metal_Code
                                 if (type.WorkControls[0].workType is CutControl cut && _item is not null)
                                 {
                                     cut.MassTotal = _item.Sum(w => w.Mass * w.Count);
-                                    cut.WayTotal = (float)Math.Ceiling(_item.Sum(w => w.Way * w.Count));
+                                    cut.WayTotal = _item.Sum(w => w.Way * w.Count);
                                     if (item.Key.metal.Contains("шлиф") || item.Key.metal.Contains("зер"))
                                     {
                                         cut.WayTotal *= 2;
                                         foreach (Part p in _item) p.Way *= 2;
                                     }
                                     foreach (LaserItem laser in item)
-                                        laser.way = (float)Math.Ceiling(cut.WayTotal / item.Count() / laser.sheets);
+                                        laser.way = cut.WayTotal / item.Count() / laser.sheets;
                                     cut.Items = item.ToList();
                                     cut.SumProperties(cut.Items);
                                     cut.PartDetails = _item.ToList();

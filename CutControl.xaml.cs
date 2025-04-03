@@ -31,7 +31,7 @@ namespace Metal_Code
             {
                 if (value != way)
                 {
-                    way = value;
+                    way = (float)Math.Ceiling(value);
                     OnPropertyChanged(nameof(Way));
                 }
             }
