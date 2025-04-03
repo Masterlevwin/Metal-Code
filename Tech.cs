@@ -59,11 +59,16 @@ namespace Metal_Code
                 //сначала формируем предварительный расчет, для этого создаем заготовки и работы
                 if (createOffer)
                 {
-                    CreateExpressOffer();
                     string message = "";
                     foreach (TechItem techItem in TechItems)
                         if (techItem.Sizes is null || techItem.Sizes == "") message += $"\n{techItem.NumberName}";
-                    if (message != "") MessageBox.Show(message.Insert(0, "Не удалось получить габариты следующих деталей:"));
+                    if (message != "") MessageBox.Show(message.Insert(0, "Не удалось создать быстрый расчет,\n" +
+                        "так как не удалось получить габариты следующих деталей:"));
+                    else
+                    {
+                        try { CreateExpressOffer(); }
+                        catch (Exception ex) { MessageBox.Show($"Не удалось создать быстрый расчет.\n{ex.Message}"); }
+                    }
                 }
 
                 //затем переопределяем материалы и толщины для формирования имен деталей
