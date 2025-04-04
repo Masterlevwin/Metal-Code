@@ -124,7 +124,7 @@ namespace Metal_Code
                         {
                             if (p.Square > 0 && p.Square < .1f) p.Square = .1f;       //расчетная площадь окраски должна быть не меньше 0,1 кв м
                                                                         //к деталям площадью менее 0,3 кв м добавляем стоимость 0,2 кв м за подвес
-                            if (p.Square >= .1f && p.Square < .3f) price += TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 5;
+                            if (p.Square >= .1f && p.Square < .3f) price += TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 10;
 
                             price += item.Price(p.Square, p.Part.Mass, p.Part.Count, work);
                         }
@@ -138,7 +138,7 @@ namespace Metal_Code
             else if (Ral != null && work.type.Square > 0 && work.type.Mass > 0)
             {
                 if (work.type.Square > 0 && work.type.Square < .1f) work.type.Square = .1f;
-                if (work.type.Square >= .05f && work.type.Square < .3f) price += TypeDict[$"{TypeDrop.SelectedItem}"] * work.type.Count / 5;
+                if (work.type.Square >= .1f && work.type.Square < .3f) price += TypeDict[$"{TypeDrop.SelectedItem}"] * work.type.Count / 10;
 
                 work.SetResult(price + Price(work.type.Square, work.type.Mass, work.type.Count, work));
             }
@@ -207,7 +207,7 @@ namespace Metal_Code
                                 _send = _work.Price * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
                             else                                                        // иначе добавляем часть от количества именно этой детали
                                 _send = (Price(p.Square, p.Part.Mass, p.Part.Count, p.work) + (p.Square >= .1f && p.Square < .3f ?
-                                    TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 5 : 0)) * _w.Ratio * _w.TechRatio / p.Part.Count;
+                                    TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 10 : 0)) * _w.Ratio * _w.TechRatio / p.Part.Count;
 
                             p.Part.Price += _send;
                             p.Part.PropsDict[54] = new() { $"{_send}", $"{p.Square}", $"{Ral}" };
