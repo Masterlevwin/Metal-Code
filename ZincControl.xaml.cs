@@ -98,14 +98,20 @@ namespace Metal_Code
             if (owner is not WorkControl work || work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
             if (metal.Name == "ст3" || metal.Name == "хк" || metal.Name == "09г2с")
-                work.SetResult(Mass * (work.type.S switch
+            {
+                float price = Mass * (work.type.S switch
                 {
                     <= 3 => 150,
                     <= 5 => 140,
                     <= 8 => 125,
                     _ => 110
-                }),
-                false);
+                });
+
+                // стоимость данной окраски должна быть не ниже минимальной
+                if (work.WorkDrop.SelectedItem is Work _work) price = price > 0 && price < _work.Price ? _work.Price : price;
+
+                work.SetResult(price, false);
+            }
             else MainWindow.M.StatusBegin($"Детали из {metal.Name} на оцинковку не отправляем!");
         }
 
@@ -125,15 +131,34 @@ namespace Metal_Code
                         p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{7}" };
                         if (p.Part.Description != null && !p.Part.Description.Contains(" + Ц ")) p.Part.Description += " + Ц ";
 
-                        float price = p.work.type.S switch
-                        {
-                            <= 3 => 150,
-                            <= 5 => 140,
-                            <= 8 => 125,
-                            _ => 110
-                        };
-                        p.Part.Price += p.Part.Mass * price;
-                        p.Part.PropsDict[64] = new() { $"{p.Part.Mass * price}" };
+                        int count = 0;      //счетчик общего количества деталей
+
+                        if (p.owner is ICut _cut && _cut.PartsControl != null) foreach (PartControl _p in _cut.PartsControl.Parts)
+                                foreach (ZincControl item in _p.UserControls.OfType<ZincControl>())
+                                    if (item.Mass > 0) count += _p.Part.Count;
+
+                        // стоимость всей работы должна быть не ниже минимальной
+                        foreach (WorkControl _w in p.work.type.WorkControls)            // находим цинкование среди работ и получаем её минималку
+                            if (_w.workType is ZincControl && _w.WorkDrop.SelectedItem is Work _work)
+                            {
+                                float _send;
+                                // если чистая стоимость работы ниже минимальной, к цене детали добавляем
+                                if (_w.Result / _w.Ratio / _w.TechRatio > 0 && _w.Result / _w.Ratio / _w.TechRatio <= _work.Price)
+                                    _send = _work.Price * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
+                                else                                                        // иначе добавляем часть от количества именно этой детали
+                                    _send = p.work.type.S switch
+                                    {
+                                        <= 3 => 150,
+                                        <= 5 => 140,
+                                        <= 8 => 125,
+                                        _ => 110
+                                    } * p.Part.Count * p.Part.Mass * _w.Ratio * _w.TechRatio / p.Part.Count;
+
+                                p.Part.Price += _send;
+                                p.Part.PropsDict[64] = new() { $"{_send}" };
+
+                                break;
+                            }
                     }
                 }
             }
