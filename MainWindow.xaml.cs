@@ -2380,7 +2380,14 @@ namespace Metal_Code
                         double _mass = Math.Ceiling(det.Detail.IsComplect ? type.Mass : type.Mass * type.Count);
 
                         statsheet.Cells[i + temp, 14].Value = $"{_mass}" +
-                            $" ({(type.CheckMetal.IsChecked == true ? (type.ExtraResult > 0 ? Math.Ceiling(type.ExtraResult / _mass) : met.MassPrice) : 0)}р)";
+                            $" ({(type.CheckMetal.IsChecked == true ? (type.ExtraResult > 0 ? Math.Ceiling(type.ExtraResult / _mass) :
+                            Math.Ceiling(type.S switch
+                            {
+                                < 14 => met.MassPrice,
+                                < 18 => met.MassPrice * 1.05f,
+                                _ => met.MassPrice * 1.15f,
+                            })
+                            ) : 0)}р)";
 
                         statsheet.Cells[i + beginBitrix, 10].Value = _mass; //"Количество материала"
                     }
@@ -4263,37 +4270,41 @@ namespace Metal_Code
         private string GetSizes(string path)
         {
             using DxfReader reader = new(path);
-            CadDocument doc = reader.Read();
-
-            if (doc.Entities.Count > 0)
+            try
             {
-                List<Line> lines = new();
-                foreach (var e in doc.Entities) if (e is Line line) lines.Add(line);
+                CadDocument doc = reader.Read();
 
-                var pointsStartX = lines.Select(p => p.StartPoint.X);
-                var pointsEndX = lines.Select(p => p.EndPoint.X);
-
-                if (pointsStartX.Any() && pointsEndX.Any())
+                if (doc.Entities.Count > 0)
                 {
-                    var pointsX = pointsStartX.Union(pointsEndX);
-                    double xMax = pointsX.Max();
-                    double xMin = pointsX.Min();
-                    double width = Math.Ceiling(xMax - xMin);
+                    List<Line> lines = new();
+                    foreach (var e in doc.Entities) if (e is Line line) lines.Add(line);
 
-                    var pointsStartY = lines.Select(p => p.StartPoint.Y);
-                    var pointsEndY = lines.Select(p => p.EndPoint.Y);
+                    var pointsStartX = lines.Select(p => p.StartPoint.X);
+                    var pointsEndX = lines.Select(p => p.EndPoint.X);
 
-                    if (pointsStartY.Any() && pointsEndY.Any())
+                    if (pointsStartX.Any() && pointsEndX.Any())
                     {
-                        var pointsY = pointsStartY.Union(pointsEndY);
-                        double yMax = pointsY.Max();
-                        double yMin = pointsY.Min();
-                        double height = Math.Ceiling(yMax - yMin);
+                        var pointsX = pointsStartX.Union(pointsEndX);
+                        double xMax = pointsX.Max();
+                        double xMin = pointsX.Min();
+                        double width = Math.Ceiling(xMax - xMin);
 
-                        return $"{width}x{height}";
+                        var pointsStartY = lines.Select(p => p.StartPoint.Y);
+                        var pointsEndY = lines.Select(p => p.EndPoint.Y);
+
+                        if (pointsStartY.Any() && pointsEndY.Any())
+                        {
+                            var pointsY = pointsStartY.Union(pointsEndY);
+                            double yMax = pointsY.Max();
+                            double yMin = pointsY.Min();
+                            double height = Math.Ceiling(yMax - yMin);
+
+                            return $"{width}x{height}";
+                        }
                     }
                 }
             }
+            catch { };
 
             return "";
         }
