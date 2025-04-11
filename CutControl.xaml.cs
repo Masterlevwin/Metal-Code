@@ -607,7 +607,7 @@ namespace Metal_Code
 
             if (Way == 0) Way = WayTotal;
 
-            if (MassTotal < 1) MassTotal = Mass;                // общий вес деталей не должен быть меньше 1 кг, иначе возникнет ошибка деления на 0
+            //if (MassTotal < 1) MassTotal = Mass;                // общий вес деталей не должен быть меньше 1 кг, иначе возникнет ошибка деления на 0
 
             work.type.SetCount(_items.Sum(s => s.sheets));      // устанавливаем общее количество порезанных листов
 
