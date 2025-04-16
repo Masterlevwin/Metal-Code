@@ -45,9 +45,16 @@ namespace Metal_Code
             [2] = .2f,
             [2.5] = .2f,
             [3] = 2,
-            [4] = 3,
-            [5] = 4,
-            [6] = 5,
+            [4] = 7,
+            [5] = 9,
+            [6] = 11,
+            [8] = 15,
+            [10] = 19,
+            [12] = 23,
+            [14] = 27,
+            [16] = 31,
+            [18] = 35,
+            [20] = 39
         };
 
         public readonly UserControl owner;
@@ -138,7 +145,7 @@ namespace Metal_Code
             if (work.WorkDrop.SelectedItem is not Work _work || work.type.MetalDrop.SelectedItem is not Metal metal) return 0;
 
             return DestinyDict.ContainsKey(work.type.S) ?
-                _work.Time * (DestinyDict[work.type.S] + SideRatio(_side) + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass)) : 0;
+                _work.Time * (DestinyDict[work.type.S] + (work.type.S > 3 ? 1.5f : 0) + SideRatio(_side) + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass)) : 0;
         }
 
         private float SideRatio(float side)         //метод определения коэффициента взависимости от длины вальцуемой стороны
@@ -203,9 +210,9 @@ namespace Metal_Code
         private void ShowManual(object sender, MouseWheelEventArgs e)
         {
             PopupRoll.IsOpen = true;
-            Manual.Text = $"Максимальная толщина – 2,5 мм." +
-                $"\r\nМинимальный диаметр – 150 мм." +
-                $"\r\nМаксимальный размер вальцуемой стороны – 1200 мм." +
+            Manual.Text = $"Максимальная толщина для малых вальцов – 2,5 мм, для больших - 20 мм." +
+                $"\r\nМинимальный диаметр для малых – 150 мм, для больших - 700 мм." +
+                $"\r\nМаксимальный размер вальцуемой стороны для малых – 1250 мм, для больщих - 2000 мм." +
                 $"\r\nВальцовка в кольцо сопровождается сваркой прихватками – по умолчанию." +
                 $"\r\nЕсли требуется сварка сплошным швом – добавлять сварку в расчете." +
                 $"\r\nПо требованию производства – создать шаблон на лазер.";

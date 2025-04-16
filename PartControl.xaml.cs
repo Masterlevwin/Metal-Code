@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace Metal_Code
 {
@@ -74,6 +75,15 @@ namespace Metal_Code
 
             if (Part.PropsDict[100].Count > 2) Dimensions = Part.PropsDict[100][2];     //если присутствует строка размеров, показать ее
             //данной проверкой мы избегаем исключения по индексу в случае, если загружаются старые расчеты (элемент PropsDict[100][2] был добавлен позже)
+
+            if (Part.PropsDict[100].Count > 1 && MainWindow.Parser(Part.PropsDict[100][0]) >= 1500 && MainWindow.Parser(Part.PropsDict[100][1]) >= 1500)
+            {
+                DimensionsText.Foreground = Brushes.Red;
+                MainWindow.M.Log += $"\nПроверьте габаритные размеры детали\n" +
+                    $"{Part.Title}:\n" +
+                    $"необходимо предусмотреть отступы от края листа\n" +
+                    $"или согласовать их остутствие с производством!\n";
+            }
         }
 
         private void ViewPopupDimensions(object sender, System.Windows.Input.MouseWheelEventArgs e)

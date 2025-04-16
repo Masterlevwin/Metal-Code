@@ -1794,17 +1794,28 @@ namespace Metal_Code
                 if (AssemblyWindow.A.Assemblies.Count > 0)
                     foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
                     {
+                        int rowAssembly = row;
+                        row++;
                         foreach (Particle particle in assembly.Particles)
                         {
                             Part? part = Parts.FirstOrDefault(p => p.Title == particle.Title);
-                            if (part is not null) particle.Price = part.Price * particle.Count;
+                            if (part is not null)
+                            {
+                                particle.Price = part.Price * particle.Count;
+                                worksheet.Cells[row, 5].Value = particle.Title;
+                                worksheet.Cells[row, 6].Value = particle.Count * assembly.Count;
+                                row++;
+                            }
                         }
                         assembly.Price = (float)Math.Ceiling(assembly.Particles.Sum(p => p.Price) * Ratio);
                         assembly.Total = assembly.Price * assembly.Count;
+
+                        worksheet.Cells[rowAssembly, 5, rowAssembly, 8].Style.Font.Bold = true;
+                        worksheet.Cells[rowAssembly, 5].Value = assembly.Title;
+                        worksheet.Cells[rowAssembly, 6].Value = assembly.Count;
+                        worksheet.Cells[rowAssembly, 7].Value = assembly.Price;
+                        worksheet.Cells[rowAssembly, 8].Value = assembly.Total;
                     }
-                DataTable assemblyTable = ToDataTable(AssemblyWindow.A.Assemblies);
-                worksheet.Cells[row, 5].LoadFromDataTable(assemblyTable, false);
-                row += assemblyTable.Rows.Count;
 
                 AssemblyWindow.A.CheckAssemblies();
 
@@ -4213,10 +4224,10 @@ namespace Metal_Code
             //оформляем статичные ячейки по умолчанию
             requestsheet.Cells[1, 1].Value = "Расшифровка работ: гиб - гибка, вальц - вальцовка, зен - зенковка, рез - резьба," +
                 " свар - сварка,\nокр - окраска, оц - оцинковка, грав - гравировка";
-            requestsheet.Cells[1, 1, 1, 7].Merge = true;
-            requestsheet.Cells[1, 1, 1, 7].Style.WrapText = true;
-            requestsheet.Cells[1, 1, 1, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            requestsheet.Cells[1, 1, 1, 7].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            requestsheet.Cells[1, 1, 1, 8].Merge = true;
+            requestsheet.Cells[1, 1, 1, 8].Style.WrapText = true;
+            requestsheet.Cells[1, 1, 1, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            requestsheet.Cells[1, 1, 1, 8].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
             requestsheet.Row(1).Height = 30;
             requestsheet.Cells[_paths.Length + 3, 5].Value = "Кол-во комплектов";
             requestsheet.Cells[_paths.Length + 3, 6].Value = 1;
@@ -4227,7 +4238,7 @@ namespace Metal_Code
             requestsheet.Cells[_paths.Length + 3, 5, _paths.Length + 3, 6].Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             //устанавливаем заголовки таблицы
-            List<string> _heads = new() { "№", "№ чертежа", "Размеры", "Металл", "Толщина", "Кол-во деталей", "Маршрут" };
+            List<string> _heads = new() { "№", "№ чертежа", "Размеры", "Металл", "Толщина", "Кол-во деталей", "Маршрут", "Давальч" };
             for (int head = 0; head < _heads.Count; head++) requestsheet.Cells[2, head + 1].Value = _heads[head];
 
             string message = "";
@@ -4240,7 +4251,7 @@ namespace Metal_Code
             }
             if (message != "") MessageBox.Show(message.Insert(0, "Не удалось получить габариты следующих деталей:"));
 
-            ExcelRange details = requestsheet.Cells[2, 1, _paths.Length + 2, 7];     //получаем таблицу деталей для оформления
+            ExcelRange details = requestsheet.Cells[2, 1, _paths.Length + 2, 8];     //получаем таблицу деталей для оформления
 
             //обводка границ и авторастягивание столбцов
             details.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
@@ -4249,8 +4260,8 @@ namespace Metal_Code
             details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             requestsheet.Cells.AutoFitColumns();
-            requestsheet.Cells[2, 1, 2, 7].Style.WrapText = true;
-            requestsheet.Cells[2, 1, 2, 7].Style.Font.Bold = true;
+            requestsheet.Cells[2, 1, 2, 8].Style.WrapText = true;
+            requestsheet.Cells[2, 1, 2, 8].Style.Font.Bold = true;
 
             //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
             requestsheet.PrinterSettings.FitToPage = true;

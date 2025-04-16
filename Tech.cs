@@ -48,7 +48,8 @@ namespace Metal_Code
                         $"{table.Rows[i].ItemArray[3]}",        //материал
                         $"{table.Rows[i].ItemArray[4]}",        //толщина
                         $"{(int)MainWindow.Parser($"{table.Rows[i].ItemArray[5]}") * countAssembly}",  //количество
-                        $"{table.Rows[i].ItemArray[6]}");       //маршрут
+                        $"{table.Rows[i].ItemArray[6]}",        //маршрут
+                        $"{table.Rows[i].ItemArray[7]}");       //давальческий материал      
 
                     TechItems.Add(techItem);
                 }
@@ -97,8 +98,8 @@ namespace Metal_Code
                 }
 
                 //получаем коллекцию уникальных строк на основе группировки по материалу и толщине
-                var dirMaterials = TechItems.GroupBy(m => new { m.Material, m.Destiny })
-                    .Select(g => $"{g.Key.Destiny} {g.Key.Material}");
+                var dirMaterials = TechItems.GroupBy(m => new { m.Material, m.Destiny, m.HasMaterial })
+                    .Select(g => $"{g.Key.Destiny} {g.Key.Material} {g.Key.HasMaterial}");
 
                 //получаем коллекцию, разбитую на группы по работам
                 var works = TechItems.GroupBy(w => w.Route);
@@ -222,7 +223,7 @@ namespace Metal_Code
                         {
                             //копируем исходный файл в нужный каталог с рабочим именем для нашего производства
                             foreach (var item in dirMaterials)
-                                if ($"{techItem.Destiny} {techItem.Material}" == item)
+                                if ($"{techItem.Destiny} {techItem.Material} {techItem.HasMaterial}" == item)
                                 {
                                     if (techItems == TechItems)
                                     {
@@ -463,9 +464,10 @@ namespace Metal_Code
         public string Destiny { get; set; }
         public string Count { get; set; }
         public string Route { get; set; }
+        public string HasMaterial { get; set; }
         public string? Path { get; set; }
 
-        public TechItem(string numberName, string sizes, string material, string destiny, string count, string route)
+        public TechItem(string numberName, string sizes, string material, string destiny, string count, string route, string hasMaterial)
         {
             NumberName = numberName;
             Sizes = sizes;
@@ -474,6 +476,8 @@ namespace Metal_Code
             Destiny = destiny;
             Count = count;
             Route = route;
+            if (hasMaterial.ToLower().Contains("дав")) HasMaterial = "Давальч";
+            else HasMaterial = "";
         }
     }
 }
