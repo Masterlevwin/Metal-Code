@@ -307,7 +307,7 @@ namespace Metal_Code
 
                 if (i == 0)
                 {
-                    Parts = PartList(tables);           // формируем список элементов PartControl
+                    Parts = PartList(tables, paths[i]); // формируем список элементов PartControl
                     SetImagesForParts(stream);          // устанавливаем поле Part.ImageBytes для каждой детали
                     PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
                     AddPartsTab();                      // добавляем вкладку в "Список нарезанных деталей"
@@ -334,7 +334,7 @@ namespace Metal_Code
                     // заполняем эту резку
                     if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is PipeControl _pipe)
                     {
-                        _pipe.Parts = _pipe.PartList(tables);
+                        _pipe.Parts = _pipe.PartList(tables, paths[i]);
                         _pipe.SetImagesForParts(stream);
                         _pipe.PartsControl = new(_pipe, _pipe.Parts);
                         _pipe.AddPartsTab();
@@ -359,9 +359,9 @@ namespace Metal_Code
             MainWindow.M.PartsTab.Items.Remove(TabItem);
         }
 
-        public List<PartControl> PartList(DataTableCollection? tables = null)
+        public List<PartControl> PartList(DataTableCollection? tables = null, string? path = null)
         {
-            if (tables is not null && $"{tables[0].Rows[0].ItemArray[0]}".Contains("ИН сечения")) return PartList(true, tables);
+            if (tables is not null && $"{tables[0].Rows[0].ItemArray[0]}".Contains("ИН сечения")) return PartList(true, tables, path);
 
             List<PartControl> _parts = new();
 
@@ -507,6 +507,19 @@ namespace Metal_Code
                     Items?.Add(item);
                 }
 
+                //устанавливаем толщину заготовки, если она равна нулю
+                if (work.type.S == 0 && path != null)
+                {
+                    Regex _destiny = new(@"x[+-]?((\d+\.?\d*)|(\.\d+))", RegexOptions.IgnoreCase);
+                    List<Match> matches = _destiny.Matches(path.ToLower().Replace('х', 'x')).ToList();
+                    if (matches.Count > 0) work.type.S = MainWindow.Parser(matches[^1].Value.Trim('x'));
+                }
+
+                //устанавливаем материал заготовки
+                foreach (Metal metal in work.type.MetalDrop.Items)
+                    if (path != null && metal.Name != null && path.ToLower().Contains(metal.Name))
+                        work.type.MetalDrop.SelectedItem = metal;
+
                 for (int j = 3; j < tables[0].Rows.Count; j++)
                 {
                     if ($"{tables[0].Rows[j].ItemArray[1]}" == " ") break;
@@ -518,14 +531,6 @@ namespace Metal_Code
                         Description = "ТР",
                         Accuracy = $"H12/h12 +-IT 12/2"
                     };
-
-                    //устанавливаем толщину заготовки, если она равна нулю
-                    if (work.type.S == 0)
-                    {
-                        Regex destinyEng = new(@"x[+-]?((\d+\.?\d*)|(\.\d+))", RegexOptions.IgnoreCase);
-                        List<Match> matchesEng = destinyEng.Matches(part.Title.ToLower().Replace('х', 'x')).ToList();
-                        if (matchesEng.Count > 0) work.type.S = MainWindow.Parser(matchesEng[^1].Value.Trim('x'));
-                    }
 
                     //определяем количество деталей
                     string? _count = tables[0].Rows[j].ItemArray[2]?.ToString();
@@ -591,7 +596,7 @@ namespace Metal_Code
             return _parts;
         }
 
-        public List<PartControl> PartList(bool b, DataTableCollection? tables = null)
+        public List<PartControl> PartList(bool b, DataTableCollection? tables = null, string? path = null)
         {
             List<PartControl> _parts = new();
 
@@ -652,19 +657,21 @@ namespace Metal_Code
                     }
                 }
 
-                if (PartDetails?.Count > 0)
+                //устанавливаем толщину заготовки, если она равна нулю
+                if (work.type.S == 0 && path != null)
                 {
-                    //устанавливаем толщину заготовки, если она равна нулю
-                    if (work.type.S == 0)
-                    {
-                        Regex destinyEng = new(@"x[+-]?((\d+\.?\d*)|(\.\d+))", RegexOptions.IgnoreCase);
-                        List<Match> matchesEng = destinyEng.Matches(PartDetails[0].Title.ToLower().Replace('х', 'x').Replace(',', '.')).ToList();
-                        if (matchesEng.Count > 0) work.type.S = MainWindow.Parser(matchesEng[^1].Value.Trim('x'));
-                    }
+                    Regex _destiny = new(@"x[+-]?((\d+\.?\d*)|(\.\d+))", RegexOptions.IgnoreCase);
+                    List<Match> _matches = _destiny.Matches(path.ToLower().Replace('х', 'x').Replace(',', '.')).ToList();
+                    if (_matches.Count > 0) work.type.S = MainWindow.Parser(_matches[^1].Value.Trim('x'));
                 }
 
                 float destiny = work.type.S;    //кэшируем ссылку на толщину заготовки, потому что в дальнейшем
                             //при установке сорта заготовки толщина сбрасывается в ноль, и ее нужно установить вновь
+
+                //устанавливаем материал заготовки
+                foreach (Metal metal in work.type.MetalDrop.Items)
+                    if (path != null && metal.Name != null && path.ToLower().Contains(metal.Name))
+                        work.type.MetalDrop.SelectedItem = metal;
 
                 //определяем вид заготовки
                 string _tube = $"{tables[0].Rows[1].ItemArray[1]}";

@@ -3667,7 +3667,7 @@ namespace Metal_Code
 
             worksheet.Column(8).Hidden = true;      //скрываем столбец с номером заказа
 
-            int plan = 150000;                      //сумма плана для продаж менеджера
+            int plan = 200000;                      //сумма плана для продаж менеджера
 
             worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 4].Value = "ИТОГО:";
             worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 5].Formula = "=SUM(totalS1)+SUM(totalS2)";
@@ -5068,5 +5068,10 @@ namespace Metal_Code
         }
         #endregion
 
+        private void OpenPdfWindow(object sender, RoutedEventArgs e)
+        {
+            PdfWindow pdfWindow = new();
+            pdfWindow.Show();
+        }
     }
 }
