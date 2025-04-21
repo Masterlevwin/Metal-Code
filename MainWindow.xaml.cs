@@ -2949,7 +2949,7 @@ namespace Metal_Code
             //сохраняем книгу в файл Excel
             if (offer is not null && offer.Order is not null && Directory.Exists(_path))    //если в параметре передан расчет, подразумевается, что заказ создан
             {                                                                               //и файл комплектации нужно сохранить в папке заказа
-                //UpdateOffer(offer);                                 //добавляем номер заказа в ячейки реестров
+                UpdateOffer(offer);                                 //добавляем номер заказа в ячейки реестров
                 string[] dirs = Directory.GetDirectories(_path);    //получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
                 foreach (string s in dirs)
                 {
@@ -2959,7 +2959,7 @@ namespace Metal_Code
                         if (files.Length > 0)
                         {
                             workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {CustomerDrop.Text} - комплектация.xlsx");
-                            //CreateRegistry(files[0], offer.Order);
+                            CreateRegistry(files[0], offer.Order);
 
                             StatusBegin($"Изменения в базе сохранены. Кроме того созданы файлы комплектации и списка задач в папке {Path.GetDirectoryName(files[0])}");
                             break;
@@ -3085,7 +3085,7 @@ namespace Metal_Code
                             //"Крайний срок"
                             tasksheet.Cells[temp, 3].Value = DateTime.UtcNow.AddDays(3).ToString("g");
                             //"Исполнитель"
-                            tasksheet.Cells[temp, 4].Value = $"Павел Березкин";
+                            tasksheet.Cells[temp, 4].Value = $"Руслан Ломакин";
                             //"Проект"
                             tasksheet.Cells[temp, 5].Value = "Труборез";
                             //"Время на выполнение задачи в секундах"
