@@ -30,6 +30,7 @@ using ACadSharp.Entities;
 using ACadSharp.Tables.Collections;
 using ACadSharp.Tables;
 using ACadSharp.Blocks;
+using Spire.Pdf.Graphics;
 
 namespace Metal_Code
 {
@@ -3752,10 +3753,10 @@ namespace Metal_Code
 
             double plan = Math.Ceiling((totalS1 - totalS1 / 1.3f) / 1.2f + (totalS2 - totalS2 / 1.3f) / 1.2f + (totalM1 - totalM1 / 1.15f) / 1.2f + (totalM2 - totalM2 / 1.15f));
             Plan.Text = $"{plan}";
-            if (plan >= 150000)
+            if (plan >= 200000)
             {
                 Plan.BorderBrush = Brushes.Green;
-                bonusOOO = Math.Ceiling(((totalS1 - totalS1 / 1.3f) / 1.2f + (totalS2 - totalS2 / 1.3f) / 1.2f + (totalM1 - totalM1 / 1.15f) / 1.2f + (totalM2 - totalM2 / 1.15f) - 150000) * 0.15f);
+                bonusOOO = Math.Ceiling(((totalS1 - totalS1 / 1.3f) / 1.2f + (totalS2 - totalS2 / 1.3f) / 1.2f + (totalM1 - totalM1 / 1.15f) / 1.2f + (totalM2 - totalM2 / 1.15f) - 200000) * 0.15f);
             }
             else Plan.BorderBrush = Brushes.Red;
 
@@ -4320,6 +4321,8 @@ namespace Metal_Code
             return "";
         }
 
+        public List<TechItem> TechItems = new();        //список полученных объектов из строк заявки
+
         //------------Сортировка файлов по папкам----------------//
         private void CreateTech(object sender, RoutedEventArgs e)
         {
@@ -4341,6 +4344,24 @@ namespace Metal_Code
                 StatusBegin(tech.Run(createOffer));
             }
             else StatusBegin($"Не выбрано ни одного файла");
+        }
+
+        public void PdfMigrate(string path)
+        {
+            StatusBegin(path);
+
+            char c = '\\';
+
+            if (Parts.Count > 0)
+                foreach (Part part in Parts)
+                {
+                    if (part.PdfPath != null && part.PdfPath.Contains(c))
+                    {
+                        string oldPath = part.PdfPath[(part.PdfPath.LastIndexOf(c) + 1)..];
+                        string newPath = Path.GetDirectoryName(Path.GetDirectoryName(path)) + "\\ТЗ\\" + oldPath;
+                        part.PdfPath = newPath;
+                    }
+                }
         }
 
         //------------Управление сборками------------------------//
@@ -5067,11 +5088,5 @@ namespace Metal_Code
             MessageBox.Show(message);
         }
         #endregion
-
-        private void OpenPdfWindow(object sender, RoutedEventArgs e)
-        {
-            PdfWindow pdfWindow = new();
-            pdfWindow.Show();
-        }
     }
 }

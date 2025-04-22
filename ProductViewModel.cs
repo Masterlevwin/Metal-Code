@@ -130,6 +130,7 @@ namespace Metal_Code
                               Product = fileService.Open(dialogService.FilePaths[0]);
                               MainWindow.M.LoadProduct();
                               MainWindow.M.StatusBegin($"Расчет {Product?.Order} открыт.");
+                              MainWindow.M.PdfMigrate(dialogService.FilePaths[0]);
                           }
                       }
                       catch (Exception ex)

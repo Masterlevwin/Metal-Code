@@ -85,6 +85,9 @@ namespace Metal_Code
         [OptionalField]
         public byte[]? ImageBytes;
 
+        [OptionalField]
+        public string? PdfPath;
+
         public Dictionary<int, List<string>> PropsDict = new();
 
         public Part(string? _name = null, int _count = 1, string? _accuracy = null)

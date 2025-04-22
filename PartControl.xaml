@@ -14,7 +14,7 @@
 
         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="60" Margin="5" MaxHeight="60">
             <TextBox Text="{Binding Title}" TextWrapping="Wrap" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="90" ToolTip="Наименование вырезанной детали" MaxWidth="90"/>
-            <Image x:Name="Picture" MouseWheel="ViewPopupDimensions" Loaded="SetPicture" Margin="5,0,0,0" MinHeight="60" MaxHeight="60" MinWidth="60" MaxWidth="60"/>
+            <Image x:Name="Picture" MouseWheel="ViewPopupDimensions" Loaded="SetPicture" Margin="5,0,0,0" MinHeight="60" MaxHeight="60" MinWidth="60" MaxWidth="60" MouseLeftButtonDown="OpenPlan"/>
             <Button Margin="5,0,0,0" VerticalAlignment="Top" Content="X" MinWidth="16" MinHeight="16" FontWeight="Bold" Padding="0" Click="RemovePart"/>
         </StackPanel>
         

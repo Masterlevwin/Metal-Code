@@ -103,11 +103,6 @@
                         <Image Source="/Images/convert.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Открыть окно просмотра PDF" Click="OpenPdfWindow">
-                    <MenuItem.Icon>
-                        <Image Source="/Images/delivery.png"/>
-                    </MenuItem.Icon>
-                </MenuItem>
             </MenuItem>
             <MenuItem Header="О программе">
                 <MenuItem Header="Руководство" Click="OpenExample"/>

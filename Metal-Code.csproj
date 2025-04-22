@@ -18,6 +18,7 @@
     <None Remove="Images\address.png" />
     <None Remove="Images\assembly.png" />
     <None Remove="Images\bends.png" />
+    <None Remove="Images\blueprint.png" />
     <None Remove="Images\change.png" />
     <None Remove="Images\check.png" />
     <None Remove="Images\comment.png" />
@@ -103,6 +104,7 @@
     <PackageReference Include="ExcelDataReader" Version="3.6.0" />
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.6.0" />
     <PackageReference Include="Flee" Version="2.0.0" />
+    <PackageReference Include="FreeSpire.PDF" Version="10.2.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.13" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.18" />
     <PackageReference Include="NPOI" Version="2.6.0" />
@@ -122,6 +124,7 @@
     <Resource Include="Images\address.png" />
     <Resource Include="Images\assembly.png" />
     <Resource Include="Images\bends.png" />
+    <Resource Include="Images\blueprint.png" />
     <Resource Include="Images\change.png" />
     <Resource Include="Images\check.png" />
     <Resource Include="Images\comment.png" />

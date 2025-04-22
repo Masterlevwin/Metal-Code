@@ -474,6 +474,10 @@ namespace Metal_Code
                                 //записываем полученные габариты и саму строку для их отображения в словарь свойств
                                 part.PropsDict[100] = new() { $"{tuple.Item1}", $"{tuple.Item2}", $"{tuple.Item1}x{tuple.Item2}" };
 
+                                if (MainWindow.M.TechItems.Count > 0)
+                                    foreach (TechItem item in MainWindow.M.TechItems)
+                                        if (part.Title.ToLower().Contains(item.NumberName.ToLower()))
+                                            part.PdfPath = item.PdfPath;
                                 _parts.Add(new(this, work, part));
                                 PartDetails?.Add(part);
                             }

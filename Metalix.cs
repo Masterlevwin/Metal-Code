@@ -86,6 +86,10 @@ namespace Metal_Code
                                     Way = (float)Math.Round(MainWindow.Parser($"{table.Rows[detail].ItemArray[11]}") / 1000, 2)
                                 };
                                 part.PropsDict[100] = new() { $"{table.Rows[detail].ItemArray[5]}", $"{table.Rows[detail].ItemArray[6]}", $"{table.Rows[detail].ItemArray[5]}x{table.Rows[detail].ItemArray[6]}" };
+                                if (MainWindow.M.TechItems.Count > 0)
+                                    foreach (TechItem item in MainWindow.M.TechItems)
+                                        if (part.Title.ToLower().Contains(item.NumberName.ToLower()))
+                                            part.PdfPath = item.PdfPath;
                                 MainWindow.M.Parts.Add(part);
                             }
 

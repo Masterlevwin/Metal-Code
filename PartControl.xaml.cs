@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace Metal_Code
@@ -239,6 +241,25 @@ namespace Metal_Code
                 cut.PartsControl?.partsList.Items.Refresh();
                 cut.PartDetails?.Remove(Part);
                 MainWindow.M.StatusBegin($"Деталь \"{Part.Title}\" удалена.");
+            }
+        }
+
+        private void OpenPlan(object sender, MouseButtonEventArgs e)
+        {
+            OpenPlan();
+        }
+
+        private void OpenPlan()
+        {
+            if (Part.PdfPath != null && File.Exists(Part.PdfPath))
+            {
+                PdfWindow.P.Title = Part.Title;
+                PdfWindow.P.OpenFile(Part.PdfPath);
+                PdfWindow.P.Show();
+            }
+            else
+            {
+                MainWindow.M.StatusBegin("Чертеж детали не найден");
             }
         }
     }

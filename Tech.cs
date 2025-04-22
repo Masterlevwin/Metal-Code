@@ -157,6 +157,8 @@ namespace Metal_Code
                         }
                     }
 
+                MainWindow.M.TechItems = TechItems;
+
                 //получаем коллекцию файлов "igs" в папке с Excel-файлом
                 IEnumerable<string> _igs = Directory.EnumerateFiles(Path.GetDirectoryName(ExcelFile), $"*.igs", SearchOption.TopDirectoryOnly);
                 if (_igs.Any())
@@ -227,7 +229,7 @@ namespace Metal_Code
                                 {
                                     if (techItems == TechItems)
                                     {
-                                        TechItem? isFounded = FoundItems.FirstOrDefault(x => x.Path == file);
+                                        TechItem? isFounded = FoundItems.FirstOrDefault(x => x.DxfPath == file);
                                         if (isFounded is null)
                                         {
                                             string destination = $"{techItem.Route}" == "" ?
@@ -237,7 +239,7 @@ namespace Metal_Code
                                                 + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route})" + $".{extension}";
 
                                             File.Copy(file, destination);
-                                            techItem.Path = file;
+                                            techItem.DxfPath = file;
                                             FoundItems.Add(techItem);           //файл найден
                                         }
                                         else MessageBox.Show($"Проверьте файлы с именами {isFounded.NumberName} и {techItem.NumberName}.\n" +
@@ -247,6 +249,7 @@ namespace Metal_Code
                                     {
                                         File.Copy(file, dirMain + "\\" + $"{item}".Trim() + "\\"
                                             + $"{techItem.NumberName} n{techItem.Count}" + $".{extension}");
+                                        techItem.PdfPath = file;
                                     }
                                 }
                             break;
@@ -465,7 +468,8 @@ namespace Metal_Code
         public string Count { get; set; }
         public string Route { get; set; }
         public string HasMaterial { get; set; }
-        public string? Path { get; set; }
+        public string? DxfPath { get; set; }
+        public string? PdfPath { get; set; }
 
         public TechItem(string numberName, string sizes, string material, string destiny, string count, string route, string hasMaterial)
         {
