@@ -30,7 +30,6 @@ using ACadSharp.Entities;
 using ACadSharp.Tables.Collections;
 using ACadSharp.Tables;
 using ACadSharp.Blocks;
-using Spire.Pdf.Graphics;
 
 namespace Metal_Code
 {
@@ -4348,8 +4347,6 @@ namespace Metal_Code
 
         public void PdfMigrate(string path)
         {
-            StatusBegin(path);
-
             char c = '\\';
 
             if (Parts.Count > 0)
