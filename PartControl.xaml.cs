@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -251,16 +252,19 @@ namespace Metal_Code
 
         private void OpenPlan()
         {
-            if (Part.PdfPath != null && File.Exists(Part.PdfPath))
+            try
             {
-                PdfWindow.P.Title = Part.Title;
-                PdfWindow.P.OpenFile(Part.PdfPath);
-                PdfWindow.P.Show();
+                if (Part.PdfPath != null && File.Exists(Part.PdfPath))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = Part.PdfPath,
+                        UseShellExecute = true // Использовать оболочку для открытия файла
+                    });
+                }
+                else MainWindow.M.StatusBegin("Чертеж детали не найден");
             }
-            else
-            {
-                MainWindow.M.StatusBegin("Чертеж детали не найден");
-            }
+            catch (Exception ex) { MainWindow.M.StatusBegin(ex.Message); }
         }
     }
 
