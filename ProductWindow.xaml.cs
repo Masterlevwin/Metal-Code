@@ -168,7 +168,9 @@ namespace Metal_Code
 
                         foreach (PartControl _part in Parts)
                         {
-                            if (partMain.Part.Title?[..$"{partMain.Part.Title}".ToLower().LastIndexOf('n')] == _part.Part.Title?[.._part.Part.Title.ToLower().LastIndexOf('n')])
+                            if (partMain.Part.Title != null && partMain.Part.Title.ToLower().Contains('n') &&
+                                _part.Part.Title != null && _part.Part.Title.ToLower().Contains('n') &&
+                                partMain.Part.Title?[..$"{partMain.Part.Title}".ToLower().LastIndexOf('n')] == _part.Part.Title?[.._part.Part.Title.ToLower().LastIndexOf('n')])
                             {
                                 if (_part.Part.PropsDict.Count > 0)
                                     foreach (int key in _part.Part.PropsDict.Keys) if (key < 50)
