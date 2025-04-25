@@ -436,12 +436,12 @@ namespace Metal_Code
             {
                 Price = S switch
                 {
-                    < 14 => metal.MassPrice,
-                    < 18 => metal.MassPrice * 1.05f,
-                    _ => metal.MassPrice * 1.15f,
+                    < 14 => metal.Name == "Лист металла" ? metal.MassPrice : metal.MassPrice * 1.3f,
+                    < 18 => metal.Name == "Лист металла" ? metal.MassPrice * 1.05f : metal.MassPrice * 1.3f * 1.05f,
+                    _ => metal.Name == "Лист металла" ? metal.MassPrice * 1.15f : metal.MassPrice * 1.3f * 1.15f,
                 };
             }
-            else if (S == 0) Price = metal.MassPrice;       //для кругов и квадратов
+            else if (S == 0) Price = metal.MassPrice * 1.3f;       //для кругов и квадратов
 
             if (det.Detail.IsComplect)
             {
