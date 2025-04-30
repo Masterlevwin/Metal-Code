@@ -210,10 +210,10 @@ namespace Metal_Code
                 foreach (string file in files)
                 {
                     //и на основе имени без расширения
-                    string nameFile = Path.GetFileNameWithoutExtension(file);
+                    string nameFile = Path.GetFileNameWithoutExtension(file).ToLower();
 
                     //находим совпадение TechItem и файла по номеру чертежа
-                    if (nameFile.Insert(nameFile.Length, " ").Contains(techItem.NumberName.Insert(techItem.NumberName.Length, " ")))
+                    if (nameFile.Insert(nameFile.Length, " ").Contains(techItem.NumberName.Insert(techItem.NumberName.Length, " ").ToLower()))
                     {
                         //находим сборочные чертежи на основе метки "СБ" и копируем их в корень директории работы
                         if (techItem.NumberName.Contains("СБ"))

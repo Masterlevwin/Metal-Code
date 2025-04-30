@@ -336,12 +336,14 @@ namespace Metal_Code
         {
             if (IsExpressOffer)
             {
-                Comment.Text = "Предварительное КП";
+                if (!Comment.Text.Contains("Предварительное КП"))
+                    Comment.Text.Insert(Comment.Text.Length, " Предварительное КП");
                 MenuMain.Background = Brushes.Moccasin;
             }
             else
             {
-                Comment.Text = "";
+                if (Comment.Text.Contains(" Предварительное КП"))
+                    Comment.Text.Replace(" Предварительное КП","");
                 MenuMain.Background = Brushes.White;
             }
         }
@@ -2009,8 +2011,17 @@ namespace Metal_Code
             worksheet.Cells[row + 8, 8].Value = "версия: " + version;
             worksheet.Cells[row + 8, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
 
+            //добавляем столбец с порядковыми номерами
             worksheet.InsertColumn(5, 1);
-            for (int i = 1; i < row - 7; i++) worksheet.Cells[i + 7, 5].Value = i;
+            int num = 1;
+            for (int i = 1; i < row - 7; i++)
+            {
+                if (worksheet.Cells[i + 7, 8].Value != null && $"{worksheet.Cells[i + 7, 8].Value}" != "")
+                {
+                    worksheet.Cells[i + 7, 5].Value = num;
+                    num++;
+                }
+            }
             worksheet.Cells[row, 5].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
             worksheet.Cells[6, 5].Value = "№";
             worksheet.Cells[6, 5, 7, 5].Merge = true;
@@ -2674,6 +2685,7 @@ namespace Metal_Code
             scoresheet.Cells["E1"].Value = "Ед. изм.";
 
             materials.Copy(scoresheet.Cells["G1"]);     //копируем стоимость материала из КП в файл для счета
+            
             for (int i = 0; i < extable.Rows; i++)
             {
                 if (float.TryParse($"{scoresheet.Cells[i + 2, 7].Value}", out float m)        //кусочек цены материала за 1 шт
@@ -2684,13 +2696,19 @@ namespace Metal_Code
             }
             scoresheet.Column(7).Hidden = true;
 
-
             for (int i = 0; i < row; i++)
             {
                 if (float.TryParse($"{scoresheet.Cells[i + 2, 3].Value}", out float p)) scoresheet.Cells[i + 2, 4].Value = Math.Round(p / 1.2f, 2);
                 scoresheet.Cells[i + 2, 5].Value = "шт";
             }
+
             ExcelRange details = scoresheet.Cells[1, 1, row + 1, 5];
+
+            for (int i = details.Rows; i > 0; i--)      //удаляем строки без цен - детали сборок
+            {
+                if (scoresheet.Cells[i, 3].Value is null || $"{scoresheet.Cells[i, 3].Value}" == "")
+                    scoresheet.DeleteRow(i);
+            }
 
             // ----- обводка границ и авторастягивание столбцов -----
 
@@ -3100,7 +3118,11 @@ namespace Metal_Code
                                 //"Название"
                                 tasksheet.Cells[temp, 1].Value += $"{CustomerDrop.Text}";
                                 //"Описание"
-                                if (w.workType is PaintControl _paint) tasksheet.Cells[temp, 2].Value = $"Окраска в {_paint.Ral}";
+                                if (w.workType is PaintControl _paint)
+                                {
+                                    tasksheet.Cells[temp, 2].Value = $"Окраска в {_paint.Ral}";
+                                    material += $"Заказ краски - {_paint.Ral}, ";
+                                }
                                 else if (w.workType is ExtraControl _extra) tasksheet.Cells[temp, 2].Value = $"{_extra.NameExtra}";
                                 else tasksheet.Cells[temp, 2].Value = $"{work.Name}";
                                 //"Крайний срок"
@@ -3117,7 +3139,10 @@ namespace Metal_Code
                                 temp++;
                             }
                             else if (w.workType is PaintControl paint && !$"{tasksheet.Cells[rowProd, 2].Value}".Contains($"Окраска в {paint.Ral}"))
+                            {
                                 tasksheet.Cells[rowProd, 2].Value += $", Окраска в {paint.Ral}";
+                                material += $"Заказ краски - {paint.Ral}, ";
+                            }
                             else if (w.workType is ExtraControl extra && !$"{tasksheet.Cells[rowProd, 2].Value}".Contains($"{extra.NameExtra}"))
                                 tasksheet.Cells[rowProd, 2].Value += $", {extra.NameExtra}";
                             else if (!$"{tasksheet.Cells[rowProd, 2].Value}".Contains($"{work.Name}"))
@@ -3130,7 +3155,7 @@ namespace Metal_Code
             if (material != "")
             {
                 //"Название"
-                tasksheet.Cells[temp, 1].Value = $"Закупка металла под заказ: {_order} {CustomerDrop.Text}";
+                tasksheet.Cells[temp, 1].Value = $"Закупка материала под заказ: {_order} {CustomerDrop.Text}";
                 //"Описание"
                 tasksheet.Cells[temp, 2].Value = material;
                 //"Крайний срок"
