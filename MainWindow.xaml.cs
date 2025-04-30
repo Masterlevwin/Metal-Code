@@ -743,6 +743,12 @@ namespace Metal_Code
 
             foreach (DetailControl d in DetailControls)
                 foreach (TypeDetailControl t in d.TypeDetailControls) t.PriceChanged();
+
+            var works = DetailControls.SelectMany(x => x.TypeDetailControls).SelectMany(x => x.WorkControls);
+
+            var workSorted = works.GroupBy(x => x.workType?.GetType());
+
+            DateProduction.Text = $"{workSorted.Count() * 5}";
         }
 
         //-------------Создание нового проекта-----------//

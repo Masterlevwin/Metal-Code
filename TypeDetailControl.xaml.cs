@@ -432,7 +432,9 @@ namespace Metal_Code
         {
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
 
-            if (metal.Name is not null && MainWindow.M.MetalDict[metal.Name].ContainsKey(S))
+            float destiny = MainWindow.M.CorrectDestiny(S);    //получаем расчетную толщину
+
+            if (metal.Name is not null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
             {
                 Price = S switch
                 {
@@ -594,16 +596,21 @@ namespace Metal_Code
 
         private void SetToolTipForResult(object sender, ToolTipEventArgs e)
         {
-            if (sender is TextBox box && MetalDrop.SelectedItem is Metal metal
-                && metal.Name is not null && MainWindow.M.MetalDict[metal.Name].ContainsKey(S))
+            if (sender is not TextBox box || TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
+
+            float destiny = MainWindow.M.CorrectDestiny(S);    //получаем расчетную толщину
+
+            if (metal.Name is not null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
             {
                 box.ToolTip = S switch
                 {
-                    < 14 => $"Стоимость материала, руб\n(цена металла - {metal.MassPrice} руб)",
-                    < 18 => $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(metal.MassPrice * 1.05f)} руб)",
-                    _ => $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(metal.MassPrice * 1.15f)} руб)"
+                    < 14 => $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(type.Name == "Лист металла" ? metal.MassPrice : metal.MassPrice * 1.3f)} руб)",
+                    < 18 => $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(type.Name == "Лист металла" ? metal.MassPrice * 1.05f : metal.MassPrice * 1.3f * 1.05f)} руб)",
+                    _ => $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(type.Name == "Лист металла" ? metal.MassPrice * 1.15f : metal.MassPrice * 1.3f * 1.15f)} руб)"
                 };
             }
+            else if (S == 0)       //для кругов и квадратов
+                box.ToolTip = $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(type.Name == "Лист металла" ? metal.MassPrice : metal.MassPrice * 1.3f)} руб)";
         }
 
         private void AddWork(object sender, RoutedEventArgs e)

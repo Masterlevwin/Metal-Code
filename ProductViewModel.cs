@@ -81,7 +81,10 @@ namespace Metal_Code
                   {
                       try
                       {
+                          string dateProduction = MainWindow.M.DateProduction.Text;
                           MainWindow.M.UpdateResult();
+                          MainWindow.M.DateProduction.Text = dateProduction;
+
                           if (!MainWindow.M.WarningSave()) return;
 
                           if (dialogService.SaveFileDialog() == true && dialogService.FilePaths != null)

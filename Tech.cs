@@ -209,11 +209,11 @@ namespace Metal_Code
                 //для этого перебираем файлы
                 foreach (string file in files)
                 {
-                    //и на основе имени без расширения
-                    string nameFile = Path.GetFileNameWithoutExtension(file).ToLower();
+                    //и на основе имени без расширения (заменяем неразрывные пробелы, очищаем и нормализуем, игнорируем регистр)
+                    string nameFile = Path.GetFileNameWithoutExtension(file).Replace("\u00A0", " ").Trim().Normalize().ToLower();
 
-                    //находим совпадение TechItem и файла по номеру чертежа
-                    if (nameFile.Insert(nameFile.Length, " ").Contains(techItem.NumberName.Insert(techItem.NumberName.Length, " ").ToLower()))
+                    //находим совпадение TechItem и файла по номеру чертежа (при этом заменяем неразрывные пробелы, очищаем и нормализуем, игнорируем регистр и добавляем пробел во избежании ошибки похожих названий)
+                    if (nameFile.Insert(nameFile.Length, " ").Contains(techItem.NumberName.Replace("\u00A0", " ").Trim().Normalize().ToLower().Insert(techItem.NumberName.Length, " ")))
                     {
                         //находим сборочные чертежи на основе метки "СБ" и копируем их в корень директории работы
                         if (techItem.NumberName.Contains("СБ"))
