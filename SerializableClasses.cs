@@ -32,6 +32,9 @@ namespace Metal_Code
         [OptionalField]
         public ObservableCollection<Assembly> Assemblies = new();
 
+        [OptionalField]
+        public float BonusRatio;
+
         public ObservableCollection<Detail> Details { get; set; } = new();
         public Product()
         {

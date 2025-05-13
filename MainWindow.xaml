@@ -265,6 +265,9 @@
                             </Button>
                             <TextBlock Text="Ваш менеджер:" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0"/>
                             <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" Width="150" Margin="10,0,0,0"/>
+                            <TextBlock Text="Бонус, %" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="60,0,0,0" MinWidth="40"/>
+                            <TextBox Text="{Binding BonusRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите процент наценки" TextChanged="SetBonusRatio" MinHeight="20" MinWidth="40" Margin="10,0,0,0"/>
+                            <TextBlock Text="{Binding Bonus, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0"/>
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" Margin="0,0,0,10" MaxHeight="30">
@@ -331,7 +334,7 @@
                                 <StackPanel x:Name="ReportStack" Orientation="Horizontal" Grid.Row="1" Margin="0,0,0,5">
                                     <TextBlock Text="Прибыль:" Margin="10,0,0,0" MinHeight="20" TextAlignment="Center" VerticalAlignment="Center"/>
                                     <TextBox x:Name="Plan" MinWidth="60" Margin="5,0,0,0" MinHeight="20" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2"/>
-                                    <TextBlock Text="Бонус % ООО:" Margin="10,0,0,0" MinHeight="20" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Бонус ООО:" Margin="10,0,0,0" MinHeight="20" TextAlignment="Center" VerticalAlignment="Center"/>
                                     <TextBox x:Name="BonusOOO" MinWidth="45" Margin="5,0,0,0" MinHeight="20" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True"/>
                                     <TextBlock Text="Бонус ИП и ПК:" Margin="10,0,0,0" MinHeight="20" TextAlignment="Center" VerticalAlignment="Center"/>
                                     <TextBox x:Name="BonusIP" MinWidth="45" Margin="5,0,0,0" MinHeight="20" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True"/>

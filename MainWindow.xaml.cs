@@ -430,6 +430,43 @@ namespace Metal_Code
                 OnPropertyChanged(nameof(Log));
             }
         }
+
+        private float bonus = 0;
+        public float Bonus
+        {
+            get => bonus;
+            set
+            {
+                if (value != bonus)
+                {
+                    bonus = value;
+                    OnPropertyChanged(nameof(Bonus));
+                }
+            }
+        }
+
+        private float bonusRatio = 0;
+        public float BonusRatio
+        {
+            get => bonusRatio;
+            set
+            {
+                if (value != bonusRatio)
+                {
+                    bonusRatio = value;
+                    OnPropertyChanged(nameof(BonusRatio));
+                }
+            }
+        }
+        private void SetBonusRatio(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox && int.TryParse(tBox.Text, out int ratio)) SetBonusRatio(ratio);
+        }
+        public void SetBonusRatio(float _ratio)
+        {
+            BonusRatio = _ratio;
+            TotalResult();
+        }
         #endregion
 
         public MainWindow()
@@ -720,7 +757,9 @@ namespace Metal_Code
 
             Result += Delivery * DeliveryRatio;
 
-            Result = (float)Math.Round(Result * Ratio, 2);
+            Bonus = Result * Ratio * ((100 + BonusRatio) / 100) - Result;
+
+            Result = Result * Ratio * ((100 + BonusRatio) / 100);
 
             if (Result > 0) Parts = PartsSource();
         }
@@ -1496,7 +1535,8 @@ namespace Metal_Code
                 HasDelivery = HasDelivery,
                 HasConstruct = CheckConstruct.IsChecked,
                 HasAssembly = HasAssembly,
-                IsExpressOffer = IsExpressOffer
+                IsExpressOffer = IsExpressOffer,
+                BonusRatio = BonusRatio,
             };
 
             product.Details = SaveDetails();
@@ -1671,6 +1711,7 @@ namespace Metal_Code
             HasDelivery = ProductModel.Product.HasDelivery;
             HasAssembly = ProductModel.Product.HasAssembly;
             IsExpressOffer = ProductModel.Product.IsExpressOffer;
+            SetBonusRatio(ProductModel.Product.BonusRatio);
 
             LoadDetails(ProductModel.Product.Details);
             if (ProductModel.Product.Assemblies?.Count > 0)
@@ -1815,7 +1856,7 @@ namespace Metal_Code
                                 row++;
                             }
                         }
-                        assembly.Price = (float)Math.Ceiling(assembly.Particles.Sum(p => p.Price) * Ratio);
+                        assembly.Price = (float)Math.Ceiling(assembly.Particles.Sum(p => p.Price) * Ratio * ((100 + BonusRatio) / 100));
                         assembly.Total = assembly.Price * assembly.Count;
 
                         worksheet.Cells[rowAssembly, 5, rowAssembly, 8].Style.Font.Bold = true;
@@ -1838,7 +1879,7 @@ namespace Metal_Code
                 {
                     for (int i = 0; i < LooseParts.Count; i++)
                     {
-                        LooseParts[i].Price = (float)Math.Ceiling(LooseParts[i].Price * Ratio);
+                        LooseParts[i].Price = (float)Math.Ceiling(LooseParts[i].Price * Ratio * ((100 + BonusRatio) / 100));
                         LooseParts[i].Total = LooseParts[i].Count * LooseParts[i].Price;
                     }
                     DataTable loosePartsTable = ToDataTable(LooseParts);
@@ -1851,7 +1892,7 @@ namespace Metal_Code
             {
                 for (int i = 0; i < Parts.Count; i++)
                 {
-                    Parts[i].Price = (float)Math.Ceiling(Parts[i].Price * Ratio);
+                    Parts[i].Price = (float)Math.Ceiling(Parts[i].Price * Ratio * ((100 + BonusRatio) / 100));
                     Parts[i].Total = Parts[i].Count * Parts[i].Price;
                 }
                 DataTable partTable = ToDataTable(Parts);
@@ -1865,7 +1906,7 @@ namespace Metal_Code
                 {
                     //в этом случае, пересчитываем цену и стоимость деталей, которые НЕ "Комплект деталей" (их цена и стоимость пересчитываются в блоке SaveDetails())
                     d.Detail.Total -= Construct / DetailControls.Count;
-                    d.Detail.Price = (float)Math.Ceiling(d.Detail.Total * Ratio / d.Detail.Count);
+                    d.Detail.Price = (float)Math.Ceiling(d.Detail.Total * Ratio * ((100 + BonusRatio) / 100) / d.Detail.Count);
                 }
 
             ObservableCollection<Detail> _details = new(ProductModel.Product.Details.Where(d => !d.IsComplect));
@@ -1900,14 +1941,14 @@ namespace Metal_Code
                 if (float.TryParse(ConstructRatio.Text, out float c) && c > 1)
                 {
                     worksheet.Cells[row, 6].Value = c;
-                    worksheet.Cells[row, 7].Value = (float)Math.Ceiling(Construct * Ratio / c);
+                    worksheet.Cells[row, 7].Value = (float)Math.Ceiling(Construct * Ratio * ((100 + BonusRatio) / 100) / c);
                 }
                 else
                 {
                     worksheet.Cells[row, 6].Value = 1;
-                    worksheet.Cells[row, 7].Value = (float)Math.Ceiling(Construct * Ratio);
+                    worksheet.Cells[row, 7].Value = (float)Math.Ceiling(Construct * Ratio * ((100 + BonusRatio) / 100));
                 }
-                worksheet.Cells[row, 8].Value = (float)Math.Ceiling(Construct * Ratio);
+                worksheet.Cells[row, 8].Value = (float)Math.Ceiling(Construct * Ratio * ((100 + BonusRatio) / 100));
                 row++;
             }
 
@@ -1915,8 +1956,8 @@ namespace Metal_Code
             {
                 worksheet.Cells[row, 5].Value = "Доставка";
                 worksheet.Cells[row, 6].Value = DeliveryRatio;
-                worksheet.Cells[row, 7].Value = (float)Math.Ceiling(Delivery * Ratio);
-                worksheet.Cells[row, 8].Value = (float)Math.Ceiling(DeliveryRatio * Delivery * Ratio);
+                worksheet.Cells[row, 7].Value = (float)Math.Ceiling(Delivery * Ratio * ((100 + BonusRatio) / 100));
+                worksheet.Cells[row, 8].Value = (float)Math.Ceiling(DeliveryRatio * Delivery * Ratio * ((100 + BonusRatio) / 100));
                 row++;
                 worksheet.Cells[row + 4, 2].Value = $"Доставка силами Исполнителя по адресу: {Adress.Text}.";
 
@@ -2556,6 +2597,7 @@ namespace Metal_Code
             if (_bkk != 1) statsheet.Cells[temp, 13].Value = $"КК-{_bkk / _bc}";
             if (_bpk > 1) statsheet.Cells[temp + 1, 13].Value = $"ПК-{_bpk / _bc}";
             if (Ratio != 1) statsheet.Cells[temp, 15].Value = $"ОК-{Ratio}";
+            if (Bonus > 0) statsheet.Cells[temp, 15].Value += $" Бонус-{Math.Ceiling(Bonus)} р";
 
 
             // ----- реестр Провэлд (Лист2 - "Реестр") -----
@@ -3034,6 +3076,7 @@ namespace Metal_Code
                         if (w.workType is CutControl cut)
                         {
                             if ((type.MetalDrop.Text.Contains("ст") && type.S >= 3) || (type.MetalDrop.Text.Contains("хк") && type.S < 3)) description = $"s{type.S}";
+                            else if (type.MetalDrop.Text.Contains("ст") && type.S < 3) description = $"s{type.S} гк";
                             else if (type.MetalDrop.Text.Contains("амг2")) description = $"al{type.S}";
                             else if (type.MetalDrop.Text.Contains("амг") || type.MetalDrop.Text.Contains("д16")) description = $"al{type.S} {type.MetalDrop.Text}";
                             else if (type.MetalDrop.Text.Contains("латунь")) description = $"br{type.S}";
