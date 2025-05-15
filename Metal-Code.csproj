@@ -46,6 +46,7 @@
     <None Remove="Images\new.png" />
     <None Remove="Images\new2.png" />
     <None Remove="Images\new3.png" />
+    <None Remove="Images\notbonus.png" />
     <None Remove="Images\open.png" />
     <None Remove="Images\open2.png" />
     <None Remove="Images\open3.png" />
@@ -150,6 +151,7 @@
     <Resource Include="Images\new.png" />
     <Resource Include="Images\new2.png" />
     <Resource Include="Images\new3.png" />
+    <Resource Include="Images\notbonus.png" />
     <Resource Include="Images\open.png" />
     <Resource Include="Images\open2.png" />
     <Resource Include="Images\open3.png" />

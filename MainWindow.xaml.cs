@@ -1156,13 +1156,13 @@ namespace Metal_Code
             }
         }
 
-        private void UpdateOffer(object sender, RoutedEventArgs e) { UpdateOffer(); }
-        private void UpdateOffer()          //метод сохранения изменений в расчете
+        private void UpdateOffer(object sender, RoutedEventArgs e) { UpdateOffer(OffersGrid); }
+        private void UpdateOffer(DataGrid dataGrid)          //метод сохранения изменений в расчете
         {
             //подключаемся к базе данных
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
             bool isAvalaible = db.Database.CanConnect();                    //проверяем, свободна ли база для подключения
-            if (isAvalaible && OffersGrid.SelectedItem is Offer offer)      //если база свободна, получаем выбранный расчет
+            if (isAvalaible && dataGrid.SelectedItem is Offer offer)      //если база свободна, получаем выбранный расчет
             {
                 try
                 {
@@ -1275,6 +1275,7 @@ namespace Metal_Code
             }
         }
 
+
         void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
             if (((PropertyDescriptor)e.PropertyDescriptor).IsBrowsable == false) e.Cancel = true;   //скрываем свойства с атрибутом [IsBrowsable]
@@ -1303,7 +1304,9 @@ namespace Metal_Code
             dg.FrozenColumnCount = 2;
         }
 
-        private void DataGrid_LoadingRow(object sender, DataGridRowEventArgs e)
+
+        //метод загрузки строк в таблицу ВСЕХ расчетов
+        private void OffersGrid_LoadingRow(object sender, DataGridRowEventArgs e)
         {
             Button btn = new()
             {
@@ -1338,7 +1341,7 @@ namespace Metal_Code
             if (OffersGrid.SelectedItem is Offer offer)
             {
                 offer.Order = offer.N;
-                UpdateOffer();
+                UpdateOffer(OffersGrid);
 
                 if (sender is Button btn)
                 {
@@ -1355,7 +1358,7 @@ namespace Metal_Code
             if (OffersGrid.SelectedItem is Offer offer)
             {
                 offer.Order = "";
-                UpdateOffer();
+                UpdateOffer(OffersGrid);
 
                 if (sender is Button btn)
                 {
@@ -1363,6 +1366,72 @@ namespace Metal_Code
                     btn.ToolTip = "Добавить в отчет";
                     btn.Click -= RemoveOfferFromReport;
                     btn.Click += AddOfferToReport;
+                }
+            }
+        }
+
+
+        //метод загрузки строк в таблицу ОТЧЕТНЫХ расчетов
+        private void ReportGrid_LoadingRow(object sender, DataGridRowEventArgs e)
+        {
+            Button btn = new()
+            {
+                Height = 20,
+                Width = 20,
+                BorderThickness = new Thickness(0),
+            };
+
+            if (e.Row.Item is Offer offer)
+            {
+                if (offer.Invoice is not null && offer.Invoice.Contains(" (без бонуса)"))
+                {
+                    btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/notbonus.png", UriKind.Relative)) };
+                    btn.ToolTip = "Добавить бонус";
+                    btn.Click += RemoveOfferFromBonus;
+                }
+                else
+                {
+                    btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/ruble.png", UriKind.Relative)) };
+                    btn.ToolTip = "Убрать бонус";
+                    btn.Click += AddOfferToBonus;
+                }
+            }
+
+            btn.MouseEnter += (sender, k) => { e.Row.IsSelected = true; };
+            btn.MouseLeave += (sender, k) => { e.Row.IsSelected = false; };
+            e.Row.Header = btn;
+        }
+
+        private void AddOfferToBonus(object sender, RoutedEventArgs e)
+        {
+            if (ReportGrid.SelectedItem is Offer offer)
+            {
+                offer.Invoice += " (без бонуса)";
+                UpdateOffer(ReportGrid);
+
+                if (sender is Button btn)
+                {
+                    btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/notbonus.png", UriKind.Relative)) };
+                    btn.ToolTip = "Добавить бонус";
+                    btn.Click -= AddOfferToBonus;
+                    btn.Click += RemoveOfferFromBonus;
+                }
+            }
+        }
+
+        private void RemoveOfferFromBonus(object sender, RoutedEventArgs e)
+        {
+            if (ReportGrid.SelectedItem is Offer offer && offer.Invoice is not null && offer.Invoice.Contains(" (без бонуса)"))
+            {
+                offer.Invoice = offer.Invoice.Replace(" (без бонуса)", "");
+                UpdateOffer(ReportGrid);
+
+                if (sender is Button btn)
+                {
+                    btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/ruble.png", UriKind.Relative)) };
+                    btn.ToolTip = "Убрать бонус";
+                    btn.Click -= RemoveOfferFromBonus;
+                    btn.Click += AddOfferToBonus;
                 }
             }
         }
@@ -1405,7 +1474,6 @@ namespace Metal_Code
                     break;
                 case ActionState.insert:
                     StatusBegin($"Подождите, идет отправка расчетов в основную базу...");
-                    InsertTb.Text = "Отправление...";
                     InsertBtn.IsEnabled = false;
                     UpdateBtn.IsEnabled = false;
                     break;
@@ -1472,7 +1540,6 @@ namespace Metal_Code
                     CreateWorker(UpdateOffersCollection, ActionState.update);
                     break;
                 case ActionState.insert:
-                    InsertTb.Text = "Отправить расчеты";
                     InsertBtn.IsEnabled = true;
                     InsertProgressBar.Visibility = Visibility.Collapsed;
                     message = $"{e.Result}";
@@ -3623,13 +3690,10 @@ namespace Metal_Code
 
                     if (_offers.Count == 0) return false;
                 }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin(ex.Message);
-                }
+                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }
 
-            List<string> _headers = new() { "дата", "№счета", "проект", "№заказа", "работа", "металл", "Итого", "№КП" };
+            List<string> _headers = new() { "дата", "№счета", "проект", "№заказа", "работа", "металл", "Итого", "№КП", "%", "бонус" };
             List<Offer> _agentFalse = new();    //ООО
             List<Offer> _agentTrue = new();     //ИП и ПК
 
@@ -3658,8 +3722,16 @@ namespace Metal_Code
                     worksheet.Cells[f + 3, 4].Value = _agentFalse[f].Order;
                     worksheet.Cells[f + 3, 5].Value = Math.Round(_agentFalse[f].Services, 2);
                     worksheet.Cells[f + 3, 6].Value = Math.Round(_agentFalse[f].Material, 2);
-                    worksheet.Cells[f + 3, 7].Value = Math.Round(_agentFalse[f].Amount, 2);
+
+                    float _amount = (float)Math.Round(_agentFalse[f].Amount, 2);
+                    worksheet.Cells[f + 3, 7].Value = _amount;
+
                     worksheet.Cells[f + 3, 8].Value = _agentFalse[f].N;
+
+                    float _bonus = Parser(ExtractBonus(_agentFalse[f]));
+                    worksheet.Cells[f + 3, 9].Value = _bonus;
+
+                    if (_bonus > 0) worksheet.Cells[f + 3, 10].Value = Math.Ceiling(_amount * _bonus / (100 + _bonus));
                 }
 
                 worksheet.Names.Add("totalS1", worksheet.Cells[3, 5, 2 + _agentFalse.Count, 5]);
@@ -3673,10 +3745,10 @@ namespace Metal_Code
                 worksheet.Names.Add("total1", worksheet.Cells[3, 7, 2 + _agentFalse.Count, 7]);
                 worksheet.Cells[3 + _agentFalse.Count, 7].Formula = "=SUM(total1)";
 
-                worksheet.Cells[3 + _agentFalse.Count, 5, 3 + _agentFalse.Count, 7].Style.Font.Bold = true;
-                worksheet.Cells[3, 1, 3 + _agentFalse.Count, 7].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-                worksheet.Cells[3, 1, 3 + _agentFalse.Count, 7].Style.Border.Right.Style = ExcelBorderStyle.Thin;
-                worksheet.Cells[3, 1, 3 + _agentFalse.Count, 7].Style.Border.BorderAround(ExcelBorderStyle.Medium);
+                worksheet.Cells[3 + _agentFalse.Count, 5, 3 + _agentFalse.Count, 10].Style.Font.Bold = true;
+                worksheet.Cells[3, 1, 3 + _agentFalse.Count, 10].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                worksheet.Cells[3, 1, 3 + _agentFalse.Count, 10].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                worksheet.Cells[3, 1, 3 + _agentFalse.Count, 10].Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
                 worksheet.Cells[3 + _agentFalse.Count, 9, 3 + _agentFalse.Count, 10].Style.Fill.PatternType = ExcelFillStyle.Solid;
                 worksheet.Cells[3 + _agentFalse.Count, 9, 3 + _agentFalse.Count, 10].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGreen);
@@ -3708,8 +3780,16 @@ namespace Metal_Code
                     worksheet.Cells[t + 6 + _agentFalse.Count, 4].Value = _agentTrue[t].Order;
                     worksheet.Cells[t + 6 + _agentFalse.Count, 5].Value = Math.Round(_agentTrue[t].Services, 2);
                     worksheet.Cells[t + 6 + _agentFalse.Count, 6].Value = Math.Round(_agentTrue[t].Material, 2);
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 7].Value = Math.Round(_agentTrue[t].Amount, 2);
+
+                    float _amount = (float)Math.Round(_agentTrue[t].Amount, 2);
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 7].Value = _amount;
+
                     worksheet.Cells[t + 6 + _agentFalse.Count, 8].Value = _agentTrue[t].N;
+
+                    float _bonus = Parser(ExtractBonus(_agentTrue[t]));
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 9].Value = _bonus;
+
+                    if (_bonus > 0) worksheet.Cells[t + 6 + _agentFalse.Count, 10].Value = Math.Ceiling(_amount * _bonus / (100 + _bonus));
                 }
 
                 worksheet.Names.Add("totalS2", worksheet.Cells[6 + _agentFalse.Count, 5, 5 + _agentFalse.Count + _agentTrue.Count, 5]);
@@ -3723,10 +3803,10 @@ namespace Metal_Code
                 worksheet.Names.Add("total2", worksheet.Cells[6 + _agentFalse.Count, 7, 5 + _agentFalse.Count + _agentTrue.Count, 7]);
                 worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 7].Formula = "=SUM(total2)";
 
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 5, 6 + _agentFalse.Count + _agentTrue.Count, 7].Style.Font.Bold = true;
-                worksheet.Cells[6 + _agentFalse.Count, 1, 6 + _agentFalse.Count + _agentTrue.Count, 7].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-                worksheet.Cells[6 + _agentFalse.Count, 1, 6 + _agentFalse.Count + _agentTrue.Count, 7].Style.Border.Right.Style = ExcelBorderStyle.Thin;
-                worksheet.Cells[6 + _agentFalse.Count, 1, 6 + _agentFalse.Count + _agentTrue.Count, 7].Style.Border.BorderAround(ExcelBorderStyle.Medium);
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 5, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Font.Bold = true;
+                worksheet.Cells[6 + _agentFalse.Count, 1, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                worksheet.Cells[6 + _agentFalse.Count, 1, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                worksheet.Cells[6 + _agentFalse.Count, 1, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
                 worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 9, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Fill.PatternType = ExcelFillStyle.Solid;
                 worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 9, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGreen);
@@ -3738,8 +3818,6 @@ namespace Metal_Code
                 worksheet.Names.Add("totalM2", worksheet.Cells[1, 1, 1, 1]);
                 worksheet.Names.Add("total2", worksheet.Cells[1, 1, 1, 1]);
             }
-
-            worksheet.Column(8).Hidden = true;      //скрываем столбец с номером заказа
 
             int plan = 200000;                      //сумма плана для продаж менеджера
 
@@ -3842,13 +3920,17 @@ namespace Metal_Code
             Salary.Text = $"{salary}";
         }
 
-        public static string ExtractAgent(Offer offer)
+        public static string ExtractBonus(Offer offer)
         {
-            string _char = string.Empty;
-            string substring = "\"IsAgent\"";
-            if (offer.Data != null && offer.Data.Contains(substring)) _char = $"{offer.Data[offer.Data.IndexOf(substring) + 10]}";
+            string bonus = "";
 
-            return _char;
+            if (offer.Data != null)
+            {
+                Product? product = OpenOfferData(offer.Data);
+                if (product is not null && product.BonusRatio > 0) return $"{product.BonusRatio}";
+            }
+
+            return bonus;
         }
 
         public bool EngineerReport(string path)         //метод создания отчета по выполненным расчетам
@@ -4539,7 +4621,7 @@ namespace Metal_Code
                 }
             }
 
-            UpdateOffer();                  //сохраняем изменения данных текущего расчета в базе
+            UpdateOffer(OffersGrid);                  //сохраняем изменения данных текущего расчета в базе
 
             Process.Start("explorer.exe", destinationDir);
 
