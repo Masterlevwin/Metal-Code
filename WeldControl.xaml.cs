@@ -108,6 +108,13 @@ namespace Metal_Code
                 [10] = 15,
                 [100] = 10
             },
+            ["aisi316"] = new Dictionary<float, float>()
+            {
+                [1] = 20,
+                [3] = 17,
+                [10] = 15,
+                [100] = 10
+            },
             ["амг2"] = new Dictionary<float, float>()
             {
                 [1] = 30,

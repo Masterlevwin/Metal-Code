@@ -3693,7 +3693,7 @@ namespace Metal_Code
                 catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }
 
-            List<string> _headers = new() { "дата", "№счета", "проект", "№заказа", "работа", "металл", "Итого", "№КП", "%", "бонус" };
+            List<string> _headers = new() { "дата", "№счета", "проект", "№заказа", "работа", "металл", "Итого", "%", "бонус", "№КП" };
             List<Offer> _agentFalse = new();    //ООО
             List<Offer> _agentTrue = new();     //ИП и ПК
 
@@ -3720,38 +3720,66 @@ namespace Metal_Code
                     worksheet.Cells[f + 3, 2].Value = _agentFalse[f].Invoice;
                     worksheet.Cells[f + 3, 3].Value = _agentFalse[f].Company;
                     worksheet.Cells[f + 3, 4].Value = _agentFalse[f].Order;
-                    worksheet.Cells[f + 3, 5].Value = Math.Round(_agentFalse[f].Services, 2);
-                    worksheet.Cells[f + 3, 6].Value = Math.Round(_agentFalse[f].Material, 2);
+                    
+                    float _services = (float)Math.Ceiling(_agentFalse[f].Services);
+                    worksheet.Cells[f + 3, 5].Value = _services;
 
-                    float _amount = (float)Math.Round(_agentFalse[f].Amount, 2);
+                    float _material = (float)Math.Ceiling(_agentFalse[f].Material);
+                    worksheet.Cells[f + 3, 6].Value = _material;
+
+                    float _amount = (float)Math.Ceiling(_agentFalse[f].Amount);
                     worksheet.Cells[f + 3, 7].Value = _amount;
 
-                    worksheet.Cells[f + 3, 8].Value = _agentFalse[f].N;
+                    float _bonusRatio = Parser(ExtractBonus(_agentFalse[f]));
+                    worksheet.Cells[f + 3, 8].Value = _bonusRatio;
 
-                    float _bonus = Parser(ExtractBonus(_agentFalse[f]));
-                    worksheet.Cells[f + 3, 9].Value = _bonus;
+                    if (_bonusRatio > 0)
+                    {
+                        worksheet.Cells[f + 3, 9].Value = Math.Ceiling(_amount * _bonusRatio / (100 + _bonusRatio));
+                        
+                        float _servicesBonus = (float)Math.Ceiling(_services * _bonusRatio / (100 + _bonusRatio));
+                        worksheet.Cells[f + 3, 11].Value = _servicesBonus;
+                        worksheet.Cells[f + 3, 13].Value = _services - _servicesBonus;
 
-                    if (_bonus > 0) worksheet.Cells[f + 3, 10].Value = Math.Ceiling(_amount * _bonus / (100 + _bonus));
+                        float _materialBonus = (float)Math.Ceiling(_material * _bonusRatio / (100 + _bonusRatio));
+                        worksheet.Cells[f + 3, 12].Value = _materialBonus;
+                        worksheet.Cells[f + 3, 14].Value = _material - _materialBonus;
+                    }
+
+                    worksheet.Cells[f + 3, 10].Value = _agentFalse[f].N;
                 }
 
                 worksheet.Names.Add("totalS1", worksheet.Cells[3, 5, 2 + _agentFalse.Count, 5]);
                 worksheet.Cells[3 + _agentFalse.Count, 5].Formula = "=SUM(totalS1)";
-                worksheet.Cells[3 + _agentFalse.Count, 9].Formula = "=(SUM(totalS1)-SUM(totalS1)/1.3)/1.2";
+                worksheet.Cells[3 + _agentFalse.Count, 15].Formula = "=(SUM(totalS1)-SUM(totalS1)/1.3)/1.2";
+                if (float.TryParse($"{worksheet.Cells[3 + _agentFalse.Count, 15].Value}", out float total) && total > 0)
+                    worksheet.Cells[3 + _agentFalse.Count, 15].Value = Math.Ceiling(total);
 
                 worksheet.Names.Add("totalM1", worksheet.Cells[3, 6, 2 + _agentFalse.Count, 6]);
                 worksheet.Cells[3 + _agentFalse.Count, 6].Formula = "=SUM(totalM1)";
-                worksheet.Cells[3 + _agentFalse.Count, 10].Formula = "=(SUM(totalM1)-SUM(totalM1)/1.15)/1.2";
+                worksheet.Cells[3 + _agentFalse.Count, 16].Formula = "=(SUM(totalM1)-SUM(totalM1)/1.15)/1.2";
+                if (float.TryParse($"{worksheet.Cells[3 + _agentFalse.Count, 16].Value}", out float _total) && _total > 0)
+                    worksheet.Cells[3 + _agentFalse.Count, 16].Value = Math.Ceiling(_total);
 
                 worksheet.Names.Add("total1", worksheet.Cells[3, 7, 2 + _agentFalse.Count, 7]);
                 worksheet.Cells[3 + _agentFalse.Count, 7].Formula = "=SUM(total1)";
+
+                worksheet.Names.Add("bonus1", worksheet.Cells[3, 9, 2 + _agentFalse.Count, 9]);
+                worksheet.Cells[3 + _agentFalse.Count, 9].Formula = "=SUM(bonus1)";
+
+                worksheet.Names.Add("services1", worksheet.Cells[3, 13, 2 + _agentFalse.Count, 13]);
+                worksheet.Cells[3 + _agentFalse.Count, 13].Formula = "=SUM(services1)";
+
+                worksheet.Names.Add("material1", worksheet.Cells[3, 14, 2 + _agentFalse.Count, 14]);
+                worksheet.Cells[3 + _agentFalse.Count, 14].Formula = "=SUM(material1)";
 
                 worksheet.Cells[3 + _agentFalse.Count, 5, 3 + _agentFalse.Count, 10].Style.Font.Bold = true;
                 worksheet.Cells[3, 1, 3 + _agentFalse.Count, 10].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
                 worksheet.Cells[3, 1, 3 + _agentFalse.Count, 10].Style.Border.Right.Style = ExcelBorderStyle.Thin;
                 worksheet.Cells[3, 1, 3 + _agentFalse.Count, 10].Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
-                worksheet.Cells[3 + _agentFalse.Count, 9, 3 + _agentFalse.Count, 10].Style.Fill.PatternType = ExcelFillStyle.Solid;
-                worksheet.Cells[3 + _agentFalse.Count, 9, 3 + _agentFalse.Count, 10].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGreen);
+                worksheet.Cells[3 + _agentFalse.Count, 15, 3 + _agentFalse.Count, 16].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                worksheet.Cells[3 + _agentFalse.Count, 15, 3 + _agentFalse.Count, 16].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGreen);
             }
             else
             {       //если вдруг за выбранный период не оказалось оплаченных счетов на ООО, устанавливаем общую сумму,
@@ -3775,41 +3803,78 @@ namespace Metal_Code
                     worksheet.Cells[t + 6 + _agentFalse.Count, 1].Value = _agentTrue[t].CreatedDate;
                     worksheet.Cells[t + 6 + _agentFalse.Count, 1].Style.Numberformat.Format = "d MMM";
                     worksheet.Cells[t + 6 + _agentFalse.Count, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 2].Value = _agentTrue[t].Invoice;
+
+                    string? invoice = _agentTrue[t].Invoice;
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 2].Value = invoice;
+
                     worksheet.Cells[t + 6 + _agentFalse.Count, 3].Value = _agentTrue[t].Company;
                     worksheet.Cells[t + 6 + _agentFalse.Count, 4].Value = _agentTrue[t].Order;
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 5].Value = Math.Round(_agentTrue[t].Services, 2);
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 6].Value = Math.Round(_agentTrue[t].Material, 2);
 
-                    float _amount = (float)Math.Round(_agentTrue[t].Amount, 2);
+                    float _services = (float)Math.Ceiling(_agentTrue[t].Services);
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 5].Value = _services;
+
+                    float _material = (float)Math.Ceiling(_agentTrue[t].Material);
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 6].Value = _material;
+
+                    float _amount = (float)Math.Ceiling(_agentTrue[t].Amount);
                     worksheet.Cells[t + 6 + _agentFalse.Count, 7].Value = _amount;
 
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 8].Value = _agentTrue[t].N;
+                    if (invoice != null && invoice.Contains("без бонуса", StringComparison.OrdinalIgnoreCase))
+                        worksheet.Cells[t + 6 + _agentFalse.Count, 17].Value = _amount;
 
-                    float _bonus = Parser(ExtractBonus(_agentTrue[t]));
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 9].Value = _bonus;
+                    float _bonusRatio = Parser(ExtractBonus(_agentTrue[t]));
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 8].Value = _bonusRatio;
 
-                    if (_bonus > 0) worksheet.Cells[t + 6 + _agentFalse.Count, 10].Value = Math.Ceiling(_amount * _bonus / (100 + _bonus));
+                    if (_bonusRatio > 0)
+                    {
+                        worksheet.Cells[t + 6 + _agentFalse.Count, 9].Value = Math.Ceiling(_amount * _bonusRatio / (100 + _bonusRatio));
+
+                        float _servicesBonus = (float)Math.Ceiling(_services * _bonusRatio / (100 + _bonusRatio));
+                        worksheet.Cells[t + 6 + _agentFalse.Count, 11].Value = _servicesBonus;
+                        worksheet.Cells[t + 6 + _agentFalse.Count, 13].Value = _services - _servicesBonus;
+
+                        float _materialBonus = (float)Math.Ceiling(_material * _bonusRatio / (100 + _bonusRatio));
+                        worksheet.Cells[t + 6 + _agentFalse.Count, 12].Value = _materialBonus;
+                        worksheet.Cells[t + 6 + _agentFalse.Count, 14].Value = _material - _materialBonus;
+                    }
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 10].Value = _agentTrue[t].N;
                 }
 
                 worksheet.Names.Add("totalS2", worksheet.Cells[6 + _agentFalse.Count, 5, 5 + _agentFalse.Count + _agentTrue.Count, 5]);
                 worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 5].Formula = "=SUM(totalS2)";
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 9].Formula = "=(SUM(totalS2)-SUM(totalS2)/1.3)/1.2";
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 15].Formula = "=(SUM(totalS2)-SUM(totalS2)/1.3)/1.2";
+                if (float.TryParse($"{worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 15].Value}", out float total) && total > 0)
+                    worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 15].Value = Math.Ceiling(total);
 
                 worksheet.Names.Add("totalM2", worksheet.Cells[6 + _agentFalse.Count, 6, 5 + _agentFalse.Count + _agentTrue.Count, 6]);
                 worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 6].Formula = "=SUM(totalM2)";
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 10].Formula = "=SUM(totalM2)-SUM(totalM2)/1.15";
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 16].Formula = "=SUM(totalM2)-SUM(totalM2)/1.15";
+                if (float.TryParse($"{worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 16].Value}", out float _total) && _total > 0)
+                    worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 16].Value = Math.Ceiling(_total);
 
                 worksheet.Names.Add("total2", worksheet.Cells[6 + _agentFalse.Count, 7, 5 + _agentFalse.Count + _agentTrue.Count, 7]);
                 worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 7].Formula = "=SUM(total2)";
+                
+                worksheet.Names.Add("bonus2", worksheet.Cells[6 + _agentFalse.Count, 9, 5 + _agentFalse.Count + _agentTrue.Count, 9]);
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 9].Formula = "=SUM(bonus2)";
+
+                worksheet.Names.Add("services2", worksheet.Cells[6 + _agentFalse.Count, 13, 5 + _agentFalse.Count + _agentTrue.Count, 13]);
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 13].Formula = "=SUM(services2)";
+
+                worksheet.Names.Add("material2", worksheet.Cells[6 + _agentFalse.Count, 14, 5 + _agentFalse.Count + _agentTrue.Count, 14]);
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 14].Formula = "=SUM(material2)";
+
+                worksheet.Names.Add("notbonus", worksheet.Cells[6 + _agentFalse.Count, 17, 5 + _agentFalse.Count + _agentTrue.Count, 17]);
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 17].Formula = "=SUM(notbonus)";
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 17].Calculate();
 
                 worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 5, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Font.Bold = true;
                 worksheet.Cells[6 + _agentFalse.Count, 1, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
                 worksheet.Cells[6 + _agentFalse.Count, 1, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Border.Right.Style = ExcelBorderStyle.Thin;
                 worksheet.Cells[6 + _agentFalse.Count, 1, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 9, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Fill.PatternType = ExcelFillStyle.Solid;
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 9, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGreen);
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 15, 6 + _agentFalse.Count + _agentTrue.Count, 16].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 15, 6 + _agentFalse.Count + _agentTrue.Count, 16].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGreen);
             }
             else
             {       //если вдруг за выбранный период не оказалось оплаченных счетов на ИП и ПК, устанавливаем общую сумму,
@@ -3825,27 +3890,52 @@ namespace Metal_Code
             worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 5].Formula = "=SUM(totalS1)+SUM(totalS2)";
             worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 6].Formula = "=SUM(totalM1)+SUM(totalM2)";
             worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 7].Formula = "=SUM(total1)+SUM(total2)";
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 9].Formula = "=SUM(bonus1)+SUM(bonus2)";
+
+            //определяем прибыль месяца
             worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Прибыль месяца:";
             worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Style.Font.Bold = true;
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Formula =
-                "=(SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15";
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Calculate();
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 1, 8 + _agentFalse.Count + _agentTrue.Count, 7].Style.Fill.PatternType = ExcelFillStyle.Solid;
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 1, 8 + _agentFalse.Count + _agentTrue.Count, 7].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightPink);
 
-            worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Доп бонус за ИП и ПК:";
-            worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(total2)*0.2-SUM(total2)/6";
-            worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Оклад:";
-            worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 2].Value = 30000;
-            worksheet.Cells[13 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Премия за план:";
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 11].Value = "Чист:";
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 12].Formula =
+                "=(SUM(services1)-SUM(services1)/1.3)/1.2+(SUM(services2)-SUM(services2)/1.3)/1.2+(SUM(material1)-SUM(material1)/1.15)/1.2+SUM(material2)-SUM(material2)/1.15";
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 12].Calculate();
+            
+            if (float.TryParse($"{worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 12].Value}", out float _total1) && _total1 > 0)
+            {
+                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 12].Value = Math.Ceiling(_total1);
+                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 13].Value = "Устар:";
+                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 14].Formula = "=(SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15";
+                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 14].Calculate();
+                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 14].Value = Math.Ceiling(Parser($"{worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 14].Value}"));
+                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(bonus1)+SUM(bonus2)+(SUM(services1)-SUM(services1)/1.3)/1.2+(SUM(services2)-SUM(services2)/1.3)/1.2+(SUM(material1)-SUM(material1)/1.15)/1.2+SUM(material2)-SUM(material2)/1.15";
+            }
+            else worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=(SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15";
+
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Calculate();
 
             if (float.TryParse($"{worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Value}", out float value))
             {
-                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Value = Math.Round(value, 2);
+                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Value = Math.Ceiling(value);
                 worksheet.Cells[13 + _agentFalse.Count + _agentTrue.Count, 2].Value = value >= plan ? 20000 : 0;
-                worksheet.Cells[14 + _agentFalse.Count + _agentTrue.Count, 2].Formula = value < plan ? "" :
-                    $"=(((SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15)-{plan})*0.15";
+                worksheet.Cells[14 + _agentFalse.Count + _agentTrue.Count, 2].Value = value < plan ? "" : (value - plan) * 0.15f;
             }
+
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 1, 8 + _agentFalse.Count + _agentTrue.Count, 14].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 1, 8 + _agentFalse.Count + _agentTrue.Count, 14].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightPink);
+
+            worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Доп бонус за ИП и ПК:";
+
+            if (Parser($"{worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 17].Value}") > 0)
+                worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=(SUM(total2)-SUM(notbonus))/30";
+            else worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(total2)/30";
+
+            if (float.TryParse($"{worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 2].Value}", out float _bonus) && _bonus > 0)
+                worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 2].Value = Math.Ceiling(_bonus);
+
+            worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Оклад:";
+            worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 2].Value = 30000;
+            worksheet.Cells[13 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Премия за план:";
 
             worksheet.Cells[14 + _agentFalse.Count + _agentTrue.Count, 1].Value = "%:";
             worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Аванс:";
@@ -3859,6 +3949,12 @@ namespace Metal_Code
             worksheet.Cells[19 + _agentFalse.Count + _agentTrue.Count, 1].Value = "К доплате:";
             worksheet.Cells[19 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(totalPlus)-SUM(totalMinus)";
             worksheet.Cells[19 + _agentFalse.Count + _agentTrue.Count, 2].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+
+            worksheet.Column(10).Hidden = true;
+            worksheet.Column(11).Hidden = true;
+            worksheet.Column(12).Hidden = true;
+            worksheet.Column(13).Hidden = true;
+            worksheet.Column(14).Hidden = true;
 
             ExcelRange tablePlus = worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 1, 14 + _agentFalse.Count + _agentTrue.Count, 2];
             tablePlus.Style.Fill.PatternType = ExcelFillStyle.Solid;
@@ -3878,7 +3974,7 @@ namespace Metal_Code
             table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             worksheet.Cells.AutoFitColumns();
-            workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
+            workbook.SaveAs(path[..path.LastIndexOf(".")] + ".xlsx");      //сохраняем отчет .xlsx
 
             return true;
         }
@@ -3900,14 +3996,21 @@ namespace Metal_Code
             float totalM2 = _agentTrue.Sum(m => m.Material);
             float total2 = _agentTrue.Sum(a => a.Amount);
 
-            double bonusOOO = 0, salary = 0;
+            if (_agentFalse.Count > 0)
+                foreach (Offer offer in _agentFalse)
+                {
+                    float bonusRatio = Parser(ExtractBonus(offer));
+                    float services = (float)Math.Ceiling(offer.Services - (offer.Services * bonusRatio / (100 + bonusRatio)));
+                }
+
+            double bonusOOO = 0, salary = 0, target = 200000;
 
             double plan = Math.Ceiling((totalS1 - totalS1 / 1.3f) / 1.2f + (totalS2 - totalS2 / 1.3f) / 1.2f + (totalM1 - totalM1 / 1.15f) / 1.2f + (totalM2 - totalM2 / 1.15f));
             Plan.Text = $"{plan}";
-            if (plan >= 200000)
+            if (plan >= target)
             {
                 Plan.BorderBrush = Brushes.Green;
-                bonusOOO = Math.Ceiling(((totalS1 - totalS1 / 1.3f) / 1.2f + (totalS2 - totalS2 / 1.3f) / 1.2f + (totalM1 - totalM1 / 1.15f) / 1.2f + (totalM2 - totalM2 / 1.15f) - 200000) * 0.15f);
+                bonusOOO = Math.Ceiling(((totalS1 - totalS1 / 1.3f) / 1.2f + (totalS2 - totalS2 / 1.3f) / 1.2f + (totalM1 - totalM1 / 1.15f) / 1.2f + (totalM2 - totalM2 / 1.15f) - target) * 0.15f);
             }
             else Plan.BorderBrush = Brushes.Red;
 
