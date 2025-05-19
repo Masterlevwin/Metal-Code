@@ -3731,20 +3731,17 @@ namespace Metal_Code
                     worksheet.Cells[f + 3, 7].Value = _amount;
 
                     float _bonusRatio = Parser(ExtractBonus(_agentFalse[f]));
+
                     worksheet.Cells[f + 3, 8].Value = _bonusRatio;
+                    worksheet.Cells[f + 3, 9].Value = Math.Ceiling(_amount * _bonusRatio / (100 + _bonusRatio));
 
-                    if (_bonusRatio > 0)
-                    {
-                        worksheet.Cells[f + 3, 9].Value = Math.Ceiling(_amount * _bonusRatio / (100 + _bonusRatio));
-                        
-                        float _servicesBonus = (float)Math.Ceiling(_services * _bonusRatio / (100 + _bonusRatio));
-                        worksheet.Cells[f + 3, 11].Value = _servicesBonus;
-                        worksheet.Cells[f + 3, 13].Value = _services - _servicesBonus;
+                    float _servicesBonus = (float)Math.Ceiling(_services * _bonusRatio / (100 + _bonusRatio));
+                    worksheet.Cells[f + 3, 11].Value = _servicesBonus;
+                    worksheet.Cells[f + 3, 13].Value = _services - _servicesBonus;
 
-                        float _materialBonus = (float)Math.Ceiling(_material * _bonusRatio / (100 + _bonusRatio));
-                        worksheet.Cells[f + 3, 12].Value = _materialBonus;
-                        worksheet.Cells[f + 3, 14].Value = _material - _materialBonus;
-                    }
+                    float _materialBonus = (float)Math.Ceiling(_material * _bonusRatio / (100 + _bonusRatio));
+                    worksheet.Cells[f + 3, 12].Value = _materialBonus;
+                    worksheet.Cells[f + 3, 14].Value = _material - _materialBonus;
 
                     worksheet.Cells[f + 3, 10].Value = _agentFalse[f].N;
                 }
@@ -3825,18 +3822,16 @@ namespace Metal_Code
                     float _bonusRatio = Parser(ExtractBonus(_agentTrue[t]));
                     worksheet.Cells[t + 6 + _agentFalse.Count, 8].Value = _bonusRatio;
 
-                    if (_bonusRatio > 0)
-                    {
-                        worksheet.Cells[t + 6 + _agentFalse.Count, 9].Value = Math.Ceiling(_amount * _bonusRatio / (100 + _bonusRatio));
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 9].Value = Math.Ceiling(_amount * _bonusRatio / (100 + _bonusRatio));
 
-                        float _servicesBonus = (float)Math.Ceiling(_services * _bonusRatio / (100 + _bonusRatio));
-                        worksheet.Cells[t + 6 + _agentFalse.Count, 11].Value = _servicesBonus;
-                        worksheet.Cells[t + 6 + _agentFalse.Count, 13].Value = _services - _servicesBonus;
+                    float _servicesBonus = (float)Math.Ceiling(_services * _bonusRatio / (100 + _bonusRatio));
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 11].Value = _servicesBonus;
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 13].Value = _services - _servicesBonus;
 
-                        float _materialBonus = (float)Math.Ceiling(_material * _bonusRatio / (100 + _bonusRatio));
-                        worksheet.Cells[t + 6 + _agentFalse.Count, 12].Value = _materialBonus;
-                        worksheet.Cells[t + 6 + _agentFalse.Count, 14].Value = _material - _materialBonus;
-                    }
+                    float _materialBonus = (float)Math.Ceiling(_material * _bonusRatio / (100 + _bonusRatio));
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 12].Value = _materialBonus;
+                    worksheet.Cells[t + 6 + _agentFalse.Count, 14].Value = _material - _materialBonus;
+
                     worksheet.Cells[t + 6 + _agentFalse.Count, 10].Value = _agentTrue[t].N;
                 }
 
@@ -3995,13 +3990,6 @@ namespace Metal_Code
             float totalS2 = _agentTrue.Sum(s => s.Services);
             float totalM2 = _agentTrue.Sum(m => m.Material);
             float total2 = _agentTrue.Sum(a => a.Amount);
-
-            if (_agentFalse.Count > 0)
-                foreach (Offer offer in _agentFalse)
-                {
-                    float bonusRatio = Parser(ExtractBonus(offer));
-                    float services = (float)Math.Ceiling(offer.Services - (offer.Services * bonusRatio / (100 + bonusRatio)));
-                }
 
             double bonusOOO = 0, salary = 0, target = 200000;
 
