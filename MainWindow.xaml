@@ -261,7 +261,9 @@
                             <TextBox x:Name="Comment" ToolTip="Введите комментарий" TextWrapping="Wrap" Width="255" Height="45" Margin="15,0,0,0"/>
                         </StackPanel>
 
-                        <Image Source="/Images/address.png" MaxWidth="20" Margin="260,140,0,0" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+                        <Button IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать расчет на доставку" Click="CreateOfferDelivery" HorizontalAlignment="Left" VerticalAlignment="Top" Padding="0" BorderThickness="0" Margin="260,140,0,0" MaxWidth="20">
+                            <Image Source="/Images/address.png"/>
+                        </Button>
                         <Image Source="/Images/comment2.png" MaxWidth="20" Margin="530,140,0,0" VerticalAlignment="Top" HorizontalAlignment="Left"/>
 
                         <StackPanel Orientation="Horizontal" MinHeight="25" Margin="0,200,0,0" VerticalAlignment="Top">
@@ -317,6 +319,9 @@
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Text="Отчет за" Margin="5,0,0,0" VerticalAlignment="Center"/>
                                     <ComboBox x:Name="ReportDrop" MinWidth="120" Margin="5,0,0,0" SelectionChanged="ReportChanged" />
+                                    <Button Click="CreateManagerReport" Margin="5,0,0,0" VerticalAlignment="Top" HorizontalAlignment="Right" MaxHeight="20">
+                                        <Image Source="/Images/report.png"/>
+                                    </Button>
                                 </StackPanel>
                             </TabItem.Header>
                             <Grid>

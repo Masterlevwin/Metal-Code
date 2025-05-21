@@ -112,7 +112,7 @@ namespace Metal_Code
             }
         }
 
-        private string version = "2.6.0";
+        private string version = "2.6.1";
         public string Version
         {
             get => version;
@@ -2838,6 +2838,13 @@ namespace Metal_Code
             workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Файл для счета " + Order.Text + "_" + CustomerDrop.Text + " на сумму " + $"{Result}" + ".xlsx");
         }
 
+        private void CreateOfferDelivery(object sender, RoutedEventArgs e)
+        {
+            if (!WarningSave()) return;
+            SaveProduct();
+            SaveOrRemoveOffer(true);
+        }
+
         //-КОМПЛЕКТАЦИЯ
         private void CreateComplect(string _path, Offer? offer = null)
         {
@@ -3634,16 +3641,15 @@ namespace Metal_Code
 
             try
             {
-                if (ProductModel.dialogService.SaveFileDialog() == true && ProductModel.dialogService.FilePaths != null)
+                SaveFileDialog saveFileDialog = new() { FileName = $"Отчет за {ReportCalendar.SelectedDates[^1]:MMMM}" };
+
+                if (saveFileDialog.ShowDialog() == true && saveFileDialog.FileName != null)
                 {
                     if (ReportCalendar.SelectedDates.Count < 2)
                     {
                         StatusBegin("Выберите даты, по которым следует сформировать отчет");
                         return;
                     }
-
-                    string _path = Path.GetDirectoryName(ProductModel.dialogService.FilePaths[0])
-                    + "\\" + Path.GetFileNameWithoutExtension(ProductModel.dialogService.FilePaths[0]);
 
                     if (sender is Button btn)
                     {
@@ -3652,10 +3658,10 @@ namespace Metal_Code
                         switch (btn.Content)
                         {
                             case "по заказам":
-                                _report = ManagerReport(ProductModel.dialogService.FilePaths[0]);
+                                _report = ManagerReport(saveFileDialog.FileName);
                                 break;
                             case "по расчетам":
-                                _report = EngineerReport(ProductModel.dialogService.FilePaths[0]);
+                                _report = EngineerReport(saveFileDialog.FileName);
                                 break;
                         }
                         if (_report) StatusBegin($"Создан отчёт {btn.Content} за {ReportCalendar.SelectedDates[^1]:MMMM}");
@@ -3663,44 +3669,69 @@ namespace Metal_Code
                     }
                 }
             }
-            catch (Exception ex) { ProductModel.dialogService.ShowMessage(ex.Message); }
+            catch (Exception ex) { MessageBox.Show(ex.Message); }
         }
 
-        public bool ManagerReport(string path)          //метод создания отчета по заказам
+        private void CreateManagerReport(object sender, RoutedEventArgs e)
+        {
+            if (!CurrentManager.IsAdmin && UserDrop.SelectedItem is Manager user && user != CurrentManager)
+            {
+                StatusBegin("Нельзя получить отчет другого менеджера! Выберите себя.");
+                return;
+            }
+
+            try
+            {
+                SaveFileDialog saveFileDialog = new() { FileName = $"Отчет за {ReportDrop.SelectedItem}" };
+
+                if (saveFileDialog.ShowDialog() == true && saveFileDialog.FileName != null)
+                {
+                    bool _report = ManagerReport(saveFileDialog.FileName, ReportOffers);
+                    if (_report) StatusBegin($"Создан отчёт менеджера за {ReportDrop.SelectedItem}");
+                    else StatusBegin($"Нет расчетов за выбранный период");
+                }
+            }
+            catch (Exception ex) { MessageBox.Show(ex.Message); }
+        }
+        
+        //метод создания отчета по заказам
+        public bool ManagerReport(string path, List<Offer>? reportOffers = null)
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
             using var workbook = new ExcelPackage();
             ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("Лист1");
 
-            List<Offer> _offers = new();
-
-            //подключаемся к базе данных
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
-            bool isAvalaible = db.Database.CanConnect();                    //проверяем, свободна ли база для подключения
-            if (isAvalaible && UserDrop.SelectedItem is Manager man)        //если база свободна, получаем выбранного менеджера
+            if (reportOffers is null)
             {
-                try
-                {   //получаем список КП за выбранный период, которые выложены в работу, т.е. оплачены и имеют номер заказа
-                    DateTime start = ReportCalendar.SelectedDates[0];
-                    DateTime end = ReportCalendar.SelectedDates[^1].AddDays(1);
+                //подключаемся к базе данных
+                using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
 
-                    _offers = db.Offers.Where(o => o.ManagerId == man.Id && o.Order != null && o.Order != "" &&
-                    o.CreatedDate >= start && o.CreatedDate <= end).ToList();
+                bool isAvalaible = db.Database.CanConnect();                    //проверяем, свободна ли база для подключения
+                if (isAvalaible && UserDrop.SelectedItem is Manager man)        //если база свободна, получаем выбранного менеджера
+                {
+                    try
+                    {   //получаем список КП за выбранный период, которые выложены в работу, т.е. оплачены и имеют номер заказа
+                        DateTime start = ReportCalendar.SelectedDates[0];
+                        DateTime end = ReportCalendar.SelectedDates[^1].AddDays(1);
 
-                    if (_offers.Count == 0) return false;
+                        reportOffers = db.Offers.Where(o => o.ManagerId == man.Id && o.Order != null && o.Order != "" &&
+                        o.CreatedDate >= start && o.CreatedDate <= end).ToList();
+
+                        if (reportOffers.Count == 0) return false;
+                    }
+                    catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
                 }
-                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message); }
             }
 
             List<string> _headers = new() { "дата", "№счета", "проект", "№заказа", "работа", "металл", "Итого", "%", "бонус", "№КП" };
             List<Offer> _agentFalse = new();    //ООО
             List<Offer> _agentTrue = new();     //ИП и ПК
 
-            if (_offers.Count > 0)
+            if (reportOffers?.Count > 0)
             {
-                _agentFalse = _offers.Where(o => o.Agent == false).ToList();
-                _agentTrue = _offers.Where(o => o.Agent == true).ToList();
+                _agentFalse = reportOffers.Where(o => o.Agent == false).ToList();
+                _agentTrue = reportOffers.Where(o => o.Agent == true).ToList();
             }
 
             if (_agentFalse.Count > 0)
@@ -3969,7 +4000,7 @@ namespace Metal_Code
             table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             worksheet.Cells.AutoFitColumns();
-            workbook.SaveAs(path[..path.LastIndexOf(".")] + ".xlsx");      //сохраняем отчет .xlsx
+            workbook.SaveAs(path + ".xlsx");      //сохраняем отчет .xlsx
 
             return true;
         }
@@ -4101,7 +4132,7 @@ namespace Metal_Code
             row.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             worksheet.Cells.AutoFitColumns();
-            workbook.SaveAs(path.Remove(path.LastIndexOf(".")) + ".xlsx");      //сохраняем отчет .xlsx
+            workbook.SaveAs(path + ".xlsx");      //сохраняем отчет .xlsx
 
             return true;
         }
@@ -4624,7 +4655,11 @@ namespace Metal_Code
         //------------Запуск в производство----------------------//
         private void LaunchToWork(object sender, RoutedEventArgs e)
         {
-            if (OffersGrid.SelectedItem is Offer offer) MessageBox.Show(LaunchToWork(offer));
+            if (OffersGrid.SelectedItem is Offer offer)
+            {
+                try { MessageBox.Show(LaunchToWork(offer)); }
+                catch (Exception ex) { MessageBox.Show(ex.Message); }
+            }
         }
         private string LaunchToWork(Offer offer)
         {
@@ -4752,7 +4787,6 @@ namespace Metal_Code
                 }
             }
         }
-
 
         public float CorrectDestiny(float _destiny)     //метод определения расчетной толщины
         {
@@ -5332,5 +5366,6 @@ namespace Metal_Code
             MessageBox.Show(message);
         }
         #endregion
+
     }
 }
