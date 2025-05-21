@@ -67,12 +67,14 @@ namespace Metal_Code
 
         public void OnPriceChanged()
         {
+            float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
+
             if (work.WorkDrop.SelectedItem is not Work _work
                 || work.type.MetalDrop.SelectedItem is not Metal _metal
-                || !DestinyDict.ContainsKey(work.type.S)) return;
+                || !DestinyDict.ContainsKey(destiny)) return;
       
             work.SetResult(_work.Price +                    //минимальная стоимость работы +
-                (_work.Time + DestinyDict[work.type.S]      //(минимальное время работы + коэф за толщину
+                (_work.Time + DestinyDict[destiny]          //(минимальное время работы + коэф за толщину
                 + MainWindow.M.MetalRatioDict[_metal]       //+ коэф за металл
                 + MainWindow.MassRatio(work.type.Mass))     //+ коэф за вес заготовки)
             * (UsedAssistant ? 1.5f : 1) * 2000 / 60        //* коэф за помощника
