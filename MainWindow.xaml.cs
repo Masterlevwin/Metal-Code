@@ -4412,7 +4412,7 @@ namespace Metal_Code
         }
 
         //------------Смена темы----------------------------------//
-        private static void ThemeChange(string style)
+        public static void ThemeChange(string style)
         {
             // определяем путь к файлу ресурсов
             Uri? uri = new("Themes/" + style + ".xaml", UriKind.Relative);

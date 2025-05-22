@@ -425,6 +425,8 @@ namespace Metal_Code
         {
             ExtraResult = 0;
             ResultText.IsReadOnly = true;
+            MetalDrop.BorderThickness = new Thickness(1);
+
             MassCalculate();
         }
 

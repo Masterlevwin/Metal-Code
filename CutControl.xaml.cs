@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Runtime.Serialization;
+using System.Windows.Media;
 
 namespace Metal_Code
 {
@@ -532,14 +533,23 @@ namespace Metal_Code
 
                 if ($"{table.Rows[i].ItemArray[8]}" == "Материал")
                 {
+                    bool isFounded = false;
+
                     foreach (Metal metal in work.type.MetalDrop.Items) if (metal.Name == $"{table.Rows[i].ItemArray[9]}")
                         {
                             work.type.MetalDrop.SelectedItem = metal;
+                            isFounded = true;
                             if (PartsControl != null && PartsControl.Parts.Count > 0)
                                 foreach (PartControl p in PartsControl.Parts)
                                     p.Part.Metal = metal.Name;
                             break;
-                        }   
+                        }
+
+                    if (!isFounded)
+                    {
+                        work.type.MetalDrop.BorderThickness = new Thickness(2);
+                        MessageBox.Show($"Материал из раскладки НЕ определён!\nУстановлен по умолчанию - ст3.", "Предупреждение!", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+                    }
                 }
 
                 if ($"{table.Rows[i].ItemArray[4]}" == "Толщина (mm)")
