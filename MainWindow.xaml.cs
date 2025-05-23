@@ -4014,28 +4014,53 @@ namespace Metal_Code
             List<Offer> _agentFalse = ReportOffers.Where(o => o.Agent == false).ToList();   //ООО
             List<Offer> _agentTrue = ReportOffers.Where(o => o.Agent == true).ToList();     //ИП и ПК
 
-            float totalS1 = _agentFalse.Sum(s => s.Services);
-            float totalM1 = _agentFalse.Sum(m => m.Material);
-            float total1 = _agentFalse.Sum(a => a.Amount);
+            float totalS1 = 0, totalM1 = 0, totalS2 = 0, totalM2 = 0, bonus1 = 0, bonus2 = 0, notbonus = 0;
 
-            float totalS2 = _agentTrue.Sum(s => s.Services);
-            float totalM2 = _agentTrue.Sum(m => m.Material);
-            float total2 = _agentTrue.Sum(a => a.Amount);
+            string pattern = "\"BonusRatio\"\\s*:\\s*([\\d.]+)";    //регулярное выражение, для поска бонусного процента
+
+            foreach (Offer offer in _agentFalse)
+            {
+                if (offer.Data != null)
+                {
+                    int bonusRatio = 0;
+                    Match match = Regex.Match(offer.Data, pattern); //поиск совпадений
+                    if (match.Success) bonusRatio = (int)Parser(match.Groups[1].Value);  //извлечение найденного числа
+                    totalS1 += offer.Services - (offer.Services * bonusRatio / (100 + bonusRatio));
+                    totalM1 += offer.Material - (offer.Material * bonusRatio / (100 + bonusRatio));
+                    bonus1 += offer.Amount * bonusRatio / (100 + bonusRatio);
+                }
+            }
+
+            foreach (Offer offer in _agentTrue)
+            {
+                if (offer.Invoice != null && offer.Invoice.Contains("без бонуса", StringComparison.OrdinalIgnoreCase))
+                    notbonus += offer.Amount;
+
+                if (offer.Data != null)
+                {
+                    int bonusRatio = 0;
+                    Match match = Regex.Match(offer.Data, pattern); //поиск совпадений
+                    if (match.Success) bonusRatio = (int)Parser(match.Groups[1].Value);  //извлечение найденного числа
+                    totalS2 += offer.Services - (offer.Services * bonusRatio / (100 + bonusRatio));
+                    totalM2 += offer.Material - (offer.Material * bonusRatio / (100 + bonusRatio));
+                    bonus2 += offer.Amount * bonusRatio / (100 + bonusRatio);
+                }
+            }
 
             double bonusOOO = 0, salary = 0, target = 200000;
 
-            double plan = Math.Ceiling((totalS1 - totalS1 / 1.3f) / 1.2f + (totalS2 - totalS2 / 1.3f) / 1.2f + (totalM1 - totalM1 / 1.15f) / 1.2f + (totalM2 - totalM2 / 1.15f));
+            double plan = Math.Ceiling((totalS1 - totalS1 / 1.3f) / 1.2f + (totalS2 - totalS2 / 1.3f) / 1.2f + (totalM1 - totalM1 / 1.15f) / 1.2f + (totalM2 - totalM2 / 1.15f) + bonus1 + bonus2);
             Plan.Text = $"{plan}";
             if (plan >= target)
             {
                 Plan.BorderBrush = Brushes.Green;
-                bonusOOO = Math.Ceiling(((totalS1 - totalS1 / 1.3f) / 1.2f + (totalS2 - totalS2 / 1.3f) / 1.2f + (totalM1 - totalM1 / 1.15f) / 1.2f + (totalM2 - totalM2 / 1.15f) - target) * 0.15f);
+                bonusOOO = Math.Ceiling(((totalS1 - totalS1 / 1.3f) / 1.2f + (totalS2 - totalS2 / 1.3f) / 1.2f + (totalM1 - totalM1 / 1.15f) / 1.2f + (totalM2 - totalM2 / 1.15f) - target + bonus1 + bonus2) * 0.15f);
             }
             else Plan.BorderBrush = Brushes.Red;
 
             BonusOOO.Text = $"{bonusOOO}";
 
-            double bonusIP = Math.Ceiling(total2 * 0.2f - total2 / 6);
+            double bonusIP = Math.Ceiling((totalS2 + totalM2 + bonus2 - notbonus) / 30);
             BonusIP.Text = $"{bonusIP}";
 
             salary = Math.Ceiling(bonusOOO > 0 ? bonusOOO + bonusIP + 50000 : bonusIP + 30000);
