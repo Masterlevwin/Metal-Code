@@ -625,6 +625,13 @@ namespace Metal_Code
 
                     item.sheetSize = lengthTube;
 
+                    if (MainWindow.Parser(item.sheetSize) > 6000)
+                    {
+                        work.type.L_prop.BorderBrush = new SolidColorBrush(Colors.Red);
+                        work.type.L_prop.BorderThickness = new Thickness(2);
+                        MessageBox.Show("Труба не должна быть длиннее 6000 мм!");
+                    }
+
                     Items?.Add(item);
                 }
 
@@ -830,6 +837,8 @@ namespace Metal_Code
                             }
                         Tube = TubeType.hbeam;
                     }
+
+                    SizesValidate();        //проверяем размеры проката
                 }
                 else MainWindow.M.StatusBegin("Не удалось определить размеры трубы");
 
@@ -898,6 +907,37 @@ namespace Metal_Code
             else if (PartDetails?.Count > 0) foreach (Part part in PartDetails) _parts.Add(new(this, work, part));
 
             return _parts;
+        }
+
+        private void SizesValidate()
+        {
+            if (work.type.A < 15)
+            {
+                work.type.A_prop.BorderBrush = new SolidColorBrush(Colors.Red);
+                work.type.A_prop.BorderThickness = new Thickness(2);
+                MessageBox.Show($"Минимальный размер трубы - 15 мм!");
+            }
+
+            if (work.type.B < 15)
+            {
+                work.type.B_prop.BorderBrush = new SolidColorBrush(Colors.Red);
+                work.type.B_prop.BorderThickness = new Thickness(2);
+                MessageBox.Show($"Минимальный размер трубы - 15 мм!");
+            }
+
+            if (work.type.A > 230)
+            {
+                work.type.A_prop.BorderBrush = new SolidColorBrush(Colors.Red);
+                work.type.A_prop.BorderThickness = new Thickness(2);
+                MessageBox.Show($"Максимальный размер трубы - 230 мм!");
+            }
+
+            if (work.type.B > 230)
+            {
+                work.type.B_prop.BorderBrush = new SolidColorBrush(Colors.Red);
+                work.type.B_prop.BorderThickness = new Thickness(2);
+                MessageBox.Show($"Максимальный размер трубы - 230 мм!");
+            }
         }
 
         private void SetMassPipe(object sender, RoutedEventArgs e)

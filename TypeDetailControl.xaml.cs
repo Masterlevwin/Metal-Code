@@ -384,18 +384,18 @@ namespace Metal_Code
 
         private void SetProperty(object sender, TextChangedEventArgs e)
         {
-            if (sender is TextBox tBox) SetProperty(tBox.Name, tBox.Text);
-        }
-        public void SetProperty(string _prop, string _value)
-        {
-            switch (_prop)
+            if (sender is TextBox tBox)
             {
-                case "A_prop": if (float.TryParse(_value, out float a)) A = a; break;
-                case "B_prop": if (float.TryParse(_value, out float b)) B = b; break;
-                case "S_prop": if (float.TryParse(_value, out float s)) S = s; break;
-                case "L_prop": if (float.TryParse(_value, out float l)) L = l; break;
+                tBox.BorderThickness = new Thickness(1);
+                switch (tBox.Name)
+                {
+                    case "A_prop": if (float.TryParse(tBox.Text, out float a)) A = a; break;
+                    case "B_prop": if (float.TryParse(tBox.Text, out float b)) B = b; break;
+                    case "S_prop": if (float.TryParse(tBox.Text, out float s)) S = s; break;
+                    case "L_prop": if (float.TryParse(tBox.Text, out float l)) L = l; break;
+                }
+                MassCalculate();
             }
-            MassCalculate();
         }
 
         public List<(float, float)> Corners = new()     //размеры полок уголка

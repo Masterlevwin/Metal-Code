@@ -47,6 +47,7 @@
     <None Remove="Images\new2.png" />
     <None Remove="Images\new3.png" />
     <None Remove="Images\notbonus.png" />
+    <None Remove="Images\notbonus2.png" />
     <None Remove="Images\open.png" />
     <None Remove="Images\open2.png" />
     <None Remove="Images\open3.png" />
@@ -71,6 +72,7 @@
     <None Remove="Images\update2.png" />
     <None Remove="Images\update3.png" />
     <None Remove="Images\update4.png" />
+    <None Remove="Images\withbonus.png" />
     <None Remove="Images\xlsx_load.png" />
     <None Remove="Images\xls_load.png" />
     <None Remove="laser_logo.jpg" />
@@ -173,6 +175,7 @@
     <Resource Include="Images\tableofbends.jpg" />
     <Resource Include="Images\update.png" />
     <Resource Include="Images\update4.png" />
+    <Resource Include="Images\withbonus.png" />
     <Resource Include="Images\xlsx_load.png" />
     <Resource Include="Images\xls_load.png" />
     <Content Include="laser_logo.jpg">

@@ -1389,6 +1389,12 @@ namespace Metal_Code
                     btn.ToolTip = "Добавить бонус";
                     btn.Click += RemoveOfferFromBonus;
                 }
+                //else if (offer.Invoice is not null && offer.Invoice.Contains(" (с бонусом)"))
+                //{
+                //    btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/withbonus.png", UriKind.Relative)) };
+                //    btn.ToolTip = "Добавить бонус";
+                //    btn.Click += RemoveOfferFromBonus;
+                //}
                 else
                 {
                     btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/ruble.png", UriKind.Relative)) };
@@ -4763,9 +4769,11 @@ namespace Metal_Code
                 {
                     foreach (FileInfo file in dir.GetFiles())
                     {
-                        if (file.Name.ToLower().Contains("счет") && file.Name.Contains('№'))
+                        string pattern = @"№\s*(\d+)";              //регулярное выражение, для определения № счета
+                        Match match = Regex.Match(file.Name, pattern);
+                        if (match.Success)
                         {
-                            offer.Invoice = file.Name.Substring(file.Name.IndexOf('№'), 6);
+                            offer.Invoice = $"№ {match.Groups[1].Value}";  //извлечение найденного числа
                             break;
                         }
                     }
