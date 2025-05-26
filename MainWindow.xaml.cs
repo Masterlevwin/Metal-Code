@@ -4555,8 +4555,11 @@ namespace Metal_Code
             {
                 requestsheet.Cells[i + 3, 1].Value = i + 1;
                 requestsheet.Cells[i + 3, 2].Value = Path.GetFileNameWithoutExtension(_paths[i]);
-                if (Path.GetExtension(_paths[i]).ToLower() == ".dxf") requestsheet.Cells[i + 3, 3].Value = GetSizes(_paths[i]);
-                if ($"{requestsheet.Cells[i + 3, 3].Value}" == "") message += $"\n{requestsheet.Cells[i + 3, 2].Value}";
+
+                message += $"\n{AnalyzePath(_paths[i])}";
+
+                //if (Path.GetExtension(_paths[i]).ToLower() == ".dxf") requestsheet.Cells[i + 3, 3].Value = GetSizes(_paths[i]);
+                //if ($"{requestsheet.Cells[i + 3, 3].Value}" == "") message += $"\n{requestsheet.Cells[i + 3, 2].Value}";
             }
             if (message != "") MessageBox.Show(message.Insert(0, "Не удалось получить габариты следующих деталей:"));
 
@@ -5397,6 +5400,29 @@ namespace Metal_Code
                 }
             }
             MessageBox.Show(message);
+        }
+
+        private string AnalyzePath(string path)
+        {
+            string message = "", metalPattern = "", destinyPattern = "S", countPattern = "n";       //"s", "n"
+
+            string pattern = //$@"([\d.]+)\s*{Regex.Escape(destinyPattern)}" +    //1.5мм
+                            $@"{Regex.Escape(destinyPattern)}\s*([\d.]+)";    //s1.5
+                            //$@"|(\d+)\s*{Regex.Escape(countPattern)}" +         //2шт
+                            //$@"|{Regex.Escape(countPattern)}\s*(\d+)";          //n2
+
+            MatchCollection matches = Regex.Matches(path, pattern, RegexOptions.IgnoreCase);
+
+            foreach (Match match in matches)
+            {
+                // Группа 1 соответствует числам перед "мм"
+                if (!string.IsNullOrEmpty(match.Groups[1].Value))
+                {
+                    message += $"\nНайденное значение после '{destinyPattern}': {match.Groups[1].Value}";
+                }
+            }
+
+            return message;
         }
         #endregion
 
