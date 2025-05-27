@@ -1,0 +1,10 @@
+﻿<Window x:Class="Metal_Code.RequestWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Metal_Code"
+             mc:Ignorable="d" 
+             d:DesignHeight="30" d:DesignWidth="300" VerticalAlignment="Top" Padding="3" BorderThickness="1">
+    <StackPanel/>
+</Window>
