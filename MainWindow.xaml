@@ -108,6 +108,11 @@
                         <Image Source="/Images/convert.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
+                <MenuItem Header="Заявка по шаблону" Click="CreateRequestTemplate">
+                    <MenuItem.Icon>
+                        <Image Source="/Images/express.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="О программе">
                 <MenuItem Header="Руководство" Click="OpenExample"/>

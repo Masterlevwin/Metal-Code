@@ -5424,7 +5424,18 @@ namespace Metal_Code
 
             return message;
         }
-        #endregion
 
+        private void CreateRequestTemplate(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new()
+            {
+                Filter = "All files (*.*)|*.*",
+                Multiselect = true
+            };
+
+            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0) CreateRequest(openFileDialog.FileNames);
+            else StatusBegin($"Не выбрано ни одного файла");
+        }
+        #endregion
     }
 }
