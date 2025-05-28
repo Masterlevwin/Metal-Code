@@ -5,6 +5,70 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="30" d:DesignWidth="300" VerticalAlignment="Top" Padding="3" BorderThickness="1">
-    <StackPanel/>
+             Title="Заявка клиента" Icon="/app_logo.jpg" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" MinWidth="500" MinHeight="600">
+    <Window.Resources>
+        <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </Window.Resources>
+    <StackPanel>
+        <GroupBox MaxHeight="150" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Top">
+            <GroupBox.Header>
+                <TextBlock Text="Наименования выбранных файлов" FontSize="14" FontWeight="Bold"/>
+            </GroupBox.Header>
+
+            <ListBox ItemsSource="{Binding Paths}" Margin="5" Padding="2"/>
+        </GroupBox>
+
+        <GroupBox DataContext="{Binding RequestTemplate}" Margin="10" HorizontalAlignment="Center">
+            <GroupBox.Header>
+                <TextBlock Text="Определите шаблон распознавания" FontSize="14" FontWeight="Bold"/>
+            </GroupBox.Header>
+
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="5">
+                    <TextBlock Text="Толщина" MinWidth="70" MaxWidth="70" VerticalAlignment="Center" FontWeight="Medium"/>
+                    <TextBox Text="{Binding DestinyPattern}" MinWidth="50" Margin="20,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" MaxWidth="50"/>
+                    <RadioButton x:Name="BeforeDestiny" IsChecked="{Binding BeforeDestiny}" Content="до" Margin="20,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" GroupName="DestinyGroup" Padding="3"/>
+                    <TextBlock Text="[толщ]" Margin="10,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="50" MaxWidth="50"/>
+                    <RadioButton x:Name="AfterDestiny" IsChecked="{Binding AfterDestiny}" Content="после" Margin="10,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" GroupName="DestinyGroup" Padding="3"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="5">
+                    <TextBlock Text="Количество" MinWidth="70" MaxWidth="70" VerticalAlignment="Center" FontWeight="Medium"/>
+                    <TextBox Text="{Binding CountPattern}" MinWidth="50" Margin="20,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="50"/>
+                    <RadioButton x:Name="BeforeCount" IsChecked="{Binding BeforeCount}" Content="до" Margin="20,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" GroupName="CountGroup" Padding="3"/>
+                    <TextBlock Text="[кол]" Margin="10,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="50" MaxWidth="50"/>
+                    <RadioButton x:Name="AfterCount" IsChecked="{Binding AfterCount}" Content="после" Margin="10,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" GroupName="CountGroup" Padding="3"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="5">
+                    <TextBlock Text="Имя шаблона" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Medium"/>
+                    <StackPanel x:Name="TemplateNameStack" Orientation="Horizontal" Margin="20,0,0,0">
+                        <TextBlock Text="{Binding DestinyPattern}" Margin="5,0,0,0" Foreground="Blue" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsChecked, Converter={StaticResource BoolToVisibilityConverter}, ElementName=BeforeDestiny}"/>
+                        <TextBlock Text="[толщ]" Margin="5,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding DestinyPattern}" Margin="5,0,0,0" Foreground="Blue" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsChecked, Converter={StaticResource BoolToVisibilityConverter}, ElementName=AfterDestiny}"/>
+                        <TextBlock Text="{Binding CountPattern}" Margin="10,0,0,0" Foreground="Blue" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsChecked, Converter={StaticResource BoolToVisibilityConverter}, ElementName=BeforeCount}"/>
+                        <TextBlock Text="[кол]" Margin="5,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding CountPattern}" Margin="5,0,0,0" Foreground="Blue" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsChecked, Converter={StaticResource BoolToVisibilityConverter}, ElementName=AfterCount}"/>
+                    </StackPanel>
+                    <Button Content="Сохранить шаблон" Padding="5" Click="Save_Template" Margin="20,0,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <GroupBox MaxHeight="100" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Top">
+            <GroupBox.Header>
+                <TextBlock Text="или выберите шаблон из списка" FontSize="14" FontWeight="Bold"/>
+            </GroupBox.Header>
+
+            <ListBox ItemsSource="{Binding Templates}" Margin="5" Padding="2" SelectedItem="{Binding RequestTemplate}" SelectionChanged="Template_Selected">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Name}"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </GroupBox>
+
+        <Button Content="Принять" Margin="20" Padding="5" Click="Save_Changes" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+    </StackPanel>
 </Window>

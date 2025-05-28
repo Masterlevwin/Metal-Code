@@ -7,5 +7,6 @@
         <databinding:CostConverter x:Key="CostConverter"/>
         <databinding:MassConverter x:Key="MassConverter"/>
         <databinding:DestinyConverter x:Key="DestinyConverter"/>
+        <databinding:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     </Application.Resources>
 </Application>

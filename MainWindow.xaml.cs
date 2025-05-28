@@ -4520,7 +4520,12 @@ namespace Metal_Code
                 Multiselect = true
             };
 
-            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0) CreateRequest(openFileDialog.FileNames);
+            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
+            {
+                RequestWindow requestWindow = new(openFileDialog.FileNames);
+                requestWindow.Show();
+                //CreateRequest(openFileDialog.FileNames);
+            }
             else StatusBegin($"Не выбрано ни одного файла");
         }
         public void CreateRequest(string[] _paths)
@@ -4555,11 +4560,8 @@ namespace Metal_Code
             {
                 requestsheet.Cells[i + 3, 1].Value = i + 1;
                 requestsheet.Cells[i + 3, 2].Value = Path.GetFileNameWithoutExtension(_paths[i]);
-
-                message += $"\n{AnalyzePath(_paths[i])}";
-
-                //if (Path.GetExtension(_paths[i]).ToLower() == ".dxf") requestsheet.Cells[i + 3, 3].Value = GetSizes(_paths[i]);
-                //if ($"{requestsheet.Cells[i + 3, 3].Value}" == "") message += $"\n{requestsheet.Cells[i + 3, 2].Value}";
+                if (Path.GetExtension(_paths[i]).ToLower() == ".dxf") requestsheet.Cells[i + 3, 3].Value = GetSizes(_paths[i]);
+                if ($"{requestsheet.Cells[i + 3, 3].Value}" == "") message += $"\n{requestsheet.Cells[i + 3, 2].Value}";
             }
             if (message != "") MessageBox.Show(message.Insert(0, "Не удалось получить габариты следующих деталей:"));
 
