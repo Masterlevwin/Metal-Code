@@ -1275,8 +1275,7 @@ namespace Metal_Code
             }
         }
 
-
-        void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
+        private void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
             if (((PropertyDescriptor)e.PropertyDescriptor).IsBrowsable == false) e.Cancel = true;   //скрываем свойства с атрибутом [IsBrowsable]
 
@@ -4506,7 +4505,7 @@ namespace Metal_Code
             if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0) CreateRequest(openFileDialog.FileNames);
             else StatusBegin($"Не выбрано ни одного файла");
         }
-        private void CreateRequestTemplate(object sender, RoutedEventArgs e)        //экспресс-заявка с анализом шаблона
+        private void CreateRequestTemplate(object sender, RoutedEventArgs e)    //экспресс-заявка с анализом шаблона
         {
             OpenFileDialog openFileDialog = new()
             {

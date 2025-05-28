@@ -195,7 +195,7 @@ namespace Metal_Code
             //Process.Start("explorer.exe", $"{Path.GetDirectoryName(Paths[0])}\\Заявка.xlsx");
         }
 
-        public static bool RenameFile(string oldPath, string newName)
+        public static bool RenameFile(string oldPath, string newName, bool copy = true)
         {
             try
             {
@@ -232,7 +232,9 @@ namespace Metal_Code
                 }
 
                 // 6.Попытка переименовать файл
-                File.Move(oldPath, newPath);
+                if (copy) File.Copy(oldPath, newPath);
+                else File.Move(oldPath, newPath);
+
                 return true;
             }
             catch (UnauthorizedAccessException)
@@ -258,7 +260,16 @@ namespace Metal_Code
 
         private void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
+            if (((PropertyDescriptor)e.PropertyDescriptor).IsBrowsable == false) e.Cancel = true;   //скрываем свойства с атрибутом [IsBrowsable]
 
+            if (e.PropertyName == "N") e.Column.Header = "№";
+            if (e.PropertyName == "NumberName") e.Column.Header = "№ чертежа";
+            if (e.PropertyName == "Sizes") e.Column.Header = "Размеры";
+            if (e.PropertyName == "Material") e.Column.Header = "Металл";
+            if (e.PropertyName == "Destiny") e.Column.Header = "Толщина";
+            if (e.PropertyName == "Count") e.Column.Header = "Кол-во деталей";
+            if (e.PropertyName == "Route") e.Column.Header = "Маршрут";
+            if (e.PropertyName == "HasMaterial") e.Column.Header = "Давальч";
         }
 
         private void RequestGrid_LoadingRow(object sender, DataGridRowEventArgs e)

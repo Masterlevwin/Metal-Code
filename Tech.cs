@@ -7,6 +7,7 @@ using System.Data;
 using System;
 using OfficeOpenXml;
 using System.Windows;
+using System.ComponentModel;
 
 namespace Metal_Code
 {
@@ -281,7 +282,7 @@ namespace Metal_Code
             if (TechItems.Count > 0)
             {
                 //открываем заявку для редактирования
-                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
                 using var requestbook = new ExcelPackage(new FileInfo(ExcelFile));
                 ExcelWorksheet? registrysheet = requestbook.Workbook.Worksheets[0];
 
@@ -468,7 +469,10 @@ namespace Metal_Code
         public string Count { get; set; } = null!;
         public string Route { get; set; } = null!;
         public string HasMaterial { get; set; } = null!;
+
+        [Browsable(false)]
         public string? DxfPath { get; set; } = null!;
+        [Browsable(false)]
         public string? PdfPath { get; set; } = null!;
 
         public TechItem() { }

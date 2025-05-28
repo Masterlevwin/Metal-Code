@@ -73,12 +73,12 @@
                 <Separator/>
                 <MenuItem Header="Получить новые расчеты" x:Name="GetBtn" Click="GetOffers_WithoutMainBase" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
                     <MenuItem.Icon>
-                        <Image Source="/Images/open2.png"/>
+                        <Image Source="/Images/new2.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Header="Отправить расчеты" x:Name="InsertBtn" Click="InsertDatabase" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
                     <MenuItem.Icon>
-                        <Image Source="/Images/save3.png"/>
+                        <Image Source="/Images/save2.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
@@ -110,7 +110,7 @@
                 </MenuItem>
                 <MenuItem Header="Предварительный расчет" Click="CreateExpressTech">
                     <MenuItem.Icon>
-                        <Image Source="/Images/complect.png"/>
+                        <Image Source="/Images/open3.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Header="Заявка по шаблону" Click="CreateRequestTemplate">
@@ -120,10 +120,14 @@
                 </MenuItem>
             </MenuItem>
             <MenuItem Header="О программе">
-                <MenuItem Header="Руководство" Click="OpenExample"/>
+                <MenuItem Header="Руководство" Click="OpenExample">
+                    <MenuItem.Icon>
+                        <Image Source="/Images/lamp.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
                 <MenuItem Header="Обновить программу" Click="Restart"/>
             </MenuItem>
-            <MenuItem ToolTip="Сменить пользователя" x:Name="Login" Click="ShowLoginWindow"/>
+            <MenuItem x:Name="Login" ToolTip="Сменить пользователя" Click="ShowLoginWindow"/>
         </Menu>
 
         <Grid x:Name="WindowGrid">
