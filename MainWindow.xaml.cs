@@ -4370,23 +4370,6 @@ namespace Metal_Code
             else return null;
         }
 
-        //private void SetDate(object sender, SelectionChangedEventArgs e)
-        //{
-        //    if (datePicker.SelectedDate is not null) DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
-
-        //    static int GetBusinessDays(DateTime startD, DateTime endD)
-        //    {
-        //        int calcBusinessDays =
-        //            (int)(1 + ((endD - startD).TotalDays * 5 -
-        //            (startD.DayOfWeek - endD.DayOfWeek) * 2) / 7);
-
-        //        if (endD.DayOfWeek == DayOfWeek.Saturday) calcBusinessDays--;
-        //        if (startD.DayOfWeek == DayOfWeek.Sunday) calcBusinessDays--;
-
-        //        return calcBusinessDays;
-        //    }
-        //}
-
         public void StatusBegin(string? notify = null)
         {
             if (notify != null) NotifyText.Text = notify;
@@ -4520,11 +4503,21 @@ namespace Metal_Code
                 Multiselect = true
             };
 
+            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0) CreateRequest(openFileDialog.FileNames);
+            else StatusBegin($"Не выбрано ни одного файла");
+        }
+        private void CreateRequestTemplate(object sender, RoutedEventArgs e)        //экспресс-заявка с анализом шаблона
+        {
+            OpenFileDialog openFileDialog = new()
+            {
+                Filter = "All files (*.*)|*.*",
+                Multiselect = true
+            };
+
             if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
             {
                 RequestWindow requestWindow = new(openFileDialog.FileNames);
                 requestWindow.Show();
-                //CreateRequest(openFileDialog.FileNames);
             }
             else StatusBegin($"Не выбрано ни одного файла");
         }
@@ -4560,7 +4553,7 @@ namespace Metal_Code
             {
                 requestsheet.Cells[i + 3, 1].Value = i + 1;
                 requestsheet.Cells[i + 3, 2].Value = Path.GetFileNameWithoutExtension(_paths[i]);
-                if (Path.GetExtension(_paths[i]).ToLower() == ".dxf") requestsheet.Cells[i + 3, 3].Value = GetSizes(_paths[i]);
+                requestsheet.Cells[i + 3, 3].Value = GetSizes(_paths[i]);
                 if ($"{requestsheet.Cells[i + 3, 3].Value}" == "") message += $"\n{requestsheet.Cells[i + 3, 2].Value}";
             }
             if (message != "") MessageBox.Show(message.Insert(0, "Не удалось получить габариты следующих деталей:"));
@@ -4592,8 +4585,10 @@ namespace Metal_Code
         }
 
         //------------Получение габаритов детали из dxf----------//
-        private string GetSizes(string path)
+        public static string GetSizes(string? path)
         {
+            if (path is null || Path.GetExtension(path) != ".dxf") return "";
+
             using DxfReader reader = new(path);
             try
             {
@@ -4638,6 +4633,20 @@ namespace Metal_Code
 
         //------------Сортировка файлов по папкам----------------//
         private void CreateTech(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new()
+            {
+                Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*"
+            };
+
+            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
+            {
+                Tech tech = new(openFileDialog.FileNames[0]);
+                StatusBegin(tech.Run());
+            }
+            else StatusBegin($"Не выбрано ни одного файла");
+        }
+        public void CreateExpressTech(object sender, RoutedEventArgs e)
         {
             MessageBoxResult response = MessageBox.Show(
                 "Создать быстрый расчет на основе заявки?\nЕсли \"Да\", текущий расчет будет очищен!",
@@ -4936,11 +4945,7 @@ namespace Metal_Code
             };
         }
 
-        private void CreateDelivery(object sender, RoutedEventArgs e)
-        {
-            StatusBegin($"{CreateDelivery()}");
-        }
-
+        private void CreateDelivery(object sender, RoutedEventArgs e) { StatusBegin($"{CreateDelivery()}"); }
         private string CreateDelivery()     //метод построения строки запроса в логистику
         {
             StringBuilder sb = new(EndDate()?.ToString("d MMM"));    //инициализируем строку датой отгрузки в формате "d MMM"
@@ -5170,6 +5175,24 @@ namespace Metal_Code
 
         //-------------------LEGACY методы-----------------------//
         #region
+        //метод расчета количества рабочих дней
+        //private void SetDate(object sender, SelectionChangedEventArgs e)
+        //{
+        //    if (datePicker.SelectedDate is not null) DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
+
+        //    static int GetBusinessDays(DateTime startD, DateTime endD)
+        //    {
+        //        int calcBusinessDays =
+        //            (int)(1 + ((endD - startD).TotalDays * 5 -
+        //            (startD.DayOfWeek - endD.DayOfWeek) * 2) / 7);
+
+        //        if (endD.DayOfWeek == DayOfWeek.Saturday) calcBusinessDays--;
+        //        if (startD.DayOfWeek == DayOfWeek.Sunday) calcBusinessDays--;
+
+        //        return calcBusinessDays;
+        //    }
+        //}
+
         //обновление баз заготовок, работ и материалов посредством подключения к базам
         private void UpdateDatabases(bool isLegacy)
         {
@@ -5295,10 +5318,7 @@ namespace Metal_Code
                 }
             }
         }
-        private void AnalyseDateProduction(object sender, RoutedEventArgs e)
-        {
-            //AnalyseDateProduction();
-        }
+        //private void AnalyseDateProduction(object sender, RoutedEventArgs e) { AnalyseDateProduction(); }
         private void AnalyseDateProduction(string path = "Y:\\Производство\\Laser rezka\\В работу")
         {
             if (!File.Exists(path + "\\!Реестр ЗАКРЫВАЙТЕ.xlsx"))
@@ -5402,41 +5422,6 @@ namespace Metal_Code
                 }
             }
             MessageBox.Show(message);
-        }
-
-        private string AnalyzePath(string path)
-        {
-            string message = "", metalPattern = "", destinyPattern = "S", countPattern = "n";       //"s", "n"
-
-            string pattern = //$@"([\d.]+)\s*{Regex.Escape(destinyPattern)}" +    //1.5мм
-                            $@"{Regex.Escape(destinyPattern)}\s*([\d.]+)";    //s1.5
-                            //$@"|(\d+)\s*{Regex.Escape(countPattern)}" +         //2шт
-                            //$@"|{Regex.Escape(countPattern)}\s*(\d+)";          //n2
-
-            MatchCollection matches = Regex.Matches(path, pattern, RegexOptions.IgnoreCase);
-
-            foreach (Match match in matches)
-            {
-                // Группа 1 соответствует числам перед "мм"
-                if (!string.IsNullOrEmpty(match.Groups[1].Value))
-                {
-                    message += $"\nНайденное значение после '{destinyPattern}': {match.Groups[1].Value}";
-                }
-            }
-
-            return message;
-        }
-
-        private void CreateRequestTemplate(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog openFileDialog = new()
-            {
-                Filter = "All files (*.*)|*.*",
-                Multiselect = true
-            };
-
-            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0) CreateRequest(openFileDialog.FileNames);
-            else StatusBegin($"Не выбрано ни одного файла");
         }
         #endregion
     }

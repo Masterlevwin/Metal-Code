@@ -19,7 +19,7 @@ namespace Metal_Code
 
         public Tech(string path) { ExcelFile = path; }
 
-        public string Run(bool createOffer)
+        public string Run(bool createOffer = false)
         {
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
@@ -461,16 +461,17 @@ namespace Metal_Code
 
     public class TechItem
     {
-        public string NumberName { get; set; }
-        public string Sizes { get; set; }
-        public string Material { get; set; }
-        public string Destiny { get; set; }
-        public string Count { get; set; }
-        public string Route { get; set; }
-        public string HasMaterial { get; set; }
-        public string? DxfPath { get; set; }
-        public string? PdfPath { get; set; }
+        public string NumberName { get; set; } = null!;
+        public string Sizes { get; set; } = null!;
+        public string Material { get; set; } = "";
+        public string Destiny { get; set; } = null!;
+        public string Count { get; set; } = null!;
+        public string Route { get; set; } = null!;
+        public string HasMaterial { get; set; } = null!;
+        public string? DxfPath { get; set; } = null!;
+        public string? PdfPath { get; set; } = null!;
 
+        public TechItem() { }
         public TechItem(string numberName, string sizes, string material, string destiny, string count, string route, string hasMaterial)
         {
             NumberName = numberName;

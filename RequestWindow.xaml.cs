@@ -1,4 +1,13 @@
-﻿using System.Collections.ObjectModel;
+﻿using OfficeOpenXml.Style;
+using OfficeOpenXml;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -10,8 +19,9 @@ namespace Metal_Code
     public partial class RequestWindow : Window
     {
         public string[] Paths { get; set; }
-        public RequestTemplate RequestTemplate { get; set; } = new("Шаблон по умолчанию");
+        public RequestTemplate CurrentTemplate { get; set; } = new();
         public ObservableCollection<RequestTemplate> Templates { get; set; } = new();
+        public ObservableCollection<TechItem> TechItems { get; set; } = new();
 
         public RequestWindow(string[] paths)
         {
@@ -20,40 +30,318 @@ namespace Metal_Code
             DataContext = this;
         }
 
-        private void Save_Changes(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show($"Выбран шаблон {RequestTemplate.Name}");
-        }
-
         private void Save_Template(object sender, RoutedEventArgs e)
         {
-            RequestTemplate.Name = "";
+            string name = "";
             if (TemplateNameStack.Children.Count > 0)
                 foreach (TextBlock child in TemplateNameStack.Children)
-                    if (child.Visibility == Visibility.Visible) RequestTemplate.Name += $"{child.Text} ";
+                    if (child.Visibility == Visibility.Visible) name += $"{child.Text} ";
 
-            Templates.Add(RequestTemplate);
+            RequestTemplate template = new()
+            {
+                Name = name,
+                DestinyPattern = CurrentTemplate.DestinyPattern,
+                CountPattern = CurrentTemplate.CountPattern,
+                PosDestiny = CurrentTemplate.PosDestiny,
+                PosCount = CurrentTemplate.PosCount
+            };
+            Templates.Add(template);
         }
 
         private void Template_Selected(object sender, SelectionChangedEventArgs e)
         {
-            if (sender is ListBox list && list.SelectedItem is RequestTemplate template)
+            if (TemplatesList.SelectedItem is RequestTemplate template) CurrentTemplate = template;
+        }
+
+        private void Save_Changes(object sender, RoutedEventArgs e)
+        {
+            Analyze_Paths();
+            Create_Request();
+        }
+
+        private void Analyze_Paths()
+        {
+            if (Paths.Length == 0) return;
+
+            foreach (string path in Paths)
             {
-                MessageBox.Show($"Выбран шаблон {template.Name}. Текущий шаблон - {RequestTemplate.Name}");
+                TechItem techItem = new();
+
+                //определяем материал
+                int metalIndex = 0;
+                foreach (Metal metal in MainWindow.M.Metals)
+                    if (metal.Name != null && path.Contains(metal.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        techItem.Material = metal.Name;
+                        metalIndex = metal.Id;
+                        break;
+                    }
+
+                //определяем толщину
+                string destinyPattern;
+                if (CurrentTemplate.PosDestiny) destinyPattern = $@"{Regex.Escape(CurrentTemplate.DestinyPattern)}\s*([\d.]+)";
+                else destinyPattern = $@"([\d.]+)\s*{Regex.Escape(CurrentTemplate.DestinyPattern)}";
+
+                Match matchDestiny = Regex.Match(path, destinyPattern);
+                if (matchDestiny.Success) techItem.Destiny = matchDestiny.Groups[1].Value;
+
+                //определяем количество
+                string countPattern;
+                if (CurrentTemplate.PosCount) countPattern = $@"{Regex.Escape(CurrentTemplate.CountPattern)}\s*(\d+)";
+                else countPattern = $@"(\d+)\s*{Regex.Escape(CurrentTemplate.CountPattern)}";
+
+                Match matchCount = Regex.Match(path, countPattern);
+                if (matchCount.Success) techItem.Count = matchCount.Groups[1].Value;
+
+                //генерируем название
+                techItem.NumberName = $"{metalIndex}.{techItem.Destiny}.{techItem.Count}";
+                
+                //записываем путь к файлу
+                techItem.DxfPath = path;
+
+                TechItems.Add(techItem);
             }
+
+            if (TechItems.Count > 0)
+            {
+                //при совпадении сгенерированных имён добавляем порядковый индекс к имени
+                var collect = TechItems.GroupBy(x => x.NumberName);
+                foreach (var item in collect)
+                    if (item.Count() > 1)
+                        foreach (var _item in item)
+                            _item.NumberName += $".{item.ToList().IndexOf(_item)}";
+
+                //переименовываем файлы
+                foreach (TechItem techItem in TechItems)
+                {
+                    if (techItem.DxfPath is null || !File.Exists(techItem.DxfPath)) continue;
+
+                    string? directory = Path.GetDirectoryName(techItem.DxfPath);
+                    if (directory != null)
+                    {
+                        bool success = RenameFile(techItem.DxfPath, techItem.NumberName + Path.GetExtension(techItem.DxfPath));
+                        if (!success) MessageBox.Show("Переименование завершилось с ошибкой.");
+                        else techItem.DxfPath = Path.Combine(directory, techItem.NumberName + Path.GetExtension(techItem.DxfPath));
+                    }
+                }
+
+                RequestGrid.ItemsSource = TechItems;
+            }
+        }
+
+        private void Create_Request()
+        {
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var workbook = new ExcelPackage();
+            ExcelWorksheet requestsheet = workbook.Workbook.Worksheets.Add($"Заявка {(MainWindow.M.IsLaser ? "ЛФ" : "ПР")}");
+
+            //оформляем статичные ячейки по умолчанию
+            requestsheet.Cells[1, 1].Value = "Расшифровка работ: гиб - гибка, вальц - вальцовка, зен - зенковка, рез - резьба," +
+                " свар - сварка,\nокр - окраска, оц - оцинковка, грав - гравировка";
+            requestsheet.Cells[1, 1, 1, 8].Merge = true;
+            requestsheet.Cells[1, 1, 1, 8].Style.WrapText = true;
+            requestsheet.Cells[1, 1, 1, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            requestsheet.Cells[1, 1, 1, 8].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            requestsheet.Row(1).Height = 30;
+            requestsheet.Cells[TechItems.Count + 3, 5].Value = "Кол-во комплектов";
+            requestsheet.Cells[TechItems.Count + 3, 6].Value = 1;
+            requestsheet.Cells[TechItems.Count + 3, 6].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+            requestsheet.Cells[TechItems.Count + 3, 5, TechItems.Count + 3, 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            requestsheet.Cells[TechItems.Count + 3, 5, TechItems.Count + 3, 6].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            requestsheet.Cells[TechItems.Count + 3, 5].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            requestsheet.Cells[TechItems.Count + 3, 5, TechItems.Count + 3, 6].Style.Border.BorderAround(ExcelBorderStyle.Medium);
+
+            //устанавливаем заголовки таблицы
+            List<string> _heads = new() { "№", "№ чертежа", "Размеры", "Металл", "Толщина", "Кол-во деталей", "Маршрут", "Давальч" };
+            for (int head = 0; head < _heads.Count; head++) requestsheet.Cells[2, head + 1].Value = _heads[head];
+
+            string message = "";
+            for (int i = 0; i < TechItems.Count; i++)
+            {
+                requestsheet.Cells[i + 3, 1].Value = i + 1;
+                requestsheet.Cells[i + 3, 2].Value = TechItems[i].NumberName;
+                requestsheet.Cells[i + 3, 3].Value = MainWindow.GetSizes(TechItems[i].DxfPath);
+                if ($"{requestsheet.Cells[i + 3, 3].Value}" == "") message += $"\n{requestsheet.Cells[i + 3, 2].Value}";
+                requestsheet.Cells[i + 3, 4].Value = TechItems[i].Material;
+                requestsheet.Cells[i + 3, 5].Value = TechItems[i].Destiny;
+                requestsheet.Cells[i + 3, 6].Value = TechItems[i].Count;
+            }
+            if (message != "") MessageBox.Show(message.Insert(0, "Не удалось получить габариты следующих деталей:"));
+
+            ExcelRange details = requestsheet.Cells[2, 1, TechItems.Count + 2, 8];     //получаем таблицу деталей для оформления
+
+            //обводка границ и авторастягивание столбцов
+            details.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            details.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            details.Style.Border.Right.Style = details.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+
+            requestsheet.Cells.AutoFitColumns();
+            requestsheet.Cells[2, 1, 2, 8].Style.WrapText = true;
+            requestsheet.Cells[2, 1, 2, 8].Style.Font.Bold = true;
+
+            //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
+            requestsheet.PrinterSettings.FitToPage = true;
+            requestsheet.PrinterSettings.FitToWidth = 1;
+            requestsheet.PrinterSettings.FitToHeight = 0;
+            requestsheet.PrinterSettings.HorizontalCentered = true;
+
+            //сохраняем книгу в файл Excel
+            workbook.SaveAs($"{Path.GetDirectoryName(Paths[0])}\\Заявка {(MainWindow.M.IsLaser ? "ЛФ" : "ПР")}.xlsx");
+
+            MainWindow.M.StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(Paths[0])}");
+
+            //Process.Start("explorer.exe", $"{Path.GetDirectoryName(Paths[0])}\\Заявка.xlsx");
+        }
+
+        public static bool RenameFile(string oldPath, string newName)
+        {
+            try
+            {
+                // 1. Проверка существования исходного файла
+                if (!File.Exists(oldPath))
+                {
+                    MessageBox.Show("Ошибка: Исходный файл не существует.");
+                    return false;
+                }
+
+                // 2. Получение пути к каталогу исходного файла
+                string? directory = Path.GetDirectoryName(oldPath);
+                if (string.IsNullOrEmpty(directory))
+                {
+                    MessageBox.Show("Ошибка: Не удалось определить каталог исходного файла.");
+                    return false;
+                }
+
+                // 3. Формирование полного пути для нового имени файла
+                string newPath = Path.Combine(directory, newName);
+
+                // 4. Проверка корректности нового имени файла
+                if (string.IsNullOrWhiteSpace(newName) || Path.GetFileName(newName) != newName)
+                {
+                    MessageBox.Show("Ошибка: Новое имя файла некорректно.");
+                    return false;
+                }
+
+                // 5. Проверка, что новый файл не перезапишет существующий
+                if (File.Exists(newPath))
+                {
+                    MessageBox.Show($"Ошибка: Файл с именем '{newName}' уже существует.");
+                    return false;
+                }
+
+                // 6.Попытка переименовать файл
+                File.Move(oldPath, newPath);
+                return true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                MessageBox.Show("Ошибка: Недостаточно прав для выполнения операции.");
+            }
+            catch (IOException ex)
+            {
+                MessageBox.Show($"Ошибка ввода/вывода: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Неожиданная ошибка: {ex.Message}");
+            }
+
+            return false;
+        }
+
+        private void DataGrid_AutoGeneratedColumn(object sender, EventArgs e)
+        {
+
+        }
+
+        private void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
+        {
+
+        }
+
+        private void RequestGrid_LoadingRow(object sender, DataGridRowEventArgs e)
+        {
+
         }
     }
 
-    public class RequestTemplate
+    public class RequestTemplate : INotifyPropertyChanged
     {
-        public string Name { get; set; } = null!;
-        public string DestinyPattern { get; set; } = "s";
-        public string CountPattern { get; set; } = "n";
-        public bool BeforeDestiny {  get; set; } = true;
-        public bool BeforeCount { get; set; } = true;
-        public bool AfterDestiny {  get; set; } = false;
-        public bool AfterCount { get; set; } = false;
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
-        public RequestTemplate(string name) { Name = name; }
+        private string name = "по умолчанию";
+        public string Name
+        {
+            get => name;
+            set
+            {
+                if (name != value)
+                {
+                    name = value;
+                    OnPropertyChanged(nameof(Name));
+                }
+            }
+        }
+
+        private string destinyPattern = "s";
+        public string DestinyPattern
+        {
+            get => destinyPattern;
+            set
+            {
+                if (destinyPattern != value)
+                {
+                    destinyPattern = value;
+                    OnPropertyChanged(nameof(DestinyPattern));
+                }
+            }
+        }
+
+        private string countPattern = "n";
+        public string CountPattern
+        {
+            get => countPattern;
+            set
+            {
+                if(countPattern != value)
+                {
+                    countPattern = value;
+                    OnPropertyChanged(nameof(CountPattern));
+                }
+            }
+        }
+
+        private bool posDestiny = true;
+        public bool PosDestiny
+        {
+            get => posDestiny;
+            set
+            {
+                if (posDestiny != value)
+                {
+                    posDestiny = value;
+                    OnPropertyChanged(nameof(PosDestiny));
+                }
+            }
+        }
+
+        private bool posCount = true;
+        public bool PosCount
+        {
+            get => posCount;
+            set
+            {
+                if (posCount != value)
+                {
+                    posCount = value;
+                    OnPropertyChanged(nameof(PosCount));
+                }
+            }
+        }
+
+        public RequestTemplate() {}
     }
 }
