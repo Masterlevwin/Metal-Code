@@ -12,6 +12,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Microsoft.EntityFrameworkCore;
 using System.Windows.Input;
+using Microsoft.Extensions.FileSystemGlobbing.Internal;
 
 namespace Metal_Code
 {
@@ -70,7 +71,7 @@ namespace Metal_Code
         {
             if (e.Key != Key.Delete || TemplatesList.SelectedItem is not RequestTemplate template) return;
 
-            RequestTemplate? _template = Templates.FirstOrDefault(x => x.Name == template.Name);
+            RequestTemplate? _template = Templates.FirstOrDefault(x => x.Id == template.Id);
 
             if (template != null)
             {
@@ -81,13 +82,13 @@ namespace Metal_Code
 
         private void Template_Selected(object sender, SelectionChangedEventArgs e)
         {
-            if (TemplatesList.SelectedItem is RequestTemplate template) CurrentTemplate = template;
+
         }
 
         private void Analyze_Paths(object sender, RoutedEventArgs e) { Analyze_Paths(); }
         private void Analyze_Paths()
         {
-            if (Paths.Length == 0) return;
+            if (Paths.Length == 0 || TemplatesList.SelectedItem is not RequestTemplate template) return;
 
             if (TechItems.Count > 0) TechItems.Clear();
 
@@ -96,8 +97,18 @@ namespace Metal_Code
                 TechItem techItem = new() { NumberName = Path.GetFileNameWithoutExtension(path) };
 
                 //определяем материал
+                string metalPattern = @"aisi\s*(\d+)";
                 foreach (Metal metal in MainWindow.M.Metals)
-                    if (metal.Name != null && path.Contains(metal.Name, StringComparison.OrdinalIgnoreCase))
+                    if (metal.Name != null && metal.Name.Contains("aisi"))
+                    {
+                        Match match = Regex.Match(path, metalPattern, RegexOptions.IgnoreCase);
+                        if (match.Success && metal.Name.Contains(match.Value.Replace(" ", ""), StringComparison.OrdinalIgnoreCase))
+                        {
+                            techItem.Material = metal.Name;
+                            break;
+                        }
+                    }
+                    else if (metal.Name != null && path.Contains(metal.Name, StringComparison.OrdinalIgnoreCase))
                     {
                         techItem.Material = metal.Name;
                         break;
@@ -105,18 +116,18 @@ namespace Metal_Code
 
                 //определяем толщину
                 string destinyPattern;
-                if (CurrentTemplate.PosDestiny) destinyPattern = $@"{Regex.Escape(CurrentTemplate.DestinyPattern)}\s*([\d.]+)";
-                else destinyPattern = $@"([\d.]+)\s*{Regex.Escape(CurrentTemplate.DestinyPattern)}";
+                if (template.PosDestiny) destinyPattern = $@"{Regex.Escape(template.DestinyPattern)}\s*([\d.]+)";
+                else destinyPattern = $@"([\d.]+)\s*{Regex.Escape(template.DestinyPattern)}";
 
-                Match matchDestiny = Regex.Match(path, destinyPattern);
+                Match matchDestiny = Regex.Match(path, destinyPattern, RegexOptions.IgnoreCase);
                 if (matchDestiny.Success) techItem.Destiny = matchDestiny.Groups[1].Value;
 
                 //определяем количество
                 string countPattern;
-                if (CurrentTemplate.PosCount) countPattern = $@"{Regex.Escape(CurrentTemplate.CountPattern)}\s*(\d+)";
-                else countPattern = $@"(\d+)\s*{Regex.Escape(CurrentTemplate.CountPattern)}";
+                if (template.PosCount) countPattern = $@"{Regex.Escape(template.CountPattern)}\s*(\d+)";
+                else countPattern = $@"(\d+)\s*{Regex.Escape(template.CountPattern)}";
 
-                Match matchCount = Regex.Match(path, countPattern);
+                Match matchCount = Regex.Match(path, countPattern, RegexOptions.IgnoreCase);
                 if (matchCount.Success) techItem.Count = matchCount.Groups[1].Value;
 
                 //записываем путь к файлу
@@ -171,7 +182,15 @@ namespace Metal_Code
             MainWindow.M.StatusBegin("Файлы скопированы с новыми именами");
         }
 
-        private void Create_Request(object sender, RoutedEventArgs e) { Create_Request(); }
+        private void Create_Request(object sender, RoutedEventArgs e)
+        {
+            if (TechItems.Count == 0)
+            {
+                MainWindow.M.StatusBegin("Чтобы создать заявку, запустите анализ файлов.");
+                return;
+            }
+            Create_Request();
+        }
         private void Create_Request()
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
@@ -326,7 +345,7 @@ namespace Metal_Code
         {
             if (!File.Exists($"{Path.GetDirectoryName(Paths[0])}\\Заявка Лазер.xlsx"))
             {
-                MessageBox.Show("Не удалось найти подходящую заявку для анализа.");
+                MessageBox.Show("Не удалось найти подходящую заявку для формирования папок.");
                 return;
             }
 
