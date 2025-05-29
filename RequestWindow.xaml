@@ -63,10 +63,10 @@
                 </GroupBox.Header>
 
                 <StackPanel Orientation="Horizontal" Margin="5">
-                    <ListBox x:Name="TemplatesList" ItemsSource="{Binding Templates}" Margin="5" Padding="2" SelectionChanged="Template_Selected" MinWidth="150">
+                    <ListBox x:Name="TemplatesList" ItemsSource="{Binding Templates}" Margin="5" Padding="2" SelectionChanged="Template_Selected" MinWidth="150" KeyDown="Remove_Template" ToolTip="Клавиша Del - удалить шаблон">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Name}"/>
+                                <TextBlock Text="{Binding Name}" HorizontalAlignment="Center" Padding="2"/>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>

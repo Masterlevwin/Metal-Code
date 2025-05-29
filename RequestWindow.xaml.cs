@@ -10,6 +10,8 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.EntityFrameworkCore;
+using System.Windows.Input;
 
 namespace Metal_Code
 {
@@ -18,6 +20,7 @@ namespace Metal_Code
     /// </summary>
     public partial class RequestWindow : Window
     {
+        private readonly RequestContext db = new(MainWindow.M.connections[12]);
         public string[] Paths { get; set; }
         public RequestTemplate CurrentTemplate { get; set; } = new();
         public ObservableCollection<RequestTemplate> Templates { get; set; } = new();
@@ -28,7 +31,9 @@ namespace Metal_Code
             InitializeComponent();
             Paths = paths;
             DataContext = this;
-            Templates = MainWindow.M.Templates;
+
+            db.Templates.Load();
+            Templates = db.Templates.Local.ToObservableCollection();
         }
 
         private void Save_Template(object sender, RoutedEventArgs e)
@@ -45,19 +50,33 @@ namespace Metal_Code
                 MessageBox.Show($"Шаблон типа {name} уже добавлен");
                 return;
             }
-
-            RequestTemplate _template = new()
+            else
             {
-                Name = name,
-                DestinyPattern = CurrentTemplate.DestinyPattern,
-                CountPattern = CurrentTemplate.CountPattern,
-                PosDestiny = CurrentTemplate.PosDestiny,
-                PosCount = CurrentTemplate.PosCount
-            };
+                template = new()
+                {
+                    Name = name,
+                    DestinyPattern = CurrentTemplate.DestinyPattern,
+                    CountPattern = CurrentTemplate.CountPattern,
+                    PosDestiny = CurrentTemplate.PosDestiny,
+                    PosCount = CurrentTemplate.PosCount
+                };
+            }
 
-            
+            db.Templates.Add(template);
+            db.SaveChanges();
+        }
 
-            Templates.Add(_template);
+        private void Remove_Template(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Delete || TemplatesList.SelectedItem is not RequestTemplate template) return;
+
+            RequestTemplate? _template = Templates.FirstOrDefault(x => x.Name == template.Name);
+
+            if (template != null)
+            {
+                db.Templates.Remove(template);
+                db.SaveChanges();
+            }
         }
 
         private void Template_Selected(object sender, SelectionChangedEventArgs e)
@@ -320,6 +339,8 @@ namespace Metal_Code
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        public int Id { get; set; }
 
         private string name = "по умолчанию";
         public string Name

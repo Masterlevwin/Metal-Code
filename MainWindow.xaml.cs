@@ -90,7 +90,6 @@ namespace Metal_Code
         public ObservableCollection<TypeDetail> TypeDetails { get; set; } = new();
         public ObservableCollection<Work> Works { get; set; } = new();
         public ObservableCollection<Metal> Metals { get; set; } = new();
-        public ObservableCollection<RequestTemplate> Templates { get; set; } = new();
 
         //временный словарь расчетов для синхронизации с основной базой (0 - новые, 1 - удаленные, 2 - измененные)
         private readonly Dictionary<byte, List<Offer>> TempOffersDict = new() { [0] = new(), [1] = new(), [2] = new() };
@@ -504,10 +503,6 @@ namespace Metal_Code
             using MetalContext dbM = new(IsLocal ? connections[6] : connections[7]);
             dbM.Metals.Load();
             Metals = dbM.Metals.Local.ToObservableCollection();
-
-            //using RequestContext dbR = new(connections[12]);
-            //dbR.Templates.Load();
-            //Templates = dbR.Templates.Local.ToObservableCollection();
 
             InitializeDict();
 
