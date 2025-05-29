@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -400,6 +401,24 @@ namespace Metal_Code
             optionsBuilder.UseSqlite(connectionString);
         }
     }
+
+    //public class RequestContext : DbContext
+    //{
+    //    public DbSet<RequestTemplate> Templates { get; set; } = null!;
+
+    //    public string connectionString;
+    //    public RequestContext(string connectionString)
+    //    {
+    //        this.connectionString = connectionString;   // получаем извне строку подключения
+    //        Database.EnsureCreated();                   // гарантируем, что база данных создана
+    //        Database.SetCommandTimeout(9000);
+    //    }
+
+    //    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    //    {
+    //        optionsBuilder.UseSqlite(connectionString);
+    //    }
+    //}
 
     public class BaseContext : DbContext
     {

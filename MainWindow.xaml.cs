@@ -57,7 +57,8 @@ namespace Metal_Code
             $"Y:\\Производство\\Laser rezka\\В работу",
             $"M:\\Metal-Code",
             $"C:\\ProgramData",
-            $"Host=srv-fs-laser;Port=5432;Database=metalcodedb;Username=postgres;Password=lazerpro"
+            $"Host=srv-fs-laser;Port=5432;Database=metalcodedb;Username=postgres;Password=lazerpro",
+            "Data Source=templates.db",
 
             //прод
             //"Data Source=managers.db",
@@ -71,7 +72,8 @@ namespace Metal_Code
             //$"Y:\\Производство\\Laser rezka\\В работу",
             //$"M:\\Metal-Code",
             //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code",
-            //$"Host=srv-fs-laser;Port=5432;Database=metalcodedb;Username=postgres;Password=lazerpro"
+            //$"Host=srv-fs-laser;Port=5432;Database=metalcodedb;Username=postgres;Password=lazerpro",
+            //"Data Source=templates.db",
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
@@ -88,6 +90,7 @@ namespace Metal_Code
         public ObservableCollection<TypeDetail> TypeDetails { get; set; } = new();
         public ObservableCollection<Work> Works { get; set; } = new();
         public ObservableCollection<Metal> Metals { get; set; } = new();
+        public ObservableCollection<RequestTemplate> Templates { get; set; } = new();
 
         //временный словарь расчетов для синхронизации с основной базой (0 - новые, 1 - удаленные, 2 - измененные)
         private readonly Dictionary<byte, List<Offer>> TempOffersDict = new() { [0] = new(), [1] = new(), [2] = new() };
@@ -502,6 +505,10 @@ namespace Metal_Code
             dbM.Metals.Load();
             Metals = dbM.Metals.Local.ToObservableCollection();
 
+            //using RequestContext dbR = new(connections[12]);
+            //dbR.Templates.Load();
+            //Templates = dbR.Templates.Local.ToObservableCollection();
+
             InitializeDict();
 
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
@@ -757,9 +764,11 @@ namespace Metal_Code
 
             Result += Delivery * DeliveryRatio;
 
-            Bonus = Result * Ratio * ((100 + BonusRatio) / 100) - Result;
+            float result = Result * Ratio;
 
-            Result = Result * Ratio * ((100 + BonusRatio) / 100);
+            Bonus = result * ((100 + BonusRatio) / 100) - result;
+
+            Result = result + Bonus;
 
             if (Result > 0) Parts = PartsSource();
         }

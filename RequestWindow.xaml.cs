@@ -28,6 +28,7 @@ namespace Metal_Code
             InitializeComponent();
             Paths = paths;
             DataContext = this;
+            Templates = MainWindow.M.Templates;
         }
 
         private void Save_Template(object sender, RoutedEventArgs e)
@@ -37,7 +38,15 @@ namespace Metal_Code
                 foreach (TextBlock child in TemplateNameStack.Children)
                     if (child.Visibility == Visibility.Visible) name += $"{child.Text} ";
 
-            RequestTemplate template = new()
+            RequestTemplate? template = Templates.FirstOrDefault(x => x.Name == name);
+
+            if (template != null)
+            {
+                MessageBox.Show($"Шаблон типа {name} уже добавлен");
+                return;
+            }
+
+            RequestTemplate _template = new()
             {
                 Name = name,
                 DestinyPattern = CurrentTemplate.DestinyPattern,
@@ -45,7 +54,10 @@ namespace Metal_Code
                 PosDestiny = CurrentTemplate.PosDestiny,
                 PosCount = CurrentTemplate.PosCount
             };
-            Templates.Add(template);
+
+            
+
+            Templates.Add(_template);
         }
 
         private void Template_Selected(object sender, SelectionChangedEventArgs e)
@@ -53,27 +65,22 @@ namespace Metal_Code
             if (TemplatesList.SelectedItem is RequestTemplate template) CurrentTemplate = template;
         }
 
-        private void Save_Changes(object sender, RoutedEventArgs e)
-        {
-            Analyze_Paths();
-            Create_Request();
-        }
-
+        private void Analyze_Paths(object sender, RoutedEventArgs e) { Analyze_Paths(); }
         private void Analyze_Paths()
         {
             if (Paths.Length == 0) return;
 
+            if (TechItems.Count > 0) TechItems.Clear();
+
             foreach (string path in Paths)
             {
-                TechItem techItem = new();
+                TechItem techItem = new() { NumberName = Path.GetFileNameWithoutExtension(path) };
 
                 //определяем материал
-                int metalIndex = 0;
                 foreach (Metal metal in MainWindow.M.Metals)
                     if (metal.Name != null && path.Contains(metal.Name, StringComparison.OrdinalIgnoreCase))
                     {
                         techItem.Material = metal.Name;
-                        metalIndex = metal.Id;
                         break;
                     }
 
@@ -93,48 +100,65 @@ namespace Metal_Code
                 Match matchCount = Regex.Match(path, countPattern);
                 if (matchCount.Success) techItem.Count = matchCount.Groups[1].Value;
 
-                //генерируем название
-                techItem.NumberName = $"{metalIndex}.{techItem.Destiny}.{techItem.Count}";
-                
                 //записываем путь к файлу
                 techItem.DxfPath = path;
 
                 TechItems.Add(techItem);
             }
 
-            if (TechItems.Count > 0)
+            if (TechItems.Count > 0) MainWindow.M.StatusBegin("Файлы успешно проанализированы");
+        }
+
+        private void Rename_Details(object sender, RoutedEventArgs e)
+        {
+            if (TechItems.Count == 0) return;
+
+            foreach (TechItem techItem in TechItems)
             {
-                //при совпадении сгенерированных имён добавляем порядковый индекс к имени
-                var collect = TechItems.GroupBy(x => x.NumberName);
+                int metalIndex = 0;
+                //генерируем новое название строки из индекса материала, толщины и количества
+                foreach (Metal metal in MainWindow.M.Metals)
+                    if (metal.Name != null && metal.Name == techItem.Material)
+                    {
+                        metalIndex = metal.Id;
+                        break;
+                    }
+                techItem.NumberName = $"{metalIndex}.{techItem.Destiny}.{techItem.Count}";
+            }
+
+            //при совпадении сгенерированных имён добавляем порядковый индекс к имени
+            var collect = TechItems.GroupBy(x => x.NumberName);
                 foreach (var item in collect)
                     if (item.Count() > 1)
                         foreach (var _item in item)
                             _item.NumberName += $".{item.ToList().IndexOf(_item)}";
 
-                //переименовываем файлы
-                foreach (TechItem techItem in TechItems)
+            //копируем файлы с новыми именами
+            foreach (TechItem techItem in TechItems)
+            {
+                if (techItem.DxfPath is null || !File.Exists(techItem.DxfPath)) continue;
+
+                string? directory = Path.GetDirectoryName(techItem.DxfPath);
+                if (directory != null)
                 {
-                    if (techItem.DxfPath is null || !File.Exists(techItem.DxfPath)) continue;
-
-                    string? directory = Path.GetDirectoryName(techItem.DxfPath);
-                    if (directory != null)
-                    {
-                        bool success = RenameFile(techItem.DxfPath, techItem.NumberName + Path.GetExtension(techItem.DxfPath));
-                        if (!success) MessageBox.Show("Переименование завершилось с ошибкой.");
-                        else techItem.DxfPath = Path.Combine(directory, techItem.NumberName + Path.GetExtension(techItem.DxfPath));
-                    }
+                    bool success = RenameFile(techItem.DxfPath, techItem.NumberName + Path.GetExtension(techItem.DxfPath));
+                    if (!success) MessageBox.Show("Переименование завершилось с ошибкой.");
+                    else techItem.DxfPath = Path.Combine(directory, techItem.NumberName + Path.GetExtension(techItem.DxfPath));
                 }
-
-                RequestGrid.ItemsSource = TechItems;
             }
+
+            RequestGrid.ItemsSource = null;
+            RequestGrid.ItemsSource = TechItems;
+            MainWindow.M.StatusBegin("Файлы скопированы с новыми именами");
         }
 
+        private void Create_Request(object sender, RoutedEventArgs e) { Create_Request(); }
         private void Create_Request()
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
             using var workbook = new ExcelPackage();
-            ExcelWorksheet requestsheet = workbook.Workbook.Worksheets.Add($"Заявка {(MainWindow.M.IsLaser ? "ЛФ" : "ПР")}");
+            ExcelWorksheet requestsheet = workbook.Workbook.Worksheets.Add($"Заявка Лазер");
 
             //оформляем статичные ячейки по умолчанию
             requestsheet.Cells[1, 1].Value = "Расшифровка работ: гиб - гибка, вальц - вальцовка, зен - зенковка, рез - резьба," +
@@ -166,6 +190,8 @@ namespace Metal_Code
                 requestsheet.Cells[i + 3, 4].Value = TechItems[i].Material;
                 requestsheet.Cells[i + 3, 5].Value = TechItems[i].Destiny;
                 requestsheet.Cells[i + 3, 6].Value = TechItems[i].Count;
+                requestsheet.Cells[i + 3, 7].Value = TechItems[i].Route;
+                requestsheet.Cells[i + 3, 8].Value = TechItems[i].HasMaterial;
             }
             if (message != "") MessageBox.Show(message.Insert(0, "Не удалось получить габариты следующих деталей:"));
 
@@ -188,11 +214,11 @@ namespace Metal_Code
             requestsheet.PrinterSettings.HorizontalCentered = true;
 
             //сохраняем книгу в файл Excel
-            workbook.SaveAs($"{Path.GetDirectoryName(Paths[0])}\\Заявка {(MainWindow.M.IsLaser ? "ЛФ" : "ПР")}.xlsx");
+            workbook.SaveAs($"{Path.GetDirectoryName(Paths[0])}\\Заявка Лазер.xlsx");
 
             MainWindow.M.StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(Paths[0])}");
 
-            //Process.Start("explorer.exe", $"{Path.GetDirectoryName(Paths[0])}\\Заявка.xlsx");
+            //Process.Start("explorer.exe", $"{Path.GetDirectoryName(Paths[0])}\\Заявка Лазер.xlsx");
         }
 
         public static bool RenameFile(string oldPath, string newName, bool copy = true)
@@ -275,6 +301,18 @@ namespace Metal_Code
         private void RequestGrid_LoadingRow(object sender, DataGridRowEventArgs e)
         {
 
+        }
+
+        private void Create_Tech(object sender, RoutedEventArgs e)
+        {
+            if (!File.Exists($"{Path.GetDirectoryName(Paths[0])}\\Заявка Лазер.xlsx"))
+            {
+                MessageBox.Show("Не удалось найти подходящую заявку для анализа.");
+                return;
+            }
+
+            Tech tech = new($"{Path.GetDirectoryName(Paths[0])}\\Заявка Лазер.xlsx");
+            MainWindow.M.StatusBegin(tech.Run());
         }
     }
 
