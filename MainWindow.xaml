@@ -71,7 +71,7 @@
                 <Separator/>
                 <MenuItem Header="Обновить базы" Click="UpdateDatabases"/>
                 <Separator/>
-                <MenuItem Header="Получить новые расчеты" x:Name="GetBtn" Click="GetOffers_WithoutMainBase" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
+                <MenuItem Header="Получить новые расчеты" x:Name="GetBtn" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Click="Show_SearchWindow">
                     <MenuItem.Icon>
                         <Image Source="/Images/new2.png"/>
                     </MenuItem.Icon>

@@ -926,6 +926,12 @@ namespace Metal_Code
             return $"Найдено {offers?.Count} расчетов";
         }
 
+        private void Show_SearchWindow(object sender, RoutedEventArgs e)
+        {
+            SearchWindow window = new SearchWindow();
+            window.Show();
+        }
+
         //метод запуска процесса загрузки расчетов из основной базы в локальную
         private void GetOffers_WithoutMainBase(object sender, RoutedEventArgs e) { CreateWorker(GetOffers_WithoutMainBase, ActionState.get); }
         private string GetOffers_WithoutMainBase(string? message = null)
@@ -1466,7 +1472,7 @@ namespace Metal_Code
         public ActionState State = ActionState.none;
         private string? message;
 
-        private void CreateWorker(Func<string, string> func, ActionState state)        //метод создания фонового процесса
+        public void CreateWorker(Func<string, string> func, ActionState state)        //метод создания фонового процесса
         {
             State = state;
             InsertProgressBar.Visibility = Visibility.Visible;
@@ -4592,10 +4598,11 @@ namespace Metal_Code
         public static string GetSizes(string? path)
         {
             if (path is null || Path.GetExtension(path) != ".dxf") return "";
-
-            using DxfReader reader = new(path);
+            
             try
             {
+                using DxfReader reader = new(path);
+
                 CadDocument doc = reader.Read();
 
                 if (doc.Entities.Count > 0)

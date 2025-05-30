@@ -192,6 +192,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="SearchWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="Images\app_logo.jpg">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
