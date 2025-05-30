@@ -810,6 +810,7 @@ namespace Metal_Code
         public void ClearCalculate()
         {
             SetRatio(1);
+            SetBonusRatio(0);
             SetCount(1);
             Construct = 0;
             HasDelivery = false;
