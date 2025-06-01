@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -19,6 +18,7 @@ namespace Metal_Code
         {
             if (Search == "") MainWindow.M.CreateWorker(GetOffers_WithoutMainBase, MainWindow.ActionState.get);
             else MainWindow.M.CreateWorker(Get_Offers, MainWindow.ActionState.get);
+            Close();
         }
 
         //метод запуска процесса загрузки отфильтрованных расчетов из основной базы в локальную
@@ -32,8 +32,7 @@ namespace Metal_Code
             {
                 try
                 {
-                    List<Offer>? offers = db.Offers.Where(o => (o.N != null && o.N.Contains(Search, StringComparison.OrdinalIgnoreCase))
-                    || (o.Company != null && o.Company.Contains(Search, StringComparison.OrdinalIgnoreCase))).ToList();
+                    List<Offer>? offers = db.Offers.Where(o => o.ManagerId == MainWindow.M.TargetManager.Id && (o.N == Search || o.Company == Search)).ToList();
 
                     if (offers.Count == 0) return "Расчетов по выбранным параметрам не найдено";
                     else

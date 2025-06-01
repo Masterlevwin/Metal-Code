@@ -42,7 +42,7 @@ namespace Metal_Code
                 for (int i = 2; i < table.Rows.Count; i++)
                 {
                     if ($"{table.Rows[i].ItemArray[1]}" is null || $"{table.Rows[i].ItemArray[1]}" == "") continue;
-                    
+
                     TechItem techItem = new(
                         $"{table.Rows[i].ItemArray[1]}",        //номер чертежа
                         $"{table.Rows[i].ItemArray[2]}",        //размеры
@@ -50,8 +50,8 @@ namespace Metal_Code
                         $"{table.Rows[i].ItemArray[4]}",        //толщина
                         $"{(int)MainWindow.Parser($"{table.Rows[i].ItemArray[5]}") * countAssembly}",  //количество
                         $"{table.Rows[i].ItemArray[6]}",        //маршрут
-                        $"{table.Rows[i].ItemArray[7]}");       //давальческий материал      
-
+                        $"{table.Rows[i].ItemArray[7]}",        //давальческий материал      
+                        $"{table.Rows[i].ItemArray[8]}");       //оригинальное наименование от заказчика
                     TechItems.Add(techItem);
                 }
                 CountTechItems = TechItems.Count;
@@ -201,8 +201,14 @@ namespace Metal_Code
             //создаем папки для каждого материала в директории работы
             foreach (var item in dirMaterials) Directory.CreateDirectory(dirMain + "\\" + $"{item}");
 
-            //получаем коллекцию файлов в папке с Excel-файлом
-            IEnumerable<string> files = Directory.EnumerateFiles(Path.GetDirectoryName(ExcelFile), $"*.{extension}", SearchOption.TopDirectoryOnly);
+            IEnumerable<string>? files = null;
+
+            //если есть сгенерированные файлы, получаем коллекцию этих файлов
+            if (techItems == TechItems && Directory.Exists(Path.GetDirectoryName(ExcelFile) + "\\" + "Сгенерированные файлы"))
+                files = Directory.EnumerateFiles(Path.GetDirectoryName(ExcelFile) + "\\" + "Сгенерированные файлы", $"*.{extension}", SearchOption.TopDirectoryOnly);
+            else
+                //иначе получаем коллекцию файлов в папке с Excel-файлом
+                files = Directory.EnumerateFiles(Path.GetDirectoryName(ExcelFile), $"*.{extension}", SearchOption.TopDirectoryOnly);
 
             //сортируем полученные ранее объекты TechItem по соответствующим папкам
             foreach (TechItem techItem in techItems)
@@ -469,6 +475,7 @@ namespace Metal_Code
         public string Count { get; set; } = null!;
         public string Route { get; set; } = null!;
         public string HasMaterial { get; set; } = null!;
+        public string OriginalName { get; set; } = null!;
 
         [Browsable(false)]
         public string? DxfPath { get; set; } = null!;
@@ -476,7 +483,7 @@ namespace Metal_Code
         public string? PdfPath { get; set; } = null!;
 
         public TechItem() { }
-        public TechItem(string numberName, string sizes, string material, string destiny, string count, string route, string hasMaterial)
+        public TechItem(string numberName, string sizes, string material, string destiny, string count, string route, string hasMaterial, string originalName)
         {
             NumberName = numberName;
             Sizes = sizes;
@@ -487,6 +494,7 @@ namespace Metal_Code
             Route = route;
             if (hasMaterial.ToLower().Contains("дав")) HasMaterial = "Давальч";
             else HasMaterial = "";
+            OriginalName = originalName;
         }
     }
 }

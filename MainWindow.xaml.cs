@@ -46,7 +46,8 @@ namespace Metal_Code
         public readonly string[] connections =
         {   //дом
             "Data Source=managers.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
+            //$"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
+            $"Data Source = C:\\Users\\Михаил\\Desktop\\Тест\\Базы\\managers.db",
             "Data Source=typedetails.db",
             $"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
             "Data Source=works.db",
@@ -4541,10 +4542,10 @@ namespace Metal_Code
             //оформляем статичные ячейки по умолчанию
             requestsheet.Cells[1, 1].Value = "Расшифровка работ: гиб - гибка, вальц - вальцовка, зен - зенковка, рез - резьба," +
                 " свар - сварка,\nокр - окраска, оц - оцинковка, грав - гравировка";
-            requestsheet.Cells[1, 1, 1, 8].Merge = true;
-            requestsheet.Cells[1, 1, 1, 8].Style.WrapText = true;
-            requestsheet.Cells[1, 1, 1, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            requestsheet.Cells[1, 1, 1, 8].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            requestsheet.Cells[1, 1, 1, 9].Merge = true;
+            requestsheet.Cells[1, 1, 1, 9].Style.WrapText = true;
+            requestsheet.Cells[1, 1, 1, 9].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            requestsheet.Cells[1, 1, 1, 9].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
             requestsheet.Row(1).Height = 30;
             requestsheet.Cells[_paths.Length + 3, 5].Value = "Кол-во комплектов";
             requestsheet.Cells[_paths.Length + 3, 6].Value = 1;
@@ -4555,7 +4556,7 @@ namespace Metal_Code
             requestsheet.Cells[_paths.Length + 3, 5, _paths.Length + 3, 6].Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             //устанавливаем заголовки таблицы
-            List<string> _heads = new() { "№", "№ чертежа", "Размеры", "Металл", "Толщина", "Кол-во деталей", "Маршрут", "Давальч" };
+            List<string> _heads = new() { "№", "№ чертежа", "Размеры", "Металл", "Толщина", "Кол-во деталей", "Маршрут", "Давальч", "Исходник" };
             for (int head = 0; head < _heads.Count; head++) requestsheet.Cells[2, head + 1].Value = _heads[head];
 
             string message = "";
@@ -4568,7 +4569,7 @@ namespace Metal_Code
             }
             if (message != "") MessageBox.Show(message.Insert(0, "Не удалось получить габариты следующих деталей:"));
 
-            ExcelRange details = requestsheet.Cells[2, 1, _paths.Length + 2, 8];     //получаем таблицу деталей для оформления
+            ExcelRange details = requestsheet.Cells[2, 1, _paths.Length + 2, 9];     //получаем таблицу деталей для оформления
 
             //обводка границ и авторастягивание столбцов
             details.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
@@ -4577,8 +4578,8 @@ namespace Metal_Code
             details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             requestsheet.Cells.AutoFitColumns();
-            requestsheet.Cells[2, 1, 2, 8].Style.WrapText = true;
-            requestsheet.Cells[2, 1, 2, 8].Style.Font.Bold = true;
+            requestsheet.Cells[2, 1, 2, 9].Style.WrapText = true;
+            requestsheet.Cells[2, 1, 2, 9].Style.Font.Bold = true;
 
             //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
             requestsheet.PrinterSettings.FitToPage = true;
