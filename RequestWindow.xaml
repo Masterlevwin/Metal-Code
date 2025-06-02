@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             Title="Заявка клиента" Icon="/app_logo.jpg" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" MinWidth="500" MinHeight="700" Loaded="RequestWindow_Loaded" Closed="OnClosed">
+             Title="Заявка клиента" Icon="/app_logo.jpg" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" MinWidth="500" MinHeight="700" Loaded="RequestWindow_Loaded">
     <Window.Resources>
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     </Window.Resources>
@@ -63,7 +63,7 @@
                 </GroupBox.Header>
 
                 <StackPanel Orientation="Horizontal" Margin="5">
-                    <ListBox x:Name="TemplatesList" ItemsSource="{Binding Templates}" Margin="5" Padding="2" MinWidth="150" KeyDown="Remove_Template" ToolTip="Клавиша Del - удалить шаблон">
+                    <ListBox x:Name="TemplatesList" Margin="5" Padding="2" MinWidth="150" KeyDown="Remove_Template" ToolTip="Клавиша Del - удалить шаблон">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Name}" HorizontalAlignment="Center" Padding="2"/>

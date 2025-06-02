@@ -36,10 +36,11 @@ namespace Metal_Code
         //-----настройка окна при загрузке-----//
         private void RequestWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            PathsList.ItemsSource = Paths.Select(x => Path.GetFileNameWithoutExtension(x));
+
             db.Templates.Load();
             Templates = db.Templates.Local.ToObservableCollection();
-
-            PathsList.ItemsSource = Paths.Select(x => Path.GetFileNameWithoutExtension(x));
+            TemplatesList.ItemsSource = Templates;
         }
 
         //-----шаблон распознавания толщин и количества-----//
@@ -303,8 +304,6 @@ namespace Metal_Code
             Create_Request();
             Create_Tech();
         }
-
-        private void OnClosed(object? sender, EventArgs e) { db.Dispose(); }
     }
 
     public class RequestTemplate : INotifyPropertyChanged
