@@ -304,12 +304,7 @@ namespace Metal_Code
             Create_Tech();
         }
 
-        private void HideWindow(object sender, CancelEventArgs e)
-        {
-            Hide();
-            //CurrentParts.Clear();
-            e.Cancel = true;
-        }
+        private void OnClosed(object? sender, EventArgs e) { db.Dispose(); }
     }
 
     public class RequestTemplate : INotifyPropertyChanged

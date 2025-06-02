@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             Title="Заявка клиента" Icon="/app_logo.jpg" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" MinWidth="500" MinHeight="700" Loaded="RequestWindow_Loaded" Closing="HideWindow">
+             Title="Заявка клиента" Icon="/app_logo.jpg" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" MinWidth="500" MinHeight="700" Loaded="RequestWindow_Loaded" Closed="OnClosed">
     <Window.Resources>
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     </Window.Resources>
