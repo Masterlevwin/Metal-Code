@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 
 namespace Metal_Code
@@ -269,6 +270,8 @@ namespace Metal_Code
 
             MainWindow.M.StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(Paths[0])}");
         }
+
+        //переименование заголовков при генерации колонок Datagrid
         private void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
             if (((PropertyDescriptor)e.PropertyDescriptor).IsBrowsable == false) e.Cancel = true;   //скрываем свойства с атрибутом [IsBrowsable]
@@ -283,7 +286,61 @@ namespace Metal_Code
             if (e.PropertyName == "HasMaterial") e.Column.Header = "Давальч";
             if (e.PropertyName == "OriginalName") e.Column.Header = "Исходник";
         }
-        
+
+        //метод копирования данных в выделенные ячейки после отпускания мыши
+        private void CopyValue_MouseUp(object sender, MouseButtonEventArgs e) { CopyValue(); }
+        private void CopyValue()
+        {
+            if (RequestGrid.SelectedCells.Count < 2) return;
+
+            // Берем первую ячейку как источник
+            var sourceCell = RequestGrid.SelectedCells[0];
+            var sourceItem = sourceCell.Item;
+            var sourceColumn = sourceCell.Column;
+
+            // Получаем имя свойства по заголовку столбца (или можно хранить в Tag/привязке)
+            string? propertyName = GetPropertyNameFromColumn(sourceColumn);
+            if (string.IsNullOrEmpty(propertyName))
+            {
+                MainWindow.M.StatusBegin("Не удалось определить свойство для копирования.");
+                return;
+            }
+
+            var propertyInfo = sourceItem.GetType().GetProperty(propertyName);
+            if (propertyInfo == null) return;
+
+            var valueToCopy = propertyInfo.GetValue(sourceItem);
+
+            // Проходим по всем выделенным ячейкам, кроме первой
+            foreach (var cell in RequestGrid.SelectedCells.Skip(1))
+            {
+                var item = cell.Item;
+                var column = cell.Column;
+
+                string? targetPropertyName = GetPropertyNameFromColumn(column);
+                if (string.IsNullOrEmpty(targetPropertyName)) continue;
+
+                var targetProperty = item.GetType().GetProperty(targetPropertyName);
+                if (targetProperty == null || !targetProperty.CanWrite) continue;
+
+                // Устанавливаем новое значение
+                targetProperty.SetValue(item, valueToCopy);
+            }
+        }
+
+        //вспомогательный метод для получения имени свойства из колонки
+        private static string? GetPropertyNameFromColumn(DataGridColumn column)
+        {
+            if (column is DataGridTextColumn textColumn &&
+                textColumn.Binding is Binding binding)
+            {
+                return binding.Path.Path;
+            }
+
+            // Добавь поддержку других типов колонок при необходимости
+            return null;
+        }
+
         //-----подготовка папок в работу-----//
         private void Create_Tech(object sender, RoutedEventArgs e) { Create_Tech(); }
         private void Create_Tech()
@@ -304,6 +361,7 @@ namespace Metal_Code
             Create_Request();
             Create_Tech();
         }
+
     }
 
     public class RequestTemplate : INotifyPropertyChanged

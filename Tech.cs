@@ -1,13 +1,14 @@
-using System.IO;
-using Path = System.IO.Path;
-using System.Collections.Generic;
-using System.Linq;
 using ExcelDataReader;
-using System.Data;
-using System;
 using OfficeOpenXml;
-using System.Windows;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Windows;
+using Path = System.IO.Path;
 
 namespace Metal_Code
 {
@@ -466,16 +467,122 @@ namespace Metal_Code
         }
     }
 
-    public class TechItem
+    public class TechItem : INotifyPropertyChanged
     {
-        public string NumberName { get; set; } = null!;
-        public string Sizes { get; set; } = null!;
-        public string Material { get; set; } = "";
-        public string Destiny { get; set; } = null!;
-        public string Count { get; set; } = null!;
-        public string Route { get; set; } = null!;
-        public string HasMaterial { get; set; } = null!;
-        public string OriginalName { get; set; } = null!;
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        private string numberName = null!;
+        public string NumberName
+        {
+            get => numberName;
+            set
+            {
+                if (numberName != value)
+                {
+                    numberName = value;
+                    OnPropertyChanged(nameof(NumberName));
+                }
+            }
+        }
+
+        private string sizes = null!;
+        public string Sizes
+        {
+            get => sizes;
+            set
+            {
+                if (sizes != value)
+                {
+                    sizes = value;
+                    OnPropertyChanged(nameof(Sizes));
+                }
+            }
+        }
+
+        private string material = "";
+        public string Material
+        {
+            get => material;
+            set
+            {
+                if (material != value)
+                {
+                    material = value;
+                    OnPropertyChanged(nameof(Material));
+                }
+            }
+        }
+
+        private string destiny = null!;
+        public string Destiny
+        {
+            get => destiny;
+            set
+            {
+                if (destiny != value)
+                {
+                    destiny = value;
+                    OnPropertyChanged(nameof(Destiny));
+                }
+            }
+        }
+
+        private string count = null!;
+        public string Count
+        {
+            get => count;
+            set
+            {
+                if (count != value)
+                {
+                    count = value;
+                    OnPropertyChanged(nameof(Count));
+                }
+            }
+        }
+
+        private string route = null!;
+        public string Route
+        {
+            get => route;
+            set
+            {
+                if (route != value)
+                {
+                    route = value;
+                    OnPropertyChanged(nameof(Route));
+                }
+            }
+        }
+
+        private string hasMaterial = null!;
+        public string HasMaterial
+        {
+            get => hasMaterial;
+            set
+            {
+                if (hasMaterial != value)
+                {
+                    hasMaterial = value;
+                    OnPropertyChanged(nameof(HasMaterial));
+                }
+            }
+        }
+
+        private string originalName = null!;
+        public string OriginalName
+        {
+            get => originalName;
+            set
+            {
+                if (originalName != value)
+                {
+                    originalName = value;
+                    OnPropertyChanged(nameof(OriginalName));
+                }
+            }
+        }
 
         [Browsable(false)]
         public string? DxfPath { get; set; } = null!;
