@@ -303,6 +303,13 @@ namespace Metal_Code
             Create_Request();
             Create_Tech();
         }
+
+        private void HideWindow(object sender, CancelEventArgs e)
+        {
+            Hide();
+            //CurrentParts.Clear();
+            e.Cancel = true;
+        }
     }
 
     public class RequestTemplate : INotifyPropertyChanged

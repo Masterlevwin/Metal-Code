@@ -2003,7 +2003,15 @@ namespace Metal_Code
                 if (cell.Value != null)
                 {
                     cell.Value = IsAgent ? $"{cell.Value}".Insert(0, "Изготовление детали ") : $"{cell.Value}".Insert(0, "Деталь ");
-                    if ($"{cell.Value}".ToLower().Contains('s')) cell.Value = $"{cell.Value}"[..$"{cell.Value}".ToLower().LastIndexOf('s')];     //и обрезаем наименование
+
+                    //и обрезаем наименование
+                    foreach (Metal metal in Metals)
+                        if (metal.Name != null && $"{cell.Value}".ToLower().Contains(metal.Name))
+                        {
+                            cell.Value = $"{cell.Value}".Replace(metal.Name, "");
+                            break;
+                        }
+                    if ($"{cell.Value}".ToLower().Contains('s')) cell.Value = $"{cell.Value}"[..$"{cell.Value}".ToLower().LastIndexOf('s')];
                 }
 
             //оформляем заголовки таблицы
