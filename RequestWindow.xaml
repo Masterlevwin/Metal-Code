@@ -10,7 +10,9 @@
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     </Window.Resources>
     <StackPanel Margin="10">
-        
+               
+        <TextBlock Text="Внимание! Не закрывайте это окно, пока не сохраните расчет в КП!" FontSize="14" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+ 
         <GroupBox MaxHeight="120" Margin="10" HorizontalAlignment="Center">
             <GroupBox.Header>
                 <TextBlock Text="Наименования выбранных файлов" FontSize="14" FontWeight="Bold"/>

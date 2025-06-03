@@ -193,7 +193,7 @@ namespace Metal_Code
             Details.Text = "Функция генерации копирует выбранные файлы\n" +
                 "с новыми именами в виде децимального номера.\n" +
                 "После загрузки раскладок из Ажанкам эти имена\n" +
-                "будут заменены обратно на исходные имена от заказчика.\n";
+                "будут заменены обратно на исходные имена от заказчика.";
         }
 
         //-----создание заявки в формате Excel-----//
@@ -300,9 +300,9 @@ namespace Metal_Code
 
             // Получаем имя свойства по заголовку столбца (или можно хранить в Tag/привязке)
             string? propertyName = GetPropertyNameFromColumn(sourceColumn);
-            if (string.IsNullOrEmpty(propertyName))
+            if (string.IsNullOrEmpty(propertyName) || propertyName == "OriginalName")
             {
-                MainWindow.M.StatusBegin("Не удалось определить свойство для копирования.");
+                MainWindow.M.StatusBegin("Не удалось определить свойство для копирования, или такое копирование запрещено.");
                 return;
             }
 
@@ -310,6 +310,25 @@ namespace Metal_Code
             if (propertyInfo == null) return;
 
             var valueToCopy = propertyInfo.GetValue(sourceItem);
+
+            // Проверяем, все ли ячейки принадлежат одной строке
+            bool sameRow = true;
+            var firstItem = sourceItem;
+
+            foreach (var cell in RequestGrid.SelectedCells.Skip(1))
+            {
+                if (!ReferenceEquals(cell.Item, firstItem))
+                {
+                    sameRow = false;
+                    break;
+                }
+            }
+
+            if (sameRow)
+            {
+                MainWindow.M.StatusBegin("Копирование по горизонтали запрещено.");
+                return;
+            }
 
             // Проходим по всем выделенным ячейкам, кроме первой
             foreach (var cell in RequestGrid.SelectedCells.Skip(1))
@@ -322,6 +341,8 @@ namespace Metal_Code
 
                 var targetProperty = item.GetType().GetProperty(targetPropertyName);
                 if (targetProperty == null || !targetProperty.CanWrite) continue;
+
+                if (column != sourceColumn) continue; // Запрет копирования в другие столбцы
 
                 // Устанавливаем новое значение
                 targetProperty.SetValue(item, valueToCopy);

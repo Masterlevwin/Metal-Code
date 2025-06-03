@@ -159,6 +159,7 @@ namespace Metal_Code
                         }
                     }
 
+                if (MainWindow.M.TechItems.Count > 0) MainWindow.M.TechItems.Clear();
                 MainWindow.M.TechItems = TechItems;
 
                 //получаем коллекцию файлов "igs" в папке с Excel-файлом

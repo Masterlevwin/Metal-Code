@@ -583,6 +583,14 @@ namespace Metal_Code
                             }
                         else MainWindow.M.StatusBegin("Не удалось определить массу и размеры деталей. Возможно в названии деталей не указана толщина!");
 
+                        if (MainWindow.M.TechItems.Count > 0)
+                            foreach (TechItem item in MainWindow.M.TechItems)
+                                if (part.Title.ToLower().Contains(item.NumberName.ToLower()))
+                                {
+                                    if (!string.IsNullOrEmpty(item.OriginalName)) part.Title = item.OriginalName;
+                                    if (!string.IsNullOrEmpty(item.PdfPath)) part.PdfPath = item.PdfPath;
+                                }
+
                         _parts.Add(new(this, work, part));
                         PartDetails?.Add(part);
                     }
@@ -658,7 +666,17 @@ namespace Metal_Code
                             string? _count = tables[0].Rows[j].ItemArray[3]?.ToString();
                             if (_count != null && _count.Contains('/')) part.Count = (int)MainWindow.Parser(_count.Split('/')[0]);
 
-                            if (part.Count > 0) PartDetails?.Add(part);
+                            if (part.Count > 0)
+                            {
+                                if (MainWindow.M.TechItems.Count > 0)
+                                    foreach (TechItem item in MainWindow.M.TechItems)
+                                        if (part.Title.ToLower().Contains(item.NumberName.ToLower()))
+                                        {
+                                            if (!string.IsNullOrEmpty(item.OriginalName)) part.Title = item.OriginalName;
+                                            if (!string.IsNullOrEmpty(item.PdfPath)) part.PdfPath = item.PdfPath;
+                                        }
+                                PartDetails?.Add(part);
+                            }
                         }
                         break;
                     }

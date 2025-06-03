@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Runtime.Serialization;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Metal_Code
 {
@@ -478,8 +479,8 @@ namespace Metal_Code
                                     foreach (TechItem item in MainWindow.M.TechItems)
                                         if (part.Title.ToLower().Contains(item.NumberName.ToLower()))
                                         {
-                                            part.Title = item.OriginalName;
-                                            part.PdfPath = item.PdfPath;
+                                            if (!string.IsNullOrEmpty(item.OriginalName)) part.Title = item.OriginalName;
+                                            if (!string.IsNullOrEmpty(item.PdfPath)) part.PdfPath = item.PdfPath;
                                         }
                                 _parts.Add(new(this, work, part));
                                 PartDetails?.Add(part);
