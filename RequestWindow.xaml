@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             Title="Заявка клиента" Icon="/app_logo.jpg" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" MinWidth="500" MinHeight="700" Loaded="RequestWindow_Loaded">
+             Title="Заявка клиента" Icon="/app_logo.jpg" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" MinWidth="800" MinHeight="700" Loaded="RequestWindow_Loaded">
     <Window.Resources>
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     </Window.Resources>
@@ -13,7 +13,7 @@
                
         <TextBlock Text="Внимание! Не закрывайте это окно, пока не сохраните расчет в КП!" FontSize="14" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
  
-        <GroupBox MaxHeight="120" Margin="10" HorizontalAlignment="Center">
+        <GroupBox MaxHeight="120" Margin="5" HorizontalAlignment="Center">
             <GroupBox.Header>
                 <TextBlock Text="Наименования выбранных файлов" FontSize="14" FontWeight="Bold"/>
             </GroupBox.Header>
@@ -21,8 +21,8 @@
             <ListBox x:Name="PathsList" Margin="5" Padding="2"/>
         </GroupBox>
 
-        <StackPanel Orientation="Horizontal" Margin="10" HorizontalAlignment="Center" MinHeight="150" MaxHeight="150">
-            <GroupBox DataContext="{Binding CurrentTemplate}" Margin="10" HorizontalAlignment="Center">
+        <StackPanel Orientation="Horizontal" Margin="5" HorizontalAlignment="Center" MinHeight="150" MaxHeight="150">
+            <GroupBox DataContext="{Binding CurrentTemplate}" Margin="5" HorizontalAlignment="Center">
                 <GroupBox.Header>
                     <TextBlock Text="Определите шаблон распознавания" FontSize="14" FontWeight="Bold"/>
                 </GroupBox.Header>
@@ -59,7 +59,7 @@
                 </StackPanel>
             </GroupBox>
 
-            <GroupBox Margin="10" HorizontalAlignment="Center">
+            <GroupBox Margin="5" HorizontalAlignment="Center">
                 <GroupBox.Header>
                     <TextBlock Text="Выберите шаблон из списка" FontSize="14" FontWeight="Bold"/>
                 </GroupBox.Header>
@@ -76,28 +76,28 @@
                         <Button Content="Запустить анализ" Margin="5" Padding="5" Click="Analyze_Paths" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="5">
                             <Button Content="Генерация"  Padding="5" Click="Rename_Details" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            <Image Source="/Images/question.png" MouseEnter="ShowPopup" MaxHeight="20"/>
-                            <Popup x:Name="Popup" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Scroll" StaysOpen="False">
-                                <Border BorderThickness="1" CornerRadius="1" BorderBrush="Red">
-                                    <StackPanel Background="Snow">
-                                        <TextBlock x:Name="Details" TextAlignment="Center" Padding="5"/>
-                                    </StackPanel>
-                                </Border>
-                            </Popup>
+                            <Image Source="/Images/question.png" MouseEnter="ShowPopupGen" MaxHeight="20"/>
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>
             </GroupBox>
         </StackPanel>
 
-        <GroupBox MaxHeight="240" Margin="10" HorizontalAlignment="Center">
+        <GroupBox HorizontalAlignment="Center">
             <GroupBox.Header>
                 <TextBlock Text="Отредактируйте заявку" FontSize="14" FontWeight="Bold"/>
             </GroupBox.Header>
 
-            <DataGrid x:Name="RequestGrid" ItemsSource="{Binding TechItems}" SelectionUnit="Cell" CanUserReorderColumns="False" CanUserDeleteRows="False" CanUserAddRows="False" BorderBrush="Red" EnableColumnVirtualization="True" CanUserResizeRows="False" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="10" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" MouseUp="CopyValue_MouseUp"/>
+            <StackPanel>
+                <DataGrid x:Name="RequestGrid" ItemsSource="{Binding TechItems}" SelectionUnit="Cell" MaxHeight="200" CanUserReorderColumns="False" CanUserDeleteRows="False" CanUserAddRows="False" BorderBrush="Red" EnableColumnVirtualization="True" CanUserResizeRows="False" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="10" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" MouseUp="CopyValue_MouseUp" MaxWidth="800"/>
+                <StackPanel Orientation="Horizontal" Margin="5">
+                    <TextBox Margin="5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="120" MaxWidth="120"/>
+                    <Button Content="Удалить" Margin="5" Padding="5"/>
+                    <Image Source="/Images/question.png" MouseEnter="ShowPopupDel" MaxHeight="20"/>
+                </StackPanel>
+            </StackPanel>
         </GroupBox>
-
+        
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
             <Button ToolTip="Создать заявку в формате Excel" Click="Create_Request" HorizontalAlignment="Center" Margin="5">
                 <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="22">
@@ -118,7 +118,15 @@
                     <Image Source="Images/complect.png" Margin="5,0,0,0"/>
                 </StackPanel>
             </Button>
-
         </StackPanel>
+
+        <Popup x:Name="Popup" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Scroll" StaysOpen="False">
+            <Border BorderThickness="1" CornerRadius="1" BorderBrush="Red">
+                <StackPanel Background="Snow">
+                    <TextBlock x:Name="Details" TextAlignment="Center" Padding="5"/>
+                </StackPanel>
+            </Border>
+        </Popup>
+
     </StackPanel>
 </Window>

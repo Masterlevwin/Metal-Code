@@ -186,7 +186,7 @@ namespace Metal_Code
             RequestGrid.ItemsSource = TechItems;
             MainWindow.M.StatusBegin("Файлы скопированы с новыми именами");
         }
-        private void ShowPopup(object sender, MouseEventArgs e)
+        private void ShowPopupGen(object sender, MouseEventArgs e)
         {
             Popup.IsOpen = true;
 
@@ -383,6 +383,12 @@ namespace Metal_Code
             Create_Tech();
         }
 
+        private void ShowPopupDel(object sender, MouseEventArgs e)
+        {
+            Popup.IsOpen = true;
+
+            Details.Text = "Функция укорачивания наименований";
+        }
     }
 
     public class RequestTemplate : INotifyPropertyChanged
