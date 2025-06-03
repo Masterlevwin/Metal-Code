@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System;
@@ -100,20 +101,45 @@ namespace Metal_Code
                 TechItem techItem = new() { NumberName = Path.GetFileNameWithoutExtension(path),
                                             OriginalName = Path.GetFileNameWithoutExtension(path) };
                 //определяем материал
-                string metalPattern = @"aisi\s*(\d+)";
+                string aisiPattern = @"(aisi\s*(\d+)\s*зер)|(aisi\s*(\d+)\s*шлиф)|(aisi\s*(\d+))";
+                string d16atPattern = @"д\s*16\s*(?:а\s*т|т)";
+                string d16amPattern = @"д\s*16\s*(?:а\s*м|м)";
+
                 foreach (Metal metal in MainWindow.M.Metals)
                     if (metal.Name != null && metal.Name.Contains("aisi"))
                     {
-                        Match match = Regex.Match(path, metalPattern, RegexOptions.IgnoreCase);
+                        Match match = Regex.Match(path, aisiPattern, RegexOptions.IgnoreCase);
                         if (match.Success && metal.Name.Contains(match.Value.Replace(" ", ""), StringComparison.OrdinalIgnoreCase))
                         {
                             techItem.Material = metal.Name;
+                            techItem.NumberName = Regex.Replace(techItem.NumberName, aisiPattern, "", RegexOptions.IgnoreCase);
+                            break;
+                        }
+                    }
+                    else if (metal.Name != null && metal.Name.Contains("д16АТ"))
+                    {
+                        Match match = Regex.Match(path, d16atPattern, RegexOptions.IgnoreCase);
+                        if (match.Success)
+                        {
+                            techItem.Material = metal.Name;
+                            techItem.NumberName = Regex.Replace(techItem.NumberName, d16atPattern, "", RegexOptions.IgnoreCase);
+                            break;
+                        }
+                    }
+                    else if (metal.Name != null && metal.Name.Contains("д16АМ"))
+                    {
+                        Match match = Regex.Match(path, d16amPattern, RegexOptions.IgnoreCase);
+                        if (match.Success)
+                        {
+                            techItem.Material = metal.Name;
+                            techItem.NumberName = Regex.Replace(techItem.NumberName, d16amPattern, "", RegexOptions.IgnoreCase);
                             break;
                         }
                     }
                     else if (metal.Name != null && path.Contains(metal.Name, StringComparison.OrdinalIgnoreCase))
                     {
                         techItem.Material = metal.Name;
+                        techItem.NumberName = Regex.Replace(techItem.NumberName, metal.Name, "", RegexOptions.IgnoreCase);
                         break;
                     }
 
@@ -123,7 +149,11 @@ namespace Metal_Code
                 else destinyPattern = $@"([\d.]+)\s*{Regex.Escape(template.DestinyPattern)}";
 
                 Match matchDestiny = Regex.Match(path, destinyPattern, RegexOptions.IgnoreCase);
-                if (matchDestiny.Success) techItem.Destiny = matchDestiny.Groups[1].Value;
+                if (matchDestiny.Success)
+                {
+                    techItem.Destiny = matchDestiny.Groups[1].Value;
+                    techItem.NumberName = Regex.Replace(techItem.NumberName, destinyPattern, "", RegexOptions.IgnoreCase);
+                }
 
                 //определяем количество
                 string countPattern;
@@ -131,7 +161,14 @@ namespace Metal_Code
                 else countPattern = $@"(\d+)\s*{Regex.Escape(template.CountPattern)}";
 
                 Match matchCount = Regex.Match(path, countPattern, RegexOptions.IgnoreCase);
-                if (matchCount.Success) techItem.Count = matchCount.Groups[1].Value;
+                if (matchCount.Success)
+                {
+                    techItem.Count = matchCount.Groups[1].Value;
+                    techItem.NumberName = Regex.Replace(techItem.NumberName, countPattern, "", RegexOptions.IgnoreCase);
+                }
+
+                //очищаем наименование детали от специальных символов и лишних пробелов
+                techItem.NumberName = Regex.Replace(techItem.NumberName, @"[^a-z0-9]\s+", " ").Trim();
 
                 //записываем путь к файлу
                 techItem.DxfPath = path;

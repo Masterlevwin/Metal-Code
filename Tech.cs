@@ -207,7 +207,10 @@ namespace Metal_Code
 
             //если есть сгенерированные файлы, получаем коллекцию этих файлов
             if (techItems == TechItems && Directory.Exists(Path.GetDirectoryName(ExcelFile) + "\\" + "Сгенерированные файлы"))
+            {
                 files = Directory.EnumerateFiles(Path.GetDirectoryName(ExcelFile) + "\\" + "Сгенерированные файлы", $"*.{extension}", SearchOption.TopDirectoryOnly);
+                foreach (TechItem item in techItems) item.IsGenerated = true;
+            }
             else
                 //иначе получаем коллекцию файлов в папке с Excel-файлом
                 files = Directory.EnumerateFiles(Path.GetDirectoryName(ExcelFile), $"*.{extension}", SearchOption.TopDirectoryOnly);
@@ -586,7 +589,11 @@ namespace Metal_Code
         }
 
         [Browsable(false)]
+        public bool IsGenerated { get; set; } = false;
+
+        [Browsable(false)]
         public string? DxfPath { get; set; } = null!;
+
         [Browsable(false)]
         public string? PdfPath { get; set; } = null!;
 
