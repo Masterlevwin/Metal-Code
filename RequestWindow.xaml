@@ -76,7 +76,7 @@
                         <Button Content="Запустить анализ" Margin="5" Padding="5" Click="Analyze_Paths" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="5">
                             <Button Content="Генерация"  Padding="5" Click="Rename_Details" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            <Image Source="/Images/question.png" MouseEnter="ShowPopupGen" MaxHeight="20"/>
+                            <Image Source="/Images/question.png" MouseEnter="ShowPopup_Gen" MaxHeight="20"/>
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>
@@ -91,9 +91,11 @@
             <StackPanel>
                 <DataGrid x:Name="RequestGrid" ItemsSource="{Binding TechItems}" SelectionUnit="Cell" MaxHeight="200" CanUserReorderColumns="False" CanUserDeleteRows="False" CanUserAddRows="False" BorderBrush="Red" EnableColumnVirtualization="True" CanUserResizeRows="False" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="10" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" MouseUp="CopyValue_MouseUp" MaxWidth="800"/>
                 <StackPanel Orientation="Horizontal" Margin="5">
-                    <TextBox Margin="5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="120" MaxWidth="120"/>
-                    <Button Content="Удалить" Margin="5" Padding="5"/>
-                    <Image Source="/Images/question.png" MouseEnter="ShowPopupDel" MaxHeight="20"/>
+                    <TextBox x:Name="DeleteText" Margin="5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="120" MaxWidth="120"/>
+                    <Button Content="Удалить" Margin="5" Padding="5" Click="Delete_WithoutNames"/>
+                    <Image Source="/Images/question.png" MouseEnter="ShowPopup_Del" MaxHeight="20"/>
+                    <TextBlock Text="Количество комплектов" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="100,0,0,0" MaxWidth="70" TextWrapping="Wrap"/>
+                    <TextBox x:Name="CountText" FontWeight="Bold" Foreground="Red" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" MinWidth="40" MaxWidth="40" Margin="5" Text="1"/>
                 </StackPanel>
             </StackPanel>
         </GroupBox>

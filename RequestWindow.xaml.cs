@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System;
@@ -167,9 +166,6 @@ namespace Metal_Code
                     techItem.NumberName = Regex.Replace(techItem.NumberName, countPattern, "", RegexOptions.IgnoreCase);
                 }
 
-                //очищаем наименование детали от специальных символов и лишних пробелов
-                techItem.NumberName = Regex.Replace(techItem.NumberName, @"[^a-z0-9]\s+", " ").Trim();
-
                 //записываем путь к файлу
                 techItem.DxfPath = path;
 
@@ -223,7 +219,7 @@ namespace Metal_Code
             RequestGrid.ItemsSource = TechItems;
             MainWindow.M.StatusBegin("Файлы скопированы с новыми именами");
         }
-        private void ShowPopupGen(object sender, MouseEventArgs e)
+        private void ShowPopup_Gen(object sender, MouseEventArgs e)
         {
             Popup.IsOpen = true;
 
@@ -257,7 +253,7 @@ namespace Metal_Code
             requestsheet.Cells[1, 1, 1, 9].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
             requestsheet.Row(1).Height = 30;
             requestsheet.Cells[TechItems.Count + 3, 5].Value = "Кол-во комплектов";
-            requestsheet.Cells[TechItems.Count + 3, 6].Value = 1;
+            requestsheet.Cells[TechItems.Count + 3, 6].Value = CountText.Text;
             requestsheet.Cells[TechItems.Count + 3, 6].Style.Font.Color.SetColor(System.Drawing.Color.Red);
             requestsheet.Cells[TechItems.Count + 3, 5, TechItems.Count + 3, 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             requestsheet.Cells[TechItems.Count + 3, 5, TechItems.Count + 3, 6].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
@@ -399,6 +395,24 @@ namespace Metal_Code
             return null;
         }
 
+        //метод укорачивания наименований
+        private void Delete_WithoutNames(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(DeleteText.Text) || TechItems.Count == 0) return;
+
+            foreach (TechItem item in TechItems)
+                if (item.NumberName.Contains(DeleteText.Text, StringComparison.OrdinalIgnoreCase))
+                    item.NumberName = item.NumberName.Replace(DeleteText.Text, "");
+        }
+        private void ShowPopup_Del(object sender, MouseEventArgs e)
+        {
+            Popup.IsOpen = true;
+
+            Details.Text = "Функция укорачивания наименований.\n" +
+                "Введите символ или часть текста, и ,если программа\n" +
+                "найдет совпадение, то удалит это из каждого наименования.";
+        }
+
         //-----подготовка папок в работу-----//
         private void Create_Tech(object sender, RoutedEventArgs e) { Create_Tech(); }
         private void Create_Tech()
@@ -418,13 +432,6 @@ namespace Metal_Code
         {
             Create_Request();
             Create_Tech();
-        }
-
-        private void ShowPopupDel(object sender, MouseEventArgs e)
-        {
-            Popup.IsOpen = true;
-
-            Details.Text = "Функция укорачивания наименований";
         }
     }
 

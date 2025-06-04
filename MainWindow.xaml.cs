@@ -1994,6 +1994,12 @@ namespace Metal_Code
                 }
 
             ObservableCollection<Detail> _details = new(ProductModel.Product.Details.Where(d => !d.IsComplect));
+            if (_details.Count > 0)
+                foreach (Detail det in _details)
+                {
+                    det.Price = (float)Math.Ceiling(det.Price);
+                    det.Total = det.Price * det.Count;
+                }
             DataTable detailTable = ToDataTable(_details);
             worksheet.Cells[row, 1].LoadFromDataTable(detailTable, false);
             row += detailTable.Rows.Count;
@@ -2847,8 +2853,12 @@ namespace Metal_Code
             for (int i = details.Rows; i > 0; i--)      //удаляем строки без цен - детали сборок
             {
                 if (scoresheet.Cells[i, 3].Value is null || $"{scoresheet.Cells[i, 3].Value}" == "")
+                {
                     scoresheet.DeleteRow(i);
+                    row--;
+                }
             }
+            details = scoresheet.Cells[1, 1, row + 1, 5];
 
             // ----- обводка границ и авторастягивание столбцов -----
 
@@ -2899,7 +2909,7 @@ namespace Metal_Code
             complectsheet.Row(1).Height = 60;
 
             //устанавливаем заголовки таблицы
-            List<string> _heads = new() { "№", "Вид", "Название детали", "Маршрут", "Кол-во", "Размеры детали", "Вес, кг", "Материал", "Толщина" };
+            List<string> _heads = new() { "№", "Вид", "Название детали", "Маршрут", "Кол-во", "Размеры детали", "Вес, кг", "Материал", "Толщина", "Факт" };
             for (int head = 0; head < _heads.Count; head++) complectsheet.Cells[2, head + 1].Value = _heads[head];
 
             //параллельно создаем лист с раскладками
@@ -2957,8 +2967,11 @@ namespace Metal_Code
 
                                         complectsheet.Cells[temp + 2, 9].Value = cut.PartDetails[i].Destiny;                 //толщина
                                         if ($"{complectsheet.Cells[temp + 1, 9].Value}" != $"{complectsheet.Cells[temp + 2, 9].Value}" || $"{complectsheet.Cells[temp + 1, 8].Value}" != $"{complectsheet.Cells[temp + 2, 8].Value}")
-                                            complectsheet.Cells[temp + 1, 1, temp + 1, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
-                                        else complectsheet.Cells[temp + 1, 1, temp + 1, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                                            complectsheet.Cells[temp + 1, 1, temp + 1, 10].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
+                                        else complectsheet.Cells[temp + 1, 1, temp + 1, 10].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+
+                                        complectsheet.Cells[temp + 2, 10].Style.Font.Color.SetColor(System.Drawing.Color.Red);  //факт
+                                        complectsheet.Cells[temp + 2, 10].Style.Font.Bold = true;
 
                                         temp++;
                                     }
@@ -3007,8 +3020,11 @@ namespace Metal_Code
 
                     complectsheet.Cells[temp + 2, 9].Value = det.Detail.Destiny;        //толщина
                     if (complectsheet.Cells[temp + 1, 9].Value != null && $"{complectsheet.Cells[temp + 1, 9].Value}" != $"{complectsheet.Cells[temp + 2, 9].Value}")
-                        complectsheet.Cells[temp + 1, 1, temp + 1, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
-                    else complectsheet.Cells[temp + 1, 1, temp + 1, 9].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                        complectsheet.Cells[temp + 1, 1, temp + 1, 10].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
+                    else complectsheet.Cells[temp + 1, 1, temp + 1, 10].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+
+                    complectsheet.Cells[temp + 2, 10].Style.Font.Color.SetColor(System.Drawing.Color.Red);  //факт
+                    complectsheet.Cells[temp + 2, 10].Style.Font.Bold = true;
 
                     temp++;
                 }
@@ -3030,9 +3046,13 @@ namespace Metal_Code
             complectsheet.Cells[temp + 2, 7].Value = Math.Ceiling(_totalMass);
             complectsheet.Cells[temp + 2, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
+            complectsheet.Names.Add("totalFact", complectsheet.Cells[3, 10, temp + 1, 10]);
+            complectsheet.Cells[temp + 2, 10].Formula = "=SUM(totalFact)";
+            complectsheet.Cells[temp + 2, 10].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
             complectsheet.Row(temp + 2).Style.Font.Bold = true;     //выделяем жирным шрифтом подсчитанные кол-во и вес
 
-            ExcelRange details = complectsheet.Cells[2, 1, temp + 1, 9];    //получаем таблицу деталей для оформления
+            ExcelRange details = complectsheet.Cells[2, 1, temp + 1, 10];    //получаем таблицу деталей для оформления
 
             if (Parts.Count > 0)        //в случае с нарезанными деталями, оформляем расшифровку работ
             {
@@ -3087,7 +3107,6 @@ namespace Metal_Code
             labelsheet.Cells[5, 1, 5, 2].Merge = true;
 
             ExcelRange label = labelsheet.Cells[1, 1, 5, 2];                        //получаем этикетку для оформления
-
 
             //обводка границ и авторастягивание столбцов
             details.Style.HorizontalAlignment = label.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
