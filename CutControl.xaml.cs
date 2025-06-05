@@ -12,7 +12,6 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Runtime.Serialization;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Metal_Code
 {
@@ -478,9 +477,12 @@ namespace Metal_Code
                                 if (MainWindow.M.TechItems.Count > 0)
                                     foreach (TechItem item in MainWindow.M.TechItems)
                                     {
-                                        if (item.IsGenerated && part.Title.ToLower().Contains(item.NumberName.ToLower())
-                                            && !string.IsNullOrEmpty(item.OriginalName)) part.Title = item.OriginalName;
-                                        if (!string.IsNullOrEmpty(item.PdfPath)) part.PdfPath = item.PdfPath;
+                                        if (part.Title.ToLower().Contains(item.NumberName.ToLower()))
+                                        {
+                                            if (item.IsGenerated && !string.IsNullOrEmpty(item.OriginalName)) part.Title = item.OriginalName;
+                                            if (!string.IsNullOrEmpty(item.PdfPath)) part.PdfPath = item.PdfPath;
+                                            break;
+                                        }
                                     }
                                 _parts.Add(new(this, work, part));
                                 PartDetails?.Add(part);
@@ -528,11 +530,16 @@ namespace Metal_Code
             for (int i = 0; i < table.Rows.Count; i++)
             {
                 if ($"{table.Rows[i].ItemArray[6]}".Contains("Общий вес деталей (Kg) ="))
+                {
                     MassTotal = MainWindow.Parser($"{table.Rows[i].ItemArray[8]}");
+                    if (MassTotal < .01f) MassTotal = 1f;
+                }
 
                 if ($"{table.Rows[i].ItemArray[6]}".Contains("Итого Длина пути резки (mm)"))
+                {
                     WayTotal = MainWindow.Parser($"{table.Rows[i].ItemArray[8]}");
-
+                    if (WayTotal < .01f) WayTotal = 1f;
+                }
 
                 if ($"{table.Rows[i].ItemArray[8]}" == "Материал")
                 {

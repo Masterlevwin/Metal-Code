@@ -586,9 +586,12 @@ namespace Metal_Code
                         if (MainWindow.M.TechItems.Count > 0)
                             foreach (TechItem item in MainWindow.M.TechItems)
                             {
-                                if (item.IsGenerated && part.Title.ToLower().Contains(item.NumberName.ToLower())
-                                    && !string.IsNullOrEmpty(item.OriginalName)) part.Title = item.OriginalName;
-                                if (!string.IsNullOrEmpty(item.PdfPath)) part.PdfPath = item.PdfPath;
+                                if (part.Title.ToLower().Contains(item.NumberName.ToLower()))
+                                {
+                                    if (item.IsGenerated && !string.IsNullOrEmpty(item.OriginalName)) part.Title = item.OriginalName;
+                                    if (!string.IsNullOrEmpty(item.PdfPath)) part.PdfPath = item.PdfPath;
+                                    break;
+                                }
                             }
                         _parts.Add(new(this, work, part));
                         PartDetails?.Add(part);
@@ -670,9 +673,12 @@ namespace Metal_Code
                                 if (MainWindow.M.TechItems.Count > 0)
                                     foreach (TechItem item in MainWindow.M.TechItems)
                                     {
-                                        if (item.IsGenerated && part.Title.ToLower().Contains(item.NumberName.ToLower())
-                                            && !string.IsNullOrEmpty(item.OriginalName)) part.Title = item.OriginalName;
-                                        if (!string.IsNullOrEmpty(item.PdfPath)) part.PdfPath = item.PdfPath;
+                                        if (part.Title.ToLower().Contains(item.NumberName.ToLower()))
+                                        {
+                                            if (item.IsGenerated && !string.IsNullOrEmpty(item.OriginalName)) part.Title = item.OriginalName;
+                                            if (!string.IsNullOrEmpty(item.PdfPath)) part.PdfPath = item.PdfPath;
+                                            break;
+                                        }
                                     }
                                 PartDetails?.Add(part);
                             }
