@@ -476,14 +476,12 @@ namespace Metal_Code
 
                                 if (MainWindow.M.TechItems.Count > 0)
                                     foreach (TechItem item in MainWindow.M.TechItems)
-                                    {
                                         if (part.Title.ToLower().Contains(item.NumberName.ToLower()))
                                         {
                                             if (item.IsGenerated && !string.IsNullOrEmpty(item.OriginalName)) part.Title = item.OriginalName;
                                             if (!string.IsNullOrEmpty(item.PdfPath)) part.PdfPath = item.PdfPath;
                                             break;
                                         }
-                                    }
                                 _parts.Add(new(this, work, part));
                                 PartDetails?.Add(part);
                             }
@@ -631,7 +629,7 @@ namespace Metal_Code
 
             if (Way == 0) Way = WayTotal;
 
-            //if (MassTotal < 1) MassTotal = Mass;                // общий вес деталей не должен быть меньше 1 кг, иначе возникнет ошибка деления на 0
+            //if (MassTotal < 1) MassTotal = ExtraTime;                // общий вес деталей не должен быть меньше 1 кг, иначе возникнет ошибка деления на 0
 
             work.type.SetCount(_items.Sum(s => s.sheets));      // устанавливаем общее количество порезанных листов
 

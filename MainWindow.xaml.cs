@@ -115,7 +115,7 @@ namespace Metal_Code
             }
         }
 
-        private string version = "2.6.1";
+        private string version = "2.6.2";
         public string Version
         {
             get => version;

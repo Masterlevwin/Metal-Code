@@ -89,7 +89,11 @@ namespace Metal_Code
                                 if (MainWindow.M.TechItems.Count > 0)
                                     foreach (TechItem item in MainWindow.M.TechItems)
                                         if (part.Title.ToLower().Contains(item.NumberName.ToLower()))
-                                            part.PdfPath = item.PdfPath;
+                                        {
+                                            if (item.IsGenerated && !string.IsNullOrEmpty(item.OriginalName)) part.Title = item.OriginalName;
+                                            if (!string.IsNullOrEmpty(item.PdfPath)) part.PdfPath = item.PdfPath;
+                                            break;
+                                        }
                                 MainWindow.M.Parts.Add(part);
                             }
 
