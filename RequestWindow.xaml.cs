@@ -103,6 +103,7 @@ namespace Metal_Code
                 string aisiPattern = @"(aisi\s*(\d+)\s*зер)|(aisi\s*(\d+)\s*шлиф)|(aisi\s*(\d+))";
                 string d16atPattern = @"д\s*16\s*(?:а\s*т|т)";
                 string d16amPattern = @"д\s*16\s*(?:а\s*м|м)";
+                string amgPattern = @"амг\s*(\d+)";
 
                 foreach (Metal metal in MainWindow.M.Metals)
                     if (metal.Name != null && metal.Name.Contains("aisi"))
@@ -135,6 +136,16 @@ namespace Metal_Code
                             break;
                         }
                     }
+                    else if (metal.Name != null && metal.Name.Contains("амг"))
+                    {
+                        Match match = Regex.Match(path, amgPattern, RegexOptions.IgnoreCase);
+                        if (match.Success && metal.Name.Contains(match.Value.Replace(" ", ""), StringComparison.OrdinalIgnoreCase))
+                        {
+                            techItem.Material = metal.Name;
+                            techItem.NumberName = Regex.Replace(techItem.NumberName, amgPattern, "", RegexOptions.IgnoreCase);
+                            break;
+                        }
+                    }
                     else if (metal.Name != null && path.Contains(metal.Name, StringComparison.OrdinalIgnoreCase))
                     {
                         techItem.Material = metal.Name;
@@ -144,13 +155,13 @@ namespace Metal_Code
 
                 //определяем толщину
                 string destinyPattern;
-                if (template.PosDestiny) destinyPattern = $@"{Regex.Escape(template.DestinyPattern)}\s*([\d.]+)";
-                else destinyPattern = $@"([\d.]+)\s*{Regex.Escape(template.DestinyPattern)}";
+                if (template.PosDestiny) destinyPattern = $@"{Regex.Escape(template.DestinyPattern)}\s*(\d+(?:[,.]\d+)?)";
+                else destinyPattern = $@"(\d+(?:[,.]\d+)?)\s*{Regex.Escape(template.DestinyPattern)}";
 
                 Match matchDestiny = Regex.Match(path, destinyPattern, RegexOptions.IgnoreCase);
                 if (matchDestiny.Success)
                 {
-                    techItem.Destiny = matchDestiny.Groups[1].Value;
+                    techItem.Destiny = matchDestiny.Groups[1].Value.Replace(",", ".");
                     techItem.NumberName = Regex.Replace(techItem.NumberName, destinyPattern, "", RegexOptions.IgnoreCase);
                 }
 
@@ -165,6 +176,9 @@ namespace Metal_Code
                     techItem.Count = matchCount.Groups[1].Value;
                     techItem.NumberName = Regex.Replace(techItem.NumberName, countPattern, "", RegexOptions.IgnoreCase);
                 }
+
+                //очищаем наименование
+                techItem.NumberName = Regex.Replace(techItem.NumberName, @"[^\p{L}\p{Nd}]+$", "");
 
                 //записываем путь к файлу
                 techItem.DxfPath = path;
