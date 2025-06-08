@@ -2138,6 +2138,7 @@ namespace Metal_Code
                     if (cell.Value != null && $"{cell.Value}".Contains("Св ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Св ")) worksheet.Cells[row + 6, 2].Value += "Св - Сварка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("О ")) worksheet.Cells[row + 6, 2].Value += "О - Окраска ";
                     if (cell.Value != null && $"{cell.Value}".Contains("Ц ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Ц ")) worksheet.Cells[row + 6, 2].Value += "Ц - Цинкование ";
+                    if (cell.Value != null && $"{cell.Value}".Contains("Ф ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Ф ")) worksheet.Cells[row + 6, 2].Value += "Ф - Фрезеровка ";
                     if (cell.Value != null && $"{cell.Value}".Contains("Доп ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Доп ")) worksheet.Cells[row + 6, 2].Value += "Доп - Дополнительные работы ";
                 }
                 worksheet.Cells[row + 6, 2, row + 6, 8].Merge = true;

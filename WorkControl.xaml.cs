@@ -271,6 +271,12 @@ namespace Metal_Code
                     Grid.SetColumn(zinc, 1);
                     workType = zinc;
                     break;
+                case "Фрезеровка":
+                    MillingControl milling = new(this);
+                    WorkGrid.Children.Add(milling);
+                    Grid.SetColumn(milling, 1);
+                    workType = milling;
+                    break;
                 default:
                     if (type.det.Detail.IsComplect)
                     {

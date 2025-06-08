@@ -13,11 +13,11 @@
     </UserControl.ContextMenu>
 
     <StackPanel Orientation="Horizontal" MinHeight="20" VerticalAlignment="Top">
-        <TextBlock Text="Ф" FontWeight="Bold" MinWidth="10" Margin="5,0,0,0"/>
-        <TextBlock Text="t" Margin="30,0,0,0" MinWidth="10" VerticalAlignment="Center"/>
-        <TextBox TextChanged="SetExtraTime" Margin="5,0,0,0" Text="{Binding ExtraTime, RelativeSource={RelativeSource AncestorType={x:Type local:MillingControl}, Mode=FindAncestor}}" MinWidth="30" MaxWidth="30" IsReadOnly="True" ToolTip="Дополнительное время для настройки" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center"/>
+        <TextBlock Text="Ф" FontWeight="Bold" MinWidth="12" Margin="5,0,0,0"/>
+        <TextBlock Text="Ø" Margin="28,0,0,0" MinWidth="10" VerticalAlignment="Center"/>
+        <TextBox TextChanged="SetWide" Margin="5,0,0,0" Text="{Binding Wide, RelativeSource={RelativeSource AncestorType={x:Type local:MillingControl}, Mode=FindAncestor}}" ToolTip="Введите совокупный диаметр отверстий и пазов" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30"/>
         <TextBlock Text="N" Margin="5,0,0,0" MinWidth="10" VerticalAlignment="Center"/>
-        <TextBox TextChanged="SetHoles" Margin="5,0,0,0" Text="{Binding Holes, RelativeSource={RelativeSource AncestorType={x:Type local:MillingControl}, Mode=FindAncestor}}" ToolTip="Введите количество отверстий" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30"/>
+        <TextBox TextChanged="SetHoles" Margin="5,0,0,0" Text="{Binding Holes, RelativeSource={RelativeSource AncestorType={x:Type local:MillingControl}, Mode=FindAncestor}}" ToolTip="Введите количество отверстий, пазов и пр." HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30"/>
 
         <Image Source="/Images/question.png" MaxWidth="10" VerticalAlignment="Top" Margin="2,0,0,0">
             <Image.ToolTip>

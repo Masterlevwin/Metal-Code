@@ -65,10 +65,12 @@ namespace Metal_Code
                         case "ZincBtn":
                             p.AddControl(7);
                             break;
+                        case "MillingBtn":
+                            p.AddControl(8);
+                            break;
                     }
             }
         }
-
 
         private void SetPropertyThread(object sender, RoutedEventArgs e)      //обработчик события LostFocus для текстовых полей диаметра отверстий
         {
@@ -131,6 +133,16 @@ namespace Metal_Code
                             foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
                                 if (item.CharName == 'С') item.SetHoles(tBox.Text);
                         break;
+                    case "Wide4":
+                        foreach (PartControl p in Parts)
+                            foreach (MillingControl item in p.UserControls.OfType<MillingControl>())
+                                item.SetWide(tBox.Text);
+                        break;
+                    case "Holes4":
+                        foreach (PartControl p in Parts)
+                            foreach (MillingControl item in p.UserControls.OfType<MillingControl>())
+                                item.SetHoles(tBox.Text);
+                        break;
                 }
             }
         }
@@ -166,9 +178,9 @@ namespace Metal_Code
             if (sender is Button btn)
                 switch (btn.Content)
                 {
-                    case "И>":
-                        partsList.ItemsSource = Parts.OrderBy(p => p.Part.Title).ToList();
-                        break;
+                    //case "И>":
+                    //    partsList.ItemsSource = Parts.OrderBy(p => p.Part.Title).ToList();
+                    //    break;
                     case "Г>":
                         partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
                             p.UserControls.FirstOrDefault(u => u is BendControl))).Union(Parts.Where(p => !p.UserControls.Contains(
@@ -208,6 +220,11 @@ namespace Metal_Code
                         partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
                             p.UserControls.FirstOrDefault(u => u is ZincControl))).Union(Parts.Where(p => !p.UserControls.Contains(
                             p.UserControls.FirstOrDefault(u => u is ZincControl)))).ToList();
+                        break;
+                    case "Ф>":
+                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is MillingControl))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is MillingControl)))).ToList();
                         break;
                 }
         }

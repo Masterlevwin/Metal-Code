@@ -188,10 +188,10 @@ namespace Metal_Code
 
                     // стоимость резки должна быть не ниже 10% от стоимости материала
                     if (_result > 0 && (price / _result) < 0.1f) price = _result * 0.1f;
-
-                    work.SetResult(price);
                 }
-                else work.SetResult(HaveCut || HaveNitro ? price : 1, false);
+
+                if (HaveCut || HaveNitro) work.SetResult(price);
+                else work.SetResult(1, false);   
             }
         }
 

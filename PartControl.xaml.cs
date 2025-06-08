@@ -123,6 +123,9 @@ namespace Metal_Code
                     case "ZincBtn":
                         AddControl(7);
                         break;
+                    case "MillingBtn":
+                        AddControl(8);
+                        break;
                 }
         }
         public void AddControl(int index)
@@ -162,6 +165,14 @@ namespace Metal_Code
                         return;
                     }
                     AddControl(new ZincControl(this));
+                    break;
+                case 8:
+                    if (UserControls.Count > 0 && UserControls.Any(r => r is MillingControl))
+                    {
+                        MainWindow.M.StatusBegin("Нельзя добавить больше одной фрезеровки на деталь");
+                        return;
+                    }
+                    AddControl(new MillingControl(this));
                     break;
             }
         }
@@ -275,5 +286,6 @@ namespace Metal_Code
         public List<Part>? PartDetails {  get; set; }
         public List<LaserItem>? Items { get; set; }
         public float Mass {  get; set; }
+        public float Way { get; set; }
     }
 }
