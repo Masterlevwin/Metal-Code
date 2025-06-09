@@ -113,6 +113,7 @@ namespace Metal_Code
             {
                 if (work.type.A > maxX || work.type.B > maxX) return false;
                 else if (work.type.A > maxY && work.type.B > maxY) return false;
+                else if (work.type.S < 2) return false;
             }
             else if (owner is PartControl part && part.Part.PropsDict[100].Count > 1)
             {
@@ -121,6 +122,7 @@ namespace Metal_Code
 
                 if (x > maxX || y > maxX) return false;
                 else if (x > maxY && y > maxY) return false;
+                else if (part.Part.Destiny < 2) return false;
             }
             return true;
         }
@@ -136,10 +138,10 @@ namespace Metal_Code
         {
             if (owner is PartControl && !ValidateSize())
             {
-                MainWindow.M.StatusBegin($"Проверьте габаритные размеры детали!");
+                MainWindow.M.StatusBegin($"Проверьте размеры и толщину детали!");
                 Remove();
             }
-            if (owner is not WorkControl work) return;
+            if (owner is not WorkControl work || work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
             float price = 0;
 
@@ -148,8 +150,9 @@ namespace Metal_Code
                 foreach (PartControl p in Parts)
                     foreach (MillingControl item in p.UserControls.OfType<MillingControl>())
                         if (item.ValidateSize())
-                            price += (float)Math.Ceiling((p.Part.Way + item.Holes * item.Wide * Math.PI * passCount)
-                                * passCount * priceTime * p.Part.Count / (tooth * spindle * toothCount));
+                            price += (float)Math.Ceiling((p.Part.Way + item.Holes * item.Wide * Math.PI) * p.Part.Destiny
+                                * passCount * priceTime * p.Part.Count / (tooth * toothCount
+                                * (metal.Name != null && (metal.Name.Contains("амг") || metal.Name.Contains("д16")) ? 3000 : 1000)));
 
                 // стоимость фрезеровки должна быть не ниже минимальной
                 if (work.WorkDrop.SelectedItem is Work _work) price = price > 0 && price < _work.Price ? _work.Price : price;
@@ -160,7 +163,7 @@ namespace Metal_Code
             {
                 if (!ValidateSize())
                 {
-                    MainWindow.M.StatusBegin($"Проверьте габаритные размеры детали!");
+                    MainWindow.M.StatusBegin($"Проверьте размеры и толщину детали!");
                     work.SetResult(0, false);
                     return;
                 }
@@ -168,8 +171,9 @@ namespace Metal_Code
                 foreach (WorkControl w in work.type.WorkControls)
                     if (w.workType != this && w.workType is ICut _cut && _cut.Way > 0)
                     {
-                        work.SetResult((float)Math.Ceiling((_cut.Way * 1000 + Holes * Wide * Math.PI * passCount)
-                            * passCount * priceTime * work.type.Count/ (tooth * spindle * toothCount)));
+                        work.SetResult((float)Math.Ceiling((_cut.Way * 1000 + Holes * Wide * Math.PI) * work.type.S
+                            * passCount * priceTime * work.type.Count/ (tooth * toothCount
+                            * (metal.Name != null && (metal.Name.Contains("амг") || metal.Name.Contains("д16")) ? 3000 : 1000))));
                         break;
                     }
             }
@@ -185,7 +189,7 @@ namespace Metal_Code
                     w.propsList.Add($"{Wide}");
                     w.propsList.Add($"{Holes}");
                 }
-                else if (uc is PartControl p)
+                else if (uc is PartControl p && p.work.type.MetalDrop.SelectedItem is Metal metal)
                 {
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{8}", $"{Wide}", $"{Holes}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + Ф ")) p.Part.Description += " + Ф ";
@@ -204,8 +208,9 @@ namespace Metal_Code
                             if (_w.Result / _w.Ratio / _w.TechRatio > 0 && _w.Result / _w.Ratio / _w.TechRatio <= _work.Price)
                                 _send = _work.Price * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
                             else                                                        // иначе добавляем часть от количества именно этой детали
-                                _send = (float)Math.Ceiling((p.Part.Way + Holes * Wide * Math.PI * passCount)
-                                    * passCount * priceTime * _w.Ratio * _w.TechRatio / (tooth * spindle * toothCount));
+                                _send = (float)Math.Ceiling((p.Part.Way + Holes * Wide * Math.PI) * p.Part.Destiny
+                                    * passCount * priceTime * _w.Ratio * _w.TechRatio / (tooth * toothCount
+                                    * (metal.Name != null && (metal.Name.Contains("амг") || metal.Name.Contains("д16")) ? 3000 : 1000)));
 
                             p.Part.Price += _send;
                             //p.Part.PropsDict[65] = new() { $"{_send}" };

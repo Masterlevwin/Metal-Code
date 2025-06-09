@@ -259,6 +259,10 @@ namespace Metal_Code
                               MainWindow.M.Log = null;
                           }
                       }
+                      catch (IOException ex) when ((ex.HResult & 0xFFFF) == 32)
+                      {
+                          dialogService.ShowMessage("Ошибка: Файл используется другим процессом.");
+                      }
                       catch (Exception ex)
                       {
                           dialogService.ShowMessage(ex.Message);
@@ -292,6 +296,10 @@ namespace Metal_Code
                               }
                           if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is CutControl cut)
                               cut.LoadFiles();
+                      }
+                      catch (IOException ex) when ((ex.HResult & 0xFFFF) == 32)
+                      {
+                          dialogService.ShowMessage("Ошибка: Файл используется другим процессом.");
                       }
                       catch (Exception ex)
                       {
@@ -331,6 +339,10 @@ namespace Metal_Code
                               }
                           if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is PipeControl pipe)
                               pipe.LoadFiles();
+                      }
+                      catch (IOException ex) when ((ex.HResult & 0xFFFF) == 32)
+                      {
+                          dialogService.ShowMessage("Ошибка: Файл используется другим процессом.");
                       }
                       catch (Exception ex)
                       {

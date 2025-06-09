@@ -934,18 +934,18 @@ namespace Metal_Code
 
         private void SizesValidate()
         {
-            if (work.type.A < 15)
+            if (work.type.A < 10)
             {
                 work.type.A_prop.BorderBrush = new SolidColorBrush(Colors.Red);
                 work.type.A_prop.BorderThickness = new Thickness(2);
-                MessageBox.Show($"Минимальный размер трубы - 15 мм!");
+                MessageBox.Show($"Минимальный размер трубы - 10 мм!");
             }
 
-            if (work.type.B < 15)
+            if (work.type.B < 10)
             {
                 work.type.B_prop.BorderBrush = new SolidColorBrush(Colors.Red);
                 work.type.B_prop.BorderThickness = new Thickness(2);
-                MessageBox.Show($"Минимальный размер трубы - 15 мм!");
+                MessageBox.Show($"Минимальный размер трубы - 10 мм!");
             }
 
             if (work.type.A > 230)

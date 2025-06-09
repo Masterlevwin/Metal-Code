@@ -263,9 +263,10 @@ namespace Metal_Code
                                             + $"{techItem.NumberName} n{techItem.Count}" + $".{extension}");
                                         techItem.PdfPath = file;
                                     }
+                                    break;
                                 }
-                            break;
                         }
+                        break;
                     }
                 }
             }
