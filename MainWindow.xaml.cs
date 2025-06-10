@@ -4786,7 +4786,15 @@ namespace Metal_Code
             List<int> orders = new();                                   //список номеров заказов
 
             //получаем все номера заказов в виде чисел
-            foreach (string s in dirs) orders.Add((int)Parser(new DirectoryInfo(s).Name.Remove(4)));
+            string orderPattern = @"^\d{4,5}";
+            foreach (string s in dirs)
+            {
+                Match numOrder = Regex.Match(new DirectoryInfo(s).Name, orderPattern);
+                if (numOrder.Success) orders.Add((int)Parser(numOrder.Value));
+            }
+
+            if (orders.Count == 0) return $"Не удалось запустить в производство!\n" +
+                    $"В директории [{connections[8]}] не найдено папок.";
 
             int nextOrder = orders.Max() + 1;                   //получаем следующий по порядку номер заказа
             offer.Order = $"{nextOrder}";                       //присваиваем этот номер заказа текущему расчету
