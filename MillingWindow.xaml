@@ -1,0 +1,63 @@
+﻿<Window x:Class="Metal_Code.MillingWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Metal_Code"
+             mc:Ignorable="d" 
+             Title="{Binding Title}" Icon="/app_logo.jpg" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" MinWidth="400" MinHeight="300" Loaded="MillingWindow_Loaded">
+    
+    <StackPanel Orientation="Horizontal" Margin="20">
+        
+        <StackPanel Margin="10">
+
+            <GroupBox>
+                <GroupBox.Header>
+                    <TextBlock Text="Контур" FontWeight="Bold" FontSize="14"/>
+                </GroupBox.Header>
+
+                <StackPanel Margin="5">
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <TextBlock Text="Длина обработки" MinWidth="100" MaxWidth="100" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Way}" Margin="10,0,0,0" FontWeight="Bold" MinWidth="60" MaxWidth="60" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <TextBlock Text="Толщина детали" MinWidth="100" MaxWidth="100" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Destiny}" Margin="10,0,0,0" FontWeight="Bold" MinWidth="60" MaxWidth="60" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <StackPanel x:Name="MillingStack" Margin="5">
+                <Button Click="AddMilling" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5">
+                    <StackPanel Orientation="Horizontal" MaxHeight="12" Margin="2">
+                        <Image Source="Images/plus.png"/>
+                        <TextBlock Text="Добавить обработку" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+            
+        </StackPanel>
+
+        <StackPanel Margin="10">
+            <GroupBox>
+                <GroupBox.Header>
+                    <TextBlock Text="Параметры" FontWeight="Bold" FontSize="14"/>
+                </GroupBox.Header>
+
+                <StackPanel Margin="5">
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <TextBlock Text="Квалитет" MaxWidth="90" MinWidth="90" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ComboBox Margin="10,0,0,0" MinWidth="70" MaxWidth="70" MinHeight="22" MaxHeight="22"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <TextBlock Text="Шероховатость" MinWidth="90" MaxWidth="90" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ComboBox Margin="10,0,0,0" MinWidth="70" MaxWidth="70" MinHeight="22" MaxHeight="22"/>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+
+        </StackPanel>
+        
+    </StackPanel>
+</Window>

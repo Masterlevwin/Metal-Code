@@ -272,7 +272,7 @@ namespace Metal_Code
                     workType = zinc;
                     break;
                 case "Фрезеровка":
-                    MillingControl milling = new(this);
+                    MillingTotalControl milling = new(this);
                     WorkGrid.Children.Add(milling);
                     Grid.SetColumn(milling, 1);
                     workType = milling;

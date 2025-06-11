@@ -1,0 +1,32 @@
+﻿<UserControl x:Class="Metal_Code.MillingTotalControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"     
+             xmlns:local="clr-namespace:Metal_Code"
+             mc:Ignorable="d"
+             d:DesignHeight="30" d:DesignWidth="150">
+    <UserControl.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="Удалить" Click="Remove"/>
+        </ContextMenu>
+    </UserControl.ContextMenu>
+
+    <StackPanel Orientation="Horizontal" MinHeight="20" VerticalAlignment="Top">
+        <TextBlock Text="Ф" FontWeight="Bold" MinWidth="12" Margin="5,0,0,0"/>
+        <Button x:Name="MilBtn" Click="OpenSettings" Content=". . ." ToolTip="Открыть окно настройки фрезерования" Margin="5,0,0,0" MinWidth="45" MaxWidth="45"/>
+        <TextBox Text="{Binding TotalTime, RelativeSource={RelativeSource AncestorType={x:Type local:MillingTotalControl}, Mode=FindAncestor}}" MinWidth="40" MaxWidth="40" ToolTip="Общее время фрезеровки" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center" Margin="5,0,0,0"/>
+        <TextBlock Text="мин" MinWidth="23" Margin="5,0,0,0"/>
+
+        <Image Source="/Images/question.png" MaxWidth="10" VerticalAlignment="Top" Margin="2,0,0,0">
+            <Image.ToolTip>
+                <ToolTip Background="Snow" BorderBrush="Red" Padding="5" BorderThickness="1">
+                    <StackPanel >
+                        <TextBlock Text="Стоимость фрезеровки = общее время * 80"/>
+                    </StackPanel>
+                </ToolTip>
+            </Image.ToolTip>
+        </Image>
+
+    </StackPanel>
+</UserControl>

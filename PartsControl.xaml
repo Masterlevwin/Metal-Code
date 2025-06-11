@@ -71,10 +71,6 @@
                 <TextBlock Text="кг" HorizontalAlignment="Left" Margin="170,229,0,0" VerticalAlignment="Top"/>
                 
                 <TextBlock Text="Фрез" HorizontalAlignment="Left" Margin="40,250,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Фрезеровка для всех"/>
-                <TextBlock Margin="90,250,0,0" Text="Ø" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                <TextBox x:Name="Wide4" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="105,250,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите совокупный диаметр отверстий и пазов"/>
-                <TextBlock Margin="145,250,0,0" Text="N" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                <TextBox x:Name="Holes4" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="160,250,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите количество отверстий, пазов и пр."/>
 
                 <Button x:Name="BendBtn" Content="Г+" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,50,0,0" MinWidth="28" MinHeight="20"/>
                 <Button x:Name="WeldBtn" Content="Св+" ToolTip="Добавить сварку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,75,0,0" MinWidth="28" MinHeight="20"/>

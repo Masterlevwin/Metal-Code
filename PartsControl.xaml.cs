@@ -133,16 +133,6 @@ namespace Metal_Code
                             foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
                                 if (item.CharName == 'С') item.SetHoles(tBox.Text);
                         break;
-                    case "Wide4":
-                        foreach (PartControl p in Parts)
-                            foreach (MillingControl item in p.UserControls.OfType<MillingControl>())
-                                item.SetWide(tBox.Text);
-                        break;
-                    case "Holes4":
-                        foreach (PartControl p in Parts)
-                            foreach (MillingControl item in p.UserControls.OfType<MillingControl>())
-                                item.SetHoles(tBox.Text);
-                        break;
                 }
             }
         }
@@ -223,8 +213,8 @@ namespace Metal_Code
                         break;
                     case "Ф>":
                         partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is MillingControl))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is MillingControl)))).ToList();
+                            p.UserControls.FirstOrDefault(u => u is MillingTotalControl))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is MillingTotalControl)))).ToList();
                         break;
                 }
         }

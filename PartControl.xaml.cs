@@ -167,12 +167,12 @@ namespace Metal_Code
                     AddControl(new ZincControl(this));
                     break;
                 case 8:
-                    if (UserControls.Count > 0 && UserControls.Any(r => r is MillingControl))
+                    if (UserControls.Count > 0 && UserControls.Any(r => r is MillingTotalControl))
                     {
                         MainWindow.M.StatusBegin("Нельзя добавить больше одной фрезеровки на деталь");
                         return;
                     }
-                    AddControl(new MillingControl(this));
+                    AddControl(new MillingTotalControl(this));
                     break;
             }
         }

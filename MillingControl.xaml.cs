@@ -127,7 +127,7 @@ namespace Metal_Code
             return true;
         }
 
-        private const float tooth = 0.2f;   //подача на зуб
+        private const float tooth = 0.1f;   //подача на зуб
         private const int spindle = 1000,   //частота вращения шпинделя
             toothCount = 2,                 //количество зубьев
             passCount = 3,                  //количество проходов инструмента

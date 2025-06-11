@@ -32,8 +32,11 @@ namespace Metal_Code
             {
                 try
                 {
-                    List<Offer>? offers = db.Offers.Where(o => o.ManagerId == MainWindow.M.TargetManager.Id && (o.N == Search || o.Company == Search)).ToList();
-
+                    Search = Search.ToLower();
+                    List<Offer>? offers = db.Offers.Where(o => o.Manager != null && o.Manager.Name == MainWindow.M.TargetManager.Name
+                                                            && o.N != null && o.N.ToLower().Contains(Search)
+                                                            || (o.Company != null && o.Company.ToLower().Contains(Search))).ToList();
+                                                            
                     if (offers.Count == 0) return "Расчетов по выбранным параметрам не найдено";
                     else
                     {
