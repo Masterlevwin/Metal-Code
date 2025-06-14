@@ -15,7 +15,7 @@
     <StackPanel Orientation="Horizontal" MinHeight="20" VerticalAlignment="Top">
         <TextBlock Text="Ф" FontWeight="Bold" MinWidth="12" Margin="5,0,0,0"/>
         <Button x:Name="MilBtn" Click="OpenSettings" Content=". . ." ToolTip="Открыть окно настройки фрезерования" Margin="5,0,0,0" MinWidth="45" MaxWidth="45"/>
-        <TextBox Text="{Binding TotalTime, RelativeSource={RelativeSource AncestorType={x:Type local:MillingTotalControl}, Mode=FindAncestor}}" MinWidth="40" MaxWidth="40" ToolTip="Общее время фрезеровки" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center" Margin="5,0,0,0"/>
+        <TextBox Text="{Binding TotalTime, RelativeSource={RelativeSource AncestorType={x:Type local:MillingTotalControl}, Mode=FindAncestor}}" MinWidth="40" MaxWidth="40" ToolTip="Общее время фрезеровки" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center" Margin="5,0,0,0" TextChanged="SetTotalTime"/>
         <TextBlock Text="мин" MinWidth="23" Margin="5,0,0,0"/>
 
         <Image Source="/Images/question.png" MaxWidth="10" VerticalAlignment="Top" Margin="2,0,0,0">

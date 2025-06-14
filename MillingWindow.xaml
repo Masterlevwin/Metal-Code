@@ -5,59 +5,126 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             Title="{Binding Title}" Icon="/app_logo.jpg" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" MinWidth="400" MinHeight="300" Loaded="MillingWindow_Loaded">
-    
-    <StackPanel Orientation="Horizontal" Margin="20">
-        
-        <StackPanel Margin="10">
+             Title="Настройка фрезеровки" Icon="/app_logo.jpg" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" MinWidth="750" MinHeight="600" Closing="HideWindow" Loaded="MillingWindow_Loaded">
 
-            <GroupBox>
-                <GroupBox.Header>
-                    <TextBlock Text="Контур" FontWeight="Bold" FontSize="14"/>
-                </GroupBox.Header>
-
-                <StackPanel Margin="5">
-                    <StackPanel Orientation="Horizontal" Margin="5">
-                        <TextBlock Text="Длина обработки" MinWidth="100" MaxWidth="100" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding Way}" Margin="10,0,0,0" FontWeight="Bold" MinWidth="60" MaxWidth="60" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="5">
-                        <TextBlock Text="Толщина детали" MinWidth="100" MaxWidth="100" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding Destiny}" Margin="10,0,0,0" FontWeight="Bold" MinWidth="60" MaxWidth="60" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </StackPanel>
-            </GroupBox>
-
-            <StackPanel x:Name="MillingStack" Margin="5">
-                <Button Click="AddMilling" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5">
-                    <StackPanel Orientation="Horizontal" MaxHeight="12" Margin="2">
-                        <Image Source="Images/plus.png"/>
-                        <TextBlock Text="Добавить обработку" VerticalAlignment="Center" Margin="3,0,0,0"/>
-                    </StackPanel>
-                </Button>
+    <StackPanel Margin="10">
+        <DockPanel Margin="10">
+            <TextBlock x:Name="DetailName" DockPanel.Dock="Left" FontSize="14" Foreground="Blue" FontWeight="Medium" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock Text="Общее время фрезеровки" FontSize="14" FontWeight="Medium"/>
+                <TextBlock Text="{Binding TotalTime}" Margin="10,0,0,0" FontSize="14" Foreground="Red" FontWeight="Bold"/>
+                <TextBlock Text="мин" Margin="5,0,0,0" FontSize="14" FontWeight="Medium"/>
             </StackPanel>
-            
-        </StackPanel>
+        </DockPanel>
 
-        <StackPanel Margin="10">
-            <GroupBox>
-                <GroupBox.Header>
-                    <TextBlock Text="Параметры" FontWeight="Bold" FontSize="14"/>
-                </GroupBox.Header>
+        <StackPanel Orientation="Horizontal" Margin="20">
+            <StackPanel Margin="10" MinWidth="350">
+                <GroupBox x:Name="СontourBox">
+                    <GroupBox.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Деталь" FontWeight="Bold" FontSize="14"/>
+                            <Image Source="/Images/question.png" MaxWidth="10" VerticalAlignment="Top" Margin="2">
+                                <Image.ToolTip>
+                                    <ToolTip Background="Snow" BorderBrush="Red" Padding="5" BorderThickness="1">
+                                        <StackPanel >
+                                            <TextBlock Text="Здесь указаны основные данные детали,"/>
+                                            <TextBlock Text="полученные в результате лазерной резки."/>
+                                        </StackPanel>
+                                    </ToolTip>
+                                </Image.ToolTip>
+                            </Image>
+                        </StackPanel>
+                    </GroupBox.Header>
 
-                <StackPanel Margin="5">
-                    <StackPanel Orientation="Horizontal" Margin="5">
-                        <TextBlock Text="Квалитет" MaxWidth="90" MinWidth="90" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <ComboBox Margin="10,0,0,0" MinWidth="70" MaxWidth="70" MinHeight="22" MaxHeight="22"/>
+                    <StackPanel Margin="5">
+                        <StackPanel Orientation="Horizontal" Margin="5">
+                            <TextBlock Text="Длина контура" MinWidth="120" MaxWidth="120" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14"/>
+                            <TextBlock Text="{Binding Way}" Margin="5,0,0,0" FontWeight="Bold" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" MinWidth="40" MaxWidth="40" TextAlignment="Right"/>
+                            <TextBlock Text="мм" Margin="5,0,0,0" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="5">
+                            <TextBlock Text="Толщина" MinHeight="22" MaxHeight="22" MinWidth="120" MaxWidth="120" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14"/>
+                            <TextBlock Text="{Binding Destiny}" Margin="5,0,0,0" FontWeight="Bold" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" MinWidth="40" MaxWidth="40" TextAlignment="Right"/>
+                            <TextBlock Text="мм" Margin="5,0,0,0" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14"/>
+                            <TextBlock Text="Материал" Margin="20,0,0,0" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14"/>
+                            <TextBlock Text="{Binding Metal}" Margin="5,0,0,0" FontWeight="Bold" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="5">
+                            <TextBlock Text="Время обработки" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" MinWidth="120" MaxWidth="120"/>
+                            <TextBlock Text="{Binding ContourTime}" Margin="5,0,0,0" Foreground="OrangeRed" FontWeight="Bold" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" MinWidth="40" MaxWidth="40" TextAlignment="Right"/>
+                            <TextBlock Text="мин" Margin="5,0,0,0" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14"/>
+                            <TextBlock Text="(⌀ фрезы - " Margin="10,0,0,0" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14"/>
+                            <TextBlock Text="{Binding Cutter}" Margin="3,0,0,0" MinHeight="22" MaxHeight="22" VerticalAlignment="Center" FontSize="14" Foreground="Blue" HorizontalAlignment="Center"/>
+                            <TextBlock Text=")" Margin="3,0,0,0" MinHeight="22" MaxHeight="22" VerticalAlignment="Center" FontSize="14" HorizontalAlignment="Center"/>
+                        </StackPanel>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="5">
-                        <TextBlock Text="Шероховатость" MinWidth="90" MaxWidth="90" MinHeight="22" MaxHeight="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <ComboBox Margin="10,0,0,0" MinWidth="70" MaxWidth="70" MinHeight="22" MaxHeight="22"/>
-                    </StackPanel>
-                </StackPanel>
-            </GroupBox>
+                </GroupBox>
 
+                <GroupBox Margin="0,20,0,0">
+                    <GroupBox.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Отверстия" FontWeight="Bold" FontSize="14"/>
+                            <Image Source="/Images/question.png" MaxWidth="10" VerticalAlignment="Top" Margin="2">
+                                <Image.ToolTip>
+                                    <ToolTip Background="Snow" BorderBrush="Red" Padding="5" BorderThickness="1">
+                                        <StackPanel >
+                                            <TextBlock Text="Здесь нужно указать данные"/>
+                                            <TextBlock Text="для каждого отверстия, чтобы"/>
+                                            <TextBlock Text="определить набор фрез для работы."/>
+                                        </StackPanel>
+                                    </ToolTip>
+                                </Image.ToolTip>
+                            </Image>
+                        </StackPanel>
+                    </GroupBox.Header>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="300">
+                        <StackPanel x:Name="MillingStack" Margin="5">
+                            <Button Click="AddMilling" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5">
+                                <StackPanel Orientation="Horizontal" Margin="3" MaxHeight="16">
+                                    <Image Source="Images/plus.png"/>
+                                    <TextBlock Text="Добавить отверстие" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </ScrollViewer>
+                </GroupBox>
+            </StackPanel>
+
+            <StackPanel Margin="10" MinWidth="240">
+                <GroupBox>
+                    <GroupBox.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Качество" FontWeight="Bold" FontSize="14"/>
+                            <Image Source="/Images/question.png" MaxWidth="10" VerticalAlignment="Top" Margin="2">
+                                <Image.ToolTip>
+                                    <ToolTip Background="Snow" BorderBrush="Red" Padding="5" BorderThickness="1">
+                                        <StackPanel >
+                                            <TextBlock Text="Указанные параметры влияют"/>
+                                            <TextBlock Text="на скорость обработки детали."/>
+                                        </StackPanel>
+                                    </ToolTip>
+                                </Image.ToolTip>
+                            </Image>
+                        </StackPanel>
+                    </GroupBox.Header>
+
+                    <StackPanel Margin="5">
+                        <StackPanel Orientation="Horizontal" Margin="5">
+                            <TextBlock Text="Квалитет" MaxWidth="100" MinWidth="100" MinHeight="22" MaxHeight="22" FontSize="14"/>
+                            <ComboBox x:Name="QualityDrop" Margin="10,0,0,0" MinWidth="120" MaxWidth="120" MinHeight="22" MaxHeight="22" FontSize="14" SelectionChanged="SetSlowdown" SelectedIndex="{Binding IndexQualityOrRoughness, Mode=TwoWay}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="5">
+                            <TextBlock Text="Шероховатость" MinWidth="100" MaxWidth="100" MinHeight="22" MaxHeight="22" FontSize="14"/>
+                            <ComboBox x:Name="RoughnessDrop" Margin="10,0,0,0" MinWidth="120" MaxWidth="120" MinHeight="22" MaxHeight="22" FontSize="14" SelectionChanged="SetSlowdown" SelectedIndex="{Binding IndexQualityOrRoughness, Mode=TwoWay}"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="5">
+                            <TextBlock Text="Замедление" MinWidth="100" MaxWidth="100" MinHeight="22" MaxHeight="22" FontSize="14"/>
+                            <TextBlock Text="{Binding Slowdown}" Foreground="Blue" Margin="15,0,0,0" MinHeight="22" MaxHeight="22" FontSize="14" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+            </StackPanel>
         </StackPanel>
-        
     </StackPanel>
 </Window>
