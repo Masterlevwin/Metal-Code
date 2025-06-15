@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Animation;
 
 namespace Metal_Code
 {
@@ -17,7 +18,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public delegate void Changed();
-        public event Changed? SlowdownChanged;
+        public event Changed? DataChanged;
 
         private int totalTime;
         public int TotalTime
@@ -122,6 +123,8 @@ namespace Metal_Code
             }
         }
 
+        public bool WayIsInitialized = false;
+
         private readonly string[] quality = { "12 (±0.010 мм)", "11 (±0.015 мм)", "10 (±0.025 мм)", "9 (±0.040 мм)", "8 (±0.060 мм)", "7 (±0.100 мм)" };
         private readonly string[] roughness = { "12.5 - предвар", "12.5 - черн обр", "6.3 - груб фрез", "6.3 - черн фрез", "3.2 - чист фрез", "1.6 - чист фрез" };
         private readonly float[] slowdowns = { 1, 0.9f, 0.8f, 0.7f, 0.5f, 0.3f };
@@ -133,6 +136,7 @@ namespace Metal_Code
         };
 
         public readonly MillingTotalControl owner;
+        public ObservableCollection<MillingControl> MillingControls = new();
 
         public MillingWindow(MillingTotalControl _milling)
         {
@@ -141,30 +145,13 @@ namespace Metal_Code
             DataContext = this;
 
             Unloaded += CloseWindow;  //подписка на закрытие окна в случае удаления связанного контрола
-            SetContourTime();
         }
 
         private void MillingWindow_Loaded(object sender, RoutedEventArgs e)     //настройка окна при загрузке
         {
-            if (owner.owner is WorkControl work)
-            {
-                DetailName.Text = work.type.det.Detail.Title;
-                foreach (WorkControl w in work.type.WorkControls)
-                    if (w.workType is ICut _cut)
-                    {
-                        Way = _cut.Way;
-                        break;
-                    }
-                Metal = work.type.MetalDrop.Text;
-                Destiny = work.type.S;
-            }
-            else if (owner.owner is PartControl part)
-            {
-                DetailName.Text = part.Part.Title;
-                Way = part.Part.Way;
-                Metal = part.Part.Metal;
-                Destiny = part.Part.Destiny;
-            }
+            if (WayIsInitialized) UpdateData();
+            else RefreshWay();
+
             QualityDrop.ItemsSource = quality;
             RoughnessDrop.ItemsSource = roughness;
         }
@@ -181,23 +168,90 @@ namespace Metal_Code
             Close();
         }
 
-        private void AddMilling(object sender, RoutedEventArgs e)       //метод добавления контрола обработки
+        private void RefreshWay(object sender, RoutedEventArgs e) { RefreshWay(); }
+        private void RefreshWay()                                       //метод установки периметра детали
         {
-            MillingControl milling = new(this);
-            MillingStack.Children.Insert(MillingStack.Children.Count - 1, milling);
+            if (owner.owner is PartControl part) Way = part.Part.Way;
+            else if (owner.owner is WorkControl work)
+            {
+                bool wayIsInitialized = false;
+                foreach (WorkControl w in work.type.WorkControls)
+                    if (w.workType is ICut _cut)
+                    {
+                        Way = _cut.Way;
+                        wayIsInitialized = true;
+                        break;
+                    }
+                if (!wayIsInitialized) Way = 2 * (work.type.A + work.type.B);
+            }
+            WayIsInitialized = false;
+            UpdateData();
         }
 
-        public void RemoveControl(MillingControl milling)
+        private void UpdateData(object sender, RoutedEventArgs e) { UpdateData(); }
+        private void UpdateData()                                       //метод обновления данных детали
         {
+            if (owner.owner is PartControl part)
+            {
+                DetailName.Text = part.Part.Title;
+                Metal = part.Part.Metal;
+                Destiny = part.Part.Destiny;
+            }
+            else if (owner.owner is WorkControl work)
+            {
+                DetailName.Text = work.type.det.Detail.Title;
+                Metal = work.type.MetalDrop.Text;
+                Destiny = work.type.S;
+            }
+
+            SetContourTime();
+        }
+
+        private void AddMilling(object sender, RoutedEventArgs e)       //метод добавления контрола отверстия
+        {
+            MillingControl milling = new(this);
+            MillingControls.Add(milling);
+            MillingStack.Children.Insert(MillingStack.Children.Count - 1, milling);
+        }
+        public void AddMillings(List<Milling> millings)                 //метод загрузки отверстий из сохранения
+        {
+            if (millings.Count == 0) return;
+            Show();
+            foreach (Milling mil in millings)
+            {
+                MillingControl milling = new(this)
+                {
+                    Depth = mil.Depth,
+                    Wide = mil.Wide,
+                    Holes = mil.Holes,
+                };
+                MillingControls.Add(milling);
+                MillingStack.Children.Insert(MillingStack.Children.Count - 1, milling);
+            }
+            Hide();
+        }
+
+        public void RemoveControl(MillingControl milling)               //метод удаления контрола отверстия
+        {
+            MillingControls.Remove(milling);
             MillingStack.Children.Remove(milling);
             SetTotalTime();
+        }
+
+        private void SetWay(object sender, TextChangedEventArgs e)      //метод установки пути резки контура
+        {
+            if (sender is TextBox tBox) SetWay(tBox.Text);
+        }
+        public void SetWay(string _way)
+        {
+            if (float.TryParse(_way, out float w)) Way = w;
+            SetContourTime();
         }
 
         private void SetSlowdown(object sender, SelectionChangedEventArgs e)
         {
             Slowdown = slowdowns[IndexQualityOrRoughness];
             SetContourTime();
-            SlowdownChanged?.Invoke();
         }
 
         private void SetContourTime()
@@ -221,13 +275,16 @@ namespace Metal_Code
 
         public void SetTotalTime()
         {
-            int time = ContourTime;
+            int time = 0;
 
-            if (MillingStack.Children.Count > 0)
-                foreach (MillingControl milling in MillingStack.Children.OfType<MillingControl>())
+            if (MillingControls.Count > 0)
+            {
+                DataChanged?.Invoke();
+                foreach (MillingControl milling in MillingControls)
                     if (milling.Time > 0) time += milling.Time;
+            }
 
-            TotalTime = owner.TotalTime = time;
+            TotalTime = owner.TotalTime = time + ContourTime;
         }
     }
 }

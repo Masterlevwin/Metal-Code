@@ -86,7 +86,7 @@ namespace Metal_Code
             InitializeComponent();
             owner = _window;
 
-            owner.SlowdownChanged += SetTime;
+            owner.DataChanged += SetTime;
         }
         
         private void SetDepth(object sender, TextChangedEventArgs e)
@@ -97,6 +97,7 @@ namespace Metal_Code
         {
             if (float.TryParse(_depth, out float d)) Depth = d;
             SetTime();
+            owner.SetTotalTime();
         }
 
         private void SetWide(object sender, TextChangedEventArgs e)
@@ -107,6 +108,7 @@ namespace Metal_Code
         {
             if (float.TryParse(_wide, out float w)) Wide = w;
             SetTime();
+            owner.SetTotalTime();
         }
 
         private void SetHoles(object sender, TextChangedEventArgs e)
@@ -117,6 +119,7 @@ namespace Metal_Code
         {
             if (int.TryParse(_holes, out int h)) Holes = h;
             SetTime();
+            owner.SetTotalTime();
         }
 
         private void SetTime()
@@ -134,8 +137,6 @@ namespace Metal_Code
                 || owner.Metal.Contains("д16", StringComparison.OrdinalIgnoreCase))
                 Time = (int)Math.Ceiling(Holes * (Math.PI * Wide + 10) * Depth / (0.15f * Wide * owner.Slowdown) / owner.MinutesDict["алюминий"][Cutter]);
             else Time = (int)Math.Ceiling(Holes * (Math.PI * Wide + 10) * Depth / (0.15f * Wide * owner.Slowdown) / owner.MinutesDict["сталь"][Cutter]);
-            
-            owner.SetTotalTime();
         }
 
         private void Remove(object sender, RoutedEventArgs e) { owner.RemoveControl(this); }

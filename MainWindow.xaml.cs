@@ -1639,8 +1639,9 @@ namespace Metal_Code
                 DetailControl det = DetailControls[i];
                 Detail _detail = det.Detail;
                 _detail.Metal = _detail.Destiny = _detail.Description = "";     //очищаем описания свойств детали
+                _detail.Millings.Clear();                                       //очищаем список отверстий для фрезеровки
 
-                if (_detail.TypeDetails.Count > 0) _detail.TypeDetails.Clear();     //как будто решаем проблему дублирования при пересохранении
+                if (_detail.TypeDetails.Count > 0) _detail.TypeDetails.Clear(); //как будто решаем проблему дублирования при пересохранении
 
                 for (int j = 0; j < det.TypeDetailControls.Count; j++)
                 {
@@ -1712,9 +1713,11 @@ namespace Metal_Code
                                             : $"{p.PropsDict[100][2].Trim()} мм";
                                     p.Price = 0;
 
+                                    //пробегаемся по ключам от 50 до 70, которые зарезервированы под конкретные работы
                                     if (p.PropsDict.Count > 0)
-                                        for (int key = 50; key < 70; key++)     //пробегаемся по ключам от 50 до 70, которые зарезервированы под конкретные работы
-                                            p.PropsDict.Remove(key);
+                                        for (int key = 50; key < 70; key++) p.PropsDict.Remove(key);
+
+                                    p.Millings.Clear();         //очищаем список отверстий для фрезеровки
 
                                     //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
                                     if (CheckConstruct.IsChecked == true)
@@ -1816,6 +1819,7 @@ namespace Metal_Code
                 if (_det.Detail.Title != null && _det.Detail.Title.Contains("Комплект")) _det.IsComplectChanged();
 
                 _det.Detail.Count = details[i].Count;
+                _det.Detail.Millings = details[i].Millings;
 
                 for (int j = 0; j < details[i].TypeDetails.Count; j++)
                 {

@@ -33,6 +33,7 @@ namespace Metal_Code
                                 priceMinute = 80;       //цена за минуту фрезерования
 
         MillingWindow? MillingWindow;
+
         public List<PartControl>? Parts { get; set; }
 
         public readonly UserControl owner;
@@ -111,16 +112,19 @@ namespace Metal_Code
         {
             if (sender is TextBox tBox) SetTotalTime(tBox.Text);
         }
-        private void SetTotalTime(string totalTime)
+        public void SetTotalTime(string totalTime)
         {
             if (int.TryParse(totalTime, out int t)) TotalTime = t;
             OnPriceChanged();
         }
 
-        private void OpenSettings(object sender, RoutedEventArgs e)
+        private void ShowMillingWindow(object sender, RoutedEventArgs e)
         {
             if (MillingWindow != null)
             {
+                // Если окно свернуто, разворачиваем его
+                if (MillingWindow.WindowState == WindowState.Minimized)
+                    MillingWindow.WindowState = WindowState.Normal;
                 MillingWindow.Show();
                 MillingWindow.Activate();
             }
@@ -173,11 +177,34 @@ namespace Metal_Code
                 {
                     w.propsList.Clear();
                     w.propsList.Add($"{TotalTime}");
+                    w.propsList.Add($"{MillingWindow?.IndexQualityOrRoughness}");
+                    w.propsList.Add($"{MillingWindow?.Way}");
+
+                    if (MillingWindow?.MillingControls.Count > 0)
+                        foreach (MillingControl mil in MillingWindow.MillingControls)
+                            if (mil.Time == 0) continue;
+                            else w.type.det.Detail.Millings.Add(new()
+                            {
+                                Depth = mil.Depth,
+                                Wide = mil.Wide,
+                                Holes = mil.Holes,
+                            });
                 }
                 else if (uc is PartControl p && p.work.type.MetalDrop.SelectedItem is Metal metal)
                 {
-                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{8}", $"{TotalTime}" };
+                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{8}", $"{TotalTime}", $"{MillingWindow?.IndexQualityOrRoughness}", $"{MillingWindow?.Way}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + Ф ")) p.Part.Description += " + Ф ";
+                    
+                    if (MillingWindow?.MillingControls.Count > 0)
+                        foreach (MillingControl mil in MillingWindow.MillingControls)
+                            if (mil.Time == 0) continue;
+                            else
+                                p.Part.Millings.Add(new()
+                                {
+                                    Depth = mil.Depth,
+                                    Wide = mil.Wide,
+                                    Holes = mil.Holes,
+                                });
 
                     int count = 0;      //счетчик общего количества деталей
 
@@ -185,7 +212,7 @@ namespace Metal_Code
                             foreach (MillingTotalControl item in _p.UserControls.OfType<MillingTotalControl>()) count += _p.Part.Count;
 
                     // стоимость всей работы должна быть не ниже минимальной
-                    foreach (WorkControl _w in p.work.type.WorkControls)                // находим фрезеровку среди работ и получаем её минималку
+                    foreach (WorkControl _w in p.work.type.WorkControls)        // находим фрезеровку среди работ и получаем её минималку
                         if (_w.workType is MillingTotalControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
                             float _send;
@@ -193,23 +220,35 @@ namespace Metal_Code
                             if (_w.Result / _w.Ratio / _w.TechRatio > 0 && _w.Result / _w.Ratio / _w.TechRatio <= _work.Price)
                                 _send = _work.Price * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
                             else                                                        // иначе добавляем часть от количества именно этой детали
-                                _send = TotalTime * priceMinute * p.Part.Count * _w.Ratio * _w.TechRatio;
+                                _send = TotalTime * priceMinute * _w.Ratio * _w.TechRatio;
 
                             p.Part.Price += _send;
-                            //p.Part.PropsDict[65] = new() { $"{_send}" };
+                            p.Part.PropsDict[65] = new() { $"{_send}" };
                             break;
                         }
                 }
             }
             else
             {
+                MillingWindow millingWindow = new(this);
+                MillingWindow = millingWindow;
+                MillingWindow.WayIsInitialized = true;
+
                 if (uc is WorkControl w)
                 {
                     SetTotalTime(w.propsList[0]);
+                    MillingWindow.IndexQualityOrRoughness = (int)MainWindow.Parser(w.propsList[1]);
+                    MillingWindow.SetWay(w.propsList[2]);
+
+                    if (w.type.det.Detail.Millings?.Count > 0) MillingWindow.AddMillings(w.type.det.Detail.Millings);
                 }
                 else if (uc is PartControl p && owner is PartControl _owner)
                 {
                     SetTotalTime(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
+                    MillingWindow.IndexQualityOrRoughness = (int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]);
+                    MillingWindow.SetWay(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][3]);
+
+                    if (p.Part.Millings?.Count > 0) MillingWindow.AddMillings(p.Part.Millings);
                 }
             }
         }

@@ -46,19 +46,19 @@
                 <ComboBox x:Name="PaintDrop" SelectionChanged="SetType" HorizontalAlignment="Left" MinHeight="20" MinWidth="50" Margin="140,100,0,0" VerticalAlignment="Top" MaxWidth="50" MaxHeight="20" ToolTip="Выберите тип расчета" SelectedIndex="0"/>
                 
                 <TextBlock Text="Рез" HorizontalAlignment="Left" Margin="40,125,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Резьба для всех"/>
-                <TextBlock Margin="90,125,0,0" Text="Ø" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                <TextBlock Margin="90,125,0,0" Text="⌀" HorizontalAlignment="Left" VerticalAlignment="Top"/>
                 <TextBox x:Name="Wide1" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="105,125,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите диаметр отверстия" LostFocus="SetPropertyThread"/>
                 <TextBlock Margin="145,125,0,0" Text="N" HorizontalAlignment="Left" VerticalAlignment="Top"/>
                 <TextBox x:Name="Holes1" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="160,125,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите количество отверстий"/>
                 
                 <TextBlock Text="Зен" HorizontalAlignment="Left" Margin="40,150,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Зенковка для всех"/>
-                <TextBlock Margin="90,150,0,0" Text="Ø" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                <TextBlock Margin="90,150,0,0" Text="⌀" HorizontalAlignment="Left" VerticalAlignment="Top"/>
                 <TextBox x:Name="Wide2" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="105,150,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите диаметр отверстия" LostFocus="SetPropertyThread"/>
                 <TextBlock Margin="145,150,0,0" Text="N" HorizontalAlignment="Left" VerticalAlignment="Top"/>
                 <TextBox x:Name="Holes2" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="160,150,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите количество отверстий"/>
                 
                 <TextBlock Text="Свер" HorizontalAlignment="Left" Margin="40,175,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Сверловка для всех"/>
-                <TextBlock Margin="90,175,0,0" Text="Ø" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                <TextBlock Margin="90,175,0,0" Text="⌀" HorizontalAlignment="Left" VerticalAlignment="Top"/>
                 <TextBox x:Name="Wide3" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="105,175,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите диаметр отверстия" LostFocus="SetPropertyThread"/>
                 <TextBlock Margin="145,175,0,0" Text="N" HorizontalAlignment="Left" VerticalAlignment="Top"/>
                 <TextBox x:Name="Holes3" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="160,175,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите количество отверстий"/>
@@ -68,9 +68,11 @@
                 
                 <TextBlock Text="Цинк" HorizontalAlignment="Left" Margin="40,225,0,0" VerticalAlignment="Top" FontWeight="Bold"/>
                 <TextBox HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="105,225,0,0" MaxLines="1" ToolTip="Текущий вес деталей на оцинковку" MinHeight="20" MaxHeight="20" MinWidth="55" MaxWidth="55" IsReadOnly="True"/>
-                <TextBlock Text="кг" HorizontalAlignment="Left" Margin="170,229,0,0" VerticalAlignment="Top"/>
+                <TextBlock Text="кг" HorizontalAlignment="Left" Margin="170,230,0,0" VerticalAlignment="Top"/>
                 
                 <TextBlock Text="Фрез" HorizontalAlignment="Left" Margin="40,250,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Фрезеровка для всех"/>
+                <TextBox x:Name="TotalTime" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="105,250,0,0" MaxLines="1" ToolTip="Общее время фрезеровки" MinHeight="20" MaxHeight="20" MinWidth="55" MaxWidth="55"/>
+                <TextBlock Text="мин" HorizontalAlignment="Left" Margin="170,255,0,0" VerticalAlignment="Top"/>
 
                 <Button x:Name="BendBtn" Content="Г+" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,50,0,0" MinWidth="28" MinHeight="20"/>
                 <Button x:Name="WeldBtn" Content="Св+" ToolTip="Добавить сварку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,75,0,0" MinWidth="28" MinHeight="20"/>

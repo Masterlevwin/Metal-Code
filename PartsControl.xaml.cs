@@ -133,6 +133,11 @@ namespace Metal_Code
                             foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
                                 if (item.CharName == 'С') item.SetHoles(tBox.Text);
                         break;
+                    case "TotalTime":
+                        foreach (PartControl p in Parts)
+                            foreach (MillingTotalControl item in p.UserControls.OfType<MillingTotalControl>())
+                                item.SetTotalTime(tBox.Text);
+                        break;
                 }
             }
         }

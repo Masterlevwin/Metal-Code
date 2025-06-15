@@ -59,6 +59,9 @@ namespace Metal_Code
         [Browsable(false)]
         public bool IsComplect { get; set; } = false;
 
+        [OptionalField]
+        public List<Milling> Millings = new();
+
         public List<SaveTypeDetail> TypeDetails = new();
         public Detail(string? _name = null, int _count = 1, string? _accuracy = null)
         {
@@ -90,6 +93,9 @@ namespace Metal_Code
 
         [OptionalField]
         public string? PdfPath;
+
+        [OptionalField]
+        public List<Milling> Millings = new();
 
         public Dictionary<int, List<string>> PropsDict = new();
 
@@ -153,6 +159,16 @@ namespace Metal_Code
         public ObservableCollection<Particle> Particles { get; set; } = new();
 
         public Assembly() { }
+    }
+
+    [Serializable]
+    public class Milling
+    {
+        public float Depth { get; set; }
+        public float Wide { get; set; }
+        public int Holes { get; set; }
+
+        public Milling() { }
     }
 
     [Serializable]
