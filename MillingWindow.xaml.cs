@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media.Animation;
 
 namespace Metal_Code
 {
@@ -17,7 +16,7 @@ namespace Metal_Code
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
-        public delegate void Changed();
+        public delegate void Changed(MillingWindow window);
         public event Changed? DataChanged;
 
         private int totalTime;
@@ -136,7 +135,7 @@ namespace Metal_Code
         };
 
         public readonly MillingTotalControl owner;
-        public ObservableCollection<MillingControl> MillingControls = new();
+        public ObservableCollection<MillingHole> MillingHoles { get; set; } = new();
 
         public MillingWindow(MillingTotalControl _milling)
         {
@@ -147,7 +146,7 @@ namespace Metal_Code
             Unloaded += CloseWindow;  //подписка на закрытие окна в случае удаления связанного контрола
         }
 
-        private void MillingWindow_Loaded(object sender, RoutedEventArgs e)     //настройка окна при загрузке
+        private void MillingWindow_Loaded(object sender, RoutedEventArgs e) //настройка окна при загрузке
         {
             if (WayIsInitialized) UpdateData();
             else RefreshWay();
@@ -156,20 +155,20 @@ namespace Metal_Code
             RoughnessDrop.ItemsSource = roughness;
         }
 
-        private void HideWindow(object? sender, CancelEventArgs e)      //метод скрытия окна вместо закрытия
+        private void HideWindow(object? sender, CancelEventArgs e)          //метод скрытия окна вместо закрытия
         {
             Hide();
             e.Cancel = true;
         }
 
-        private void CloseWindow(object sender, RoutedEventArgs e)      //метод полного закрытия окна
+        private void CloseWindow(object sender, RoutedEventArgs e)          //метод полного закрытия окна
         {
             Closing -= HideWindow;
             Close();
         }
 
         private void RefreshWay(object sender, RoutedEventArgs e) { RefreshWay(); }
-        private void RefreshWay()                                       //метод установки периметра детали
+        private void RefreshWay()                                           //метод установки периметра детали
         {
             if (owner.owner is PartControl part) Way = part.Part.Way;
             else if (owner.owner is WorkControl work)
@@ -189,7 +188,7 @@ namespace Metal_Code
         }
 
         private void UpdateData(object sender, RoutedEventArgs e) { UpdateData(); }
-        private void UpdateData()                                       //метод обновления данных детали
+        private void UpdateData()                                           //метод обновления данных детали
         {
             if (owner.owner is PartControl part)
             {
@@ -207,38 +206,31 @@ namespace Metal_Code
             SetContourTime();
         }
 
-        private void AddMilling(object sender, RoutedEventArgs e)       //метод добавления контрола отверстия
+        private void AddMillingHole(object sender, RoutedEventArgs e)       //метод добавления отверстия
         {
-            MillingControl milling = new(this);
-            MillingControls.Add(milling);
-            MillingStack.Children.Insert(MillingStack.Children.Count - 1, milling);
+            MillingHole hole = new();
+            DataChanged += hole.SetTime;
+            MillingHoles.Add(hole);
         }
-        public void AddMillings(List<Milling> millings)                 //метод загрузки отверстий из сохранения
+
+        private void RemoveMillingHole(object sender, RoutedEventArgs e)    //метод удаления отверстия
         {
-            if (millings.Count == 0) return;
-            Show();
-            foreach (Milling mil in millings)
+            if (sender is Button btn && btn.DataContext is MillingHole hole)
             {
-                MillingControl milling = new(this)
-                {
-                    Depth = mil.Depth,
-                    Wide = mil.Wide,
-                    Holes = mil.Holes,
-                };
-                MillingControls.Add(milling);
-                MillingStack.Children.Insert(MillingStack.Children.Count - 1, milling);
+                DataChanged -= hole.SetTime;
+                MillingHoles.Remove(hole);
+                SetTotalTime();
             }
-            Hide();
         }
 
-        public void RemoveControl(MillingControl milling)               //метод удаления контрола отверстия
+        //метод, в котором загруженные отверстия подписываются на изменение данных детали
+        public void SubscriptionMillingHoles()
         {
-            MillingControls.Remove(milling);
-            MillingStack.Children.Remove(milling);
-            SetTotalTime();
+            if (MillingHoles.Count > 0)
+                foreach (MillingHole hole in MillingHoles) DataChanged += hole.SetTime;
         }
 
-        private void SetWay(object sender, TextChangedEventArgs e)      //метод установки пути резки контура
+        private void SetWay(object sender, TextChangedEventArgs e)          //метод установки пути резки контура
         {
             if (sender is TextBox tBox) SetWay(tBox.Text);
         }
@@ -277,12 +269,11 @@ namespace Metal_Code
         {
             int time = 0;
 
-            if (MillingControls.Count > 0)
-            {
-                DataChanged?.Invoke();
-                foreach (MillingControl milling in MillingControls)
-                    if (milling.Time > 0) time += milling.Time;
-            }
+            DataChanged?.Invoke(this);
+
+            if (MillingHoles.Count > 0)
+                foreach (MillingHole hole in MillingHoles)
+                    if (hole.Time > 0) time += hole.Time;
 
             TotalTime = owner.TotalTime = time + ContourTime;
         }

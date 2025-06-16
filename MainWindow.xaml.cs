@@ -1639,7 +1639,7 @@ namespace Metal_Code
                 DetailControl det = DetailControls[i];
                 Detail _detail = det.Detail;
                 _detail.Metal = _detail.Destiny = _detail.Description = "";     //очищаем описания свойств детали
-                _detail.Millings.Clear();                                       //очищаем список отверстий для фрезеровки
+                _detail.MillingHoles.Clear();                                   //очищаем список отверстий для фрезеровки
 
                 if (_detail.TypeDetails.Count > 0) _detail.TypeDetails.Clear(); //как будто решаем проблему дублирования при пересохранении
 
@@ -1717,7 +1717,7 @@ namespace Metal_Code
                                     if (p.PropsDict.Count > 0)
                                         for (int key = 50; key < 70; key++) p.PropsDict.Remove(key);
 
-                                    p.Millings.Clear();         //очищаем список отверстий для фрезеровки
+                                    p.MillingHoles.Clear();         //очищаем список отверстий для фрезеровки
 
                                     //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
                                     if (CheckConstruct.IsChecked == true)
@@ -1819,7 +1819,7 @@ namespace Metal_Code
                 if (_det.Detail.Title != null && _det.Detail.Title.Contains("Комплект")) _det.IsComplectChanged();
 
                 _det.Detail.Count = details[i].Count;
-                _det.Detail.Millings = details[i].Millings;
+                _det.Detail.MillingHoles = details[i].MillingHoles;
 
                 for (int j = 0; j < details[i].TypeDetails.Count; j++)
                 {

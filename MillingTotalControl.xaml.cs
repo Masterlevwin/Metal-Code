@@ -180,31 +180,14 @@ namespace Metal_Code
                     w.propsList.Add($"{MillingWindow?.IndexQualityOrRoughness}");
                     w.propsList.Add($"{MillingWindow?.Way}");
 
-                    if (MillingWindow?.MillingControls.Count > 0)
-                        foreach (MillingControl mil in MillingWindow.MillingControls)
-                            if (mil.Time == 0) continue;
-                            else w.type.det.Detail.Millings.Add(new()
-                            {
-                                Depth = mil.Depth,
-                                Wide = mil.Wide,
-                                Holes = mil.Holes,
-                            });
+                    if (MillingWindow?.MillingHoles.Count > 0) w.type.det.Detail.MillingHoles = MillingWindow.MillingHoles;
                 }
                 else if (uc is PartControl p && p.work.type.MetalDrop.SelectedItem is Metal metal)
                 {
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{8}", $"{TotalTime}", $"{MillingWindow?.IndexQualityOrRoughness}", $"{MillingWindow?.Way}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + Ф ")) p.Part.Description += " + Ф ";
-                    
-                    if (MillingWindow?.MillingControls.Count > 0)
-                        foreach (MillingControl mil in MillingWindow.MillingControls)
-                            if (mil.Time == 0) continue;
-                            else
-                                p.Part.Millings.Add(new()
-                                {
-                                    Depth = mil.Depth,
-                                    Wide = mil.Wide,
-                                    Holes = mil.Holes,
-                                });
+
+                    if (MillingWindow?.MillingHoles.Count > 0) p.Part.MillingHoles = MillingWindow.MillingHoles;
 
                     int count = 0;      //счетчик общего количества деталей
 
@@ -240,7 +223,11 @@ namespace Metal_Code
                     MillingWindow.IndexQualityOrRoughness = (int)MainWindow.Parser(w.propsList[1]);
                     MillingWindow.SetWay(w.propsList[2]);
 
-                    if (w.type.det.Detail.Millings?.Count > 0) MillingWindow.AddMillings(w.type.det.Detail.Millings);
+                    if (w.type.det.Detail.MillingHoles?.Count > 0)
+                    {
+                        MillingWindow.MillingHoles = w.type.det.Detail.MillingHoles;
+                        MillingWindow.SubscriptionMillingHoles();
+                    }
                 }
                 else if (uc is PartControl p && owner is PartControl _owner)
                 {
@@ -248,7 +235,11 @@ namespace Metal_Code
                     MillingWindow.IndexQualityOrRoughness = (int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]);
                     MillingWindow.SetWay(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][3]);
 
-                    if (p.Part.Millings?.Count > 0) MillingWindow.AddMillings(p.Part.Millings);
+                    if (p.Part.MillingHoles?.Count > 0)
+                    {
+                        MillingWindow.MillingHoles = p.Part.MillingHoles;
+                        MillingWindow.SubscriptionMillingHoles();
+                    }
                 }
             }
         }
