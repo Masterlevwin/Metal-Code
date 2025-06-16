@@ -136,6 +136,7 @@ namespace Metal_Code
 
         public readonly MillingTotalControl owner;
         public ObservableCollection<MillingHole> MillingHoles { get; set; } = new();
+        public ObservableCollection<MillingGroove> MillingGrooves { get; set; } = new();
 
         public MillingWindow(MillingTotalControl _milling)
         {
@@ -186,6 +187,16 @@ namespace Metal_Code
             WayIsInitialized = false;
             UpdateData();
         }
+        
+        private void SetWay(object sender, TextChangedEventArgs e)          //метод установки пути резки контура
+        {
+            if (sender is TextBox tBox) SetWay(tBox.Text);
+        }
+        public void SetWay(string _way)
+        {
+            if (float.TryParse(_way, out float w)) Way = w;
+            SetContourTime();
+        }
 
         private void UpdateData(object sender, RoutedEventArgs e) { UpdateData(); }
         private void UpdateData()                                           //метод обновления данных детали
@@ -229,15 +240,29 @@ namespace Metal_Code
             if (MillingHoles.Count > 0)
                 foreach (MillingHole hole in MillingHoles) DataChanged += hole.SetTime;
         }
-
-        private void SetWay(object sender, TextChangedEventArgs e)          //метод установки пути резки контура
+                
+        private void AddMillingGroove(object sender, RoutedEventArgs e)       //метод добавления паза
         {
-            if (sender is TextBox tBox) SetWay(tBox.Text);
+            MillingGroove groove = new();
+            DataChanged += groove.SetTime;
+            MillingGrooves.Add(groove);
         }
-        public void SetWay(string _way)
+
+        private void RemoveMillingGroove(object sender, RoutedEventArgs e)    //метод удаления паза
         {
-            if (float.TryParse(_way, out float w)) Way = w;
-            SetContourTime();
+            if (sender is Button btn && btn.DataContext is MillingGroove groove)
+            {
+                DataChanged -= groove.SetTime;
+                MillingGrooves.Remove(groove);
+                SetTotalTime();
+            }
+        }
+
+        //метод, в котором загруженные пазы подписываются на изменение данных детали
+        public void SubscriptionMillingGrooves()
+        {
+            if (MillingGrooves.Count > 0)
+                foreach (MillingGroove groove in MillingGrooves) DataChanged += groove.SetTime;
         }
 
         private void SetSlowdown(object sender, SelectionChangedEventArgs e)
@@ -274,6 +299,10 @@ namespace Metal_Code
             if (MillingHoles.Count > 0)
                 foreach (MillingHole hole in MillingHoles)
                     if (hole.Time > 0) time += hole.Time;
+
+            if (MillingGrooves.Count > 0)
+                foreach (MillingGroove groove in MillingGrooves)
+                    if (groove.Time > 0) time += groove.Time;
 
             TotalTime = owner.TotalTime = time + ContourTime;
         }

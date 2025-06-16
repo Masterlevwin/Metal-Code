@@ -62,6 +62,9 @@ namespace Metal_Code
         [OptionalField]
         public ObservableCollection<MillingHole> MillingHoles = new();
 
+        [OptionalField]
+        public ObservableCollection<MillingGroove> MillingGrooves = new();
+
         public List<SaveTypeDetail> TypeDetails = new();
         public Detail(string? _name = null, int _count = 1, string? _accuracy = null)
         {
@@ -96,6 +99,9 @@ namespace Metal_Code
 
         [OptionalField]
         public ObservableCollection<MillingHole> MillingHoles = new();
+
+        [OptionalField]
+        public ObservableCollection<MillingGroove> MillingGrooves = new();
 
         public Dictionary<int, List<string>> PropsDict = new();
 

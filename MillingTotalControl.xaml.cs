@@ -181,6 +181,7 @@ namespace Metal_Code
                     w.propsList.Add($"{MillingWindow?.Way}");
 
                     if (MillingWindow?.MillingHoles.Count > 0) w.type.det.Detail.MillingHoles = MillingWindow.MillingHoles;
+                    if (MillingWindow?.MillingGrooves.Count > 0) w.type.det.Detail.MillingGrooves = MillingWindow.MillingGrooves;
                 }
                 else if (uc is PartControl p && p.work.type.MetalDrop.SelectedItem is Metal metal)
                 {
@@ -188,6 +189,7 @@ namespace Metal_Code
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + Ф ")) p.Part.Description += " + Ф ";
 
                     if (MillingWindow?.MillingHoles.Count > 0) p.Part.MillingHoles = MillingWindow.MillingHoles;
+                    if (MillingWindow?.MillingGrooves.Count > 0) p.Part.MillingGrooves = MillingWindow.MillingGrooves;
 
                     int count = 0;      //счетчик общего количества деталей
 
@@ -228,6 +230,12 @@ namespace Metal_Code
                         MillingWindow.MillingHoles = w.type.det.Detail.MillingHoles;
                         MillingWindow.SubscriptionMillingHoles();
                     }
+
+                    if (w.type.det.Detail.MillingGrooves?.Count > 0)
+                    {
+                        MillingWindow.MillingGrooves = w.type.det.Detail.MillingGrooves;
+                        MillingWindow.SubscriptionMillingGrooves();
+                    }
                 }
                 else if (uc is PartControl p && owner is PartControl _owner)
                 {
@@ -239,6 +247,12 @@ namespace Metal_Code
                     {
                         MillingWindow.MillingHoles = p.Part.MillingHoles;
                         MillingWindow.SubscriptionMillingHoles();
+                    }
+
+                    if (p.Part.MillingGrooves?.Count > 0)
+                    {
+                        MillingWindow.MillingGrooves = p.Part.MillingGrooves;
+                        MillingWindow.SubscriptionMillingGrooves();
                     }
                 }
             }

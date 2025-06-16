@@ -5,7 +5,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:self="clr-namespace:Metal_Code"
         mc:Ignorable="d"
-        Title="Настройка фрезеровки" Icon="/app_logo.jpg" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" MinWidth="750" MinHeight="600" Closing="HideWindow" Loaded="MillingWindow_Loaded">
+        Title="Настройка фрезеровки" Icon="/app_logo.jpg" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" Closing="HideWindow" Loaded="MillingWindow_Loaded" MinHeight="600" MinWidth="900">
 
     <StackPanel Margin="10">
         <DockPanel Margin="10">
@@ -20,8 +20,8 @@
             </StackPanel>
         </DockPanel>
 
-        <StackPanel Orientation="Horizontal" Margin="20">
-            <StackPanel Margin="10" MinWidth="350">
+        <StackPanel Orientation="Horizontal" Margin="10">
+            <StackPanel Margin="10">
                 <GroupBox x:Name="СontourBox">
                     <GroupBox.Header>
                         <StackPanel Orientation="Horizontal">
@@ -86,9 +86,9 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Margin="5" MinHeight="25" VerticalAlignment="Top">
-                                    <TextBlock Text="t" MinWidth="10" VerticalAlignment="Center" FontSize="14"/>
+                                    <TextBlock Text="D" MinWidth="10" VerticalAlignment="Center" FontSize="14"/>
                                     <TextBox Margin="3,0,0,0" Text="{Binding Depth}" ToolTip="Укажите глубину отверстия" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30" FontSize="12"/>
-                                    <TextBlock Text="d" Margin="10,0,0,0" MinWidth="10" VerticalAlignment="Center" FontSize="14"/>
+                                    <TextBlock Text="⌀" Margin="10,0,0,0" MinWidth="10" VerticalAlignment="Center" FontSize="14"/>
                                     <TextBox Margin="3,0,0,0" Text="{Binding Wide}" ToolTip="Укажите диаметр отверстия" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30" FontSize="12"/>
                                     <TextBlock Text="N" Margin="10,0,0,0" MinWidth="10" VerticalAlignment="Center" FontSize="14"/>
                                     <TextBox Margin="3,0,0,0" Text="{Binding Count}" ToolTip="Укажите количество однотипных отверстий" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30" FontSize="12"/>
@@ -112,7 +112,7 @@
                 </Button>
             </StackPanel>
 
-            <StackPanel Margin="10" MinWidth="240">
+            <StackPanel Margin="10">
                 <GroupBox>
                     <GroupBox.Header>
                         <StackPanel Orientation="Horizontal">
@@ -132,19 +132,69 @@
 
                     <StackPanel Margin="5">
                         <StackPanel Orientation="Horizontal" Margin="5">
-                            <TextBlock Text="Квалитет" MaxWidth="100" MinWidth="100" MinHeight="22" MaxHeight="22" FontSize="14"/>
-                            <ComboBox x:Name="QualityDrop" Margin="10,0,0,0" MinWidth="120" MaxWidth="120" MinHeight="22" MaxHeight="22" FontSize="14" SelectionChanged="SetSlowdown" SelectedIndex="{Binding IndexQualityOrRoughness, Mode=TwoWay}"/>
+                            <TextBlock Text="Квалитет" MaxWidth="120" MinWidth="120" MinHeight="22" MaxHeight="22" FontSize="14"/>
+                            <ComboBox x:Name="QualityDrop" Margin="10,0,0,0" MinWidth="140" MaxWidth="140" MinHeight="22" MaxHeight="22" FontSize="14" SelectionChanged="SetSlowdown" SelectedIndex="{Binding IndexQualityOrRoughness, Mode=TwoWay}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="5">
-                            <TextBlock Text="Шероховатость" MinWidth="100" MaxWidth="100" MinHeight="22" MaxHeight="22" FontSize="14"/>
-                            <ComboBox x:Name="RoughnessDrop" Margin="10,0,0,0" MinWidth="120" MaxWidth="120" MinHeight="22" MaxHeight="22" FontSize="14" SelectionChanged="SetSlowdown" SelectedIndex="{Binding IndexQualityOrRoughness, Mode=TwoWay}"/>
+                            <TextBlock Text="Шероховатость" MinWidth="120" MaxWidth="120" MinHeight="22" MaxHeight="22" FontSize="14"/>
+                            <ComboBox x:Name="RoughnessDrop" Margin="10,0,0,0" MinWidth="140" MaxWidth="140" MinHeight="22" MaxHeight="22" FontSize="14" SelectionChanged="SetSlowdown" SelectedIndex="{Binding IndexQualityOrRoughness, Mode=TwoWay}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="5">
-                            <TextBlock Text="Замедление" MinWidth="100" MaxWidth="100" MinHeight="22" MaxHeight="22" FontSize="14"/>
+                            <TextBlock Text="Замедление" MinWidth="120" MaxWidth="120" MinHeight="22" MaxHeight="22" FontSize="14"/>
                             <TextBlock Text="{Binding Slowdown}" Foreground="Blue" Margin="15,0,0,0" MinHeight="22" MaxHeight="22" FontSize="14" HorizontalAlignment="Center"/>
                         </StackPanel>
                     </StackPanel>
                 </GroupBox>
+
+                <GroupBox Margin="0,20,0,0">
+                    <GroupBox.Header>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Пазы и выемки" FontWeight="Bold" FontSize="14"/>
+                            <Image Source="/Images/question.png" MaxWidth="10" VerticalAlignment="Top" Margin="2">
+                                <Image.ToolTip>
+                                    <ToolTip Background="Snow" BorderBrush="Red" Padding="5" BorderThickness="1">
+                                        <StackPanel >
+                                            <TextBlock Text="Здесь нужно указать данные"/>
+                                            <TextBlock Text="для каждого паза или выемки, чтобы"/>
+                                            <TextBlock Text="определить набор фрез для работы."/>
+                                        </StackPanel>
+                                    </ToolTip>
+                                </Image.ToolTip>
+                            </Image>
+                        </StackPanel>
+                    </GroupBox.Header>
+
+                    <ListBox ItemsSource="{Binding MillingGrooves}" Margin="5" Padding="3" MaxHeight="300">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="5" MinHeight="25" VerticalAlignment="Top">
+                                    <TextBlock Text="D" MinWidth="10" VerticalAlignment="Center" FontSize="14"/>
+                                    <TextBox Margin="3,0,0,0" Text="{Binding Depth}" ToolTip="Укажите глубину паза" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30" FontSize="12"/>
+                                    <TextBlock Text="L" Margin="10,0,0,0" MinWidth="10" VerticalAlignment="Center" FontSize="14"/>
+                                    <TextBox Margin="3,0,0,0" Text="{Binding Length}" ToolTip="Укажите длину паза" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30" FontSize="12"/>
+                                    <TextBlock Text="W" Margin="10,0,0,0" MinWidth="10" VerticalAlignment="Center" FontSize="14"/>
+                                    <TextBox Margin="3,0,0,0" Text="{Binding Width}" ToolTip="Укажите ширину паза" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30" FontSize="12"/>
+                                    <TextBlock Text="N" Margin="10,0,0,0" MinWidth="10" VerticalAlignment="Center" FontSize="14"/>
+                                    <TextBox Margin="3,0,0,0" Text="{Binding Count}" ToolTip="Укажите количество однотипных пазов" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30" FontSize="12"/>
+                                    <TextBlock Foreground="Red" Margin="15,0,0,0" Text="{Binding Time}" VerticalAlignment="Center" FontWeight="Medium" FontSize="14" MaxWidth="25" MinWidth="25"/>
+                                    <TextBlock Text="мин" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                                    <TextBlock Text="(⌀ фрезы - " Margin="5,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                                    <TextBlock Text="{Binding Cutter}" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="14" Foreground="Blue" MinWidth="14"/>
+                                    <TextBlock Text=")" Margin="3,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                                    <Button Click="RemoveMillingGroove" ToolTip="Удалить обработку паза" Content="Х" FontWeight="Bold" Padding="0" FontSize="8" BorderThickness="0" VerticalAlignment="Top" Margin="5,0,0,0" MinWidth="10"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </GroupBox>
+
+                <Button Click="AddMillingGroove" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5">
+                    <StackPanel Orientation="Horizontal" Margin="3" MaxHeight="16">
+                        <Image Source="Images/plus.png"/>
+                        <TextBlock Text="Добавить паз" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </Button>
+
             </StackPanel>
         </StackPanel>
     </StackPanel>
