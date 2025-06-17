@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows;
 
 namespace Metal_Code
@@ -8,9 +10,24 @@ namespace Metal_Code
     /// <summary>
     /// Логика взаимодействия для SearchWindow.xaml
     /// </summary>
-    public partial class SearchWindow : Window
+    public partial class SearchWindow : Window, INotifyPropertyChanged
     {
-        public string Search { get; set; } = "";
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        private string search = "";
+        public string Search
+        {
+            get => search;
+            set
+            {
+                if (search != value)
+                {
+                    search = value;
+                    OnPropertyChanged(nameof(Search));
+                }
+            }
+        }
 
         public SearchWindow() { InitializeComponent(); DataContext = this; }
 
@@ -32,12 +49,11 @@ namespace Metal_Code
             {
                 try
                 {
-                    Search = Search.ToLower();
                     List<Offer>? offers = db.Offers.Where(o => o.Manager != null && o.Manager.Name == MainWindow.M.TargetManager.Name
-                                                            && o.N != null && o.N.ToLower().Contains(Search)
-                                                            || (o.Company != null && o.Company.ToLower().Contains(Search))).ToList();
+                                                            && o.N != null && o.N.Contains(Search)
+                                                            || (o.Company != null && o.Company.Contains(Search))).ToList();
                                                             
-                    if (offers.Count == 0) return "Расчетов по выбранным параметрам не найдено";
+                    if (offers.Count == 0) return $"Расчетов по фильтру \"{Search}\" не найдено. Попробуйте изменить запрос с учетом регистра.";
                     else
                     {
                         //подключаемся к локальной базе данных
