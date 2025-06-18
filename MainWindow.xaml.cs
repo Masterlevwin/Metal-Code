@@ -544,15 +544,15 @@ namespace Metal_Code
 
             for (int i = 0; i < Destinies.Count; i++)
             {
-                if (Destinies[i] <= 3) WideDict[Destinies[i]] = 0;
-                else WideDict[Destinies[i]] = (float)Math.Round(0.1f * (i + 2) - 1, 1);
+                if (Destinies[i] <= 4) WideDict[Destinies[i]] = 1;
+                else WideDict[Destinies[i]] = (float)Math.Round(1 + 0.05f * (Destinies[i] - 1.5f), 1);
             }
 
             foreach (Metal met in Metals)
             {
                 if (met == null || met.Name == null) continue;
 
-                if (met.Name == "09г2с" || met.Name.Contains("амг")) MetalRatioDict[met] = 1.5f;
+                if (met.Name == "09г2с" || met.Name.Contains("амг") || met.Name.Contains("д16")) MetalRatioDict[met] = 1.5f;
                 else if (met.Name.Contains("aisi")) MetalRatioDict[met] = 2;
                 else MetalRatioDict[met] = 1;
             }
@@ -4883,7 +4883,92 @@ namespace Metal_Code
                 }
             }
         }
+        public static void CopyDirectory(string sourceDir, string destinationDir, bool recursive)
+        {
+            // Get information about the source directory
+            var dir = new DirectoryInfo(sourceDir);
 
+            // Check if the source directory exists
+            if (!dir.Exists)
+                throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
+
+            // Cache directories before we start copying
+            DirectoryInfo[] dirs = dir.GetDirectories();
+
+            // Create the destination directory
+            Directory.CreateDirectory(destinationDir);
+
+            // Get the files in the source directory and copy to the destination directory
+            foreach (FileInfo file in dir.GetFiles())
+            {
+                string targetFilePath = Path.Combine(destinationDir, file.Name);
+                file.CopyTo(targetFilePath);
+            }
+
+            // If recursive and copying subdirectories, recursively call this method
+            if (recursive)
+            {
+                foreach (DirectoryInfo subDir in dirs)
+                {
+                    string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
+                    CopyDirectory(subDir.FullName, newDestinationDir, true);
+                }
+            }
+        }
+        
+        //-----Получение DataTable-коллекции из ObservableCollection-----//
+        public static DataTable ToDataTable<T>(ObservableCollection<T> items)
+        {
+            var tb = new DataTable(typeof(T).Name);
+
+            PropertyInfo[] props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+            foreach (PropertyInfo prop in props)
+            {
+                Type? t = GetCoreType(prop.PropertyType);
+                if (t is not null) tb.Columns.Add(prop.Name, t);
+            }
+
+
+            foreach (T item in items)
+            {
+                var values = new object[props.Length];
+
+                for (int i = 0; i < props.Length; i++)
+                {
+                    values[i] = props[i].GetValue(item, null);
+                }
+
+                tb.Rows.Add(values);
+            }
+            return tb;
+        }
+
+        public static bool IsNullable(Type t)
+        {
+            return !t.IsValueType || (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>));
+        }
+
+        public static Type? GetCoreType(Type t)
+        {
+            if (t != null && IsNullable(t))
+            {
+                if (!t.IsValueType)
+                {
+                    return t;
+                }
+                else
+                {
+                    return Nullable.GetUnderlyingType(t);
+                }
+            }
+            else
+            {
+                return t;
+            }
+        }
+
+        //------------Остальные методы---------------------------//
         public float CorrectDestiny(float _destiny)     //метод определения расчетной толщины
         {
             if (_destiny < 0.5f || _destiny > 30) return 0;
@@ -4968,7 +5053,7 @@ namespace Metal_Code
             return true;
         }
 
-        public float GetMetalPrice()
+        public float GetMetalPrice()        //метод получения стоимости материала всего расчета
         {
             float metalprice = 0;
             foreach (DetailControl d in DetailControls)
@@ -5022,7 +5107,7 @@ namespace Metal_Code
             return (float)Math.Ceiling(total);      //округляем до целого в большую сторону
         }
 
-        public static float MassRatio(float _mass)
+        public static float MassRatio(float _mass)      //метод получения коэффициента за вес
         {
             float _massRatio = _mass switch
             {
@@ -5036,55 +5121,17 @@ namespace Metal_Code
             return _massRatio;
         }
 
-        public static DataTable ToDataTable<T>(ObservableCollection<T> items)
+        public static float RatioSale(int _count)       //метод расчета скидки от объема
         {
-            var tb = new DataTable(typeof(T).Name);
-
-            PropertyInfo[] props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
-
-            foreach (PropertyInfo prop in props)
+            return _count switch
             {
-                Type? t = GetCoreType(prop.PropertyType);
-                if (t is not null) tb.Columns.Add(prop.Name, t);
-            }
-
-
-            foreach (T item in items)
-            {
-                var values = new object[props.Length];
-
-                for (int i = 0; i < props.Length; i++)
-                {
-                    values[i] = props[i].GetValue(item, null);
-                }
-
-                tb.Rows.Add(values);
-            }
-            return tb;
-        }
-
-        public static bool IsNullable(Type t)
-        {
-            return !t.IsValueType || (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>));
-        }
-
-        public static Type? GetCoreType(Type t)
-        {
-            if (t != null && IsNullable(t))
-            {
-                if (!t.IsValueType)
-                {
-                    return t;
-                }
-                else
-                {
-                    return Nullable.GetUnderlyingType(t);
-                }
-            }
-            else
-            {
-                return t;
-            }
+                <= 50 => 1,
+                <= 100 => 0.9f,
+                <= 500 => 0.8f,
+                <= 1000 => 0.7f,
+                <= 2000 => 0.6f,
+                _ => 0.5f
+            };
         }
 
         public static float Parser(string data)                         //обёртка для парсинга float-значений
@@ -5132,39 +5179,6 @@ namespace Metal_Code
             bitmapEncoder.Frames.Add(BitmapFrame.Create(renderTarget));
             using var stm = File.Create(fileName);
             bitmapEncoder.Save(stm);
-        }
-
-        static void CopyDirectory(string sourceDir, string destinationDir, bool recursive)
-        {
-            // Get information about the source directory
-            var dir = new DirectoryInfo(sourceDir);
-
-            // Check if the source directory exists
-            if (!dir.Exists)
-                throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
-
-            // Cache directories before we start copying
-            DirectoryInfo[] dirs = dir.GetDirectories();
-
-            // Create the destination directory
-            Directory.CreateDirectory(destinationDir);
-
-            // Get the files in the source directory and copy to the destination directory
-            foreach (FileInfo file in dir.GetFiles())
-            {
-                string targetFilePath = Path.Combine(destinationDir, file.Name);
-                file.CopyTo(targetFilePath);
-            }
-
-            // If recursive and copying subdirectories, recursively call this method
-            if (recursive)
-            {
-                foreach (DirectoryInfo subDir in dirs)
-                {
-                    string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
-                    CopyDirectory(subDir.FullName, newDestinationDir, true);
-                }
-            }
         }
         #endregion
 

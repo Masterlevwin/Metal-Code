@@ -5,86 +5,119 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              x:Class="Metal_Code.PartsControl" 
              mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="400">
+             d:DesignHeight="400" d:DesignWidth="400">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
 
-        <GroupBox Header="Общее для всех деталей">
-            <Grid>
-                <CheckBox Content="Раскладки" Click="ShowNesting" Margin="5,20,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Padding="4"/>
+        <GroupBox>
+            <GroupBox.Header>
+                <TextBlock Text="Общее для всех деталей" FontWeight="Medium" FontSize="14"/>
+            </GroupBox.Header>
+            
+            <ScrollViewer>
+                <StackPanel Margin="3" >
+                    <StackPanel Orientation="Horizontal" Margin="3">
+                        <CheckBox Content="Раскладки" Click="ShowNesting" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Padding="3"/>
 
-                <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,20,0,0" Click="ShowAssemblyWindow" Padding="1">
-                    <StackPanel Orientation="Horizontal" MaxHeight="20">
-                        <Image Source="/Images/assembly.png"/>
-                        <TextBlock Text="Добавить в сборку" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                        <Button Click="ShowAssemblyWindow" Padding="1" Margin="5,0,0,0">
+                            <StackPanel Orientation="Horizontal" MaxHeight="20">
+                                <Image Source="/Images/assembly.png"/>
+                                <TextBlock Text="Добавить в сборку" VerticalAlignment="Center" Margin="3"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
-                </Button>
 
-                <Button Content="Г&gt;" ToolTip="По гибке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,50,0,0" MinWidth="28" MinHeight="20"/>
-                <Button Content="Св&gt;" ToolTip="По сварке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,75,0,0" MinWidth="28" MinHeight="20"/>
-                <Button Content="О&gt;" ToolTip="По окраске" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,100,0,0" MinWidth="28" MinHeight="20"/>
-                <Button Content="Р&gt;" ToolTip="По резьбе" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,125,0,0" MinWidth="28" MinHeight="20"/>
-                <Button Content="З&gt;" ToolTip="По зенковке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,150,0,0" MinWidth="28" MinHeight="20"/>
-                <Button Content="С&gt;" ToolTip="По сверловке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,175,0,0" MinHeight="20" MinWidth="28"/>
-                <Button  Content="В&gt;" ToolTip="По вальцовке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,200,0,0" MinWidth="28" MinHeight="20"/>
-                <Button  Content="Ц&gt;" ToolTip="По оцинковке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,225,0,0" MinWidth="28" MinHeight="20"/>
-                <Button  Content="Ф&gt;" ToolTip="По фрезеровке" Click="SortDetails" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,250,0,0" MinWidth="28" MinHeight="20"/>
+                    <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
+                        <Button Content="Г&gt;" ToolTip="По гибке" Click="SortDetails" FontWeight="Bold" MinWidth="30"/>
+                        <TextBlock Text="Гиб" FontWeight="Bold" ToolTip="Гибка для всех" Margin="5,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBox x:Name="Bend" MinWidth="35" MaxWidth="35" TextChanged="SetProperty" ToolTip="Введите количество однотипных гибов" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="5,0,0,0" MaxLines="1"/>
+                        <ComboBox x:Name="BendDrop" MinWidth="70" MaxWidth="70" SelectedIndex="0" ToolTip="Выберите длину гиба" SelectionChanged="SetType" Margin="5,0,0,0"/>
+                        <Button x:Name="BendBtn" Content="Г+" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" MinWidth="30"/>
+                    </StackPanel>
 
-                <TextBlock Text="Гиб" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Гибка для всех" HorizontalAlignment="Left" Margin="40,50,0,0"/>
-                <TextBox x:Name="Bend" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="35" MinHeight="20" MaxWidth="35" MaxHeight="20" TextChanged="SetProperty" ToolTip="Введите количество однотипных гибов" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="80,50,0,0"/>
-                <ComboBox x:Name="BendDrop" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" SelectedIndex="0" ToolTip="Выберите длину гиба" SelectionChanged="SetType" Margin="120,50,0,0"/>
-                
-                <TextBlock Text="Свар" HorizontalAlignment="Left" Margin="40,75,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Сварка для всех"/>
-                <TextBox x:Name="Weld" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="80,75,0,0" MaxLines="1" ToolTip="Введите длину свариваемой поверхности, мм" MinHeight="20" MaxHeight="20" MinWidth="55" MaxWidth="55"/>
-                <ComboBox x:Name="WeldDrop" SelectionChanged="SetType" HorizontalAlignment="Left" Margin="140,75,0,0" VerticalAlignment="Top" MinHeight="20" MaxHeight="20" MinWidth="50" MaxWidth="50" ToolTip="Выберите тип расчета" SelectedIndex="0"/>
-                
-                <TextBlock Text="Окр" HorizontalAlignment="Left" Margin="40,100,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Окраска для всех"/>
-                <TextBox x:Name="Paint" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="55" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="80,100,0,0" MaxWidth="55" MaxHeight="20" MaxLines="1" ToolTip="Введите цвет RAL" LostFocus="SetProperty"/>
-                <ComboBox x:Name="PaintDrop" SelectionChanged="SetType" HorizontalAlignment="Left" MinHeight="20" MinWidth="50" Margin="140,100,0,0" VerticalAlignment="Top" MaxWidth="50" MaxHeight="20" ToolTip="Выберите тип расчета" SelectedIndex="0"/>
-                
-                <TextBlock Text="Рез" HorizontalAlignment="Left" Margin="40,125,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Резьба для всех"/>
-                <TextBlock Margin="90,125,0,0" Text="⌀" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                <TextBox x:Name="Wide1" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="105,125,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите диаметр отверстия" LostFocus="SetPropertyThread"/>
-                <TextBlock Margin="145,125,0,0" Text="N" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                <TextBox x:Name="Holes1" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="160,125,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите количество отверстий"/>
-                
-                <TextBlock Text="Зен" HorizontalAlignment="Left" Margin="40,150,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Зенковка для всех"/>
-                <TextBlock Margin="90,150,0,0" Text="⌀" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                <TextBox x:Name="Wide2" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="105,150,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите диаметр отверстия" LostFocus="SetPropertyThread"/>
-                <TextBlock Margin="145,150,0,0" Text="N" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                <TextBox x:Name="Holes2" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="160,150,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите количество отверстий"/>
-                
-                <TextBlock Text="Свер" HorizontalAlignment="Left" Margin="40,175,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Сверловка для всех"/>
-                <TextBlock Margin="90,175,0,0" Text="⌀" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                <TextBox x:Name="Wide3" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="105,175,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите диаметр отверстия" LostFocus="SetPropertyThread"/>
-                <TextBlock Margin="145,175,0,0" Text="N" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                <TextBox x:Name="Holes3" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" MinWidth="30" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="160,175,0,0" MaxWidth="30" MaxHeight="20" MaxLines="1" ToolTip="Введите количество отверстий"/>
-                
-                <TextBlock Text="Вальц" HorizontalAlignment="Left" Margin="40,200,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Вальцовка для всех"/>
-                <ComboBox x:Name="RollDrop" HorizontalAlignment="Left" VerticalAlignment="Top" MinHeight="20" MaxHeight="20" MinWidth="70" MaxWidth="70" SelectedIndex="0" ToolTip="Выберите сторону вальцовки" SelectionChanged="SetType" Margin="120,200,0,0"/>
-                
-                <TextBlock Text="Цинк" HorizontalAlignment="Left" Margin="40,225,0,0" VerticalAlignment="Top" FontWeight="Bold"/>
-                <TextBox HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="105,225,0,0" MaxLines="1" ToolTip="Текущий вес деталей на оцинковку" MinHeight="20" MaxHeight="20" MinWidth="55" MaxWidth="55" IsReadOnly="True"/>
-                <TextBlock Text="кг" HorizontalAlignment="Left" Margin="170,230,0,0" VerticalAlignment="Top"/>
-                
-                <TextBlock Text="Фрез" HorizontalAlignment="Left" Margin="40,250,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontWeight="Bold" ToolTip="Фрезеровка для всех"/>
-                <TextBox x:Name="TotalTime" TextChanged="SetProperty" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="105,250,0,0" MaxLines="1" ToolTip="Общее время фрезеровки" MinHeight="20" MaxHeight="20" MinWidth="55" MaxWidth="55"/>
-                <TextBlock Text="мин" HorizontalAlignment="Left" Margin="170,255,0,0" VerticalAlignment="Top"/>
+                    <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
+                        <Button Content="Св&gt;" ToolTip="По сварке" Click="SortDetails" FontWeight="Bold" MinWidth="30"/>
+                        <TextBlock Text="Свар" FontWeight="Bold" ToolTip="Сварка для всех" Margin="5,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBox x:Name="Weld" TextChanged="SetProperty" ToolTip="Введите длину свариваемой поверхности, мм" MinWidth="55" MaxWidth="55" MaxLines="1" Margin="5,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                        <ComboBox x:Name="WeldDrop" SelectionChanged="SetType" MinWidth="50" MaxWidth="50" ToolTip="Выберите тип расчета" SelectedIndex="0" Margin="5,0,0,0"/>
+                        <Button x:Name="WeldBtn" Content="Св+" ToolTip="Добавить сварку" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" MinWidth="30"/>
+                    </StackPanel>
 
-                <Button x:Name="BendBtn" Content="Г+" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,50,0,0" MinWidth="28" MinHeight="20"/>
-                <Button x:Name="WeldBtn" Content="Св+" ToolTip="Добавить сварку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,75,0,0" MinWidth="28" MinHeight="20"/>
-                <Button x:Name="PaintBtn" Content="О+" ToolTip="Добавить окраску" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,100,0,0" MinWidth="28" MinHeight="20"/>
-                <Button x:Name="ThreadBtn" Content="Р+" ToolTip="Добавить резьбу" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,125,0,0" MinWidth="28" MinHeight="20"/>
-                <Button x:Name="CountersinkBtn" Content="З+" ToolTip="Добавить зенковку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,150,0,0" MinWidth="28" MinHeight="20"/>
-                <Button x:Name="DrillingBtn" Content="С+" ToolTip="Добавить сверловку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,175,0,0" MinWidth="28" MinHeight="20"/>
-                <Button x:Name="RollingBtn" Content="В+" ToolTip="Добавить вальцовку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,200,0,0" MinWidth="28" MinHeight="20"/>
-                <Button x:Name="ZincBtn" Content="Ц+" ToolTip="Добавить оцинковку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,225,0,0" MinWidth="28" MinHeight="20"/>
-                <Button x:Name="MillingBtn" Content="Ф+" ToolTip="Добавить фрезеровку" Click="AddControl" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="200,250,0,0" MinWidth="28" MinHeight="20"/>
+                    <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
+                        <Button Content="О&gt;" ToolTip="По окраске" Click="SortDetails" FontWeight="Bold" MinWidth="30"/>
+                        <TextBlock Text="Окр" FontWeight="Bold" ToolTip="Окраска для всех" Margin="5,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBox x:Name="Paint" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="55" MaxWidth="55" MaxLines="1" ToolTip="Введите цвет RAL" LostFocus="SetProperty" Margin="5,0,0,0"/>
+                        <ComboBox x:Name="PaintDrop" SelectionChanged="SetType" MinWidth="50" Margin="5,0,0,0" MaxWidth="50" ToolTip="Выберите тип расчета" SelectedIndex="0"/>
+                        <Button x:Name="PaintBtn" Content="О+" ToolTip="Добавить окраску" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" MinWidth="30"/>
+                    </StackPanel>
 
-            </Grid>
+                    <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
+                        <Button Content="Р&gt;" ToolTip="По резьбе" Click="SortDetails" FontWeight="Bold" MinWidth="30"/>
+                        <TextBlock Text="Рез" FontWeight="Bold" ToolTip="Резьба для всех" Margin="5,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="⌀" Margin="20,0,0,0" />
+                        <TextBox x:Name="Wide1" MinWidth="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxWidth="30" MaxLines="1" ToolTip="Введите диаметр отверстия" LostFocus="SetPropertyThread"/>
+                        <TextBlock Text="N" Margin="5,0,0,0"/>
+                        <TextBox x:Name="Holes1" TextChanged="SetProperty" MinWidth="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxWidth="30" MaxLines="1" ToolTip="Введите количество отверстий"/>
+                        <Button x:Name="ThreadBtn" Content="Р+" ToolTip="Добавить резьбу" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" MinWidth="30"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
+                        <Button Content="З&gt;" ToolTip="По зенковке" Click="SortDetails" FontWeight="Bold" MinWidth="30"/>
+                        <TextBlock Text="Зен" FontWeight="Bold" ToolTip="Зенковка для всех" Margin="5,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="⌀" Margin="20,0,0,0" />
+                        <TextBox x:Name="Wide2" MinWidth="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxWidth="30" MaxLines="1" ToolTip="Введите диаметр отверстия" LostFocus="SetPropertyThread"/>
+                        <TextBlock Text="N" Margin="5,0,0,0"/>
+                        <TextBox x:Name="Holes2" TextChanged="SetProperty" MinWidth="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxWidth="30" MaxLines="1" ToolTip="Введите количество отверстий"/>
+                        <Button x:Name="CountersinkBtn" Content="З+" ToolTip="Добавить зенковку" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" MinWidth="30"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
+                        <Button Content="С&gt;" ToolTip="По сверловке" Click="SortDetails" FontWeight="Bold" MinWidth="30"/>
+                        <TextBlock Text="Свер" FontWeight="Bold" ToolTip="Сверловка для всех" Margin="5,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="⌀" Margin="20,0,0,0" />
+                        <TextBox x:Name="Wide3" MinWidth="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxWidth="30" MaxLines="1" ToolTip="Введите диаметр отверстия" LostFocus="SetPropertyThread"/>
+                        <TextBlock Text="N" Margin="5,0,0,0"/>
+                        <TextBox x:Name="Holes3" TextChanged="SetProperty" MinWidth="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxWidth="30" MaxLines="1" ToolTip="Введите количество отверстий"/>
+                        <Button x:Name="DrillingBtn" Content="С+" ToolTip="Добавить сверловку" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" MinWidth="30"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
+                        <Button Content="Зк&gt;" ToolTip="По заклепкам" Click="SortDetails" FontWeight="Bold" MinWidth="30"/>
+                        <TextBlock Text="Закл" FontWeight="Bold" ToolTip="Заклепки для всех" Margin="5,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="⌀" Margin="20,0,0,0" />
+                        <TextBox x:Name="Wide4" MinWidth="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxWidth="30" MaxLines="1" ToolTip="Введите диаметр отверстия" LostFocus="SetPropertyThread"/>
+                        <TextBlock Text="N" Margin="5,0,0,0"/>
+                        <TextBox x:Name="Holes4" TextChanged="SetProperty" MinWidth="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxWidth="30" MaxLines="1" ToolTip="Введите количество отверстий"/>
+                        <Button x:Name="RivetsBtn" Content="Зк+" ToolTip="Добавить заклепки" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" MinWidth="30"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
+                        <Button  Content="В&gt;" ToolTip="По вальцовке" Click="SortDetails" FontWeight="Bold" MinWidth="30"/>
+                        <TextBlock Text="Вальц" FontWeight="Bold" ToolTip="Вальцовка для всех" Margin="5,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="RollDrop" MinWidth="79" MaxWidth="79" SelectedIndex="0" ToolTip="Выберите сторону вальцовки" SelectionChanged="SetType" Margin="35,0,0,0"/>
+                        <Button x:Name="RollingBtn" Content="В+" ToolTip="Добавить вальцовку" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" MinWidth="30"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
+                        <Button  Content="Ц&gt;" ToolTip="По оцинковке" Click="SortDetails" FontWeight="Bold" MinWidth="30"/>
+                        <TextBlock Text="Цинк" FontWeight="Bold" Margin="5,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBox HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Текущий вес деталей на оцинковку" IsReadOnly="True" Margin="34,0,0,0" Width="20" MinWidth="52" MaxWidth="52"/>
+                        <TextBlock Text="кг" Margin="5,0,0,0" MinWidth="23" />
+                        <Button x:Name="ZincBtn" Content="Ц+" ToolTip="Добавить оцинковку" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" MinWidth="30"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
+                        <Button  Content="Ф&gt;" ToolTip="По фрезеровке" Click="SortDetails" FontWeight="Bold" MinWidth="30"/>
+                        <TextBlock Text="Фрез" FontWeight="Bold" ToolTip="Фрезеровка для всех" Margin="5,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBox x:Name="TotalTime" TextChanged="SetProperty" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Общее время фрезеровки" Margin="34,0,0,0" Width="15" MinWidth="52" MaxWidth="52"/>
+                        <TextBlock Text="мин" Margin="5,0,0,0" MinWidth="23" />
+                        <Button x:Name="MillingBtn" Content="Ф+" ToolTip="Добавить фрезеровку" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" MinWidth="30"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
         </GroupBox>
 
         <ListBox x:Name="imagesList" Padding="5,0,0,0" Grid.Column="1" VerticalAlignment="Top" VerticalContentAlignment="Top" Visibility="Collapsed">

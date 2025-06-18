@@ -126,6 +126,9 @@ namespace Metal_Code
                     case "MillingBtn":
                         AddControl(8);
                         break;
+                    case "RivetsBtn":
+                        AddControl(9);
+                        break;
                 }
         }
         public void AddControl(int index)
@@ -142,13 +145,13 @@ namespace Metal_Code
                     AddControl(new PaintControl(this));
                     break;
                 case 3:
-                    AddControl(new ThreadControl(this, 'Р'));
+                    AddControl(new ThreadControl(this, "Р"));
                     break;
                 case 4:
-                    AddControl(new ThreadControl(this, 'З'));
+                    AddControl(new ThreadControl(this, "З"));
                     break;
                 case 5:
-                    AddControl(new ThreadControl(this, 'С'));
+                    AddControl(new ThreadControl(this, "С"));
                     break;
                 case 6:
                     if (UserControls.Count > 0 && UserControls.Any(r => r is RollingControl))
@@ -173,6 +176,9 @@ namespace Metal_Code
                         return;
                     }
                     AddControl(new MillingTotalControl(this));
+                    break;
+                case 9:
+                    AddControl(new ThreadControl(this, "Зк"));
                     break;
             }
         }

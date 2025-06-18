@@ -68,6 +68,9 @@ namespace Metal_Code
                         case "MillingBtn":
                             p.AddControl(8);
                             break;
+                        case "RivetsBtn":
+                            p.AddControl(9);
+                            break;
                     }
             }
         }
@@ -81,17 +84,22 @@ namespace Metal_Code
                     case "Wide1":
                         foreach (PartControl p in Parts)
                             foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
-                                if (item.CharName == 'Р') item.SetWide(tBox.Text);
+                                if (item.CharName == "Р") item.SetWide(tBox.Text);
                         break;
                     case "Wide2":
                         foreach (PartControl p in Parts)
                             foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
-                                if (item.CharName == 'З') item.SetWide(tBox.Text);
+                                if (item.CharName == "З") item.SetWide(tBox.Text);
                         break;
                     case "Wide3":
                         foreach (PartControl p in Parts)
                             foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
-                                if (item.CharName == 'С') item.SetWide(tBox.Text);
+                                if (item.CharName == "С") item.SetWide(tBox.Text);
+                        break;
+                    case "Wide4":
+                        foreach (PartControl p in Parts)
+                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
+                                if (item.CharName == "Зк") item.SetWide(tBox.Text);
                         break;
                 }
             }
@@ -121,17 +129,22 @@ namespace Metal_Code
                     case "Holes1":
                         foreach (PartControl p in Parts)
                             foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
-                                if (item.CharName == 'Р') item.SetHoles(tBox.Text);
+                                if (item.CharName == "Р") item.SetHoles(tBox.Text);
                         break;
                     case "Holes2":
                         foreach (PartControl p in Parts)
                             foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
-                                if (item.CharName == 'З') item.SetHoles(tBox.Text);
+                                if (item.CharName == "З") item.SetHoles(tBox.Text);
                         break;
                     case "Holes3":
                         foreach (PartControl p in Parts)
                             foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
-                                if (item.CharName == 'С') item.SetHoles(tBox.Text);
+                                if (item.CharName == "С") item.SetHoles(tBox.Text);
+                        break;
+                    case "Holes4":
+                        foreach (PartControl p in Parts)
+                            foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
+                                if (item.CharName == "Зк") item.SetHoles(tBox.Text);
                         break;
                     case "TotalTime":
                         foreach (PartControl p in Parts)
@@ -193,18 +206,23 @@ namespace Metal_Code
                         break;
                     case "Р>":
                         partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'Р'))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'Р')))).ToList();
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "Р"))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "Р")))).ToList();
                         break;
                     case "З>":
                         partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'З'))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'З')))).ToList();
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "З"))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "З")))).ToList();
                         break;
                     case "С>":
                         partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'С'))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == 'С')))).ToList();
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "С"))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "С")))).ToList();
+                        break;
+                    case "Зк>":
+                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "Зк"))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "Зк")))).ToList();
                         break;
                     case "В>":
                         partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(

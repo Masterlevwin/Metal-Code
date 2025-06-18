@@ -13,18 +13,18 @@
     </UserControl.ContextMenu>
 
     <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="20">
-        <TextBlock Text="{Binding CharName, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" MinWidth="10" FontWeight="Bold" Margin="5,0,0,0"/>
-        <TextBlock x:Name="RatioBlock" Text="{Binding Ratio, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" Margin="5,0,0,0" MinWidth="20" MaxWidth="20" VerticalAlignment="Center"/>
+        <TextBlock Text="{Binding CharName, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" FontWeight="Bold" Margin="5,0,0,0" MinWidth="17"/>
+        <TextBlock x:Name="RatioBlock" Text="{Binding Ratio, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" Margin="5,0,0,0" VerticalAlignment="Center" MinWidth="17"/>
         <TextBlock Margin="5,0,0,0" Text="⌀" VerticalAlignment="Center" MinWidth="10"/>
-        <TextBox Text="{Binding Wide, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" ToolTip="Введите диаметр отверстия" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30" Margin="5,0,0,0" LostFocus="SetWide"/>
+        <TextBox Text="{Binding Wide, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" ToolTip="Введите диаметр отверстия" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30" Margin="3,0,0,0" LostFocus="SetWide"/>
         <TextBlock Text="N" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="10"/>
-        <TextBox Text="{Binding Holes, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" ToolTip="Введите количество отверстий" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30" TextChanged="SetHoles" Margin="5,0,0,0"/>
+        <TextBox Text="{Binding Holes, RelativeSource={RelativeSource AncestorType={x:Type local:ThreadControl}, Mode=FindAncestor}}" ToolTip="Введите количество отверстий" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="4" MaxLines="1" MinWidth="30" MaxWidth="30" TextChanged="SetHoles" Margin="3,0,0,0"/>
         
         <Image Source="/Images/question.png" MaxWidth="10" VerticalAlignment="Top" Margin="2,0,0,0">
             <Image.ToolTip>
                 <ToolTip Background="Snow" BorderBrush="Red" Padding="5" BorderThickness="1">
                     <StackPanel >
-                        <TextBlock Text="Стоимость работы = (цена работы + (цена минуты + коэф за толщину + коэф за диаметр отверстия + коэф за металл + коэф за вес - 1)) * 2000 / 60) * кол деталей * кол отверстий) * скидка за общее кол отверстий" TextWrapping="Wrap" MaxWidth="320"/>
+                        <TextBlock Text="Стоимость работы = (цена работы + (цена минуты + коэф за толщину (кроме заклепок) + коэф за диаметр отверстия + коэф за металл (кроме заклепок) + коэф за вес - 1)) * 2000 / 60) * кол деталей * кол отверстий) * скидка за общее кол отверстий" TextWrapping="Wrap" MaxWidth="320"/>
                     </StackPanel>
                 </ToolTip>
             </Image.ToolTip>

@@ -212,19 +212,19 @@ namespace Metal_Code
                     workType = pipe;
                     break;
                 case "Резьба":
-                    ThreadControl thread = new(this, 'Р');
+                    ThreadControl thread = new(this, "Р");
                     WorkGrid.Children.Add(thread);
                     Grid.SetColumn(thread, 1);
                     workType = thread;
                     break;
                 case "Зенковка":
-                    ThreadControl countersink = new(this, 'З');
+                    ThreadControl countersink = new(this, "З");
                     WorkGrid.Children.Add(countersink);
                     Grid.SetColumn(countersink, 1);
                     workType = countersink;
                     break;
                 case "Сверловка":
-                    ThreadControl drilling = new(this, 'С');
+                    ThreadControl drilling = new(this, "С");
                     WorkGrid.Children.Add(drilling);
                     Grid.SetColumn(drilling, 1);
                     workType = drilling;
@@ -276,6 +276,12 @@ namespace Metal_Code
                     WorkGrid.Children.Add(milling);
                     Grid.SetColumn(milling, 1);
                     workType = milling;
+                    break;
+                case "Заклепки":
+                    ThreadControl rivets = new(this, "Зк");
+                    WorkGrid.Children.Add(rivets);
+                    Grid.SetColumn(rivets, 1);
+                    workType = rivets;
                     break;
                 default:
                     if (type.det.Detail.IsComplect)

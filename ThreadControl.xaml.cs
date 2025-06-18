@@ -1,12 +1,10 @@
-﻿using NPOI.SS.Formula.Functions;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Media;
 
 namespace Metal_Code
@@ -19,8 +17,8 @@ namespace Metal_Code
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
-        private char charName;
-        public char CharName
+        private string charName = string.Empty;
+        public string CharName
         {
             get => charName;
             set
@@ -78,7 +76,7 @@ namespace Metal_Code
         public List<PartControl>? Parts { get; set; }
 
         public readonly UserControl owner;
-        public ThreadControl(UserControl _control, char _charName)
+        public ThreadControl(UserControl _control, string _charName)
         {
             InitializeComponent();
             owner = _control;
@@ -125,17 +123,21 @@ namespace Metal_Code
                 foreach (Work w in MainWindow.M.Works)
                     switch (CharName)
                     {
-                        case 'Р':
+                        case "Р":
                             part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Резьба");
                             if (part.work.type.WorkControls[^1].workType is ThreadControl _threadR) _threadR.Wide = Wide;
                             break;
-                        case 'З':
+                        case "З":
                             part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Зенковка");
                             if (part.work.type.WorkControls[^1].workType is ThreadControl _threadZ) _threadZ.Wide = Wide;
                             break;
-                        case 'С':
+                        case "С":
                             part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Сверловка");
                             if (part.work.type.WorkControls[^1].workType is ThreadControl _threadS) _threadS.Wide = Wide;
+                            break;
+                        case "Зк":
+                            part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Заклепки");
+                            if (part.work.type.WorkControls[^1].workType is ThreadControl _threadRz) _threadRz.Wide = Wide;
                             break;
 
                     }
@@ -176,36 +178,21 @@ namespace Metal_Code
                     foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) if (item.CharName == CharName && item.Holes > 0 && item.Wide == Wide)
                             count += p.Part.Count * item.Holes;
 
-                SetRatio(RatioHoles(count));
+                SetRatio(MainWindow.RatioSale(count));
 
                 foreach (PartControl p in Parts)
                     foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) if (item.CharName == CharName && item.Holes > 0 && item.Wide == Wide)
-                            price += (_work.Price + Time(p.Part.Mass, item.Wide, work) * 2000 / 60 * p.Part.Count * item.Holes) * Ratio;
+                            price += (_work.Price + item.Time(p.Part.Mass, item.Wide, work) * 2000 * p.Part.Count * item.Holes / 60) * Ratio;
             }
             else if (work.type.Mass > 0)
             {
                 if (Wide == 0 || Holes == 0) return;
 
-                SetRatio(RatioHoles(work.type.Count * Holes));
+                SetRatio(MainWindow.RatioSale(work.type.Count * Holes));
 
-                price = (_work.Price + Time(work.type.Mass, Wide, work) * 2000 / 60 * work.type.Count * Holes) * Ratio;
+                price = (_work.Price + Time(work.type.Mass, Wide, work) * 2000 * work.type.Count * Holes / 60) * Ratio;
             }
             work.SetResult(price, false);
-        }
-
-        private float RatioHoles(int _count)
-        {
-            float _threadRatio = _count switch
-            {
-                <= 50 => 1,
-                <= 100 => 0.9f,
-                <= 500 => 0.8f,
-                <= 1000 => 0.7f,
-                <= 2000 => 0.6f,
-                _ => 0.5f
-            };
-
-            return _threadRatio;
         }
 
         private float Time(float _mass, float _wide, WorkControl work)
@@ -220,8 +207,11 @@ namespace Metal_Code
                 Time(_mass, _wide, work);                                   //и запускаем метод заново (рекурсия)
             }
 
+            if (CharName == "Зк") return MainWindow.M.WideDict.ContainsKey(Math.Ceiling(_wide)) ?
+                _work.Time * (MainWindow.M.WideDict[Math.Ceiling(_wide)] + MainWindow.MassRatio(_mass) - 1) : 0;
+
             return MainWindow.M.WideDict.ContainsKey(work.type.S) && MainWindow.M.WideDict.ContainsKey(Math.Ceiling(_wide)) ?
-                _work.Time + MainWindow.M.WideDict[work.type.S] + MainWindow.M.WideDict[Math.Ceiling(_wide)] + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass) - 1 : 0;
+                _work.Time * (MainWindow.M.WideDict[work.type.S] + MainWindow.M.WideDict[Math.Ceiling(_wide)] + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass) - 3) : 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
@@ -244,23 +234,29 @@ namespace Metal_Code
                     }
 
                     int key = -1;
-                    if (CharName == 'Р')
+                    if (CharName == "Р")
                     {
                         p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{3}", $"{Wide}", $"{Holes}" };
                         if (p.Part.Description != null && !p.Part.Description.Contains(" + Р ")) p.Part.Description += " + Р ";
                         key = 55;
                     }
-                    else if (CharName == 'З')
+                    else if (CharName == "З")
                     {
                         p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{4}", $"{Wide}", $"{Holes}" };
                         if (p.Part.Description != null && !p.Part.Description.Contains(" + З ")) p.Part.Description += " + З ";
                         key = 56;
                     }
-                    else if (CharName == 'С')
+                    else if (CharName == "С")
                     {
                         p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{5}", $"{Wide}", $"{Holes}" };
                         if (p.Part.Description != null && !p.Part.Description.Contains(" + С ")) p.Part.Description += " + С ";
                         key = 57;
+                    }
+                    else if (CharName == "Зк")
+                    {
+                        p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{9}", $"{Wide}", $"{Holes}" };
+                        if (p.Part.Description != null && !p.Part.Description.Contains(" + Зк ")) p.Part.Description += " + Зк ";
+                        key = 58;
                     }
 
                     int count = 0;      //счетчик общего количества отверстий
@@ -272,7 +268,7 @@ namespace Metal_Code
                     foreach (WorkControl _w in p.work.type.WorkControls)        // получаем минималку работы
                         if (_w.workType is ThreadControl thread && thread.CharName == CharName && thread.Wide == Wide && _w.WorkDrop.SelectedItem is Work _work)
                         {
-                            float _send = (_work.Price + Time(p.Part.Mass, Wide, _w) * 2000 / 60 * p.Part.Count * Holes) * RatioHoles(count) * _w.Ratio * _w.TechRatio / p.Part.Count;
+                            float _send = (_work.Price + Time(p.Part.Mass, Wide, _w) * 2000 * p.Part.Count * Holes/ 60) * MainWindow.RatioSale(count) * _w.Ratio * _w.TechRatio / p.Part.Count;
                             p.Part.Price += _send;
 
                             if (p.Part.PropsDict.ContainsKey(key) && float.TryParse(p.Part.PropsDict[key][0], out float value))

@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="160" d:DesignWidth="190">
+             d:DesignHeight="160" d:DesignWidth="200">
     <Grid x:Name="ControlGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" MinHeight="145"/>
@@ -42,7 +42,7 @@
             <TextBlock Text="кг" VerticalAlignment="Center" Margin="5,0,0,0"/>
         </StackPanel>
 
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,120,0,0" MaxHeight="20">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,120,5,0" MaxHeight="20">
             <Button x:Name="BendBtn" Content="Г+" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" FontSize="8" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="16" MinHeight="16"/>
             <Button x:Name="WeldBtn" Content="Св+" ToolTip="Добавить сварку" Click="AddControl" FontWeight="Bold" FontSize="8" VerticalAlignment="Center" Margin="2,0,0,0" MinWidth="16" MinHeight="16"/>
             <Button x:Name="PaintBtn" Content="О+" ToolTip="Добавить окраску" Click="AddControl" FontWeight="Bold" FontSize="8" VerticalAlignment="Center" Margin="2,0,0,0" MinWidth="16" MinHeight="16"/>
@@ -52,6 +52,7 @@
             <Button x:Name="RollingBtn" Content="В+" ToolTip="Добавить вальцовку" Click="AddControl" FontWeight="Bold" FontSize="8" VerticalAlignment="Center" Margin="2,0,0,0" MinWidth="16" MinHeight="16"/>
             <Button x:Name="ZincBtn" Content="Ц+" ToolTip="Добавить цинкование" Click="AddControl" FontWeight="Bold" FontSize="8" VerticalAlignment="Center" Margin="2,0,0,0" MinWidth="16" MinHeight="16"/>
             <Button x:Name="MillingBtn" Content="Ф+" ToolTip="Добавить фрезеровку" Click="AddControl" FontWeight="Bold" FontSize="8" VerticalAlignment="Center" Margin="2,0,0,0" MinWidth="16" MinHeight="16"/>
+            <Button x:Name="RivetsBtn" Content="Зк+" ToolTip="Добавить заклепки" Click="AddControl" FontWeight="Bold" FontSize="8" VerticalAlignment="Center" Margin="2,0,0,0" MinWidth="16" MinHeight="16"/>
         </StackPanel>
 
     </Grid>
