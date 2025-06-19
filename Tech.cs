@@ -134,6 +134,12 @@ namespace Metal_Code
                             SortExtension(dirCountersink, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                         
+                        if (work.Key.ToLower().Contains("зак"))
+                        {
+                            DirectoryInfo dirCountersink = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Заклепки");
+                            SortExtension(dirCountersink, dirMaterials, "pdf", work.Select(t => t).ToList());
+                        }
+                        
                         if (work.Key.ToLower().Contains("свер"))
                         {
                             DirectoryInfo dirDrilling = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Сверловка");
@@ -155,6 +161,18 @@ namespace Metal_Code
                         if (work.Key.ToLower().Contains("оц"))
                         {
                             DirectoryInfo dirZinc = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Оцинковка");
+                            SortExtension(dirZinc, dirMaterials, "pdf", work.Select(t => t).ToList());
+                        }
+                        
+                        if (work.Key.ToLower().Contains("лен"))
+                        {
+                            DirectoryInfo dirZinc = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Лентопил");
+                            SortExtension(dirZinc, dirMaterials, "pdf", work.Select(t => t).ToList());
+                        }
+                        
+                        if (work.Key.ToLower().Contains("фрез"))
+                        {
+                            DirectoryInfo dirZinc = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Фрезеровка");
                             SortExtension(dirZinc, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                     }

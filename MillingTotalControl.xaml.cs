@@ -146,9 +146,16 @@ namespace Metal_Code
 
             if (Parts?.Count > 0)
             {
+                int totalTime = 0;      //счетчик общего времени фрезеровки всех нарезанных деталей
+
                 foreach (PartControl p in Parts)
                     foreach (MillingTotalControl item in p.UserControls.OfType<MillingTotalControl>())
-                        price += item.TotalTime * priceMinute * p.Part.Count;
+                        if (item.TotalTime > 0)
+                        {
+                            price += item.TotalTime * priceMinute * p.Part.Count;
+                            totalTime += item.TotalTime;
+                        }
+                TotalTime = totalTime;
 
                 // стоимость фрезеровки должна быть не ниже минимальной
                 if (work.WorkDrop.SelectedItem is Work _work) price = price > 0 && price < _work.Price ? _work.Price : price;
@@ -208,7 +215,7 @@ namespace Metal_Code
                                 _send = TotalTime * priceMinute * _w.Ratio * _w.TechRatio;
 
                             p.Part.Price += _send;
-                            p.Part.PropsDict[65] = new() { $"{_send}" };
+                            p.Part.PropsDict[64] = new() { $"{_send}" };
                             break;
                         }
                 }

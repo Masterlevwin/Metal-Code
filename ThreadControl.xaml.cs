@@ -188,9 +188,9 @@ namespace Metal_Code
             {
                 if (Wide == 0 || Holes == 0) return;
 
-                SetRatio(MainWindow.RatioSale(work.type.Count * Holes));
+                SetRatio(MainWindow.RatioSale(work.type.det.Detail.Count * Holes));
 
-                price = (_work.Price + Time(work.type.Mass, Wide, work) * 2000 * work.type.Count * Holes / 60) * Ratio;
+                price = (_work.Price + Time(work.type.Mass, Wide, work) * 2000 * work.type.det.Detail.Count * Holes / 60) * Ratio;
             }
             work.SetResult(price, false);
         }
@@ -256,7 +256,7 @@ namespace Metal_Code
                     {
                         p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{9}", $"{Wide}", $"{Holes}" };
                         if (p.Part.Description != null && !p.Part.Description.Contains(" + Зк ")) p.Part.Description += " + Зк ";
-                        key = 58;
+                        key = 65;
                     }
 
                     int count = 0;      //счетчик общего количества отверстий

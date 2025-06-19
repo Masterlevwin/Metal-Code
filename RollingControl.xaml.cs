@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using NPOI.SS.Formula.Functions;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -38,23 +39,23 @@ namespace Metal_Code
         {
             [.5f] = 0,
             [.7f] = 0,
-            [.8f] = 0,
+            [.8f] = 1,
             [1] = .1f,
             [1.2f] = .1f,
             [1.5f] = .1f,
             [2] = .2f,
             [2.5] = .2f,
-            [3] = 2,
-            [4] = 7,
-            [5] = 9,
-            [6] = 11,
-            [8] = 15,
-            [10] = 19,
-            [12] = 23,
-            [14] = 27,
-            [16] = 31,
-            [18] = 35,
-            [20] = 39
+            [3] = 3,
+            [4] = 8,
+            [5] = 10,
+            [6] = 12,
+            [8] = 16,
+            [10] = 20,
+            [12] = 24,
+            [14] = 28,
+            [16] = 32,
+            [18] = 36,
+            [20] = 40
         };
 
         public readonly UserControl owner;
@@ -131,11 +132,11 @@ namespace Metal_Code
                 foreach (PartControl p in Parts)
                     foreach (RollingControl item in p.UserControls.OfType<RollingControl>())
                         if (item.Side > 0 && item.Side < 2000)
-                            price += (_work.Price / p.Part.Count + Time(item.Side, p.Part.Mass, work) * 2000 / 60) * p.Part.Count;
+                            price += (_work.Price + Time(item.Side, p.Part.Mass, work) * 2000 * p.Part.Count / 60) * MainWindow.RatioSale(p.Part.Count);
             }
             else if (Side > 0 && Side < 2000 && work.type.Mass > 0)
             {
-                price = (_work.Price / work.type.Count + Time(Side, work.type.Mass, work) * 2000 / 60) * work.type.Count;
+                price = (_work.Price + Time(Side, work.type.Mass, work) * 2000 * work.type.det.Detail.Count / 60) * MainWindow.RatioSale(work.type.det.Detail.Count);
             }
             work.SetResult(price, false);
         }
@@ -145,7 +146,7 @@ namespace Metal_Code
             if (work.WorkDrop.SelectedItem is not Work _work || work.type.MetalDrop.SelectedItem is not Metal metal) return 0;
 
             return DestinyDict.ContainsKey(work.type.S) ?
-                _work.Time * (DestinyDict[work.type.S] + (work.type.S > 3 ? 1.5f : 0) + SideRatio(_side) + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass)) : 0;
+                _work.Time * (DestinyDict[work.type.S] + (work.type.S > 3 ? 1.5f : 0) + SideRatio(_side) + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass) - 4) : 0;
         }
 
         private float SideRatio(float side)         //метод определения коэффициента взависимости от длины вальцуемой стороны
@@ -186,7 +187,7 @@ namespace Metal_Code
                     foreach (WorkControl _w in p.work.type.WorkControls)        // находим вальцовку среди работ и получаем её минималку
                         if (_w.workType is RollingControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
-                            float _send = (_work.Price / p.Part.Count + Time(Side, p.Part.Mass, _w) * 2000 / 60) * _w.Ratio * _w.TechRatio;
+                            float _send = (_work.Price + Time(Side, p.Part.Mass, _w) * 2000 * p.Part.Count / 60) * MainWindow.RatioSale(p.Part.Count) * _w.Ratio * _w.TechRatio / p.Part.Count;
                             p.Part.Price += _send;
                             p.Part.PropsDict[58] = new() { $"{_send}" };
 
