@@ -1839,9 +1839,8 @@ namespace Metal_Code
                         WorkControl _work = DetailControls[i].TypeDetailControls[j].WorkControls[^1];
 
                         //получаем работу, совпадающую по имени с сохраненной, на случай, если она уже добавлена
-                        WorkControl? work = _type.WorkControls.FirstOrDefault(w => w.WorkDrop.SelectedItem is Work wk
-                                                                && wk.Name == item.NameWork && wk.Name != null
-                                                                && !wk.Name.Contains("Доп") && !wk.Name.Contains("Гиб"));
+                        WorkControl? work = _type.WorkControls.FirstOrDefault(w => w.WorkDrop.Text == item.NameWork);
+
                         if (work is not null)
                         {
                             work.Ratio = item.Ratio;
@@ -1850,14 +1849,12 @@ namespace Metal_Code
                             continue;
                         }
                         else
-                        {
                             foreach (Work w in _work.WorkDrop.Items)        // чтобы не подвязываться на сохраненный индекс работы, ориентируемся на ее имя                                          
                                 if (w.Name == item.NameWork)                // таким образом избегаем ошибки, когда админ изменит порядок работ в базе данных
                                 {
                                     _work.WorkDrop.SelectedIndex = _work.WorkDrop.Items.IndexOf(w);
                                     break;
                                 }
-                        }
 
                         if (_work.workType is ICut _cut && item.Items?.Count > 0)
                         {

@@ -41,7 +41,7 @@
             <TextBlock Text="кг" VerticalAlignment="Center" Margin="5,0,0,0"/>
         </StackPanel>
 
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,120,5,5" MaxHeight="20">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,120,5,0" MaxHeight="20">
             <Button x:Name="ThreadBtn" Content="Р+" ToolTip="Добавить резьбу" Click="AddControl" FontWeight="Bold" FontSize="8" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="20" MinHeight="16"/>
             <Button x:Name="CountersinkBtn" Content="З+" ToolTip="Добавить зенковку" Click="AddControl" FontWeight="Bold" FontSize="8" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="20" MinHeight="16"/>
             <Button x:Name="DrillingBtn" Content="С+" ToolTip="Добавить сверловку" Click="AddControl" FontWeight="Bold" FontSize="8" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="20" MinHeight="16"/>
@@ -49,7 +49,7 @@
             <Button x:Name="MillingBtn" Content="Ф+" ToolTip="Добавить фрезеровку" Click="AddControl" FontWeight="Bold" FontSize="8" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="20" MinHeight="16"/>
         </StackPanel>
 
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,140,5,0" MaxHeight="20">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,140,5,5" MaxHeight="20">
             <Button x:Name="BendBtn" Content="Г+" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" FontSize="8" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="20" MinHeight="16"/>
             <Button x:Name="WeldBtn" Content="Св+" ToolTip="Добавить сварку" Click="AddControl" FontWeight="Bold" FontSize="8" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="20" MinHeight="16"/>
             <Button x:Name="PaintBtn" Content="О+" ToolTip="Добавить окраску" Click="AddControl" FontWeight="Bold" FontSize="8" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="20" MinHeight="16"/>

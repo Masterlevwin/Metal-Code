@@ -234,9 +234,9 @@ namespace Metal_Code
             }
             else if (Weld != null && Weld != "" && work.type.Mass > 0)
             {
-                work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work));
-                if (HasMinPrice()) work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work), false);
-                else work.SetResult(Price(ParserWeld(Weld) * work.type.Count, work));
+                work.SetResult(Price(ParserWeld(Weld) * work.type.det.Detail.Count, work));
+                if (HasMinPrice()) work.SetResult(Price(ParserWeld(Weld) * work.type.det.Detail.Count, work), false);
+                else work.SetResult(Price(ParserWeld(Weld) * work.type.det.Detail.Count, work));
             }
         }
 
