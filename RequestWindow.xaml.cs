@@ -278,13 +278,13 @@ namespace Metal_Code
             List<string> _heads = new() { "№", "№ чертежа", "Размеры", "Металл", "Толщина", "Кол-во деталей", "Маршрут", "Давальч", "Исходник" };
             for (int head = 0; head < _heads.Count; head++) requestsheet.Cells[2, head + 1].Value = _heads[head];
 
-            string message = "";
+            //string message = "";
             for (int i = 0; i < TechItems.Count; i++)
             {
                 requestsheet.Cells[i + 3, 1].Value = i + 1;
                 requestsheet.Cells[i + 3, 2].Value = TechItems[i].NumberName;
                 requestsheet.Cells[i + 3, 3].Value = MainWindow.GetSizes(TechItems[i].DxfPath);
-                if ($"{requestsheet.Cells[i + 3, 3].Value}" == "") message += $"\n{requestsheet.Cells[i + 3, 2].Value}";
+                //if ($"{requestsheet.Cells[i + 3, 3].Value}" == "") message += $"\n{requestsheet.Cells[i + 3, 2].Value}";
                 requestsheet.Cells[i + 3, 4].Value = TechItems[i].Material;
                 requestsheet.Cells[i + 3, 5].Value = TechItems[i].Destiny;
                 requestsheet.Cells[i + 3, 6].Value = TechItems[i].Count;
@@ -292,7 +292,7 @@ namespace Metal_Code
                 requestsheet.Cells[i + 3, 8].Value = TechItems[i].HasMaterial;
                 requestsheet.Cells[i + 3, 9].Value = TechItems[i].OriginalName;
             }
-            if (message != "") MessageBox.Show(message.Insert(0, "Не удалось получить габариты следующих деталей:"));
+            //if (message != "") MessageBox.Show(message.Insert(0, "Не удалось получить габариты следующих деталей:"));
 
             ExcelRange details = requestsheet.Cells[2, 1, TechItems.Count + 2, 9];     //получаем таблицу деталей для оформления
 

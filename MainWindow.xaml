@@ -188,17 +188,18 @@
 
             <GroupBox x:Name="PartsBox" Grid.Row="1" Margin="20,-20,10,40">
                 <GroupBox.Header>
-                    <TextBlock Text="Список нарезанных деталей" FontWeight="Bold"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Список нарезанных деталей" FontWeight="Bold"/>
+                        <Button Margin="500,0,0,0" Click="ShowAssemblyWindow">
+                            <StackPanel Orientation="Horizontal" MaxHeight="20">
+                                <Image Source="/Images/assembly.png"/>
+                                <TextBlock Text="Добавить все детали в сборку" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
                 </GroupBox.Header>
-                <Grid>
-                    <TabControl x:Name="PartsTab" Margin="0,20,0,0"/>
-                    <Button HorizontalAlignment="Right" VerticalAlignment="Top" Click="ShowAssemblyWindow">
-                        <StackPanel Orientation="Horizontal" MaxHeight="20">
-                            <Image Source="/Images/assembly.png"/>
-                            <TextBlock Text="Добавить все детали в сборку" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
-                </Grid>
+
+                <TabControl x:Name="PartsTab"/>
             </GroupBox>
 
             <StatusBar x:Name="Status" Grid.Row="1" VerticalAlignment="Bottom" MinHeight="20" Margin="20,0,15,10" BorderThickness="1,1,1,1" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Background="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}" VerticalContentAlignment="Center" Height="24">
