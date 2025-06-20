@@ -51,6 +51,9 @@ namespace Metal_Code
         public delegate void PropsChanged(UserControl uc, bool b);
         public PropsChanged? PropertiesChanged;
 
+        private string[] works = { "Гибка", "Сварка", "Окраска", "Резьба", "Зенковка", "Сверловка",
+                                    "Вальцовка", "Цинкование", "Фрезеровка", "Заклепки"};
+
         public readonly UserControl owner;
         public readonly WorkControl work;
         public Part Part { get; set; }
@@ -64,6 +67,8 @@ namespace Metal_Code
             work = _work;
             Part = _part;
             DataContext = Part;
+
+            WorksDrop.ItemsSource = works;
 
             SetProperties();        //устанавливаем свойства нарезанной детали
         }
@@ -89,47 +94,52 @@ namespace Metal_Code
             }
         }
 
-        private void ViewPopupDimensions(object sender, System.Windows.Input.MouseWheelEventArgs e)
+        private void ViewPopupDimensions(object sender, MouseWheelEventArgs e)
         {
             PopupDimensions.IsOpen = true;
         }
 
+        //private void AddControl(object sender, RoutedEventArgs e)
+        //{
+        //    if (sender is Button btn)
+        //        switch (btn.Name)
+        //        {
+        //            case "BendBtn":
+        //                AddControl(0);
+        //                break;
+        //            case "WeldBtn":
+        //                AddControl(1);
+        //                break;
+        //            case "PaintBtn":
+        //                AddControl(2);
+        //                break;
+        //            case "ThreadBtn":
+        //                AddControl(3);
+        //                break;
+        //            case "CountersinkBtn":
+        //                AddControl(4);
+        //                break;
+        //            case "DrillingBtn":
+        //                AddControl(5);
+        //                break;
+        //            case "RollingBtn":
+        //                AddControl(6);
+        //                break;
+        //            case "ZincBtn":
+        //                AddControl(7);
+        //                break;
+        //            case "MillingBtn":
+        //                AddControl(8);
+        //                break;
+        //            case "RivetsBtn":
+        //                AddControl(9);
+        //                break;
+        //        }
+        //}
+
         private void AddControl(object sender, RoutedEventArgs e)
         {
-            if (sender is Button btn)
-                switch (btn.Name)
-                {
-                    case "BendBtn":
-                        AddControl(0);
-                        break;
-                    case "WeldBtn":
-                        AddControl(1);
-                        break;
-                    case "PaintBtn":
-                        AddControl(2);
-                        break;
-                    case "ThreadBtn":
-                        AddControl(3);
-                        break;
-                    case "CountersinkBtn":
-                        AddControl(4);
-                        break;
-                    case "DrillingBtn":
-                        AddControl(5);
-                        break;
-                    case "RollingBtn":
-                        AddControl(6);
-                        break;
-                    case "ZincBtn":
-                        AddControl(7);
-                        break;
-                    case "MillingBtn":
-                        AddControl(8);
-                        break;
-                    case "RivetsBtn":
-                        AddControl(9);
-                        break;
-                }
+            AddControl(WorksDrop.SelectedIndex);
         }
         public void AddControl(int index)
         {
@@ -289,6 +299,7 @@ namespace Metal_Code
     {
         public List<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
+        public TabItem TabItem { get; set; }
         public List<Part>? PartDetails {  get; set; }
         public List<LaserItem>? Items { get; set; }
         public float Mass {  get; set; }

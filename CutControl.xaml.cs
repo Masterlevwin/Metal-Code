@@ -95,10 +95,9 @@ namespace Metal_Code
 
         public List<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
+        public TabItem TabItem { get; set; } = new();
         public List<Part>? PartDetails { get; set; } = new();
         public List<LaserItem>? Items { get; set; } = new();
-
-        readonly TabItem TabItem = new();
 
         public readonly WorkControl work;
         readonly IDialogService dialogService;

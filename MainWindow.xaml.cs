@@ -390,14 +390,25 @@ namespace Metal_Code
                         work.Ratio = express;
         }
 
-        private string search = "";
-        public string Search
+        private string searchOffers = "";
+        public string SearchOffers
         {
-            get => search;
+            get => searchOffers;
             set
             {
-                search = value;
-                OnPropertyChanged(nameof(Search));
+                searchOffers = value;
+                OnPropertyChanged(nameof(SearchOffers));
+            }
+        }
+
+        private string searchDetails = "";
+        public string SearchDetails
+        {
+            get => searchDetails;
+            set
+            {
+                searchDetails = value;
+                OnPropertyChanged(nameof(SearchDetails));
             }
         }
 
@@ -909,17 +920,17 @@ namespace Metal_Code
         }
 
         //метод запуска процесса поиска расчетов по номеру, компании или диапазону дат
-        private void SearchOffers(object sender, RoutedEventArgs e) { CreateWorker(SearchOffers, ActionState.search); }
-        private string SearchOffers(string? message = null)
+        private void Search_Offers(object sender, RoutedEventArgs e) { CreateWorker(Search_Offers, ActionState.search); }
+        private string Search_Offers(string? message = null)
         {        
             //сначала получаем все расчеты менеджера
             List<Offer>? offers = Offers.Where(m => m.ManagerId == TargetManager.Id).ToList();
 
             //затем ищем все КП согласно введенному номеру расчета или названию компании
-            if (Search != "") offers = offers?.Where(o => (o.N is not null && o.N.ToLower().Contains(Search.ToLower()))
-                                            || (o.Company is not null && o.Company.ToLower().Contains(Search.ToLower()))
-                                            || (o.Invoice is not null && o.Invoice.ToLower().Contains(Search.ToLower()))
-                                            || (o.Order is not null && o.Order.ToLower().Contains(Search.ToLower()))).ToList();
+            if (SearchOffers != "") offers = offers?.Where(o => (o.N is not null && o.N.ToLower().Contains(SearchOffers.ToLower()))
+                                            || (o.Company is not null && o.Company.ToLower().Contains(SearchOffers.ToLower()))
+                                            || (o.Invoice is not null && o.Invoice.ToLower().Contains(SearchOffers.ToLower()))
+                                            || (o.Order is not null && o.Order.ToLower().Contains(SearchOffers.ToLower()))).ToList();
 
             if (offers?.Count == 0) return $"Расчетов по выбранным параметрам не найдено";
             else CurrentOffers = offers;
@@ -1078,7 +1089,7 @@ namespace Metal_Code
 
         private void ResetDates(object sender, RoutedEventArgs e)           //метод сброса дат на начало текущего месяца до начала дня
         {
-            Search = "";
+            SearchOffers = "";
             DateTime date = DateTime.UtcNow;
             StartDay = new DateTime(date.Year, date.Month, 1);
             EndDay = DateTime.UtcNow.AddDays(1);
@@ -4983,6 +4994,50 @@ namespace Metal_Code
         }
 
         //------------Остальные методы---------------------------//
+        private void Search_Details(object sender, RoutedEventArgs e)       //метод поиска нарезанной детали
+        {
+            //получаем все работы из комплектов деталей
+            var works = DetailControls.Where(d => d.Detail.IsComplect)
+                                .SelectMany(t => t.TypeDetailControls)
+                                .SelectMany(w => w.WorkControls);
+            
+            //получаем контроллы всех нарезанных деталей
+            List<PartControl> parts = new();
+
+            foreach (WorkControl work in works)
+                if (work.workType is ICut cut && cut.Parts?.Count > 0) parts.AddRange(cut.Parts);
+
+            //если поле поиска пустое или нарезанных деталей нет, выходим
+            if (SearchDetails.Replace(" ", "") == "" || Parts.Count == 0)
+            {
+                foreach (PartControl part in parts) part.Background = Brushes.White;
+                return;
+            }
+
+            //ищем детали, совпадающие по имени с введенным тестом пользователя
+            List<PartControl> foundDetails = parts.Where(x => x.Part.Title is not null &&
+                            x.Part.Title.Contains(SearchDetails, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (foundDetails.Count > 0)
+            {
+                //окрашиваем зеленым найденные детали
+                foreach (PartControl part in parts)
+                    part.Background = foundDetails.Contains(part) ? Brushes.LightGreen : Brushes.White;
+
+                //и фокусируем пользователя на первой найденной детали
+                if (foundDetails[0].owner is ICut _cut && _cut.TabItem != null)
+                {
+                    _cut.TabItem.Focus();
+                    _cut.PartsControl?.partsList.ScrollIntoView(foundDetails[0]);
+
+                    if (foundDetails.Count > 1)
+                        StatusBegin($"Деталей по запросу \"{SearchDetails}\" найдено {foundDetails.Count}. " +
+                            $"Все они окрашены зеленым цветом и могут находиться в других вкладках.");
+                }
+            }
+            else StatusBegin($"Деталей по запросу \"{SearchDetails}\" не найдено.");
+        }
+
         public float CorrectDestiny(float _destiny)     //метод определения расчетной толщины
         {
             if (_destiny < 0.5f || _destiny > 30) return 0;
