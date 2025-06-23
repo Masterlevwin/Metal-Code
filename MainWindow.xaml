@@ -312,7 +312,7 @@
                         <TabItem Header="Расчеты">
                             <Grid>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
-                                    <TextBox ToolTip="Введите номер расчета или название компании" Text="{Binding Search, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" MinWidth="140" Margin="0,0,5,0"/>
+                                    <TextBox ToolTip="Введите номер расчета или название компании" Text="{Binding SearchOffers, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" MinHeight="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" MinWidth="140" Margin="0,0,5,0"/>
                                     <Button x:Name="SearchBtn" Content="Поиск" Click="Search_Offers" HorizontalAlignment="Right" VerticalAlignment="Top" MinWidth="40" MinHeight="20" BorderBrush="#FF00C800" Margin="0,0,5,0"/>
                                     <Button Content="Х" HorizontalAlignment="Right" VerticalAlignment="Top" MinWidth="20" MinHeight="20" Click="ResetDates" BorderBrush="#FFFF0046" ToolTip="Очистить фильтр поиска и получить все расчеты"/>
                                 </StackPanel>

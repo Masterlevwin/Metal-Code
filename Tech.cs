@@ -121,8 +121,13 @@ namespace Metal_Code
                             DirectoryInfo dirRoll = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Вальцовка");
                             SortExtension(dirRoll, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
-                        
-                        if (work.Key.ToLower().Contains("рез"))
+
+                        if (work.Key.ToLower().Contains("фрез"))
+                        {
+                            DirectoryInfo dirZinc = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Фрезеровка");
+                            SortExtension(dirZinc, dirMaterials, "pdf", work.Select(t => t).ToList());
+                        }
+                        else if (work.Key.ToLower().Contains("рез"))
                         {
                             DirectoryInfo dirThread = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Резьба");
                             SortExtension(dirThread, dirMaterials, "pdf", work.Select(t => t).ToList());
@@ -167,12 +172,6 @@ namespace Metal_Code
                         if (work.Key.ToLower().Contains("лен"))
                         {
                             DirectoryInfo dirZinc = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Лентопил");
-                            SortExtension(dirZinc, dirMaterials, "pdf", work.Select(t => t).ToList());
-                        }
-                        
-                        if (work.Key.ToLower().Contains("фрез"))
-                        {
-                            DirectoryInfo dirZinc = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Фрезеровка");
                             SortExtension(dirZinc, dirMaterials, "pdf", work.Select(t => t).ToList());
                         }
                     }
