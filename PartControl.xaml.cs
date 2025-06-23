@@ -52,7 +52,7 @@ namespace Metal_Code
         public PropsChanged? PropertiesChanged;
 
         private string[] works = { "Гибка", "Сварка", "Окраска", "Резьба", "Зенковка", "Сверловка",
-                                    "Вальцовка", "Цинкование", "Фрезеровка", "Заклепки"};
+                                    "Вальцовка", "Цинкование", "Фрезеровка", "Заклепки", "Аквабластинг"};
 
         public readonly UserControl owner;
         public readonly WorkControl work;
@@ -189,6 +189,14 @@ namespace Metal_Code
                     break;
                 case 9:
                     AddControl(new ThreadControl(this, "Зк"));
+                    break;
+                case 10:
+                    if (UserControls.Count > 0 && UserControls.Any(r => r is AquaControl))
+                    {
+                        MainWindow.M.StatusBegin("Нельзя добавить больше одного аквабластинга на деталь");
+                        return;
+                    }
+                    AddControl(new AquaControl(this));
                     break;
             }
         }

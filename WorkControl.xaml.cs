@@ -283,6 +283,12 @@ namespace Metal_Code
                     Grid.SetColumn(rivets, 1);
                     workType = rivets;
                     break;
+                case "Аквабластинг":
+                    AquaControl aqua = new(this);
+                    WorkGrid.Children.Add(aqua);
+                    Grid.SetColumn(aqua, 1);
+                    workType = aqua;
+                    break;
                 default:
                     if (type.det.Detail.IsComplect)
                     {

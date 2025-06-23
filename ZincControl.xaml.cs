@@ -150,10 +150,10 @@ namespace Metal_Code
                                         <= 5 => 140,
                                         <= 8 => 125,
                                         _ => 110
-                                    } * p.Part.Count * p.Part.Mass * _w.Ratio * _w.TechRatio / p.Part.Count;
+                                    } * p.Part.Mass * _w.Ratio * _w.TechRatio;
 
                                 p.Part.Price += _send;
-                                p.Part.PropsDict[64] = new() { $"{_send}" };
+                                p.Part.PropsDict[67] = new() { $"{_send}", $"{Mass}" };
 
                                 break;
                             }

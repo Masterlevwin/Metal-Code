@@ -190,8 +190,14 @@ namespace Metal_Code
                     if (MillingWindow?.MillingHoles.Count > 0) w.type.det.Detail.MillingHoles = MillingWindow.MillingHoles;
                     if (MillingWindow?.MillingGrooves.Count > 0) w.type.det.Detail.MillingGrooves = MillingWindow.MillingGrooves;
                 }
-                else if (uc is PartControl p && p.work.type.MetalDrop.SelectedItem is Metal metal)
+                else if (uc is PartControl p)
                 {
+                    if (TotalTime == 0)
+                    {
+                        p.RemoveControl(this);
+                        return;
+                    }
+
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{8}", $"{TotalTime}", $"{MillingWindow?.IndexQualityOrRoughness}", $"{MillingWindow?.Way}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + Ф ")) p.Part.Description += " + Ф ";
 

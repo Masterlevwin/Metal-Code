@@ -192,6 +192,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="AquaControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="SearchWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
