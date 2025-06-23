@@ -153,7 +153,7 @@ namespace Metal_Code
                         if (item.TotalTime > 0)
                         {
                             price += item.TotalTime * priceMinute * p.Part.Count;
-                            totalTime += item.TotalTime;
+                            totalTime += item.TotalTime * p.Part.Count;
                         }
                 TotalTime = totalTime;
 
