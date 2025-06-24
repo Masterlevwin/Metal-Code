@@ -5293,11 +5293,20 @@ namespace Metal_Code
 
         private void Restart(object sender, RoutedEventArgs e)
         {
-            if (CheckVersion(out string _version)) MessageBox.Show($"Metal-Code не требует обновления.\nТекущая версия - {_version}");
+            if (CheckVersion(out string _version))
+            {
+                MessageBoxResult response = MessageBox.Show(
+                    $"Metal-Code не требует обновления.\nТекущая версия - {_version}.\nНажмите \"Да\", если требуется обновить принудительно.",
+                    "Обновление программы", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (response == MessageBoxResult.No) return;
+
+                CreateWorker(InsertDatabase, ActionState.restartApp);
+            }
             else
             {
                 MessageBoxResult response = MessageBox.Show(
-                    "Для обновления программы, потребуется перезагрузка.\nНажмите \"Нет\", если требуется сохранить текущий расчет",
+                    "Для обновления программы, потребуется перезагрузка.\nНажмите \"Нет\", если требуется сохранить текущий расчет.",
                     "Обновление программы", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
 
                 if (response == MessageBoxResult.No) return;
