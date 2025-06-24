@@ -112,9 +112,17 @@
                     <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
                         <Button  Content="Ф&gt;" ToolTip="По фрезеровке" Click="SortDetails" FontWeight="Bold" MinWidth="30"/>
                         <TextBlock Text="Фрез" FontWeight="Bold" ToolTip="Фрезеровка для всех" Margin="5,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <TextBox x:Name="TotalTime" TextChanged="SetProperty" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Общее время фрезеровки" Margin="34,0,0,0" Width="15" MinWidth="52" MaxWidth="52"/>
+                        <TextBox x:Name="TotalTime" TextChanged="SetProperty" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Общее время фрезеровки" Margin="34,0,0,0" MinWidth="52" MaxWidth="52"/>
                         <TextBlock Text="мин" Margin="5,0,0,0" MinWidth="23" />
                         <Button x:Name="MillingBtn" Content="Ф+" ToolTip="Добавить фрезеровку" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" MinWidth="30"/>
+                    </StackPanel>
+                    
+                    <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
+                        <Button  Content="А&gt;" ToolTip="По аквабластингу" Click="SortDetails" FontWeight="Bold" MinWidth="30"/>
+                        <TextBlock Text="Аква" FontWeight="Bold" ToolTip="Аквабластинг для всех" Margin="5,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBox HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Площадь поверхности деталей" IsReadOnly="True" Margin="34,0,0,0" MinWidth="52" MaxWidth="52"/>
+                        <TextBlock Text="кв м" Margin="3,0,0,0" VerticalAlignment="Center" MinWidth="25"/>
+                        <Button x:Name="AquaBtn" Content="А+" ToolTip="Добавить аквабластинг" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" MinWidth="30"/>
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>

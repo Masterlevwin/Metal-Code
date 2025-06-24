@@ -2337,7 +2337,7 @@ namespace Metal_Code
                     for (int col = 0; col < _heads.Count; col++)
                     {
                         scoresheet.Cells[1, col + 5].Value = _heads[col];       //заполняем заголовки из списка
-                        if (col + 5 > 20) continue;
+                        if (col + 5 > 22) continue;
 
                         for (int i = 0; i < LooseParts.Count; i++)       //пробегаем по каждой детали и получаем стоимость работы с учетом количества деталей
                         {
@@ -2397,7 +2397,7 @@ namespace Metal_Code
                 for (int col = 0; col < _heads.Count; col++)
                 {
                     scoresheet.Cells[1, col + 5].Value = _heads[col];       //заполняем заголовки из списка
-                    if (col + 5 > 25) continue;
+                    if (col + 5 > 22) continue;
 
                     for (int i = 0; i < Parts.Count; i++)       //пробегаем по каждой детали и получаем стоимость работы с учетом количества деталей
                     {

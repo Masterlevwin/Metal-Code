@@ -71,6 +71,9 @@ namespace Metal_Code
                         case "RivetsBtn":
                             p.AddControl(9);
                             break;
+                        case "AquaBtn":
+                            p.AddControl(10);
+                            break;
                     }
             }
         }
@@ -238,6 +241,11 @@ namespace Metal_Code
                         partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
                             p.UserControls.FirstOrDefault(u => u is MillingTotalControl))).Union(Parts.Where(p => !p.UserControls.Contains(
                             p.UserControls.FirstOrDefault(u => u is MillingTotalControl)))).ToList();
+                        break;
+                    case "А>":
+                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is AquaControl))).Union(Parts.Where(p => !p.UserControls.Contains(
+                            p.UserControls.FirstOrDefault(u => u is AquaControl)))).ToList();
                         break;
                 }
         }

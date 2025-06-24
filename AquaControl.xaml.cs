@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -21,7 +22,7 @@ namespace Metal_Code
             get => square;
             set
             {
-                square = value;
+                square = (float)Math.Round(value, 2);
                 OnPropertyChanged(nameof(Square));
             }
         }
@@ -79,12 +80,21 @@ namespace Metal_Code
                 {
                     foreach (PartControl p in Parts)
                         foreach (AquaControl item in p.UserControls.OfType<AquaControl>())
+                        {
+                            //расчетная площадь аквабластинга должна быть не меньше 0,1 кв м
+                            if (item.Square > 0 && item.Square < .1f) item.Square = .1f;
                             Square += item.Square;
+                        }
                 }
-                else Square = work.type.Square * work.type.Count;
+                else
+                {
+                    if (work.type.Square > 0 && work.type.Square < .1f) work.type.Square = .1f;
+                    Square = work.type.Square * work.type.Count;
+                }
             }
             else if (owner is PartControl part)
             {
+                if (part.Square > 0 && part.Square < .1f) part.Square = .1f;
                 Square = part.Square * part.Part.Count;
             }
         }
@@ -95,29 +105,12 @@ namespace Metal_Code
 
             if (owner is not WorkControl work) return;
 
-            float price = 0;
+            float price = priceMeter * Square;
 
-            if (Parts?.Count > 0)
-            {
-                foreach (PartControl p in Parts)
-                    foreach (AquaControl item in p.UserControls.OfType<AquaControl>())
-                    {
-                        if (item.Square > 0 && item.Square < .1f) item.Square = .1f;       //расчетная площадь аквабластинга должна быть не меньше 0,1 кв м
+            // стоимость данной работы должна быть не ниже минимальной
+            if (work.WorkDrop.SelectedItem is Work _work) price = price > 0 && price < _work.Price ? _work.Price : price;
 
-                        price += priceMeter * item.Square;
-                    }
-
-                // стоимость данной окраски должна быть не ниже минимальной
-                if (work.WorkDrop.SelectedItem is Work _work) price = price > 0 && price < _work.Price ? _work.Price : price;
-
-                work.SetResult(price, false);
-            }
-            else if (Square > 0 && work.type.Mass > 0)
-            {
-                if (Square > 0 && Square < .1f) Square = .1f;
-
-                work.SetResult(priceMeter * Square);
-            }
+            work.SetResult(price, false);
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
