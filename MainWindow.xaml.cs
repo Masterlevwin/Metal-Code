@@ -4619,8 +4619,9 @@ namespace Metal_Code
             ExcelWorksheet requestsheet = workbook.Workbook.Worksheets.Add("Заявка");
 
             //оформляем статичные ячейки по умолчанию
-            requestsheet.Cells[1, 1].Value = "Расшифровка работ: гиб - гибка, вальц - вальцовка, зен - зенковка, рез - резьба," +
-                " свар - сварка,\nокр - окраска, оц - оцинковка, грав - гравировка";
+            requestsheet.Cells[1, 1].Value = "Расшифровка работ: гиб - гибка, вальц - вальцовка, зен - зенковка," +
+                "рез - резьба, свар - сварка,\nокр - окраска, оц - оцинковка, грав - гравировка, фрез - фрезеровка, " +
+                "аква - аквабластинг, лен - лентопил";
             requestsheet.Cells[1, 1, 1, 9].Merge = true;
             requestsheet.Cells[1, 1, 1, 9].Style.WrapText = true;
             requestsheet.Cells[1, 1, 1, 9].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
@@ -5532,8 +5533,7 @@ namespace Metal_Code
             };
 
             if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
-                foreach (string file in openFileDialog.FileNames)
-                    MessageBox.Show(GetSizes(file, true));
+                MessageBox.Show($"Выбрано {openFileDialog.FileNames.Length} файлов в директории {Directory.GetParent(openFileDialog.FileName)}");
             else StatusBegin($"Не выбрано ни одного файла");
         }
         private string GetSizes(string path, bool b)
