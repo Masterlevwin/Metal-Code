@@ -37,11 +37,8 @@ namespace Metal_Code
             get => group;
             set
             {
-                if (group != value)
-                {
-                    group = value;
-                    OnPropertyChanged(nameof(Group));
-                }
+                group = value;
+                OnPropertyChanged(nameof(Group));
             }
         }
 
@@ -176,7 +173,6 @@ namespace Metal_Code
             InitializeComponent();
             owner = _control;
             Tuning();
-            SetGroup(Group);
         }
 
         private void Tuning()               // настройка блока после инициализации
@@ -197,7 +193,10 @@ namespace Metal_Code
                     }
             }
             else if (owner is PartControl part)
+            {
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
+                SetGroup(Group);
+            }
         }
 
         private void SetBend(object sender, TextChangedEventArgs e)
