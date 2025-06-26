@@ -1723,9 +1723,9 @@ namespace Metal_Code
                                             : $"{p.PropsDict[100][2].Trim()} мм";
                                     p.Price = 0;
 
-                                    //пробегаемся по ключам от 50 до 70, которые зарезервированы под конкретные работы
+                                    //пробегаемся по ключам от 0 до 70, которые зарезервированы под конкретные работы
                                     if (p.PropsDict.Count > 0)
-                                        for (int key = 50; key < 70; key++) p.PropsDict.Remove(key);
+                                        for (int key = 0; key < 70; key++) p.PropsDict.Remove(key);
 
                                     //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
                                     if (CheckConstruct.IsChecked == true)
@@ -1828,6 +1828,7 @@ namespace Metal_Code
 
                 _det.Detail.Count = details[i].Count;
                 _det.Detail.MillingHoles = details[i].MillingHoles;
+                _det.Detail.MillingGrooves = details[i].MillingGrooves;
 
                 for (int j = 0; j < details[i].TypeDetails.Count; j++)
                 {
@@ -1850,18 +1851,9 @@ namespace Metal_Code
                         WorkControl _work = DetailControls[i].TypeDetailControls[j].WorkControls[^1];
 
                         //получаем работу, совпадающую по имени с сохраненной, на случай, если она уже добавлена
-                        WorkControl? work = _type.WorkControls.FirstOrDefault(w => w.WorkDrop.Text == item.NameWork && !item.NameWork.Contains("Доп"));
+                        WorkControl? work = _type.WorkControls.FirstOrDefault(w => w.WorkDrop.Text == item.NameWork && !item.NameWork.Contains("Доп") && !item.NameWork.Contains("Гиб"));
 
-                        if (!_det.Detail.IsComplect && item.NameWork == "Гибка")
-                        {
-                            foreach (Work w in _work.WorkDrop.Items)        // чтобы не подвязываться на сохраненный индекс работы, ориентируемся на ее имя                                          
-                                if (w.Name == item.NameWork)                // таким образом избегаем ошибки, когда админ изменит порядок работ в базе данных
-                                {
-                                    _work.WorkDrop.SelectedIndex = _work.WorkDrop.Items.IndexOf(w);
-                                    break;
-                                }
-                        }
-                        else if (work is not null)
+                        if (work is not null)
                         {
                             work.Ratio = item.Ratio;
                             work.TechRatio = item.TechRatio;

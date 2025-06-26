@@ -31,6 +31,20 @@ namespace Metal_Code
             }
         }
 
+        private string group = "-";
+        public string Group
+        {
+            get => group;
+            set
+            {
+                if (group != value)
+                {
+                    group = value;
+                    OnPropertyChanged(nameof(Group));
+                }
+            }
+        }
+
         public List<PartControl>? Parts { get; set; }
 
         public Dictionary<float, Dictionary<string, float>> BendDict = new()
@@ -182,21 +196,7 @@ namespace Metal_Code
                     }
             }
             else if (owner is PartControl part)
-            {
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-
-                foreach (WorkControl w in part.work.type.WorkControls)
-                    if (w.workType is BendControl) return;
-
-                part.work.type.AddWork();
-
-                // добавляем "Гибку" в список общих работ "Комплекта деталей"
-                foreach (Work w in MainWindow.M.Works) if (w.Name == "Гибка")
-                    {
-                        part.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
-                        break;
-                    }
-            }
         }
 
         private void SetBend(object sender, TextChangedEventArgs e)
@@ -220,27 +220,61 @@ namespace Metal_Code
             OnPriceChanged();
         }
 
+        private void SetGroup(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox tBox && tBox.Text != "") SetGroup(tBox.Text);
+        }
+        public void SetGroup(string group)
+        {
+            Group = group;
+
+            if (owner is PartControl part)
+            {
+                foreach (WorkControl w in part.work.type.WorkControls)
+                    if (w.workType is BendControl bend && bend.Group == Group) return;
+
+                part.work.type.AddWork();
+
+                // добавляем "Гибку" в список общих работ "Комплекта деталей"
+                foreach (Work w in MainWindow.M.Works) if (w.Name == "Гибка")
+                    {
+                        part.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
+                        if (part.work.type.WorkControls[^1].workType is BendControl bend) bend.Group = Group;
+                        break;
+                    }
+            }
+            OnPriceChanged();
+        }
+
         public void OnPriceChanged()
         {
             if (owner is not WorkControl work || work.WorkDrop.SelectedItem is not Work _work) return;
 
             float price = 0;
 
-            if (Parts != null && Parts.Count > 0)
+            if (Parts?.Count > 0)
             {
+                int bends = 0;      //счетчик общего количества однотипных гибов всех деталей
+
+                if (Group != "-")
+                    foreach (PartControl p in Parts)
+                        foreach (BendControl item in p.UserControls.OfType<BendControl>())
+                            if (item.Bend > 0 && item.Group == Group) bends += p.Part.Count * item.Bend;
+
                 foreach (PartControl p in Parts)
                     foreach (BendControl item in p.UserControls.OfType<BendControl>())
-                    {
-                        float _price = item.Price(item.Bend * p.Part.Count, work, p.Part.Mass, p.Square);
+                        if (item.Group == Group)
+                        {
+                            float _price = item.Price(Group == "-" ? item.Bend * p.Part.Count : bends, work, p.Part.Mass, p.Square);
 
-                        // стоимость данной гибки должна быть не ниже минимальной
-                        _price = _price > 0 && _price < _work.Price ? _work.Price : _price;
+                            // стоимость данной гибки должна быть не ниже минимальной
+                            _price = _price > 0 && _price < _work.Price ? _work.Price : _price;
 
-                        price += _price * Difficult(p.UserControls.OfType<BendControl>().Count());
-                    }
+                            price += _price * Difficult(p.UserControls.OfType<BendControl>().Count());
+                        }
 
                 // стоимость всей гибки должна быть не ниже 3-x минималок
-                price = price > 0 && price < _work.Price * 3 ? _work.Price * 3 : price;
+                price = Group == "-" && price > 0 && price < _work.Price * 3 ? _work.Price * 3 : price;
 
                 work.SetResult(price, false);
             }
@@ -279,7 +313,7 @@ namespace Metal_Code
             };
 
             return BendDict.ContainsKey(work.type.S) ?
-                _bendRatio * _count * BendDict[work.type.S][$"{ShelfDrop.SelectedItem}"] * MainWindow.MassRatio(_mass) * _squareRatio : 0;
+                _bendRatio * (Group == "-" ? _count : 1) * BendDict[work.type.S][$"{ShelfDrop.SelectedItem}"] * MainWindow.MassRatio(_mass) * _squareRatio : 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
@@ -291,6 +325,7 @@ namespace Metal_Code
                     w.propsList.Clear();
                     w.propsList.Add($"{Bend}");
                     w.propsList.Add($"{ShelfDrop.SelectedIndex}");
+                    w.propsList.Add(Group);
                 }
                 else if (uc is PartControl p)
                 {
@@ -302,33 +337,41 @@ namespace Metal_Code
 
                     ValidateShelf();
 
-                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{0}", $"{Bend}", $"{ShelfDrop.SelectedIndex}" };
+                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{0}", $"{Bend}", $"{ShelfDrop.SelectedIndex}", Group };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + Г ")) p.Part.Description += " + Г ";
 
                     int count = 0;      //счетчик общего количества деталей
+                    int bends = 0;      //счетчик группы однотипных гибов всех деталей
 
                     if (p.owner is ICut _cut && _cut.PartsControl != null) foreach (PartControl _p in _cut.PartsControl.Parts)
                             foreach (BendControl item in _p.UserControls.OfType<BendControl>())
-                                if (item.Bend > 0) count += _p.Part.Count;
+                                if (item.Bend > 0 && item.Group == Group)
+                                {
+                                    count += _p.Part.Count;
+                                    if (Group != "-") bends += _p.Part.Count * item.Bend;
+                                }
 
                     // стоимость всей работы должна быть не ниже минимальной
-                    foreach (WorkControl _w in p.work.type.WorkControls)                // находим гибку среди работ и получаем её минималку
-                        if (_w.workType is BendControl && _w.WorkDrop.SelectedItem is Work _work)
+                    foreach (WorkControl _w in p.work.type.WorkControls)
+                        if (_w.workType is BendControl bend && bend.Group == Group && _w.WorkDrop.SelectedItem is Work _work)
                         {
                             float _send;
-                            if (_w.Result > 0 && _w.Result <= _work.Price * 3 * _w.Ratio * _w.TechRatio)    // если стоимость работы ниже 3-x минималок, к цене детали добавляем
-                                _send = _work.Price * 3 * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
-                            else                                                            // иначе добавляем часть от количества именно этой детали
+
+                            // если стоимость работы ниже 3-x минималок, к цене детали добавляем
+                            // усредненную часть минималки от общего количества деталей
+                            if (Group == "-" && _w.Result > 0 && _w.Result <= _work.Price * 3 * _w.Ratio * _w.TechRatio)
+                                _send = _work.Price * 3 * _w.Ratio * _w.TechRatio / count;
+                            // иначе добавляем часть от количества именно этой детали
+                            else
                             {
-                                float _price = Price(Bend * p.Part.Count, p.work, p.Part.Mass, p.Square);
-                                
+                                float _price = Price(Group == "-" ? Bend * p.Part.Count : bends, p.work, p.Part.Mass, p.Square);
                                 // стоимость данной гибки должна быть не ниже минимальной
                                 _price = _price > 0 && _price < _work.Price ?
                                     _work.Price * Difficult(p.UserControls.OfType<BendControl>().Count()) * _w.Ratio * _w.TechRatio
                                     : _price * Difficult(p.UserControls.OfType<BendControl>().Count()) * _w.Ratio * _w.TechRatio;
 
                                 _send = _price / p.Part.Count;
-                            }                                                       
+                            }
 
                             p.Part.Price += _send;
 
@@ -346,11 +389,14 @@ namespace Metal_Code
                 {
                     SetBend(w.propsList[0]);
                     SetShelf((int)MainWindow.Parser(w.propsList[1]));
+                    if (w.propsList.Count > 2) SetGroup(w.propsList[2]);
                 }
                 else if (uc is PartControl p && owner is PartControl _owner)
                 {
                     SetBend(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
                     SetShelf((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));
+                    if (p.Part.PropsDict[_owner.UserControls.IndexOf(this)].Count > 3)
+                        SetGroup(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][3]);
                 }
             }
         }

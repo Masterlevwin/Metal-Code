@@ -109,7 +109,7 @@ namespace Metal_Code
                 if (response == MessageBoxResult.No) return;
 
                 if (workType is PaintControl paint)
-                {                                           //удаляем окраску деталей определенного цвета
+                {                                           //удаляем окраску определенного цвета
                     foreach (PartControl p in _work.Parts)
                         foreach (PaintControl item in p.UserControls.OfType<PaintControl>().Where(p => p.Ral == paint.Ral).ToList())
                             p.RemoveControl(item);
@@ -118,6 +118,12 @@ namespace Metal_Code
                 {                                           //удаляем определенную обработку отверстий
                     foreach (PartControl p in _work.Parts)
                         foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>().Where(p => p.CharName == thread.CharName && p.Wide == thread.Wide).ToList())
+                            p.RemoveControl(item);
+                }
+                else if (workType is BendControl bend)
+                {                                           //удаляем группу однотипных гибов
+                    foreach (PartControl p in _work.Parts)
+                        foreach (BendControl item in p.UserControls.OfType<BendControl>().Where(p => p.Group == bend.Group).ToList())
                             p.RemoveControl(item);
                 }
                 else

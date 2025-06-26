@@ -14,8 +14,9 @@
 
     <StackPanel x:Name="BendGrid" Orientation="Horizontal" VerticalAlignment="Top" MinHeight="20">
         <TextBlock Text="Г" FontWeight="Bold" Margin="5,0,0,0" MinWidth="10"/>
-        <TextBox Text="{Binding Bend, RelativeSource={RelativeSource AncestorType={x:Type local:BendControl}, Mode=FindAncestor}}" TextChanged="SetBend" ToolTip="Введите количество однотипных гибов" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="2" MaxWidth="35" MinWidth="35" Margin="5,0,0,0"/>
-        <ComboBox x:Name="ShelfDrop" SelectionChanged="SetShelf" HorizontalAlignment="Left" VerticalAlignment="Top" Height="20" SelectedIndex="0" ToolTip="Выберите длину гиба" MinWidth="80" Margin="5,0,0,0" MaxWidth="80"/>
+        <TextBox Text="{Binding Bend, RelativeSource={RelativeSource AncestorType={x:Type local:BendControl}, Mode=FindAncestor}}" TextChanged="SetBend" ToolTip="Введите количество однотипных гибов" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="2" MaxWidth="25" MinWidth="25" Margin="5,0,0,0"/>
+        <ComboBox x:Name="ShelfDrop" SelectionChanged="SetShelf" HorizontalAlignment="Left" VerticalAlignment="Top" Height="20" SelectedIndex="0" ToolTip="Выберите длину гиба" MinWidth="60" Margin="5,0,0,0" MaxWidth="60"/>
+        <TextBox Text="{Binding Group, RelativeSource={RelativeSource AncestorType={x:Type local:BendControl}, Mode=FindAncestor}}" ToolTip="Обозначьте группу гибов" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="2" MaxWidth="25" MinWidth="25" Margin="5,0,0,0" LostFocus="SetGroup"/>
 
         <Image Source="/Images/question.png" MaxWidth="10" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="2,0,0,0">
             <Image.ToolTip>

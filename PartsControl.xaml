@@ -33,8 +33,9 @@
                     <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
                         <Button Content="Г&gt;" ToolTip="По гибке" Click="SortDetails" FontWeight="Bold" MinWidth="30"/>
                         <TextBlock Text="Гиб" FontWeight="Bold" ToolTip="Гибка для всех" Margin="5,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <TextBox x:Name="Bend" MinWidth="35" MaxWidth="35" TextChanged="SetProperty" ToolTip="Введите количество однотипных гибов" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="5,0,0,0" MaxLines="1"/>
-                        <ComboBox x:Name="BendDrop" MinWidth="70" MaxWidth="70" SelectedIndex="0" ToolTip="Выберите длину гиба" SelectionChanged="SetType" Margin="5,0,0,0"/>
+                        <TextBox x:Name="Bend" MinWidth="25" MaxWidth="25" TextChanged="SetProperty" ToolTip="Введите количество однотипных гибов" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="5,0,0,0" MaxLines="1"/>
+                        <ComboBox x:Name="BendDrop" MinWidth="60" MaxWidth="60" SelectedIndex="0" ToolTip="Выберите длину гиба" SelectionChanged="SetType" Margin="5,0,0,0"/>
+                        <Button Content="-" ToolTip="Сбросить группы однотипных гибов" Margin="5,0,0,0" MinWidth="15" MaxWidth="15" Click="SetDefaultBends"/>
                         <Button x:Name="BendBtn" Content="Г+" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" MinWidth="30"/>
                     </StackPanel>
 

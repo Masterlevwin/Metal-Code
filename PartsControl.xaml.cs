@@ -291,5 +291,11 @@ namespace Metal_Code
                 AssemblyWindow.A.CurrentParts.Add(part);
             AssemblyWindow.A.Show();
         }
+
+        private void SetDefaultBends(object sender, RoutedEventArgs e)
+        {
+            foreach (PartControl p in Parts)
+                foreach (BendControl item in p.UserControls.OfType<BendControl>()) item.SetGroup("-");
+        }
     }
 }
