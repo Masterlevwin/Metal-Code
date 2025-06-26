@@ -126,7 +126,6 @@
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Header="Обновить программу" Click="Restart"/>
-                <MenuItem Header="Тест" Click="TestMetod"/>
             </MenuItem>
             <MenuItem x:Name="Login" ToolTip="Сменить пользователя" Click="ShowLoginWindow"/>
         </Menu>

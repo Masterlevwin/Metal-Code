@@ -230,6 +230,17 @@ namespace Metal_Code
 
             if (owner is PartControl part)
             {
+                if (Group != "-")
+                    if (part.owner is ICut _cut && _cut.PartsControl != null)
+                        foreach (PartControl _p in _cut.PartsControl.Parts)
+                            foreach (BendControl item in _p.UserControls.OfType<BendControl>())
+                                if (item.Bend > 0 && item.Group == Group
+                                    && item.ShelfDrop.SelectedIndex != ShelfDrop.SelectedIndex)
+                                {
+                                    MainWindow.M.StatusBegin("Проверьте длину гиба у всех деталей группы");
+                                    break;
+                                }
+
                 foreach (WorkControl w in part.work.type.WorkControls)
                     if (w.workType is BendControl bend && bend.Group == Group) return;
 
