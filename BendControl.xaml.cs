@@ -176,6 +176,7 @@ namespace Metal_Code
             InitializeComponent();
             owner = _control;
             Tuning();
+            SetGroup(Group);
         }
 
         private void Tuning()               // настройка блока после инициализации
@@ -276,7 +277,7 @@ namespace Metal_Code
                     foreach (BendControl item in p.UserControls.OfType<BendControl>())
                         if (item.Group == Group)
                         {
-                            float _price = item.Price(Group == "-" ? item.Bend * p.Part.Count : bends, work, p.Part.Mass, p.Square);
+                            float _price = item.Price(Group == "-" ? item.Bend * p.Part.Count : bends, work, p.Part.Mass, p.Square) * (Group == "-" ? 1 : p.Part.Count);
 
                             // стоимость данной гибки должна быть не ниже минимальной
                             _price = _price > 0 && _price < _work.Price ? _work.Price : _price;
@@ -375,7 +376,7 @@ namespace Metal_Code
                             // иначе добавляем часть от количества именно этой детали
                             else
                             {
-                                float _price = Price(Group == "-" ? Bend * p.Part.Count : bends, p.work, p.Part.Mass, p.Square);
+                                float _price = Price(Group == "-" ? Bend * p.Part.Count : bends, p.work, p.Part.Mass, p.Square) * (Group == "-" ? 1 : p.Part.Count);
                                 // стоимость данной гибки должна быть не ниже минимальной
                                 _price = _price > 0 && _price < _work.Price ?
                                     _work.Price * Difficult(p.UserControls.OfType<BendControl>().Count()) * _w.Ratio * _w.TechRatio
