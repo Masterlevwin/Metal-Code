@@ -17,27 +17,19 @@
     </UserControl.ContextMenu>
 
     <Grid x:Name="WorkGrid">
-        <Grid.RowDefinitions>
-            <RowDefinition MinHeight="30"/>
-        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="140"/>
+            <ColumnDefinition/>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="20">
-            <Button Click="AddWork" ToolTip="Добавить работу" MaxWidth="14" MaxHeight="14" VerticalAlignment="Center" Margin="3,0,0,0" Visibility="Hidden">
-                <Image Source="Images/plus.png"/>
-            </Button>
-            <ComboBox x:Name="WorkDrop" DisplayMemberPath="Name" SelectionChanged="CreateWork" ToolTip="Выберите работу" Margin="3,0,0,0" MinWidth="120" MaxWidth="120"/>
-        </StackPanel>
 
-        <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Top" MinHeight="20">
-            <TextBox Text="{Binding Ratio}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="25" MaxWidth="25" MaxLines="1" ToolTip="Коммерческий" Margin="5,0,0,0" TextChanged="SetRatio" Grid.Column="2"/>
-            <TextBox x:Name="TechRatioText" Text="{Binding TechRatio}" MaxLines="1" ToolTip="Производственный" TextChanged="SetRatio" Grid.Column="2" MinWidth="25" MaxWidth="25" Margin="5,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-            <TextBox x:Name="ResultText" Text="{Binding Result, Converter={StaticResource CostConverter}}" Grid.Column="2" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" BorderThickness="0" MouseDoubleClick="ResultTextEnabled" IsReadOnly="True" MinWidth="65" MaxWidth="65" Margin="5,0,0,0" LostFocus="SetExtraResult" VerticalContentAlignment="Center"/>
-            <Button Click="Remove" ToolTip="Удалить работу" Content="Х" Grid.Column="2" FontWeight="Bold" Padding="0,0,0,0" FontSize="8" BorderThickness="0,0,0,0" Panel.ZIndex="-1" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" VerticalAlignment="Top" Margin="5,0,0,0" MaxWidth="10" MaxHeight="10"/>
+        <ComboBox x:Name="WorkDrop" DisplayMemberPath="Name" SelectionChanged="CreateWork" ToolTip="Выберите работу" Margin="5,0,0,0" MinWidth="120" MaxWidth="120" VerticalAlignment="Top" MinHeight="22" MaxHeight="22" HorizontalAlignment="Left"/>
+
+        <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Top" MinHeight="22" HorizontalAlignment="Right">
+            <TextBox Text="{Binding Ratio}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="25" MaxWidth="25" MaxLines="1" ToolTip="Коммерческий" Margin="5,0,0,0" TextChanged="SetRatio"/>
+            <TextBox x:Name="TechRatioText" Text="{Binding TechRatio}" MaxLines="1" ToolTip="Производственный" TextChanged="SetRatio" MinWidth="25" MaxWidth="25" Margin="5,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+            <TextBox x:Name="ResultText" Text="{Binding Result, Converter={StaticResource CostConverter}}" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" BorderThickness="0" MouseDoubleClick="ResultTextEnabled" IsReadOnly="True" MinWidth="60" MaxWidth="60" Margin="5,0,0,0" LostFocus="SetExtraResult" VerticalContentAlignment="Center"/>
+            <Button Click="Remove" ToolTip="Удалить работу" Content="Х" FontWeight="Bold" Padding="00" FontSize="8" BorderThickness="0" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" VerticalAlignment="Top" Margin="5,0,0,0" MaxWidth="10" MaxHeight="10"/>
         </StackPanel>
 
     </Grid>

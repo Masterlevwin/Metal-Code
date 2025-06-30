@@ -115,6 +115,27 @@ namespace Metal_Code
             }
         }
 
+        private bool isRequest = true;
+        public bool IsRequest
+        {
+            get => isRequest;
+            set
+            {
+                isRequest = value;
+                if (IsRequest)
+                {
+                    PartsStack.Visibility = Visibility.Hidden;
+                    RequestStack.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    PartsStack.Visibility = Visibility.Visible;
+                    RequestStack.Visibility = Visibility.Hidden;
+                }
+                OnPropertyChanged(nameof(IsRequest));
+            }
+        }
+
         private string version = "2.6.3";
         public string Version
         {
@@ -809,6 +830,7 @@ namespace Metal_Code
         //-------------Создание нового проекта-----------//
         public void NewProject()
         {
+            IsRequest = true;
             ClearDetails();     // удаляем все детали
             ClearCalculate();   // очищаем расчет
             AddDetail();        // добавляем пустой блок детали
@@ -1789,6 +1811,8 @@ namespace Metal_Code
         public void LoadProduct()
         {
             if (ProductModel.Product == null) return;
+
+            IsRequest = false;
 
             ProductName.Text = ProductModel.Product.Name;
             Order.Text = ProductModel.Product.Order;
@@ -5581,6 +5605,78 @@ namespace Metal_Code
             }
             MessageBox.Show(message);
         }
+
+        private void CreateRequestTest(object sender, RoutedEventArgs e)    //экспресс-заявка с анализом шаблона
+        {
+            OpenFileDialog openFileDialog = new()
+            {
+                Filter = "All files (*.*)|*.*",
+                Multiselect = true
+            };
+
+            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
+            {
+                RequestWindow requestWindow = new(openFileDialog.FileNames);
+                requestWindow.Show();
+            }
+            else StatusBegin($"Не выбрано ни одного файла");
+        }
+
         #endregion
+
+        private void Save_Template(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void Remove_Template(object sender, KeyEventArgs e)
+        {
+
+        }
+
+        private void Analyze_Paths(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void Rename_Details(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void ShowPopup_Gen(object sender, MouseEventArgs e)
+        {
+
+        }
+
+        private void CopyValue_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+
+        }
+
+        private void Delete_WithoutNames(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void ShowPopup_Del(object sender, MouseEventArgs e)
+        {
+
+        }
+
+        private void Create_Request(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void Create_Tech(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void Launch_Tech(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }
