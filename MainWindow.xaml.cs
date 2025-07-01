@@ -5678,5 +5678,10 @@ namespace Metal_Code
         {
 
         }
+
+        private void Set_IsRequest(object sender, RoutedEventArgs e)
+        {
+            IsRequest = !IsRequest;
+        }
     }
 }

@@ -45,7 +45,7 @@ namespace Metal_Code
             
             BilletsStack.Children.Insert(BilletsStack.Children.Count - 1, type);
 
-            MainWindow.M.DetailsScroll.PageDown();
+            //MainWindow.M.DetailsScroll.PageDown();
 
             type.AddWork();   // при добавлении дропа типовой детали добавляем дроп работ
         }

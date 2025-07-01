@@ -40,21 +40,25 @@
                 <TextBlock Text="{Binding Mass, Converter={StaticResource MassConverter}}" Margin="3,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="40" MaxWidth="40"/>
                 <ComboBox x:Name="MetalDrop" DisplayMemberPath="Name" MinWidth="80" MaxWidth="80" SelectedIndex="0" ToolTip="Выберите материал" SelectionChanged="MassCalculate" Margin="5,0,0,0"/>
                 <CheckBox x:Name="CheckMetal" IsChecked="{Binding HasMetal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}" Click="HasMetalChanged" ToolTip="Если не отмечено, материал - давальческий" Margin="5,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                <TextBox x:Name="ResultText" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" Text="{Binding Result, Converter={StaticResource CostConverter}}" BorderThickness="0" MouseDoubleClick="ResultTextEnabled" IsReadOnly="True" MaxWidth="60" MinWidth="60" ToolTipOpening="SetToolTipForResult" ToolTip="Стоимость материала, руб" Margin="5,0,0,0" VerticalContentAlignment="Center" LostFocus="SetExtraResult"/>
+                <TextBox x:Name="ResultText" Text="{Binding Result, Converter={StaticResource CostConverter}}" MouseDoubleClick="ResultTextEnabled" IsReadOnly="True" MaxWidth="65" MinWidth="65" ToolTipOpening="SetToolTipForResult" ToolTip="Стоимость материала, руб" Margin="10,0,0,0" LostFocus="SetExtraResult" VerticalContentAlignment="Center" HorizontalContentAlignment="Right" BorderThickness="0" Background="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}"/>
                 <Button Content="Х" FontWeight="Bold" Padding="0" MinWidth="20" MinHeight="20" MaxWidth="20" MaxHeight="20" FontSize="16" BorderThickness="0" Click="Remove" ToolTip="Удалить заготовку" HorizontalAlignment="Left" VerticalAlignment="Top" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" Margin="5,0,0,0"/>
             </StackPanel>
-            
-            <TextBox Text="{Binding Comment}" TextChanged="SetComment" MinWidth="200" MaxWidth="200" MinHeight="40" Margin="20,10,0,0" VerticalAlignment="Top" HorizontalAlignment="Right"/>
 
-            <StackPanel x:Name="WorksStack" HorizontalAlignment="Left" Margin="0,-40,0,0">
-                <Button Click="AddWork" HorizontalAlignment="Left" Margin="3,5,0,0">
-                    <StackPanel Orientation="Horizontal" MaxHeight="14" Margin="2">
-                        <Image Source="Images/plus.png"/>
-                        <TextBlock Text="Добавить работу" VerticalAlignment="Center" Margin="3,0,0,0"/>
-                    </StackPanel>
-                </Button>
+            <StackPanel Orientation="Horizontal" Margin="5,10,15,5" HorizontalAlignment="Right">
+                <Expander x:Name="CommentExpander" HorizontalAlignment="Left" VerticalAlignment="Top" ExpandDirection="Left">
+                    <TextBox Text="{Binding Comment}" TextChanged="SetComment" MinWidth="200" MaxWidth="200" MinHeight="40" MinLines="2" Margin="0,0,5,0"/>
+                </Expander>
+
+                <StackPanel x:Name="WorksStack" Margin="10,0,0,0">
+                    <Button Click="AddWork" HorizontalAlignment="Left" Margin="3,5,0,0">
+                        <StackPanel Orientation="Horizontal" MaxHeight="14" Margin="2">
+                            <Image Source="Images/plus.png"/>
+                            <TextBlock Text="Добавить работу" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
             </StackPanel>
-
 
         </StackPanel>
     </GroupBox>

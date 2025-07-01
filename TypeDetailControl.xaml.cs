@@ -205,7 +205,7 @@ namespace Metal_Code
             WorkControls.Add(work);
             WorksStack.Children.Insert(WorksStack.Children.Count - 1, work);
 
-            MainWindow.M.DetailsScroll.PageDown();
+            //MainWindow.M.DetailsScroll.PageDown();
         }
 
         private void Remove(object sender, RoutedEventArgs e)
@@ -259,9 +259,8 @@ namespace Metal_Code
         public void SetComment(string? _comment)
         {
             Comment = _comment;
-            //if (Comment != null && Comment != "" && CommentExpander.IsExpanded == false) CommentExpander.IsExpanded = true;
+            if (Comment != null && Comment != "" && CommentExpander.IsExpanded == false) CommentExpander.IsExpanded = true;
         }
-
 
         public Dictionary<string, (string, string, string)> Kinds = new();
 

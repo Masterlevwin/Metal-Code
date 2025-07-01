@@ -137,7 +137,7 @@
                 <ColumnDefinition MaxWidth="560"/>
             </Grid.ColumnDefinitions>
 
-            <StackPanel x:Name="PartsStack" Margin="5" d:Visibility="Visible" Visibility="{Binding IsRequest, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
+            <StackPanel x:Name="PartsStack" Margin="5" d:Visibility="Collapsed" Visibility="{Binding IsRequest, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
                 
                 <GroupBox x:Name="ProductBox" Margin="5" MaxHeight="350" MinHeight="350">
                     <GroupBox.Header>
@@ -198,13 +198,14 @@
 
             </StackPanel>
 
-            <GroupBox x:Name="RequestStack" Margin="5" d:Visibility="Collapsed" Visibility="{Binding IsRequest, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" MinHeight="700">
+            <GroupBox x:Name="RequestStack" Margin="5" d:Visibility="Visible" Visibility="{Binding IsRequest, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" MinHeight="700">
                 <GroupBox.Header>
                     <TextBlock Text="Заявка" FontWeight="Bold" FontSize="14"/>
                 </GroupBox.Header>
 
                 <StackPanel>
-
+                    <Button Content="Переключить" HorizontalAlignment="Left" Margin="10" Click="Set_IsRequest"/>
+                    
                     <GroupBox MaxHeight="120" Margin="5" HorizontalAlignment="Center">
                         <GroupBox.Header>
                             <TextBlock Text="Наименования выбранных файлов" FontSize="14" FontWeight="Bold"/>
