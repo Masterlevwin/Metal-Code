@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="120" d:DesignWidth="650" VerticalAlignment="Top">
+             VerticalAlignment="Top" Padding="4">
     <UserControl.Resources>
         <local:MassConverter x:Key="MassConverter"/>
         <local:DestinyConverter x:Key="DestinyConverter"/>
@@ -21,46 +21,33 @@
     </UserControl.ContextMenu>
 
     <GroupBox x:Name="TypeDetailBox" Header="Заготовка">
-        <Grid Margin="5">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+        <StackPanel Margin="5">
 
-            <StackPanel>
-
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="22">
-                    <ComboBox x:Name="TypeDetailDrop" DisplayMemberPath="Name" SelectedIndex="0" ToolTip="Выберите заготовку" SelectionChanged="CreateSort" MinWidth="120" MaxWidth="120" Margin="10,0,0,0"/>
-                    <TextBlock Text="A" VerticalAlignment="Top" FontSize="10" Margin="10,0,0,0" MinWidth="8"/>
-                    <TextBox x:Name="A_prop" Text="{Binding A, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" MinWidth="35" MaxWidth="35" MaxLines="1" ToolTip="Высота, мм" TextChanged="SetProperty" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                    <TextBlock Text="B" VerticalAlignment="Top" FontSize="10" Margin="10,0,0,0" MinWidth="8"/>
-                    <TextBox x:Name="B_prop" Text="{Binding B, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" MinWidth="35" MaxWidth="35" MaxLines="1" ToolTip="Ширина, мм" TextChanged="SetProperty" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                    <TextBlock Text="S" VerticalAlignment="Top" FontSize="10" Margin="10,0,0,0" MinWidth="8"/>
-                    <TextBox x:Name="S_prop" Foreground="{Binding S, Converter={StaticResource DestinyConverter}}" Text="{Binding S, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" MaxLines="1" ToolTip="Толщина, мм" TextChanged="SetProperty" MaxLength="3" MinWidth="35" MaxWidth="35" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                    <ComboBox x:Name="MetalDrop" DisplayMemberPath="Name" MinWidth="80" MaxWidth="80" SelectedIndex="0" ToolTip="Выберите материал" SelectionChanged="MassCalculate" Margin="5,0,0,0"/>
-                    <CheckBox x:Name="CheckMetal" IsChecked="{Binding HasMetal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}" Click="HasMetalChanged" ToolTip="Если не отмечено, материал - давальческий" Margin="5,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                    <TextBox x:Name="ResultText" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" Text="{Binding Result, Converter={StaticResource CostConverter}}" BorderThickness="0" MouseDoubleClick="ResultTextEnabled" IsReadOnly="True" MaxWidth="60" MinWidth="60" ToolTipOpening="SetToolTipForResult" ToolTip="Стоимость материала, руб" Margin="5,0,0,0" VerticalContentAlignment="Center" LostFocus="SetExtraResult"/>
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" Margin="0,5,0,0" MinHeight="22">
-                    <ComboBox x:Name="SortDrop" ToolTip="Выберите вид детали" SelectionChanged="ChangeSort" MinWidth="75" MaxWidth="75" Margin="55,0,0,0"/>
-                    <TextBlock Text="L" VerticalAlignment="Top" FontSize="10" Margin="10,0,0,0" MinWidth="8"/>
-                    <TextBox x:Name="L_prop" Text="{Binding L, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" MinWidth="35" MaxWidth="35" MaxLines="1" ToolTip="Длина, мм" TextChanged="SetProperty" MaxLength="5" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="5,0,0,0"/>
-                    <TextBlock Text="N" VerticalAlignment="Top" FontSize="10" Margin="10,0,0,0" MinWidth="8"/>
-                    <TextBox Text="{Binding Count, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}" MinWidth="35" ToolTip="Введите количество заготовок" TextChanged="SetCount" MaxLength="4" MaxLines="1" MaxWidth="35" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                    <TextBlock Text="Вес: " Margin="10,0,0,0" MinWidth="8" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding Mass, Converter={StaticResource MassConverter}}" Margin="5,0,0,0" TextAlignment="Center" VerticalAlignment="Center"/>
-                </StackPanel>
-
+            <StackPanel Orientation="Horizontal" MinHeight="24" Margin="5">
+                <ComboBox x:Name="TypeDetailDrop" DisplayMemberPath="Name" SelectedIndex="0" ToolTip="Выберите заготовку" SelectionChanged="CreateSort" MinWidth="120" MaxWidth="120"/>
+                <ComboBox x:Name="SortDrop" ToolTip="Выберите вид детали" SelectionChanged="ChangeSort" MinWidth="75" MaxWidth="75" Margin="10,0,0,0"/>
+                <TextBlock Text="A" VerticalAlignment="Top" FontSize="10" Margin="7,0,0,0" MinWidth="8"/>
+                <TextBox x:Name="A_prop" Text="{Binding A, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" MinWidth="35" MaxWidth="35" MaxLines="1" ToolTip="Высота, мм" TextChanged="SetProperty" Margin="3,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                <TextBlock Text="B" VerticalAlignment="Top" FontSize="10" Margin="7,0,0,0" MinWidth="8"/>
+                <TextBox x:Name="B_prop" Text="{Binding B, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" MinWidth="35" MaxWidth="35" MaxLines="1" ToolTip="Ширина, мм" TextChanged="SetProperty" Margin="3,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                <TextBlock Text="S" VerticalAlignment="Top" FontSize="10" Margin="7,0,0,0" MinWidth="8"/>
+                <TextBox x:Name="S_prop" Foreground="{Binding S, Converter={StaticResource DestinyConverter}}" Text="{Binding S, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" MaxLines="1" ToolTip="Толщина, мм" TextChanged="SetProperty" MaxLength="3" MinWidth="35" MaxWidth="35" Margin="3,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" FontSize="14"/>
+                <TextBlock Text="L" VerticalAlignment="Top" FontSize="10" Margin="7,0,0,0" MinWidth="8"/>
+                <TextBox x:Name="L_prop" Text="{Binding L, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" MinWidth="35" MaxWidth="35" MaxLines="1" ToolTip="Длина, мм" TextChanged="SetProperty" MaxLength="5" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="3,0,0,0"/>
+                <TextBlock Text="N" VerticalAlignment="Top" FontSize="10" Margin="7,0,0,0" MinWidth="8"/>
+                <TextBox Text="{Binding Count, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}" MinWidth="35" ToolTip="Введите количество заготовок" TextChanged="SetCount" MaxLength="4" MaxLines="1" MaxWidth="35" Margin="3,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                <TextBlock Text="Вес: " Margin="7,0,0,0" MinWidth="8" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Mass, Converter={StaticResource MassConverter}}" Margin="3,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="40" MaxWidth="40"/>
+                <ComboBox x:Name="MetalDrop" DisplayMemberPath="Name" MinWidth="80" MaxWidth="80" SelectedIndex="0" ToolTip="Выберите материал" SelectionChanged="MassCalculate" Margin="5,0,0,0"/>
+                <CheckBox x:Name="CheckMetal" IsChecked="{Binding HasMetal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}" Click="HasMetalChanged" ToolTip="Если не отмечено, материал - давальческий" Margin="5,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                <TextBox x:Name="ResultText" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" Text="{Binding Result, Converter={StaticResource CostConverter}}" BorderThickness="0" MouseDoubleClick="ResultTextEnabled" IsReadOnly="True" MaxWidth="60" MinWidth="60" ToolTipOpening="SetToolTipForResult" ToolTip="Стоимость материала, руб" Margin="5,0,0,0" VerticalContentAlignment="Center" LostFocus="SetExtraResult"/>
+                <Button Content="Х" FontWeight="Bold" Padding="0" MinWidth="20" MinHeight="20" MaxWidth="20" MaxHeight="20" FontSize="16" BorderThickness="0" Click="Remove" ToolTip="Удалить заготовку" HorizontalAlignment="Left" VerticalAlignment="Top" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" Margin="5,0,0,0"/>
             </StackPanel>
+            
+            <TextBox Text="{Binding Comment}" TextChanged="SetComment" MinWidth="200" MaxWidth="200" MinHeight="40" Margin="20,10,0,0" VerticalAlignment="Top" HorizontalAlignment="Right"/>
 
-            <Expander x:Name="CommentExpander" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,30,0,0">
-                <TextBox Text="{Binding Comment}" TextChanged="SetComment" HorizontalAlignment="Left" MinWidth="200" MaxWidth="200" Margin="0,3,0,0" MinHeight="20"/>
-            </Expander>
-
-            <StackPanel x:Name="WorksStack" Grid.Column="1">
-                <Button Click="AddWork" HorizontalAlignment="Left" Margin="5,0,0,0">
+            <StackPanel x:Name="WorksStack" HorizontalAlignment="Left" Margin="0,-40,0,0">
+                <Button Click="AddWork" HorizontalAlignment="Left" Margin="3,5,0,0">
                     <StackPanel Orientation="Horizontal" MaxHeight="14" Margin="2">
                         <Image Source="Images/plus.png"/>
                         <TextBlock Text="Добавить работу" VerticalAlignment="Center" Margin="3,0,0,0"/>
@@ -68,8 +55,7 @@
                 </Button>
             </StackPanel>
 
-            <Button Content="Х" Grid.Column="2" MinWidth="20" MinHeight="20" FontWeight="Bold" Padding="0" MaxWidth="20" MaxHeight="20" FontSize="16" BorderThickness="0" Click="Remove" ToolTip="Удалить заготовку" HorizontalAlignment="Left" VerticalAlignment="Top" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" Margin="5,0,0,0"/>
 
-        </Grid>
+        </StackPanel>
     </GroupBox>
 </UserControl>

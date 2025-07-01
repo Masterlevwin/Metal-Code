@@ -42,7 +42,7 @@
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="5,120,0,0" MaxHeight="20">
-            <ComboBox x:Name="WorksDrop" MinWidth="120" SelectedIndex="0"/>
+            <ComboBox x:Name="WorksDrop" MinWidth="120"/>
             <Button Margin="10,0,0,0" MinWidth="45" Content="Доб" Click="AddControl"/>
         </StackPanel>
     </Grid>

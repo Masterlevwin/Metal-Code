@@ -259,7 +259,7 @@ namespace Metal_Code
         public void SetComment(string? _comment)
         {
             Comment = _comment;
-            if (Comment != null && Comment != "" && CommentExpander.IsExpanded == false) CommentExpander.IsExpanded = true;
+            //if (Comment != null && Comment != "" && CommentExpander.IsExpanded == false) CommentExpander.IsExpanded = true;
         }
 
 
