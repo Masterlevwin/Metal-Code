@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NPOI.SS.Formula.Functions;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -92,8 +93,12 @@ namespace Metal_Code
 
         private void Remove(object sender, RoutedEventArgs e)
         {
-            if (type.WorkControls.Count == 1) return;
-
+            if (type.WorkControls.Count == 1)
+            {
+                MessageBox.Show("Нельзя удалить единственную работу в заготовке.\n" +
+                    "Вместо этого удалите саму заготовку или сначала добавьте новую работу.");
+                return;
+            }
             if (workType != null) RemoveControls(workType);
             Remove();
         }
@@ -200,6 +205,11 @@ namespace Metal_Code
             switch (work.Name)
             {
                 case "Лазерная резка":
+                    if (type.det.Detail.IsComplect && type.WorkControls.Contains(type.WorkControls.FirstOrDefault(x => x.workType is ICut)))
+                    {
+                        MessageBox.Show("Нельзя добавить эту работу вручную.");
+                        return;
+                    }
                     CutControl cut = new(this, new ExcelDialogService());
                     WorkGrid.Children.Add(cut);
                     Grid.SetColumn(cut, 1);
