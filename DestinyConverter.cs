@@ -8,7 +8,7 @@ namespace Metal_Code
     {
         public float TemplateValue { get; set; }
         public Brush HighlightBrush { get; set; } = Brushes.Red;
-        public Brush DefaultBrush { get; set; } = Brushes.Green;
+        public Brush DefaultBrush { get; set; } = Brushes.Blue;
 
         public object Convert(object value, Type targetType, object parameter,
             System.Globalization.CultureInfo culture)

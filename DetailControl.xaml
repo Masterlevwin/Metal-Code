@@ -11,12 +11,18 @@
             <MenuItem Header="Удалить" Click="Remove"></MenuItem>
         </ContextMenu>
     </UserControl.ContextMenu>
-    
+
     <GroupBox x:Name="DetailBox" Header="Деталь" Margin="5" HorizontalAlignment="Left">
+        <GroupBox.Background>
+            <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                <GradientStop Color="White"/>
+                <GradientStop Color="#FFD2E1FA" Offset="1"/>
+            </LinearGradientBrush>
+        </GroupBox.Background>
         <StackPanel Margin="5">
 
             <StackPanel Orientation="Horizontal" MinHeight="22" MaxHeight="22" VerticalAlignment="Top">
-                
+
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                     <Button x:Name="Counter" Margin="5,0,0,0" Click="ShowDetailData" MinWidth="22"/>
                     <TextBox ToolTip="Введите наименование детали" Text="{Binding Title}" TextChanged="SetName" x:Name="DetailName" MinWidth="130" MaxWidth="130" MaxLines="1" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
@@ -34,7 +40,7 @@
                         </StackPanel>
                     </Button>
                 </StackPanel>
-                
+
             </StackPanel>
 
             <StackPanel x:Name="BilletsStack" Margin="0,3,0,0" HorizontalAlignment="Left">
