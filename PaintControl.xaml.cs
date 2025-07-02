@@ -75,6 +75,8 @@ namespace Metal_Code
             Ral = _ral;
             if (owner is PartControl part)
             {
+                MainWindow.M.IsLoadData = true;
+
                 foreach (var item in part.work.type.WorkControls)
                     if (item.workType is PaintControl paint && paint.Ral == Ral) return;
 
@@ -87,6 +89,7 @@ namespace Metal_Code
                         if (part.work.type.WorkControls[^1].workType is PaintControl _paint) _paint.SetRal(Ral);
                         break;
                     }
+                MainWindow.M.IsLoadData = false;
             }
             OnPriceChanged();
         }

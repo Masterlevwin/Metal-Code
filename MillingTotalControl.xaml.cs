@@ -61,6 +61,8 @@ namespace Metal_Code
             }
             else if (owner is PartControl part)
             {
+                MainWindow.M.IsLoadData = true;
+
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
 
                 foreach (WorkControl w in part.work.type.WorkControls)
@@ -74,6 +76,7 @@ namespace Metal_Code
                         part.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
                         break;
                     }
+                MainWindow.M.IsLoadData = false;
             }
         }
 

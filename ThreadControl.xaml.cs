@@ -114,6 +114,8 @@ namespace Metal_Code
             if (float.TryParse(_wide, out float d)) Wide = d;
             if (owner is PartControl part)
             {
+                MainWindow.M.IsLoadData = true;
+
                 foreach (var item in part.work.type.WorkControls)
                     if (item.workType is ThreadControl thread && thread.CharName == CharName && thread.Wide == Wide) return;
 
@@ -141,6 +143,7 @@ namespace Metal_Code
                             break;
 
                     }
+                MainWindow.M.IsLoadData = false;
             }
             OnPriceChanged();
         }

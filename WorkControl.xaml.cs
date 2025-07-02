@@ -1,5 +1,4 @@
-﻿using NPOI.SS.Formula.Functions;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -193,10 +192,7 @@ namespace Metal_Code
         }
 
         public UserControl? workType;
-        private void CreateWork(object sender, SelectionChangedEventArgs e)
-        {
-            CreateWork();
-        }
+        public void CreateWork(object sender, SelectionChangedEventArgs e) { CreateWork(); }
         public void CreateWork()
         {
             if (WorkDrop.SelectedItem is not Work work) return;
@@ -205,10 +201,13 @@ namespace Metal_Code
             switch (work.Name)
             {
                 case "Лазерная резка":
-                    if (type.det.Detail.IsComplect && type.WorkControls.Contains(type.WorkControls.FirstOrDefault(x => x.workType is ICut)))
+                    var _cut = type.WorkControls.FirstOrDefault(x => x.workType is ICut);
+                    if (_cut != null)
                     {
-                        MessageBox.Show("Нельзя добавить эту работу вручную.");
-                        return;
+                        MessageBox.Show("Нельзя добавить \"Лазерную резку\" повторно,\n" +
+                            "или, если уже добавлен \"Труборез\"!");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
                     }
                     CutControl cut = new(this, new ExcelDialogService());
                     WorkGrid.Children.Add(cut);
@@ -216,48 +215,119 @@ namespace Metal_Code
                     workType = cut;
                     break;
                 case "Гибка":
+                    if (!MainWindow.M.IsLoadData && type.det.Detail.IsComplect)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Гибку\" на \"Комплект деталей\"!\n" +
+                            "Добавьте работу на конкретную нарезанную деталь из списка.");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
                     BendControl bend = new(this);
                     WorkGrid.Children.Add(bend);
                     Grid.SetColumn(bend, 1);
                     workType = bend;
                     break;
                 case "Труборез":
+                    var _pipe = type.WorkControls.FirstOrDefault(x => x.workType is ICut);
+                    if (_pipe != null)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Труборез\" повторно,\n" +
+                            "или, если уже добавлена \"Лазерная резка\"!");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
                     PipeControl pipe = new(this, new ExcelDialogService());
                     WorkGrid.Children.Add(pipe);
                     Grid.SetColumn(pipe, 1);
                     workType = pipe;
                     break;
                 case "Резьба":
+                    if (!MainWindow.M.IsLoadData && type.det.Detail.IsComplect)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Резьбу\" на \"Комплект деталей\"!\n" +
+                            "Добавьте работу на конкретную нарезанную деталь из списка.");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
                     ThreadControl thread = new(this, "Р");
                     WorkGrid.Children.Add(thread);
                     Grid.SetColumn(thread, 1);
                     workType = thread;
                     break;
                 case "Зенковка":
+                    if (!MainWindow.M.IsLoadData && type.det.Detail.IsComplect)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Зенковку\" на \"Комплект деталей\"!\n" +
+                            "Добавьте работу на конкретную нарезанную деталь из списка.");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
                     ThreadControl countersink = new(this, "З");
                     WorkGrid.Children.Add(countersink);
                     Grid.SetColumn(countersink, 1);
                     workType = countersink;
                     break;
                 case "Сверловка":
+                    if (!MainWindow.M.IsLoadData && type.det.Detail.IsComplect)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Сверловку\" на \"Комплект деталей\"!\n" +
+                            "Добавьте работу на конкретную нарезанную деталь из списка.");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
                     ThreadControl drilling = new(this, "С");
                     WorkGrid.Children.Add(drilling);
                     Grid.SetColumn(drilling, 1);
                     workType = drilling;
                     break;
                 case "Вальцовка":
+                    if (!MainWindow.M.IsLoadData && type.det.Detail.IsComplect)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Вальцовку\" на \"Комплект деталей\"!\n" +
+                            "Добавьте работу на конкретную нарезанную деталь из списка.");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
+                    var _roll = type.WorkControls.FirstOrDefault(x => x.workType is RollingControl);
+                    if (_roll != null)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Вальцовку\" повторно!");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
                     RollingControl roll = new(this);
                     WorkGrid.Children.Add(roll);
                     Grid.SetColumn(roll, 1);
                     workType = roll;
                     break;
                 case "Сварка":
+                    if (!MainWindow.M.IsLoadData && type.det.Detail.IsComplect)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Сварку\" на \"Комплект деталей\"!\n" +
+                            "Добавьте работу на конкретную нарезанную деталь из списка.");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
+                    var _weld = type.WorkControls.FirstOrDefault(x => x.workType is WeldControl);
+                    if (_weld != null)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Сварку\" повторно!");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
                     WeldControl weld = new(this);
                     WorkGrid.Children.Add(weld);
                     Grid.SetColumn(weld, 1);
                     workType = weld;
                     break;
                 case "Окраска":
+                    if (!MainWindow.M.IsLoadData && type.det.Detail.IsComplect)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Окраску\" на \"Комплект деталей\"!\n" +
+                            "Добавьте работу на конкретную нарезанную деталь из списка.");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
                     PaintControl paint = new(this);
                     WorkGrid.Children.Add(paint);
                     Grid.SetColumn(paint, 1);
@@ -276,30 +346,86 @@ namespace Metal_Code
                     workType = extraL;
                     break;
                 case "Лентопил":
+                    var _saw = type.WorkControls.FirstOrDefault(x => x.workType is SawControl);
+                    if (_saw != null)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Лентопил\" повторно!");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
                     SawControl saw = new(this);
                     WorkGrid.Children.Add(saw);
                     Grid.SetColumn(saw, 1);
                     workType = saw;
                     break;
                 case "Цинкование":
+                    if (!MainWindow.M.IsLoadData && type.det.Detail.IsComplect)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Оцинковку\" на \"Комплект деталей\"!\n" +
+                            "Добавьте работу на конкретную нарезанную деталь из списка.");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
+                    var _zinc = type.WorkControls.FirstOrDefault(x => x.workType is ZincControl);
+                    if (_zinc != null)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Цинкование\" повторно!");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
                     ZincControl zinc = new(this);
                     WorkGrid.Children.Add(zinc);
                     Grid.SetColumn(zinc, 1);
                     workType = zinc;
                     break;
                 case "Фрезеровка":
+                    if (!MainWindow.M.IsLoadData && type.det.Detail.IsComplect)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Фрезеровку\" на \"Комплект деталей\"!\n" +
+                            "Добавьте работу на конкретную нарезанную деталь из списка.");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
+                    var _milling = type.WorkControls.FirstOrDefault(x => x.workType is MillingTotalControl);
+                    if (_milling != null)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Фрезеровку\" повторно!");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
                     MillingTotalControl milling = new(this);
                     WorkGrid.Children.Add(milling);
                     Grid.SetColumn(milling, 1);
                     workType = milling;
                     break;
                 case "Заклепки":
+                    if (!MainWindow.M.IsLoadData && type.det.Detail.IsComplect)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Заклепки\" на \"Комплект деталей\"!\n" +
+                            "Добавьте работу на конкретную нарезанную деталь из списка.");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
                     ThreadControl rivets = new(this, "Зк");
                     WorkGrid.Children.Add(rivets);
                     Grid.SetColumn(rivets, 1);
                     workType = rivets;
                     break;
                 case "Аквабластинг":
+                    if (!MainWindow.M.IsLoadData && type.det.Detail.IsComplect)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Аквабластинг\" на \"Комплект деталей\"!\n" +
+                            "Добавьте работу на конкретную нарезанную деталь из списка.");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
+                    var _aqua = type.WorkControls.FirstOrDefault(x => x.workType is AquaControl);
+                    if (_aqua != null)
+                    {
+                        MessageBox.Show("Нельзя добавить \"Аквабластинг\" повторно!");
+                        WorkDrop.SelectedIndex = -1;
+                        break;
+                    }
                     AquaControl aqua = new(this);
                     WorkGrid.Children.Add(aqua);
                     Grid.SetColumn(aqua, 1);

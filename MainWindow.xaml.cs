@@ -115,6 +115,17 @@ namespace Metal_Code
             }
         }
 
+        private bool isLoadData = false;
+        public bool IsLoadData
+        {
+            get => isLoadData;
+            set
+            {
+                isLoadData = value;
+                OnPropertyChanged(nameof(IsLoadData));
+            }
+        }
+
         private bool isRequest = true;
         public bool IsRequest
         {
@@ -1832,7 +1843,10 @@ namespace Metal_Code
             IsExpressOffer = ProductModel.Product.IsExpressOffer;
             SetBonusRatio(ProductModel.Product.BonusRatio);
 
+            IsLoadData = true;
             LoadDetails(ProductModel.Product.Details);
+            IsLoadData = false;
+
             if (ProductModel.Product.Assemblies?.Count > 0)
                 AssemblyWindow.A = new() { Assemblies = ProductModel.Product.Assemblies };
             UpdateResult();
@@ -1874,6 +1888,7 @@ namespace Metal_Code
                         //получаем последний созданный контрол
                         WorkControl _work = DetailControls[i].TypeDetailControls[j].WorkControls[^1];
 
+                        
                         //получаем работу, совпадающую по имени с сохраненной, на случай, если она уже добавлена
                         WorkControl? work = _type.WorkControls.FirstOrDefault(w => w.WorkDrop.Text == item.NameWork && !item.NameWork.Contains("Доп"));
 

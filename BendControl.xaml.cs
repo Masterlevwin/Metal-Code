@@ -230,6 +230,8 @@ namespace Metal_Code
 
             if (owner is PartControl part)
             {
+                MainWindow.M.IsLoadData = true;
+
                 if (Group != "-")
                     if (part.owner is ICut _cut && _cut.PartsControl != null)
                         foreach (PartControl _p in _cut.PartsControl.Parts)
@@ -253,6 +255,7 @@ namespace Metal_Code
                         if (part.work.type.WorkControls[^1].workType is BendControl bend) bend.Group = Group;
                         break;
                     }
+                MainWindow.M.IsLoadData = false;
             }
             OnPriceChanged();
         }

@@ -99,44 +99,6 @@ namespace Metal_Code
             PopupDimensions.IsOpen = true;
         }
 
-        //private void AddControl(object sender, RoutedEventArgs e)
-        //{
-        //    if (sender is Button btn)
-        //        switch (btn.Name)
-        //        {
-        //            case "BendBtn":
-        //                AddControl(0);
-        //                break;
-        //            case "WeldBtn":
-        //                AddControl(1);
-        //                break;
-        //            case "PaintBtn":
-        //                AddControl(2);
-        //                break;
-        //            case "ThreadBtn":
-        //                AddControl(3);
-        //                break;
-        //            case "CountersinkBtn":
-        //                AddControl(4);
-        //                break;
-        //            case "DrillingBtn":
-        //                AddControl(5);
-        //                break;
-        //            case "RollingBtn":
-        //                AddControl(6);
-        //                break;
-        //            case "ZincBtn":
-        //                AddControl(7);
-        //                break;
-        //            case "MillingBtn":
-        //                AddControl(8);
-        //                break;
-        //            case "RivetsBtn":
-        //                AddControl(9);
-        //                break;
-        //        }
-        //}
-
         private void AddControl(object sender, RoutedEventArgs e)
         {
             AddControl(WorksDrop.SelectedIndex);
@@ -149,6 +111,11 @@ namespace Metal_Code
                     AddControl(new BendControl(this));
                     break;
                 case 1:
+                    if (UserControls.Count > 0 && UserControls.Any(r => r is WeldControl))
+                    {
+                        MainWindow.M.StatusBegin("Нельзя добавить больше одной сварки на деталь");
+                        return;
+                    }
                     AddControl(new WeldControl(this));
                     break;
                 case 2:

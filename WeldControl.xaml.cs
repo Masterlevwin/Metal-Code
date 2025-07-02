@@ -177,10 +177,9 @@ namespace Metal_Code
             }
             else if (owner is PartControl part)
             {
+                MainWindow.M.IsLoadData = true;
+
                 part.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
-                                
-                //PartBtn.Visibility = Visibility.Visible;
-                //PartBtn.Click += (o, e) => { part.RemoveControl(this); };
 
                 foreach (WorkControl w in part.work.type.WorkControls)
                     if (w.workType is WeldControl) return;
@@ -193,6 +192,7 @@ namespace Metal_Code
                         part.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
                         break;
                     }
+                MainWindow.M.IsLoadData = false;
             }
         }
 
