@@ -18,7 +18,7 @@
         <StackPanel>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="Загрузить DXF" Margin="10" Click="Load_DXF"/>
+                <Button Content="Загрузить DXF" Margin="10" Click="Load_Models"/>
                 <Button Content="Закрыть" Margin="10" Click="Close_RequestControl"/>
             </StackPanel>
 

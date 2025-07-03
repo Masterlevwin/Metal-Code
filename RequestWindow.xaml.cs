@@ -181,7 +181,7 @@ namespace Metal_Code
                 techItem.NumberName = Regex.Replace(techItem.NumberName, @"[^\p{L}\p{Nd}]+$", "");
 
                 //записываем путь к файлу
-                techItem.DxfPath = path;
+                techItem.PathToModel = path;
 
                 TechItems.Add(techItem);
             }
@@ -220,13 +220,13 @@ namespace Metal_Code
             //копируем файлы с новыми именами в эту папку
             foreach (TechItem techItem in TechItems)
             {
-                if (techItem.DxfPath is null || !File.Exists(techItem.DxfPath)) continue;
+                if (techItem.PathToModel is null || !File.Exists(techItem.PathToModel)) continue;
 
-                string newPath = dirGen + "\\" + techItem.NumberName + Path.GetExtension(techItem.DxfPath);
+                string newPath = dirGen + "\\" + techItem.NumberName + Path.GetExtension(techItem.PathToModel);
                 if (File.Exists(newPath)) continue;
 
-                File.Copy(techItem.DxfPath, newPath);
-                techItem.DxfPath = newPath;
+                File.Copy(techItem.PathToModel, newPath);
+                techItem.PathToModel = newPath;
             }
 
             RequestGrid.ItemsSource = null;
@@ -284,7 +284,7 @@ namespace Metal_Code
             {
                 requestsheet.Cells[i + 3, 1].Value = i + 1;
                 requestsheet.Cells[i + 3, 2].Value = TechItems[i].NumberName;
-                requestsheet.Cells[i + 3, 3].Value = MainWindow.GetSizes(TechItems[i].DxfPath);
+                requestsheet.Cells[i + 3, 3].Value = MainWindow.GetSizes(TechItems[i].PathToModel);
                 //if ($"{requestsheet.Cells[i + 3, 3].Value}" == "") message += $"\n{requestsheet.Cells[i + 3, 2].Value}";
                 requestsheet.Cells[i + 3, 4].Value = TechItems[i].Material;
                 requestsheet.Cells[i + 3, 5].Value = TechItems[i].Destiny;

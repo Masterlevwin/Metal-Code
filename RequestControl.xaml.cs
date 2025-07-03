@@ -102,10 +102,11 @@ namespace Metal_Code
             foreach (string path in Paths)
             {
                 TechItem techItem = new() { NumberName = Path.GetFileNameWithoutExtension(path),
-                                            OriginalName = Path.GetFileNameWithoutExtension(path) };
+                                            OriginalName = Path.GetFileNameWithoutExtension(path),
+                                            PathToModel = path};
 
                 //если заявка уже содержит строку этого файла, пропускаем его анализ
-                var _techItem = TechItems.FirstOrDefault(x => x.OriginalName == techItem.OriginalName);
+                var _techItem = TechItems.FirstOrDefault(x => x.PathToModel == techItem.PathToModel);
                 if (_techItem != null) continue;
 
                 //определяем материал
@@ -189,9 +190,6 @@ namespace Metal_Code
                 //очищаем наименование
                 techItem.NumberName = Regex.Replace(techItem.NumberName, @"[^\p{L}\p{Nd}]+$", "");
 
-                //записываем путь к файлу
-                techItem.DxfPath = path;
-
                 TechItems.Add(techItem);
             }
 
@@ -229,13 +227,13 @@ namespace Metal_Code
             //копируем файлы с новыми именами в эту папку
             foreach (TechItem techItem in TechItems)
             {
-                if (techItem.DxfPath is null || !File.Exists(techItem.DxfPath)) continue;
+                if (techItem.PathToModel is null || !File.Exists(techItem.PathToModel)) continue;
 
-                string newPath = dirGen + "\\" + techItem.NumberName + Path.GetExtension(techItem.DxfPath);
+                string newPath = dirGen + "\\" + techItem.NumberName + Path.GetExtension(techItem.PathToModel);
                 if (File.Exists(newPath)) continue;
 
-                File.Copy(techItem.DxfPath, newPath);
-                techItem.DxfPath = newPath;
+                File.Copy(techItem.PathToModel, newPath);
+                techItem.PathToModel = newPath;
             }
 
             RequestGrid.ItemsSource = null;
@@ -293,14 +291,18 @@ namespace Metal_Code
             {
                 requestsheet.Cells[i + 3, 1].Value = i + 1;
                 requestsheet.Cells[i + 3, 2].Value = TechItems[i].NumberName;
-                requestsheet.Cells[i + 3, 3].Value = MainWindow.GetSizes(TechItems[i].DxfPath);
+                requestsheet.Cells[i + 3, 3].Value = MainWindow.GetSizes(TechItems[i].PathToModel);
                 requestsheet.Cells[i + 3, 4].Value = TechItems[i].Material;
                 requestsheet.Cells[i + 3, 5].Value = TechItems[i].Destiny;
                 requestsheet.Cells[i + 3, 6].Value = TechItems[i].Count;
                 requestsheet.Cells[i + 3, 7].Value = TechItems[i].Route;
                 requestsheet.Cells[i + 3, 8].Value = TechItems[i].HasMaterial;
                 requestsheet.Cells[i + 3, 9].Value = TechItems[i].OriginalName;
+                requestsheet.Cells[i + 3, 10].Value = TechItems[i].PathToModel;
             }
+
+            requestsheet.Column(9).Hidden = true;
+            requestsheet.Column(10).Hidden = true;
 
             ExcelRange details = requestsheet.Cells[2, 1, TechItems.Count + 2, 9];     //получаем таблицу деталей для оформления
 
@@ -467,7 +469,7 @@ namespace Metal_Code
         }
 
         //загрузка новых файлов для обработки
-        private void Load_DXF(object sender, RoutedEventArgs e)
+        private void Load_Models(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new()
             {

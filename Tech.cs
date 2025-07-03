@@ -52,7 +52,8 @@ namespace Metal_Code
                         $"{(int)MainWindow.Parser($"{table.Rows[i].ItemArray[5]}") * countAssembly}",  //количество
                         $"{table.Rows[i].ItemArray[6]}",        //маршрут
                         $"{table.Rows[i].ItemArray[7]}",        //давальческий материал      
-                        $"{table.Rows[i].ItemArray[8]}");       //оригинальное наименование от заказчика
+                        $"{table.Rows[i].ItemArray[8]}",        //оригинальное наименование от заказчика
+                        $"{table.Rows[i].ItemArray[9]}");       //путь к файлу модели
                     TechItems.Add(techItem);
                 }
                 CountTechItems = TechItems.Count;
@@ -245,6 +246,8 @@ namespace Metal_Code
                     if (FoundItems.Count > 0) TechItems = TechItems.Except(FoundItems).ToList();
                 }
 
+                //Create_DirectoryForCut();
+
                 //создаем папку "КП" в директории заявки
                 Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "КП");
 
@@ -300,7 +303,7 @@ namespace Metal_Code
                                 {
                                     if (techItems == TechItems)
                                     {
-                                        TechItem? isFounded = FoundItems.FirstOrDefault(x => x.DxfPath == file);
+                                        TechItem? isFounded = FoundItems.FirstOrDefault(x => x.PathToModel == file);
                                         if (isFounded is null)
                                         {
                                             string destination = $"{techItem.Route}" == "" ?
@@ -310,7 +313,7 @@ namespace Metal_Code
                                                 + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route})" + $".{extension}";
 
                                             File.Copy(file, destination);
-                                            techItem.DxfPath = file;
+                                            techItem.PathToModel = file;
                                             FoundItems.Add(techItem);           //файл найден
                                         }
                                         else MessageBox.Show($"Проверьте файлы с именами {isFounded.NumberName} и {techItem.NumberName}.\n" +
@@ -320,7 +323,7 @@ namespace Metal_Code
                                     {
                                         File.Copy(file, dirMain + "\\" + $"{item}".Trim() + "\\"
                                             + $"{techItem.NumberName} n{techItem.Count}" + $".{extension}");
-                                        techItem.PdfPath = file;
+                                        techItem.PathToScan = file;
                                     }
                                     break;
                                 }
@@ -330,6 +333,37 @@ namespace Metal_Code
                 }
             }
             return files;
+        }
+
+        private void Create_DirectoryForCut()
+        {
+            //создаем папку "Лазер" в директории Excel-файла
+            DirectoryInfo dirLaser = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Лазер");
+
+            //получаем коллекцию уникальных строк на основе группировки по материалу и толщине
+            var dirMaterials = TechItems.GroupBy(m => new { m.Material, m.Destiny, m.HasMaterial })
+                .Select(g => $"{g.Key.Destiny} {g.Key.Material} {g.Key.HasMaterial}");
+
+            //создаем папки для каждого материала в директории работы
+            foreach (var item in dirMaterials) Directory.CreateDirectory(dirLaser + "\\" + $"{item}");
+
+            //сортируем полученные ранее объекты TechItem по соответствующим папкам
+            foreach (TechItem techItem in TechItems)
+            {
+                //копируем исходный файл в нужный каталог с рабочим именем для нашего производства
+                foreach (var item in dirMaterials)
+                    if ($"{techItem.Destiny} {techItem.Material} {techItem.HasMaterial}" == item)
+                    {
+                        string destination = $"{techItem.Route}" == "" ?
+                            dirLaser + "\\" + $"{item}".Trim() + "\\"
+                            + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count}" + $".dxf"
+                            : dirLaser + "\\" + $"{item}".Trim() + "\\"
+                            + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route})" + $".dxf";
+
+                        if (File.Exists(techItem.PathToModel)) File.Copy(techItem.PathToModel, destination);
+                        break;
+                    }
+            }
         }
 
         public void ClearDirectories()      //метод очищения пустых директорий
@@ -652,13 +686,13 @@ namespace Metal_Code
         public bool IsGenerated { get; set; } = false;
 
         [Browsable(false)]
-        public string? DxfPath { get; set; } = null!;
+        public string PathToModel { get; set; } = null!;
 
         [Browsable(false)]
-        public string? PdfPath { get; set; } = null!;
+        public string PathToScan { get; set; } = null!;
 
         public TechItem() { }
-        public TechItem(string numberName, string sizes, string material, string destiny, string count, string route, string hasMaterial, string originalName)
+        public TechItem(string numberName, string sizes, string material, string destiny, string count, string route, string hasMaterial, string originalName, string pathToModel)
         {
             NumberName = numberName;
             Sizes = sizes;
@@ -670,6 +704,7 @@ namespace Metal_Code
             if (hasMaterial.ToLower().Contains("дав")) HasMaterial = "Давальч";
             else HasMaterial = "";
             OriginalName = originalName;
+            PathToModel = pathToModel;
         }
     }
 }
