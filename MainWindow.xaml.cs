@@ -78,6 +78,7 @@ namespace Metal_Code
         };
 
         public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
+        public RequestControl? RequestControl;
 
         public Manager CurrentManager = new();      //текущий авторизованный менеджер
         public Manager TargetManager = new();       //выбранный менеджер из списка
@@ -114,6 +115,18 @@ namespace Metal_Code
                 OnPropertyChanged(nameof(IsLocal));
             }
         }
+        
+        private bool isRequest = true;
+        public bool IsRequest
+        {
+            get => isRequest;
+            set
+            {
+                isRequest = value;
+                PartsStack.Visibility = isRequest ? Visibility.Collapsed : Visibility.Visible;
+                OnPropertyChanged(nameof(IsRequest));
+            }
+        }
 
         private bool isLoadData = false;
         public bool IsLoadData
@@ -123,27 +136,6 @@ namespace Metal_Code
             {
                 isLoadData = value;
                 OnPropertyChanged(nameof(IsLoadData));
-            }
-        }
-
-        private bool isRequest = true;
-        public bool IsRequest
-        {
-            get => isRequest;
-            set
-            {
-                isRequest = value;
-                if (IsRequest)
-                {
-                    PartsStack.Visibility = Visibility.Hidden;
-                    RequestStack.Visibility = Visibility.Visible;
-                }
-                else
-                {
-                    PartsStack.Visibility = Visibility.Visible;
-                    RequestStack.Visibility = Visibility.Hidden;
-                }
-                OnPropertyChanged(nameof(IsRequest));
             }
         }
 
@@ -841,7 +833,6 @@ namespace Metal_Code
         //-------------Создание нового проекта-----------//
         public void NewProject()
         {
-            IsRequest = true;
             ClearDetails();     // удаляем все детали
             ClearCalculate();   // очищаем расчет
             AddDetail();        // добавляем пустой блок детали
@@ -1823,7 +1814,8 @@ namespace Metal_Code
         {
             if (ProductModel.Product == null) return;
 
-            IsRequest = false;
+            //выйти из режима заявки
+            if (RequestControl != null) CloseRequestControl();
 
             ProductName.Text = ProductModel.Product.Name;
             Order.Text = ProductModel.Product.Order;
@@ -1888,7 +1880,6 @@ namespace Metal_Code
                         //получаем последний созданный контрол
                         WorkControl _work = DetailControls[i].TypeDetailControls[j].WorkControls[^1];
 
-                        
                         //получаем работу, совпадающую по имени с сохраненной, на случай, если она уже добавлена
                         WorkControl? work = _type.WorkControls.FirstOrDefault(w => w.WorkDrop.Text == item.NameWork && !item.NameWork.Contains("Доп"));
 
@@ -4624,86 +4615,20 @@ namespace Metal_Code
                 Multiselect = true
             };
 
-            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0) CreateRequest(openFileDialog.FileNames);
-            else StatusBegin($"Не выбрано ни одного файла");
-        }
-        private void CreateRequestTemplate(object sender, RoutedEventArgs e)    //экспресс-заявка с анализом шаблона
-        {
-            OpenFileDialog openFileDialog = new()
-            {
-                Filter = "All files (*.*)|*.*",
-                Multiselect = true
-            };
-
             if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
             {
-                RequestWindow requestWindow = new(openFileDialog.FileNames);
-                requestWindow.Show();
+                RequestControl = new(openFileDialog.FileNames.ToList());
+                WindowGrid.Children.Insert(0, RequestControl);
+                IsRequest = true;
             }
             else StatusBegin($"Не выбрано ни одного файла");
         }
-        public void CreateRequest(string[] _paths)
+
+        public void CloseRequestControl()
         {
-            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
-
-            using var workbook = new ExcelPackage();
-            ExcelWorksheet requestsheet = workbook.Workbook.Worksheets.Add("Заявка");
-
-            //оформляем статичные ячейки по умолчанию
-            requestsheet.Cells[1, 1].Value = "Расшифровка работ: гиб - гибка, вальц - вальцовка, зен - зенковка," +
-                "рез - резьба, свар - сварка,\nокр - окраска, оц - оцинковка, грав - гравировка, фрез - фрезеровка, " +
-                "аква - аквабластинг, лен - лентопил";
-            requestsheet.Cells[1, 1, 1, 9].Merge = true;
-            requestsheet.Cells[1, 1, 1, 9].Style.WrapText = true;
-            requestsheet.Cells[1, 1, 1, 9].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            requestsheet.Cells[1, 1, 1, 9].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            requestsheet.Row(1).Height = 30;
-            requestsheet.Cells[_paths.Length + 3, 5].Value = "Кол-во комплектов";
-            requestsheet.Cells[_paths.Length + 3, 6].Value = 1;
-            requestsheet.Cells[_paths.Length + 3, 6].Style.Font.Color.SetColor(System.Drawing.Color.Red);
-            requestsheet.Cells[_paths.Length + 3, 5, _paths.Length + 3, 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            requestsheet.Cells[_paths.Length + 3, 5, _paths.Length + 3, 6].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            requestsheet.Cells[_paths.Length + 3, 5].Style.Border.Right.Style = ExcelBorderStyle.Thin;
-            requestsheet.Cells[_paths.Length + 3, 5, _paths.Length + 3, 6].Style.Border.BorderAround(ExcelBorderStyle.Medium);
-
-            //устанавливаем заголовки таблицы
-            List<string> _heads = new() { "№", "№ чертежа", "Размеры", "Металл", "Толщина", "Кол-во деталей", "Маршрут", "Давальч", "Исходник" };
-            for (int head = 0; head < _heads.Count; head++) requestsheet.Cells[2, head + 1].Value = _heads[head];
-
-            //string message = "";
-            for (int i = 0; i < _paths.Length; i++)
-            {
-                requestsheet.Cells[i + 3, 1].Value = i + 1;
-                requestsheet.Cells[i + 3, 2].Value = Path.GetFileNameWithoutExtension(_paths[i]);
-                requestsheet.Cells[i + 3, 3].Value = GetSizes(_paths[i]);
-                //if ($"{requestsheet.Cells[i + 3, 3].Value}" == "") message += $"\n{requestsheet.Cells[i + 3, 2].Value}";
-            }
-            //if (message != "") MessageBox.Show(message.Insert(0, "Не удалось получить габариты следующих деталей:"));
-
-            ExcelRange details = requestsheet.Cells[2, 1, _paths.Length + 2, 9];     //получаем таблицу деталей для оформления
-
-            //обводка границ и авторастягивание столбцов
-            details.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            details.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            details.Style.Border.Right.Style = details.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-            details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
-
-            requestsheet.Cells.AutoFitColumns();
-            requestsheet.Cells[2, 1, 2, 9].Style.WrapText = true;
-            requestsheet.Cells[2, 1, 2, 9].Style.Font.Bold = true;
-
-            //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
-            requestsheet.PrinterSettings.FitToPage = true;
-            requestsheet.PrinterSettings.FitToWidth = 1;
-            requestsheet.PrinterSettings.FitToHeight = 0;
-            requestsheet.PrinterSettings.HorizontalCentered = true;
-
-            //сохраняем книгу в файл Excel
-            workbook.SaveAs($"{Path.GetDirectoryName(_paths[0])}\\Заявка.xlsx");
-
-            StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(_paths[0])}");
-
-            Process.Start("explorer.exe", $"{Path.GetDirectoryName(_paths[0])}\\Заявка.xlsx");
+            WindowGrid.Children.RemoveAt(0);
+            RequestControl = null;
+            IsRequest = false;
         }
 
         //------------Получение габаритов детали из dxf----------//
@@ -5371,188 +5296,6 @@ namespace Metal_Code
         #endregion
 
 
-        //-------------------LEGACY методы-----------------------//
-        #region
-        //метод расчета количества рабочих дней
-        //private void SetDate(object sender, SelectionChangedEventArgs e)
-        //{
-        //    if (datePicker.SelectedDate is not null) DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
-
-        //    static int GetBusinessDays(DateTime startD, DateTime endD)
-        //    {
-        //        int calcBusinessDays =
-        //            (int)(1 + ((endD - startD).TotalDays * 5 -
-        //            (startD.DayOfWeek - endD.DayOfWeek) * 2) / 7);
-
-        //        if (endD.DayOfWeek == DayOfWeek.Saturday) calcBusinessDays--;
-        //        if (startD.DayOfWeek == DayOfWeek.Sunday) calcBusinessDays--;
-
-        //        return calcBusinessDays;
-        //    }
-        //}
-
-        //обновление баз заготовок, работ и материалов посредством подключения к базам
-        private void UpdateDatabases(bool isLegacy)
-        {
-            if (!IsLocal) return;                                   //если запущена основная база, выходим из метода
-
-            //подключаемся к основной базе типовых деталей
-            using (TypeDetailContext dbType = new(connections[3]))
-            {
-                dbType.TypeDetails.Load();
-
-                if (dbType.Database.CanConnect())   //проверяем, свободна ли база для подключения
-                {
-                    //подключаемся к локальной базе данных
-                    using TypeDetailContext dbLocalType = new(connections[2]);
-                    foreach (TypeDetail typeDetail in dbType.TypeDetails.Local.ToObservableCollection())
-                    {
-                        // получаем типовую деталь из локальной базы, совпадающую с типовой деталью из основной базы по имени
-                        TypeDetail? type = dbLocalType.TypeDetails.FirstOrDefault(t => t.Name == typeDetail.Name);
-
-                        if (type != null)       //если такая типовая деталь существует, меняем её второстепенные свойства
-                        {
-                            type.Price = typeDetail.Price;
-                            type.Sort = typeDetail.Sort;
-                        }
-                        else                    //иначе создаем новую типовую деталь и добавляем ее в локальную базу
-                        {
-                            TypeDetail _type = new()
-                            {
-                                Name = typeDetail.Name,
-                                Price = typeDetail.Price,
-                                Sort = typeDetail.Sort
-                            };
-                            dbLocalType.TypeDetails.Add(_type);
-                        }
-                    }
-                    dbLocalType.SaveChanges();  //сохраняем изменения в локальной базе типовых деталей
-                }
-            }
-
-            //подключаемся к основной базе работ
-            using WorkContext dbWork = new(connections[5]);
-            dbWork.Works.Load();
-
-            if (dbWork.Database.CanConnect())   //проверяем, свободна ли база для подключения
-            {
-                try
-                {
-                    //подключаемся к локальной базе данных
-                    using WorkContext dbLocalWork = new(connections[4]);
-
-                    foreach (Work w in dbWork.Works.Local.ToObservableCollection())
-                    {
-                        // получаем работу из локальной базы, совпадающую с работой из основной базы по имени
-                        Work? work = dbLocalWork.Works.FirstOrDefault(r => r.Name == w.Name);
-
-                        if (work != null)       //если такая работа существует, меняем её второстепенные свойства
-                        {
-                            work.Price = w.Price;
-                            work.Time = w.Time;
-                        }
-                        else                    //иначе создаем новую работу и добавляем ее в локальную базу
-                        {
-                            Work _work = new()
-                            {
-                                Name = w.Name,
-                                Price = w.Price,
-                                Time = w.Time
-                            };
-                            dbLocalWork.Works.Add(_work);
-                        }
-                    }
-                    dbLocalWork.SaveChanges();
-                }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin(ex.Message);
-                }
-            }
-
-            //подключаемся к основной базе металлов
-            using MetalContext dbMetal = new(connections[7]);
-            dbMetal.Metals.Load();
-
-            if (dbMetal.Database.CanConnect())   //проверяем, свободна ли база для подключения
-            {
-                try
-                {
-                    //подключаемся к локальной базе данных
-                    using MetalContext dbLocalMetal = new(connections[6]);
-
-                    foreach (Metal met in dbMetal.Metals.Local.ToObservableCollection())
-                    {
-                        // получаем работу из локальной базы, совпадающую с работой из основной базы по имени
-                        Metal? metal = dbLocalMetal.Metals.FirstOrDefault(m => m.Name == met.Name);
-
-                        if (metal != null)       //если такая работа существует, меняем её второстепенные свойства
-                        {
-                            metal.Density = met.Density;
-                            metal.MassPrice = met.MassPrice;
-                            metal.WayPrice = met.WayPrice;
-                            metal.PinholePrice = met.PinholePrice;
-                            metal.MoldPrice = met.MoldPrice;
-                        }
-                        else                    //иначе создаем новую работу и добавляем ее в локальную базу
-                        {
-                            Metal _metal = new()
-                            {
-                                Name = met.Name,
-                                Density = met.Density,
-                                MassPrice = met.MassPrice,
-                                WayPrice = met.WayPrice,
-                                PinholePrice = met.PinholePrice,
-                                MoldPrice = met.MoldPrice
-                            };
-                            dbLocalMetal.Metals.Add(_metal);
-                        }
-                    }
-                    dbLocalMetal.SaveChanges();
-                }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin(ex.Message);
-                }
-            }
-        }
-        //private void AnalyseDateProduction(object sender, RoutedEventArgs e) { AnalyseDateProduction(); }
-        private void AnalyseDateProduction(string path = "Y:\\Производство\\Laser rezka\\В работу")
-        {
-            if (!File.Exists(path + "\\!Реестр ЗАКРЫВАЙТЕ.xlsx"))
-            {
-                StatusBegin($"Реестра не существует в папке, или он переименован.");
-                return;
-            }
-
-            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
-
-            using var workbook = new ExcelPackage(path + "\\!Реестр ЗАКРЫВАЙТЕ.xlsx");
-            ExcelWorksheet notesheet = workbook.Workbook.Worksheets[0];
-
-            int endRow = notesheet.Cells.Where(c => c.Start.Column == 2 && !string.IsNullOrEmpty(c.Text)).Last().Start.Row;     //номер последней строки реестра
-            int timeLaser = 0; int timeBend = 0;                //счетчики времени работ лазера и гибки
-
-            string[] dirs = Directory.GetDirectories(path);     //получаем все подкаталоги с невырезанными заказами
-            foreach (string s in dirs)
-            {
-                for (int i = endRow; i > 0; i--)
-                {
-                    if (notesheet.Cells[i, 2].Value != null && s.Contains($"{notesheet.Cells[i, 2].Value}"))
-                    {
-                        if (notesheet.Cells[i, 13].Value != null && int.TryParse($"{notesheet.Cells[i, 13].Value}", out int l) && notesheet.Cells[i, 19].Value != null && int.TryParse($"{notesheet.Cells[i, 19].Value}", out int rl)) timeLaser += l / rl;
-                        else if (notesheet.Cells[i, 13].Value != null && int.TryParse($"{notesheet.Cells[i, 13].Value}", out int vl)) timeLaser += vl;
-                        if (notesheet.Cells[i, 14].Value != null && int.TryParse($"{notesheet.Cells[i, 14].Value}", out int b) && notesheet.Cells[i, 19].Value != null && int.TryParse($"{notesheet.Cells[i, 19].Value}", out int rb)) timeBend += b / rb;
-                        else if (notesheet.Cells[i, 14].Value != null && int.TryParse($"{notesheet.Cells[i, 14].Value}", out int vb)) timeBend += vb;
-                    }
-                }
-            }
-
-            StatusBegin($"Лазер: {Math.Round((decimal)timeLaser / 60 / 12)} дней; Гибка: {Math.Round((decimal)timeBend / 60 / 12)} дней; Кол-во папок в работе - {dirs.Length}");
-        }
-        #endregion
-
-
         //-------------Экспериметы и тесты-----------------------//
         #region
         private void TestMetod(object sender, RoutedEventArgs e)
@@ -5620,83 +5363,59 @@ namespace Metal_Code
             }
             MessageBox.Show(message);
         }
-
-        private void CreateRequestTest(object sender, RoutedEventArgs e)    //экспресс-заявка с анализом шаблона
+        
+        //метод анализа срока изготовления на основе старого реестра
+        private void AnalyseDateProduction(string path = "Y:\\Производство\\Laser rezka\\В работу")
         {
-            OpenFileDialog openFileDialog = new()
+            if (!File.Exists(path + "\\!Реестр ЗАКРЫВАЙТЕ.xlsx"))
             {
-                Filter = "All files (*.*)|*.*",
-                Multiselect = true
-            };
-
-            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
-            {
-                RequestWindow requestWindow = new(openFileDialog.FileNames);
-                requestWindow.Show();
+                StatusBegin($"Реестра не существует в папке, или он переименован.");
+                return;
             }
-            else StatusBegin($"Не выбрано ни одного файла");
+
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var workbook = new ExcelPackage(path + "\\!Реестр ЗАКРЫВАЙТЕ.xlsx");
+            ExcelWorksheet notesheet = workbook.Workbook.Worksheets[0];
+
+            int endRow = notesheet.Cells.Where(c => c.Start.Column == 2 && !string.IsNullOrEmpty(c.Text)).Last().Start.Row;     //номер последней строки реестра
+            int timeLaser = 0; int timeBend = 0;                //счетчики времени работ лазера и гибки
+
+            string[] dirs = Directory.GetDirectories(path);     //получаем все подкаталоги с невырезанными заказами
+            foreach (string s in dirs)
+            {
+                for (int i = endRow; i > 0; i--)
+                {
+                    if (notesheet.Cells[i, 2].Value != null && s.Contains($"{notesheet.Cells[i, 2].Value}"))
+                    {
+                        if (notesheet.Cells[i, 13].Value != null && int.TryParse($"{notesheet.Cells[i, 13].Value}", out int l) && notesheet.Cells[i, 19].Value != null && int.TryParse($"{notesheet.Cells[i, 19].Value}", out int rl)) timeLaser += l / rl;
+                        else if (notesheet.Cells[i, 13].Value != null && int.TryParse($"{notesheet.Cells[i, 13].Value}", out int vl)) timeLaser += vl;
+                        if (notesheet.Cells[i, 14].Value != null && int.TryParse($"{notesheet.Cells[i, 14].Value}", out int b) && notesheet.Cells[i, 19].Value != null && int.TryParse($"{notesheet.Cells[i, 19].Value}", out int rb)) timeBend += b / rb;
+                        else if (notesheet.Cells[i, 14].Value != null && int.TryParse($"{notesheet.Cells[i, 14].Value}", out int vb)) timeBend += vb;
+                    }
+                }
+            }
+
+            StatusBegin($"Лазер: {Math.Round((decimal)timeLaser / 60 / 12)} дней; Гибка: {Math.Round((decimal)timeBend / 60 / 12)} дней; Кол-во папок в работе - {dirs.Length}");
         }
 
+        //метод расчета количества рабочих дней
+        //private void SetDate(object sender, SelectionChangedEventArgs e)
+        //{
+        //    //if (datePicker.SelectedDate is not null) DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
+
+        //    static int GetBusinessDays(DateTime startD, DateTime endD)
+        //    {
+        //        int calcBusinessDays =
+        //            (int)(1 + ((endD - startD).TotalDays * 5 -
+        //            (startD.DayOfWeek - endD.DayOfWeek) * 2) / 7);
+
+        //        if (endD.DayOfWeek == DayOfWeek.Saturday) calcBusinessDays--;
+        //        if (startD.DayOfWeek == DayOfWeek.Sunday) calcBusinessDays--;
+
+        //        return calcBusinessDays;
+        //    }
+        //}
         #endregion
-
-        private void Save_Template(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void Remove_Template(object sender, KeyEventArgs e)
-        {
-
-        }
-
-        private void Analyze_Paths(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void Rename_Details(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void ShowPopup_Gen(object sender, MouseEventArgs e)
-        {
-
-        }
-
-        private void CopyValue_MouseUp(object sender, MouseButtonEventArgs e)
-        {
-
-        }
-
-        private void Delete_WithoutNames(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void ShowPopup_Del(object sender, MouseEventArgs e)
-        {
-
-        }
-
-        private void Create_Request(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void Create_Tech(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void Launch_Tech(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void Set_IsRequest(object sender, RoutedEventArgs e)
-        {
-            IsRequest = !IsRequest;
-        }
     }
 }

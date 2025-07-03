@@ -114,11 +114,6 @@
                         <Image Source="/Images/open3.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Заявка по шаблону" Click="CreateRequestTemplate">
-                    <MenuItem.Icon>
-                        <Image Source="/Images/express.png"/>
-                    </MenuItem.Icon>
-                </MenuItem>
             </MenuItem>
             <MenuItem Header="О программе">
                 <MenuItem Header="Руководство" Click="OpenExample">
@@ -137,7 +132,7 @@
                 <ColumnDefinition MaxWidth="560"/>
             </Grid.ColumnDefinitions>
 
-            <StackPanel x:Name="PartsStack" Margin="5" d:Visibility="Collapsed" Visibility="{Binding IsRequest, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
+            <StackPanel x:Name="PartsStack" Margin="5">
                 
                 <GroupBox x:Name="ProductBox" Margin="5" MaxHeight="350" MinHeight="350">
                     <GroupBox.Header>
@@ -197,134 +192,6 @@
                 </GroupBox>
 
             </StackPanel>
-
-            <GroupBox x:Name="RequestStack" Margin="5" d:Visibility="Visible" Visibility="{Binding IsRequest, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" MinHeight="700">
-                <GroupBox.Header>
-                    <TextBlock Text="Заявка" FontWeight="Bold" FontSize="14"/>
-                </GroupBox.Header>
-
-                <StackPanel>
-                    <Button Content="Переключить" HorizontalAlignment="Left" Margin="10" Click="Set_IsRequest"/>
-                    
-                    <GroupBox MaxHeight="120" Margin="5" HorizontalAlignment="Center">
-                        <GroupBox.Header>
-                            <TextBlock Text="Наименования выбранных файлов" FontSize="14" FontWeight="Bold"/>
-                        </GroupBox.Header>
-
-                        <ListBox x:Name="PathsList" Margin="5" Padding="2"/>
-                    </GroupBox>
-
-                    <StackPanel Orientation="Horizontal" Margin="5" HorizontalAlignment="Center" MinHeight="150" MaxHeight="150">
-                        <GroupBox Margin="5" HorizontalAlignment="Center">
-                            <GroupBox.Header>
-                                <TextBlock Text="Определите шаблон распознавания" FontSize="14" FontWeight="Bold"/>
-                            </GroupBox.Header>
-
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="5">
-                                    <TextBlock Text="Толщина" MinWidth="70" MaxWidth="70" VerticalAlignment="Center" FontWeight="Medium"/>
-                                    <TextBox Text="{Binding DestinyPattern}" MinWidth="50" Margin="20,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" MaxWidth="50"/>
-                                    <RadioButton x:Name="BeforeDestiny" IsChecked="{Binding PosDestiny}" Content="до" Margin="20,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" GroupName="DestinyGroup" Padding="3"/>
-                                    <TextBlock Text="[толщ]" Margin="10,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="50" MaxWidth="50"/>
-                                    <RadioButton x:Name="AfterDestiny" Content="после" Margin="10,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" GroupName="DestinyGroup" Padding="3"/>
-                                </StackPanel>
-
-                                <StackPanel Orientation="Horizontal" Margin="5">
-                                    <TextBlock Text="Количество" MinWidth="70" MaxWidth="70" VerticalAlignment="Center" FontWeight="Medium"/>
-                                    <TextBox Text="{Binding CountPattern}" MinWidth="50" Margin="20,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="50"/>
-                                    <RadioButton x:Name="BeforeCount" IsChecked="{Binding PosCount}" Content="до" Margin="20,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" GroupName="CountGroup" Padding="3"/>
-                                    <TextBlock Text="[кол]" Margin="10,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="50" MaxWidth="50"/>
-                                    <RadioButton x:Name="AfterCount" Content="после" Margin="10,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" GroupName="CountGroup" Padding="3"/>
-                                </StackPanel>
-
-                                <StackPanel Orientation="Horizontal" Margin="5">
-                                    <TextBlock Text="Имя шаблона" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Medium"/>
-                                    <StackPanel x:Name="TemplateNameStack" Orientation="Horizontal" Background="White" Margin="20,0,0,0">
-                                        <TextBlock Text="{Binding DestinyPattern}" Margin="5,0,5,0" Foreground="Blue" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsChecked, Converter={StaticResource BoolToVisibilityConverter}, ElementName=BeforeDestiny}"/>
-                                        <TextBlock Text="[толщ]" Margin="5,0,5,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        <TextBlock Text="{Binding DestinyPattern}" Margin="5,0,5,0" Foreground="Blue" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsChecked, Converter={StaticResource BoolToVisibilityConverter}, ElementName=AfterDestiny}"/>
-                                        <TextBlock Text="{Binding CountPattern}" Margin="10,0,5,0" Foreground="Blue" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsChecked, Converter={StaticResource BoolToVisibilityConverter}, ElementName=BeforeCount}"/>
-                                        <TextBlock Text="[кол]" Margin="5,0,5,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        <TextBlock Text="{Binding CountPattern}" Margin="5,0,5,0" Foreground="Blue" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsChecked, Converter={StaticResource BoolToVisibilityConverter}, ElementName=AfterCount}"/>
-                                    </StackPanel>
-                                    <Button Content="Сохранить шаблон" Padding="5" Click="Save_Template" Margin="20,0,0,0"/>
-                                </StackPanel>
-                            </StackPanel>
-                        </GroupBox>
-
-                        <GroupBox Margin="5" HorizontalAlignment="Center">
-                            <GroupBox.Header>
-                                <TextBlock Text="Выберите шаблон из списка" FontSize="14" FontWeight="Bold"/>
-                            </GroupBox.Header>
-
-                            <StackPanel Orientation="Horizontal" Margin="5">
-                                <ListBox x:Name="TemplatesList" Margin="5" Padding="2" MinWidth="150" KeyDown="Remove_Template" ToolTip="Клавиша Del - удалить шаблон">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Name}" HorizontalAlignment="Center" Padding="2"/>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                                <StackPanel Margin="5" VerticalAlignment="Center">
-                                    <Button Content="Запустить анализ" Margin="5" Padding="5" Click="Analyze_Paths" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="5">
-                                        <Button Content="Генерация"  Padding="5" Click="Rename_Details" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        <Image Source="/Images/question.png" MouseEnter="ShowPopup_Gen" MaxHeight="20"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </StackPanel>
-                        </GroupBox>
-                    </StackPanel>
-
-                    <GroupBox HorizontalAlignment="Center">
-                        <GroupBox.Header>
-                            <TextBlock Text="Отредактируйте заявку" FontSize="14" FontWeight="Bold"/>
-                        </GroupBox.Header>
-
-                        <StackPanel>
-                            <DataGrid x:Name="RequestGrid" ItemsSource="{Binding TechItems}" SelectionUnit="Cell" MaxHeight="200" CanUserReorderColumns="False" CanUserDeleteRows="False" CanUserAddRows="False" BorderBrush="Red" EnableColumnVirtualization="True" CanUserResizeRows="False" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="10" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" MouseUp="CopyValue_MouseUp" MaxWidth="800"/>
-                            <StackPanel Orientation="Horizontal" Margin="5">
-                                <TextBox x:Name="DeleteText" Margin="5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="120" MaxWidth="120"/>
-                                <Button Content="Удалить" Margin="5" Padding="5" Click="Delete_WithoutNames"/>
-                                <Image Source="/Images/question.png" MouseEnter="ShowPopup_Del" MaxHeight="20"/>
-                                <TextBlock Text="Количество комплектов" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="100,0,0,0" MaxWidth="70" TextWrapping="Wrap"/>
-                                <TextBox x:Name="CountText" FontWeight="Bold" Foreground="Red" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" MinWidth="40" MaxWidth="40" Margin="5" Text="1"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </GroupBox>
-
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Button ToolTip="Создать заявку в формате Excel" Click="Create_Request" HorizontalAlignment="Center" Margin="5">
-                            <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="22">
-                                <Image Source="Images/comment.png"/>
-                                <TextBlock Text="Создать заявку" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
-                            </StackPanel>
-                        </Button>
-                        <Button ToolTip="Подготовить папки в работу" Click="Create_Tech" Margin="5">
-                            <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="22">
-                                <Image Source="Images/complect.png"/>
-                                <TextBlock Text="Папки в работу" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
-                            </StackPanel>
-                        </Button>
-                        <Button ToolTip="Создать заявку и подготовить папки в работу" Click="Launch_Tech" Margin="5">
-                            <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="22">
-                                <Image Source="Images/comment.png"/>
-                                <TextBlock Text="и" Margin="5,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                <Image Source="Images/complect.png" Margin="5,0,0,0"/>
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-
-                    <Popup x:Name="Popup" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Scroll" StaysOpen="False">
-                        <Border BorderThickness="1" CornerRadius="1" BorderBrush="Red">
-                            <StackPanel Background="Snow">
-                                <TextBlock x:Name="Details" TextAlignment="Center" Padding="5"/>
-                            </StackPanel>
-                        </Border>
-                    </Popup>
-
-                </StackPanel>
-            </GroupBox>
 
             <StatusBar x:Name="Status" BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Background="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}" MinHeight="25" MaxHeight="25" Margin="10,0,10,10" VerticalAlignment="Bottom">
                 <StackPanel Orientation="Horizontal">

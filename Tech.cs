@@ -112,67 +112,109 @@ namespace Metal_Code
                     {
                         if (work.Key.ToLower().Contains("гиб"))
                         {
-                            DirectoryInfo dirBend = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Гибка");
-                            SortExtension(dirBend, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Гибка");
+                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
                         }
                         
                         if (work.Key.ToLower().Contains("вальц"))
                         {
-                            DirectoryInfo dirRoll = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Вальцовка");
-                            SortExtension(dirRoll, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Вальцовка");
+                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
                         }
 
                         if (work.Key.ToLower().Contains("фрез"))
                         {
-                            DirectoryInfo dirZinc = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Фрезеровка");
-                            SortExtension(dirZinc, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Фрезеровка");
+                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
                         }
                         else if (work.Key.ToLower().Contains("рез"))
                         {
-                            DirectoryInfo dirThread = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Резьба");
-                            SortExtension(dirThread, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Резьба");
+                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
                         }
-                        
+
                         if (work.Key.ToLower().Contains("зен"))
                         {
-                            DirectoryInfo dirCountersink = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Зенковка");
-                            SortExtension(dirCountersink, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Зенковка");
+                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
                         }
-                        
+
                         if (work.Key.ToLower().Contains("зак"))
                         {
-                            DirectoryInfo dirCountersink = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Заклепки");
-                            SortExtension(dirCountersink, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Заклепки");
+                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
                         }
-                        
+
                         if (work.Key.ToLower().Contains("свер"))
                         {
-                            DirectoryInfo dirDrilling = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Сверловка");
-                            SortExtension(dirDrilling, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Сверловка");
+                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
                         }
-                        
+
                         if (work.Key.ToLower().Contains("свар"))
                         {
-                            DirectoryInfo dirWeld = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Сварка");
-                            SortExtension(dirWeld, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Сварка");
+                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
                         }
-                        
+
                         if (work.Key.ToLower().Contains("окр"))
                         {
-                            DirectoryInfo dirPaint = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Окраска");
-                            SortExtension(dirPaint, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Окраска");
+                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
                         }
-                        
+
                         if (work.Key.ToLower().Contains("оц"))
                         {
-                            DirectoryInfo dirZinc = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Оцинковка");
-                            SortExtension(dirZinc, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Оцинковка");
+                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
                         }
-                        
+
                         if (work.Key.ToLower().Contains("лен"))
                         {
-                            DirectoryInfo dirZinc = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Лентопил");
-                            SortExtension(dirZinc, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Лентопил");
+                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
+                        }
+
+                        if (work.Key.ToLower().Contains("аква"))
+                        {
+                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Аквабластинг");
+                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
+                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
                         }
                     }
 
