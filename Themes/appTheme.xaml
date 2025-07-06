@@ -75,12 +75,16 @@
         </Setter>
     </Style>
 
-    <!-- Textblock -->
+    <!-- Types -->
     <Style TargetType="{x:Type TextBlock}">
         <Setter Property="TextWrapping" Value="NoWrap"/>
         <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
         <Setter Property="TextAlignment" Value="Left"/>
         <Setter Property="Foreground" Value="{StaticResource ControlDefaultForeground}"/>
+    </Style>
+
+    <Style TargetType="{x:Type GridSplitter}">
+        <Setter Property="BorderBrush" Value="#FFFF7D00"/>
     </Style>
 
     <Style TargetType="{x:Type TextBox}">
@@ -94,34 +98,41 @@
             </Trigger>
         </Style.Triggers>
     </Style>
+    
     <Style TargetType="{x:Type Window}">
         <Setter Property="FontFamily" Value="Century"/>
         <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}"/>
         <Setter Property="BorderBrush" Value="#FFFF7D00"/>
         <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
     </Style>
+    
     <Style TargetType="{x:Type UserControl}">
         <Setter Property="FontFamily" Value="Century"/>
         <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}"/>
         <Setter Property="BorderBrush" Value="#FFFF7D00"/>
         <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
     </Style>
+    
     <Style TargetType="{x:Type Button}">
         <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.InfoBrushKey}}"/>
         <Setter Property="BorderBrush" Value="#FFFF7D00"/>
         <Setter Property="Padding" Value="2"/>
     </Style>
+    
     <Style TargetType="{x:Type CheckBox}">
         <Setter Property="BorderBrush" Value="#FFFF7D00"/>
     </Style>
+    
     <Style TargetType="{x:Type TreeView}">
         <Setter Property="FontFamily" Value="Century"/>
         <Setter Property="BorderBrush" Value="#FFFF7D00"/>
         <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
     </Style>
+    
     <Style TargetType="{x:Type TreeViewItem}">
         <Setter Property="IsExpanded" Value="true"/>
     </Style>
+    
     <Style TargetType="{x:Type GroupBox}">
         <Setter Property="FontFamily" Value="Century"/>
         <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
@@ -438,7 +449,6 @@
             </Trigger>
         </Style.Triggers>
     </Style>
-
     <Style TargetType="{x:Type ComboBoxItem}">
         <Setter Property="SnapsToDevicePixels" Value="True"/>
         <Setter Property="Padding" Value="4,1"/>
@@ -535,6 +545,7 @@
         <Setter Property="AlternationCount" Value="2"/>
         <Setter Property="BorderBrush" Value="#FFFF7D00"/>
     </Style>
+    
     <Style TargetType="DataGridRow">
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
@@ -543,12 +554,14 @@
             </Trigger>
         </Style.Triggers>
     </Style>
+    
     <Style TargetType="{x:Type TabControl}">
         <Setter Property="FontFamily" Value="Century"/>
         <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}"/>
         <Setter Property="BorderBrush" Value="#FFFF7D00"/>
         <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
     </Style>
+    
     <Style TargetType="{x:Type ToolTip}">
         <Setter Property="FontFamily" Value="Century"/>
     </Style>

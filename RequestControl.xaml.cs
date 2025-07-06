@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
@@ -97,7 +98,10 @@ namespace Metal_Code
         private void Analyze_Paths(object sender, RoutedEventArgs e) { Analyze_Paths(); }
         private void Analyze_Paths()
         {
-            if (Paths.Count == 0 || TemplatesList.SelectedItem is not RequestTemplate template) return;
+            if (Paths.Count == 0) return;
+
+            RequestTemplate template = TemplatesList.SelectedItem is not RequestTemplate ?
+                new RequestTemplate() : (RequestTemplate)TemplatesList.SelectedItem;
 
             foreach (string path in Paths)
             {
@@ -483,5 +487,85 @@ namespace Metal_Code
             }
             else MainWindow.M.StatusBegin($"Не выбрано ни одного файла");
         }
+    }
+
+    public class RequestTemplate : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        public int Id { get; set; }
+
+        private string name = "по умолчанию";
+        public string Name
+        {
+            get => name;
+            set
+            {
+                if (name != value)
+                {
+                    name = value;
+                    OnPropertyChanged(nameof(Name));
+                }
+            }
+        }
+
+        private string destinyPattern = "s";
+        public string DestinyPattern
+        {
+            get => destinyPattern;
+            set
+            {
+                if (destinyPattern != value)
+                {
+                    destinyPattern = value;
+                    OnPropertyChanged(nameof(DestinyPattern));
+                }
+            }
+        }
+
+        private string countPattern = "n";
+        public string CountPattern
+        {
+            get => countPattern;
+            set
+            {
+                if (countPattern != value)
+                {
+                    countPattern = value;
+                    OnPropertyChanged(nameof(CountPattern));
+                }
+            }
+        }
+
+        private bool posDestiny = true;
+        public bool PosDestiny
+        {
+            get => posDestiny;
+            set
+            {
+                if (posDestiny != value)
+                {
+                    posDestiny = value;
+                    OnPropertyChanged(nameof(PosDestiny));
+                }
+            }
+        }
+
+        private bool posCount = true;
+        public bool PosCount
+        {
+            get => posCount;
+            set
+            {
+                if (posCount != value)
+                {
+                    posCount = value;
+                    OnPropertyChanged(nameof(PosCount));
+                }
+            }
+        }
+
+        public RequestTemplate() { }
     }
 }

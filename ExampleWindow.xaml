@@ -10,8 +10,11 @@
             <TabItem Header="Порядок действий">
                 <Image Source="/Images/exampe0.png" />
             </TabItem>
-            <TabItem Header="1 шаг: Создание заявки">
+            <TabItem Header="1 шаг: Создание заявки (Excel)">
                 <Image Source="/Images/exampe1.png" />
+            </TabItem>
+            <TabItem Header="1 шаг: Создание заявки (Metal-Code)">
+                <Image Source="/Images/exampe6.png" />
             </TabItem>
             <TabItem Header="2 шаг: Подготовка папок в работу">
                 <Image Source="/Images/exampe2.png" />

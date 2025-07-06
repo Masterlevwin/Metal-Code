@@ -10,30 +10,57 @@
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     </UserControl.Resources>
     
-    <GroupBox x:Name="RequestStack" Margin="5" d:Visibility="Visible" Visibility="{Binding IsRequest, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" MinHeight="700">
+    <GroupBox x:Name="RequestStack" Margin="5" Visibility="{Binding IsRequest, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
         <GroupBox.Header>
-            <TextBlock Text="Заявка" FontWeight="Bold" FontSize="14"/>
+            <TextBlock Text="Заявка" FontWeight="Bold"/>
         </GroupBox.Header>
 
-        <StackPanel>
+        <DockPanel LastChildFill="True">
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="Загрузить DXF" Margin="10" Click="Load_Models"/>
-                <Button Content="Закрыть" Margin="10" Click="Close_RequestControl"/>
-            </StackPanel>
+            <DockPanel DockPanel.Dock="Top">
+                <Button Content="Добавить DXF / IGS" Click="Load_Models" HorizontalAlignment="Left" Margin="5" Padding="5"/>
+                <Button Content="Закрыть" Click="Close_RequestControl" HorizontalAlignment="Right" Margin="5" Padding="5"/>
+            </DockPanel>
 
-            <GroupBox MaxHeight="120" Margin="5" HorizontalAlignment="Center">
+            <GroupBox DockPanel.Dock="Top" MaxHeight="120" Margin="5">
                 <GroupBox.Header>
-                    <TextBlock Text="Наименования выбранных файлов" FontSize="14" FontWeight="Bold"/>
+                    <TextBlock Text="Наименования выбранных файлов" FontWeight="Bold" VerticalAlignment="Center"/>
                 </GroupBox.Header>
 
                 <ListBox x:Name="PathsList" Margin="5" Padding="2"/>
             </GroupBox>
+            
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right">
 
-            <StackPanel Orientation="Horizontal" Margin="5" HorizontalAlignment="Center" MinHeight="150" MaxHeight="150">
-                <GroupBox DataContext="{Binding CurrentTemplate}" Margin="5" HorizontalAlignment="Center">
+                <Button ToolTip="Создать заявку в формате Excel" Click="Create_Request" HorizontalAlignment="Center" Margin="5">
+                    <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="22">
+                        <Image Source="Images/comment.png"/>
+                        <TextBlock Text="Создать заявку" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </Button>
+
+                <Button ToolTip="Подготовить папки в работу" Click="Create_Tech" Margin="5">
+                    <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="22">
+                        <Image Source="Images/complect.png"/>
+                        <TextBlock Text="Папки в работу" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </Button>
+
+                <Button ToolTip="Создать заявку и подготовить папки в работу" Click="Launch_Tech" Margin="5">
+                    <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="22">
+                        <Image Source="Images/comment.png"/>
+                        <TextBlock Text="и" Margin="5,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Image Source="Images/complect.png" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </Button>
+
+            </StackPanel>
+
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5">
+                
+                <GroupBox DataContext="{Binding CurrentTemplate}" MaxHeight="120" Margin="5">
                     <GroupBox.Header>
-                        <TextBlock Text="Определите шаблон распознавания" FontSize="14" FontWeight="Bold"/>
+                        <TextBlock Text="Определите шаблон распознавания" FontWeight="Bold"/>
                     </GroupBox.Header>
 
                     <StackPanel>
@@ -68,9 +95,9 @@
                     </StackPanel>
                 </GroupBox>
 
-                <GroupBox Margin="5" HorizontalAlignment="Center">
+                <GroupBox MaxHeight="120" Margin="5">
                     <GroupBox.Header>
-                        <TextBlock Text="Выберите шаблон из списка" FontSize="14" FontWeight="Bold"/>
+                        <TextBlock Text="Выберите шаблон из списка" FontWeight="Bold"/>
                     </GroupBox.Header>
 
                     <StackPanel Orientation="Horizontal" Margin="5">
@@ -90,46 +117,30 @@
                         </StackPanel>
                     </StackPanel>
                 </GroupBox>
-            </StackPanel>
 
-            <GroupBox HorizontalAlignment="Center">
+            </StackPanel>
+            
+            <GroupBox DockPanel.Dock="Top" Margin="5">
                 <GroupBox.Header>
-                    <TextBlock Text="Отредактируйте заявку" FontSize="14" FontWeight="Bold"/>
+                    <TextBlock Text="Отредактируйте заявку" FontWeight="Bold"/>
                 </GroupBox.Header>
 
-                <StackPanel>
-                    <DataGrid x:Name="RequestGrid" ItemsSource="{Binding TechItems}" SelectionUnit="Cell" MaxHeight="200" CanUserReorderColumns="False" CanUserDeleteRows="False" CanUserAddRows="False" BorderBrush="Red" EnableColumnVirtualization="True" CanUserResizeRows="False" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="10" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" MouseUp="CopyValue_MouseUp" MaxWidth="800"/>
-                    <StackPanel Orientation="Horizontal" Margin="5">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <DataGrid x:Name="RequestGrid" ItemsSource="{Binding TechItems}" SelectionUnit="Cell" CanUserReorderColumns="False" CanUserDeleteRows="False" CanUserAddRows="False" BorderBrush="Red" EnableColumnVirtualization="True" CanUserResizeRows="False" Margin="10" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" MouseUp="CopyValue_MouseUp" MaxHeight="300"/>
+                    <StackPanel Orientation="Horizontal" Margin="5" Grid.Row="1" VerticalAlignment="Bottom">
                         <TextBox x:Name="DeleteText" Margin="5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="120" MaxWidth="120"/>
                         <Button Content="Удалить" Margin="5" Padding="5" Click="Delete_WithoutNames"/>
                         <Image Source="/Images/question.png" MouseEnter="ShowPopup_Del" MaxHeight="20"/>
                         <TextBlock Text="Количество комплектов" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="100,0,0,0" MaxWidth="70" TextWrapping="Wrap"/>
                         <TextBox x:Name="CountText" FontWeight="Bold" Foreground="Red" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" MinWidth="40" MaxWidth="40" Margin="5" Text="1"/>
                     </StackPanel>
-                </StackPanel>
+                </Grid>
             </GroupBox>
-
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button ToolTip="Создать заявку в формате Excel" Click="Create_Request" HorizontalAlignment="Center" Margin="5">
-                    <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="22">
-                        <Image Source="Images/comment.png"/>
-                        <TextBlock Text="Создать заявку" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
-                    </StackPanel>
-                </Button>
-                <Button ToolTip="Подготовить папки в работу" Click="Create_Tech" Margin="5">
-                    <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="22">
-                        <Image Source="Images/complect.png"/>
-                        <TextBlock Text="Папки в работу" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
-                    </StackPanel>
-                </Button>
-                <Button ToolTip="Создать заявку и подготовить папки в работу" Click="Launch_Tech" Margin="5">
-                    <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="22">
-                        <Image Source="Images/comment.png"/>
-                        <TextBlock Text="и" Margin="5,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <Image Source="Images/complect.png" Margin="5,0,0,0"/>
-                    </StackPanel>
-                </Button>
-            </StackPanel>
 
             <Popup x:Name="Popup" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Scroll" StaysOpen="False">
                 <Border BorderThickness="1" CornerRadius="1" BorderBrush="Red">
@@ -139,6 +150,6 @@
                 </Border>
             </Popup>
 
-        </StackPanel>
+        </DockPanel>
     </GroupBox>
 </UserControl>

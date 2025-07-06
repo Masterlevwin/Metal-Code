@@ -123,7 +123,8 @@ namespace Metal_Code
             set
             {
                 isRequest = value;
-                PartsStack.Visibility = isRequest ? Visibility.Collapsed : Visibility.Visible;
+                HorisontalSplitter.Visibility = DetailsBox.Visibility = PartsBox.Visibility = isRequest ? Visibility.Collapsed : Visibility.Visible;
+                
                 OnPropertyChanged(nameof(IsRequest));
             }
         }
@@ -4619,6 +4620,7 @@ namespace Metal_Code
             {
                 RequestControl = new(openFileDialog.FileNames.ToList());
                 WindowGrid.Children.Insert(0, RequestControl);
+                Grid.SetRowSpan(RequestControl, 3);
                 IsRequest = true;
             }
             else StatusBegin($"Не выбрано ни одного файла");
