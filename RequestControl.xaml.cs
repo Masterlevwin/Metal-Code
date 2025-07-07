@@ -551,7 +551,7 @@ namespace Metal_Code
 
                 if (TechItems.Count > 0) MainWindow.M.StatusBegin("Заявка загружена");
             }
-            catch (Exception ex) { MessageBox.Show(ex.Message); }
+            catch (Exception ex) { MessageBox.Show($"{ex.Message}\nФорма этой заявки не поддерживается функцией загрузки."); }
         }
     }
 
