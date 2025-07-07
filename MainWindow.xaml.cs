@@ -4618,6 +4618,7 @@ namespace Metal_Code
 
             if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
             {
+                NewProject();
                 RequestControl = new(openFileDialog.FileNames.ToList());
                 WindowGrid.Children.Insert(0, RequestControl);
                 Grid.SetRowSpan(RequestControl, 3);
