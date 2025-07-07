@@ -256,11 +256,11 @@ namespace Metal_Code
         {
             try
             {
-                if (Part.PdfPath != null && File.Exists(Part.PdfPath))
+                if (Part.PathToScan != null && File.Exists(Part.PathToScan))
                 {
                     Process.Start(new ProcessStartInfo
                     {
-                        FileName = Part.PdfPath,
+                        FileName = Part.PathToScan,
                         UseShellExecute = true // Использовать оболочку для открытия файла
                     });
                 }

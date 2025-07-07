@@ -14,10 +14,11 @@ namespace Metal_Code
 {
     public class Tech
     {
-        public string ExcelFile;                        //путь к файлу
-        public int CountTechItems = 0;                  //кол-во строк заявки
-        public List<TechItem> TechItems = new();        //список полученных объектов из строк файла
-        public List<TechItem> FoundItems = new();       //список найденных строк
+        public string ExcelFile;                            //путь к файлу
+        public int CountTechItems = 0;                      //кол-во строк заявки
+        public List<TechItem> TechItems = new();            //список полученных объектов из строк файла
+        public List<TechItem> FoundItems = new();           //список найденных строк
+        public IEnumerable<string> DirMaterials = null!;    //коллекция папок материалов
 
         public Tech(string path) { ExcelFile = path; }
 
@@ -53,7 +54,8 @@ namespace Metal_Code
                         $"{table.Rows[i].ItemArray[6]}",        //маршрут
                         $"{table.Rows[i].ItemArray[7]}",        //давальческий материал      
                         $"{table.Rows[i].ItemArray[8]}",        //оригинальное наименование от заказчика
-                        $"{table.Rows[i].ItemArray[9]}");       //путь к файлу модели
+                        $"{table.Rows[i].ItemArray[9]}",        //путь к файлу модели
+                        $"{table.Rows[i].ItemArray[10]}");      //сгенерирован ли номер чертежа
                     TechItems.Add(techItem);
                 }
                 CountTechItems = TechItems.Count;
@@ -101,11 +103,13 @@ namespace Metal_Code
                 }
 
                 //получаем коллекцию уникальных строк на основе группировки по материалу и толщине
-                var dirMaterials = TechItems.GroupBy(m => new { m.Material, m.Destiny, m.HasMaterial })
+                DirMaterials = TechItems.GroupBy(m => new { m.Material, m.Destiny, m.HasMaterial })
                     .Select(g => $"{g.Key.Destiny} {g.Key.Material} {g.Key.HasMaterial}");
 
                 //получаем коллекцию, разбитую на группы по работам
                 var works = TechItems.GroupBy(w => w.Route);
+
+                string[] extensions = { "pdf", "tiff", "gpeg", "gpg" };     //основные расширения чертежей
 
                 //сортируем pdf-файлы по папкам работ
                 foreach (var work in works)
@@ -114,168 +118,103 @@ namespace Metal_Code
                         if (work.Key.ToLower().Contains("гиб"))
                         {
                             DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Гибка");
-                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
+                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
                         }
                         
                         if (work.Key.ToLower().Contains("вальц"))
                         {
                             DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Вальцовка");
-                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
+                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
                         }
 
                         if (work.Key.ToLower().Contains("фрез"))
                         {
                             DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Фрезеровка");
-                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
+                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
                         }
                         else if (work.Key.ToLower().Contains("рез"))
                         {
                             DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Резьба");
-                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
+                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
                         }
 
                         if (work.Key.ToLower().Contains("зен"))
                         {
                             DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Зенковка");
-                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
+                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
                         }
 
                         if (work.Key.ToLower().Contains("зак"))
                         {
                             DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Заклепки");
-                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
+                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
                         }
 
                         if (work.Key.ToLower().Contains("свер"))
                         {
                             DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Сверловка");
-                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
+                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
                         }
 
                         if (work.Key.ToLower().Contains("свар"))
                         {
                             DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Сварка");
-                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
+                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
                         }
 
                         if (work.Key.ToLower().Contains("окр"))
                         {
                             DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Окраска");
-                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
+                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
                         }
 
                         if (work.Key.ToLower().Contains("оц"))
                         {
                             DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Оцинковка");
-                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
+                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
                         }
 
                         if (work.Key.ToLower().Contains("лен"))
                         {
                             DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Лентопил");
-                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
+                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
                         }
 
                         if (work.Key.ToLower().Contains("аква"))
                         {
                             DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Аквабластинг");
-                            SortExtension(dirWork, dirMaterials, "pdf", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "tiff", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpeg", work.Select(t => t).ToList());
-                            SortExtension(dirWork, dirMaterials, "gpg", work.Select(t => t).ToList());
+                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
                         }
                     }
 
                 if (MainWindow.M.TechItems.Count > 0) MainWindow.M.TechItems.Clear();
                 MainWindow.M.TechItems = TechItems;
 
-                //получаем коллекцию файлов "igs" в папке с Excel-файлом
-                IEnumerable<string> _igs = Directory.EnumerateFiles(Path.GetDirectoryName(ExcelFile), $"*.igs", SearchOption.TopDirectoryOnly);
-                if (_igs.Any())
-                {
-                    //создаем папку "Труборез" в директории Excel-файла
-                    DirectoryInfo dirPipe = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Труборез");
-                    SortExtension(dirPipe, dirMaterials, "igs", TechItems);
+                Create_DirectoriesForCut();     //создаем директории для резки
 
-                    //удаляем найденные объекты заявки из общего списка
-                    if (FoundItems.Count > 0) TechItems = TechItems.Except(FoundItems).ToList();
-                }
-
-                //получаем коллекцию файлов "dxf" в папке с Excel-файлом
-                IEnumerable<string> _dxf = Directory.EnumerateFiles(Path.GetDirectoryName(ExcelFile), $"*.dxf", SearchOption.TopDirectoryOnly);
-                if (_dxf.Any())
-                {
-                    //создаем папку "Лазер" в директории Excel-файла
-                    DirectoryInfo dirLaser = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Лазер");
-                    SortExtension(dirLaser, dirMaterials, "dxf", TechItems);
-
-                    //удаляем найденные объекты заявки из общего списка
-                    if (FoundItems.Count > 0) TechItems = TechItems.Except(FoundItems).ToList();
-                }
-
-                //Create_DirectoryForCut();
+                ClearDirectories();             //очищаем пустые папки
 
                 //создаем папку "КП" в директории заявки
                 Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "КП");
-
-                ClearDirectories();     //очищаем пустые папки
             }
             catch (Exception ex) { notify = ex.Message; }
 
-            return RequestReport();
+            //return RequestReport();
+            return $"Обработано {TechItems.Count} строк заявки. Все файлы найдены.";
         }
 
-        private IEnumerable<string> SortExtension(DirectoryInfo dirMain, IEnumerable<string> dirMaterials, string extension, List<TechItem> techItems)
+        private void SortExtension(DirectoryInfo dirMain, string extension, List<TechItem> techItems)
         {
             FoundItems.Clear();      //очищаем список ненайденных файлов
 
             //создаем папки для каждого материала в директории работы
-            foreach (var item in dirMaterials) Directory.CreateDirectory(dirMain + "\\" + $"{item}");
+            foreach (var item in DirMaterials) Directory.CreateDirectory(dirMain + "\\" + $"{item}");
 
-            IEnumerable<string>? files = null;
+            //получаем коллекцию файлов в папке с Excel-файлом
+            string? path = Path.GetDirectoryName(ExcelFile);
+            if (path is null) return;
 
-            //если есть сгенерированные файлы, получаем коллекцию этих файлов
-            if (techItems == TechItems && Directory.Exists(Path.GetDirectoryName(ExcelFile) + "\\" + "Сгенерированные файлы"))
-            {
-                files = Directory.EnumerateFiles(Path.GetDirectoryName(ExcelFile) + "\\" + "Сгенерированные файлы", $"*.{extension}", SearchOption.TopDirectoryOnly);
-                foreach (TechItem item in techItems) item.IsGenerated = true;
-            }
-            else
-                //иначе получаем коллекцию файлов в папке с Excel-файлом
-                files = Directory.EnumerateFiles(Path.GetDirectoryName(ExcelFile), $"*.{extension}", SearchOption.TopDirectoryOnly);
+            IEnumerable<string> files = Directory.EnumerateFiles(path, $"*.{extension}", SearchOption.TopDirectoryOnly);
 
             //сортируем полученные ранее объекты TechItem по соответствующим папкам
             foreach (TechItem techItem in techItems)
@@ -296,93 +235,98 @@ namespace Metal_Code
                             File.Copy(file, dirMain + "\\" + $"{techItem.NumberName}.{extension}");
                         }
                         else
-                        {
                             //копируем исходный файл в нужный каталог с рабочим именем для нашего производства
-                            foreach (var item in dirMaterials)
+                            foreach (var item in DirMaterials)
                                 if ($"{techItem.Destiny} {techItem.Material} {techItem.HasMaterial}" == item)
                                 {
-                                    if (techItems == TechItems)
-                                    {
-                                        TechItem? isFounded = FoundItems.FirstOrDefault(x => x.PathToModel == file);
-                                        if (isFounded is null)
-                                        {
-                                            string destination = $"{techItem.Route}" == "" ?
-                                                dirMain + "\\" + $"{item}".Trim() + "\\"
-                                                + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count}" + $".{extension}"
-                                                : dirMain + "\\" + $"{item}".Trim() + "\\"
-                                                + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route})" + $".{extension}";
-
-                                            File.Copy(file, destination);
-                                            techItem.PathToModel = file;
-                                            FoundItems.Add(techItem);           //файл найден
-                                        }
-                                        else MessageBox.Show($"Проверьте файлы с именами {isFounded.NumberName} и {techItem.NumberName}.\n" +
-                                            $"Возможна ошибка!", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Exclamation);
-                                    }
-                                    else
+                                    TechItem? isFounded = FoundItems.FirstOrDefault(x => x.PathToScan == file);
+                                    if (isFounded is null)
                                     {
                                         File.Copy(file, dirMain + "\\" + $"{item}".Trim() + "\\"
-                                            + $"{techItem.NumberName} n{techItem.Count}" + $".{extension}");
+                                            + $"{techItem.NumberName} n{techItem.Count}" + $".{extension}", true);
                                         techItem.PathToScan = file;
+                                        FoundItems.Add(techItem);           //файл найден
                                     }
+                                    else MessageBox.Show($"Проверьте файлы с именами {isFounded.NumberName} и {techItem.NumberName}.\n"
+                                        + $"Возможна ошибка!", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Exclamation);
                                     break;
                                 }
-                        }
                         break;
                     }
                 }
             }
-            return files;
         }
 
-        private void Create_DirectoryForCut()
+        private void Create_DirectoriesForCut()     //метод создания директорий для лазера и трубореза
         {
             //создаем папку "Лазер" в директории Excel-файла
             DirectoryInfo dirLaser = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Лазер");
 
-            //получаем коллекцию уникальных строк на основе группировки по материалу и толщине
-            var dirMaterials = TechItems.GroupBy(m => new { m.Material, m.Destiny, m.HasMaterial })
-                .Select(g => $"{g.Key.Destiny} {g.Key.Material} {g.Key.HasMaterial}");
+            //создаем папку "Труборез" в директории Excel-файла
+            DirectoryInfo dirPipe = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Труборез");
 
             //создаем папки для каждого материала в директории работы
-            foreach (var item in dirMaterials) Directory.CreateDirectory(dirLaser + "\\" + $"{item}");
+            foreach (var item in DirMaterials)
+            {
+                Directory.CreateDirectory(dirLaser + "\\" + $"{item}");
+                Directory.CreateDirectory(dirPipe + "\\" + $"{item}");
+            }
 
             //сортируем полученные ранее объекты TechItem по соответствующим папкам
             foreach (TechItem techItem in TechItems)
             {
                 //копируем исходный файл в нужный каталог с рабочим именем для нашего производства
-                foreach (var item in dirMaterials)
+                foreach (var item in DirMaterials)
                     if ($"{techItem.Destiny} {techItem.Material} {techItem.HasMaterial}" == item)
                     {
-                        string destination = $"{techItem.Route}" == "" ?
-                            dirLaser + "\\" + $"{item}".Trim() + "\\"
-                            + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count}" + $".dxf"
-                            : dirLaser + "\\" + $"{item}".Trim() + "\\"
-                            + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route})" + $".dxf";
+                        if (File.Exists(techItem.PathToModel))
+                        {
+                            string extension = Path.GetExtension(techItem.PathToModel);
+                            string destination = string.Empty;
 
-                        if (File.Exists(techItem.PathToModel)) File.Copy(techItem.PathToModel, destination);
-                        break;
+                            if (extension.ToLower() == ".dxf")
+                                destination = $"{techItem.Route}" == "" ?
+                                    dirLaser + "\\" + $"{item}".Trim() + "\\"
+                                    + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count}" + $".dxf"
+                                    : dirLaser + "\\" + $"{item}".Trim() + "\\"
+                                    + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route})" + $".dxf";
+                            
+                            else if (extension.ToLower() == ".igs")
+                                destination = $"{techItem.Route}" == "" ?
+                                    dirPipe + "\\" + $"{item}".Trim() + "\\"
+                                    + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count}" + $".igs"
+                                    : dirPipe + "\\" + $"{item}".Trim() + "\\"
+                                    + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route})" + $".igs";
+
+                            File.Copy(techItem.PathToModel, destination, true);
+                            break;
+                        }
                     }
             }
         }
 
-        public void ClearDirectories()      //метод очищения пустых директорий
+        public void ClearDirectories()              //метод очищения пустых директорий
         {
-            //удаляем пустые папки
-            string[] dirs = Directory.GetDirectories(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)));
-            if (dirs.Length > 0)
-                foreach (var dir in dirs)
-                {
-                    string[] dirMaterials = Directory.GetDirectories(dir);
-                    foreach (string dm in dirMaterials)
-                        if (Directory.GetFileSystemEntries(dm).Length == 0)
-                            Directory.Delete(dm);
-                }
+            string? dirMain = Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile));
+
+            if (dirMain != null)
+            {
+                string[] dirs = Directory.GetDirectories(dirMain);
+                if (dirs?.Length > 0)
+                    foreach (var dir in dirs)
+                    {
+                        string[] dirMaterials = Directory.GetDirectories(dir);
+                        foreach (string dm in dirMaterials)
+                            if (Directory.GetFileSystemEntries(dm).Length == 0) Directory.Delete(dm);
+
+                        if (Directory.GetFileSystemEntries(dir).Length == 0) Directory.Delete(dir);
+                    }
+            }
         }
 
-        private string RequestReport()
+        private string RequestReport()              //метод создания сообщения пользователю
         {
-            string notify;                  //сообщение пользователю
+            string notify;
 
             if (TechItems.Count > 0)
             {
@@ -416,7 +360,7 @@ namespace Metal_Code
             return notify;
         }
 
-        private void CreateExpressOffer()
+        private void CreateExpressOffer()           //метод создания предварительного расчета
         {
             MainWindow.M.NewProject();
             MainWindow.M.IsExpressOffer = true;
@@ -692,7 +636,7 @@ namespace Metal_Code
         public string PathToScan { get; set; } = null!;
 
         public TechItem() { }
-        public TechItem(string numberName, string sizes, string material, string destiny, string count, string route, string hasMaterial, string originalName, string pathToModel)
+        public TechItem(string numberName, string sizes, string material, string destiny, string count, string route, string hasMaterial, string originalName, string pathToModel, string isGenerated)
         {
             NumberName = numberName;
             Sizes = sizes;
@@ -705,6 +649,7 @@ namespace Metal_Code
             else HasMaterial = "";
             OriginalName = originalName;
             PathToModel = pathToModel;
+            IsGenerated = isGenerated == "да";
         }
     }
 }

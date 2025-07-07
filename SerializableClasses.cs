@@ -95,7 +95,7 @@ namespace Metal_Code
         public byte[]? ImageBytes;
 
         [OptionalField]
-        public string? PdfPath;
+        public string? PathToScan;
 
         [OptionalField]
         public ObservableCollection<MillingHole> MillingHoles = new();

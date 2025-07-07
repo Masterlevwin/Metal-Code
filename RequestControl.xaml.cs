@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using ExcelDataReader;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
@@ -6,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -32,7 +34,10 @@ namespace Metal_Code
         {
             InitializeComponent();
             DataContext = this;
-            Update_Paths(paths);
+
+            //если выбранный файл и есть заявка, загружаем ее данные
+            if (paths.Count == 1 && paths[0].Contains("Заявка")) Load_Request(paths[0]);
+            else Update_Paths(paths);       //иначе создаем новую на основе выбранных моделей
         }
 
         //-----настройка контрола при загрузке-----//
@@ -42,7 +47,6 @@ namespace Metal_Code
             Templates = db.Templates.Local.ToObservableCollection();
             TemplatesList.ItemsSource = Templates;
         }
-
         private void Update_Paths(List<string> paths)
         {
             if (paths.Count == 0) return;
@@ -200,7 +204,7 @@ namespace Metal_Code
             if (TechItems.Count > 0) MainWindow.M.StatusBegin("Файлы успешно проанализированы");
         }
 
-        //-----генерация имён скопированных файлов-----//
+        //-----генерация имён строк заявки-----//
         private void Rename_Details(object sender, RoutedEventArgs e)
         {
             if (TechItems.Count == 0) return;
@@ -216,6 +220,7 @@ namespace Metal_Code
                         break;
                     }
                 techItem.NumberName = $"{metalIndex}.{techItem.Destiny}.{techItem.Count}";
+                techItem.IsGenerated = true;
             }
 
             //при совпадении сгенерированных имён добавляем порядковый индекс к имени
@@ -225,31 +230,14 @@ namespace Metal_Code
                         foreach (var _item in item)
                             _item.NumberName += $".{item.ToList().IndexOf(_item)}";
 
-            //создаем папку "Сгенерированные файлы" в директории заявки
-            DirectoryInfo dirGen = Directory.CreateDirectory(Path.GetDirectoryName(Paths[0]) + "\\" + "Сгенерированные файлы");
-
-            //копируем файлы с новыми именами в эту папку
-            foreach (TechItem techItem in TechItems)
-            {
-                if (techItem.PathToModel is null || !File.Exists(techItem.PathToModel)) continue;
-
-                string newPath = dirGen + "\\" + techItem.NumberName + Path.GetExtension(techItem.PathToModel);
-                if (File.Exists(newPath)) continue;
-
-                File.Copy(techItem.PathToModel, newPath);
-                techItem.PathToModel = newPath;
-            }
-
-            RequestGrid.ItemsSource = null;
-            RequestGrid.ItemsSource = TechItems;
-            MainWindow.M.StatusBegin("Файлы скопированы с новыми именами");
+            MainWindow.M.StatusBegin("Наименования деталей сгенерированы.");
         }
         private void ShowPopup_Gen(object sender, MouseEventArgs e)
         {
             Popup.IsOpen = true;
 
-            Details.Text = "Функция генерации копирует выбранные файлы\n" +
-                "с новыми именами в виде децимального номера.\n" +
+            Details.Text = "Генерирует новые имена деталей\n" +
+                "в виде децимального номера.\n" +
                 "После загрузки раскладок из Ажанкам эти имена\n" +
                 "будут заменены обратно на исходные имена от заказчика.";
         }
@@ -267,17 +255,17 @@ namespace Metal_Code
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
             using var workbook = new ExcelPackage();
-            ExcelWorksheet requestsheet = workbook.Workbook.Worksheets.Add($"Заявка Лазер");
+            ExcelWorksheet requestsheet = workbook.Workbook.Worksheets.Add($"Заявка");
 
             //оформляем статичные ячейки по умолчанию
             requestsheet.Cells[1, 1].Value = "Расшифровка работ: гиб - гибка, вальц - вальцовка, зен - зенковка," +
                 "рез - резьба, свар - сварка, окр - окраска,\nоц - оцинковка, грав - гравировка, фрез - фрезеровка, " +
                 "аква - аквабластинг, лен - лентопил, свер - сверловка";
-            requestsheet.Cells[1, 1, 1, 9].Merge = true;
-            requestsheet.Cells[1, 1, 1, 9].Style.WrapText = true;
-            requestsheet.Cells[1, 1, 1, 9].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            requestsheet.Cells[1, 1, 1, 9].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            requestsheet.Row(1).Height = 30;
+            requestsheet.Cells[1, 1, 1, 8].Merge = true;
+            requestsheet.Cells[1, 1, 1, 8].Style.WrapText = true;
+            requestsheet.Cells[1, 1, 1, 8].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            requestsheet.Cells[1, 1, 1, 8].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            requestsheet.Row(1).Height = 40;
             requestsheet.Cells[TechItems.Count + 3, 5].Value = "Кол-во комплектов";
             requestsheet.Cells[TechItems.Count + 3, 6].Value = CountText.Text;
             requestsheet.Cells[TechItems.Count + 3, 6].Style.Font.Color.SetColor(System.Drawing.Color.Red);
@@ -287,7 +275,7 @@ namespace Metal_Code
             requestsheet.Cells[TechItems.Count + 3, 5, TechItems.Count + 3, 6].Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             //устанавливаем заголовки таблицы
-            List<string> _heads = new() { "№", "№ чертежа", "Размеры", "Металл", "Толщина", "Кол-во деталей", "Маршрут", "Давальч", "Исходник" };
+            List<string> _heads = new() { "№", "№ чертежа", "Размеры", "Металл", "Толщина", "Кол-во деталей", "Маршрут", "Давальч", "Исходник", "Путь к модели", "Сген" };
             for (int head = 0; head < _heads.Count; head++) requestsheet.Cells[2, head + 1].Value = _heads[head];
 
             //string message = "";
@@ -303,31 +291,40 @@ namespace Metal_Code
                 requestsheet.Cells[i + 3, 8].Value = TechItems[i].HasMaterial;
                 requestsheet.Cells[i + 3, 9].Value = TechItems[i].OriginalName;
                 requestsheet.Cells[i + 3, 10].Value = TechItems[i].PathToModel;
+                requestsheet.Cells[i + 3, 11].Value = TechItems[i].IsGenerated ? "да":"";
             }
 
             requestsheet.Column(9).Hidden = true;
             requestsheet.Column(10).Hidden = true;
+            requestsheet.Column(11).Hidden = true;
 
-            ExcelRange details = requestsheet.Cells[2, 1, TechItems.Count + 2, 9];     //получаем таблицу деталей для оформления
+            ExcelWorksheet ordersheet = workbook.Workbook.Worksheets.Add($"КП");
+            ordersheet.Cells[1, 1].Value = "КП №";
+            ordersheet.Cells[1, 2].Value = MainWindow.M.Order.Text;
+            ordersheet.Cells[2, 1].Value = "для заказчика";
+            ordersheet.Cells[2, 2].Value = MainWindow.M.CustomerDrop.Text;
+            ordersheet.Cells[3, 1].Value = "менеджер";
+            ordersheet.Cells[3, 2].Value = MainWindow.M.ManagerDrop.Text;
+
+            ExcelRange order = ordersheet.Cells[1, 1, 3, 2];                            //получаем данные КП для оформления
+            ExcelRange details = requestsheet.Cells[2, 1, TechItems.Count + 2, 8];      //получаем таблицу деталей для оформления
 
             //обводка границ и авторастягивание столбцов
-            details.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            details.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            details.Style.Border.Right.Style = details.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            order.Style.HorizontalAlignment = details.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            order.Style.VerticalAlignment = details.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            order.Style.Border.Right.Style = order.Style.Border.Bottom.Style = details.Style.Border.Right.Style = details.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            order.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
-
+            
+            requestsheet.Cells[2, 1, 2, 8].Style.WrapText = true;
+            requestsheet.Cells[2, 1, 2, 8].Style.Font.Bold = true;
             requestsheet.Cells.AutoFitColumns();
-            requestsheet.Cells[2, 1, 2, 9].Style.WrapText = true;
-            requestsheet.Cells[2, 1, 2, 9].Style.Font.Bold = true;
-
-            //устанавливаем настройки для печати, чтобы сохранение в формате .pdf выводило весь документ по ширине страницы
-            requestsheet.PrinterSettings.FitToPage = true;
-            requestsheet.PrinterSettings.FitToWidth = 1;
-            requestsheet.PrinterSettings.FitToHeight = 0;
-            requestsheet.PrinterSettings.HorizontalCentered = true;
-
+            ordersheet.Cells.AutoFitColumns();
+            
             //сохраняем книгу в файл Excel
-            workbook.SaveAs($"{Path.GetDirectoryName(Paths[0])}\\Заявка Лазер.xlsx");
+            try { workbook.SaveAs($"{Path.GetDirectoryName(Paths[0])}\\Заявка.xlsx"); }
+            catch ( Exception ex ) { MessageBox.Show($"{ex.Message}\n" +
+                $"Возможно файл заявки уже открыт, поэтому ее не создать!"); }
 
             MainWindow.M.StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(Paths[0])}");
         }
@@ -445,13 +442,13 @@ namespace Metal_Code
         private void Create_Tech(object sender, RoutedEventArgs e) { Create_Tech(); }
         private void Create_Tech()
         {
-            if (!File.Exists($"{Path.GetDirectoryName(Paths[0])}\\Заявка Лазер.xlsx"))
+            if (!File.Exists($"{Path.GetDirectoryName(Paths[0])}\\Заявка.xlsx"))
             {
                 MessageBox.Show("Не удалось найти подходящую заявку для формирования папок.");
                 return;
             }
 
-            Tech tech = new($"{Path.GetDirectoryName(Paths[0])}\\Заявка Лазер.xlsx");
+            Tech tech = new($"{Path.GetDirectoryName(Paths[0])}\\Заявка.xlsx");
             MainWindow.M.StatusBegin(tech.Run());
         }
 
@@ -486,6 +483,75 @@ namespace Metal_Code
                 Update_Paths(openFileDialog.FileNames.ToList());
             }
             else MainWindow.M.StatusBegin($"Не выбрано ни одного файла");
+        }
+
+        //очистка списка деталей
+        private void Clear_TechItems(object sender, RoutedEventArgs e)
+        {
+            TechItems.Clear();
+        }
+
+        //загрузка данных заявки для редактирования
+        public void Load_Request(string path)
+        {
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
+            try
+            {
+                //преобразуем открытый Excel-файл в DataTable для парсинга
+                using FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read);
+                using IExcelDataReader reader = ExcelReaderFactory.CreateReader(stream);
+                DataSet result = reader.AsDataSet();
+                DataTable table = result.Tables[0];
+
+                int countAssembly = 1;      //количество комплектов
+                if ($"{table.Rows[^1].ItemArray[4]}" == "Кол-во комплектов" && $"{table.Rows[^1].ItemArray[5]}" is not null && ((int)MainWindow.Parser($"{table.Rows[^1].ItemArray[5]}") > 0))
+                    countAssembly = (int)MainWindow.Parser($"{table.Rows[^1].ItemArray[5]}");
+
+                //перебираем строки таблицы и заполняем список объектами TechItem
+                for (int i = 2; i < table.Rows.Count; i++)
+                {
+                    if ($"{table.Rows[i].ItemArray[1]}" is null || $"{table.Rows[i].ItemArray[1]}" == "") continue;
+
+                    TechItem techItem = new(
+                        $"{table.Rows[i].ItemArray[1]}",        //номер чертежа
+                        $"{table.Rows[i].ItemArray[2]}",        //размеры
+                        $"{table.Rows[i].ItemArray[3]}",        //материал
+                        $"{table.Rows[i].ItemArray[4]}",        //толщина
+                        $"{(int)MainWindow.Parser($"{table.Rows[i].ItemArray[5]}") * countAssembly}",  //количество
+                        $"{table.Rows[i].ItemArray[6]}",        //маршрут
+                        $"{table.Rows[i].ItemArray[7]}",        //давальческий материал      
+                        $"{table.Rows[i].ItemArray[8]}",        //оригинальное наименование от заказчика
+                        $"{table.Rows[i].ItemArray[9]}",        //путь к файлу модели
+                        $"{table.Rows[i].ItemArray[10]}");      //сгенерирован ли номер чертежа
+                    TechItems.Add(techItem);
+                }
+
+                if (result.Tables.Count > 1)
+                {
+                    MainWindow.M.Order.Text = $"{result.Tables[1].Rows[0].ItemArray[1]}";
+
+                    if ($"{result.Tables[1].Rows[2].ItemArray[1]}" != "")
+                        foreach (var man in MainWindow.M.ManagerDrop.Items)
+                            if (man is Manager _man && _man.Name == $"{result.Tables[1].Rows[2].ItemArray[1]}")
+                            {
+                                MainWindow.M.ManagerDrop.SelectedItem = _man;
+                                break;
+                            }
+
+                    if ($"{result.Tables[1].Rows[1].ItemArray[1]}" != "")
+                        foreach (var customer in MainWindow.M.CustomerDrop.Items)
+                            if (customer is Customer _customer && _customer.Name == $"{result.Tables[1].Rows[1].ItemArray[1]}")
+                            {
+                                MainWindow.M.CustomerDrop.SelectedItem = _customer;
+                                break;
+                            }
+                }
+                stream.Close();
+
+                if (TechItems.Count > 0) MainWindow.M.StatusBegin("Заявка загружена");
+            }
+            catch (Exception ex) { MessageBox.Show(ex.Message); }
         }
     }
 

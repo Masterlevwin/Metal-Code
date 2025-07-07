@@ -91,7 +91,7 @@ namespace Metal_Code
                                         if (part.Title.ToLower().Contains(item.NumberName.ToLower()))
                                         {
                                             if (item.IsGenerated && !string.IsNullOrEmpty(item.OriginalName)) part.Title = item.OriginalName;
-                                            if (!string.IsNullOrEmpty(item.PathToScan)) part.PdfPath = item.PathToScan;
+                                            if (!string.IsNullOrEmpty(item.PathToScan)) part.PathToScan = item.PathToScan;
                                             break;
                                         }
                                 MainWindow.M.Parts.Add(part);

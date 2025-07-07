@@ -4725,11 +4725,11 @@ namespace Metal_Code
             if (Parts.Count > 0)
                 foreach (Part part in Parts)
                 {
-                    if (part.PdfPath != null && part.PdfPath.Contains(c))
+                    if (part.PathToScan != null && part.PathToScan.Contains(c))
                     {
-                        string oldPath = part.PdfPath[(part.PdfPath.LastIndexOf(c) + 1)..];
+                        string oldPath = part.PathToScan[(part.PathToScan.LastIndexOf(c) + 1)..];
                         string newPath = Path.GetDirectoryName(Path.GetDirectoryName(path)) + "\\ТЗ\\" + oldPath;
-                        part.PdfPath = newPath;
+                        part.PathToScan = newPath;
                     }
                 }
         }
@@ -4766,7 +4766,7 @@ namespace Metal_Code
 
             string? sourceDir = null;       //путь к сохраненному расчету на диске (КП)
 
-            //проверяем путь к КП, и пытаемся обновить его по номеру расчета, если пути нет
+            //проверяем путь к КП, или пытаемся обновить его по номеру расчета, если пути нет
             if (File.Exists(offer.Act)) sourceDir = Path.GetDirectoryName(Path.GetDirectoryName(offer.Act));
             else if (offer.Act is not null && !File.Exists(offer.Act))
             {
@@ -4849,7 +4849,7 @@ namespace Metal_Code
                             break;
                         }
                     }
-                }
+                } 
             }
 
             UpdateOffer(OffersGrid);                  //сохраняем изменения данных текущего расчета в базе
