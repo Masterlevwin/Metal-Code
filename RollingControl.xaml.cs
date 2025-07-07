@@ -193,7 +193,6 @@ namespace Metal_Code
                             float _send = (_work.Price + Time(Side, p.Part.Mass, _w) * 2000 * p.Part.Count / 60) * MainWindow.RatioSale(p.Part.Count) * _w.Ratio * _w.TechRatio / p.Part.Count;
                             p.Part.Price += _send;
                             p.Part.PropsDict[58] = new() { $"{_send}" };
-
                             break;
                         }
                 }

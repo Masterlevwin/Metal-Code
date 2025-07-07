@@ -157,7 +157,6 @@ namespace Metal_Code
 
                                 p.Part.Price += _send;
                                 p.Part.PropsDict[67] = new() { $"{_send}", $"{Mass}" };
-
                                 break;
                             }
                     }

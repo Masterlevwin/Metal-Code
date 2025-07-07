@@ -34,10 +34,7 @@ namespace Metal_Code
         {
             InitializeComponent();
             DataContext = this;
-
-            //если выбранный файл и есть заявка, загружаем ее данные
-            if (paths.Count == 1 && paths[0].Contains("Заявка")) Load_Request(paths[0]);
-            else Update_Paths(paths);       //иначе создаем новую на основе выбранных моделей
+            Update_Paths(paths);
         }
 
         //-----настройка контрола при загрузке-----//
@@ -53,6 +50,9 @@ namespace Metal_Code
 
             Paths = paths;
             PathsList.ItemsSource = Paths.Select(x => Path.GetFileNameWithoutExtension(x));
+
+            //если выбранный файл и есть заявка, загружаем ее данные
+            if (Paths.Count == 1 && Paths[0].Contains("Заявка")) Load_Request(Paths[0]);
         }
 
         //-----шаблон распознавания толщин и количества-----//

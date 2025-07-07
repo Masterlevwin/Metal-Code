@@ -388,11 +388,7 @@ namespace Metal_Code
                             }
 
                             p.Part.Price += _send;
-
-                            if (p.Part.PropsDict.ContainsKey(52) && float.TryParse(p.Part.PropsDict[52][0], out float value))
-                                p.Part.PropsDict[52].Insert(0, $"{value +_send}");  //суммируем гибку, но пока не удаляю предыдущие значения (возможно пригодятся)
-                            else p.Part.PropsDict[52] = new() { $"{_send}" };
-
+                            p.Part.PropsDict[52] = new() { $"{_send}" };
                             break;
                         }
                 }

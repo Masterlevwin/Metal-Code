@@ -1,9 +1,11 @@
 using ExcelDataReader;
+using NPOI.HPSF;
 using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.DirectoryServices.ActiveDirectory;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -242,8 +244,19 @@ namespace Metal_Code
                                     TechItem? isFounded = FoundItems.FirstOrDefault(x => x.PathToScan == file);
                                     if (isFounded is null)
                                     {
-                                        File.Copy(file, dirMain + "\\" + $"{item}".Trim() + "\\"
-                                            + $"{techItem.NumberName} n{techItem.Count}" + $".{extension}", true);
+                                        string destination = dirMain + "\\" + $"{item}".Trim() + "\\"
+                                            + $"{techItem.NumberName} n{techItem.Count}" + $".{extension}";
+
+                                        int count = 0;
+                                        
+                                        while (File.Exists(destination))    //проверяем, существует ли уже такой файл
+                                        {
+                                            count++;
+                                            destination = dirMain + "\\" + $"{item}".Trim() + "\\"
+                                                + $"{techItem.NumberName} n{techItem.Count} ({count})" + $".{extension}";
+                                        }
+
+                                        File.Copy(file, destination);
                                         techItem.PathToScan = file;
                                         FoundItems.Add(techItem);           //файл найден
                                     }
@@ -281,24 +294,28 @@ namespace Metal_Code
                     {
                         if (File.Exists(techItem.PathToModel))
                         {
-                            string extension = Path.GetExtension(techItem.PathToModel);
-                            string destination = string.Empty;
+                            string extension = Path.GetExtension(techItem.PathToModel).ToLower();
+                            string dirMain = string.Empty;
 
-                            if (extension.ToLower() == ".dxf")
-                                destination = $"{techItem.Route}" == "" ?
-                                    dirLaser + "\\" + $"{item}".Trim() + "\\"
-                                    + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count}" + $".dxf"
-                                    : dirLaser + "\\" + $"{item}".Trim() + "\\"
-                                    + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route})" + $".dxf";
-                            
-                            else if (extension.ToLower() == ".igs")
-                                destination = $"{techItem.Route}" == "" ?
-                                    dirPipe + "\\" + $"{item}".Trim() + "\\"
-                                    + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count}" + $".igs"
-                                    : dirPipe + "\\" + $"{item}".Trim() + "\\"
-                                    + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route})" + $".igs";
+                            if (extension == ".dxf") dirMain = dirLaser + "\\" + $"{item}".Trim() + "\\";
+                            else if (extension == ".igs") dirMain= dirPipe + "\\" + $"{item}".Trim() + "\\";
 
-                            File.Copy(techItem.PathToModel, destination, true);
+                            string destination = $"{techItem.Route}" == "" ?
+                                dirMain + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count}{extension}"
+                                : dirMain + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route}){extension}";
+
+                            string fileName = Path.GetFileNameWithoutExtension(destination);
+
+                            int count = 0;
+
+                            while (File.Exists(destination))    //проверяем, существует ли уже такой файл
+                            {
+                                count++;
+                                destination = dirMain + $"{fileName} ({count})" + $"{extension}";
+                                MessageBox.Show(destination);
+                            }
+
+                            File.Copy(techItem.PathToModel, destination);
                             break;
                         }
                     }
