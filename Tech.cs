@@ -253,7 +253,7 @@ namespace Metal_Code
                                         {
                                             count++;
                                             destination = dirMain + "\\" + $"{item}".Trim() + "\\"
-                                                + $"{techItem.NumberName} n{techItem.Count} ({count})" + $".{extension}";
+                                                + $"{techItem.NumberName} ({count}-копия) n{techItem.Count}" + $".{extension}";
                                         }
 
                                         File.Copy(file, destination);
@@ -304,15 +304,14 @@ namespace Metal_Code
                                 dirMain + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count}{extension}"
                                 : dirMain + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route}){extension}";
 
-                            string fileName = Path.GetFileNameWithoutExtension(destination);
-
                             int count = 0;
 
                             while (File.Exists(destination))    //проверяем, существует ли уже такой файл
                             {
                                 count++;
-                                destination = dirMain + $"{fileName} ({count})" + $"{extension}";
-                                MessageBox.Show(destination);
+                                destination = $"{techItem.Route}" == "" ?
+                                dirMain + $"{techItem.NumberName} ({count}-копия) {techItem.Material} {techItem.Destiny} n{techItem.Count}{extension}"
+                                : dirMain + $"{techItem.NumberName} ({count}-копия) {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route}){extension}";
                             }
 
                             File.Copy(techItem.PathToModel, destination);

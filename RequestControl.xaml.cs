@@ -196,7 +196,7 @@ namespace Metal_Code
                 }
 
                 //очищаем наименование
-                techItem.NumberName = Regex.Replace(techItem.NumberName, @"[^\p{L}\p{Nd}]+$", "");
+                techItem.NumberName = Regex.Replace(techItem.NumberName, @"[^\p{L}\p{Nd}]+$", "").Trim();
 
                 TechItems.Add(techItem);
             }

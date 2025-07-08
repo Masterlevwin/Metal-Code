@@ -464,6 +464,9 @@ namespace Metal_Code
                 ResultText.ToolTip = $"Стоимость работы, руб\n(время работ - {Math.Ceiling(Result * work.Time / work.Price / Ratio)} мин)";
             }
 
+            //запрещаем устанавливать коэффициенты на гибку определенной группы
+            RatioText.IsReadOnly = TechRatioText.IsReadOnly = workType is BendControl bend && bend.Group != "-";
+
             type.det.PriceResult();
         }
 

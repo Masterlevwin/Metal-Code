@@ -567,22 +567,6 @@ namespace Metal_Code
             Priced?.Invoke();
         }
 
-        private void CopyTypeDetail(object sender, RoutedEventArgs e)
-        {
-            det.AddTypeDetail();
-            det.TypeDetailControls[^1].TypeDetailDrop.SelectedIndex = TypeDetailDrop.SelectedIndex;
-            det.TypeDetailControls[^1].SortDrop.SelectedIndex = SortDrop.SelectedIndex;
-            det.TypeDetailControls[^1].A = A;
-            det.TypeDetailControls[^1].B = B;
-            det.TypeDetailControls[^1].S = S;
-            det.TypeDetailControls[^1].L = L;
-            det.TypeDetailControls[^1].SetCount(Count);
-            det.TypeDetailControls[^1].SetExtraResult(ExtraResult);
-            det.TypeDetailControls[^1].MetalDrop.SelectedIndex = MetalDrop.SelectedIndex;
-            det.TypeDetailControls[^1].HasMetal = HasMetal;
-            det.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedIndex = WorkControls[0].WorkDrop.SelectedIndex;
-        }
-
         private void EnterBorder(object sender, MouseEventArgs e)
         {
             TypeDetailBox.BorderBrush = Brushes.OrangeRed;
@@ -617,6 +601,43 @@ namespace Metal_Code
         private void AddWork(object sender, RoutedEventArgs e)
         {
             AddWork();
+        }
+        private void AddInfoToComment(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Content != null)
+                switch (btn.Content)
+                {
+                    case "азот":
+                        var work = WorkControls.FirstOrDefault(w => w.workType is CutControl);
+                        if (work != null && work.workType is CutControl cut)
+                        {
+                            cut.HaveNitro = !cut.HaveNitro;
+                            work.Ratio = cut.HaveNitro ? 1.5f : 1;
+                            btn.Background = cut.HaveNitro ? Brushes.PaleGreen : Brushes.White;
+
+                            if (cut.HaveNitro && (Comment is null || Comment == "")) SetComment(" Азот!");
+                            else if (cut.HaveNitro && Comment != null && !Comment.Contains(" Азот")) SetComment(Comment.Insert(Comment.Length, " Азот!"));
+                            else if (Comment != null && Comment.Contains(" Азот")) SetComment(Comment.Replace(" Азот!", ""));
+                        }
+                        break;
+                    case "шлиф":
+                        if (Comment is null || Comment == "")
+                        {
+                            SetComment(" Внимание на направление шлифовки!");
+                            btn.Background = Brushes.PaleGreen;
+                        }
+                        else if (Comment != null && !Comment.Contains(" Внимание на направление шлифовки!"))
+                        {
+                            SetComment(Comment.Insert(Comment.Length, " Внимание на направление шлифовки!"));
+                            btn.Background = Brushes.PaleGreen;
+                        }
+                        else if (Comment != null && Comment.Contains(" Внимание на направление шлифовки"))
+                        {
+                            SetComment(Comment.Replace(" Внимание на направление шлифовки!", ""));
+                            btn.Background = Brushes.White;
+                        }
+                        break;
+                };
         }
     }
 }

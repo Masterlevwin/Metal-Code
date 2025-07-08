@@ -6,7 +6,6 @@ namespace Metal_Code
 {
     public class DestinyConverter : IValueConverter
     {
-        public float TemplateValue { get; set; }
         public Brush HighlightBrush { get; set; } = Brushes.Red;
         public Brush DefaultBrush { get; set; } = Brushes.Blue;
 
@@ -22,7 +21,7 @@ namespace Metal_Code
         public object ConvertBack(object value, Type targetType, object parameter,
             System.Globalization.CultureInfo culture)
         {
-            return null;
+            throw new NotImplementedException();
         }
     }
 }

@@ -6,6 +6,7 @@
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
              d:DesignHeight="30" d:DesignWidth="150" Unloaded="RemovePartsTab">
+    
     <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="20">
         <CheckBox IsChecked="{Binding IsMassPipe, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" Click="SetMassPipe" ToolTip="Посчитать материал самих деталей" Margin="2,0,0,0" VerticalAlignment="Center"/>
         <Button x:Name="CutBtn" Click="LoadFiles" Content=". . ." ToolTip="Загрузить отчет трубы" FontWeight="Bold" Margin="2,0,0,0" MinWidth="25"/>

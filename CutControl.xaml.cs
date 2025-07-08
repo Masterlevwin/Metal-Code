@@ -135,20 +135,6 @@ namespace Metal_Code
 
         private void OnPriceChanged(object sender, RoutedEventArgs e)
         {
-            if (HaveNitro)
-            {
-                string? comment = work.type.Comment;
-
-                if (comment is null || comment == "") work.type.SetComment(" Азот!");
-                else if (!comment.Contains(" Азот")) work.type.SetComment(comment.Insert(comment.Length, " Азот!"));
-
-                work.Ratio = 1.5f;
-            }
-            else
-            {
-                if (work.type.Comment is not null && work.type.Comment.Contains(" Азот"))
-                    work.type.SetComment(work.type.Comment.Replace(" Азот!", ""));
-            }
             OnPriceChanged();
         }
         public void OnPriceChanged()

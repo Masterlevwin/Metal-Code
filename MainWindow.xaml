@@ -140,9 +140,9 @@
                 <RowDefinition MinHeight="300"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition MinWidth="900"/>
+                <ColumnDefinition/>
                 <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition MinWidth="600" Width="600"/>
+                <ColumnDefinition Width="600"/>
             </Grid.ColumnDefinitions>
 
             <GroupBox x:Name="DetailsBox" Margin="5">

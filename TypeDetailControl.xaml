@@ -16,7 +16,6 @@
         <ContextMenu>
             <MenuItem Header="Добавить" Click="AddTypeDetail"></MenuItem>
             <MenuItem Header="Удалить" Click="Remove"></MenuItem>
-            <MenuItem Header="Скопировать" Click="CopyTypeDetail"></MenuItem>
         </ContextMenu>
     </UserControl.ContextMenu>
 
@@ -46,7 +45,13 @@
 
             <StackPanel Orientation="Horizontal" Margin="5,10,15,5" HorizontalAlignment="Right">
                 <Expander x:Name="CommentExpander" HorizontalAlignment="Left" VerticalAlignment="Top" ExpandDirection="Left">
-                    <TextBox Text="{Binding Comment}" TextChanged="SetComment" MinWidth="200" MaxWidth="200" MinHeight="40" MinLines="2" Margin="0,0,5,0"/>
+                    <StackPanel>
+                        <TextBox Text="{Binding Comment}" TextChanged="SetComment" MinWidth="200" MaxWidth="200" MinHeight="40" MinLines="2" Margin="0,0,5,0" TextWrapping="Wrap"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,5,0">
+                            <Button Content="азот" Margin="2" Padding="2" FontSize="10" Click="AddInfoToComment"/>
+                            <Button Content="шлиф" Margin="2" Padding="2" FontSize="10" Click="AddInfoToComment"/>
+                        </StackPanel>
+                    </StackPanel>
                 </Expander>
 
                 <StackPanel x:Name="WorksStack" Margin="10,0,0,0">
