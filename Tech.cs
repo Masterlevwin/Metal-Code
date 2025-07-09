@@ -1,11 +1,9 @@
 using ExcelDataReader;
-using NPOI.HPSF;
 using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
-using System.DirectoryServices.ActiveDirectory;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -64,6 +62,9 @@ namespace Metal_Code
 
                 stream.Close();
 
+                //переносим папки работ в архив
+                MigrateDirectories();
+
                 //сначала формируем предварительный расчет, для этого создаем заготовки и работы
                 if (createOffer)
                 {
@@ -88,12 +89,12 @@ namespace Metal_Code
                         techItem.Destiny = $"al{techItem.Destiny}";
                     }
                     else if (techItem.Material.ToLower().Contains("амг") || techItem.Material.ToLower().Contains("д16")) techItem.Destiny = $"al{techItem.Destiny}";
-                    else if (techItem.Material.ToLower().Contains("br"))
+                    else if (techItem.Material.ToLower().Contains("br") || techItem.Material.ToLower().Contains("латунь"))
                     {
                         techItem.Material = "";
                         techItem.Destiny = $"br{techItem.Destiny}";
                     }
-                    else if (techItem.Material.ToLower().Contains("cu"))
+                    else if (techItem.Material.ToLower().Contains("cu") || techItem.Material.ToLower().Contains("медь"))
                     {
                         techItem.Material = "";
                         techItem.Destiny = $"cu{techItem.Destiny}";
@@ -253,7 +254,7 @@ namespace Metal_Code
                                         {
                                             count++;
                                             destination = dirMain + "\\" + $"{item}".Trim() + "\\"
-                                                + $"{techItem.NumberName} ({count}-копия) n{techItem.Count}" + $".{extension}";
+                                                + $"{techItem.NumberName}_{count} n{techItem.Count}" + $".{extension}";
                                         }
 
                                         File.Copy(file, destination);
@@ -304,20 +305,95 @@ namespace Metal_Code
                                 dirMain + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count}{extension}"
                                 : dirMain + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route}){extension}";
 
-                            int count = 0;
+                            //если файла с таким названием еще нет, просто копируем его
+                            if (!File.Exists(destination)) File.Copy(techItem.PathToModel, destination);
 
-                            while (File.Exists(destination))    //проверяем, существует ли уже такой файл
+                            //если файл с таким же названием уже есть, проверяем оба файла на идентичность
+                            else if (!AreFilesTheSame(techItem.PathToModel, destination))
                             {
-                                count++;
-                                destination = $"{techItem.Route}" == "" ?
-                                dirMain + $"{techItem.NumberName} ({count}-копия) {techItem.Material} {techItem.Destiny} n{techItem.Count}{extension}"
-                                : dirMain + $"{techItem.NumberName} ({count}-копия) {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route}){extension}";
-                            }
+                                int count = 0;
 
-                            File.Copy(techItem.PathToModel, destination);
+                                while (File.Exists(destination))    //проверяем, существует ли уже такой файл
+                                {
+                                    count++;
+                                    destination = $"{techItem.Route}" == "" ?
+                                    dirMain + $"{techItem.NumberName}_{count} {techItem.Material} {techItem.Destiny} n{techItem.Count}{extension}"
+                                    : dirMain + $"{techItem.NumberName}_{count} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route}){extension}";
+                                }
+
+                                File.Copy(techItem.PathToModel, destination);
+                            }
                             break;
                         }
                     }
+            }
+        }
+
+        // Метод сравнения по содержимому (побайтово)
+        private static bool AreFilesTheSame(string file1, string file2)
+        {
+            if (!File.Exists(file1) || !File.Exists(file2))
+                return false;
+
+            var info1 = new FileInfo(file1);
+            var info2 = new FileInfo(file2);
+
+            if (info1.Length != info2.Length)
+                return false;
+
+            using var fs1 = File.OpenRead(file1);
+            using var fs2 = File.OpenRead(file2);
+            int b1, b2;
+            do
+            {
+                b1 = fs1.ReadByte();
+                b2 = fs2.ReadByte();
+                if (b1 != b2) return false;
+            } while (b1 != -1 && b2 != -1);
+
+            return b1 == b2;
+        }
+
+        public void MigrateDirectories()            //метод переноса директорий работ в архив
+        {
+            string? dirMain = Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile));
+
+            if (dirMain != null)
+            {
+                string archiveFolderName = $"Архив (от {DateTime.Now:dd.MM.yyyy HH-mm})";
+                string archiveDirPath = Path.Combine(dirMain, archiveFolderName);
+
+                // Если такая папка уже есть — добавляем номер
+                int count = 1;
+                while (Directory.Exists(archiveDirPath))
+                {
+                    archiveDirPath = Path.Combine(dirMain, $"{archiveFolderName} ({count})");
+                    count++;
+                }
+
+                // Создаем папку "Архив..."
+                Directory.CreateDirectory(archiveDirPath);
+
+                foreach (string dirPath in Directory.GetDirectories(dirMain))
+                {
+                    DirectoryInfo dirInfo = new(dirPath);
+
+                    if (dirPath.Contains("Архив") || dirPath.Contains("ТЗ")) continue;
+
+                    string targetDirPath = Path.Combine(archiveDirPath, dirInfo.Name);
+
+                    // Если такая папка уже есть в архиве — переименовываем
+                    int counter = 1;
+                    string uniqueTargetDirPath = targetDirPath;
+                    while (Directory.Exists(uniqueTargetDirPath))
+                    {
+                        uniqueTargetDirPath = Path.Combine(archiveDirPath, $"{dirInfo.Name} ({counter})");
+                        counter++;
+                    }
+
+                    // Перемещаем каталог
+                    Directory.Move(dirPath, uniqueTargetDirPath);
+                }
             }
         }
 
