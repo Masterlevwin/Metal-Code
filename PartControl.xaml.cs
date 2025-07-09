@@ -67,12 +67,15 @@ namespace Metal_Code
             work = _work;
             Part = _part;
             DataContext = Part;
+        }
 
+        private void SetProperties(object sender, RoutedEventArgs e)
+        {
+            AssembliesDrop.ItemsSource = AssemblyWindow.A.Assemblies;
             WorksDrop.ItemsSource = works;
 
             SetProperties();        //устанавливаем свойства нарезанной детали
         }
-
         private void SetProperties()        //метод определения свойств детали
         {
             if (!Part.PropsDict.ContainsKey(100)) return;
@@ -189,13 +192,6 @@ namespace Metal_Code
             if (Part.ImageBytes != null) Picture.Source = MainWindow.CreateBitmap(Part.ImageBytes);
         }
 
-        private void ShowAssemblyWindow(object sender, RoutedEventArgs e)
-        {
-            AssemblyWindow.A.CurrentParts.Clear();
-            AssemblyWindow.A.CurrentParts.Add(Part);
-            AssemblyWindow.A.Show();
-        }
-
         private void RemovePart(object sender, RoutedEventArgs e)
         {
             if (owner is ICut cut && cut.PartsControl is not null && cut.PartsControl.Parts.Contains(this))
@@ -268,6 +264,25 @@ namespace Metal_Code
             }
             catch (Exception ex) { MainWindow.M.StatusBegin(ex.Message); }
         }
+
+        private void AddToAssembly(object sender, SelectionChangedEventArgs e)
+        {
+            if (AssembliesDrop.SelectedItem is Assembly assembly)
+            {
+                Particle? particle = assembly.Particles.FirstOrDefault(p => p.Title == Part.Title);
+                if (particle is null)
+                {
+                    particle = new()
+                    {
+                        Title = Part.Title,
+                        Count = Part.Count,
+                        ImageBytes = Part.ImageBytes
+                    };
+                    assembly.Particles.Add(particle);
+                }
+            }
+        }
+
     }
 
     public interface ICut

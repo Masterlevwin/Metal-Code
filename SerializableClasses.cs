@@ -144,7 +144,19 @@ namespace Metal_Code
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
         
-        public string Title { get; set; } = "Новая сборка";
+        private string title = "Новая сборка";
+        public string Title
+        {
+            get => title;
+            set
+            {
+                if (value != title)
+                {
+                    title = value;
+                    OnPropertyChanged(nameof(Title));
+                }
+            }
+        }
 
         private int count = 1;
         public int Count
