@@ -4887,7 +4887,7 @@ namespace Metal_Code
             {
                 foreach (DirectoryInfo subDir in dirs)
                 {
-                    if (subDir.Name.ToLower().Contains("кп") || subDir.Name.ToLower().Contains("тз")) continue;
+                    if (subDir.Name.ToLower().Contains("кп") || subDir.Name.ToLower().Contains("тз") || subDir.Name.ToLower().Contains("архив")) continue;
                     string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
                     CopyDirectoryToWork(subDir.FullName, newDestinationDir, true, mainDir);
                 }
