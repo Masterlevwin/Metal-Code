@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" Loaded="SetProperties">
+
     <Grid x:Name="ControlGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" MinHeight="150"/>
@@ -31,7 +32,19 @@
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="5,95,0,0" MaxHeight="20">
-            <ComboBox x:Name="AssembliesDrop" MinWidth="120" MaxWidth="120" DisplayMemberPath="Title" SelectionChanged="AddToAssembly"/>
+            <ComboBox x:Name="AssembliesDrop" MinWidth="120" MaxWidth="120">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <CheckBox Click="AddToAssembly" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Title}" Margin="3,0,0,0"/>
+                            <TextBlock Text=" (" Foreground="Blue" Margin="3,0,0,0" />
+                            <TextBlock Text="{Binding Count}" Foreground="Blue"/>
+                            <TextBlock Text=" сб)" Foreground="Blue"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
             <TextBlock Text="{Binding Mass}" ToolTip="Масса детали" Margin="10,0,0,0" VerticalAlignment="Center"/>
             <TextBlock Text="кг" VerticalAlignment="Center" Margin="5,0,0,0"/>
         </StackPanel>

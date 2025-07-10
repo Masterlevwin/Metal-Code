@@ -1971,8 +1971,15 @@ namespace Metal_Code
                     {
                         int rowAssembly = row;
                         row++;
-                        foreach (Particle particle in assembly.Particles)
+                        for (int p = 0; p < assembly.Particles.Count; p++)
                         {
+                            Particle particle = assembly.Particles[p];
+                            if (particle.Count <= 0)
+                            {
+                                assembly.Particles.Remove(particle);
+                                continue;
+                            }
+
                             Part? part = Parts.FirstOrDefault(p => p.Title == particle.Title);
                             if (part is not null)
                             {

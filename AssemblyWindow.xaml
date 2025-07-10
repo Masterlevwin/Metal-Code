@@ -5,14 +5,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:self="clr-namespace:Metal_Code"
         mc:Ignorable="d"
-        d:DesignHeight="150" d:DesignWidth="500" Title="Управление сборками" Closing="HideWindow" SizeToContent="Width" WindowStartupLocation="CenterScreen" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}">
+        Title="Управление сборками" Closing="HideWindow" WindowStartupLocation="CenterScreen" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" SizeToContent="WidthAndHeight">
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition MinHeight="200"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition/>
+            <RowDefinition MinHeight="200"/>
         </Grid.RowDefinitions>
 
         <StackPanel Orientation="Horizontal" Margin="20">
+            
             <Button Click="AddAssembly" VerticalAlignment="Bottom" Padding="5">
                 <StackPanel Orientation="Horizontal" MaxHeight="20">
                     <Image Source="/Images/greenplus.png"/>
@@ -20,10 +22,11 @@
                 </StackPanel>
             </Button>
             
-            <GroupBox Margin="20,0,0,0" MaxHeight="200">
+            <GroupBox Margin="20,0,0,0">
                 <GroupBox.Header>
                     <TextBlock Text="Список деталей" FontWeight="Medium" FontSize="14"/>
                 </GroupBox.Header>
+                
                 <ListBox ItemsSource="{Binding CurrentParts}" Margin="5" Padding="2">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
@@ -54,9 +57,12 @@
                     <TextBlock Text="Проверить сборки" Margin="5,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
+            
         </StackPanel>
 
-        <TreeView x:Name="ParticleStack" ItemsSource="{Binding Assemblies}" Margin="20" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" Grid.Row="1" BorderThickness="0">
+        <GridSplitter Grid.Row="1" ShowsPreview="False" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" BorderThickness="1"/>
+
+        <TreeView Grid.Row="2" Margin="20" x:Name="ParticleStack" ItemsSource="{Binding Assemblies}" BorderThickness="0">
             <TreeView.Resources>
                 <HierarchicalDataTemplate DataType="{x:Type self:Assembly}" ItemsSource="{Binding Particles}">
                     <StackPanel Orientation="Horizontal" MinHeight="20" Margin="10">
@@ -81,6 +87,6 @@
                 </DataTemplate>
             </TreeView.Resources>
         </TreeView>
-        
+
     </Grid>
 </Window>

@@ -265,24 +265,22 @@ namespace Metal_Code
             catch (Exception ex) { MainWindow.M.StatusBegin(ex.Message); }
         }
 
-        private void AddToAssembly(object sender, SelectionChangedEventArgs e)
+        private void AddToAssembly(object sender, RoutedEventArgs e)
         {
-            if (AssembliesDrop.SelectedItem is Assembly assembly)
+            if (sender is CheckBox cBox && cBox.DataContext is Assembly assembly)
             {
-                Particle? particle = assembly.Particles.FirstOrDefault(p => p.Title == Part.Title);
-                if (particle is null)
-                {
-                    particle = new()
+                Particle? particle = assembly.Particles.FirstOrDefault(x => x.Title == Part.Title);
+
+                if (cBox.IsChecked == true && particle is null)
+                    assembly.Particles.Add(new()
                     {
                         Title = Part.Title,
-                        Count = Part.Count,
+                        Count = (int)Math.Floor((double)Part.Count / assembly.Count),
                         ImageBytes = Part.ImageBytes
-                    };
-                    assembly.Particles.Add(particle);
-                }
+                    });
+                else if (cBox.IsChecked == false && particle != null) assembly.Particles.Remove(particle);
             }
         }
-
     }
 
     public interface ICut
