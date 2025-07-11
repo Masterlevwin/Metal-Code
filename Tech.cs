@@ -22,7 +22,7 @@ namespace Metal_Code
 
         public Tech(string path) { ExcelFile = path; }
 
-        public string Run(bool createOffer = false)
+        public string Run()
         {
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
@@ -64,21 +64,6 @@ namespace Metal_Code
 
                 //переносим папки работ в архив
                 MigrateDirectories();
-
-                //сначала формируем предварительный расчет, для этого создаем заготовки и работы
-                if (createOffer)
-                {
-                    string message = "";
-                    foreach (TechItem techItem in TechItems)
-                        if (techItem.Sizes is null || techItem.Sizes == "") message += $"\n{techItem.NumberName}";
-                    if (message != "") MessageBox.Show(message.Insert(0, "Не удалось создать быстрый расчет,\n" +
-                        "так как не удалось получить габариты следующих деталей:"));
-                    else
-                    {
-                        try { CreateExpressOffer(); }
-                        catch (Exception ex) { MessageBox.Show($"Не удалось создать быстрый расчет.\n{ex.Message}"); }
-                    }
-                }
 
                 //затем переопределяем материалы и толщины для формирования имен деталей
                 foreach (TechItem techItem in TechItems)
@@ -202,8 +187,7 @@ namespace Metal_Code
             }
             catch (Exception ex) { notify = ex.Message; }
 
-            //return RequestReport();
-            return $"Обработано {TechItems.Count} строк заявки. Все файлы найдены.";
+            return $"Обработано {TechItems.Count} строк заявки.";
         }
 
         private void SortExtension(DirectoryInfo dirMain, string extension, List<TechItem> techItems)
@@ -378,7 +362,7 @@ namespace Metal_Code
                 {
                     DirectoryInfo dirInfo = new(dirPath);
 
-                    if (dirPath.Contains("Архив") || dirPath.Contains("ТЗ")) continue;
+                    if (dirPath.ToLower().Contains("архив") || dirPath.ToLower().Contains("тз")) continue;
 
                     string targetDirPath = Path.Combine(archiveDirPath, dirInfo.Name);
 

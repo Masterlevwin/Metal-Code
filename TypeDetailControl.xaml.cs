@@ -508,7 +508,14 @@ namespace Metal_Code
                         Mass = A * A * L * metal.Density / 1000000;
                         Square = 2 * (A * L + B * L + A * B) / 1000000;
                         break;
-                    case "Швеллер":
+                    case "Швеллер П":
+                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
+                        {
+                            Mass = Channels[SortDrop.SelectedIndex] * L / 1000;
+                            Square = ChannelsSquare[SortDrop.SelectedIndex] * L / 1000;
+                        }
+                        break;
+                    case "Швеллер У":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
                         {
                             Mass = Channels[SortDrop.SelectedIndex] * L / 1000;

@@ -27,13 +27,10 @@ namespace Metal_Code
             }
         }
 
-        public List<PartControl>? Parts { get; set; }
+        public string[] structures = { "глян", "мат", "шагр", "муар" };
+        public int priceMeter = 500;
 
-        public Dictionary<string, float> TypeDict = new()
-        {
-            ["м²"] = 500,
-            ["шт"] = 50,
-        };
+        public List<PartControl>? Parts { get; set; }
 
         public readonly UserControl owner;
         public PaintControl(UserControl _work)
@@ -46,7 +43,7 @@ namespace Metal_Code
         private void Tuning()               // настройка блока после инициализации
         {
             // формирование списка типов расчета окраски
-            foreach (string s in TypeDict.Keys) TypeDrop.Items.Add(s);
+            foreach (string s in structures) TypeDrop.Items.Add(s);
 
             if (owner is WorkControl work)
             {
@@ -127,7 +124,7 @@ namespace Metal_Code
                         {
                             if (p.Square > 0 && p.Square < .1f) p.Square = .1f;       //расчетная площадь окраски должна быть не меньше 0,1 кв м
                                                                         //к деталям площадью менее 0,3 кв м добавляем стоимость 0,2 кв м за подвес
-                            if (p.Square >= .1f && p.Square < .3f) price += TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 10;
+                            if (p.Square >= .1f && p.Square < .3f) price += priceMeter * p.Part.Count / 10;
 
                             price += item.Price(p.Square, p.Part.Mass, p.Part.Count, work);
                         }
@@ -141,7 +138,7 @@ namespace Metal_Code
             else if (Ral != null && work.type.Square > 0 && work.type.Mass > 0)
             {
                 if (work.type.Square > 0 && work.type.Square < .1f) work.type.Square = .1f;
-                if (work.type.Square >= .1f && work.type.Square < .3f) price += TypeDict[$"{TypeDrop.SelectedItem}"] * work.type.Count / 10;
+                if (work.type.Square >= .1f && work.type.Square < .3f) price += priceMeter * work.type.Count / 10;
 
                 work.SetResult(price + Price(work.type.Square, work.type.Mass, work.type.Count, work));
             }
@@ -165,12 +162,7 @@ namespace Metal_Code
                 _ => 1,
             };
 
-            return TypeDrop.SelectedItem switch
-            {
-                "м²" => TypeDict[$"{TypeDrop.SelectedItem}"] * _square * _massRatio * _count * _destinyRatio,
-                "шт" => TypeDict[$"{TypeDrop.SelectedItem}"] * _massRatio * _count * _destinyRatio,
-                _ => 0,
-            };
+            return priceMeter * _square * _massRatio * _count * _destinyRatio;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
@@ -210,7 +202,7 @@ namespace Metal_Code
                                 _send = _work.Price * _w.Ratio * _w.TechRatio / count;  // усредненную часть минималки от общего количества деталей
                             else                                                        // иначе добавляем часть от количества именно этой детали
                                 _send = (Price(p.Square, p.Part.Mass, p.Part.Count, p.work) + (p.Square >= .1f && p.Square < .3f ?
-                                    TypeDict[$"{TypeDrop.SelectedItem}"] * p.Part.Count / 10 : 0)) * _w.Ratio * _w.TechRatio / p.Part.Count;
+                                    priceMeter * p.Part.Count / 10 : 0)) * _w.Ratio * _w.TechRatio / p.Part.Count;
 
                             p.Part.Price += _send;
                             p.Part.PropsDict[54] = new() { $"{_send}", $"{p.Square}", $"{Ral}" };

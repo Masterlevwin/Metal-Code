@@ -28,7 +28,7 @@ namespace Metal_Code
             foreach (string s in Weld.TypeDict.Keys) WeldDrop.Items.Add(s);
             PaintControl Paint = new(owner);
             // формирование списка типов расчета окраски
-            foreach (string s in Paint.TypeDict.Keys) PaintDrop.Items.Add(s);
+            foreach (string s in Paint.structures) PaintDrop.Items.Add(s);
             RollingControl Roll = new(owner);
             // формирование списка сторон расчета вальцовки
             foreach (string s in Roll.Sides) RollDrop.Items.Add(s);

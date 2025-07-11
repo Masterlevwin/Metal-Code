@@ -14,8 +14,8 @@
 
     <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="20">
         <TextBlock Text="О" FontWeight="Bold" Margin="5,0,0,0" MinWidth="10"/>
-        <TextBox Text="{Binding Ral, RelativeSource={RelativeSource AncestorType={x:Type local:PaintControl}, Mode=FindAncestor}}" MinWidth="65" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxWidth="65" MaxLines="1" ToolTip="Введите цвет и структуру краски" LostFocus="SetRal"/>
-        <ComboBox x:Name="TypeDrop" SelectionChanged="SetType" ToolTip="Выберите тип расчета" SelectedIndex="0" MinWidth="50" MaxWidth="50" Margin="5,0,0,0"/>
+        <TextBox Text="{Binding Ral, RelativeSource={RelativeSource AncestorType={x:Type local:PaintControl}, Mode=FindAncestor}}" MinWidth="50" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxWidth="50" MaxLines="1" ToolTip="Введите цвет и структуру краски" LostFocus="SetRal"/>
+        <ComboBox x:Name="TypeDrop" SelectionChanged="SetType" ToolTip="Выберите тип расчета" SelectedIndex="0" MinWidth="65" MaxWidth="65" Margin="5,0,0,0"/>
        
         <Image Source="/Images/question.png" MaxWidth="10" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="2,0,0,0">
             <Image.ToolTip>

@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" Loaded="RequestControl_Loaded">
-    
+
     <UserControl.Resources>
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     </UserControl.Resources>
@@ -18,8 +18,24 @@
         <DockPanel LastChildFill="True">
 
             <DockPanel DockPanel.Dock="Top">
-                <Button Content="Добавить DXF / IGS" Click="Load_Models" HorizontalAlignment="Left" Margin="5" Padding="5"/>
-                <Button Content="Закрыть" Click="Close_RequestControl" HorizontalAlignment="Right" Margin="5" Padding="5"/>
+                <Button HorizontalAlignment="Left" Click="Load_Models" Margin="5">
+                    <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="20">
+                        <Image Source="/Images/model.png"/>
+                        <TextBlock Text="Добавить DXF / IGS" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </Button>
+                <Button DockPanel.Dock="Right" Click="Close_RequestControl" Margin="5">
+                    <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="20">
+                        <Image Source="/Images/close.png"/>
+                        <TextBlock Text="Закрыть" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </Button>
+                <Button DockPanel.Dock="Right" DataContext="{Binding ProductModel, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Command="{Binding LoadCommand}" HorizontalAlignment="Center" Margin="5" Click="Load_Excel">
+                    <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="20">
+                        <Image Source="Images/xlsx_load.png"/>
+                        <TextBlock Text="Загрузить раскладки" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </Button>
             </DockPanel>
 
             <GroupBox DockPanel.Dock="Top" MaxHeight="120" Margin="5">
@@ -30,31 +46,30 @@
                 <ListBox x:Name="PathsList" Margin="5" Padding="5"/>
             </GroupBox>
             
-            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right">
+            <DockPanel DockPanel.Dock="Bottom">
 
-                <Button ToolTip="Создать заявку в формате Excel" Click="Create_Request" HorizontalAlignment="Center" Margin="5">
-                    <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="22">
+                <Button ToolTip="Сохранить заявку в формате Excel" Click="Create_Request" HorizontalAlignment="Center" Margin="5">
+                    <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="20">
                         <Image Source="Images/comment.png"/>
-                        <TextBlock Text="Создать заявку" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                        <TextBlock Text="Сохранить заявку" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
                     </StackPanel>
                 </Button>
 
-                <Button ToolTip="Подготовить папки в работу" Click="Create_Tech" Margin="5">
-                    <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="22">
-                        <Image Source="Images/complect.png"/>
-                        <TextBlock Text="Папки в работу" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                <Button ToolTip="Доступен предварительный расчет" Click="Create_ExpressOffer" HorizontalAlignment="Center" Margin="5" Visibility="{Binding IsAvailable, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="20">
+                        <Image Source="/Images/open3.png"/>
                     </StackPanel>
                 </Button>
 
-                <Button ToolTip="Создать заявку и подготовить папки в работу" Click="Launch_Tech" Margin="5">
-                    <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="22">
+                <Button ToolTip="Сохранить заявку и сформировать папки в работу" Click="Launch_Tech" HorizontalAlignment="Right" Margin="5">
+                    <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="20">
                         <Image Source="Images/comment.png"/>
                         <TextBlock Text="и" Margin="5,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         <Image Source="Images/complect.png" Margin="5,0,0,0"/>
                     </StackPanel>
                 </Button>
 
-            </StackPanel>
+            </DockPanel>
 
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5">
                 

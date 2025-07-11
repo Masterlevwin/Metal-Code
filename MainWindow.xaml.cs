@@ -77,12 +77,14 @@ namespace Metal_Code
             //"Data Source=templates.db",
         };
 
-        public readonly ProductViewModel ProductModel = new(new DefaultDialogService(), new JsonFileService(), new Product());
+        public ProductViewModel ProductModel { get; set; } = new(new DefaultDialogService(), new JsonFileService(), new Product());
         public RequestControl? RequestControl;
 
         public Manager CurrentManager = new();      //текущий авторизованный менеджер
         public Manager TargetManager = new();       //выбранный менеджер из списка
         public Customer TargetCustomer = new();     //выбранный заказчик из списка
+
+        public List<TechItem> TechItems = new();    //список полученных объектов из строк заявки
         public ObservableCollection<Manager> Managers { get; set; } = new();
         public ObservableCollection<Offer> Offers { get; set; } = new();
         public List<Offer> CurrentOffers { get; set; } = new();
@@ -4687,8 +4689,6 @@ namespace Metal_Code
             return "";
         }
 
-        public List<TechItem> TechItems = new();        //список полученных объектов из строк заявки
-
         //------------Сортировка файлов по папкам----------------//
         private void CreateTech(object sender, RoutedEventArgs e)
         {
@@ -4704,28 +4704,8 @@ namespace Metal_Code
             }
             else StatusBegin($"Не выбрано ни одного файла");
         }
-        public void CreateExpressTech(object sender, RoutedEventArgs e)
-        {
-            MessageBoxResult response = MessageBox.Show(
-                "Создать быстрый расчет на основе заявки?\nЕсли \"Да\", текущий расчет будет очищен!",
-                "Создание расчета", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
 
-            bool createOffer = false;
-            if (response == MessageBoxResult.Yes) createOffer = true;
-
-            OpenFileDialog openFileDialog = new()
-            {
-                Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*"
-            };
-
-            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
-            {
-                Tech tech = new(openFileDialog.FileNames[0]);
-                StatusBegin(tech.Run(createOffer));
-            }
-            else StatusBegin($"Не выбрано ни одного файла");
-        }
-
+        //------------Перенос чертежей при загрузке сохранения---//
         public void PdfMigrate(string path)
         {
             char c = '\\';

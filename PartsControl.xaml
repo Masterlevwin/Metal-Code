@@ -50,8 +50,8 @@
                     <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
                         <Button Content="О&gt;" ToolTip="По окраске" Click="SortDetails" FontWeight="Bold" MinWidth="30"/>
                         <TextBlock Text="Окр" FontWeight="Bold" ToolTip="Окраска для всех" Margin="5,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <TextBox x:Name="Paint" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="55" MaxWidth="55" MaxLines="1" ToolTip="Введите цвет RAL" LostFocus="SetProperty" Margin="5,0,0,0"/>
-                        <ComboBox x:Name="PaintDrop" SelectionChanged="SetType" MinWidth="50" Margin="5,0,0,0" MaxWidth="50" ToolTip="Выберите тип расчета" SelectedIndex="0"/>
+                        <TextBox x:Name="Paint" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="40" MaxWidth="40" MaxLines="1" ToolTip="Введите цвет RAL" LostFocus="SetProperty" Margin="5,0,0,0"/>
+                        <ComboBox x:Name="PaintDrop" SelectionChanged="SetType" MinWidth="65" Margin="5,0,0,0" MaxWidth="65" ToolTip="Выберите тип расчета" SelectedIndex="0"/>
                         <Button x:Name="PaintBtn" Content="О+" ToolTip="Добавить окраску" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" MinWidth="30"/>
                     </StackPanel>
 
