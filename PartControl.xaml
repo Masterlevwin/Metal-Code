@@ -26,13 +26,16 @@
         </Popup>
 
         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,70,0,0" MaxHeight="20">
-            <TextBox Text="{Binding Count}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Количество вырезанных деталей" MinWidth="40" MinHeight="20" Margin="5,0,0,0" VerticalAlignment="Center"/>
+            <TextBox Text="{Binding Count}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Количество вырезанных деталей" MinWidth="40" MinHeight="20" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="Blue"/>
+            <TextBlock Text="шт" Margin="5,0,0,0" VerticalAlignment="Center"/>
             <TextBlock x:Name="DimensionsText" Text="{Binding Dimensions, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" ToolTip="Размеры детали" Margin="30,0,0,0" VerticalAlignment="Center"/>
             <TextBlock Text="мм" MouseWheel="ViewPopupDimensions" Margin="5,0,0,0" VerticalAlignment="Center"/>
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="5,95,0,0" MaxHeight="20">
-            <ComboBox x:Name="AssembliesDrop" MinWidth="120" MaxWidth="120">
+            <Image Source="/Images/assembly.png" VerticalAlignment="Top" MaxWidth="16"/>
+
+            <ComboBox x:Name="AssembliesDrop" MinWidth="100" MaxWidth="100" Margin="4,0,0,0">
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
@@ -50,7 +53,9 @@
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="5,120,0,0" MaxHeight="20">
-            <ComboBox x:Name="WorksDrop" MinWidth="120" MaxWidth="120"/>
+            <Image Source="/Images/works2.png" VerticalAlignment="Top" MaxWidth="16"/>
+
+            <ComboBox x:Name="WorksDrop" MinWidth="100" MaxWidth="100" Margin="4,0,0,0"/>
             <Button Margin="10,0,0,0" MinWidth="45" Content="Доб" Click="AddControl"/>
         </StackPanel>
     </Grid>

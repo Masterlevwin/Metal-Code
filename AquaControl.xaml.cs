@@ -77,6 +77,7 @@ namespace Metal_Code
         private void SetSquare()
         {
             Square = 0;
+
             if (owner is WorkControl work)
             {
                 if (Parts?.Count > 0)

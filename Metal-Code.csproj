@@ -76,6 +76,8 @@
     <None Remove="Images\update3.png" />
     <None Remove="Images\update4.png" />
     <None Remove="Images\withbonus.png" />
+    <None Remove="Images\works.png" />
+    <None Remove="Images\works2.png" />
     <None Remove="Images\xlsx_load.png" />
     <None Remove="Images\xls_load.png" />
     <None Remove="laser_logo.jpg" />
@@ -182,6 +184,8 @@
     <Resource Include="Images\update.png" />
     <Resource Include="Images\update4.png" />
     <Resource Include="Images\withbonus.png" />
+    <Resource Include="Images\works.png" />
+    <Resource Include="Images\works2.png" />
     <Resource Include="Images\xlsx_load.png" />
     <Resource Include="Images\xls_load.png" />
     <Content Include="laser_logo.jpg">

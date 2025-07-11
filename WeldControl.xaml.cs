@@ -115,6 +115,13 @@ namespace Metal_Code
                 [10] = 15,
                 [100] = 10
             },
+            ["aisi201"] = new Dictionary<float, float>()
+            {
+                [1] = 20,
+                [3] = 17,
+                [10] = 15,
+                [100] = 10
+            },
             ["амг2"] = new Dictionary<float, float>()
             {
                 [1] = 30,
@@ -136,7 +143,21 @@ namespace Metal_Code
                 [10] = 25,
                 [100] = 20
             },
-            ["д16"] = new Dictionary<float, float>()
+            ["д16АМ"] = new Dictionary<float, float>()
+            {
+                [1] = 30,
+                [3] = 27,
+                [10] = 25,
+                [100] = 20
+            },
+            ["д16АТ"] = new Dictionary<float, float>()
+            {
+                [1] = 30,
+                [3] = 27,
+                [10] = 25,
+                [100] = 20
+            },
+            ["рифл"] = new Dictionary<float, float>()
             {
                 [1] = 30,
                 [3] = 27,
@@ -213,6 +234,14 @@ namespace Metal_Code
         public void SetType(int ndx = 0)
         {
             TypeDrop.SelectedIndex = ndx;
+
+            if (owner is PartControl part)
+                foreach (var item in part.work.type.WorkControls)
+                    if (item.workType is WeldControl weld)
+                    {
+                        weld.SetType(ndx);
+                        break;
+                    }
             OnPriceChanged();
         }
 

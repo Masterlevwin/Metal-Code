@@ -67,14 +67,14 @@ namespace Metal_Code
             work = _work;
             Part = _part;
             DataContext = Part;
+
+            SetProperties();        //устанавливаем свойства нарезанной детали
         }
 
         private void SetProperties(object sender, RoutedEventArgs e)
         {
             AssembliesDrop.ItemsSource = AssemblyWindow.A.Assemblies;
             WorksDrop.ItemsSource = works;
-
-            SetProperties();        //устанавливаем свойства нарезанной детали
         }
         private void SetProperties()        //метод определения свойств детали
         {
@@ -97,15 +97,9 @@ namespace Metal_Code
             }
         }
 
-        private void ViewPopupDimensions(object sender, MouseWheelEventArgs e)
-        {
-            PopupDimensions.IsOpen = true;
-        }
+        private void ViewPopupDimensions(object sender, MouseWheelEventArgs e) { PopupDimensions.IsOpen = true; }
 
-        private void AddControl(object sender, RoutedEventArgs e)
-        {
-            AddControl(WorksDrop.SelectedIndex);
-        }
+        private void AddControl(object sender, RoutedEventArgs e) { AddControl(WorksDrop.SelectedIndex); }
         public void AddControl(int index)
         {
             switch (index)
@@ -183,6 +177,7 @@ namespace Metal_Code
         public void RemoveControl(UserControl uc)
         {
             if (uc is IPriceChanged work) PropertiesChanged -= work.SaveOrLoadProperties;
+            if (Part.PropsDict.ContainsKey(UserControls.IndexOf(uc))) Part.PropsDict.Remove(UserControls.IndexOf(uc));
             UserControls.Remove(uc);
             ControlGrid.Children.Remove(uc);
         }
@@ -243,11 +238,7 @@ namespace Metal_Code
             }
         }
 
-        private void OpenPlan(object sender, MouseButtonEventArgs e)
-        {
-            OpenPlan();
-        }
-
+        private void OpenPlan(object sender, MouseButtonEventArgs e) { OpenPlan(); }
         private void OpenPlan()
         {
             try

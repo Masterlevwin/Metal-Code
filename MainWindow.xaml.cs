@@ -516,16 +516,13 @@ namespace Metal_Code
             M = this;
             Title = $"Metal-Code {Version}";
 
-            //if (!DecryptFile(out string s)) EncryptFile();          //временная строчка для старых пользователей
-
             //if (!CheckVersion(out string _version)) Restart();
             //else UpdateDatabases();
-            //AutoRemoveOffers();
+            AutoRemoveOffers();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
         }
-
 
         //-------------Основные методы-----------//
         #region
@@ -807,19 +804,11 @@ namespace Metal_Code
             if (Result > 0) Parts = PartsSource();
         }
 
-        private void UpdateResult(object sender, MouseEventArgs e)
-        {
-            UpdateResult();
-        }
-        private void UpdateResult(object sender, TextChangedEventArgs e)
-        {
-            UpdateResult();
-        }
-        private void UpdateResult(object sender, RoutedEventArgs e)
-        {
-            UpdateResult();
-        }
-        public void UpdateResult()         // метод принудительного обновления стоимости
+        //-----------Обновление общей стоимости расчета-----------//
+        private void UpdateResult(object sender, MouseEventArgs e) { UpdateResult(); }
+        private void UpdateResult(object sender, TextChangedEventArgs e) { UpdateResult(); }
+        private void UpdateResult(object sender, RoutedEventArgs e) { UpdateResult(); }
+        public void UpdateResult()
         {
             Construct = ConstructResult();
 
@@ -1726,8 +1715,9 @@ namespace Metal_Code
                             else if (work.workType is PaintControl paint && paint.Ral != null)          //проверяем наличие окраски
                             {
                                 //если список еще не содержит окраску в этот цвет, создаем такую запись, иначе просто добавляем стоимость
-                                if (!TempWorksDict.ContainsKey($"Окраска в цвет {paint.Ral}")) TempWorksDict[$"Окраска в цвет {paint.Ral}"] = work.Result;
-                                else TempWorksDict[$"Окраска в цвет {paint.Ral}"] += work.Result;
+                                if (!TempWorksDict.ContainsKey($"Окраска в {paint.Ral} {paint.TypeDrop.SelectedItem}"))
+                                    TempWorksDict[$"Окраска в {paint.Ral} {paint.TypeDrop.SelectedItem}"] = work.Result;
+                                else TempWorksDict[$"Окраска в {paint.Ral} {paint.TypeDrop.SelectedItem}"] += work.Result;
                             }
                             else if (_work.Name != null)                                                //проверяем все остальные работы
                             {
@@ -1793,7 +1783,7 @@ namespace Metal_Code
                             _saveWork.PropsList = work.propsList;
 
                             //для окраски уточняем цвет в описании работы
-                            if (work.workType is PaintControl _paint) _detail.Description += $"{_work.Name}(цвет - {_paint.Ral})\n";
+                            if (work.workType is PaintControl _paint) _detail.Description += $"{_work.Name}(цвет - {_paint.Ral} {_paint.TypeDrop.SelectedItem})\n";
                             //для доп работы её наименование добавляем к наименованию работы - особый случай
                             else if (work.workType is ExtraControl _extra) _detail.Description += $"{_extra.NameExtra}\n";
                             //в остальных случаях добавляем наименование работы
@@ -1844,7 +1834,7 @@ namespace Metal_Code
 
             if (ProductModel.Product.Assemblies?.Count > 0)
                 AssemblyWindow.A = new() { Assemblies = ProductModel.Product.Assemblies };
-            UpdateResult();
+            //UpdateResult();
         }
         public void LoadDetails(ObservableCollection<Detail> details)
         {
@@ -2411,8 +2401,10 @@ namespace Metal_Code
                             //подробности окраски/аква/цинк для каждой детали
                             if (j == 4 || j == 16 || j == 17)
                             {
-                                if (float.TryParse(Parts[i].PropsDict[j + 50][1], out float square)) scoresheet.Cells[i + 2, 23].Value = Math.Round(square, 3);     //площадь покрытия
-                                if (Parts[i].PropsDict[j + 50].Count > 2) scoresheet.Cells[i + 2, 24].Value = Parts[i].PropsDict[j + 50][2];                        //цвет
+                                //площадь покрытия
+                                if (float.TryParse(Parts[i].PropsDict[j + 50][1], out float square)) scoresheet.Cells[i + 2, 23].Value = Math.Round(square, 3);
+                                //цвет и структура                     
+                                if (Parts[i].PropsDict[j + 50].Count > 2) scoresheet.Cells[i + 2, 24].Value = Parts[i].PropsDict[j + 50][2];
                             }
 
                             //ставим галочку, если деталь добавлена в работы для Провэлда
@@ -2720,8 +2712,8 @@ namespace Metal_Code
                         {
                             statsheet.Cells[i + temp, 8].Value += $"{work.Name} ";                      //"Доп работы"
 
-                            if (w.workType is PaintControl _paint)
-                                statsheet.Cells[i + beginBitrix, 16].Value += _paint.Ral;               //"Нанесение покрытий"
+                            if (w.workType is PaintControl _paint)                                      //"Нанесение покрытий"
+                                statsheet.Cells[i + beginBitrix, 16].Value += $"{_paint.Ral} {_paint.TypeDrop.SelectedItem} ";
                             else statsheet.Cells[i + beginBitrix, 15].Value += $"{work.Name} ";         //"Производство"
                         }
 
@@ -2803,10 +2795,9 @@ namespace Metal_Code
                         tempNote++;
 
                     }
-                    else if (key.Contains("Окраска") && key.Length > 14)
+                    else if (key.Contains("Окраска"))
                     {
-                        if (!$"{statsheet.Cells[temp, 4].Value}".Contains("Окраска"))
-                            statsheet.Cells[temp, 4].Value += $"{key.Remove(7)} ";
+                        if (!$"{statsheet.Cells[temp, 4].Value}".Contains("Окраска")) statsheet.Cells[temp, 4].Value += "Окраска ";
 
                         int _count = 0;
                         float _square = 0;
@@ -2814,7 +2805,7 @@ namespace Metal_Code
                         for (int i = 0; i < Parts.Count; i++)
                         {
                             //если в столбце "цвет" не пусто, и данная окраска соответствует по RAL, считаем кол-во и площадь таких деталей
-                            if ($"{scoresheet.Cells[i + 2, 24].Value}" != "" && $"{key[14..]}".Trim() == $"{scoresheet.Cells[i + 2, 24].Value}".Trim())
+                            if ($"{scoresheet.Cells[i + 2, 24].Value}" != "" && $"{key[10..]}".Trim() == $"{scoresheet.Cells[i + 2, 24].Value}".Trim())
                             {
                                 _count += (int)Parser($"{scoresheet.Cells[i + 2, 2].Value}");
                                 if (float.TryParse($"{scoresheet.Cells[i + 2, 23].Value}", out float s))
@@ -2822,8 +2813,8 @@ namespace Metal_Code
                             }
                         }
 
-                        statsheet.Cells[temp, 17].Value += $"{key[14..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
-                        notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{key[14..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
+                        statsheet.Cells[temp, 17].Value += $"{key[10..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
+                        notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{key[10..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
                         notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = $"{Math.Ceiling(_square * 0.14f)} кг";
                         tempNote++;
                     }

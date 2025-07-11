@@ -4,7 +4,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 
 namespace Metal_Code
 {
@@ -28,7 +27,7 @@ namespace Metal_Code
         }
 
         public string[] structures = { "глян", "мат", "шагр", "муар" };
-        public int priceMeter = 500;
+        public int priceMeter = 500;    //стоимость обработки 1 квадратного метра
 
         public List<PartControl>? Parts { get; set; }
 
@@ -70,6 +69,7 @@ namespace Metal_Code
         public void SetRal(string _ral)
         {
             Ral = _ral;
+
             if (owner is PartControl part)
             {
                 MainWindow.M.IsLoadData = true;
@@ -100,13 +100,12 @@ namespace Metal_Code
             TypeDrop.SelectedIndex = ndx;
 
             if (owner is PartControl part)
-                foreach (WorkControl work in part.work.type.WorkControls)
-                    if (work.workType is PaintControl paint)
+                foreach (var item in part.work.type.WorkControls)
+                    if (item.workType is PaintControl paint && paint.Ral == Ral)
                     {
                         paint.SetType(ndx);
                         break;
                     }
-
             OnPriceChanged();
         }
 
@@ -175,16 +174,16 @@ namespace Metal_Code
                     w.propsList.Add($"{Ral}");
                     w.propsList.Add($"{TypeDrop.SelectedIndex}");
                 }
-                else if (uc is PartControl p)       // первый элемент списка {2} - это (MenuItem)PartControl.Controls.Items[2]
+                else if (uc is PartControl p)
                 {
-                    if (Ral == null || Ral == "" || Ral == "0")
+                    if (Ral == null || Ral == "")
                     {
                         p.RemoveControl(this);
                         return;
                     }
 
                     p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{2}", $"{Ral}", $"{TypeDrop.SelectedIndex}" };
-                    if (p.Part.Description != null && !p.Part.Description.Contains(" + О ")) p.Part.Description += $" + О (цвет - {Ral}) ";
+                    if (p.Part.Description != null && !p.Part.Description.Contains(" + О ")) p.Part.Description += $" + О ({Ral} {TypeDrop.SelectedItem}) ";
 
                     int count = 0;      //счетчик общего количества деталей
 
@@ -205,7 +204,7 @@ namespace Metal_Code
                                     priceMeter * p.Part.Count / 10 : 0)) * _w.Ratio * _w.TechRatio / p.Part.Count;
 
                             p.Part.Price += _send;
-                            p.Part.PropsDict[54] = new() { $"{_send}", $"{p.Square}", $"{Ral}" };
+                            p.Part.PropsDict[54] = new() { $"{_send}", $"{p.Square}", $"{Ral} {TypeDrop.SelectedItem}" };
                             break;
                         }
                 }
