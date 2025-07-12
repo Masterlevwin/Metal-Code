@@ -322,7 +322,7 @@
                             <DataGrid.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem Header="Загрузить" Command="{Binding OpenOfferCommand}"/>
-                                    <MenuItem Header="Удалить" x:Name="DeleteOffer" Command="{Binding RemoveOfferCommand}"/>
+                                    <MenuItem Header="Удалить" Command="{Binding RemoveOfferCommand}"/>
                                     <MenuItem Header="Сохранить изменения" Click="UpdateOffer"/>
                                     <MenuItem Header="Запустить в производство" Click="LaunchToWork"/>
                                     <MenuItem Header="Открыть для чтения" Click="OpenOffer"/>

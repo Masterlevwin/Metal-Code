@@ -480,11 +480,26 @@ namespace Metal_Code
                 "найдет совпадение, то удалит это из каждого наименования.";
         }
 
-        //-----очистка списка деталей-----//
+        //-----удаление строки из списка деталей-----//
+        private void Remove_TechItem(object sender, MouseButtonEventArgs e)
+        {
+            if (RequestGrid.SelectedCells.Count > 0)
+                if (RequestGrid.SelectedCells[0].Item is TechItem item && TechItems.Contains(item))
+                    TechItems.Remove(item);
+        }
+
+        //-----очистка всего списка деталей-----//
         private void Clear_TechItems(object sender, RoutedEventArgs e)
         {
             TechItems.Clear();
             IsAvailable = false;
+        }
+        private void ShowPopup_DataGrid(object sender, MouseEventArgs e)
+        {
+            Popup.IsOpen = true;
+
+            Details.Text = $"Кнопка \"Очистить\" удаляет ВСЕ строки из таблицы.\n" +
+                "Чтобы удалить одну строку, дважды нажмите по строке правой кнопкой мыши.";
         }
 
         //-----создание заявки и подготовка папок одновременно-----//
