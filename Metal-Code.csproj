@@ -169,7 +169,9 @@
     <Resource Include="Images\plus.png" />
     <Resource Include="Images\print.jpg" />
     <Resource Include="Images\print2.png" />
-    <Resource Include="Images\question.png" />
+    <Resource Include="Images\question.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Images\report.png" />
     <Resource Include="Images\route.png" />
     <Resource Include="Images\ruble.png" />

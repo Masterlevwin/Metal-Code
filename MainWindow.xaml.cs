@@ -2758,8 +2758,8 @@ namespace Metal_Code
                         }
                         else if (w.workType is SawControl _saw)         //для лентопила указываем вид заготовки по аналогии с труборезом
                         {
-                            //"Толщина и марка металла"
-                            statsheet.Cells[i + temp, 4].Value = $"(ЛП) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+                            //"Толщина и марка металла"                             //"Труборез"
+                            statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + beginBitrix, 12].Value = $"(ЛП) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
                             //"Лазер (время работ)"                                 //"Время лазерных работ"
                             statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
                             
@@ -2774,7 +2774,7 @@ namespace Metal_Code
                         }
                         else if (w.workType is MillingTotalControl _milling)
                         {
-                            statsheet.Cells[i + beginBitrix, 20].Value += $"{_milling.TotalTime} ";     //"Время фрезерных работ"
+                            statsheet.Cells[i + beginBitrix, 20].Value = _milling.TotalTime;            //"Время фрезерных работ"
                         }
                         else if (w.WorkDrop.SelectedItem is Work work)
                         {
@@ -3259,6 +3259,9 @@ namespace Metal_Code
 
             ExcelRange label = labelsheet.Cells[1, 1, 5, 2];                        //получаем этикетку для оформления
 
+            //создаем реестр простых задач для Битрикса
+            CreateSimpleRegistry(workbook);
+
             //обводка границ и авторастягивание столбцов
             details.Style.HorizontalAlignment = label.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             details.Style.VerticalAlignment = label.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
@@ -3304,6 +3307,128 @@ namespace Metal_Code
                 }
             }
             else workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
+        }
+
+        //-ПРОСТЫЕ ЗАДАЧИ
+        private void CreateSimpleRegistry(ExcelPackage workbook)
+        {
+            ExcelWorksheet registrysheet = workbook.Workbook.Worksheets.Add("Реестр");
+
+            int beginBitrix = 2;
+
+            List<string> _headersBitrix = new()
+            {
+                "№ заказа", "Заказчик", "Менеджер", "Количество материала", "Лазерные работы", "Труборез",
+                "Гибочные работы", "Время лазерных работ", "Производство", "Нанесение покрытий",
+                "Логистика", "Комментарий", "Дата сдачи", "Время фрезерных работ"
+            };
+            for (int col = 0; col < _headersBitrix.Count; col++) registrysheet.Cells[1, col + 7].Value = _headersBitrix[col];
+
+            int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count) + 1;
+
+            ExcelRange registryBitrix = registrysheet.Cells[1, 7, countTypeDetails, 20];
+            registryBitrix.Style.Fill.SetBackground(System.Drawing.Color.LavenderBlush);
+            registrysheet.Row(1).Style.Font.Bold = true;
+
+            foreach (DetailControl det in DetailControls)
+            {
+                for (int i = 0; i < det.TypeDetailControls.Count; i++)
+                {
+                    TypeDetailControl type = det.TypeDetailControls[i];
+
+                    registrysheet.Cells[i + beginBitrix, 8].Value = CustomerDrop.Text;  //"Заказчик"
+                    registrysheet.Cells[i + beginBitrix, 9].Value = ShortManager();     //"Менеджер"
+
+                    if (HasDelivery != false)
+                        registrysheet.Cells[i + beginBitrix, 17].Value = "Доставка ";   //"Логистика"
+
+                    if (type.CheckMetal.IsChecked == false)
+                        registrysheet.Cells[i + beginBitrix, 18].Value = "Давальч. ";   //"Комментарий"
+
+                    if (type.Comment != null && type.Comment != "")
+                        registrysheet.Cells[i + beginBitrix, 18].Value += $"{type.Comment}";                                                     //"Комментарий"
+
+                    registrysheet.Cells[i + beginBitrix, 19].Value = EndDate();         //"Дата сдачи"
+                    registrysheet.Cells[i + beginBitrix, 19].Style.Numberformat.Format = "d MMM";
+
+                    if (type.MetalDrop.SelectedItem is Metal met)
+                    {
+                        double _mass = Math.Ceiling(det.Detail.IsComplect ? type.Mass : type.Mass * type.Count);
+
+                        registrysheet.Cells[i + beginBitrix, 10].Value = _mass;         //"Количество материала"
+                    }
+
+                    foreach (WorkControl w in type.WorkControls)    //анализируем работы каждой заготовки
+                    {
+                        if (w.Result == 0) continue;                //пропускаем добавление нулевых работ
+
+                        if (w.workType is CutControl cut)
+                        {
+                            //"Толщина и марка металла"
+                            string description = "";
+                            if ((type.MetalDrop.Text.Contains("ст") && type.S >= 3) || (type.MetalDrop.Text.Contains("хк") && type.S < 3)) description = $"s{type.S}";
+                            else if (type.MetalDrop.Text.Contains("амг2")) description = $"al{type.S}";
+                            else if (type.MetalDrop.Text.Contains("амг") || type.MetalDrop.Text.Contains("д16")) description = $"al{type.S} {type.MetalDrop.Text}";
+                            else if (type.MetalDrop.Text.Contains("латунь")) description = $"br{type.S}";
+                            else if (type.MetalDrop.Text.Contains("медь")) description = $"cu{type.S}";
+                            else description = $"s{type.S} {type.MetalDrop.Text}";
+                            
+                            //"Лазерные работы"
+                            registrysheet.Cells[i + beginBitrix, 11].Value = description;
+
+                            //"Время лазерных работ"
+                            registrysheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
+                        }
+                        else if (w.workType is BendControl)
+                        {
+                            //"Гибочные работы"
+                            registrysheet.Cells[i + beginBitrix, 13].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
+                        }
+                        else if (w.workType is PipeControl pipe)
+                        {
+                            //"Труборез"
+                            registrysheet.Cells[i + beginBitrix, 12].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+                            
+                            //"Время лазерных работ"
+                            registrysheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
+                        }
+                        else if (w.workType is SawControl _saw)
+                        {
+                            //"Труборез"
+                            registrysheet.Cells[i + beginBitrix, 12].Value = $"(ЛП) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+                            //"Время лазерных работ"
+                            registrysheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
+                        }
+                        else if (w.workType is ExtraControl _extra)     //для доп работы её наименование добавляем к наименованию работы - особый случай
+                        {
+                            //"Производство"
+                            registrysheet.Cells[i + beginBitrix, 15].Value += $"{_extra.NameExtra} ";
+                        }
+                        else if (w.workType is MillingTotalControl _milling)
+                        {
+                            //"Время фрезерных работ"
+                            registrysheet.Cells[i + beginBitrix, 20].Value = _milling.TotalTime;     
+                        }
+                        else if (w.WorkDrop.SelectedItem is Work work)
+                        {
+                            //"Нанесение покрытий"
+                            if (w.workType is PaintControl _paint)                                      
+                                registrysheet.Cells[i + beginBitrix, 16].Value += $"{_paint.Ral} {_paint.TypeDrop.SelectedItem} ";
+                            //"Производство"
+                            else registrysheet.Cells[i + beginBitrix, 15].Value += $"{work.Name} ";
+                        }
+                    }
+                }
+                beginBitrix += det.TypeDetailControls.Count;
+            }
+
+            //обводка границ и авторастягивание столбцов
+            registryBitrix.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            registryBitrix.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            registryBitrix.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+            registryBitrix.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            registryBitrix.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+            registrysheet.Cells.AutoFitColumns();
         }
 
         //-ЗАДАЧИ
@@ -4538,7 +4663,7 @@ namespace Metal_Code
         #region
 
         //-------------Даты-----------//
-        private DateTime? EndDate()
+        public DateTime? EndDate()
         {
             if (int.TryParse(DateProduction.Text, out int days))
             {
@@ -5033,6 +5158,12 @@ namespace Metal_Code
         }
 
         //------------Остальные методы---------------------------//
+        private void CreateRegistryWindow(object sender, RoutedEventArgs e) //открытие окна формирования списка задач
+        {
+            RegistryWindow registryWindow = new();
+            registryWindow.Show();
+        }
+
         private void Search_Details(object sender, RoutedEventArgs e)       //метод поиска нарезанной детали
         {
             //получаем все работы из комплектов деталей
@@ -5171,7 +5302,7 @@ namespace Metal_Code
 
         public float GetServices() => (float)Math.Round(Result - GetMetalPrice(), 2);
 
-        private string ShortManager()       //метод, возвращающий сокращенное имя менеджера
+        public string ShortManager()       //метод, возвращающий сокращенное имя менеджера
         {
             return ManagerDrop.Text switch
             {
