@@ -1,5 +1,9 @@
 ﻿using System.Windows;
 using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace Metal_Code
 {
@@ -10,6 +14,7 @@ namespace Metal_Code
     {
         public Detail Detail { get; set; }
         public TypeDetailControl Billet { get; set; }
+        public ObservableCollection<DetailData> Details { get; set; } = new();
 
         public DetailDataWindow(Detail detail, TypeDetailControl type)
         {
@@ -18,14 +23,19 @@ namespace Metal_Code
             DataContext = Detail;
 
             Billet = type;
+        }
+
+        private void Add_DetailData(object sender, RoutedEventArgs e)
+        {
             if (Billet.TypeDetailDrop.Text == "Лист металла")
             {
-                LengthStack.Visibility = Visibility.Hidden;
+                Details.Add(new() { Width = 100, Height = 200, Count = 5, IsPipe = false });
+                MessageBox.Show($"{Details.Count}");
             }
             else
             {
-                WidthStack.Visibility = Visibility.Hidden;
-                HeightStack.Visibility = Visibility.Hidden;
+                Details.Add(new() { Length = 2000, Count = 5, IsPipe = true });
+                MessageBox.Show($"{Details.Count}");
             }
         }
 
@@ -39,11 +49,10 @@ namespace Metal_Code
 
         private int SheetsCalculate()
         {
-            if (WidthDetail.Text == "" || HeightDetail.Text == "") return 0;
+            if (Details.Count == 0) return 0;
 
-            int result = (int)Math.Ceiling(
-                (MainWindow.Parser(WidthDetail.Text) * MainWindow.Parser(HeightDetail.Text) + 20) *
-                Detail.Count / (Billet.A * Billet.B));
+            int result = (int)Math.Ceiling(Details.Sum(d => (d.Width * d.Height + 20) * d.Count)
+                        * Detail.Count / (Billet.A * Billet.B));
 
             if (result > 0)
                 foreach (Work w in MainWindow.M.Works) if (w.Name == "Лазерная резка")
@@ -56,9 +65,10 @@ namespace Metal_Code
 
         private int TubesCalculate()
         {
-            if (LengthDetail.Text == "") return 0;
+            if (Details.Count == 0) return 0;
 
-            int result = (int)Math.Ceiling((MainWindow.Parser(LengthDetail.Text) + 20) * Detail.Count / Billet.L);
+            int result = (int)Math.Ceiling(Details.Sum(d => (d.Length + 20) * d.Count)
+                        * Detail.Count / Billet.L);
 
             if (result > 0)
                 foreach (Work w in MainWindow.M.Works) if (w.Name == "Труборез")
@@ -86,5 +96,77 @@ namespace Metal_Code
             Hide();
             MainWindow.M.IsEnabled = true;
         }
+
+    }
+
+    public class DetailData : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        private float width;
+        public float Width
+        {
+            get => width;
+            set
+            {
+                if (value != width)
+                {
+                    width = value;
+                    OnPropertyChanged(nameof(Width));
+                }
+            }
+        }        
+        
+        private float height;
+        public float Height
+        {
+            get => height;
+            set
+            {
+                if (value != height)
+                {
+                    height = value;
+                    OnPropertyChanged(nameof(Height));
+                }
+            }
+        }        
+        
+        private float length;
+        public float Length
+        {
+            get => length;
+            set
+            {
+                if (value != length)
+                {
+                    length = value;
+                    OnPropertyChanged(nameof(Length));
+                }
+            }
+        }
+
+        private int count = 1;
+        public int Count
+        {
+            get => count;
+            set
+            {
+                if (value != count)
+                {
+                    count = value;
+                    OnPropertyChanged(nameof(Count));
+                }
+            }
+        }
+
+        private bool isPipe;
+        public bool IsPipe
+        {
+            get => isPipe;
+            set => isPipe = value;
+        }
+
+        public DetailData() { }
     }
 }

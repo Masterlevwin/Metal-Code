@@ -2318,12 +2318,10 @@ namespace Metal_Code
 
             if (isAssemblyOffer && AssemblyWindow.A.Assemblies.Count > 0)
             {
-                int startRow = AssemblyWindow.A.Assemblies.Count;
+                int startRow = AssemblyWindow.A.Assemblies.Count + AssemblyWindow.A.Assemblies.Sum(p => p.Particles.Count);
 
                 if (LooseParts.Count > 0)
                 {
-                    int _count = 0;         //счетчик кол-ва для реестра Провэлда
-
                     //сначала заполняем ячейки по каждой детали и работе
                     for (int i = 0; i < LooseParts.Count; i++)
                     {
@@ -2353,33 +2351,11 @@ namespace Metal_Code
                                 if (scoresheet.Cells[i + startRow + 2, 25].Value == null && (j >= 3 && j <= 9 || (j >= 15 && j <= 17))) scoresheet.Cells[i + startRow + 2, 25].Value = "П";
                             }
 
-                        if (scoresheet.Cells[i + startRow + 2, 25].Value != null && int.TryParse($"{scoresheet.Cells[i + startRow + 2, 2].Value}", out int _c)) _count += _c;
-                    }
-
-                    scoresheet.Cells[LooseParts.Count + startRow + 2, 25].Value = _count;
-
-                    //затем оформляем заголовки таблицы и подсчитываем общую стоимость и количество деталей для каждой работы
-                    float _workTotal = 0, _workCount = 0;
-
-                    for (int col = 0; col < _heads.Count; col++)
-                    {
-                        scoresheet.Cells[1, col + 5].Value = _heads[col];       //заполняем заголовки из списка
-                        if (col + 5 > 22) continue;
-
-                        for (int i = 0; i < LooseParts.Count; i++)       //пробегаем по каждой детали и получаем стоимость работы с учетом количества деталей
-                        {
-                            if (float.TryParse($"{scoresheet.Cells[i + startRow + 2, col + 5].Value}", out float w)        //кусочек цены работы за 1 шт
-                                && float.TryParse($"{scoresheet.Cells[i + startRow + 2, 2].Value}", out float c))          //количество деталей
-                            {
-                                _workTotal += w * c;
-                                _workCount += c;
-                            }
-                        }
-                        scoresheet.Cells[LooseParts.Count + startRow + 2, col + 5].Value = Math.Round(_workCount, 2);       //получаем общее количество деталей, участвующих в работе
-                        scoresheet.Cells[LooseParts.Count + startRow + 3, col + 5].Value = Math.Round(_workTotal, 2);       //получаем общую стоимость работы
-                        _workTotal = _workCount = 0;                      //обнуляем переменные для следующей работы
+                        if (scoresheet.Cells[i + startRow + 2, 25].Value != null && int.TryParse($"{scoresheet.Cells[i + startRow + 2, 2].Value}", out int _c)) countProweld += _c;
                     }
                 }
+
+                rowStat = startRow + LooseParts.Count;
             }
             else if (Parts.Count > 0)
             {
@@ -2520,10 +2496,10 @@ namespace Metal_Code
             scoresheet.Cells[extable.Rows + 2, 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             scoresheet.Cells[extable.Rows + 2, 1].Style.Font.Bold = scoresheet.Cells[extable.Rows + 2, 2].Style.Font.Bold = true;
 
-            ExcelRange totals = isAssemblyOffer ? scoresheet.Cells[AssemblyWindow.A.Assemblies.Count + LooseParts.Count + 2, 5, AssemblyWindow.A.Assemblies.Count + LooseParts.Count + 3, 25] : scoresheet.Cells[rowStat + 2, 5, rowStat + 3, 25];
+            ExcelRange totals = scoresheet.Cells[rowStat + 2, 5, rowStat + 3, 25];
             totals.Style.Fill.SetBackground(System.Drawing.Color.PowderBlue);
 
-            ExcelRange sends = isAssemblyOffer ? scoresheet.Cells[1, 5, AssemblyWindow.A.Assemblies.Count + LooseParts.Count + 3, 25] : scoresheet.Cells[1, 5, rowStat + 3, 25];
+            ExcelRange sends = scoresheet.Cells[1, 5, rowStat + 3, 25];
             sends.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
             ExcelRange materials = scoresheet.Cells[1, 5, extable.Rows + 1, 5];
