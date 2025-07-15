@@ -283,5 +283,6 @@ namespace Metal_Code
         public List<LaserItem>? Items { get; set; }
         public float Mass {  get; set; }
         public float Way { get; set; }
+        public int Pinhole { get; set; }
     }
 }

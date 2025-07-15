@@ -138,7 +138,7 @@ namespace Metal_Code
             DetailControl detail = new(new());
 
             DetailControls.Add(detail);
-            detail.Counter.Content = DetailControls.IndexOf(detail) + 1;
+            detail.Counter.Text = $"{DetailControls.IndexOf(detail) + 1}";
 
             DetailsStack.Children.Add(detail);
 

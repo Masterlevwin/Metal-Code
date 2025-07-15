@@ -24,10 +24,13 @@
             <StackPanel Orientation="Horizontal" MinHeight="22" MaxHeight="22" VerticalAlignment="Top">
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                    <Button x:Name="Counter" Margin="5,0,0,0" Click="ShowDetailData" MinWidth="22"/>
+                    <TextBox x:Name="Counter" MaxWidth="20" MinWidth="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinHeight="20" MaxHeight="20" IsReadOnly="True"/>
                     <TextBox ToolTip="Введите наименование детали" Text="{Binding Title}" TextChanged="SetName" x:Name="DetailName" MinWidth="130" MaxWidth="130" MaxLines="1" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                     <TextBlock Text="N" VerticalAlignment="Top" FontSize="10" Margin="10,0,0,0" MinWidth="8"/>
-                    <TextBox ToolTip="Введите количество деталей" Text="{Binding Count}" TextChanged="SetCount" x:Name="Count" MaxWidth="35" MinWidth="35" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0"/>
+                    <TextBox ToolTip="Введите количество деталей" Text="{Binding Count}" TextChanged="SetCount" x:Name="Count" MaxWidth="35" MinWidth="35" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" Foreground="Blue"/>
+                    <Button Margin="10,0,0,0" Click="ShowDetailData" MinWidth="22" Padding="2" BorderThickness="0" ToolTip="Сделать простой раскрой">
+                        <Image Source="Images/nesting.png"/>
+                    </Button>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="351,0,0,0">

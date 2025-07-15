@@ -45,8 +45,6 @@ namespace Metal_Code
             
             BilletsStack.Children.Insert(BilletsStack.Children.Count - 1, type);
 
-            //MainWindow.M.DetailsScroll.PageDown();
-
             type.AddWork();   // при добавлении дропа типовой детали добавляем дроп работ
         }
 
@@ -64,7 +62,7 @@ namespace Metal_Code
         {
             if (MainWindow.M.DetailControls.Count > 1)
                 for (int i = MainWindow.M.DetailControls.IndexOf(this) + 1; i < MainWindow.M.DetailControls.Count; i++)
-                    MainWindow.M.DetailControls[i].Counter.Content = MainWindow.M.DetailControls.IndexOf(MainWindow.M.DetailControls[i]);
+                    MainWindow.M.DetailControls[i].Counter.Text = $"{MainWindow.M.DetailControls.IndexOf(MainWindow.M.DetailControls[i])}";
 
             MainWindow.M.DetailControls.Remove(this);
             MainWindow.M.DetailsStack.Children.Remove(this);

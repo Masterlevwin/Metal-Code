@@ -20,29 +20,59 @@ namespace Metal_Code
         {
             InitializeComponent();
             Detail = detail;
-            DataContext = Detail;
-
             Billet = type;
+            DataContext = this;
+        }
+
+        private void DetailDataWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            BilletType.Text = Billet.TypeDetailDrop.Text;
+
+            if (Billet.TypeDetailDrop.Text == "Лист металла")
+            {
+                foreach (Work w in MainWindow.M.Works)
+                    if (w.Name == "Лазерная резка")
+                    {
+                        Billet.WorkControls[0].WorkDrop.SelectedItem = w;
+                        break;
+                    }
+            }
+            else
+            {
+                foreach (Work w in MainWindow.M.Works)
+                    if (w.Name == "Труборез")
+                    {
+                        Billet.WorkControls[0].WorkDrop.SelectedItem = w;
+                        break;
+                    }
+            }
         }
 
         private void Add_DetailData(object sender, RoutedEventArgs e)
         {
-            if (Billet.TypeDetailDrop.Text == "Лист металла")
-            {
-                Details.Add(new() { Width = 100, Height = 200, Count = 5, IsPipe = false });
-                MessageBox.Show($"{Details.Count}");
-            }
-            else
-            {
-                Details.Add(new() { Length = 2000, Count = 5, IsPipe = true });
-                MessageBox.Show($"{Details.Count}");
-            }
+            if (Billet.TypeDetailDrop.Text == "Лист металла") Details.Add(new() { Number = Details.Count + 1, IsLaser = true, IsPipe = false });
+            else Details.Add(new() { Number = Details.Count + 1, IsLaser = false, IsPipe = true });
         }
 
         private void Accept(object sender, RoutedEventArgs e)
         {
+            //получаем количество заготовок
             if (Billet.TypeDetailDrop.Text == "Лист металла") Billet.Count = SheetsCalculate();
-            else Billet.Count = TubesCalculate();
+            else
+            {
+                Billet.Count = TubesCalculate();
+
+                //в случае трубы заодно устанавливаем количество погонных метров
+                if (Billet.WorkControls[0].workType is PipeControl pipe)
+                    pipe.SetMold($"{Billet.L * Billet.Count * 0.95f / 1000}");
+            }
+
+            //получаем путь резки и количество проколов в базовом виде
+            if (Billet.WorkControls.Count > 0 && Billet.WorkControls[0].workType is ICut cut)
+            {
+                cut.Way = WayCalculate();
+                cut.Pinhole = Details.Sum(d => d.Count) * 2 * Detail.Count;
+            }
 
             FocusMainWindow();
         }
@@ -51,45 +81,29 @@ namespace Metal_Code
         {
             if (Details.Count == 0) return 0;
 
-            int result = (int)Math.Ceiling(Details.Sum(d => (d.Width * d.Height + 20) * d.Count)
+            return (int)Math.Ceiling(Details.Sum(d => (d.Width + 10) * (d.Height + 10) * d.Count)
                         * Detail.Count / (Billet.A * Billet.B));
-
-            if (result > 0)
-                foreach (Work w in MainWindow.M.Works) if (w.Name == "Лазерная резка")
-                    {
-                        Billet.WorkControls[0].WorkDrop.SelectedItem = w;
-                        break;
-                    }
-            return result;
         }
 
         private int TubesCalculate()
         {
             if (Details.Count == 0) return 0;
 
-            int result = (int)Math.Ceiling(Details.Sum(d => (d.Length + 20) * d.Count)
+            return (int)Math.Ceiling(Details.Sum(d => (d.Length + 20) * d.Count)
                         * Detail.Count / Billet.L);
-
-            if (result > 0)
-                foreach (Work w in MainWindow.M.Works) if (w.Name == "Труборез")
-                    {
-                        Billet.WorkControls[0].WorkDrop.SelectedItem = w;
-                        if (Billet.WorkControls[0].workType is PipeControl pipe)
-                            pipe.SetMold($"{Billet.L * Billet.Count * 0.95f / 1000}");
-                        break;
-                    }
-            return result;
         }
 
-        private void Cancel(object sender, RoutedEventArgs e)
+        private float WayCalculate()
         {
-            FocusMainWindow();
+            if (Billet.Count == 0) return 0;
+
+            return (float)Math.Ceiling(Details.Sum(d => (d.Width + d.Height + 10) * d.Count)
+                        * Detail.Count / 500);      
         }
 
-        private void FocusMainWindow(object sender, EventArgs e)
-        {
-            FocusMainWindow();
-        }
+        private void Cancel(object sender, RoutedEventArgs e) { FocusMainWindow(); }
+
+        private void FocusMainWindow(object sender, EventArgs e) { FocusMainWindow(); }
 
         private void FocusMainWindow()
         {
@@ -103,6 +117,22 @@ namespace Metal_Code
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        public int Number { get; set; }
+
+        private bool isLaser;
+        public bool IsLaser
+        {
+            get => isLaser;
+            set => isLaser = value;
+        }
+
+        private bool isPipe;
+        public bool IsPipe
+        {
+            get => isPipe;
+            set => isPipe = value;
+        }
 
         private float width;
         public float Width
@@ -158,13 +188,6 @@ namespace Metal_Code
                     OnPropertyChanged(nameof(Count));
                 }
             }
-        }
-
-        private bool isPipe;
-        public bool IsPipe
-        {
-            get => isPipe;
-            set => isPipe = value;
         }
 
         public DetailData() { }
