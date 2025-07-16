@@ -5461,73 +5461,7 @@ namespace Metal_Code
 
 
         //-------------Экспериметы и тесты-----------------------//
-        #region
-        private void TestMetod(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog openFileDialog = new()
-            {
-                Filter = "All files (*.*)|*.*",
-                Multiselect = true
-            };
-
-            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
-                MessageBox.Show($"Выбрано {openFileDialog.FileNames.Length} файлов в директории {Directory.GetParent(openFileDialog.FileName)}");
-            else StatusBegin($"Не выбрано ни одного файла");
-        }
-        private string GetSizes(string path, bool b)
-        {
-            if (Path.GetExtension(path).ToLower() != ".dxf") return "";
-
-            string message = "";
-            using DxfReader reader = new(path);
-            CadDocument doc = reader.Read();
-
-            //if (doc.Entities.Count > 0)
-            //{
-            //    List<Insert> inserts = new();
-            //    foreach (var e in doc.Entities) if (e is Insert insert) inserts.Add(insert);
-            //    foreach (Insert _insert in inserts) message += $"\n{_insert.Normal}:{_insert.ColumnCount}-{_insert.RowCount}";
-            //}
-
-            var inserts = doc.Entities.OfType<Insert>();
-            foreach (Insert insert in inserts)
-            {
-                foreach (Block att in inserts.Select(b => b.Block).Select(b => b.BlockEntity))
-                {
-                    message += $"{att.BasePoint}";
-                }
-            }
-            //exploreTable(doc.AppIds);
-            exploreTable(doc.BlockRecords);
-            //exploreTable(doc.DimensionStyles);
-            //exploreTable(doc.Layers);
-            //exploreTable(doc.LineTypes);
-            //exploreTable(doc.TextStyles);
-            //exploreTable(doc.UCSs);
-            //exploreTable(doc.Views);
-            //exploreTable(doc.VPorts);
-            MessageBox.Show(message);
-            return "";
-        }
-        static void exploreTable<T>(Table<T> table) where T : TableEntry
-        {
-            string message = "";
-            foreach (var item in table)
-            {
-                message += $"\tName: {item.Name}";
-
-                if (item.Name == BlockRecord.ModelSpaceName && item is BlockRecord model)
-                {
-                    message += $"\t\tEntities in the model:";
-                    foreach (var e in model.Entities.GroupBy(i => i.GetType().FullName))
-                    {
-                        message += $"\t\t{e.Key}: {e.Count()}";
-                    }
-                }
-            }
-            MessageBox.Show(message);
-        }
-        
+        #region        
         //метод анализа срока изготовления на основе старого реестра
         private void AnalyseDateProduction(string path = "Y:\\Производство\\Laser rezka\\В работу")
         {

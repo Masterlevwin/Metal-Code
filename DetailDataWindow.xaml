@@ -28,6 +28,10 @@
             </GroupBox.Header>
 
             <StackPanel Margin="10">
+                
+                <Button Content="Загрузить" Click="Load_Model" HorizontalAlignment="Left"/>
+                <Canvas x:Name="DetailCanvas" Background="White" Width="100" Height="100"/>
+                
                 <StackPanel Orientation="Horizontal" Margin="5">
                     <TextBlock x:Name="BilletType" VerticalAlignment="Center" FontWeight="Bold"/>
                     <TextBlock Text="{Binding Billet.S}" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="Blue" MinWidth="30" MaxWidth="30" HorizontalAlignment="Center" TextAlignment="Center"/>
