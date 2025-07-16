@@ -5,9 +5,9 @@ using ACadSharp.Tables;
 using CSMath;
 using Microsoft.Win32;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
@@ -58,7 +58,8 @@ namespace Metal_Code
             }
         }
 
-        private void Add_DetailData(object sender, RoutedEventArgs e)
+        private void Add_DetailData(object sender, RoutedEventArgs e) { Add_DetailData(); }
+        private void Add_DetailData()
         {
             if (Billet.TypeDetailDrop.Text == "Лист металла") Details.Add(new() { Number = Details.Count + 1, IsLaser = true, IsPipe = false });
             else Details.Add(new() { Number = Details.Count + 1, IsLaser = false, IsPipe = true });
@@ -121,6 +122,8 @@ namespace Metal_Code
             MainWindow.M.IsEnabled = true;
         }
 
+
+
         private void Load_Model(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new()
@@ -136,111 +139,60 @@ namespace Metal_Code
             else MainWindow.M.StatusBegin($"Не выбрано ни одного файла");
         }
 
-        CadDocument dxf = null!;
-
+        private DetailData detailData { get; set; } = new();
         private void RenderDxf(string[] paths)
         {
-            var reader = new DxfReader(paths[0]);
-            dxf = reader.Read();
-
-            // 1. Найдём границы чертежа
-            Rect drawingBounds = GetDrawingBounds();
-
-            if (drawingBounds.Width == 0 || drawingBounds.Height == 0)
-                return;
-
-            // 2. Рассчитаем масштаб и смещение
-            double targetWidth = 100;
-            double targetHeight = 100;
-
-            double scaleX = targetWidth / drawingBounds.Width;
-            double scaleY = targetHeight / drawingBounds.Height;
-            double scale = Math.Min(scaleX, scaleY);
-
-            double offsetX = (targetWidth - drawingBounds.Width * scale) / 2 - drawingBounds.X * scale;
-            double offsetY = (targetHeight - drawingBounds.Height * scale) / 2 - drawingBounds.Y * scale;
-
-            // 3. Отрисуем все объекты с учётом масштаба и смещения
-            foreach (var entity in dxf.Entities)
+            for (int i = 0; i < paths.Length; i++)
             {
-                if (entity is Line line)
-                {
-                    DrawLine(line, scale, offsetX, offsetY);
-                }
-                else if (entity is LwPolyline polyline)
-                {
-                    DrawPolyline(polyline, scale, offsetX, offsetY);
-                }
-                else if (entity is Arc arc)
-                {
-                    DrawArc(arc, scale, offsetX, offsetY);
-                }
-                else if (entity is Circle circle)
-                {
-                    DrawCircle(circle, scale, offsetX, offsetY);
-                }
-                else if (entity is Insert insert)
-                {
-                    RenderBlock(insert.Block, scale, offsetX, offsetY);
-                }
-            }
-        }
+                if (Path.GetExtension(paths[i]) != ".dxf") return;
 
-        private Rect GetDrawingBounds()
-        {
-            var bounds = new List<Point>();
+                Add_DetailData();
+                detailData = Details[i];
 
-            foreach (var entity in dxf.Entities)
-            {
-                if (entity is Line line)
+                var reader = new DxfReader(paths[0]);
+                CadDocument dxf = reader.Read();
+
+                // 1. Найдём границы чертежа
+                Rect drawingBounds = MainWindow.GetDrawingBounds(dxf);
+
+                if (drawingBounds.Width == 0 || drawingBounds.Height == 0) return;
+
+                // 2. Рассчитаем масштаб и смещение
+                double targetWidth = 80;
+                double targetHeight = 80;
+
+                double scaleX = targetWidth / drawingBounds.Width;
+                double scaleY = targetHeight / drawingBounds.Height;
+                double scale = Math.Min(scaleX, scaleY) * .8f;          //намеренно уменьшен масштаб
+
+                double offsetX = (targetWidth - drawingBounds.Width * scale) / 2 - drawingBounds.X * scale;
+                double offsetY = (targetHeight - drawingBounds.Height * scale) / 2 - drawingBounds.Y * scale;
+
+                // 3. Отрисуем все объекты с учётом масштаба и смещения
+                foreach (var entity in dxf.Entities)
                 {
-                    bounds.Add(new Point(line.StartPoint.X, line.StartPoint.Y));
-                    bounds.Add(new Point(line.EndPoint.X, line.EndPoint.Y));
-                }
-                else if (entity is LwPolyline polyline)
-                {
-                    foreach (var vertex in polyline.Vertices)
+                    if (entity is Line line)
                     {
-                        bounds.Add(new Point(vertex.Location.X, vertex.Location.Y));
+                        DrawLine(line, scale, offsetX, offsetY);
                     }
-                }
-                else if (entity is Arc arc)
-                {
-                    bounds.Add(new Point(arc.Center.X, arc.Center.Y));
-                }
-                else if (entity is Circle circle)
-                {
-                    bounds.Add(new Point(circle.Center.X, circle.Center.Y));
-                }
-                else if (entity is Insert insert)
-                {
-                    foreach (var reference in insert.Block.Entities)
+                    else if (entity is LwPolyline polyline)
                     {
-                        if (reference is Line _line)
-                        {
-                            bounds.Add(new Point(_line.StartPoint.X, _line.StartPoint.Y));
-                            bounds.Add(new Point(_line.EndPoint.X, _line.EndPoint.Y));
-                        }
-                        else if (reference is LwPolyline _polyline)
-                        {
-                            foreach (var vertex in _polyline.Vertices)
-                            {
-                                bounds.Add(new Point(vertex.Location.X, vertex.Location.Y));
-                            }
-                        }
+                        DrawPolyline(polyline, scale, offsetX, offsetY);
+                    }
+                    else if (entity is Arc arc)
+                    {
+                        DrawArc(arc, scale, offsetX, offsetY);
+                    }
+                    else if (entity is Circle circle)
+                    {
+                        DrawCircle(circle, scale, offsetX, offsetY);
+                    }
+                    else if (entity is Insert insert)
+                    {
+                        RenderBlock(insert.Block, scale, offsetX, offsetY);
                     }
                 }
             }
-
-            if (bounds.Count == 0)
-                return Rect.Empty;
-
-            double minX = bounds.Min(p => p.X);
-            double maxX = bounds.Max(p => p.X);
-            double minY = bounds.Min(p => p.Y);
-            double maxY = bounds.Max(p => p.Y);
-
-            return new Rect(minX, minY, maxX - minX, maxY - minY);
         }
 
         private void DrawLine(Line line, double scale, double offsetX, double offsetY)
@@ -258,7 +210,7 @@ namespace Metal_Code
                 StrokeThickness = 0.5
             };
 
-            DetailCanvas.Children.Add(lineShape);
+            detailData.Contoures.Add(lineShape);
         }
 
         private void DrawPolyline(LwPolyline polyline, double scale, double offsetX, double offsetY)
@@ -296,7 +248,7 @@ namespace Metal_Code
                 StrokeThickness = 0.5
             };
 
-            DetailCanvas.Children.Add(path);
+            detailData.Contoures.Add(path);
         }
 
         private void DrawArc(Arc arc, double scale, double offsetX, double offsetY)
@@ -342,7 +294,7 @@ namespace Metal_Code
                 StrokeThickness = 0.5
             };
 
-            DetailCanvas.Children.Add(path);
+            detailData.Contoures.Add(path);
         }
 
         private void DrawCircle(Circle circle, double scale, double offsetX, double offsetY)
@@ -361,7 +313,7 @@ namespace Metal_Code
             Canvas.SetLeft(ellipse, center.X - radius);
             Canvas.SetTop(ellipse, center.Y - radius);
 
-            DetailCanvas.Children.Add(ellipse);
+            detailData.Contoures.Add(ellipse);
         }
 
         private void RenderBlock(BlockRecord block, double scale, double offsetX, double offsetY)
@@ -390,17 +342,17 @@ namespace Metal_Code
         }
 
         //вспомогательные методы
-        private Point Transform(XY point, double scale, double offsetX, double offsetY)
+        private static Point Transform(XY point, double scale, double offsetX, double offsetY)
         {
             return new Point(point.X * scale + offsetX, point.Y * scale + offsetY);
         }
                 
-        private Point Transform(XYZ point, double scale, double offsetX, double offsetY)
+        private static Point Transform(XYZ point, double scale, double offsetX, double offsetY)
         {
             return new Point(point.X * scale + offsetX, point.Y * scale + offsetY); 
         }
 
-        private double DegToRad(double deg) => deg * Math.PI / 180;
+        private static double DegToRad(double deg) => deg * Math.PI / 180;
     }
 
     public class DetailData : INotifyPropertyChanged
@@ -409,6 +361,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public int Number { get; set; }
+        public ObservableCollection<UIElement> Contoures{ get; set; } = new();
 
         private bool isLaser;
         public bool IsLaser
@@ -481,5 +434,51 @@ namespace Metal_Code
         }
 
         public DetailData() { }
+    }
+
+    public static class CanvasHelper
+    {
+        public static readonly DependencyProperty ElementsProperty =
+            DependencyProperty.RegisterAttached(
+                "Elements",
+                typeof(ObservableCollection<UIElement>),
+                typeof(CanvasHelper),
+                new PropertyMetadata(null, OnElementsChanged));
+
+        public static ObservableCollection<UIElement> GetElements(DependencyObject obj)
+        {
+            return (ObservableCollection<UIElement>)obj.GetValue(ElementsProperty);
+        }
+
+        public static void SetElements(DependencyObject obj, ObservableCollection<UIElement> value)
+        {
+            obj.SetValue(ElementsProperty, value);
+        }
+
+        private static void OnElementsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is Canvas canvas)
+            {
+                canvas.Children.Clear();
+
+                if (e.NewValue is ObservableCollection<UIElement> elements)
+                {
+                    foreach (var element in elements)
+                    {
+                        canvas.Children.Add(element);
+                    }
+
+                    // Подписываемся на изменения коллекции
+                    elements.CollectionChanged += (sender, args) =>
+                    {
+                        canvas.Children.Clear();
+                        foreach (var element in elements)
+                        {
+                            canvas.Children.Add(element);
+                        }
+                    };
+                }
+            }
+        }
     }
 }

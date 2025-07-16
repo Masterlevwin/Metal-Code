@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Metal_Code"
         mc:Ignorable="d"
-        Title="Раскрой детали" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" FontFamily="Century" Closed="FocusMainWindow" SizeToContent="Width" Loaded="DetailDataWindow_Loaded">
+        Title="Раскрой комплекта" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" FontFamily="Century" Closed="FocusMainWindow" SizeToContent="Width" Loaded="DetailDataWindow_Loaded">
 
     <Window.Resources>
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
@@ -30,7 +30,6 @@
             <StackPanel Margin="10">
                 
                 <Button Content="Загрузить" Click="Load_Model" HorizontalAlignment="Left"/>
-                <Canvas x:Name="DetailCanvas" Background="White" Width="100" Height="100"/>
                 
                 <StackPanel Orientation="Horizontal" Margin="5">
                     <TextBlock x:Name="BilletType" VerticalAlignment="Center" FontWeight="Bold"/>
@@ -53,7 +52,7 @@
         <GroupBox DockPanel.Dock="Top" Margin="5" MinWidth="300">
             <GroupBox.Header>
                 <StackPanel Orientation="Horizontal" Margin="5">
-                    <TextBlock Text="Состав детали" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Medium"/>
+                    <TextBlock Text="Состав комплекта" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Medium"/>
                     <Button Content="Добавить" Padding="5" Margin="10,0,0,0" Click="Add_DetailData"/>
                 </StackPanel>
             </GroupBox.Header>
@@ -62,9 +61,11 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal" Margin="5">
-
-                            <TextBlock Text="{Binding Number}" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Medium"/>
-
+                            <StackPanel Orientation="Horizontal" Margin="5">
+                                <TextBlock Text="{Binding Number}" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
+                                <Canvas local:CanvasHelper.Elements="{Binding Path=Contoures}" Width="100" Height="100" Background="White" Margin="5,0,0,0"/>
+                            </StackPanel>
+                            
                             <StackPanel Margin="10,0,0,0">
                                 <StackPanel Orientation="Horizontal" Margin="5" Visibility="{Binding IsLaser, Converter={StaticResource BoolToVisibilityConverter}}" MinHeight="20">
                                     <TextBlock Text="Высота" MinWidth="80" TextAlignment="Center" VerticalAlignment="Center"/>

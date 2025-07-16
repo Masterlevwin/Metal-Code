@@ -1,4 +1,6 @@
-﻿using ExcelDataReader;
+﻿using ACadSharp;
+using ACadSharp.IO;
+using ExcelDataReader;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using OfficeOpenXml;
@@ -318,7 +320,14 @@ namespace Metal_Code
                 techItem.NumberName = Regex.Replace(techItem.NumberName, @"[^\p{L}\p{Nd}]+$", "").Trim();
 
                 //определяем размеры
-                techItem.Sizes = MainWindow.GetSizes(techItem.PathToModel);
+                if (Path.GetExtension(path) == ".dxf")
+                {
+                    var reader = new DxfReader(techItem.PathToModel);
+                    CadDocument dxf = reader.Read();
+                    Rect drawingBounds = MainWindow.GetDrawingBounds(dxf);
+
+                    techItem.Sizes = $"{Math.Ceiling(drawingBounds.Width)}x{Math.Ceiling(drawingBounds.Height)}";
+                }
 
                 TechItems.Add(techItem);
             }

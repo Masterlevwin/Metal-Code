@@ -1,9 +1,6 @@
 ﻿using ACadSharp;
-using ACadSharp.Blocks;
 using ACadSharp.Entities;
 using ACadSharp.IO;
-using ACadSharp.Tables;
-using ACadSharp.Tables.Collections;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using OfficeOpenXml;
@@ -30,6 +27,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using Path = System.IO.Path;
+using Point = System.Windows.Point;
 
 namespace Metal_Code
 {
@@ -4855,6 +4853,61 @@ namespace Metal_Code
             catch { };
 
             return "";
+        }
+        public static Rect GetDrawingBounds(CadDocument dxf)
+        {
+            var bounds = new List<Point>();
+
+            foreach (var entity in dxf.Entities)
+            {
+                if (entity is Line line)
+                {
+                    bounds.Add(new Point(line.StartPoint.X, line.StartPoint.Y));
+                    bounds.Add(new Point(line.EndPoint.X, line.EndPoint.Y));
+                }
+                else if (entity is LwPolyline polyline)
+                {
+                    foreach (var vertex in polyline.Vertices)
+                    {
+                        bounds.Add(new Point(vertex.Location.X, vertex.Location.Y));
+                    }
+                }
+                else if (entity is Arc arc)
+                {
+                    bounds.Add(new Point(arc.Center.X, arc.Center.Y));
+                }
+                else if (entity is Circle circle)
+                {
+                    bounds.Add(new Point(circle.Center.X, circle.Center.Y));
+                }
+                else if (entity is Insert insert)
+                {
+                    foreach (var reference in insert.Block.Entities)
+                    {
+                        if (reference is Line _line)
+                        {
+                            bounds.Add(new Point(_line.StartPoint.X, _line.StartPoint.Y));
+                            bounds.Add(new Point(_line.EndPoint.X, _line.EndPoint.Y));
+                        }
+                        else if (reference is LwPolyline _polyline)
+                        {
+                            foreach (var vertex in _polyline.Vertices)
+                            {
+                                bounds.Add(new Point(vertex.Location.X, vertex.Location.Y));
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (bounds.Count == 0) return Rect.Empty;
+
+            double minX = bounds.Min(p => p.X);
+            double maxX = bounds.Max(p => p.X);
+            double minY = bounds.Min(p => p.Y);
+            double maxY = bounds.Max(p => p.Y);
+
+            return new Rect(minX, minY, maxX - minX, maxY - minY);
         }
 
         //------------Сортировка файлов по папкам----------------//
