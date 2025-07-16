@@ -204,7 +204,11 @@ namespace Metal_Code
                                     priceMeter * p.Part.Count / 10 : 0)) * _w.Ratio * _w.TechRatio / p.Part.Count;
 
                             p.Part.Price += _send;
-                            p.Part.PropsDict[54] = new() { $"{_send}", $"{p.Square}", $"{Ral} {TypeDrop.SelectedItem}" };
+
+                            if (p.Part.PropsDict.ContainsKey(54) && float.TryParse(p.Part.PropsDict[54][0], out float value))
+                                p.Part.PropsDict[54][0] = $"{value + _send}";           //блоков окраски может быть несколько
+                            else
+                                p.Part.PropsDict[54] = new() { $"{_send}", $"{p.Square}", $"{Ral} {TypeDrop.SelectedItem}" };
                             break;
                         }
                 }

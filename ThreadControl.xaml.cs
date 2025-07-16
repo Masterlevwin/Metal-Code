@@ -274,9 +274,9 @@ namespace Metal_Code
                             float _send = (_work.Price + Time(p.Part.Mass, Wide, _w) * 2000 * p.Part.Count * Holes/ 60) * MainWindow.RatioSale(count) * _w.Ratio * _w.TechRatio / p.Part.Count;
                             p.Part.Price += _send;
 
-                            //if (p.Part.PropsDict.ContainsKey(key) && float.TryParse(p.Part.PropsDict[key][0], out float value))
-                            //    p.Part.PropsDict[key].Insert(0, $"{value + _send}"); //блоков резьбы, зенковки или сверловки может быть несколько
-                            //else 
+                            if (p.Part.PropsDict.ContainsKey(key) && float.TryParse(p.Part.PropsDict[key][0], out float value))
+                                p.Part.PropsDict[key][0] = $"{value + _send}";  //блоков может быть несколько
+                            else
                                 p.Part.PropsDict[key] = new() { $"{_send}" };
 
                             break;
