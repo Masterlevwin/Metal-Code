@@ -144,13 +144,13 @@ namespace Metal_Code
             {
                 if (Path.GetExtension(path) != ".dxf") continue;
 
-                var reader = new DxfReader(paths[0]);
+                var reader = new DxfReader(path);
                 CadDocument dxf = reader.Read();
 
                 // 1. Найдём границы чертежа
                 Rect drawingBounds = MainWindow.GetDrawingBounds(dxf);
 
-                if (drawingBounds.Width == 0 || drawingBounds.Height == 0) return;
+                if (drawingBounds.Width == 0 || drawingBounds.Height == 0) continue;
 
                 // 2. Рассчитаем масштаб и смещение
                 double targetWidth = 80;
