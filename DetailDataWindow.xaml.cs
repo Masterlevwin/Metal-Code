@@ -5,14 +5,13 @@ using ACadSharp.Tables;
 using CSMath;
 using Microsoft.Win32;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
 using Point = System.Windows.Point;
 
 namespace Metal_Code
@@ -139,15 +138,11 @@ namespace Metal_Code
             else MainWindow.M.StatusBegin($"Не выбрано ни одного файла");
         }
 
-        private DetailData detailData { get; set; } = new();
         private void RenderDxf(string[] paths)
         {
-            for (int i = 0; i < paths.Length; i++)
+            foreach (string path in paths)
             {
-                if (Path.GetExtension(paths[i]) != ".dxf") return;
-
-                Add_DetailData();
-                detailData = Details[i];
+                if (Path.GetExtension(path) != ".dxf") continue;
 
                 var reader = new DxfReader(paths[0]);
                 CadDocument dxf = reader.Read();
@@ -168,90 +163,117 @@ namespace Metal_Code
                 double offsetX = (targetWidth - drawingBounds.Width * scale) / 2 - drawingBounds.X * scale;
                 double offsetY = (targetHeight - drawingBounds.Height * scale) / 2 - drawingBounds.Y * scale;
 
+
+                DetailData detailData = new() { Number = Details.Count + 1 };
+                if (Billet.TypeDetailDrop.Text == "Лист металла")
+                {
+                    detailData.IsLaser = true;
+                    detailData.IsPipe = false; 
+                }
+                else
+                {
+                    detailData.IsLaser = false;
+                    detailData.IsPipe = true;
+                }
+
+
                 // 3. Отрисуем все объекты с учётом масштаба и смещения
                 foreach (var entity in dxf.Entities)
                 {
                     if (entity is Line line)
                     {
-                        DrawLine(line, scale, offsetX, offsetY);
+                        DrawLine(line, scale, offsetX, offsetY, detailData);
                     }
                     else if (entity is LwPolyline polyline)
                     {
-                        DrawPolyline(polyline, scale, offsetX, offsetY);
+                        DrawPolyline(polyline, scale, offsetX, offsetY, detailData);
                     }
                     else if (entity is Arc arc)
                     {
-                        DrawArc(arc, scale, offsetX, offsetY);
+                        DrawArc(arc, scale, offsetX, offsetY, detailData);
                     }
                     else if (entity is Circle circle)
                     {
-                        DrawCircle(circle, scale, offsetX, offsetY);
+                        DrawCircle(circle, scale, offsetX, offsetY, detailData);
                     }
                     else if (entity is Insert insert)
                     {
-                        RenderBlock(insert.Block, scale, offsetX, offsetY);
+                        RenderBlock(insert.Block, scale, offsetX, offsetY, detailData);
                     }
                 }
+
+                Details.Add(detailData);
             }
         }
 
-        private void DrawLine(Line line, double scale, double offsetX, double offsetY)
+        private void DrawLine(Line line, double scale, double offsetX, double offsetY, DetailData detailData)
         {
             Point start = Transform(line.StartPoint, scale, offsetX, offsetY);
             Point end = Transform(line.EndPoint, scale, offsetX, offsetY);
 
-            var lineShape = new System.Windows.Shapes.Line
-            {
-                X1 = start.X,
-                Y1 = start.Y,
-                X2 = end.X,
-                Y2 = end.Y,
-                Stroke = Brushes.Black,
-                StrokeThickness = 0.5
-            };
+            //var lineShape = new System.Windows.Shapes.Line
+            //{
+            //    X1 = start.X,
+            //    Y1 = start.Y,
+            //    X2 = end.X,
+            //    Y2 = end.Y,
+            //    Stroke = Brushes.Black,
+            //    StrokeThickness = 0.5
+            //};
 
-            detailData.Contoures.Add(lineShape);
+            detailData.Geometries.Add(new LineDescriptor
+            {
+                Start = start,
+                End = end
+            });
         }
 
-        private void DrawPolyline(LwPolyline polyline, double scale, double offsetX, double offsetY)
+        private void DrawPolyline(LwPolyline polyline, double scale, double offsetX, double offsetY, DetailData detailData)
         {
-            var pathFigure = new PathFigure();
-            bool first = true;
+            //var pathFigure = new PathFigure();
+            //bool first = true;
+
+            List<Point> points = new();
 
             foreach (var vertex in polyline.Vertices)
             {
                 Point point = Transform(vertex.Location, scale, offsetX, offsetY);
+                points.Add(point);
 
-                if (first)
-                {
-                    pathFigure.StartPoint = point;
-                    first = false;
-                }
-                else
-                {
-                    pathFigure.Segments.Add(new LineSegment(point, true));
-                }
+                //if (first)
+                //{
+                //    pathFigure.StartPoint = point;
+                //    first = false;
+                //}
+                //else
+                //{
+                //    pathFigure.Segments.Add(new LineSegment(point, true));
+                //}
             }
 
-            if (polyline.IsClosed && polyline.Vertices.Count > 1)
+            //if (polyline.IsClosed && polyline.Vertices.Count > 1)
+            //{
+            //    pathFigure.Segments.Add(new LineSegment(pathFigure.StartPoint, true));
+            //}
+
+            //var geometry = new PathGeometry();
+            //geometry.Figures.Add(pathFigure);
+
+            //var path = new System.Windows.Shapes.Path
+            //{
+            //    Data = geometry,
+            //    Stroke = Brushes.Black,
+            //    StrokeThickness = 0.5
+            //};
+
+            detailData.Geometries.Add(new PolylineDescriptor
             {
-                pathFigure.Segments.Add(new LineSegment(pathFigure.StartPoint, true));
-            }
-
-            var geometry = new PathGeometry();
-            geometry.Figures.Add(pathFigure);
-
-            var path = new System.Windows.Shapes.Path
-            {
-                Data = geometry,
-                Stroke = Brushes.Black,
-                StrokeThickness = 0.5
-            };
-
-            detailData.Contoures.Add(path);
+                Points = points,
+                IsClosed = polyline.IsClosed
+            });
         }
 
-        private void DrawArc(Arc arc, double scale, double offsetX, double offsetY)
+        private void DrawArc(Arc arc, double scale, double offsetX, double offsetY, DetailData detailData)
         {
             Point center = Transform(arc.Center, scale, offsetX, offsetY);
             double radius = arc.Radius * scale;
@@ -260,63 +282,73 @@ namespace Metal_Code
             double endAngle = arc.EndAngle;
             double sweepAngle = endAngle - startAngle;
 
-            bool isLargeArc = Math.Abs(sweepAngle) > 180.0;
+            //bool isLargeArc = Math.Abs(sweepAngle) > 180.0;
 
-            var startPoint = new System.Windows.Point(
-                center.X + radius * Math.Cos(DegToRad(startAngle)),
-                center.Y + radius * Math.Sin(DegToRad(startAngle)));
+            //var startPoint = new Point(
+            //    center.X + radius * Math.Cos(DegToRad(startAngle)),
+            //    center.Y + radius * Math.Sin(DegToRad(startAngle)));
 
-            var endPoint = new Point(
-                center.X + radius * Math.Cos(DegToRad(endAngle)),
-                center.Y + radius * Math.Sin(DegToRad(endAngle)));
+            //var endPoint = new Point(
+            //    center.X + radius * Math.Cos(DegToRad(endAngle)),
+            //    center.Y + radius * Math.Sin(DegToRad(endAngle)));
 
-            var arcSegment = new ArcSegment(
-                endPoint,
-                new Size(radius, radius),
-                0,
-                isLargeArc,
-                SweepDirection.Clockwise,
-                true);
+            //var arcSegment = new ArcSegment(
+            //    endPoint,
+            //    new Size(radius, radius),
+            //    0,
+            //    isLargeArc,
+            //    SweepDirection.Clockwise,
+            //    true);
 
-            var figure = new PathFigure
+            //var figure = new PathFigure
+            //{
+            //    StartPoint = startPoint
+            //};
+            //figure.Segments.Add(arcSegment);
+
+            //var geometry = new PathGeometry();
+            //geometry.Figures.Add(figure);
+
+            //var path = new System.Windows.Shapes.Path
+            //{
+            //    Data = geometry,
+            //    Stroke = Brushes.Green,
+            //    StrokeThickness = 0.5
+            //};
+
+            detailData.Geometries.Add(new ArcDescriptor
             {
-                StartPoint = startPoint
-            };
-            figure.Segments.Add(arcSegment);
-
-            var geometry = new PathGeometry();
-            geometry.Figures.Add(figure);
-
-            var path = new System.Windows.Shapes.Path
-            {
-                Data = geometry,
-                Stroke = Brushes.Green,
-                StrokeThickness = 0.5
-            };
-
-            detailData.Contoures.Add(path);
+                Center = center,
+                Radius = radius,
+                StartAngle = startAngle,
+                SweepAngle = sweepAngle
+            });
         }
 
-        private void DrawCircle(Circle circle, double scale, double offsetX, double offsetY)
+        private void DrawCircle(Circle circle, double scale, double offsetX, double offsetY, DetailData detailData)
         {
             Point center = Transform(circle.Center, scale, offsetX, offsetY);
             double radius = circle.Radius * scale;
 
-            var ellipse = new System.Windows.Shapes.Ellipse
+            //var ellipse = new System.Windows.Shapes.Ellipse
+            //{
+            //    Width = radius * 2,
+            //    Height = radius * 2,
+            //    Stroke = Brushes.Red,
+            //    StrokeThickness = 0.5
+            //};
+
+            //Canvas.SetLeft(ellipse, center.X - radius);
+            //Canvas.SetTop(ellipse, center.Y - radius);
+
+            detailData.Geometries.Add(new CircleDescriptor
             {
-                Width = radius * 2,
-                Height = radius * 2,
-                Stroke = Brushes.Red,
-                StrokeThickness = 0.5
-            };
-
-            Canvas.SetLeft(ellipse, center.X - radius);
-            Canvas.SetTop(ellipse, center.Y - radius);
-
-            detailData.Contoures.Add(ellipse);
+                Center = center,
+                Radius = radius
+            });
         }
 
-        private void RenderBlock(BlockRecord block, double scale, double offsetX, double offsetY)
+        private void RenderBlock(BlockRecord block, double scale, double offsetX, double offsetY, DetailData detailData)
         {
             if (block == null || block.Entities == null) return;
 
@@ -324,19 +356,19 @@ namespace Metal_Code
             {
                 if (reference is Line line)
                 {
-                    DrawLine(line, scale, offsetX, offsetY);
+                    DrawLine(line, scale, offsetX, offsetY, detailData);
                 }
                 else if (reference is LwPolyline polyline)
                 {
-                    DrawPolyline(polyline, scale, offsetX, offsetY);
+                    DrawPolyline(polyline, scale, offsetX, offsetY, detailData);
                 }
                 else if (reference is Arc arc)
                 {
-                    DrawArc(arc, scale, offsetX, offsetY);
+                    DrawArc(arc, scale, offsetX, offsetY, detailData);
                 }
                 else if (reference is Circle circle)
                 {
-                    DrawCircle(circle, scale, offsetX, offsetY);
+                    DrawCircle(circle, scale, offsetX, offsetY, detailData);
                 }
             }
         }
@@ -361,7 +393,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public int Number { get; set; }
-        public ObservableCollection<UIElement> Contoures{ get; set; } = new();
+        public ObservableCollection<IGeometryDescriptor> Geometries { get; set; } = new();
 
         private bool isLaser;
         public bool IsLaser
@@ -436,49 +468,49 @@ namespace Metal_Code
         public DetailData() { }
     }
 
-    public static class CanvasHelper
-    {
-        public static readonly DependencyProperty ElementsProperty =
-            DependencyProperty.RegisterAttached(
-                "Elements",
-                typeof(ObservableCollection<UIElement>),
-                typeof(CanvasHelper),
-                new PropertyMetadata(null, OnElementsChanged));
+    //public static class CanvasHelper
+    //{
+    //    public static readonly DependencyProperty ElementsProperty =
+    //        DependencyProperty.RegisterAttached(
+    //            "Elements",
+    //            typeof(ObservableCollection<UIElement>),
+    //            typeof(CanvasHelper),
+    //            new PropertyMetadata(null, OnElementsChanged));
 
-        public static ObservableCollection<UIElement> GetElements(DependencyObject obj)
-        {
-            return (ObservableCollection<UIElement>)obj.GetValue(ElementsProperty);
-        }
+    //    public static ObservableCollection<UIElement> GetElements(DependencyObject obj)
+    //    {
+    //        return (ObservableCollection<UIElement>)obj.GetValue(ElementsProperty);
+    //    }
 
-        public static void SetElements(DependencyObject obj, ObservableCollection<UIElement> value)
-        {
-            obj.SetValue(ElementsProperty, value);
-        }
+    //    public static void SetElements(DependencyObject obj, ObservableCollection<UIElement> value)
+    //    {
+    //        obj.SetValue(ElementsProperty, value);
+    //    }
 
-        private static void OnElementsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            if (d is Canvas canvas)
-            {
-                canvas.Children.Clear();
+    //    private static void OnElementsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    //    {
+    //        if (d is Canvas canvas)
+    //        {
+    //            canvas.Children.Clear();
 
-                if (e.NewValue is ObservableCollection<UIElement> elements)
-                {
-                    foreach (var element in elements)
-                    {
-                        canvas.Children.Add(element);
-                    }
+    //            if (e.NewValue is ObservableCollection<UIElement> elements)
+    //            {
+    //                foreach (var element in elements)
+    //                {
+    //                    canvas.Children.Add(element);
+    //                }
 
-                    // Подписываемся на изменения коллекции
-                    elements.CollectionChanged += (sender, args) =>
-                    {
-                        canvas.Children.Clear();
-                        foreach (var element in elements)
-                        {
-                            canvas.Children.Add(element);
-                        }
-                    };
-                }
-            }
-        }
-    }
+    //                // Подписываемся на изменения коллекции
+    //                elements.CollectionChanged += (sender, args) =>
+    //                {
+    //                    canvas.Children.Clear();
+    //                    foreach (var element in elements)
+    //                    {
+    //                        canvas.Children.Add(element);
+    //                    }
+    //                };
+    //            }
+    //        }
+    //    }
+    //}
 }
