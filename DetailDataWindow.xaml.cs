@@ -186,7 +186,9 @@ namespace Metal_Code
                     }
                     else if (entity is LwPolyline polyline)
                     {
-                        DrawPolyline(polyline, scale, offsetX, offsetY, detailData);
+                        //DrawPolyline(polyline, scale, offsetX, offsetY, detailData);
+                        var descriptor = GeometryConverter.Convert(polyline, scale, offsetX, offsetY);
+                        detailData.Geometries.Add(descriptor);
                     }
                     else if (entity is Arc arc)
                     {
@@ -360,7 +362,9 @@ namespace Metal_Code
                 }
                 else if (reference is LwPolyline polyline)
                 {
-                    DrawPolyline(polyline, scale, offsetX, offsetY, detailData);
+                    //DrawPolyline(polyline, scale, offsetX, offsetY, detailData);
+                    var descriptor = GeometryConverter.Convert(polyline, scale, offsetX, offsetY);
+                    detailData.Geometries.Add(descriptor);
                 }
                 else if (reference is Arc arc)
                 {
