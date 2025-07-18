@@ -516,7 +516,7 @@ namespace Metal_Code
 
             //if (!CheckVersion(out string _version)) Restart();
             //else UpdateDatabases();
-            AutoRemoveOffers();
+            //AutoRemoveOffers();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;

@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using static System.Windows.Forms.AxHost;
 using Point = System.Windows.Point;
 
 namespace Metal_Code
@@ -153,18 +154,18 @@ namespace Metal_Code
                 if (drawingBounds.Width == 0 || drawingBounds.Height == 0) continue;
 
                 // 2. Рассчитаем масштаб и смещение
-                double targetWidth = 80;
-                double targetHeight = 80;
+                double targetWidth = 200;
+                double targetHeight = 200;
 
                 double scaleX = targetWidth / drawingBounds.Width;
                 double scaleY = targetHeight / drawingBounds.Height;
-                double scale = Math.Min(scaleX, scaleY) * .8f;          //намеренно уменьшен масштаб
+                double scale = Math.Min(scaleX, scaleY);          //намеренно уменьшен масштаб
 
                 double offsetX = (targetWidth - drawingBounds.Width * scale) / 2 - drawingBounds.X * scale;
                 double offsetY = (targetHeight - drawingBounds.Height * scale) / 2 - drawingBounds.Y * scale;
 
 
-                DetailData detailData = new() { Number = Details.Count + 1 };
+                DetailData detailData = new() { Title =Path.GetFileNameWithoutExtension(path), Number = Details.Count + 1 };
                 if (Billet.TypeDetailDrop.Text == "Лист металла")
                 {
                     detailData.IsLaser = true;
@@ -184,12 +185,12 @@ namespace Metal_Code
                     {
                         DrawLine(line, scale, offsetX, offsetY, detailData);
                     }
-                    else if (entity is LwPolyline polyline)
-                    {
-                        //DrawPolyline(polyline, scale, offsetX, offsetY, detailData);
-                        var descriptor = GeometryConverter.Convert(polyline, scale, offsetX, offsetY);
-                        detailData.Geometries.Add(descriptor);
-                    }
+                    //else if (entity is LwPolyline polyline)
+                    //{
+                    //    //DrawPolyline(polyline, scale, offsetX, offsetY, detailData);
+                    //    var descriptor = GeometryConverter.Convert(polyline, scale, offsetX, offsetY);
+                    //    detailData.Geometries.Add(descriptor);
+                    //}
                     else if (entity is Arc arc)
                     {
                         DrawArc(arc, scale, offsetX, offsetY, detailData);
@@ -205,6 +206,8 @@ namespace Metal_Code
                 }
 
                 Details.Add(detailData);
+
+                MessageBox.Show(MainWindow.M.Log);
             }
         }
 
@@ -212,16 +215,6 @@ namespace Metal_Code
         {
             Point start = Transform(line.StartPoint, scale, offsetX, offsetY);
             Point end = Transform(line.EndPoint, scale, offsetX, offsetY);
-
-            //var lineShape = new System.Windows.Shapes.Line
-            //{
-            //    X1 = start.X,
-            //    Y1 = start.Y,
-            //    X2 = end.X,
-            //    Y2 = end.Y,
-            //    Stroke = Brushes.Black,
-            //    StrokeThickness = 0.5
-            //};
 
             detailData.Geometries.Add(new LineDescriptor
             {
@@ -284,40 +277,6 @@ namespace Metal_Code
             double endAngle = arc.EndAngle;
             double sweepAngle = endAngle - startAngle;
 
-            //bool isLargeArc = Math.Abs(sweepAngle) > 180.0;
-
-            //var startPoint = new Point(
-            //    center.X + radius * Math.Cos(DegToRad(startAngle)),
-            //    center.Y + radius * Math.Sin(DegToRad(startAngle)));
-
-            //var endPoint = new Point(
-            //    center.X + radius * Math.Cos(DegToRad(endAngle)),
-            //    center.Y + radius * Math.Sin(DegToRad(endAngle)));
-
-            //var arcSegment = new ArcSegment(
-            //    endPoint,
-            //    new Size(radius, radius),
-            //    0,
-            //    isLargeArc,
-            //    SweepDirection.Clockwise,
-            //    true);
-
-            //var figure = new PathFigure
-            //{
-            //    StartPoint = startPoint
-            //};
-            //figure.Segments.Add(arcSegment);
-
-            //var geometry = new PathGeometry();
-            //geometry.Figures.Add(figure);
-
-            //var path = new System.Windows.Shapes.Path
-            //{
-            //    Data = geometry,
-            //    Stroke = Brushes.Green,
-            //    StrokeThickness = 0.5
-            //};
-
             detailData.Geometries.Add(new ArcDescriptor
             {
                 Center = center,
@@ -327,21 +286,10 @@ namespace Metal_Code
             });
         }
 
-        private void DrawCircle(Circle circle, double scale, double offsetX, double offsetY, DetailData detailData)
+        private static void DrawCircle(Circle circle, double scale, double offsetX, double offsetY, DetailData detailData)
         {
             Point center = Transform(circle.Center, scale, offsetX, offsetY);
             double radius = circle.Radius * scale;
-
-            //var ellipse = new System.Windows.Shapes.Ellipse
-            //{
-            //    Width = radius * 2,
-            //    Height = radius * 2,
-            //    Stroke = Brushes.Red,
-            //    StrokeThickness = 0.5
-            //};
-
-            //Canvas.SetLeft(ellipse, center.X - radius);
-            //Canvas.SetTop(ellipse, center.Y - radius);
 
             detailData.Geometries.Add(new CircleDescriptor
             {
@@ -360,12 +308,12 @@ namespace Metal_Code
                 {
                     DrawLine(line, scale, offsetX, offsetY, detailData);
                 }
-                else if (reference is LwPolyline polyline)
-                {
-                    //DrawPolyline(polyline, scale, offsetX, offsetY, detailData);
-                    var descriptor = GeometryConverter.Convert(polyline, scale, offsetX, offsetY);
-                    detailData.Geometries.Add(descriptor);
-                }
+                //else if (reference is LwPolyline polyline)
+                //{
+                //    //DrawPolyline(polyline, scale, offsetX, offsetY, detailData);
+                //    var descriptor = GeometryConverter.Convert(polyline, scale, offsetX, offsetY);
+                //    detailData.Geometries.Add(descriptor);
+                //}
                 else if (reference is Arc arc)
                 {
                     DrawArc(arc, scale, offsetX, offsetY, detailData);
@@ -378,14 +326,14 @@ namespace Metal_Code
         }
 
         //вспомогательные методы
-        private static Point Transform(XY point, double scale, double offsetX, double offsetY)
+        public static Point Transform(XY point, double scale, double offsetX, double offsetY)
         {
             return new Point(point.X * scale + offsetX, point.Y * scale + offsetY);
         }
                 
-        private static Point Transform(XYZ point, double scale, double offsetX, double offsetY)
+        public static Point Transform(XYZ point, double scale, double offsetX, double offsetY)
         {
-            return new Point(point.X * scale + offsetX, point.Y * scale + offsetY); 
+            return new Point(point.X * scale + offsetX, point.Y * scale + offsetY);
         }
 
         private static double DegToRad(double deg) => deg * Math.PI / 180;
@@ -396,6 +344,7 @@ namespace Metal_Code
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
+        public string Title { get; set; } = string.Empty;
         public int Number { get; set; }
         public ObservableCollection<IGeometryDescriptor> Geometries { get; set; } = new();
 
