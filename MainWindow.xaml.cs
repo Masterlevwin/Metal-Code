@@ -1,6 +1,8 @@
 ﻿using ACadSharp;
 using ACadSharp.Entities;
 using ACadSharp.IO;
+using ACadSharp.Tables;
+using CSMath;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using OfficeOpenXml;
@@ -4810,50 +4812,6 @@ namespace Metal_Code
         }
 
         //------------Получение габаритов детали из dxf----------//
-        public static string GetSizes(string? path)
-        {
-            if (path is null || Path.GetExtension(path) != ".dxf") return "";
-            
-            try
-            {
-                using DxfReader reader = new(path);
-
-                CadDocument doc = reader.Read();
-
-                if (doc.Entities.Count > 0)
-                {
-                    List<Line> lines = new();
-                    foreach (var e in doc.Entities) if (e is Line line) lines.Add(line);
-
-                    var pointsStartX = lines.Select(p => p.StartPoint.X);
-                    var pointsEndX = lines.Select(p => p.EndPoint.X);
-
-                    if (pointsStartX.Any() && pointsEndX.Any())
-                    {
-                        var pointsX = pointsStartX.Union(pointsEndX);
-                        double xMax = pointsX.Max();
-                        double xMin = pointsX.Min();
-                        double width = Math.Ceiling(xMax - xMin);
-
-                        var pointsStartY = lines.Select(p => p.StartPoint.Y);
-                        var pointsEndY = lines.Select(p => p.EndPoint.Y);
-
-                        if (pointsStartY.Any() && pointsEndY.Any())
-                        {
-                            var pointsY = pointsStartY.Union(pointsEndY);
-                            double yMax = pointsY.Max();
-                            double yMin = pointsY.Min();
-                            double height = Math.Ceiling(yMax - yMin);
-
-                            return $"{width}x{height}";
-                        }
-                    }
-                }
-            }
-            catch { };
-
-            return "";
-        }
         public static Rect GetDrawingBounds(CadDocument dxf)
         {
             var bounds = new List<Point>();
@@ -4874,7 +4832,20 @@ namespace Metal_Code
                 }
                 else if (entity is Arc arc)
                 {
+                    // Добавляем центр дуги
                     bounds.Add(new Point(arc.Center.X, arc.Center.Y));
+
+                    // Добавляем начальную и конечную точки дуги
+                    double startAngle = arc.StartAngle.ToRadians();
+                    double endAngle = arc.EndAngle.ToRadians();
+
+                    double xStart = arc.Center.X + arc.Radius * Math.Cos(startAngle);
+                    double yStart = arc.Center.Y + arc.Radius * Math.Sin(startAngle);
+                    bounds.Add(new Point(xStart, yStart));
+
+                    double xEnd = arc.Center.X + arc.Radius * Math.Cos(endAngle);
+                    double yEnd = arc.Center.Y + arc.Radius * Math.Sin(endAngle);
+                    bounds.Add(new Point(xEnd, yEnd));
                 }
                 else if (entity is Circle circle)
                 {
@@ -4896,11 +4867,27 @@ namespace Metal_Code
                                 bounds.Add(new Point(vertex.Location.X, vertex.Location.Y));
                             }
                         }
+                        else if (reference is Arc _arc)
+                        {
+                            bounds.Add(new Point(_arc.Center.X, _arc.Center.Y));
+
+                            double startAngle = _arc.StartAngle.ToRadians();
+                            double endAngle = _arc.EndAngle.ToRadians();
+
+                            double xStart = _arc.Center.X + _arc.Radius * Math.Cos(startAngle);
+                            double yStart = _arc.Center.Y + _arc.Radius * Math.Sin(startAngle);
+                            bounds.Add(new Point(xStart, yStart));
+
+                            double xEnd = _arc.Center.X + _arc.Radius * Math.Cos(endAngle);
+                            double yEnd = _arc.Center.Y + _arc.Radius * Math.Sin(endAngle);
+                            bounds.Add(new Point(xEnd, yEnd));
+                        }
                     }
                 }
             }
 
-            if (bounds.Count == 0) return Rect.Empty;
+            if (bounds.Count == 0)
+                return Rect.Empty;
 
             double minX = bounds.Min(p => p.X);
             double maxX = bounds.Max(p => p.X);
@@ -4909,6 +4896,124 @@ namespace Metal_Code
 
             return new Rect(minX, minY, maxX - minX, maxY - minY);
         }
+
+        //------------Получение геометрии детали из dxf----------//
+        public static ObservableCollection<IGeometryDescriptor> GetGeometries(CadDocument dxf, Rect drawingBounds)
+        {
+            ObservableCollection<IGeometryDescriptor> geometries = new();
+
+            double targetWidth = 120;
+            double targetHeight = 120;
+
+            double scaleX = targetWidth / drawingBounds.Width;
+            double scaleY = targetHeight / drawingBounds.Height;
+            double scale = Math.Min(scaleX, scaleY);
+
+            double offsetX = (targetWidth - drawingBounds.Width * scale) / 2 - drawingBounds.X * scale;
+            double offsetY = (targetHeight - drawingBounds.Height * scale) / 2 - drawingBounds.Y * scale;
+
+            foreach (var entity in dxf.Entities)
+            {
+                if (entity is Line line)
+                {
+                    DrawLine(line, scale, offsetX, offsetY, geometries);
+                }
+                else if (entity is Arc arc)
+                {
+                    DrawArc(arc, scale, offsetX, offsetY, geometries);
+                }
+                else if (entity is Circle circle)
+                {
+                    DrawCircle(circle, scale, offsetX, offsetY, geometries);
+                }
+                else if (entity is LwPolyline polyline)
+                {
+                    var descriptor = GeometryConverter.Convert(polyline, scale, offsetX, offsetY);
+                    geometries.Add(descriptor);
+                }
+                else if (entity is Insert insert)
+                {
+                    RenderBlock(insert.Block, scale, offsetX, offsetY, geometries);
+                }
+            }
+
+            return geometries;
+        }
+
+        public static void DrawLine(Line line, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries)
+        {
+            Point start = Transform(line.StartPoint, scale, offsetX, offsetY);
+            Point end = Transform(line.EndPoint, scale, offsetX, offsetY);
+
+            geometries.Add(new LineDescriptor
+            {
+                Start = start,
+                End = end
+            });
+        }
+
+        public static void DrawArc(Arc arc, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries)
+        {
+            Point center = Transform(arc.Center, scale, offsetX, offsetY);
+            double radius = arc.Radius * scale;
+
+            geometries.Add(new ArcDescriptor
+            {
+                Center = center,
+                Radius = radius,
+                StartAngle = arc.StartAngle,
+                SweepAngle = arc.EndAngle - arc.StartAngle,
+                Scale = scale,
+                OffsetX = offsetX,
+                OffsetY = offsetY,
+                Stroke = Brushes.Green,
+                StrokeThickness = 0.5
+            });
+        }
+
+        public static void DrawCircle(Circle circle, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries)
+        {
+            Point center = Transform(circle.Center, scale, offsetX, offsetY);
+            double radius = circle.Radius * scale;
+
+            geometries.Add(new CircleDescriptor
+            {
+                Center = center,
+                Radius = radius
+            });
+        }
+
+        public static void RenderBlock(BlockRecord block, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries)
+        {
+            if (block == null || block.Entities == null) return;
+
+            foreach (var reference in block.Entities)
+            {
+                if (reference is Line line)
+                {
+                    DrawLine(line, scale, offsetX, offsetY, geometries);
+                }
+                else if (reference is Arc arc)
+                {
+                    DrawArc(arc, scale, offsetX, offsetY, geometries);
+                }
+                else if (reference is Circle circle)
+                {
+                    DrawCircle(circle, scale, offsetX, offsetY, geometries);
+                }
+                else if (reference is LwPolyline polyline)
+                {
+                    var descriptor = GeometryConverter.Convert(polyline, scale, offsetX, offsetY);
+                    geometries.Add(descriptor);
+                }
+            }
+        }
+
+        public static Point Transform(XYZ point, double scale, double offsetX, double offsetY)
+        {
+            return new Point(point.X * scale + offsetX, -(point.Y * scale + offsetY) + 120);
+        }
+
 
         //------------Сортировка файлов по папкам----------------//
         private void CreateTech(object sender, RoutedEventArgs e)

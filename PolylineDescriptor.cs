@@ -1,5 +1,4 @@
 ﻿using ACadSharp.Entities;
-using CSMath;
 using System;
 using System.Collections.Generic;
 using System.Windows;
@@ -15,49 +14,45 @@ namespace Metal_Code
         public List<Point> Points { get; set; } = new();
         public List<ArcSegmentInfo> ArcSegments { get; set; } = new();
 
-        public bool IsClosed { get; set; }
-
         public Brush Stroke { get; set; } = Brushes.Black;
         public double StrokeThickness { get; set; } = 0.5;
 
         public void Draw(Canvas canvas)
         {
-            var pathFigure = new PathFigure();
-            pathFigure.IsClosed = this.IsClosed;
-
-            if (Points.Count == 0)
+            if (Points.Count == 0 && ArcSegments.Count == 0)
                 return;
 
-            pathFigure.StartPoint = Points[0];
-
-            int i = 1;
-            foreach (var arc in ArcSegments)
-            {
-                if (i < Points.Count)
-                {
-                    // Линия до дуги
-                    pathFigure.Segments.Add(new LineSegment(Points[i], true));
-                    i++;
-                }
-
-                // Добавляем дуговой сегмент
-                pathFigure.Segments.Add(new ArcSegment(
-                    arc.Point,
-                    arc.Size,
-                    arc.RotationAngle,
-                    arc.IsLargeArc,
-                    arc.SweepDirection,
-                    true));
-            }
-
-            // Оставшиеся линейные сегменты
-            for (; i < Points.Count; i++)
-            {
-                pathFigure.Segments.Add(new LineSegment(Points[i], true));
-            }
-
+            var figure = new PathFigure();
             var geometry = new PathGeometry();
-            geometry.Figures.Add(pathFigure);
+
+            figure.StartPoint = new Point(Points[0].X, Points[0].Y);
+
+            for (int i = 1; i < Points.Count; i++)
+            {
+                if (i <= ArcSegments.Count)
+                {
+                    var arc = ArcSegments[i - 1];
+
+                    // Добавляем дуговой сегмент
+                    var arcSegment = new ArcSegment(
+                        arc.EndPoint,
+                        new Size(arc.Radius, arc.Radius),
+                        rotationAngle: 0,
+                        isLargeArc: arc.IsLargeArc,
+                        sweepDirection: arc.SweepDirection,
+                        isStroked: true
+                    );
+
+                    figure.Segments.Add(arcSegment);
+                }
+                else
+                {
+                    // Обычная линия
+                    figure.Segments.Add(new LineSegment(Points[i], true));
+                }
+            }
+
+            geometry.Figures.Add(figure);
 
             var path = new Path
             {
@@ -73,184 +68,111 @@ namespace Metal_Code
     // Вспомогательная структура для дуг в полилинии
     public class ArcSegmentInfo
     {
-        public Point Point { get; set; }
-        public Size Size { get; set; }
-        public double RotationAngle { get; set; }
-        public bool IsLargeArc { get; set; }
-        public SweepDirection SweepDirection { get; set; }
-    }
-
-
-    //public static class GeometryConverter
-    //{
-    //    public static PolylineDescriptor Convert(LwPolyline polyline, double scale, double offsetX, double offsetY)
-    //    {
-    //        var descriptor = new PolylineDescriptor
-    //        {
-    //            IsClosed = polyline.IsClosed,
-    //            Stroke = Brushes.Black,
-    //            StrokeThickness = 0.5
-    //        };
-
-    //        foreach (var vertex in polyline.Vertices)
-    //        {
-    //            // Просто добавляем точки полилинии
-    //            var point = new Point(
-    //                vertex.Location.X * scale + offsetX,
-    //                -vertex.Location.Y * scale + offsetY);
-
-    //            descriptor.Points.Add(point);
-    //        }
-
-    //        // Если есть дуговые сегменты — добавляем их отдельно
-    //        for (int i = 0; i < polyline.Vertices.Count - 1; i++)
-    //        {
-    //            var current = polyline.Vertices[i];
-    //            var next = polyline.Vertices[i + 1];
-
-    //            Point currentStart = Transform(current.Location, scale, offsetX, offsetY);
-    //            Point nextStart = Transform(next.Location, scale, offsetX, offsetY);
-
-    //            if (next.Bulge != 0) // Bulge != 0 → дуга
-    //            {
-    //                // Рассчитываем дуговой сегмент из Bulge
-    //                var arc = CalculateArcFromBulge(currentStart, nextStart, next.Bulge);
-    //                var arcInfo = new ArcSegmentInfo
-    //                {
-    //                    Point = new Point(
-    //                        arc.EndPoint.X * scale + offsetX,
-    //                        -arc.EndPoint.Y * scale + offsetY),
-    //                    Size = new Size(arc.Radius * scale, arc.Radius * scale),
-    //                    RotationAngle = arc.Angle,
-    //                    IsLargeArc = arc.IsLargeArc,
-    //                    SweepDirection = arc.SweepDirection
-    //                };
-
-    //                descriptor.ArcSegments.Add(arcInfo);
-    //            }
-    //        }
-
-    //        return descriptor;
-    //    }
-
-    //    private static ArcInfo CalculateArcFromBulge(Point start, Point end, double bulge)
-    //    {
-    //        // Bulge = tan(θ/4), где θ — угол дуги
-    //        double chordLength = Math.Sqrt((end.X - start.X) * (end.X - start.X) + (end.Y - start.Y) * (end.Y - start.Y));
-    //        double theta = 4 * Math.Atan(bulge);
-    //        double radius = chordLength / (2 * Math.Sin(theta / 2));
-    //        double sagitta = radius * (1 - Math.Cos(theta / 2));
-    //        double direction = Math.Sign(bulge);
-
-    //        // Центр дуги
-    //        var chordMidpoint = new Point((start.X + end.X) / 2, (start.Y + end.Y) / 2);
-    //        var chordVector = new Point(end.X - start.X, end.Y - start.Y);
-    //        var perpendicular = new Point(-chordVector.Y, chordVector.X);
-    //        double length = Math.Sqrt(perpendicular.X * perpendicular.X + perpendicular.Y * perpendicular.Y);
-    //        perpendicular.X /= length;
-    //        perpendicular.Y /= length;
-
-    //        var center = new Point(
-    //            chordMidpoint.X + perpendicular.X * sagitta * direction,
-    //            chordMidpoint.Y + perpendicular.Y * sagitta * direction
-    //        );
-
-    //        // Рассчитываем дугу
-    //        var arc = new ArcInfo
-    //        {
-    //            StartPoint = start,
-    //            EndPoint = end,
-    //            Center = center,
-    //            Radius = radius,
-    //            Angle = 0,
-    //            IsLargeArc = theta > Math.PI
-    //        };
-
-    //        // Определяем направление дуги
-    //        arc.SweepDirection = (bulge > 0) ? SweepDirection.Counterclockwise : SweepDirection.Clockwise;
-
-    //        return arc;
-    //    }
-
-    //    //вспомогательные методы
-    //    private static Point Transform(XY point, double scale, double offsetX, double offsetY)
-    //    {
-    //        return new Point(point.X * scale + offsetX, point.Y * scale + offsetY);
-    //    }
-    //}
-
-    internal class ArcInfo
-    {
         public Point StartPoint { get; set; }
         public Point EndPoint { get; set; }
         public Point Center { get; set; }
         public double Radius { get; set; }
-        public double Angle { get; set; }
+        public double StartAngle { get; set; }
+        public double SweepAngle { get; set; }
         public bool IsLargeArc { get; set; }
         public SweepDirection SweepDirection { get; set; }
+
+        public void Draw(Canvas canvas)
+        {
+            var figure = new PathFigure
+            {
+                StartPoint = StartPoint
+            };
+
+            figure.Segments.Add(new ArcSegment(
+                EndPoint,
+                new Size(Radius, Radius),
+                rotationAngle: 0,
+                isLargeArc: IsLargeArc,
+                sweepDirection: SweepDirection,
+                isStroked: true
+            ));
+
+            var geometry = new PathGeometry();
+            geometry.Figures.Add(figure);
+
+            var path = new Path
+            {
+                Data = geometry,
+                Stroke = Brushes.Red,
+                StrokeThickness = 0.5
+            };
+
+            canvas.Children.Add(path);
+        }
     }
 
     public static class GeometryConverter
     {
         public static PolylineDescriptor Convert(LwPolyline polyline, double scale, double offsetX, double offsetY)
         {
-            var descriptor = new PolylineDescriptor
-            {
-                IsClosed = polyline.IsClosed,
-                Stroke = Brushes.Black,
-                StrokeThickness = 0.5
-            };
+            var descriptor = new PolylineDescriptor();
 
             foreach (var vertex in polyline.Vertices)
             {
-                var point = new Point(
-                    vertex.Location.X * scale + offsetX,
-                    -vertex.Location.Y * scale + offsetY);
+                // Применяем масштаб и инверсию Y
+                double x = vertex.Location.X * scale + offsetX;
+                double y = -vertex.Location.Y * scale + offsetY;
 
-                descriptor.Points.Add(point);
+                descriptor.Points.Add(new Point(x, y));
             }
 
-            // Обработка дуговых сегментов через Bulge
             for (int i = 0; i < polyline.Vertices.Count - 1; i++)
             {
-                Point start = Transform(polyline.Vertices[i].Location, scale, offsetX, offsetY);
-                Point end = Transform(polyline.Vertices[i + 1].Location, scale, offsetX, offsetY);
-
-                double bulge = polyline.Vertices[i + 1].Bulge;
+                var start = polyline.Vertices[i];
+                var end = polyline.Vertices[i + 1];
+                double bulge = end.Bulge;
 
                 if (Math.Abs(bulge) > 0.001)
                 {
-                    var arc = CalculateArcFromBulge(start, end, bulge, scale, offsetX, offsetY);
-                    descriptor.ArcSegments.Add(arc);
+                    var arcInfo = CalculateArcFromBulge(
+                        new Point(start.Location.X, start.Location.Y),
+                        new Point(end.Location.X, end.Location.Y),
+                        bulge,
+                        scale,
+                        offsetX,
+                        offsetY
+                    );
+
+                    if (arcInfo != null)
+                    {
+                        descriptor.ArcSegments.Add(arcInfo);
+                    }
                 }
             }
 
             return descriptor;
         }
 
-        //вспомогательные методы
-        private static Point Transform(XY point, double scale, double offsetX, double offsetY)
+        private static ArcSegmentInfo CalculateArcFromBulge(Point startPoint, Point endPoint, double bulge, double scale, double offsetX, double offsetY)
         {
-            return new Point(point.X * scale + offsetX, point.Y * scale + offsetY);
-        }
+            //if (bulge == 0)
+            //    return null;
 
-        private static ArcSegmentInfo CalculateArcFromBulge(Point start, Point end, double bulge, double scale, double offsetX, double offsetY)
-        {
-            // Угол дуги: theta = 4 * atan(bulge)
-            double theta = 4 * Math.Atan(Math.Abs(bulge));
-            bool isLargeArc = theta > Math.PI;
+            // Расстояние между точками
+            double chordLength = Math.Sqrt(Math.Pow(endPoint.X - startPoint.X, 2) + Math.Pow(endPoint.Y - startPoint.Y, 2));
+            //if (chordLength < 0.001)
+            //    return null;
 
-            // Длина хорды
-            double chordLength = Math.Sqrt((end.X - start.X) * (end.X - start.X) + (end.Y - start.Y) * (end.Y - start.Y));
-            double radius = chordLength / (2 * Math.Sin(theta / 2));
-            double sagitta = radius * (1 - Math.Cos(theta / 2));
+            // Угол дуги
+            double angle = 4 * Math.Atan(bulge);
+            bool isLargeArc = Math.Abs(angle) > Math.PI;
+
+            // Радиус
+            double radius = chordLength / (2 * Math.Sin(Math.Abs(angle) / 2));
+            double sagitta = radius * (1 - Math.Cos(Math.Abs(angle) / 2));
             double direction = Math.Sign(bulge);
 
             // Средняя точка хорды
-            Point chordMidpoint = new Point((start.X + end.X) / 2, (start.Y + end.Y) / 2);
+            Point chordMidpoint = new Point((startPoint.X + endPoint.X) / 2, (startPoint.Y + endPoint.Y) / 2);
 
             // Перпендикулярный вектор
-            Point chordVector = new Point(end.X - start.X, end.Y - start.Y);
+            Point chordVector = new Point(endPoint.X - startPoint.X, endPoint.Y - startPoint.Y);
             Point perpendicular = new Point(-chordVector.Y, chordVector.X);
             double length = Math.Sqrt(perpendicular.X * perpendicular.X + perpendicular.Y * perpendicular.Y);
             if (length > 0)
@@ -265,39 +187,36 @@ namespace Metal_Code
                 chordMidpoint.Y + perpendicular.Y * sagitta * direction
             );
 
-            // Конечная точка дуги
-            Point endPoint = new Point(
-                end.X * scale + offsetX,
-                -end.Y * scale + offsetY);
+            // Применяем масштаб и инверсию Y
+            double scaledStartX = startPoint.X * scale + offsetX;
+            double scaledStartY = -startPoint.Y * scale + offsetY;
 
-            // Вычисляем начальный и конечный угол для ArcSegment
-            double centerX = center.X * scale + offsetX;
-            double centerY = -center.Y * scale + offsetY;
+            double scaledEndX = endPoint.X * scale + offsetX;
+            double scaledEndY = -endPoint.Y * scale + offsetY;
 
-            double startX = start.X * scale + offsetX;
-            double startY = -start.Y * scale + offsetY;
-            double endX = end.X * scale + offsetX;
-            double endY = -end.Y * scale + offsetY;
+            double scaledCenterX = center.X * scale + offsetX;
+            double scaledCenterY = -center.Y * scale + offsetY;
 
-            double startAngle = Math.Atan2(startY - centerY, startX - centerX).ToDegrees();
-            double endAngle = Math.Atan2(endY - centerY, endX - centerX).ToDegrees();
-            double sweepAngle = (bulge > 0 ? endAngle - startAngle : startAngle - endAngle + 360) % 360;
+            double scaledRadius = radius * scale;
 
-            // Создаём ArcSegment
+            // Начальный и конечный угол
+            double startAngle = Math.Atan2(scaledStartY - scaledCenterY, scaledStartX - scaledCenterX);
+            double endAngle = Math.Atan2(scaledEndY - scaledCenterY, scaledEndX - scaledCenterX);
+
+            // Определяем направление дуги
+            SweepDirection sweepDirection = (bulge > 0) ? SweepDirection.Counterclockwise : SweepDirection.Clockwise;
+
             return new ArcSegmentInfo
             {
-                Point = new Point(endX, endY),
-                Size = new Size(radius * scale, radius * scale),
-                RotationAngle = 0,
+                StartPoint = new Point(scaledStartX, scaledStartY),
+                EndPoint = new Point(scaledEndX, scaledEndY),
+                Center = new Point(scaledCenterX, scaledCenterY),
+                Radius = scaledRadius,
+                StartAngle = startAngle,
+                SweepAngle = endAngle - startAngle,
                 IsLargeArc = isLargeArc,
-                SweepDirection = bulge > 0 ? SweepDirection.Clockwise : SweepDirection.Counterclockwise
+                SweepDirection = sweepDirection
             };
         }
-    }
-
-    public static class DoubleExtensions
-    {
-        public static double ToRadians(this double degrees) => degrees * Math.PI / 180.0;
-        public static double ToDegrees(this double radians) => radians * 180.0 / Math.PI;
     }
 }

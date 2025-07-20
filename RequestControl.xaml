@@ -133,6 +133,15 @@
                     </StackPanel>
                 </GroupBox>
 
+
+                <GroupBox Margin="5">
+                    <GroupBox.Header>
+                        <TextBlock Text="{Binding TargetTechItem.NumberName}" FontWeight="Bold" MaxWidth="120"/>
+                    </GroupBox.Header>
+
+                    <Canvas local:CanvasHelper.GeometryDescriptors="{Binding TargetTechItem.Geometries}" Background="White" MinWidth="120" MinHeight="120" Margin="5"/>
+                </GroupBox>
+
             </StackPanel>
             
             <GroupBox DockPanel.Dock="Top" Margin="5">
@@ -146,7 +155,7 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <DataGrid x:Name="RequestGrid" ItemsSource="{Binding TechItems}" SelectionUnit="Cell" BorderBrush="Red" EnableColumnVirtualization="True" Margin="10" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" MouseUp="CopyValue_MouseUp" MaxHeight="300" CanUserAddRows="False" MouseRightButtonUp="Remove_TechItem"/>
+                    <DataGrid x:Name="RequestGrid" ItemsSource="{Binding TechItems}" SelectionUnit="Cell" BorderBrush="Red" EnableColumnVirtualization="True" Margin="10" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" MouseUp="CopyValue_MouseUp" MaxHeight="300" CanUserAddRows="False" MouseRightButtonUp="Remove_TechItem" HorizontalAlignment="Left" SelectedCellsChanged="Set_TargetTechItem"/>
 
                     <StackPanel Orientation="Horizontal" Margin="5" Grid.Row="1" VerticalAlignment="Bottom">
                         <TextBox x:Name="DeleteText" Margin="5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="120" MaxWidth="120"/>

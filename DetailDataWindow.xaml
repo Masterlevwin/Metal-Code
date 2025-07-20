@@ -63,7 +63,7 @@
                         <StackPanel Orientation="Horizontal" Margin="5">
                             <StackPanel Orientation="Horizontal" Margin="5">
                                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
-                                <Canvas local:CanvasHelper.GeometryDescriptors="{Binding Geometries}" Width="200" Height="200" Background="White" Margin="5,0,0,0" ClipToBounds="False">
+                                <Canvas local:CanvasHelper.GeometryDescriptors="{Binding Geometries}" Width="100" Height="100" Background="White" Margin="5,0,0,0" ClipToBounds="False">
                                 </Canvas>
                             </StackPanel>
                             

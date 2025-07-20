@@ -12,7 +12,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
-using static System.Windows.Forms.AxHost;
 using Point = System.Windows.Point;
 
 namespace Metal_Code
@@ -122,8 +121,6 @@ namespace Metal_Code
             MainWindow.M.IsEnabled = true;
         }
 
-
-
         private void Load_Model(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new()
@@ -154,8 +151,8 @@ namespace Metal_Code
                 if (drawingBounds.Width == 0 || drawingBounds.Height == 0) continue;
 
                 // 2. Рассчитаем масштаб и смещение
-                double targetWidth = 200;
-                double targetHeight = 200;
+                double targetWidth = 100;
+                double targetHeight = 100;
 
                 double scaleX = targetWidth / drawingBounds.Width;
                 double scaleY = targetHeight / drawingBounds.Height;
@@ -164,8 +161,7 @@ namespace Metal_Code
                 double offsetX = (targetWidth - drawingBounds.Width * scale) / 2 - drawingBounds.X * scale;
                 double offsetY = (targetHeight - drawingBounds.Height * scale) / 2 - drawingBounds.Y * scale;
 
-
-                DetailData detailData = new() { Title =Path.GetFileNameWithoutExtension(path), Number = Details.Count + 1 };
+                DetailData detailData = new() { Title = Path.GetFileNameWithoutExtension(path), Number = Details.Count + 1 };
                 if (Billet.TypeDetailDrop.Text == "Лист металла")
                 {
                     detailData.IsLaser = true;
@@ -177,166 +173,39 @@ namespace Metal_Code
                     detailData.IsPipe = true;
                 }
 
+                ObservableCollection<IGeometryDescriptor> geometries = new();
 
                 // 3. Отрисуем все объекты с учётом масштаба и смещения
                 foreach (var entity in dxf.Entities)
                 {
                     if (entity is Line line)
                     {
-                        DrawLine(line, scale, offsetX, offsetY, detailData);
+                        MainWindow.DrawLine(line, scale, offsetX, offsetY, geometries);
                     }
                     //else if (entity is LwPolyline polyline)
                     //{
-                    //    //DrawPolyline(polyline, scale, offsetX, offsetY, detailData);
+                    //    //DrawPolyline(polyline, scale, offsetX, offsetY, geometries);
                     //    var descriptor = GeometryConverter.Convert(polyline, scale, offsetX, offsetY);
                     //    detailData.Geometries.Add(descriptor);
                     //}
                     else if (entity is Arc arc)
                     {
-                        DrawArc(arc, scale, offsetX, offsetY, detailData);
+                        MainWindow.DrawArc(arc, scale, offsetX, offsetY, geometries);
                     }
                     else if (entity is Circle circle)
                     {
-                        DrawCircle(circle, scale, offsetX, offsetY, detailData);
+                        MainWindow.DrawCircle(circle, scale, offsetX, offsetY, geometries);
                     }
                     else if (entity is Insert insert)
                     {
-                        RenderBlock(insert.Block, scale, offsetX, offsetY, detailData);
+                        MainWindow.RenderBlock(insert.Block, scale, offsetX, offsetY, geometries);
                     }
                 }
 
+                detailData.Geometries = geometries;
                 Details.Add(detailData);
-
-                MessageBox.Show(MainWindow.M.Log);
             }
         }
-
-        private void DrawLine(Line line, double scale, double offsetX, double offsetY, DetailData detailData)
-        {
-            Point start = Transform(line.StartPoint, scale, offsetX, offsetY);
-            Point end = Transform(line.EndPoint, scale, offsetX, offsetY);
-
-            detailData.Geometries.Add(new LineDescriptor
-            {
-                Start = start,
-                End = end
-            });
-        }
-
-        private void DrawPolyline(LwPolyline polyline, double scale, double offsetX, double offsetY, DetailData detailData)
-        {
-            //var pathFigure = new PathFigure();
-            //bool first = true;
-
-            List<Point> points = new();
-
-            foreach (var vertex in polyline.Vertices)
-            {
-                Point point = Transform(vertex.Location, scale, offsetX, offsetY);
-                points.Add(point);
-
-                //if (first)
-                //{
-                //    pathFigure.StartPoint = point;
-                //    first = false;
-                //}
-                //else
-                //{
-                //    pathFigure.Segments.Add(new LineSegment(point, true));
-                //}
-            }
-
-            //if (polyline.IsClosed && polyline.Vertices.Count > 1)
-            //{
-            //    pathFigure.Segments.Add(new LineSegment(pathFigure.StartPoint, true));
-            //}
-
-            //var geometry = new PathGeometry();
-            //geometry.Figures.Add(pathFigure);
-
-            //var path = new System.Windows.Shapes.Path
-            //{
-            //    Data = geometry,
-            //    Stroke = Brushes.Black,
-            //    StrokeThickness = 0.5
-            //};
-
-            detailData.Geometries.Add(new PolylineDescriptor
-            {
-                Points = points,
-                IsClosed = polyline.IsClosed
-            });
-        }
-
-        private void DrawArc(Arc arc, double scale, double offsetX, double offsetY, DetailData detailData)
-        {
-            Point center = Transform(arc.Center, scale, offsetX, offsetY);
-            double radius = arc.Radius * scale;
-
-            double startAngle = arc.StartAngle;
-            double endAngle = arc.EndAngle;
-            double sweepAngle = endAngle - startAngle;
-
-            detailData.Geometries.Add(new ArcDescriptor
-            {
-                Center = center,
-                Radius = radius,
-                StartAngle = startAngle,
-                SweepAngle = sweepAngle
-            });
-        }
-
-        private static void DrawCircle(Circle circle, double scale, double offsetX, double offsetY, DetailData detailData)
-        {
-            Point center = Transform(circle.Center, scale, offsetX, offsetY);
-            double radius = circle.Radius * scale;
-
-            detailData.Geometries.Add(new CircleDescriptor
-            {
-                Center = center,
-                Radius = radius
-            });
-        }
-
-        private void RenderBlock(BlockRecord block, double scale, double offsetX, double offsetY, DetailData detailData)
-        {
-            if (block == null || block.Entities == null) return;
-
-            foreach (var reference in block.Entities)
-            {
-                if (reference is Line line)
-                {
-                    DrawLine(line, scale, offsetX, offsetY, detailData);
-                }
-                //else if (reference is LwPolyline polyline)
-                //{
-                //    //DrawPolyline(polyline, scale, offsetX, offsetY, detailData);
-                //    var descriptor = GeometryConverter.Convert(polyline, scale, offsetX, offsetY);
-                //    detailData.Geometries.Add(descriptor);
-                //}
-                else if (reference is Arc arc)
-                {
-                    DrawArc(arc, scale, offsetX, offsetY, detailData);
-                }
-                else if (reference is Circle circle)
-                {
-                    DrawCircle(circle, scale, offsetX, offsetY, detailData);
-                }
-            }
-        }
-
-        //вспомогательные методы
-        public static Point Transform(XY point, double scale, double offsetX, double offsetY)
-        {
-            return new Point(point.X * scale + offsetX, point.Y * scale + offsetY);
-        }
-                
-        public static Point Transform(XYZ point, double scale, double offsetX, double offsetY)
-        {
-            return new Point(point.X * scale + offsetX, point.Y * scale + offsetY);
-        }
-
-        private static double DegToRad(double deg) => deg * Math.PI / 180;
     }
 
     public class DetailData : INotifyPropertyChanged

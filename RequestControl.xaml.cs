@@ -43,6 +43,20 @@ namespace Metal_Code
             }
         }
 
+        private TechItem? targetTechItem;
+        public TechItem? TargetTechItem
+        {
+            get => targetTechItem;
+            set
+            {
+                targetTechItem = value;
+                OnPropertyChanged(nameof(TargetTechItem));
+
+                if (targetTechItem?.Geometries.Count == 0)
+                    targetTechItem.NumberName = "Нет данных";
+            }
+        }
+
         private readonly RequestContext db = new(MainWindow.M.connections[12]);
         public List<string> Paths { get; set; } = new();
         public RequestTemplate CurrentTemplate { get; set; } = new();
@@ -171,7 +185,6 @@ namespace Metal_Code
             if (response == MessageBoxResult.Yes) MainWindow.M.CloseRequestControl();
             else return;
         }
-
 
         //-----шаблон распознавания толщин и количества-----//
         private void Save_Template(object sender, RoutedEventArgs e)
@@ -327,6 +340,9 @@ namespace Metal_Code
                     Rect drawingBounds = MainWindow.GetDrawingBounds(dxf);
 
                     techItem.Sizes = $"{Math.Ceiling(drawingBounds.Width)}x{Math.Ceiling(drawingBounds.Height)}";
+
+                    //заполняем геометрию для отрисовки
+                    techItem.Geometries = MainWindow.GetGeometries(dxf, drawingBounds);
                 }
 
                 TechItems.Add(techItem);
@@ -379,6 +395,13 @@ namespace Metal_Code
                 "будут заменены обратно на исходные имена от заказчика.";
         }
 
+        //-----получение геометрии выбранной детали-----//
+        private void Set_TargetTechItem(object sender, SelectedCellsChangedEventArgs e)
+        {
+            if (RequestGrid.SelectedCells.Count > 0)
+                if (RequestGrid.SelectedCells[0].Item is TechItem techItem && TechItems.Contains(techItem))
+                    TargetTechItem = techItem;
+        }
 
         //-----переименование заголовков при генерации колонок Datagrid-----//
         private void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
@@ -493,14 +516,15 @@ namespace Metal_Code
         private void Remove_TechItem(object sender, MouseButtonEventArgs e)
         {
             if (RequestGrid.SelectedCells.Count > 0)
-                if (RequestGrid.SelectedCells[0].Item is TechItem item && TechItems.Contains(item))
-                    TechItems.Remove(item);
+                if (RequestGrid.SelectedCells[0].Item is TechItem techItem && TechItems.Contains(techItem))
+                    TechItems.Remove(techItem);
         }
 
         //-----очистка всего списка деталей-----//
         private void Clear_TechItems(object sender, RoutedEventArgs e)
         {
             TechItems.Clear();
+            TargetTechItem = null;
             IsAvailable = false;
         }
         private void ShowPopup_DataGrid(object sender, MouseEventArgs e)

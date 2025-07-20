@@ -2,6 +2,7 @@ using ExcelDataReader;
 using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.IO;
@@ -710,6 +711,9 @@ namespace Metal_Code
 
         [Browsable(false)]
         public string PathToScan { get; set; } = null!;
+
+        [Browsable(false)]
+        public ObservableCollection<IGeometryDescriptor> Geometries { get; set; } = new();
 
         public TechItem() { }
         public TechItem(string numberName, string sizes, string material, string destiny, string count, string route, string hasMaterial, string originalName, string pathToModel, string isGenerated)
