@@ -9,7 +9,7 @@
     <UserControl.Resources>
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     </UserControl.Resources>
-    
+
     <GroupBox x:Name="RequestStack" Margin="5" Visibility="{Binding IsRequest, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
         <GroupBox.Header>
             <TextBlock Text="Заявка" FontWeight="Bold"/>
@@ -30,7 +30,7 @@
                         <TextBlock Text="Закрыть" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
                     </StackPanel>
                 </Button>
-                <Button DockPanel.Dock="Right" DataContext="{Binding ProductModel, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Command="{Binding LoadCommand}" HorizontalAlignment="Center" Margin="5" Click="Load_Excel">
+                <Button DockPanel.Dock="Right" DataContext="{Binding ProductModel, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Command="{Binding LoadCommand}" HorizontalAlignment="Center" Margin="5">
                     <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="20">
                         <Image Source="Images/xlsx_load.png"/>
                         <TextBlock Text="Загрузить раскладки" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
@@ -45,7 +45,7 @@
 
                 <ListBox x:Name="PathsList" Margin="5" Padding="5"/>
             </GroupBox>
-            
+
             <DockPanel DockPanel.Dock="Bottom">
 
                 <Button ToolTip="Сохранить заявку в формате Excel" Click="Create_Request" HorizontalAlignment="Center" Margin="5">
@@ -72,7 +72,7 @@
             </DockPanel>
 
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5">
-                
+
                 <GroupBox DataContext="{Binding CurrentTemplate}" MaxHeight="120" Margin="5">
                     <GroupBox.Header>
                         <TextBlock Text="Определите шаблон распознавания" FontWeight="Bold"/>
@@ -136,14 +136,14 @@
 
                 <GroupBox Margin="5">
                     <GroupBox.Header>
-                        <TextBlock Text="{Binding TargetTechItem.NumberName}" FontWeight="Bold" MaxWidth="120"/>
+                        <TextBlock Text="{Binding TargetTechItem.NumberName}" FontWeight="Bold" MaxWidth="120" ToolTip="{Binding TargetTechItem.NumberName}"/>
                     </GroupBox.Header>
 
                     <Canvas local:CanvasHelper.GeometryDescriptors="{Binding TargetTechItem.Geometries}" Background="White" MinWidth="120" MinHeight="120" Margin="5"/>
                 </GroupBox>
 
             </StackPanel>
-            
+
             <GroupBox DockPanel.Dock="Top" Margin="5">
                 <GroupBox.Header>
                     <TextBlock Text="Отредактируйте заявку" FontWeight="Bold"/>

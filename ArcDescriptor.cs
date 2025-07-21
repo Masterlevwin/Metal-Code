@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -61,6 +62,9 @@ namespace Metal_Code
                 Stroke = Stroke,
                 StrokeThickness = StrokeThickness
             };
+
+            // Отладка
+            Trace.WriteLine(GeometryHelper.GeometryToString(geometry));
 
             // Добавляем на Canvas
             canvas.Children.Add(path);

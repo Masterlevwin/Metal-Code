@@ -98,7 +98,7 @@ namespace Metal_Code
                 //получаем коллекцию, разбитую на группы по работам
                 var works = TechItems.GroupBy(w => w.Route);
 
-                string[] extensions = { "pdf", "tiff", "gpeg", "gpg" };     //основные расширения чертежей
+                string[] extensions = { "pdf", "tiff", "tif", "gpeg", "gpg" };     //основные расширения чертежей
 
                 //сортируем pdf-файлы по папкам работ
                 foreach (var work in works)

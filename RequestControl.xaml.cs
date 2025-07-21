@@ -102,9 +102,11 @@ namespace Metal_Code
                 DataSet result = reader.AsDataSet();
                 DataTable table = result.Tables[0];
 
-                int countAssembly = 1;      //количество комплектов
-                if ($"{table.Rows[^1].ItemArray[4]}" == "Кол-во комплектов" && $"{table.Rows[^1].ItemArray[5]}" is not null && ((int)MainWindow.Parser($"{table.Rows[^1].ItemArray[5]}") > 0))
-                    countAssembly = (int)MainWindow.Parser($"{table.Rows[^1].ItemArray[5]}");
+                //количество комплектов
+                if ($"{table.Rows[^1].ItemArray[4]}" == "Кол-во комплектов"
+                    && $"{table.Rows[^1].ItemArray[5]}" != null
+                    && int.TryParse($"{table.Rows[^1].ItemArray[5]}", out int value) && value > 0)
+                    CountText.Text = $"{value}";
 
                 //перебираем строки таблицы и заполняем список объектами TechItem
                 for (int i = 2; i < table.Rows.Count; i++)
@@ -116,7 +118,7 @@ namespace Metal_Code
                         $"{table.Rows[i].ItemArray[2]}",        //размеры
                         $"{table.Rows[i].ItemArray[3]}",        //материал
                         $"{table.Rows[i].ItemArray[4]}",        //толщина
-                        $"{(int)MainWindow.Parser($"{table.Rows[i].ItemArray[5]}") * countAssembly}",  //количество
+                        $"{table.Rows[i].ItemArray[5]}",        //количество
                         $"{table.Rows[i].ItemArray[6]}",        //маршрут
                         $"{table.Rows[i].ItemArray[7]}",        //давальческий материал      
                         $"{table.Rows[i].ItemArray[8]}",        //оригинальное наименование от заказчика
@@ -172,9 +174,6 @@ namespace Metal_Code
             }
             else MainWindow.M.StatusBegin($"Не выбрано ни одного файла");
         }
-
-        //-----загрузка раскладок и выход из режима заявки-----//
-        private void Load_Excel(object sender, RoutedEventArgs e) { MainWindow.M.CloseRequestControl(); }
 
         //-----выход из режима заявки-----//
         private void Close_RequestControl(object sender, RoutedEventArgs e)
