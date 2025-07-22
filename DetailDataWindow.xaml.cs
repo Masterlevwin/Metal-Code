@@ -158,8 +158,8 @@ namespace Metal_Code
                 double scaleY = targetHeight / drawingBounds.Height;
                 double scale = Math.Min(scaleX, scaleY);          //намеренно уменьшен масштаб
 
-                double offsetX = (targetWidth - drawingBounds.Width * scale) / 2 - drawingBounds.X * scale;
-                double offsetY = (targetHeight - drawingBounds.Height * scale) / 2 - drawingBounds.Y * scale;
+                double offsetX = (targetWidth - drawingBounds.Width * scale) / 2;
+                double offsetY = (targetHeight - drawingBounds.Height * scale) / 2;
 
                 DetailData detailData = new() { Title = Path.GetFileNameWithoutExtension(path), Number = Details.Count + 1 };
                 if (Billet.TypeDetailDrop.Text == "Лист металла")
@@ -180,25 +180,19 @@ namespace Metal_Code
                 {
                     if (entity is Line line)
                     {
-                        MainWindow.DrawLine(line, scale, offsetX, offsetY, geometries);
+                        MainWindow.DrawLine(line, scale, offsetX, offsetY, geometries, drawingBounds);
                     }
-                    //else if (entity is LwPolyline polyline)
-                    //{
-                    //    //DrawPolyline(polyline, scale, offsetX, offsetY, geometries);
-                    //    var descriptor = GeometryConverter.Convert(polyline, scale, offsetX, offsetY);
-                    //    detailData.Geometries.Add(descriptor);
-                    //}
                     else if (entity is Arc arc)
                     {
-                        MainWindow.DrawArc(arc, scale, offsetX, offsetY, geometries);
+                        MainWindow.DrawArc(arc, scale, offsetX, offsetY, geometries, drawingBounds);
                     }
                     else if (entity is Circle circle)
                     {
-                        MainWindow.DrawCircle(circle, scale, offsetX, offsetY, geometries);
+                        MainWindow.DrawCircle(circle, scale, offsetX, offsetY, geometries, drawingBounds);
                     }
                     else if (entity is Insert insert)
                     {
-                        MainWindow.RenderBlock(insert.Block, scale, offsetX, offsetY, geometries);
+                        MainWindow.RenderBlock(insert.Block, scale, offsetX, offsetY, geometries, drawingBounds);
                     }
                 }
 

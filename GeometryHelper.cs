@@ -26,13 +26,6 @@ namespace Metal_Code
                         path += $"{(arc.SweepDirection == SweepDirection.Clockwise ? 1 : 0)} ";
                         path += $"{arc.Point.X:F2},{arc.Point.Y:F2} ";
                     }
-                    else if (segment is BezierSegment bezier)
-                    {
-                        path += $"C {bezier.Point1.X:F2},{bezier.Point1.Y:F2}, ";
-                        path += $"{bezier.Point2.X:F2},{bezier.Point2.Y:F2}, ";
-                        path += $"{bezier.Point3.X:F2},{bezier.Point3.Y:F2} ";
-                    }
-                    // Другие сегменты можно добавить по аналогии
                 }
             }
 

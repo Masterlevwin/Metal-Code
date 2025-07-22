@@ -9,50 +9,34 @@ namespace Metal_Code
 {
     public class ArcDescriptor : IGeometryDescriptor
     {
-        public Point Center { get; set; }
-        public double Radius { get; set; }
-        public double StartAngle { get; set; }
-        public double SweepAngle { get; set; }
+        public Point StartPoint { get; set; }
+        public Point EndPoint { get; set; }
+        public Size Size { get; set; }
+        public bool IsLargeArc { get; set; }
+        public SweepDirection SweepDirection { get; set; }
 
-        public double Scale { get; set; }
-        public double OffsetX { get; set; }
-        public double OffsetY { get; set; }
-
-        public Brush Stroke { get; set; } = Brushes.Green;
+        public Brush Stroke { get; set; } = Brushes.Black;
         public double StrokeThickness { get; set; } = 0.5;
 
         public void Draw(Canvas canvas)
         {
-            // Рассчитываем начальную и конечную точку дуги
-            double startX = Center.X + Radius * Math.Cos(StartAngle.ToRadians());
-            double startY = Center.Y + Radius * Math.Sin(StartAngle.ToRadians());
-
-            double endX = Center.X + Radius * Math.Cos((StartAngle + SweepAngle).ToRadians());
-            double endY = Center.Y + Radius * Math.Sin((StartAngle + SweepAngle).ToRadians());
-
-            // Определяем направление дуги
-            bool isLargeArc = Math.Abs(SweepAngle) >= Math.PI;
-            SweepDirection sweepDirection = SweepAngle >= 0 ? SweepDirection.Counterclockwise : SweepDirection.Clockwise;
-
-            // Создаём дугу
-            var arcSegment = new ArcSegment(
-                new Point(endX, endY),
-                new Size(Radius, Radius),
-                rotationAngle: 0,
-                isLargeArc: isLargeArc,
-                sweepDirection: sweepDirection,
-                isStroked: true
-            );
-
-            //Создаём PathFigure
+            var arcSegment = new ArcSegment
+            {
+                Point = EndPoint,
+                Size = Size,
+                RotationAngle = 0,
+                IsLargeArc = IsLargeArc,
+                SweepDirection = SweepDirection,
+                IsStroked = true
+            };
+            
             var figure = new PathFigure
             {
-                StartPoint = new Point(startX, startY),
+                StartPoint = StartPoint,
+                Segments = { arcSegment },
                 IsClosed = false
             };
-            figure.Segments.Add(arcSegment);
 
-            // Создаём PathGeometry и Path
             var geometry = new PathGeometry();
             geometry.Figures.Add(figure);
 
@@ -63,11 +47,9 @@ namespace Metal_Code
                 StrokeThickness = StrokeThickness
             };
 
-            // Отладка
-            Trace.WriteLine(GeometryHelper.GeometryToString(geometry));
-
-            // Добавляем на Canvas
             canvas.Children.Add(path);
+
+            Trace.WriteLine($"Arc: from {StartPoint:F2} to {EndPoint:F2}, size={Size:F2}, large={IsLargeArc}, sweep={SweepDirection}");
         }
     }
 
@@ -75,7 +57,7 @@ namespace Metal_Code
     {
         public static double ToRadians(this double degrees)
         {
-            return degrees * (Math.PI / 180.0);
+            return degrees * Math.PI / 180.0;
         }
     }
 }

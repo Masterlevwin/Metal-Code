@@ -29,7 +29,7 @@
 
             <StackPanel Margin="10">
                 
-                <Button Content="Загрузить DXF" Click="Load_Model" HorizontalAlignment="Left" Margin="5" Padding="5"/>
+                <Button Content="Загрузить DXF" Click="Load_Model" HorizontalAlignment="Left" Margin="5" Padding="5" Visibility="Hidden"/>
                 
                 <StackPanel Orientation="Horizontal" Margin="5">
                     <TextBlock x:Name="BilletType" VerticalAlignment="Center" FontWeight="Bold"/>
@@ -63,8 +63,6 @@
                         <StackPanel Orientation="Horizontal" Margin="5">
                             <StackPanel Orientation="Horizontal" Margin="5">
                                 <TextBlock Text="{Binding Title}" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
-                                <Canvas local:CanvasHelper.GeometryDescriptors="{Binding Geometries}" Width="100" Height="100" Background="White" Margin="5,0,0,0" ClipToBounds="False">
-                                </Canvas>
                             </StackPanel>
                             
                             <StackPanel Margin="10,0,0,0">

@@ -4823,13 +4823,6 @@ namespace Metal_Code
                     bounds.Add(new Point(line.StartPoint.X, line.StartPoint.Y));
                     bounds.Add(new Point(line.EndPoint.X, line.EndPoint.Y));
                 }
-                else if (entity is LwPolyline polyline)
-                {
-                    foreach (var vertex in polyline.Vertices)
-                    {
-                        bounds.Add(new Point(vertex.Location.X, vertex.Location.Y));
-                    }
-                }
                 else if (entity is Arc arc)
                 {
                     // Добавляем центр дуги
@@ -4859,13 +4852,6 @@ namespace Metal_Code
                         {
                             bounds.Add(new Point(_line.StartPoint.X, _line.StartPoint.Y));
                             bounds.Add(new Point(_line.EndPoint.X, _line.EndPoint.Y));
-                        }
-                        else if (reference is LwPolyline _polyline)
-                        {
-                            foreach (var vertex in _polyline.Vertices)
-                            {
-                                bounds.Add(new Point(vertex.Location.X, vertex.Location.Y));
-                            }
                         }
                         else if (reference is Arc _arc)
                         {
@@ -4898,52 +4884,44 @@ namespace Metal_Code
         }
 
         //------------Получение геометрии детали из dxf----------//
-        public static ObservableCollection<IGeometryDescriptor> GetGeometries(CadDocument dxf, Rect drawingBounds)
+        public static ObservableCollection<IGeometryDescriptor> GetGeometries(CadDocument dxf, Rect drawingBounds, double targetWidth = 120, double targetHeight = 120)
         {
             ObservableCollection<IGeometryDescriptor> geometries = new();
-
-            double targetWidth = 120;
-            double targetHeight = 120;
 
             double scaleX = targetWidth / drawingBounds.Width;
             double scaleY = targetHeight / drawingBounds.Height;
             double scale = Math.Min(scaleX, scaleY);
 
-            double offsetX = (targetWidth - drawingBounds.Width * scale) / 2 - drawingBounds.X * scale;
-            double offsetY = (targetHeight - drawingBounds.Height * scale) / 2 - drawingBounds.Y * scale;
+            double offsetX = (targetWidth - drawingBounds.Width * scale) / 2;
+            double offsetY = (targetHeight - drawingBounds.Height * scale) / 2;
 
             foreach (var entity in dxf.Entities)
             {
                 if (entity is Line line)
                 {
-                    DrawLine(line, scale, offsetX, offsetY, geometries);
+                    DrawLine(line, scale, offsetX, offsetY, geometries, drawingBounds);
                 }
                 else if (entity is Arc arc)
                 {
-                    DrawArc(arc, scale, offsetX, offsetY, geometries);
+                    DrawArc(arc, scale, offsetX, offsetY, geometries, drawingBounds);
                 }
                 else if (entity is Circle circle)
                 {
-                    DrawCircle(circle, scale, offsetX, offsetY, geometries);
-                }
-                else if (entity is LwPolyline polyline)
-                {
-                    var descriptor = GeometryConverter.Convert(polyline, scale, offsetX, offsetY);
-                    geometries.Add(descriptor);
+                    DrawCircle(circle, scale, offsetX, offsetY, geometries, drawingBounds);
                 }
                 else if (entity is Insert insert)
                 {
-                    RenderBlock(insert.Block, scale, offsetX, offsetY, geometries);
+                    RenderBlock(insert.Block, scale, offsetX, offsetY, geometries, drawingBounds);
                 }
             }
 
             return geometries;
         }
 
-        public static void DrawLine(Line line, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries)
+        public static void DrawLine(Line line, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries, Rect drawingBounds)
         {
-            Point start = Transform(line.StartPoint, scale, offsetX, offsetY);
-            Point end = Transform(line.EndPoint, scale, offsetX, offsetY);
+            Point start = Transform(line.StartPoint, scale, offsetX, offsetY, drawingBounds);
+            Point end = Transform(line.EndPoint, scale, offsetX, offsetY, drawingBounds);
 
             geometries.Add(new LineDescriptor
             {
@@ -4952,28 +4930,41 @@ namespace Metal_Code
             });
         }
 
-        public static void DrawArc(Arc arc, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries)
+        public static void DrawArc(Arc arc, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries, Rect drawingBounds)
         {
-            Point center = Transform(arc.Center, scale, offsetX, offsetY);
-            double radius = arc.Radius * scale;
+            Point center = Transform(arc.Center, scale, offsetX, offsetY, drawingBounds);
+            double scaledRadius = arc.Radius * scale;
+
+            double startAngle = arc.StartAngle.ToRadians();
+            double endAngle = arc.EndAngle.ToRadians();
+            double sweepAngle = endAngle - startAngle;
+
+            Point startPoint = new Point(
+                center.X + scaledRadius * Math.Cos(startAngle),
+                center.Y - scaledRadius * Math.Sin(startAngle)
+            );
+
+            Point endPoint = new Point(
+                center.X + scaledRadius * Math.Cos(endAngle),
+                center.Y - scaledRadius * Math.Sin(endAngle)
+            );
+
+            bool isLargeArc = Math.Abs(sweepAngle) > Math.PI;
+            SweepDirection sweepDirection = sweepAngle >= 0 ? SweepDirection.Clockwise : SweepDirection.Counterclockwise;
 
             geometries.Add(new ArcDescriptor
             {
-                Center = center,
-                Radius = radius,
-                StartAngle = arc.StartAngle,
-                SweepAngle = arc.EndAngle - arc.StartAngle,
-                Scale = scale,
-                OffsetX = offsetX,
-                OffsetY = offsetY,
-                Stroke = Brushes.Green,
-                StrokeThickness = 0.5
+                StartPoint = startPoint,
+                EndPoint = endPoint,
+                Size = new Size(scaledRadius, scaledRadius),
+                IsLargeArc = isLargeArc,
+                SweepDirection = sweepDirection
             });
         }
 
-        public static void DrawCircle(Circle circle, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries)
+        public static void DrawCircle(Circle circle, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries, Rect drawingBounds)
         {
-            Point center = Transform(circle.Center, scale, offsetX, offsetY);
+            Point center = Transform(circle.Center, scale, offsetX, offsetY, drawingBounds);
             double radius = circle.Radius * scale;
 
             geometries.Add(new CircleDescriptor
@@ -4982,8 +4973,8 @@ namespace Metal_Code
                 Radius = radius
             });
         }
-
-        public static void RenderBlock(BlockRecord block, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries)
+        
+        public static void RenderBlock(BlockRecord block, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries, Rect drawingBounds)
         {
             if (block == null || block.Entities == null) return;
 
@@ -4991,29 +4982,32 @@ namespace Metal_Code
             {
                 if (reference is Line line)
                 {
-                    DrawLine(line, scale, offsetX, offsetY, geometries);
+                    DrawLine(line, scale, offsetX, offsetY, geometries, drawingBounds);
                 }
                 else if (reference is Arc arc)
                 {
-                    DrawArc(arc, scale, offsetX, offsetY, geometries);
+                    DrawArc(arc, scale, offsetX, offsetY, geometries, drawingBounds);
                 }
                 else if (reference is Circle circle)
                 {
-                    DrawCircle(circle, scale, offsetX, offsetY, geometries);
-                }
-                else if (reference is LwPolyline polyline)
-                {
-                    var descriptor = GeometryConverter.Convert(polyline, scale, offsetX, offsetY);
-                    geometries.Add(descriptor);
+                    DrawCircle(circle, scale, offsetX, offsetY, geometries, drawingBounds);
                 }
             }
         }
 
-        public static Point Transform(XYZ point, double scale, double offsetX, double offsetY)
+        public static Point Transform(XYZ point, double scale, double offsetX, double offsetY, Rect drawingBounds)
         {
-            return new Point(point.X * scale + offsetX, -(point.Y * scale + offsetY) + 120);
-        }
+            double x = (point.X - drawingBounds.X) * scale + offsetX;
 
+            // Нормализуем Y относительно нижнего края, затем инвертируем
+            double normalizedY = point.Y - drawingBounds.Y;
+            double flippedY = drawingBounds.Height - normalizedY;
+            double y = flippedY * scale + offsetY;
+
+            //Trace.WriteLine($"Point({point.X:F2}, {point.Y:F2}) → Screen({x:F2}, {y:F2})");
+
+            return new Point(x, y);
+        }
 
         //------------Сортировка файлов по папкам----------------//
         private void CreateTech(object sender, RoutedEventArgs e)

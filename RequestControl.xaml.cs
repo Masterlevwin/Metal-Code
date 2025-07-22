@@ -52,8 +52,8 @@ namespace Metal_Code
                 targetTechItem = value;
                 OnPropertyChanged(nameof(TargetTechItem));
 
-                if (targetTechItem?.Geometries.Count == 0)
-                    targetTechItem.NumberName = "Нет данных";
+                //if (targetTechItem?.Geometries.Count == 0)
+                //    targetTechItem.NumberName = "Нет данных";
             }
         }
 
@@ -805,6 +805,13 @@ namespace Metal_Code
                 MainWindow.M.IsExpressOffer = false;
                 MessageBox.Show($"Не удалось создать быстрый расчет.\n{ex.Message}");
             }
+        }
+
+        private void ShowPopup_Geometries(object sender, MouseEventArgs e)
+        {
+            Popup.IsOpen = true;
+
+            Details.Text = $"Изображение приблизительно, и может отличаться от исходной модели.";
         }
     }
 

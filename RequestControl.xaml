@@ -136,12 +136,15 @@
 
                 <GroupBox Margin="5">
                     <GroupBox.Header>
-                        <TextBlock Text="{Binding TargetTechItem.NumberName}" FontWeight="Bold" MaxWidth="120" ToolTip="{Binding TargetTechItem.NumberName}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding TargetTechItem.NumberName}" FontWeight="Bold" MaxWidth="120" ToolTip="{Binding TargetTechItem.NumberName}"/>
+                            <Image Source="/Images/question.png" MouseEnter="ShowPopup_Geometries" MaxHeight="10"/>
+                        </StackPanel>
                     </GroupBox.Header>
 
                     <Grid>
                         <Canvas local:CanvasHelper.GeometryDescriptors="{Binding TargetTechItem.Geometries}" Background="White" MinWidth="120" MinHeight="120" Margin="8"/>
-                        <Canvas VerticalAlignment="Top" HorizontalAlignment="Left" Background="White" Margin="3">
+                        <Canvas VerticalAlignment="Top" HorizontalAlignment="Left" Background="White" Margin="3" Visibility="Hidden">
 
                             <!-- Начало координат (точка 0,0) -->
                             <Ellipse Canvas.Left="-2" Canvas.Top="-2" 
