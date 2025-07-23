@@ -118,7 +118,7 @@ namespace Metal_Code
             }
         }
         
-        private bool isRequest = true;
+        private bool isRequest = false;
         public bool IsRequest
         {
             get => isRequest;

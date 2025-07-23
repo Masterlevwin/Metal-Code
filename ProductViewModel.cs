@@ -189,7 +189,7 @@ namespace Metal_Code
 
                           MainWindow.M.NewProject();        // создаем новый расчет
 
-                          MainWindow.M.CloseRequestControl();
+                          if (MainWindow.M.IsRequest) MainWindow.M.CloseRequestControl();
 
                           System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
