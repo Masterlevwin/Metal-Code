@@ -1,18 +1,14 @@
 ﻿using ACadSharp;
 using ACadSharp.Entities;
 using ACadSharp.IO;
-using ACadSharp.Tables;
-using CSMath;
 using Microsoft.Win32;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
-using Point = System.Windows.Point;
 
 namespace Metal_Code
 {
@@ -146,7 +142,7 @@ namespace Metal_Code
                 CadDocument dxf = reader.Read();
 
                 // 1. Найдём границы чертежа
-                Rect drawingBounds = MainWindow.GetDrawingBounds(dxf);
+                Rect drawingBounds = MainWindow.GetDrawingBounds(dxf).Item1;
 
                 if (drawingBounds.Width == 0 || drawingBounds.Height == 0) continue;
 
@@ -283,50 +279,4 @@ namespace Metal_Code
 
         public DetailData() { }
     }
-
-    //public static class CanvasHelper
-    //{
-    //    public static readonly DependencyProperty ElementsProperty =
-    //        DependencyProperty.RegisterAttached(
-    //            "Elements",
-    //            typeof(ObservableCollection<UIElement>),
-    //            typeof(CanvasHelper),
-    //            new PropertyMetadata(null, OnElementsChanged));
-
-    //    public static ObservableCollection<UIElement> GetElements(DependencyObject obj)
-    //    {
-    //        return (ObservableCollection<UIElement>)obj.GetValue(ElementsProperty);
-    //    }
-
-    //    public static void SetElements(DependencyObject obj, ObservableCollection<UIElement> value)
-    //    {
-    //        obj.SetValue(ElementsProperty, value);
-    //    }
-
-    //    private static void OnElementsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    //    {
-    //        if (d is Canvas canvas)
-    //        {
-    //            canvas.Children.Clear();
-
-    //            if (e.NewValue is ObservableCollection<UIElement> elements)
-    //            {
-    //                foreach (var element in elements)
-    //                {
-    //                    canvas.Children.Add(element);
-    //                }
-
-    //                // Подписываемся на изменения коллекции
-    //                elements.CollectionChanged += (sender, args) =>
-    //                {
-    //                    canvas.Children.Clear();
-    //                    foreach (var element in elements)
-    //                    {
-    //                        canvas.Children.Add(element);
-    //                    }
-    //                };
-    //            }
-    //        }
-    //    }
-    //}
 }

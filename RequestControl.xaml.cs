@@ -336,12 +336,15 @@ namespace Metal_Code
                 {
                     var reader = new DxfReader(techItem.PathToModel);
                     CadDocument dxf = reader.Read();
-                    Rect drawingBounds = MainWindow.GetDrawingBounds(dxf);
 
-                    techItem.Sizes = $"{Math.Ceiling(drawingBounds.Width)}x{Math.Ceiling(drawingBounds.Height)}";
+                    (Rect, float, int) data = MainWindow.GetDrawingBounds(dxf);
+
+                    techItem.Sizes = $"{Math.Ceiling(data.Item1.Width)}x{Math.Ceiling(data.Item1.Height)}";
+                    techItem.Way = data.Item2;
+                    techItem.Pinhole = data.Item3;
 
                     //заполняем геометрию для отрисовки
-                    techItem.Geometries = MainWindow.GetGeometries(dxf, drawingBounds);
+                    techItem.Geometries = MainWindow.GetGeometries(dxf, data.Item1);
                 }
 
                 TechItems.Add(techItem);
@@ -712,7 +715,7 @@ namespace Metal_Code
                                 float square = 0,   //площадь деталей
                                         way = 0,    //путь резки
                                     indent = 10;    //отступ
-                                int pinholes = 0;   //проколы
+                                int pinholes = 1;   //проколы
 
                                 //рассчитываем количество листов заготовки, путь резки и проколы, заодно заполняем коллекцию деталей
                                 foreach (var item in group)
@@ -723,15 +726,24 @@ namespace Metal_Code
                                         square += (MainWindow.Parser(properties[0]) + indent)
                                                 * (MainWindow.Parser(properties[1]) + indent)
                                                 * MainWindow.Parser(item.Count);
-                                        way += (MainWindow.Parser(properties[0]) + MainWindow.Parser(properties[1]) + indent)
-                                                * 2 * MainWindow.Parser(item.Count);
-                                        pinholes += (int)MainWindow.Parser(item.Count);
+
+                                        if (item.Geometries.Count > 0)
+                                        {
+                                            way += item.Way * (int)MainWindow.Parser(item.Count);
+                                            pinholes += item.Pinhole * (int)MainWindow.Parser(item.Count);
+                                        }
+                                        else
+                                        {
+                                            way += (MainWindow.Parser(properties[0]) + MainWindow.Parser(properties[1]) + indent)
+                                                    * 2 * MainWindow.Parser(item.Count);
+                                            pinholes += (int)MainWindow.Parser(item.Count) * 2;
+                                        }
 
                                         Part part = new(item.NumberName, (int)MainWindow.Parser(item.Count))
                                         {
                                             Metal = group.Key.Material.ToLower(),
                                             Destiny = MainWindow.Parser(group.Key.Destiny),
-                                            Way = (float)Math.Round((MainWindow.Parser(properties[0]) + MainWindow.Parser(properties[1]) + indent) / 500, 3),
+                                            Way = item.Way > 0 ? item.Way : (float)Math.Round((MainWindow.Parser(properties[0]) + MainWindow.Parser(properties[1]) + indent) / 500, 3),
                                             Mass = (float)Math.Round((MainWindow.Parser(properties[0]) + indent) * (MainWindow.Parser(properties[1]) + indent) * type.S * density / 1000000, 3)
                                         };
                                         //записываем полученные габариты и саму строку для их отображения в словарь свойств
@@ -766,7 +778,7 @@ namespace Metal_Code
 
                                 cut.Way = (int)Math.Ceiling(way / 1000);
                                 cut.WayTotal = parts.Sum(p => p.Way * p.Count);
-                                cut.Pinhole = pinholes * 2;
+                                cut.Pinhole = pinholes;
                                 cut.Mass = type.Count * type.A * type.B * type.S * density / 1000000;
                                 cut.MassTotal = parts.Sum(p => p.Mass * p.Count);
 

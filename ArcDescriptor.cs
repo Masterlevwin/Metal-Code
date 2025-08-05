@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -29,7 +28,7 @@ namespace Metal_Code
                 SweepDirection = SweepDirection,
                 IsStroked = true
             };
-            
+
             var figure = new PathFigure
             {
                 StartPoint = StartPoint,
@@ -48,8 +47,6 @@ namespace Metal_Code
             };
 
             canvas.Children.Add(path);
-
-            Trace.WriteLine($"Arc: from {StartPoint:F2} to {EndPoint:F2}, size={Size:F2}, large={IsLargeArc}, sweep={SweepDirection}");
         }
     }
 

@@ -4811,10 +4811,13 @@ namespace Metal_Code
             IsRequest = false;
         }
 
+
         //------------Получение габаритов детали из dxf----------//
-        public static Rect GetDrawingBounds(CadDocument dxf)
+        public static (Rect, float, int) GetDrawingBounds(CadDocument dxf)
         {
-            var bounds = new List<Point>();
+            var bounds = new List<Point>();     //крайние точки сущностей
+            float way = 0;                      //путь резки
+            int pinholes = 1;                   //проколы
 
             foreach (var entity in dxf.Entities)
             {
@@ -4822,6 +4825,16 @@ namespace Metal_Code
                 {
                     bounds.Add(new Point(line.StartPoint.X, line.StartPoint.Y));
                     bounds.Add(new Point(line.EndPoint.X, line.EndPoint.Y));
+
+                    way += (float)Math.Abs(Math.Sqrt(Math.Pow(line.EndPoint.X - line.StartPoint.X, 2) + Math.Pow(line.EndPoint.Y - line.StartPoint.Y, 2)));
+                }
+                else if (entity is LwPolyline polyline)
+                {
+                    foreach (var vertex in polyline.Vertices)
+                        bounds.Add(new Point(vertex.Location.X, vertex.Location.Y));
+
+                    way += (float)GetPolylineLength(polyline);
+                    pinholes++;
                 }
                 else if (entity is Arc arc)
                 {
@@ -4839,48 +4852,85 @@ namespace Metal_Code
                     double xEnd = arc.Center.X + arc.Radius * Math.Cos(endAngle);
                     double yEnd = arc.Center.Y + arc.Radius * Math.Sin(endAngle);
                     bounds.Add(new Point(xEnd, yEnd));
+
+                    way += (float)GetArcLength(arc);
+                    pinholes++;
                 }
                 else if (entity is Circle circle)
                 {
-                    bounds.Add(new Point(circle.Center.X, circle.Center.Y));
+                    bounds.Add(new Point(circle.Center.X, circle.Center.Y));                 // center
+                    bounds.Add(new Point(circle.Center.X + circle.Radius, circle.Center.Y)); // right
+                    bounds.Add(new Point(circle.Center.X - circle.Radius, circle.Center.Y)); // left
+                    bounds.Add(new Point(circle.Center.X, circle.Center.Y + circle.Radius)); // top
+                    bounds.Add(new Point(circle.Center.X, circle.Center.Y - circle.Radius)); // bottom
+
+                    way += (float)(Math.PI * circle.Radius * 2);
+                    pinholes++;
                 }
                 else if (entity is Insert insert)
                 {
-                    foreach (var reference in insert.Block.Entities)
-                    {
-                        if (reference is Line _line)
+                    if (dxf.BlockRecords.TryGetValue(insert.Block.Name, out BlockRecord blockRecord))
+                        foreach (var blockEntity in blockRecord.Entities)
                         {
-                            bounds.Add(new Point(_line.StartPoint.X, _line.StartPoint.Y));
-                            bounds.Add(new Point(_line.EndPoint.X, _line.EndPoint.Y));
+                            if (blockEntity is Line _line)
+                            {
+                                bounds.Add(new Point(_line.StartPoint.X, _line.StartPoint.Y));
+                                bounds.Add(new Point(_line.EndPoint.X, _line.EndPoint.Y));
+
+                                way += (float)Math.Abs(Math.Sqrt(Math.Pow(_line.EndPoint.X - _line.StartPoint.X, 2)
+                                                            + Math.Pow(_line.EndPoint.Y - _line.StartPoint.Y, 2)));
+                            }
+                            else if (blockEntity is LwPolyline _polyline)
+                            {
+                                foreach (var vertex in _polyline.Vertices)
+                                    bounds.Add(new Point(vertex.Location.X, vertex.Location.Y));
+
+                                way += (float)GetPolylineLength(_polyline);
+                                pinholes++;
+                            }
+                            else if (blockEntity is Arc _arc)
+                            {
+                                // Добавляем центр дуги
+                                bounds.Add(new Point(_arc.Center.X, _arc.Center.Y));
+
+                                // Добавляем начальную и конечную точки дуги
+                                double startAngle = _arc.StartAngle.ToRadians();
+                                double endAngle = _arc.EndAngle.ToRadians();
+
+                                double xStart = _arc.Center.X + _arc.Radius * Math.Cos(startAngle);
+                                double yStart = _arc.Center.Y + _arc.Radius * Math.Sin(startAngle);
+                                bounds.Add(new Point(xStart, yStart));
+
+                                double xEnd = _arc.Center.X + _arc.Radius * Math.Cos(endAngle);
+                                double yEnd = _arc.Center.Y + _arc.Radius * Math.Sin(endAngle);
+                                bounds.Add(new Point(xEnd, yEnd));
+
+                                way += (float)GetArcLength(_arc);
+                                pinholes++;
+                            }
+                            else if (blockEntity is Circle _circle)
+                            {
+                                bounds.Add(new Point(_circle.Center.X, _circle.Center.Y));                  // center
+                                bounds.Add(new Point(_circle.Center.X + _circle.Radius, _circle.Center.Y)); // right
+                                bounds.Add(new Point(_circle.Center.X - _circle.Radius, _circle.Center.Y)); // left
+                                bounds.Add(new Point(_circle.Center.X, _circle.Center.Y + _circle.Radius)); // top
+                                bounds.Add(new Point(_circle.Center.X, _circle.Center.Y - _circle.Radius)); // bottom
+
+                                way += (float)(Math.PI * _circle.Radius * 2);
+                                pinholes++;
+                            }
                         }
-                        else if (reference is Arc _arc)
-                        {
-                            bounds.Add(new Point(_arc.Center.X, _arc.Center.Y));
-
-                            double startAngle = _arc.StartAngle.ToRadians();
-                            double endAngle = _arc.EndAngle.ToRadians();
-
-                            double xStart = _arc.Center.X + _arc.Radius * Math.Cos(startAngle);
-                            double yStart = _arc.Center.Y + _arc.Radius * Math.Sin(startAngle);
-                            bounds.Add(new Point(xStart, yStart));
-
-                            double xEnd = _arc.Center.X + _arc.Radius * Math.Cos(endAngle);
-                            double yEnd = _arc.Center.Y + _arc.Radius * Math.Sin(endAngle);
-                            bounds.Add(new Point(xEnd, yEnd));
-                        }
-                    }
                 }
             }
 
-            if (bounds.Count == 0)
-                return Rect.Empty;
+            if (bounds.Count == 0) return (Rect.Empty, way, pinholes);
 
             double minX = bounds.Min(p => p.X);
             double maxX = bounds.Max(p => p.X);
             double minY = bounds.Min(p => p.Y);
             double maxY = bounds.Max(p => p.Y);
 
-            return new Rect(minX, minY, maxX - minX, maxY - minY);
+            return (new Rect(minX, minY, maxX - minX, maxY - minY), way, pinholes);
         }
 
         //------------Получение геометрии детали из dxf----------//
@@ -5004,10 +5054,86 @@ namespace Metal_Code
             double flippedY = drawingBounds.Height - normalizedY;
             double y = flippedY * scale + offsetY;
 
-            //Trace.WriteLine($"Point({point.X:F2}, {point.Y:F2}) → Screen({x:F2}, {y:F2})");
-
             return new Point(x, y);
         }
+
+        private static double GetPolylineLength(LwPolyline polyline)
+        {
+            double totalLength = 0.0;
+            var vertices = polyline.Vertices;
+
+            if (vertices.Count < 2) return 0.0;
+
+            for (int i = 0; i < vertices.Count - 1; i++)
+            {
+                var start = vertices[i].Location;
+                var end = vertices[i + 1].Location;
+
+                double dx = end.X - start.X;
+                double dy = end.Y - start.Y;
+                double chordLength = Math.Sqrt(dx * dx + dy * dy);
+
+                if (Math.Abs(vertices[i + 1].Bulge) > 1e-6) // Дуга
+                {
+                    double theta = 4 * Math.Atan(Math.Abs(vertices[i + 1].Bulge));
+                    double radius = chordLength / (2 * Math.Sin(theta / 2));
+                    totalLength += radius * theta;
+                }
+                else // Прямая
+                {
+                    totalLength += chordLength;
+                }
+            }
+
+            // Если замкнута — добавить последний сегмент
+            if (polyline.IsClosed && vertices.Count > 2)
+            {
+                var last = vertices[^1].Location;
+                var first = vertices[0].Location;
+                double dx = first.X - last.X;
+                double dy = first.Y - last.Y;
+                double closeLength = Math.Sqrt(dx * dx + dy * dy);
+
+                if (Math.Abs(vertices[0].Bulge) > 1e-6)
+                {
+                    double theta = 4 * Math.Atan(Math.Abs(vertices[0].Bulge));
+                    double radius = closeLength / (2 * Math.Sin(theta / 2));
+                    totalLength += radius * theta;
+                }
+                else
+                {
+                    totalLength += closeLength;
+                }
+            }
+
+            return totalLength;
+        }
+
+        public static double GetArcLength(Arc arc)
+        {
+            if (arc.Radius <= 0) return 0;
+
+            // Нормализуем углы в диапазон [0, 360]
+            double start = NormalizeAngle(arc.StartAngle);
+            double end = NormalizeAngle(arc.EndAngle);
+
+            // Определяем направление: в DXF дуга всегда против часовой стрелки (CCW)
+            // Но StartAngle и EndAngle могут быть в любом порядке
+            double sweepAngle = end - start;
+
+            if (sweepAngle < 0) sweepAngle += 360; // пересекает 0°
+
+            // Переводим в радианы и вычисляем длину
+            double angleRad = sweepAngle * Math.PI / 180;
+            return arc.Radius * angleRad;
+        }
+
+        public static double NormalizeAngle(double angle)
+        {
+            angle = angle % 360;
+            return angle < 0 ? angle + 360 : angle;
+        }
+
 
         //------------Сортировка файлов по папкам----------------//
         private void CreateTech(object sender, RoutedEventArgs e)

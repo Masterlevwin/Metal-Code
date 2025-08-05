@@ -716,6 +716,12 @@ namespace Metal_Code
         [Browsable(false)]
         public ObservableCollection<IGeometryDescriptor> Geometries { get; set; } = new();
 
+        [Browsable(false)]
+        public float Way { get; set; }
+
+        [Browsable(false)]
+        public int Pinhole { get; set; }
+
         public TechItem() { }
         public TechItem(string numberName, string sizes, string material, string destiny, string count, string route, string hasMaterial, string originalName, string pathToModel, string isGenerated)
         {
