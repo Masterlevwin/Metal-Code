@@ -1,4 +1,5 @@
 ﻿using ACadSharp;
+using ACadSharp.Entities;
 using ACadSharp.IO;
 using ExcelDataReader;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -334,17 +336,24 @@ namespace Metal_Code
                 //определяем размеры
                 if (Path.GetExtension(path) == ".dxf")
                 {
-                    var reader = new DxfReader(techItem.PathToModel);
-                    CadDocument dxf = reader.Read();
+                    try
+                    {
+                        var reader = new DxfReader(techItem.PathToModel);
+                        CadDocument dxf = reader.Read();
 
-                    (Rect, float, int) data = MainWindow.GetDrawingBounds(dxf);
+                        (Rect, float, int) data = MainWindow.GetDrawingBounds(dxf);
 
-                    techItem.Sizes = $"{Math.Ceiling(data.Item1.Width)}x{Math.Ceiling(data.Item1.Height)}";
-                    techItem.Way = data.Item2;
-                    techItem.Pinhole = data.Item3;
+                        techItem.Sizes = $"{Math.Ceiling(data.Item1.Width)}x{Math.Ceiling(data.Item1.Height)}";
+                        techItem.Width = (float)Math.Ceiling(data.Item1.Width);
+                        techItem.Height = (float)Math.Ceiling(data.Item1.Height);
+                        techItem.Way = data.Item2;
+                        techItem.Pinhole = data.Item3;
 
-                    //заполняем геометрию для отрисовки
-                    techItem.Geometries = MainWindow.GetGeometries(dxf, data.Item1);
+                        //заполняем геометрию для отрисовки
+                        techItem.Geometries = MainWindow.GetGeometries(dxf, data.Item1);
+                    }
+                    catch { MessageBox.Show($"Не удалось прочитать dxf ({path}).\n" +
+                        $"Пересохраните файл в CAD-программе и попробуйте снова."); }
                 }
 
                 TechItems.Add(techItem);
@@ -710,71 +719,79 @@ namespace Metal_Code
                             type.WorkControls[^1].WorkDrop.SelectedItem = w;
                             if (type.WorkControls[^1].workType is CutControl cut)
                             {
+                                LaserItem sheet = new() { destiny = $"{type.S}", metal = type.MetalDrop.Text, sheets = 1 };
+                                double usedX = 0, usedY = 0;
+
                                 List<Part> parts = new();       //список нарезанных деталей
 
                                 float square = 0,   //площадь деталей
                                         way = 0,    //путь резки
                                     indent = 10;    //отступ
-                                int pinholes = 1;   //проколы
+                                int pinholes = 0;   //проколы
 
                                 //рассчитываем количество листов заготовки, путь резки и проколы, заодно заполняем коллекцию деталей
-                                foreach (var item in group)
+                                foreach (var item in group.OrderByDescending(p => p.Width).ThenByDescending(p => p.Height))
                                 {
-                                    string[] properties = item.Sizes.ToLower().Split('x');
-                                    if (properties.Length > 1)
+                                    float propW = item.Width + indent;
+                                    float propH = item.Height + indent;
+                                    int count = (int)MainWindow.Parser(item.Count);
+
+                                    square += propW * propH * count;
+
+                                    if (item.Geometries.Count > 0)
                                     {
-                                        square += (MainWindow.Parser(properties[0]) + indent)
-                                                * (MainWindow.Parser(properties[1]) + indent)
-                                                * MainWindow.Parser(item.Count);
+                                        way += item.Way * count;
+                                        pinholes += item.Pinhole * count;
+                                    }
+                                    else
+                                    {
+                                        way += (propW + propH) * count;
+                                        pinholes += 2 * count;
+                                    }
 
-                                        if (item.Geometries.Count > 0)
-                                        {
-                                            way += item.Way * (int)MainWindow.Parser(item.Count);
-                                            pinholes += item.Pinhole * (int)MainWindow.Parser(item.Count);
-                                        }
-                                        else
-                                        {
-                                            way += (MainWindow.Parser(properties[0]) + MainWindow.Parser(properties[1]) + indent)
-                                                    * 2 * MainWindow.Parser(item.Count);
-                                            pinholes += (int)MainWindow.Parser(item.Count) * 2;
-                                        }
+                                    Part part = new(item.NumberName, count)
+                                    {
+                                        Metal = group.Key.Material.ToLower(),
+                                        Destiny = type.S,
+                                        Way = item.Way > 0 ? item.Way : (float)Math.Round((propW + propH) / 1000, 3),
+                                        Mass = (float)Math.Round(propW * propH * type.S * density / 1000000, 3)
+                                    };
 
-                                        Part part = new(item.NumberName, (int)MainWindow.Parser(item.Count))
+                                    //записываем полученные габариты и саму строку для их отображения в словарь свойств
+                                    part.PropsDict[100] = new() { $"{item.Width}", $"{item.Height}", item.Sizes.ToLower() };
+                                    parts.Add(part);
+
+                                    usedX = propH;
+                                    for (int i = 0; i < part.Count; i++)
+                                    {
+                                        //если в текущем ряду есть место — ставим выше
+                                        if (usedY + propW <= type.B && propH <= type.A - usedX)
                                         {
-                                            Metal = group.Key.Material.ToLower(),
-                                            Destiny = MainWindow.Parser(group.Key.Destiny),
-                                            Way = item.Way > 0 ? item.Way : (float)Math.Round((MainWindow.Parser(properties[0]) + MainWindow.Parser(properties[1]) + indent) / 500, 3),
-                                            Mass = (float)Math.Round((MainWindow.Parser(properties[0]) + indent) * (MainWindow.Parser(properties[1]) + indent) * type.S * density / 1000000, 3)
-                                        };
-                                        //записываем полученные габариты и саму строку для их отображения в словарь свойств
-                                        part.PropsDict[100] = new() { properties[0], properties[1], item.Sizes.ToLower() };
-                                        parts.Add(part);
+                                            usedY += propW;
+                                            Trace.WriteLine($"usedY{usedY} + propW{propW} <= type.B{type.B} && propH{propH} <= type.A{type.A} - usedX{usedX}");
+
+                                        }
+                                        else if (propW <= type.B && propH <= type.A - usedX) //новый ряд
+                                        {
+                                            usedY = propW;
+                                            usedX += propH;
+                                            Trace.WriteLine($"propW{propW} <= type.B{type.B} && propH{propH} <= type.A{type.A} - usedX{usedX} //новый ряд");
+                                        }
+                                        else //новый лист
+                                        {
+                                            sheet.sheets++;
+                                            usedY = propW;
+                                            usedX = propH;
+                                            Trace.WriteLine($"usedX{usedX} = propW{propW}; usedY{usedY} = propH{propH} //новый лист");
+                                        }
                                     }
                                 }
 
-                                //получаем количество листов на основе общей площади деталей
-                                type.Count = (int)Math.Ceiling(square / type.A / type.B);
+                                type.A = (float)usedX;
+                                type.Count = sheet.sheets;
+                                Trace.WriteLine($"usedX - {usedX}; usedY - {usedY}; type.A - {type.A}; type.Count - {type.Count}");
 
-                                //алгоритм определения обрезка
-                                var sizes = parts.SelectMany(p => p.PropsDict[100]);    //получаем габариты всех деталей как строки
-                                List<float> _sizes = new();                             //список габаритов в виде чисел кратных 100
-                                foreach (string size in sizes)
-                                {
-                                    float _size = MainWindow.Parser(size);
-                                    if (_size > 0) _sizes.Add((float)Math.Ceiling(_size / 100) * 100);
-                                }
-                                _sizes = _sizes.Distinct().OrderDescending().ToList();  //очищаем список от дубликатов и сортируем его
-
-                                float width = 0;                                        //ширина обрезка
-                                foreach (float _size in _sizes)
-                                {                                                       //располагаем габариты по ширине листа
-                                    width += _size;                                     //до тех пор, пока полученной площади листа
-                                    if (width * type.B * type.Count - square > 0)       //не хватит для обеспечений общей площади деталей
-                                    {
-                                        type.A = width;                                 //таким образом определяем нужную ширину обрезка
-                                        break;
-                                    }
-                                }
+                                sheet.sheetSize = $"{type.A}X{type.B}";
 
                                 cut.Way = (int)Math.Ceiling(way / 1000);
                                 cut.WayTotal = parts.Sum(p => p.Way * p.Count);
@@ -782,12 +799,13 @@ namespace Metal_Code
                                 cut.Mass = type.Count * type.A * type.B * type.S * density / 1000000;
                                 cut.MassTotal = parts.Sum(p => p.Mass * p.Count);
 
-                                LaserItem laser = new() { sheetSize = $"{type.A}X{type.B}", sheets = type.Count };
-                                laser.way = cut.Way / laser.sheets;
-                                laser.pinholes = cut.Pinhole / laser.sheets;
-                                laser.mass = cut.Mass / laser.sheets;
-                                cut.Items?.Add(laser);
+                                sheet.way = cut.Way / sheet.sheets;
+                                sheet.pinholes = cut.Pinhole / sheet.sheets;
+                                sheet.mass = cut.Mass / sheet.sheets;
+                                cut.Items?.Add(sheet);
                                 if (cut.Items?.Count > 0) cut.SumProperties(cut.Items);
+
+                                Trace.WriteLine($"cut.Mass - {cut.Mass}; cut.MassTotal - {cut.MassTotal}; sheet.mass - {sheet.mass}");
 
                                 cut.PartDetails = parts;
                                 cut.Parts = cut.PartList();

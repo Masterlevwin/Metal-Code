@@ -717,6 +717,12 @@ namespace Metal_Code
         public ObservableCollection<IGeometryDescriptor> Geometries { get; set; } = new();
 
         [Browsable(false)]
+        public float Width { get; set; }
+
+        [Browsable(false)]
+        public float Height { get; set; }
+
+        [Browsable(false)]
         public float Way { get; set; }
 
         [Browsable(false)]

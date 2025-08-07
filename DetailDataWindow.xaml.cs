@@ -138,62 +138,70 @@ namespace Metal_Code
             {
                 if (Path.GetExtension(path) != ".dxf") continue;
 
-                var reader = new DxfReader(path);
-                CadDocument dxf = reader.Read();
-
-                // 1. Найдём границы чертежа
-                Rect drawingBounds = MainWindow.GetDrawingBounds(dxf).Item1;
-
-                if (drawingBounds.Width == 0 || drawingBounds.Height == 0) continue;
-
-                // 2. Рассчитаем масштаб и смещение
-                double targetWidth = 100;
-                double targetHeight = 100;
-
-                double scaleX = targetWidth / drawingBounds.Width;
-                double scaleY = targetHeight / drawingBounds.Height;
-                double scale = Math.Min(scaleX, scaleY);          //намеренно уменьшен масштаб
-
-                double offsetX = (targetWidth - drawingBounds.Width * scale) / 2;
-                double offsetY = (targetHeight - drawingBounds.Height * scale) / 2;
-
-                DetailData detailData = new() { Title = Path.GetFileNameWithoutExtension(path), Number = Details.Count + 1 };
-                if (Billet.TypeDetailDrop.Text == "Лист металла")
+                try
                 {
-                    detailData.IsLaser = true;
-                    detailData.IsPipe = false; 
+                    var reader = new DxfReader(path);
+                    CadDocument dxf = reader.Read();
+
+                    // 1. Найдём границы чертежа
+                    Rect drawingBounds = MainWindow.GetDrawingBounds(dxf).Item1;
+
+                    if (drawingBounds.Width == 0 || drawingBounds.Height == 0) continue;
+
+                    // 2. Рассчитаем масштаб и смещение
+                    double targetWidth = 100;
+                    double targetHeight = 100;
+
+                    double scaleX = targetWidth / drawingBounds.Width;
+                    double scaleY = targetHeight / drawingBounds.Height;
+                    double scale = Math.Min(scaleX, scaleY);          //намеренно уменьшен масштаб
+
+                    double offsetX = (targetWidth - drawingBounds.Width * scale) / 2;
+                    double offsetY = (targetHeight - drawingBounds.Height * scale) / 2;
+
+                    DetailData detailData = new() { Title = Path.GetFileNameWithoutExtension(path), Number = Details.Count + 1 };
+                    if (Billet.TypeDetailDrop.Text == "Лист металла")
+                    {
+                        detailData.IsLaser = true;
+                        detailData.IsPipe = false;
+                    }
+                    else
+                    {
+                        detailData.IsLaser = false;
+                        detailData.IsPipe = true;
+                    }
+
+                    ObservableCollection<IGeometryDescriptor> geometries = new();
+
+                    // 3. Отрисуем все объекты с учётом масштаба и смещения
+                    foreach (var entity in dxf.Entities)
+                    {
+                        if (entity is Line line)
+                        {
+                            MainWindow.DrawLine(line, scale, offsetX, offsetY, geometries, drawingBounds);
+                        }
+                        else if (entity is Arc arc)
+                        {
+                            MainWindow.DrawArc(arc, scale, offsetX, offsetY, geometries, drawingBounds);
+                        }
+                        else if (entity is Circle circle)
+                        {
+                            MainWindow.DrawCircle(circle, scale, offsetX, offsetY, geometries, drawingBounds);
+                        }
+                        else if (entity is Insert insert)
+                        {
+                            MainWindow.RenderBlock(insert.Block, scale, offsetX, offsetY, geometries, drawingBounds);
+                        }
+                    }
+
+                    detailData.Geometries = geometries;
+                    Details.Add(detailData);
                 }
-                else
+                catch
                 {
-                    detailData.IsLaser = false;
-                    detailData.IsPipe = true;
+                    MessageBox.Show($"Не удалось прочитать dxf ({path}).\n" +
+                        $"Пересохраните файл в CAD-программе и попробуйте снова.");
                 }
-
-                ObservableCollection<IGeometryDescriptor> geometries = new();
-
-                // 3. Отрисуем все объекты с учётом масштаба и смещения
-                foreach (var entity in dxf.Entities)
-                {
-                    if (entity is Line line)
-                    {
-                        MainWindow.DrawLine(line, scale, offsetX, offsetY, geometries, drawingBounds);
-                    }
-                    else if (entity is Arc arc)
-                    {
-                        MainWindow.DrawArc(arc, scale, offsetX, offsetY, geometries, drawingBounds);
-                    }
-                    else if (entity is Circle circle)
-                    {
-                        MainWindow.DrawCircle(circle, scale, offsetX, offsetY, geometries, drawingBounds);
-                    }
-                    else if (entity is Insert insert)
-                    {
-                        MainWindow.RenderBlock(insert.Block, scale, offsetX, offsetY, geometries, drawingBounds);
-                    }
-                }
-
-                detailData.Geometries = geometries;
-                Details.Add(detailData);
             }
         }
     }

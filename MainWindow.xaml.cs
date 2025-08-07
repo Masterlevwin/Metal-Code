@@ -4,6 +4,7 @@ using ACadSharp.IO;
 using ACadSharp.Tables;
 using CSMath;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic.ApplicationServices;
 using Microsoft.Win32;
 using OfficeOpenXml;
 using OfficeOpenXml.Drawing;
@@ -4817,7 +4818,7 @@ namespace Metal_Code
         {
             var bounds = new List<Point>();     //крайние точки сущностей
             float way = 0;                      //путь резки
-            int pinholes = 1;                   //проколы
+            int pinholes = 0;                   //проколы
 
             foreach (var entity in dxf.Entities)
             {
@@ -4827,6 +4828,7 @@ namespace Metal_Code
                     bounds.Add(new Point(line.EndPoint.X, line.EndPoint.Y));
 
                     way += (float)Math.Abs(Math.Sqrt(Math.Pow(line.EndPoint.X - line.StartPoint.X, 2) + Math.Pow(line.EndPoint.Y - line.StartPoint.Y, 2)));
+                    if (pinholes == 0) pinholes++;
                 }
                 else if (entity is LwPolyline polyline)
                 {
@@ -4834,7 +4836,7 @@ namespace Metal_Code
                         bounds.Add(new Point(vertex.Location.X, vertex.Location.Y));
 
                     way += (float)GetPolylineLength(polyline);
-                    pinholes++;
+                    if (pinholes == 0) pinholes++;
                 }
                 else if (entity is Arc arc)
                 {
@@ -4879,6 +4881,7 @@ namespace Metal_Code
 
                                 way += (float)Math.Abs(Math.Sqrt(Math.Pow(_line.EndPoint.X - _line.StartPoint.X, 2)
                                                             + Math.Pow(_line.EndPoint.Y - _line.StartPoint.Y, 2)));
+                                if (pinholes == 0) pinholes++;
                             }
                             else if (blockEntity is LwPolyline _polyline)
                             {
@@ -4886,7 +4889,7 @@ namespace Metal_Code
                                     bounds.Add(new Point(vertex.Location.X, vertex.Location.Y));
 
                                 way += (float)GetPolylineLength(_polyline);
-                                pinholes++;
+                                if (pinholes == 0) pinholes++;
                             }
                             else if (blockEntity is Arc _arc)
                             {
