@@ -691,7 +691,6 @@ namespace Metal_Code
                         if (t.Name == "Лист металла")
                         {
                             type.TypeDetailDrop.SelectedItem = t;
-                            type.CreateSort(sortIndex);
                             type.S = MainWindow.Parser(group.Key.Destiny);
 
                             //определяем материал заготовки
@@ -712,6 +711,13 @@ namespace Metal_Code
                                 }
                         }
 
+                    var packer = new SheetPacker(type.A, type.B, type.S > 10 ? type.S : 10);
+
+                    var sortedParts = group.OrderByDescending(p => p.Width * p.Height).ToList();
+
+                    // Укладываем
+                    var sheets = packer.Pack(sortedParts);
+
                     //устанавливаем "Лазерная резка" и заполняем эту резку
                     foreach (Work w in MainWindow.M.Works)
                         if (w.Name == "Лазерная резка")
@@ -719,24 +725,18 @@ namespace Metal_Code
                             type.WorkControls[^1].WorkDrop.SelectedItem = w;
                             if (type.WorkControls[^1].workType is CutControl cut)
                             {
-                                LaserItem sheet = new() { destiny = $"{type.S}", metal = type.MetalDrop.Text, sheets = 1 };
-                                double usedX = 0, usedY = 0;
-
                                 List<Part> parts = new();       //список нарезанных деталей
 
-                                float square = 0,   //площадь деталей
-                                        way = 0,    //путь резки
-                                    indent = 10;    //отступ
-                                int pinholes = 0;   //проколы
+                                float way = 0,                          //путь резки
+                                    indent = type.S > 10 ? type.S : 10; //отступ
+                                int pinholes = 0;                       //проколы
 
                                 //рассчитываем количество листов заготовки, путь резки и проколы, заодно заполняем коллекцию деталей
-                                foreach (var item in group.OrderByDescending(p => p.Width).ThenByDescending(p => p.Height))
+                                foreach (var item in sortedParts)
                                 {
                                     float propW = item.Width + indent;
                                     float propH = item.Height + indent;
                                     int count = (int)MainWindow.Parser(item.Count);
-
-                                    square += propW * propH * count;
 
                                     if (item.Geometries.Count > 0)
                                     {
@@ -760,52 +760,29 @@ namespace Metal_Code
                                     //записываем полученные габариты и саму строку для их отображения в словарь свойств
                                     part.PropsDict[100] = new() { $"{item.Width}", $"{item.Height}", item.Sizes.ToLower() };
                                     parts.Add(part);
-
-                                    usedX = propH;
-                                    for (int i = 0; i < part.Count; i++)
-                                    {
-                                        //если в текущем ряду есть место — ставим выше
-                                        if (usedY + propW <= type.B && propH <= type.A - usedX)
-                                        {
-                                            usedY += propW;
-                                            Trace.WriteLine($"usedY{usedY} + propW{propW} <= type.B{type.B} && propH{propH} <= type.A{type.A} - usedX{usedX}");
-
-                                        }
-                                        else if (propW <= type.B && propH <= type.A - usedX) //новый ряд
-                                        {
-                                            usedY = propW;
-                                            usedX += propH;
-                                            Trace.WriteLine($"propW{propW} <= type.B{type.B} && propH{propH} <= type.A{type.A} - usedX{usedX} //новый ряд");
-                                        }
-                                        else //новый лист
-                                        {
-                                            sheet.sheets++;
-                                            usedY = propW;
-                                            usedX = propH;
-                                            Trace.WriteLine($"usedX{usedX} = propW{propW}; usedY{usedY} = propH{propH} //новый лист");
-                                        }
-                                    }
                                 }
 
-                                type.A = (float)usedX;
-                                type.Count = sheet.sheets;
-                                Trace.WriteLine($"usedX - {usedX}; usedY - {usedY}; type.A - {type.A}; type.Count - {type.Count}");
-
-                                sheet.sheetSize = $"{type.A}X{type.B}";
+                                type.Count = sheets.Count;
 
                                 cut.Way = (int)Math.Ceiling(way / 1000);
                                 cut.WayTotal = parts.Sum(p => p.Way * p.Count);
                                 cut.Pinhole = pinholes;
-                                cut.Mass = type.Count * type.A * type.B * type.S * density / 1000000;
+                                cut.Mass = sheets.SelectMany(u => u.UsedAreas).Sum(s => s.w * s.h) * type.Count * type.S * density / 1000000;
                                 cut.MassTotal = parts.Sum(p => p.Mass * p.Count);
 
-                                sheet.way = cut.Way / sheet.sheets;
-                                sheet.pinholes = cut.Pinhole / sheet.sheets;
-                                sheet.mass = cut.Mass / sheet.sheets;
-                                cut.Items?.Add(sheet);
-                                if (cut.Items?.Count > 0) cut.SumProperties(cut.Items);
+                                if (sheets.Count > 0)
+                                    foreach (var sheet in sheets)
+                                        cut.Items?.Add(new()
+                                        {
+                                            sheets = 1,
+                                            sheetSize = $"{sheet.Width}x{sheet.Height}",
+                                            way = cut.Way / sheets.Count,
+                                            pinholes = cut.Pinhole / sheets.Count,
+                                            mass = cut.Mass / sheets.Count
+                                        });
 
-                                Trace.WriteLine($"cut.Mass - {cut.Mass}; cut.MassTotal - {cut.MassTotal}; sheet.mass - {sheet.mass}");
+                                if (cut.Items?.Count > 0) cut.SumProperties(cut.Items);
+                                Trace.WriteLine($"cut.Mass - {cut.Mass}; cut.MassTotal - {cut.MassTotal}; sheets.Count - {sheets.Count}");
 
                                 cut.PartDetails = parts;
                                 cut.Parts = cut.PartList();
@@ -842,6 +819,107 @@ namespace Metal_Code
             Popup.IsOpen = true;
 
             Details.Text = $"Изображение приблизительно, и может отличаться от исходной модели.";
+        }
+    }
+
+    public class SheetPacker
+    {
+        private readonly float _sheetWidth;
+        private readonly float _sheetHeight;
+        private readonly float _indent;
+
+        public SheetPacker(float sheetWidth, float sheetHeight, float indent)
+        {
+            _sheetWidth = sheetWidth;
+            _sheetHeight = sheetHeight;
+            _indent = indent;
+        }
+
+        public List<Sheet> Pack(List<TechItem> parts)
+        {
+            var sheets = new List<Sheet> { new(_sheetWidth, _sheetHeight) };
+
+            foreach (var part in parts)
+            {
+                bool placed = false;
+
+                foreach (var sheet in sheets)
+                {
+                    if (TryPlace(sheet, part, _indent))
+                    {
+                        placed = true;
+                        break;
+                    }
+                }
+
+                if (!placed)
+                {
+                    var newSheet = new Sheet(_sheetWidth, _sheetHeight);
+                    TryPlace(newSheet, part, _indent);
+                    sheets.Add(newSheet);
+                }
+            }
+
+            return sheets;
+        }
+
+        private bool TryPlace(Sheet sheet, TechItem part, float indent)
+        {
+            // Попробовать оба варианта ориентации
+            var orientations = new[] {
+            (w: part.Width + indent, h: part.Height + indent),
+            (w: part.Height + indent, h: part.Width + indent)
+        };
+
+            foreach (var (w, h) in orientations)
+            {
+                if (sheet.CanFit(w, h))
+                {
+                    sheet.Place(w, h, part);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
+    public class Sheet
+    {
+        public float Width { get; }
+        public float Height { get; }
+        public List<(float x, float y, float w, float h)> UsedAreas = new();
+        private float _currentX = 0;
+        private float _currentY = 0;
+
+        public Sheet(float width, float height)
+        {
+            Width = width;
+            Height = height;
+        }
+
+        public bool CanFit(float w, float h)
+        {
+            // Упрощённая проверка: укладка по рядам
+            if (_currentX + w <= Width)
+                return _currentY + h <= Height;
+            else
+                return _currentY + h <= Height && h <= Height - _currentY;
+        }
+
+        public void Place(float w, float h, TechItem part)
+        {
+            if (_currentX + w <= Width)
+            {
+                UsedAreas.Add((_currentX, _currentY, w, h));
+                _currentX += w;
+            }
+            else
+            {
+                _currentY += h;
+                _currentX = w;
+                UsedAreas.Add((0, _currentY, w, h));
+            }
         }
     }
 
