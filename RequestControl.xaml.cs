@@ -691,6 +691,7 @@ namespace Metal_Code
                         if (t.Name == "Лист металла")
                         {
                             type.TypeDetailDrop.SelectedItem = t;
+                            type.CreateSort(sortIndex);
                             type.S = MainWindow.Parser(group.Key.Destiny);
 
                             //определяем материал заготовки
