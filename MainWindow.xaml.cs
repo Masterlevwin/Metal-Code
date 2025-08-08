@@ -4,7 +4,6 @@ using ACadSharp.IO;
 using ACadSharp.Tables;
 using CSMath;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualBasic.ApplicationServices;
 using Microsoft.Win32;
 using OfficeOpenXml;
 using OfficeOpenXml.Drawing;
@@ -2039,7 +2038,7 @@ namespace Metal_Code
             if (_details.Count > 0)
                 foreach (Detail det in _details)
                 {
-                    det.Price = (float)Math.Ceiling(det.Price);
+                    det.Price = (float)Math.Ceiling(det.Price * Ratio * ((100 + BonusRatio) / 100));
                     det.Total = det.Price * det.Count;
                 }
             DataTable detailTable = ToDataTable(_details);
