@@ -956,10 +956,10 @@ namespace Metal_Code
                     {
                         sheets.Add(newSheet);
                     }
-                    else
-                    {
-                        throw new InvalidOperationException($"Деталь {part.NumberName} слишком большая для листа.");
-                    }
+                    //else
+                    //{
+                    //    throw new InvalidOperationException($"Деталь {part.NumberName} слишком большая для листа.");
+                    //}
                 }
             }
         }
