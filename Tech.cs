@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Media;
 using Path = System.IO.Path;
 
 namespace Metal_Code
@@ -721,6 +722,18 @@ namespace Metal_Code
 
         [Browsable(false)]
         public float Height { get; set; }
+
+        [Browsable(false)]
+        public double X { get; set; }
+
+        [Browsable(false)]
+        public double Y { get; set; }
+
+        [Browsable(false)]
+        public bool IsRotated { get; set; }
+
+        [Browsable(false)]
+        public Brush Color { get; set; } = Brushes.LightBlue;
 
         [Browsable(false)]
         public float Way { get; set; }

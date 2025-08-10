@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -184,7 +185,20 @@ namespace Metal_Code
 
         private void SetPicture(object sender, RoutedEventArgs e)       //метод вызывается при загрузке элемента Image (Image.Loaded) 
         {
-            if (Part.ImageBytes != null) Picture.Source = MainWindow.CreateBitmap(Part.ImageBytes);
+            if (MainWindow.M.IsExpressOffer && Part.Geometries?.Count > 0)
+            {
+                Picture.Visibility = Visibility.Collapsed;
+                GeometryCanvas.Visibility = Visibility.Visible;
+
+                CanvasHelper.SetGeometryDescriptors(GeometryCanvas, Part.Geometries);
+            }
+            else if (Part.ImageBytes != null)
+            {
+                GeometryCanvas.Visibility = Visibility.Collapsed;
+                Picture.Visibility = Visibility.Visible;
+
+                Picture.Source = MainWindow.CreateBitmap(Part.ImageBytes);
+            }
         }
 
         private void RemovePart(object sender, RoutedEventArgs e)

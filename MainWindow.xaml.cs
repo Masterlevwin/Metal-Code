@@ -367,13 +367,13 @@ namespace Metal_Code
             if (IsExpressOffer)
             {
                 if (!Comment.Text.Contains("Предварительное КП"))
-                    Comment.Text.Insert(Comment.Text.Length, " Предварительное КП");
+                    Comment.Text = Comment.Text.Insert(Comment.Text.Length, " Предварительное КП");
                 MenuMain.Background = Brushes.Moccasin;
             }
             else
             {
                 if (Comment.Text.Contains(" Предварительное КП"))
-                    Comment.Text.Replace(" Предварительное КП","");
+                    Comment.Text = Comment.Text.Replace(" Предварительное КП","");
                 MenuMain.Background = Brushes.White;
             }
         }
@@ -1427,12 +1427,6 @@ namespace Metal_Code
                     btn.ToolTip = "Добавить бонус";
                     btn.Click += RemoveOfferFromBonus;
                 }
-                //else if (offer.Invoice is not null && offer.Invoice.Contains(" (с бонусом)"))
-                //{
-                //    btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/withbonus.png", UriKind.Relative)) };
-                //    btn.ToolTip = "Добавить бонус";
-                //    btn.Click += RemoveOfferFromBonus;
-                //}
                 else
                 {
                     btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/ruble.png", UriKind.Relative)) };
@@ -1495,6 +1489,7 @@ namespace Metal_Code
             restartBases,               //перезапуск программы при обновлении баз
             restartApp,                 //перезапуск программы при обновлении программы
             exit,                       //выход из программы
+            express                     //предварительный расчет
         }
 
         public ActionState State = ActionState.none;
@@ -1541,6 +1536,10 @@ namespace Metal_Code
                     break;
                 case ActionState.exit:
                     StatusBegin($"Подождите, идет отправка расчетов в основную базу с последующим выходом из программы...");
+                    IsEnabled = false;
+                    break;
+                case ActionState.express:
+                    StatusBegin($"Подождите, идет автоматическая раскладка и создание предварительного расчета...");
                     IsEnabled = false;
                     break;
                 default:
@@ -1614,6 +1613,13 @@ namespace Metal_Code
                     break;
                 case ActionState.exit:
                     Environment.Exit(0);
+                    break;
+                case ActionState.express:
+                    RequestControl?.Show_ExpressOffer();
+                    StatusBegin($"{e.Result}");
+                    message = null;
+                    IsEnabled = true;
+                    InsertProgressBar.Visibility = Visibility.Collapsed;
                     break;
                 default:
                     break;
@@ -4835,7 +4841,7 @@ namespace Metal_Code
                         bounds.Add(new Point(vertex.Location.X, vertex.Location.Y));
 
                     way += (float)GetPolylineLength(polyline);
-                    if (pinholes == 0) pinholes++;
+                    if (polyline.IsClosed) pinholes++;
                 }
                 else if (entity is Arc arc)
                 {
@@ -4888,7 +4894,7 @@ namespace Metal_Code
                                     bounds.Add(new Point(vertex.Location.X, vertex.Location.Y));
 
                                 way += (float)GetPolylineLength(_polyline);
-                                if (pinholes == 0) pinholes++;
+                                if (_polyline.IsClosed) pinholes++;
                             }
                             else if (blockEntity is Arc _arc)
                             {
@@ -4936,7 +4942,7 @@ namespace Metal_Code
         }
 
         //------------Получение геометрии детали из dxf----------//
-        public static ObservableCollection<IGeometryDescriptor> GetGeometries(CadDocument dxf, Rect drawingBounds, double targetWidth = 120, double targetHeight = 120)
+        public static ObservableCollection<IGeometryDescriptor> GetGeometries(CadDocument dxf, Rect drawingBounds, double targetWidth, double targetHeight)
         {
             ObservableCollection<IGeometryDescriptor> geometries = new();
 

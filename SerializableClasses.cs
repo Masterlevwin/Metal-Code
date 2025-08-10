@@ -103,6 +103,10 @@ namespace Metal_Code
         [OptionalField]
         public ObservableCollection<MillingGroove> MillingGrooves = new();
 
+        [OptionalField]
+        [field: NonSerialized]
+        public ObservableCollection<IGeometryDescriptor> Geometries = new();
+
         public Dictionary<int, List<string>> PropsDict = new();
 
         public Part(string? _name = null, int _count = 1, string? _accuracy = null)

@@ -1,9 +1,9 @@
 ﻿using ACadSharp;
-using ACadSharp.Entities;
 using ACadSharp.IO;
 using ExcelDataReader;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
+using NPOI.SS.UserModel;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System;
@@ -12,6 +12,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -20,6 +21,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using Color = System.Windows.Media.Color;
 
 namespace Metal_Code
 {
@@ -71,6 +75,7 @@ namespace Metal_Code
             DataContext = this;
             Update_Paths(paths);
         }
+
 
         //-----настройка контрола при загрузке-----//
         private void RequestControl_Loaded(object sender, RoutedEventArgs e)
@@ -187,6 +192,7 @@ namespace Metal_Code
             else return;
         }
 
+
         //-----шаблон распознавания толщин и количества-----//
         private void Save_Template(object sender, RoutedEventArgs e)
         {
@@ -229,6 +235,7 @@ namespace Metal_Code
                 db.SaveChanges();
             }
         }
+
 
         //-----анализ файлов по выбранному шаблону-----//
         private void Analyze_Paths(object sender, RoutedEventArgs e) { Analyze_Paths(); }
@@ -350,7 +357,7 @@ namespace Metal_Code
                         techItem.Pinhole = data.Item3;
 
                         //заполняем геометрию для отрисовки
-                        techItem.Geometries = MainWindow.GetGeometries(dxf, data.Item1);
+                        techItem.Geometries = MainWindow.GetGeometries(dxf, data.Item1, 60, 60);
                     }
                     catch { MessageBox.Show($"Не удалось прочитать dxf ({path}).\n" +
                         $"Пересохраните файл в CAD-программе и попробуйте снова."); }
@@ -367,6 +374,7 @@ namespace Metal_Code
                 MainWindow.M.StatusBegin("Файлы успешно проанализированы");
             }
         }
+
 
         //-----генерация имён строк заявки-----//
         private void Rename_Details(object sender, RoutedEventArgs e)
@@ -405,6 +413,7 @@ namespace Metal_Code
                 "После загрузки раскладок из Ажанкам эти имена\n" +
                 "будут заменены обратно на исходные имена от заказчика.";
         }
+
 
         //-----получение геометрии выбранной детали-----//
         private void Set_TargetTechItem(object sender, SelectedCellsChangedEventArgs e)
@@ -505,6 +514,7 @@ namespace Metal_Code
             return null;
         }
 
+
         //-----метод укорачивания наименований-----//
         private void Delete_WithoutNames(object sender, RoutedEventArgs e)
         {
@@ -522,6 +532,7 @@ namespace Metal_Code
                 "Введите символ или часть текста, и ,если программа\n" +
                 "найдет совпадение, то удалит это из каждого наименования.";
         }
+
 
         //-----удаление строки из списка деталей-----//
         private void Remove_TechItem(object sender, MouseButtonEventArgs e)
@@ -545,6 +556,7 @@ namespace Metal_Code
             Details.Text = $"Кнопка \"Очистить\" удаляет ВСЕ строки из таблицы.\n" +
                 "Чтобы удалить одну строку, дважды нажмите по строке правой кнопкой мыши.";
         }
+
 
         //-----создание заявки и подготовка папок одновременно-----//
         private void Launch_Tech(object sender, RoutedEventArgs e)
@@ -656,11 +668,73 @@ namespace Metal_Code
             MainWindow.M.StatusBegin(tech.Run());
         }
 
+
         //-----метод создания предварительного расчета-----//
         private void Create_ExpressOffer(object sender, RoutedEventArgs e)
         {
             if (TechItems.Count == 0) return;
 
+            //запускаем алгоритм автоматического раскроя деталей в фоновом режиме
+            MainWindow.M.CreateWorker(Nesting, MainWindow.ActionState.express);
+        }
+
+        private List<SheetPacker> Packers = new();
+
+        private string Nesting(string? message = null)
+        {
+            Packers.Clear();
+
+            //группируем детали по материалу и толщине
+            var groups = TechItems.Where(d => d.Destiny != "").GroupBy(m => new { m.Material, m.Destiny });
+
+            //на каждую группу формируем список листов для укладки деталей
+            foreach (var group in groups)
+            {
+                //инициализируем упаковку
+                var packer = new SheetPacker(group.Key.Destiny, group.Key.Material);
+
+                //получаем полное количество деталей по одному экземпляру для визуализации раскладки
+                var expandedParts = new List<TechItem>();
+                foreach (var item in group)
+                {
+                    int count = (int)MainWindow.Parser(item.Count);
+                    for (int i = 0; i < count; i++)
+                    {
+                        // Создаём копию, чтобы не модифицировать оригинал
+                        expandedParts.Add(new TechItem
+                        {
+                            NumberName = item.NumberName,
+                            Width = item.Width,
+                            Height = item.Height,
+                            Material = item.Material,
+                            Destiny = item.Destiny,
+                            Geometries = item.Geometries,
+                            Way = item.Way,
+                            Pinhole = item.Pinhole,
+                            Sizes = item.Sizes
+                            // X, Y, Color — будут установлены при укладке
+                        });
+                    }
+                }
+
+                //получаем список листов данной группы
+                packer.Pack(expandedParts);
+
+                //сохраняемем изображение каждого листа
+                if (packer.sheets.Count > 0)
+                    foreach (var sheet in packer.sheets) sheet.GenerateImage(400, 200);
+
+                //добавим упаковку в список для дальнейшего использования
+                Packers.Add(packer);
+            }
+
+            message = "Раскладка выполнена успешно.";
+
+            return message;
+        }
+
+        public void Show_ExpressOffer()
+        {
             try
             {
                 MainWindow.M.NewProject();
@@ -670,131 +744,119 @@ namespace Metal_Code
 
                 foreach (var group in groups)
                 {
-                    int sortIndex = 0;
-
-                    //определяем раскрой листа группы по умолчанию
-                    if (group.Key.Material.ToLower() == "br" ||
-                        group.Key.Material.ToLower() == "cu")
-                        sortIndex = 3;
-                    else if (group.Key.Material.ToLower().Contains("aisi") ||
-                        group.Key.Material.ToLower().Contains("цинк") ||
-                        MainWindow.Parser(group.Key.Destiny) < 3)
-                        sortIndex = 1;
-                    else sortIndex = 0;
-
                     TypeDetailControl type = MainWindow.M.DetailControls[0].TypeDetailControls[^1];
 
-                    float density = 7.8f;      //плотность материала по умолчанию
+                    var packer = Packers.FirstOrDefault(p => p.destiny == group.Key.Destiny && p.material == group.Key.Material);
 
-                    //устанавливаем "Лист металла" и заполняем эту заготовку
-                    foreach (TypeDetail t in MainWindow.M.TypeDetails)
-                        if (t.Name == "Лист металла")
-                        {
-                            type.TypeDetailDrop.SelectedItem = t;
-                            type.CreateSort(sortIndex);
-                            type.S = MainWindow.Parser(group.Key.Destiny);
+                    if (packer is not null)
+                    {
+                        float density = 7.8f;      //плотность материала по умолчанию
 
-                            //определяем материал заготовки
-                            string met = group.Key.Material.ToLower() switch
+                        //устанавливаем "Лист металла" и заполняем эту заготовку
+                        foreach (TypeDetail t in MainWindow.M.TypeDetails)
+                            if (t.Name == "Лист металла")
                             {
-                                "br" => "латунь",
-                                "cu" => "медь",
-                                "al" => "амг2",
-                                "" => "ст3",
-                                _ => group.Key.Material.ToLower()
-                            };
-                            foreach (Metal metal in type.MetalDrop.Items)
-                                if (metal.Name == met)
+                                type.TypeDetailDrop.SelectedItem = t;
+                                type.CreateSort(packer.sheetWidth switch
                                 {
-                                    type.MetalDrop.SelectedItem = metal;
-                                    density = metal.Density;
-                                    break;
-                                }
-                        }
+                                    3000 => 0,
+                                    2500 => 1,
+                                    _ => 3
+                                });
+                                type.S = MainWindow.Parser(group.Key.Destiny);
 
-                    var packer = new SheetPacker(type.A, type.B, type.S > 10 ? type.S : 10);
-
-                    var sortedParts = group.OrderByDescending(p => p.Width * p.Height).ToList();
-
-                    // Укладываем
-                    var sheets = packer.Pack(sortedParts);
-
-                    //устанавливаем "Лазерная резка" и заполняем эту резку
-                    foreach (Work w in MainWindow.M.Works)
-                        if (w.Name == "Лазерная резка")
-                        {
-                            type.WorkControls[^1].WorkDrop.SelectedItem = w;
-                            if (type.WorkControls[^1].workType is CutControl cut)
-                            {
-                                List<Part> parts = new();       //список нарезанных деталей
-
-                                float way = 0,                          //путь резки
-                                    indent = type.S > 10 ? type.S : 10; //отступ
-                                int pinholes = 0;                       //проколы
-
-                                //рассчитываем количество листов заготовки, путь резки и проколы, заодно заполняем коллекцию деталей
-                                foreach (var item in sortedParts)
+                                //определяем материал заготовки
+                                string met = group.Key.Material.ToLower() switch
                                 {
-                                    float propW = item.Width + indent;
-                                    float propH = item.Height + indent;
-                                    int count = (int)MainWindow.Parser(item.Count);
-
-                                    if (item.Geometries.Count > 0)
+                                    "br" => "латунь",
+                                    "cu" => "медь",
+                                    "al" => "амг2",
+                                    "" => "ст3",
+                                    _ => group.Key.Material.ToLower()
+                                };
+                                foreach (Metal metal in type.MetalDrop.Items)
+                                    if (metal.Name == met)
                                     {
-                                        way += item.Way * count;
-                                        pinholes += item.Pinhole * count;
+                                        type.MetalDrop.SelectedItem = metal;
+                                        density = metal.Density;
+                                        break;
                                     }
-                                    else
-                                    {
-                                        way += (propW + propH) * count;
-                                        pinholes += 2 * count;
-                                    }
-
-                                    Part part = new(item.NumberName, count)
-                                    {
-                                        Metal = group.Key.Material.ToLower(),
-                                        Destiny = type.S,
-                                        Way = item.Way > 0 ? item.Way : (float)Math.Round((propW + propH) / 1000, 3),
-                                        Mass = (float)Math.Round(propW * propH * type.S * density / 1000000, 3)
-                                    };
-
-                                    //записываем полученные габариты и саму строку для их отображения в словарь свойств
-                                    part.PropsDict[100] = new() { $"{item.Width}", $"{item.Height}", item.Sizes.ToLower() };
-                                    parts.Add(part);
-                                }
-
-                                type.Count = sheets.Count;
-
-                                cut.Way = (int)Math.Ceiling(way / 1000);
-                                cut.WayTotal = parts.Sum(p => p.Way * p.Count);
-                                cut.Pinhole = pinholes;
-                                cut.Mass = sheets.SelectMany(u => u.UsedAreas).Sum(s => s.w * s.h) * type.Count * type.S * density / 1000000;
-                                cut.MassTotal = parts.Sum(p => p.Mass * p.Count);
-
-                                if (sheets.Count > 0)
-                                    foreach (var sheet in sheets)
-                                        cut.Items?.Add(new()
-                                        {
-                                            sheets = 1,
-                                            sheetSize = $"{sheet.Width}x{sheet.Height}",
-                                            way = cut.Way / sheets.Count,
-                                            pinholes = cut.Pinhole / sheets.Count,
-                                            mass = cut.Mass / sheets.Count
-                                        });
-
-                                if (cut.Items?.Count > 0) cut.SumProperties(cut.Items);
-                                Trace.WriteLine($"cut.Mass - {cut.Mass}; cut.MassTotal - {cut.MassTotal}; sheets.Count - {sheets.Count}");
-
-                                cut.PartDetails = parts;
-                                cut.Parts = cut.PartList();
-                                cut.PartsControl = new(cut, cut.Parts);
-                                cut.AddPartsTab();
                             }
-                            break;
-                        }
+                        //устанавливаем "Лазерная резка" и заполняем эту резку
+                        foreach (Work w in MainWindow.M.Works)
+                            if (w.Name == "Лазерная резка")
+                            {
+                                type.WorkControls[^1].WorkDrop.SelectedItem = w;
+                                if (type.WorkControls[^1].workType is CutControl cut)
+                                {
+                                    List<Part> parts = new();       //список нарезанных деталей
 
-                    if (groups.Count() > MainWindow.M.DetailControls[0].TypeDetailControls.Count)
-                        MainWindow.M.DetailControls[0].AddTypeDetail();
+                                    float way = 0;                  //путь резки
+                                    int pinholes = 0;               //проколы
+
+                                    //рассчитываем количество листов заготовки, путь резки и проколы, заодно заполняем коллекцию деталей
+                                    foreach (var item in group)
+                                    {
+                                        int count = (int)MainWindow.Parser(item.Count);
+
+                                        if (item.Geometries.Count > 0)
+                                        {
+                                            way += item.Way * count;
+                                            pinholes += item.Pinhole * count;
+                                        }
+                                        else
+                                        {
+                                            way += (item.Width + item.Height) * 2 * count;
+                                            pinholes += 2 * count;
+                                        }
+
+                                        Part part = new(item.NumberName, count)
+                                        {
+                                            Metal = group.Key.Material.ToLower(),
+                                            Destiny = type.S,
+                                            Way = item.Way > 0 ? item.Way : (float)Math.Round((item.Width + item.Height) / 1000, 3),
+                                            Mass = (float)Math.Round(item.Width * item.Height * type.S * density / 1000000, 3),
+                                            Geometries = item.Geometries
+                                        };
+
+                                        //записываем полученные габариты и саму строку для их отображения в словарь свойств
+                                        part.PropsDict[100] = new() { $"{item.Width}", $"{item.Height}", item.Sizes.ToLower() };
+                                        parts.Add(part);
+                                    }
+
+                                    type.Count = packer.sheets.Count;
+
+                                    cut.Way = (int)Math.Ceiling(way / 1000);
+                                    cut.WayTotal = parts.Sum(p => p.Way * p.Count);
+                                    cut.Pinhole = pinholes;
+                                    cut.Mass = packer.sheets.Sum(s => s.CutWidth * s.CutHeight) * type.Count * type.S * density / 1000000;
+                                    cut.MassTotal = parts.Sum(p => p.Mass * p.Count);
+
+                                    if (packer.sheets.Count > 0)
+                                        foreach (var sheet in packer.sheets)
+                                            cut.Items?.Add(new()
+                                            {
+                                                sheets = 1,
+                                                sheetSize = $"{sheet.Width}x{sheet.Height}",
+                                                way = cut.Way / packer.sheets.Count,
+                                                pinholes = cut.Pinhole / packer.sheets.Count,
+                                                mass = sheet.CutWidth * sheet.CutHeight * type.S * density / 1000000,
+                                                imageBytes = sheet.ImageBytes
+                                            });
+
+                                    if (cut.Items?.Count > 0) cut.SumProperties(cut.Items);
+
+                                    cut.PartDetails = parts;
+                                    cut.Parts = cut.PartList();
+                                    cut.PartsControl = new(cut, cut.Parts);
+                                    cut.AddPartsTab();
+                                }
+                                break;
+                            }
+
+                        if (groups.Count() > MainWindow.M.DetailControls[0].TypeDetailControls.Count)
+                            MainWindow.M.DetailControls[0].AddTypeDetail();
+                    }
                 }
 
                 //определяем деталь, в которой загрузили раскладки, как комплект деталей
@@ -825,60 +887,99 @@ namespace Metal_Code
 
     public class SheetPacker
     {
-        private readonly float _sheetWidth;
-        private readonly float _sheetHeight;
-        private readonly float _indent;
+        public float sheetWidth;
+        public float sheetHeight;
+        public float indent;
+        public string destiny;
+        public string material;
+        public List<Sheet> sheets = new();
 
-        public SheetPacker(float sheetWidth, float sheetHeight, float indent)
+        public SheetPacker(string _destiny, string _material)
         {
-            _sheetWidth = sheetWidth;
-            _sheetHeight = sheetHeight;
-            _indent = indent;
+            destiny = _destiny;
+            material = _material;
+
+            Tuning();   //определяем раскрой листа по умолчанию и отступ между деталями
         }
 
-        public List<Sheet> Pack(List<TechItem> parts)
+        private void Tuning()
         {
-            var sheets = new List<Sheet> { new(_sheetWidth, _sheetHeight) };
 
-            foreach (var part in parts)
+            if (material.ToLower() == "br" || material.ToLower() == "cu")
             {
+                sheetWidth = 1500;
+                sheetHeight = 600;
+            }
+            else if (material.ToLower().Contains("aisi") ||
+                material.ToLower().Contains("цинк") ||
+                MainWindow.Parser(destiny) < 3)
+            {
+                sheetWidth = 2500;
+                sheetHeight = 1250;
+            }
+            else
+            {
+                sheetWidth = 3000;
+                sheetHeight = 1500;
+            }
+
+            indent = MainWindow.Parser(destiny) > 10 ? MainWindow.Parser(destiny) : 10;
+        }
+
+        public void Pack(List<TechItem> parts)
+        {
+            var sortedParts = parts
+                .OrderByDescending(p => p.Width * p.Height)
+                .ToList();
+
+            foreach (var part in sortedParts)
+            {
+                float propW = (float)part.Width + indent;
+                float propH = (float)part.Height + indent;
                 bool placed = false;
 
+                // Попробовать существующие листы
                 foreach (var sheet in sheets)
                 {
-                    if (TryPlace(sheet, part, _indent))
+                    if (TryPlace(sheet, propW, propH, part))
                     {
                         placed = true;
                         break;
                     }
                 }
 
+                // Если не поместилось — новый лист
                 if (!placed)
                 {
-                    var newSheet = new Sheet(_sheetWidth, _sheetHeight);
-                    TryPlace(newSheet, part, _indent);
-                    sheets.Add(newSheet);
+                    var newSheet = new Sheet(sheetWidth, sheetHeight, indent);
+                    if (TryPlace(newSheet, propW, propH, part))
+                    {
+                        sheets.Add(newSheet);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"Деталь {part.NumberName} слишком большая для листа.");
+                    }
                 }
             }
-
-            return sheets;
         }
 
-        private bool TryPlace(Sheet sheet, TechItem part, float indent)
+        private static bool TryPlace(Sheet sheet, float w, float h, TechItem part)
         {
-            // Попробовать оба варианта ориентации
-            var orientations = new[] {
-            (w: part.Width + indent, h: part.Height + indent),
-            (w: part.Height + indent, h: part.Width + indent)
-        };
-
-            foreach (var (w, h) in orientations)
+            // Попробовать без поворота
+            if (sheet.CanFit(w, h, out float x, out float y))
             {
-                if (sheet.CanFit(w, h))
-                {
-                    sheet.Place(w, h, part);
-                    return true;
-                }
+                sheet.Place(w, h, part, x, y);
+                return true;
+            }
+
+            // Попробовать с поворотом
+            if (sheet.CanFit(h, w, out x, out y))
+            {
+                part.IsRotated = true;
+                (part.Width, part.Height) = (part.Height, part.Width);
+                sheet.Place(h, w, part, x, y);
+                return true;
             }
 
             return false;
@@ -887,39 +988,206 @@ namespace Metal_Code
 
     public class Sheet
     {
-        public float Width { get; }
-        public float Height { get; }
+        public float Width { get; }  // Исходная ширина листа
+        public float Height { get; } // Исходная высота листа
+        public float CutWidth { get; private set; }  // После обрезки
+        public float CutHeight { get; private set; } // После обрезки
+
+        // Хранит координаты размещённых деталей
         public List<(float x, float y, float w, float h)> UsedAreas = new();
-        private float _currentX = 0;
-        private float _currentY = 0;
 
-        public Sheet(float width, float height)
+        // Для визуализации
+        public List<TechItem> TechItems { get; } = new();
+        public byte[] ImageBytes { get; set; } = null!;
+
+        private readonly float _indent;     //отступ
+
+        public Sheet(float width, float height, float indent)
         {
-            Width = width;
-            Height = height;
+            Width = CutWidth = width;
+            Height = CutHeight = height;
+            _indent = indent;
         }
 
-        public bool CanFit(float w, float h)
+        public bool CanFit(float w, float h, out float x, out float y)
         {
-            // Упрощённая проверка: укладка по рядам
-            if (_currentX + w <= Width)
-                return _currentY + h <= Height;
-            else
-                return _currentY + h <= Height && h <= Height - _currentY;
-        }
+            x = 0; y = 0;
 
-        public void Place(float w, float h, TechItem part)
-        {
-            if (_currentX + w <= Width)
+            // Начинаем снизу слева
+            while (y + h <= Height)
             {
-                UsedAreas.Add((_currentX, _currentY, w, h));
-                _currentX += w;
+                while (x + w <= Width)
+                {
+                    if (!IsOverlapping(x, y, w, h))
+                    {
+                        return true; // Нашли место
+                    }
+                    x += 10; // Мелкий шаг поиска
+                }
+                x = 0;
+                y += 10;
+            }
+
+            return false;
+        }
+
+        private bool IsOverlapping(float x, float y, float w, float h)
+        {
+            foreach (var (ux, uy, uw, uh) in UsedAreas)
+            {
+                if (x < ux + uw && x + w > ux &&
+                    y < uy + uh && y + h > uy)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public void Place(float w, float h, TechItem part, float x, float y)
+        {
+            UsedAreas.Add((x, y, w, h));
+            part.X = x;
+            part.Y = y;
+            part.Color = GetColorForMaterial(part.Material);
+            TechItems.Add(part);
+        }
+
+        private static Brush GetColorForMaterial(string material)
+        {
+            return material.ToLower() switch
+            {
+                "ст3" => Brushes.LightGray,
+                "латунь" => Brushes.Gold,
+                "медь" => Brushes.OrangeRed,
+                "амг2" => Brushes.LightSteelBlue,
+                _ => new SolidColorBrush(Color.FromRgb(
+                    (byte)(200 + (material.GetHashCode() % 56)),
+                    (byte)(100 + (material.GetHashCode() % 156)),
+                    (byte)(150 + (material.GetHashCode() % 106))))
+            };
+        }
+
+        public void GenerateImage(int widthImage, int heightImage)
+        {
+            OptimizeAndTrim();     // Обрезка
+
+            var renderTarget = new RenderTargetBitmap(widthImage, heightImage, 96, 96, PixelFormats.Pbgra32);
+            var drawingVisual = new DrawingVisual();
+
+            using (var context = drawingVisual.RenderOpen())
+            {
+                // Фон
+                context.DrawRectangle(Brushes.LightGray, null, new Rect(0, 0, widthImage, heightImage));
+
+                // Масштаб
+                double scaleX = widthImage / Width;
+                double scaleY = heightImage / Height;
+                double scale = Math.Min(scaleX, scaleY);
+
+                // Центрирование
+                double offsetX = (widthImage - Width * scale) / 2;
+                double offsetY = (heightImage - Height * scale) / 2;
+
+                // Лист
+                var pen = new Pen(Brushes.Black, 2);
+
+                // Рисуем обрезанный лист (не весь исходный!)
+                var actualSheetRect = new Rect(
+                    offsetX,
+                    offsetY + (Height - CutHeight) * scale, // снизу вверх
+                    CutWidth * scale,
+                    CutHeight * scale
+                );
+                context.DrawRectangle(null, pen, actualSheetRect);
+
+                // Оригинальный лист — тонкой линией
+                context.DrawRectangle(
+                    null,
+                    new Pen(Brushes.LightGray, 1),
+                    new Rect(offsetX, offsetY, Width * scale, Height * scale)
+                );
+
+                // Ось Y: (0,0) — нижний левый угол
+                foreach (var part in TechItems)
+                {
+                    // Учитываем отступ при отрисовке
+                    double x = offsetX + part.X * scale;
+                    double y = offsetY + (Height - (part.Y + part.Height)) * scale; // снизу вверх
+                    double w = (part.Width - _indent) * scale; // уменьшаем ширину
+                    double h = (part.Height - _indent) * scale; // уменьшаем высоту
+
+                    // Ограничиваем минимальный размер
+                    w = Math.Max(w, 1);
+                    h = Math.Max(h, 1);
+
+                    // Фон детали
+                    context.DrawRectangle(part.Color, pen, new Rect(x, y, w, h));
+
+                    // Текст (с учётом отступа)
+                    if (w > 20 && h > 15) // только если место
+                    {
+                        string label = part.NumberName.Length * 6 > w ? "..." : part.NumberName;
+
+                        var typeface = new Typeface("Arial");
+                        var formattedText = new FormattedText(
+                            label,
+                            CultureInfo.CurrentCulture,
+                            FlowDirection.LeftToRight,
+                            typeface,
+                            10,
+                            Brushes.Black,
+                            1.0);
+
+                        // Центрируем текст в уменьшенной области
+                        double textX = x + (w - formattedText.Width) / 2;
+                        double textY = y + (h - formattedText.Height) / 2;
+
+                        context.DrawText(formattedText, new Point(textX, textY));
+                    }
+                }
+            }
+
+            renderTarget.Render(drawingVisual);
+
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(renderTarget));
+
+            using var stream = new MemoryStream();
+            encoder.Save(stream);
+            ImageBytes = stream.ToArray();
+        }
+        
+        public void OptimizeAndTrim()
+        {
+            if (TechItems.Count == 0)
+            {
+                CutWidth = 100;
+                CutHeight = 100;
             }
             else
             {
-                _currentY += h;
-                _currentX = w;
-                UsedAreas.Add((0, _currentY, w, h));
+                // Находим максимальные границы занятой области
+                double maxX = 0, maxY = 0;
+                foreach (var item in TechItems)
+                {
+                    double right = item.X + item.Width;
+                    double top = item.Y + item.Height;
+                    if (right > maxX) maxX = right;
+                    if (top > maxY) maxY = top;
+                }
+
+                // Добавляем отступ
+                maxX += _indent;
+                maxY += _indent;
+
+                // Обрезаем кратно 100 мм (вверх)
+                CutWidth = (float)Math.Ceiling(maxX / 100.0) * 100;
+                CutHeight = (float)Math.Ceiling(maxY / 100.0) * 100;
+
+                // Ограничиваем размеры исходным листом
+                CutWidth = Math.Min(CutWidth, Width);
+                CutHeight = Math.Min(CutHeight, Height);
             }
         }
     }

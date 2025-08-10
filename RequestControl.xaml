@@ -134,52 +134,16 @@
                 </GroupBox>
 
 
-                <GroupBox Margin="5">
+                <GroupBox Margin="5" MinWidth="120">
                     <GroupBox.Header>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding TargetTechItem.NumberName}" FontWeight="Bold" MaxWidth="120" ToolTip="{Binding TargetTechItem.NumberName}"/>
+                            <TextBlock Text="{Binding TargetTechItem.NumberName}" FontWeight="Bold" MaxWidth="100" ToolTip="{Binding TargetTechItem.NumberName}"/>
                             <Image Source="/Images/question.png" MouseEnter="ShowPopup_Geometries" MaxHeight="10"/>
                         </StackPanel>
                     </GroupBox.Header>
 
                     <Grid>
-                        <Canvas local:CanvasHelper.GeometryDescriptors="{Binding TargetTechItem.Geometries}" Background="White" MinWidth="120" MinHeight="120" Margin="8"/>
-                        <Canvas VerticalAlignment="Top" HorizontalAlignment="Left" Background="White" Margin="3" Visibility="Hidden">
-
-                            <!-- Начало координат (точка 0,0) -->
-                            <Ellipse Canvas.Left="-2" Canvas.Top="-2" 
-             Width="4" Height="4" 
-             Fill="Black" />
-
-                            <!-- Ось X (красная) -->
-                            <Line X1="0" Y1="0" X2="50" Y2="0"
-          Stroke="Red" StrokeThickness="0.5" />
-
-                            <!-- Стрелка на оси X -->
-                            <Line X1="50" Y1="0" X2="48" Y2="-1.5"
-          Stroke="Red" StrokeThickness="0.5" />
-                            <Line X1="50" Y1="0" X2="48" Y2="1.5"
-          Stroke="Red" StrokeThickness="0.5" />
-
-                            <!-- Подпись X -->
-                            <TextBlock Text="X" Foreground="Red" FontSize="6"
-               Canvas.Left="52" Canvas.Top="0" />
-
-                            <!-- Ось Y (синяя) -->
-                            <Line X1="0" Y1="0" X2="0" Y2="50"
-          Stroke="Blue" StrokeThickness="0.5" />
-
-                            <!-- Стрелка на оси Y -->
-                            <Line X1="0" Y1="50" X2="-1.5" Y2="48"
-          Stroke="Blue" StrokeThickness="0.5" />
-                            <Line X1="0" Y1="50" X2="1.5" Y2="48"
-          Stroke="Blue" StrokeThickness="0.5" />
-
-                            <!-- Подпись Y -->
-                            <TextBlock Text="Y" Foreground="Blue" FontSize="6"
-               Canvas.Left="2" Canvas.Top="52" />
-
-                        </Canvas>
+                        <Canvas local:CanvasHelper.GeometryDescriptors="{Binding TargetTechItem.Geometries}" Background="White" VerticalAlignment="Center" HorizontalAlignment="Center" Width="60" Height="60"/>
                     </Grid>
                 </GroupBox>
 
