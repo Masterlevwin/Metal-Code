@@ -5,15 +5,20 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" Loaded="SetProperties">
-
+    <UserControl.Resources>
+        <local:CostConverter x:Key="CostConverter"/>
+    </UserControl.Resources>
+    
     <Grid x:Name="ControlGrid">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" MinHeight="150"/>
+            <RowDefinition Height="Auto" MinHeight="170"/>
             <RowDefinition/>
         </Grid.RowDefinitions>
 
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="60" Margin="5" MaxHeight="60">
-            <TextBox Text="{Binding Title}" TextWrapping="Wrap" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="90" ToolTip="Наименование вырезанной детали" MaxWidth="90"/>
+        <TextBlock Text="{Binding Price, Converter={StaticResource CostConverter}}" Margin="5,0,0,0" VerticalAlignment="Top" HorizontalAlignment="Center" Foreground="#FF823CAA" MouseDown="UpdatePricePart"/>
+
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="60" Margin="5,20,5,5" MaxHeight="60">
+            <TextBox Text="{Binding Title}" TextWrapping="Wrap" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="90" MaxWidth="90"/>
             <Image x:Name="Picture" MouseWheel="ViewPopupDimensions" Loaded="SetPicture" Margin="5,0,0,0" MinHeight="60" MaxHeight="60" MinWidth="60" MaxWidth="60" MouseLeftButtonDown="OpenPlan"/>
             <Canvas x:Name="GeometryCanvas" Background="White"  MouseWheel="ViewPopupDimensions" Loaded="SetPicture" Margin="5,0,0,0" MinWidth="60" MinHeight="60" MouseLeftButtonDown="OpenPlan" Visibility="Collapsed"/>
             <Button Margin="5,0,0,0" VerticalAlignment="Top" Content="X" MinWidth="16" MinHeight="16" FontWeight="Bold" Padding="0" Click="RemovePart"/>
@@ -26,14 +31,14 @@
             </StackPanel>
         </Popup>
 
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,70,0,0" MaxHeight="20">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,90,0,0" MaxHeight="20">
             <TextBox Text="{Binding Count}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Количество вырезанных деталей" MinWidth="40" MinHeight="20" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="Blue"/>
             <TextBlock Text="шт" Margin="5,0,0,0" VerticalAlignment="Center"/>
             <TextBlock x:Name="DimensionsText" Text="{Binding Dimensions, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" ToolTip="Размеры детали" Margin="30,0,0,0" VerticalAlignment="Center"/>
             <TextBlock Text="мм" MouseWheel="ViewPopupDimensions" Margin="5,0,0,0" VerticalAlignment="Center"/>
         </StackPanel>
 
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="5,95,0,0" MaxHeight="20">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="5,115,0,0" MaxHeight="20">
             <Image Source="/Images/assembly.png" VerticalAlignment="Top" MaxWidth="16"/>
 
             <ComboBox x:Name="AssembliesDrop" MinWidth="100" MaxWidth="100" Margin="4,0,0,0">
@@ -53,7 +58,7 @@
             <TextBlock Text="кг" VerticalAlignment="Center" Margin="5,0,0,0"/>
         </StackPanel>
 
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="5,120,0,0" MaxHeight="20">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="5,140,0,0" MaxHeight="20">
             <Image Source="/Images/works2.png" VerticalAlignment="Top" MaxWidth="16"/>
 
             <ComboBox x:Name="WorksDrop" MinWidth="100" MaxWidth="100" Margin="4,0,0,0"/>

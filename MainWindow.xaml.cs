@@ -886,10 +886,46 @@ namespace Metal_Code
                                     parts.Add(p.Part);
             return parts;
         }
+
+        public void UpdatePricePart()
+        {
+            if (Parts.Count == 0) return;
+
+            var works = DetailControls.Where(d => d.Detail.IsComplect)
+                .SelectMany(d => d.TypeDetailControls)
+                .SelectMany(t => t.WorkControls)
+                .Where(w => w.workType is ICut);
+
+            if (works.Any())
+            {
+                foreach (var work in works)
+                {
+                    if (work.workType is ICut _cut && _cut.Parts?.Count > 0)
+                    {
+                        foreach (PartControl part in _cut.Parts)
+                        {
+                            part.Part.Price = 0;
+
+                            //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
+                            if (CheckConstruct.IsChecked == true) part.Part.Price += Construct / Parts.Count / part.Part.Count;
+
+                            //добавляем доставку в цену детали, если ее необходимо "размазать"
+                            if (HasDelivery is null) part.Part.Price += Delivery * DeliveryRatio / Parts.Count / part.Part.Count;
+
+                            var extra = work.type.WorkControls.Where(e => e.workType is ExtraControl);
+                            if (extra.Any()) part.Part.Price += extra.Sum(e => e.Result) / _cut.Parts.Count / part.Part.Count;
+
+                            part.PropertiesChanged?.Invoke(part, true);
+                        }
+                        work.PropertiesChanged?.Invoke(work, true);
+                    }
+                }
+            }
+        }
         #endregion
 
 
-        //-----------Подключения к базе расчетов-----------------//
+        //-----------Подключения к базе расчетов-----------------// 
         #region
         private void AutoRemoveOffers()             //метод удаления старых расчетов из локальной базы
         {

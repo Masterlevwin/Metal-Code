@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -285,6 +284,11 @@ namespace Metal_Code
                     });
                 else if (cBox.IsChecked == false && particle != null) assembly.Particles.Remove(particle);
             }
+        }
+
+        private void UpdatePricePart(object sender, MouseButtonEventArgs e)
+        {
+            MainWindow.M.UpdatePricePart();
         }
     }
 

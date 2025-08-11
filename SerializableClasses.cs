@@ -75,15 +75,34 @@ namespace Metal_Code
     }
 
     [Serializable]
-    public class Part
+    public class Part : INotifyPropertyChanged
     {
+        [field: NonSerialized]
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
         public string? Metal { get; set; }
         public float Destiny { get; set; }
         public string? Description { get; set; }
         public string? Accuracy { get; set; }
         public string? Title { get; set; }
         public int Count { get; set; }
-        public float Price { get; set; }
+
+        [field: NonSerialized]
+        private float price;
+        public float Price
+        {
+            get => price;
+            set
+            {
+                if (Math.Abs(price - value) > 1e-6)
+                {
+                    price = value;
+                    OnPropertyChanged(nameof(Price));
+                }
+            }
+        }
+
         public float Total { get; set; }
 
         [Browsable(false)]
@@ -118,12 +137,8 @@ namespace Metal_Code
     }
 
     [Serializable]
-    public class Particle : Part, INotifyPropertyChanged
+    public class Particle : Part
     {
-        [field: NonSerialized]
-        public event PropertyChangedEventHandler? PropertyChanged;
-        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
-
         private int count;
         public new int Count
         {

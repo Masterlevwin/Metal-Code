@@ -360,7 +360,7 @@
                                 <TextBox x:Name="Plan" MinWidth="60" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" Margin="5,0,0,0" MaxWidth="60"/>
                                 <TextBlock Text="Бонус ООО:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center"/>
                                 <TextBox x:Name="BonusOOO" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" MinWidth="45" MaxWidth="45"/>
-                                <TextBlock Text="Бонус ИП и ПК:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="90" MaxWidth="90"/>
+                                <TextBlock Text="Бонус ИП и ПК:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="100" MaxWidth="100"/>
                                 <TextBox x:Name="BonusIP" MinWidth="45" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" MaxWidth="45"/>
                                 <TextBlock Text="Итого:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="40" MaxWidth="40"/>
                                 <TextBox x:Name="Salary" MinWidth="60" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" MaxWidth="60"/>
