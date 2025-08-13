@@ -41,6 +41,7 @@
     <None Remove="Images\exampe6.png" />
     <None Remove="Images\exit.png" />
     <None Remove="Images\express.png" />
+    <None Remove="Images\fixed.png" />
     <None Remove="Images\greenplus.png" />
     <None Remove="Images\lamp.png" />
     <None Remove="Images\list.png" />
@@ -56,7 +57,11 @@
     <None Remove="Images\open2.png" />
     <None Remove="Images\open3.png" />
     <None Remove="Images\open4.png" />
+    <None Remove="Images\padlock.png" />
     <None Remove="Images\plus.png" />
+    <None Remove="Images\preview.png" />
+    <None Remove="Images\preview2.png" />
+    <None Remove="Images\preview3.png" />
     <None Remove="Images\print.jpg" />
     <None Remove="Images\print2.png" />
     <None Remove="Images\question.png" />
@@ -71,6 +76,7 @@
     <None Remove="Images\signature.jpg" />
     <None Remove="Images\signature2.jpg" />
     <None Remove="Images\tableofbends.jpg" />
+    <None Remove="Images\unlock.png" />
     <None Remove="Images\update.jpg" />
     <None Remove="Images\update.png" />
     <None Remove="Images\update2.png" />
@@ -154,6 +160,7 @@
     <Resource Include="Images\exampe6.png" />
     <Resource Include="Images\exit.png" />
     <Resource Include="Images\express.png" />
+    <Resource Include="Images\fixed.png" />
     <Resource Include="Images\greenplus.png" />
     <Resource Include="Images\lamp.png" />
     <Resource Include="Images\list.png" />
@@ -168,7 +175,11 @@
     <Resource Include="Images\open2.png" />
     <Resource Include="Images\open3.png" />
     <Resource Include="Images\open4.png" />
+    <Resource Include="Images\padlock.png" />
     <Resource Include="Images\plus.png" />
+    <Resource Include="Images\preview.png" />
+    <Resource Include="Images\preview2.png" />
+    <Resource Include="Images\preview3.png" />
     <Resource Include="Images\print.jpg" />
     <Resource Include="Images\print2.png" />
     <Resource Include="Images\question.png">
@@ -185,6 +196,7 @@
     <Resource Include="Images\signature.jpg" />
     <Resource Include="Images\signature2.jpg" />
     <Resource Include="Images\tableofbends.jpg" />
+    <Resource Include="Images\unlock.png" />
     <Resource Include="Images\update.png" />
     <Resource Include="Images\update4.png" />
     <Resource Include="Images\withbonus.png" />

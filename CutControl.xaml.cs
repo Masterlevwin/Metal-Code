@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Runtime.Serialization;
+using System.Diagnostics;
 
 namespace Metal_Code
 {
@@ -204,6 +205,8 @@ namespace Metal_Code
                     {
                         p.Price += work.type.Result * p.Mass / MassTotal;
                         p.Price += work.Result * p.Way / WayTotal;
+
+                        p.Price = p.Price < p.FixedPrice ? p.FixedPrice : p.Price;
 
                         p.PropsDict[50] = new() { $"{work.type.Result * p.Mass / MassTotal}" };
                         p.PropsDict[51] = new() { $"{work.Result * p.Way / WayTotal}" };
@@ -639,23 +642,6 @@ namespace Metal_Code
             }
 
             return _item.price * _item.sheets;
-        }
-
-        private void SetSheetSize(string _sheetsize)
-        {
-            if (_sheetsize == null || !_sheetsize.Contains('X')) return;
-
-            string[] properties = _sheetsize.Split('X');
-            work.type.A = MainWindow.Parser(properties[0]);
-            work.type.B = MainWindow.Parser(properties[1]);
-
-            //алгоритм установки раскроя взависимости от обрезки по ширине листа; если лист будет обрезан по длине, раскрой может быть не верен!
-            foreach (string s in work.type.SortDrop.Items)
-                if (s.Contains($"{work.type.B / 1000}".Replace(',', '.')))
-                {
-                    work.type.SortDrop.SelectedItem = s;
-                    break;
-                }     
         }
 
         public (float, float) SizesDetail(string str)       //метод извлечения из строки габаритов детали

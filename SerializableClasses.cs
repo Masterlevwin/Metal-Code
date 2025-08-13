@@ -92,7 +92,7 @@ namespace Metal_Code
         private float price;
         public float Price
         {
-            get => price;
+            get => (float)Math.Ceiling(price);
             set
             {
                 if (Math.Abs(price - value) > 1e-6)
@@ -103,7 +103,11 @@ namespace Metal_Code
             }
         }
 
-        public float Total { get; set; }
+        public float Total
+        {
+            get => Price * Count;
+            set { }
+        }
 
         [Browsable(false)]
         public float Mass { get; set; }
@@ -125,6 +129,12 @@ namespace Metal_Code
         [OptionalField]
         [field: NonSerialized]
         public ObservableCollection<IGeometryDescriptor> Geometries = new();
+
+        [OptionalField]
+        public bool IsFixed = false;
+
+        [OptionalField]
+        public float FixedPrice = 0;
 
         public Dictionary<int, List<string>> PropsDict = new();
 

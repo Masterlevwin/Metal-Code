@@ -713,6 +713,8 @@ namespace Metal_Code
                 }
                 else ManagerDrop.SelectedItem = CurrentManager;
 
+                ReportTab.Visibility = CurrentManager.IsEngineer ? Visibility.Collapsed : Visibility.Visible;
+
                 IsEnabled = true;
                 NewProject();
             }
@@ -744,8 +746,9 @@ namespace Metal_Code
             else ReportOffers.Clear();
         }
 
-        readonly string[] Months = { "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь" };
 
+        //-------------Настройка блока отчетов-----------//
+        readonly string[] Months = { "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь" };
         private void ReportChanged(object sender, SelectionChangedEventArgs e)
         {
             if (TargetManager != CurrentManager) return;
@@ -773,6 +776,54 @@ namespace Metal_Code
             ReportView();
         }
 
+        //-------------Создание нового проекта-----------//
+        public void NewProject()
+        {
+            ClearDetails();     // удаляем все детали
+            ClearCalculate();   // очищаем расчет
+            AddDetail();        // добавляем пустой блок детали
+        }
+        public void ClearDetails()      //удаление всех деталей и очищение текущего расчета
+        {
+            while (DetailControls.Count > 0) DetailControls[^1].Remove();
+            Parts.Clear();
+            AssemblyWindow.A.Assemblies.Clear();
+            isAssemblyOffer = false;
+        }
+        public void ClearCalculate()    //сброс расчета к значениям по умолчанию
+        {
+            SetRatio(1);
+            SetBonusRatio(0);
+            SetCount(1);
+            Construct = 0;
+            HasDelivery = false;
+            CheckConstruct.IsChecked = false;
+            IsExpressOffer = false;
+            HasAssembly = false;
+            Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = Comment.Text = ConstructRatio.Text = AssemblyRatio.Text = TotalCount.Text = TotalPrice.Text = "";
+            ProductName.Text = $"Изделие";
+            ActiveOffer = null;
+            Log = null;
+        }
+
+        //-----------Добавление контрола детали----------//
+        public List<DetailControl> DetailControls = new();
+        private void AddDetail(object sender, RoutedEventArgs e)
+        {
+            AddDetail();
+        }
+        public void AddDetail()
+        {
+            DetailControl detail = new(new());
+
+            DetailControls.Add(detail);
+            detail.Counter.Text = $"{DetailControls.IndexOf(detail) + 1}";
+
+            DetailsStack.Children.Add(detail);
+            DetailsScroll.ScrollToEnd();
+
+            detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
+        }
 
         //---------Общий результат расчета и его обновление-------//
         private float result;
@@ -822,54 +873,6 @@ namespace Metal_Code
             DateProduction.Text = $"{workSorted.Count() * 5}";
         }
 
-        //-------------Создание нового проекта-----------//
-        public void NewProject()
-        {
-            ClearDetails();     // удаляем все детали
-            ClearCalculate();   // очищаем расчет
-            AddDetail();        // добавляем пустой блок детали
-        }
-        public void ClearDetails()         // метод удаления всех деталей и очищения текущего расчета
-        {
-            while (DetailControls.Count > 0) DetailControls[^1].Remove();
-            AssemblyWindow.A.Assemblies.Clear();
-            isAssemblyOffer = false;
-        }
-        public void ClearCalculate()
-        {
-            SetRatio(1);
-            SetBonusRatio(0);
-            SetCount(1);
-            Construct = 0;
-            HasDelivery = false;
-            CheckConstruct.IsChecked = false;
-            IsExpressOffer = false;
-            HasAssembly = false;
-            Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = Comment.Text = ConstructRatio.Text = AssemblyRatio.Text = "";
-            ProductName.Text = $"Изделие";
-            ActiveOffer = null;
-            Log = null;
-        }
-
-        //-----------Добавление контрола детали----------//
-        public List<DetailControl> DetailControls = new();
-        private void AddDetail(object sender, RoutedEventArgs e)
-        {
-            AddDetail();
-        }
-        public void AddDetail()
-        {
-            DetailControl detail = new(new());
-
-            DetailControls.Add(detail);
-            detail.Counter.Text = $"{DetailControls.IndexOf(detail) + 1}";
-
-            DetailsStack.Children.Add(detail);
-            DetailsScroll.ScrollToEnd();
-
-            detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
-        }
-
         //-----------Формирование списка нарезанных деталей-------//
         public ObservableCollection<Part> Parts = new();
         public ObservableCollection<Part> LooseParts = new();
@@ -887,7 +890,29 @@ namespace Metal_Code
             return parts;
         }
 
-        public void UpdatePricePart()
+        private void PartsView(object sender, RoutedEventArgs e)    //предпросмотр КП
+        {
+            PartsGrid.ItemsSource = Parts;
+            UpdatePricePart();
+        }
+
+        private void UpdatePricePart(object sender, RoutedEventArgs e) { UpdatePricePart(); }
+
+        private void PartsGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
+        {
+            if (((PropertyDescriptor)e.PropertyDescriptor).IsBrowsable == false) e.Cancel = true;   //скрываем свойства с атрибутом [IsBrowsable]
+
+            if (e.PropertyName == "Metal") e.Column.Header = "Материал";
+            if (e.PropertyName == "Destiny") e.Column.Header = "Толщина";
+            if (e.PropertyName == "Description") e.Column.Header = "Работы";
+            if (e.PropertyName == "Accuracy") e.Column.Header = "Размеры";
+            if (e.PropertyName == "Title") e.Column.Header = "Наименование";
+            if (e.PropertyName == "Count") e.Column.Header = "Кол-во";
+            if (e.PropertyName == "Price") e.Column.Header = "Цена за шт";
+            if (e.PropertyName == "Total") e.Column.Header = "Стоимость";
+        }
+
+        public void UpdatePricePart()   //формирование предварительной цены детали
         {
             if (Parts.Count == 0) return;
 
@@ -904,7 +929,17 @@ namespace Metal_Code
                     {
                         foreach (PartControl part in _cut.Parts)
                         {
+                            part.Part.Description = _cut is CutControl cut ? cut.HaveCut || cut.HaveNitro ? "Л" : "Б" : "Т";
+                            if (part.Part.PropsDict.ContainsKey(100) && part.Part.PropsDict[100].Count > 2)
+                                part.Part.Accuracy = _cut is CutControl ?
+                                    $"{part.Part.PropsDict[100][0].Trim()}x{part.Part.PropsDict[100][1].Trim()}"
+                                    : $"{part.Part.PropsDict[100][2].Trim()} мм";
+
                             part.Part.Price = 0;
+
+                            //пробегаемся по ключам от 50 до 70, которые зарезервированы под конкретные работы
+                            if (part.Part.PropsDict.Count > 0)
+                                for (int key = 50; key < 70; key++) part.Part.PropsDict.Remove(key);
 
                             //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
                             if (CheckConstruct.IsChecked == true) part.Part.Price += Construct / Parts.Count / part.Part.Count;
@@ -920,6 +955,11 @@ namespace Metal_Code
                         work.PropertiesChanged?.Invoke(work, true);
                     }
                 }
+
+                foreach (Part p in Parts) p.Price *= Ratio * ((100 + BonusRatio) / 100);
+
+                TotalCount.Text = $"{Parts.Sum(t => t.Count)}";
+                TotalPrice.Text = $"{Parts.Sum(t => t.Total)}";
             }
         }
         #endregion
@@ -1324,30 +1364,6 @@ namespace Metal_Code
             if (response == MessageBoxResult.No) return;
 
             CreateWorker(InsertDatabase, ActionState.restartBases);         //запускаем фоновый процесс с перезапуском программы
-        }
-        private void UpdateDatabases()                              //обновление баз заготовок, работ и материалов посредством замены файлов
-        {
-            if (!IsLocal || !Directory.Exists(connections[9])) return;     //если запущена основная база или нет директории, выходим из метода
-
-            string path = connections[9];    //путь к основным базам данных
-
-            if (File.Exists(path + "\\typedetails.db"))
-            {
-                FileInfo dbTypeFile = new(path + "\\typedetails.db");
-                dbTypeFile.CopyTo(Directory.GetCurrentDirectory() + "\\typedetails.db", true);
-            }
-
-            if (File.Exists(path + "\\works.db"))
-            {
-                FileInfo dbWorkFile = new(path + "\\works.db");
-                dbWorkFile.CopyTo(Directory.GetCurrentDirectory() + "\\works.db", true);
-            }
-
-            if (File.Exists(path + "\\metals.db"))
-            {
-                FileInfo dbMetalFile = new(path + "\\metals.db");
-                dbMetalFile.CopyTo(Directory.GetCurrentDirectory() + "\\metals.db", true);
-            }
         }
 
         private void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
@@ -1780,6 +1796,7 @@ namespace Metal_Code
                                         p.Accuracy = _cut is CutControl ?
                                             $"{p.PropsDict[100][0].Trim()}x{p.PropsDict[100][1].Trim()}"
                                             : $"{p.PropsDict[100][2].Trim()} мм";
+
                                     p.Price = 0;
 
                                     //пробегаемся по ключам от 50 до 70, которые зарезервированы под конкретные работы
@@ -1876,7 +1893,8 @@ namespace Metal_Code
 
             if (ProductModel.Product.Assemblies?.Count > 0)
                 AssemblyWindow.A = new() { Assemblies = ProductModel.Product.Assemblies };
-            //UpdateResult();
+
+            OffersTab.Focus();
         }
         public void LoadDetails(ObservableCollection<Detail> details)
         {

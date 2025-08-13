@@ -15,7 +15,12 @@
             <RowDefinition/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="{Binding Price, Converter={StaticResource CostConverter}}" Margin="5,0,0,0" VerticalAlignment="Top" HorizontalAlignment="Center" Foreground="#FF823CAA" MouseDown="UpdatePricePart"/>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Center" MinHeight="20">
+            <TextBox x:Name="PricePart" Text="{Binding Price, Converter={StaticResource CostConverter}}" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" BorderThickness="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+            <Button Margin="5,0,0,0" Click="SetFixedPrice" BorderThickness="0" Padding="0" MaxWidth="12">
+                <Image Source="/Images/fixed.png" MouseEnter="ViewPopupFixedPrice"/>
+            </Button>
+        </StackPanel>
 
         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="60" Margin="5,20,5,5" MaxHeight="60">
             <TextBox Text="{Binding Title}" TextWrapping="Wrap" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="90" MaxWidth="90"/>
@@ -29,6 +34,14 @@
                 <TextBlock Text="{Binding Square, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" TextAlignment="Center" Padding="3"/>
                 <TextBlock Text="кв м" MouseWheel="ViewPopupDimensions" VerticalAlignment="Center" Padding="3"/>
             </StackPanel>
+        </Popup>
+
+        <Popup x:Name="Popup" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Scroll" StaysOpen="False">
+            <Border BorderThickness="1" CornerRadius="1" BorderBrush="Red">
+                <StackPanel Background="Snow">
+                    <TextBlock x:Name="Details" TextAlignment="Center" Padding="5"/>
+                </StackPanel>
+            </Border>
         </Popup>
 
         <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,90,0,0" MaxHeight="20">

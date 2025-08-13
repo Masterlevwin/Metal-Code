@@ -216,6 +216,8 @@ namespace Metal_Code
                         p.Price += work.type.Result * p.Mass / MassTotal;
                         p.Price += work.Result * p.Way / WayTotal;
 
+                        p.Price = p.Price < p.FixedPrice ? p.FixedPrice : p.Price;
+
                         p.PropsDict[50] = new() { $"{work.type.Result * p.Mass / MassTotal}" };
                         p.PropsDict[61] = new() { $"{work.Result * p.Way / WayTotal}" };
                     }

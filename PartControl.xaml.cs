@@ -286,9 +286,24 @@ namespace Metal_Code
             }
         }
 
-        private void UpdatePricePart(object sender, MouseButtonEventArgs e)
+        private void SetFixedPrice(object sender, RoutedEventArgs e)
         {
-            MainWindow.M.UpdatePricePart();
+            Part.IsFixed = !Part.IsFixed;
+            PricePart.Foreground = Part.IsFixed ? Brushes.Red : Brushes.Black;
+
+            Part.FixedPrice = Part.IsFixed ? Part.Price : 0;
+        }
+
+        private void ViewPopupFixedPrice(object sender, MouseEventArgs e)
+        {
+            Popup.IsOpen = true;
+
+            Details.Text = $"Чтобы установить фиксированную цену,\n" +
+                $"нужно выделить ее целиком (включая \"р\"),\n" +
+                $"ввести значение и нажать эту кнопку,\n" +
+                $"- фиксированное значение станет красным.\n" +
+                $"Чтобы снять фиксацию, нажмите кнопку снова.\n" +
+                $"Внимание: нельзя установить цену детали ниже рассчитанной!";
         }
     }
 
