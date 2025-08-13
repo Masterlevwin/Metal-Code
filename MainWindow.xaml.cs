@@ -1365,6 +1365,30 @@ namespace Metal_Code
 
             CreateWorker(InsertDatabase, ActionState.restartBases);         //запускаем фоновый процесс с перезапуском программы
         }
+        private void UpdateDatabases()                              //обновление баз заготовок, работ и материалов посредством замены файлов
+        {
+            if (!IsLocal || !Directory.Exists(connections[9])) return;     //если запущена основная база или нет директории, выходим из метода
+
+            string path = connections[9];    //путь к основным базам данных
+
+            if (File.Exists(path + "\\typedetails.db"))
+            {
+                FileInfo dbTypeFile = new(path + "\\typedetails.db");
+                dbTypeFile.CopyTo(Directory.GetCurrentDirectory() + "\\typedetails.db", true);
+            }
+
+            if (File.Exists(path + "\\works.db"))
+            {
+                FileInfo dbWorkFile = new(path + "\\works.db");
+                dbWorkFile.CopyTo(Directory.GetCurrentDirectory() + "\\works.db", true);
+            }
+
+            if (File.Exists(path + "\\metals.db"))
+            {
+                FileInfo dbMetalFile = new(path + "\\metals.db");
+                dbMetalFile.CopyTo(Directory.GetCurrentDirectory() + "\\metals.db", true);
+            }
+        }
 
         private void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
