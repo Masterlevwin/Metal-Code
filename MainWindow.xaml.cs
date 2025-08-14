@@ -786,9 +786,11 @@ namespace Metal_Code
         public void ClearDetails()      //удаление всех деталей и очищение текущего расчета
         {
             while (DetailControls.Count > 0) DetailControls[^1].Remove();
-            Parts.Clear();
             AssemblyWindow.A.Assemblies.Clear();
             isAssemblyOffer = false;
+            Parts.Clear();
+
+            OffersTab.Focus();
         }
         public void ClearCalculate()    //сброс расчета к значениям по умолчанию
         {
@@ -956,7 +958,11 @@ namespace Metal_Code
                     }
                 }
 
-                foreach (Part p in Parts) p.Price *= Ratio * ((100 + BonusRatio) / 100);
+                foreach (Part p in Parts)
+                {
+                    p.Price *= Ratio * ((100 + BonusRatio) / 100);
+                    p.Price = p.Price < p.FixedPrice ? p.FixedPrice : p.Price;
+                }
 
                 TotalCount.Text = $"{Parts.Sum(t => t.Count)}";
                 TotalPrice.Text = $"{Parts.Sum(t => t.Total)}";
@@ -1917,8 +1923,6 @@ namespace Metal_Code
 
             if (ProductModel.Product.Assemblies?.Count > 0)
                 AssemblyWindow.A = new() { Assemblies = ProductModel.Product.Assemblies };
-
-            OffersTab.Focus();
         }
         public void LoadDetails(ObservableCollection<Detail> details)
         {
@@ -3071,7 +3075,14 @@ namespace Metal_Code
 
             // ----- сохраняем книгу в файл Excel -----
 
-            workbook.SaveAs(Path.GetDirectoryName(_path) + "\\" + "Файл для счета " + Order.Text + "_" + CustomerDrop.Text + " на сумму " + $"{Result}" + ".xlsx");
+            string? directory = Path.GetDirectoryName(_path),
+                    template = "\\" + "Файл для счета " + Order.Text + "_" + CustomerDrop.Text + " на сумму ";
+
+            if (directory != null)
+                foreach (var file in Directory.GetFiles(directory))
+                    if (file.Contains(Path.GetDirectoryName(_path) + template)) File.Delete(file);
+ 
+            workbook.SaveAs(Path.GetDirectoryName(_path) + template + $"{Result}" + ".xlsx");
         }
 
         private void CreateOfferDelivery(object sender, RoutedEventArgs e)

@@ -265,7 +265,7 @@ namespace Metal_Code
                             {
                                 Source = MainWindow.CreateBitmap(item.imageBytes),
                                 Margin = new Thickness(10, 5, 0, 5),
-                                Height = 370
+                                Height = 320
                             };
                             images.Add(_img);
                         }

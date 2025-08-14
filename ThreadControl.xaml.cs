@@ -164,7 +164,7 @@ namespace Metal_Code
             Ratio = _ratio;
 
             RatioBlock.Foreground = Brushes.Blue;
-            RatioBlock.ToolTip = $"Коэффициент за общее кол-во отверстий";
+            RatioBlock.ToolTip = $"Доступная скидка за общее кол-во отверстий (по согласованию)";
         }
 
         public void OnPriceChanged()
