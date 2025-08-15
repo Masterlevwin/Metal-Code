@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Linq;
 using System.Windows;
+using System.Collections.ObjectModel;
 
 namespace Metal_Code
 {
@@ -27,7 +28,7 @@ namespace Metal_Code
             }
         }
 
-        public List<PartControl>? Parts { get; set; }
+        public ObservableCollection<PartControl>? Parts { get; set; }
 
         public Dictionary<string, Dictionary<float, float>> WeldDict = new()
         {

@@ -898,8 +898,6 @@ namespace Metal_Code
             UpdatePricePart();
         }
 
-        private void UpdatePricePart(object sender, RoutedEventArgs e) { UpdatePricePart(); }
-
         private void PartsGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
             if (((PropertyDescriptor)e.PropertyDescriptor).IsBrowsable == false) e.Cancel = true;   //скрываем свойства с атрибутом [IsBrowsable]
@@ -914,6 +912,7 @@ namespace Metal_Code
             if (e.PropertyName == "Total") e.Column.Header = "Стоимость";
         }
 
+        private void UpdatePricePart(object sender, RoutedEventArgs e) { UpdatePricePart(); }
         public void UpdatePricePart()   //формирование предварительной цены детали
         {
             if (Parts.Count == 0) return;
@@ -953,6 +952,7 @@ namespace Metal_Code
                             if (extra.Any()) part.Part.Price += extra.Sum(e => e.Result) / _cut.Parts.Count / part.Part.Count;
 
                             part.PropertiesChanged?.Invoke(part, true);
+
                         }
                         work.PropertiesChanged?.Invoke(work, true);
                     }

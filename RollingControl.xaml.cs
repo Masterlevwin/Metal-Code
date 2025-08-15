@@ -1,5 +1,6 @@
 ﻿using NPOI.SS.Formula.Functions;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -31,7 +32,7 @@ namespace Metal_Code
             }
         }
 
-        public List<PartControl>? Parts { get; set; }
+        public ObservableCollection<PartControl>? Parts { get; set; }
 
         public List<string> Sides = new() { "(А) выс", "(В) шир" };
 

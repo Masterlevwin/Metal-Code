@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -309,7 +310,7 @@ namespace Metal_Code
 
     public interface ICut
     {
-        public List<PartControl>? Parts { get; set; }
+        public ObservableCollection<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
         public TabItem TabItem { get; set; }
         public List<Part>? PartDetails {  get; set; }

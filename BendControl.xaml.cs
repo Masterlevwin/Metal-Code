@@ -6,6 +6,7 @@ using System.Linq;
 using System.Windows;
 using System.Text.RegularExpressions;
 using System.Windows.Media;
+using System.Collections.ObjectModel;
 
 namespace Metal_Code
 {
@@ -42,7 +43,7 @@ namespace Metal_Code
             }
         }
 
-        public List<PartControl>? Parts { get; set; }
+        public ObservableCollection<PartControl>? Parts { get; set; }
 
         public Dictionary<float, Dictionary<string, float>> BendDict = new()
         {

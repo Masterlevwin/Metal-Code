@@ -1,7 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace Metal_Code
 {
@@ -11,14 +14,17 @@ namespace Metal_Code
     public partial class PartsControl : UserControl
     {
         public readonly UserControl owner;
-        public List<PartControl> Parts { get; set; }
+        public ObservableCollection<PartControl> Parts { get; set; }
 
-        public PartsControl(UserControl _owner, List<PartControl> _parts)
+        private readonly string[] standartParts = { "Прямоугольник", "Круг" };
+
+        public PartsControl(UserControl _owner, ObservableCollection<PartControl> _parts)
         {
             InitializeComponent();
             owner = _owner;
-            Parts = _parts.OrderBy(p => p.Part.Title).ToList();
+            Parts = _parts;
             partsList.ItemsSource = Parts;
+            StandartPartsDrop.ItemsSource = standartParts;
 
             BendControl Bend = new(owner);
             // формирование списка длин стороны гиба
@@ -284,18 +290,205 @@ namespace Metal_Code
             }
         }
 
-        private void ShowAssemblyWindow(object sender, RoutedEventArgs e)
-        {
-            AssemblyWindow.A.CurrentParts.Clear();
-            foreach (Part part in Parts.Select(p => p.Part))
-                AssemblyWindow.A.CurrentParts.Add(part);
-            AssemblyWindow.A.Show();
-        }
-
         private void SetDefaultBends(object sender, RoutedEventArgs e)
         {
             foreach (PartControl p in Parts)
                 foreach (BendControl item in p.UserControls.OfType<BendControl>()) item.SetGroup("-");
+        }
+
+        //стандартные детали
+        private void Add_StandartPart(object sender, RoutedEventArgs e)
+        {
+            if (StandartPartsDrop.SelectedItem is string title
+                && owner is CutControl cut && cut.work.type.MetalDrop.SelectedItem is Metal metal)
+            {
+                if (cut.work.type.TypeDetailDrop.Text == "Лист металла")
+                {
+                    StandartPartWindow standartPartWindow = new(new()
+                    {
+                        Title = $"{title} {Parts.Count + 1}",
+                        IsLaser = true,
+                        IsPipe = false,
+                        Geometries = title switch
+                        {
+                            "Круг" => GetCircleGeometryDescriptors(30),
+                            _=> GetRectangleGeometryDescriptors(60, 60)
+                        }
+                    });
+
+                    if (standartPartWindow.ShowDialog() == true)
+                    {
+                        DetailData detailData = standartPartWindow.DetailData;
+
+                        Part part = new()
+                        {
+                            Title = detailData.Title,
+                            Count = detailData.Count,
+                            Metal = metal.Name,
+                            Destiny = cut.work.type.S,
+                            Geometries = detailData.Geometries,
+                            Way = (float)Math.Round(detailData.Width + detailData.Height / 1000, 3),
+                            Mass = (float)Math.Round(detailData.Height * detailData.Width * cut.work.type.S * metal.Density / 1000000, 3),
+                        };
+                        part.PropsDict[100] = new() { $"{detailData.Width}", $"{detailData.Height}", $"{detailData.Width}x{detailData.Height}" };
+
+                        PartControl partControl = new(owner, cut.work, part);
+                        if (part.Geometries?.Count > 0)
+                        {
+                            partControl.Picture.Visibility = Visibility.Collapsed;
+                            partControl.GeometryCanvas.Visibility = Visibility.Visible;
+
+                            CanvasHelper.SetGeometryDescriptors(partControl.GeometryCanvas, part.Geometries);
+                        }
+                        Parts.Add(partControl);
+
+                        cut.Parts ??= new() { partControl };
+                        cut.PartDetails?.Add(part);
+                        cut.MassTotal = Parts.Select(p => p.Part).Sum(p => p.Mass * p.Count);
+                        cut.WayTotal = Parts.Select(p => p.Part).Sum(p => p.Way * p.Count);
+
+                        //определяем деталь как комплект деталей
+                        if (!cut.work.type.det.Detail.IsComplect) cut.work.type.det.IsComplectChanged("Комплект деталей");
+                    }
+                }
+                else
+                {
+
+                }
+            }
+        }
+
+        public static ObservableCollection<IGeometryDescriptor> GetRectangleGeometryDescriptors(
+            double width,
+            double height,
+            double cornerRadius = 0,
+            Point startPoint = new Point())
+        {
+            var descriptors = new ObservableCollection<IGeometryDescriptor>();
+
+            if (width <= 0 || height <= 0)
+                return descriptors;
+
+            // Ограничиваем радиус
+            if (cornerRadius > 0)
+                cornerRadius = Math.Min(cornerRadius, Math.Min(width, height) / 2);
+
+            // Определяем углы
+            double x = startPoint.X;
+            double y = startPoint.Y;
+            double right = x + width;
+            double bottom = y + height;
+            double startX = x + cornerRadius;
+            double endX = right - cornerRadius;
+            double startY = y + cornerRadius;
+            double endY = bottom - cornerRadius;
+
+            Point prevPoint = new Point(startX, y);
+
+            // Утилиты
+            void AddLineTo(Point endPoint)
+            {
+                if (prevPoint != endPoint)
+                {
+                    descriptors.Add(new LineDescriptor
+                    {
+                        Start = prevPoint,
+                        End = endPoint
+                    });
+                    prevPoint = endPoint;
+                }
+            }
+
+            void AddArcTo(Point endPoint, Point centerArc, SweepDirection sweep)
+            {
+                descriptors.Add(new ArcDescriptor
+                {
+                    StartPoint = prevPoint,
+                    EndPoint = endPoint,
+                    Size = new Size(cornerRadius, cornerRadius),
+                    IsLargeArc = false,
+                    SweepDirection = sweep
+                });
+                prevPoint = endPoint;
+            }
+
+            // 1. Верхняя сторона
+            AddLineTo(new Point(endX, y));
+
+            if (cornerRadius > 0)
+            {
+                // 2. Верхний правый угол
+                AddArcTo(new Point(right, startY), new Point(endX, startY), SweepDirection.Clockwise);
+
+                // 3. Правая сторона
+                AddLineTo(new Point(right, endY));
+
+                // 4. Нижний правый угол
+                AddArcTo(new Point(endX, bottom), new Point(endX, endY), SweepDirection.Clockwise);
+
+                // 5. Нижняя сторона
+                AddLineTo(new Point(startX, bottom));
+
+                // 6. Нижний левый угол
+                AddArcTo(new Point(x, endY), new Point(startX, endY), SweepDirection.Clockwise);
+
+                // 7. Левая сторона
+                AddLineTo(new Point(x, startY));
+
+                // 8. Верхний левый угол
+                AddArcTo(new Point(startX, y), new Point(startX, startY), SweepDirection.Clockwise);
+            }
+            else
+            {
+                // Прямые углы
+                AddLineTo(new Point(right, y));
+                AddLineTo(new Point(right, bottom));
+                AddLineTo(new Point(x, bottom));
+                AddLineTo(new Point(x, y));
+            }
+
+            return descriptors;
+        }
+
+        public static ObservableCollection<IGeometryDescriptor> GetCircleGeometryDescriptors(
+            double radius,
+            Point center = new Point())
+        {
+            var descriptors = new ObservableCollection<IGeometryDescriptor>();
+
+            if (radius <= 0)
+                return descriptors;
+
+            // Нормализуем центр
+            Point c = new Point(center.X + radius, center.Y + radius);
+
+            // Точки для двух полуокружностей
+            Point startPoint = new Point(c.X + radius, c.Y); // правая точка (0°)
+            Point topPoint = new Point(c.X, c.Y - radius);   // верх (90°)
+            Point leftPoint = new Point(c.X - radius, c.Y);  // лево (180°)
+            Point bottomPoint = new Point(c.X, c.Y + radius); // низ (270°)
+
+            // --- Первая половина: 0° → 180° (сверху)
+            descriptors.Add(new ArcDescriptor
+            {
+                StartPoint = startPoint,
+                EndPoint = leftPoint,
+                Size = new Size(radius, radius),
+                SweepDirection = SweepDirection.Clockwise,
+                IsLargeArc = false // дуга < 180°
+            });
+
+            // --- Вторая половина: 180° → 360° (снизу)
+            descriptors.Add(new ArcDescriptor
+            {
+                StartPoint = leftPoint,
+                EndPoint = startPoint,
+                Size = new Size(radius, radius),
+                SweepDirection = SweepDirection.Clockwise,
+                IsLargeArc = false
+            });
+
+            return descriptors;
         }
     }
 }

@@ -16,18 +16,15 @@
             <GroupBox.Header>
                 <TextBlock Text="Общее для всех деталей" FontWeight="Medium" FontSize="14"/>
             </GroupBox.Header>
-            
+
             <ScrollViewer>
                 <StackPanel Margin="3" >
-                    <StackPanel Orientation="Horizontal" Margin="3">
-                        <CheckBox Content="Раскладки" Click="ShowNesting" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Padding="3"/>
 
-                        <Button Click="ShowAssemblyWindow" Padding="1" Margin="5,0,0,0">
-                            <StackPanel Orientation="Horizontal" MaxHeight="20">
-                                <Image Source="/Images/assembly.png"/>
-                                <TextBlock Text="Добавить в сборку" VerticalAlignment="Center" Margin="3"/>
-                            </StackPanel>
-                        </Button>
+                    <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
+                        <CheckBox Content="Раскладки" Click="ShowNesting" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Padding="3" MinWidth="85" MaxWidth="85"/>
+                        <Image Source="/Images/works.png" MaxWidth="16" Margin="5,0,0,0"/>
+                        <ComboBox x:Name="StandartPartsDrop" MinWidth="75" MaxWidth="75" Margin="5,0,0,0" SelectedIndex="0"/>
+                        <Button Margin="5,0,0,0" MinWidth="30" Content="Доб" Click="Add_StandartPart"/>
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
@@ -117,7 +114,7 @@
                         <TextBlock Text="мин" Margin="5,0,0,0" MinWidth="23" />
                         <Button x:Name="MillingBtn" Content="Ф+" ToolTip="Добавить фрезеровку" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" MinWidth="30"/>
                     </StackPanel>
-                    
+
                     <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">
                         <Button  Content="А&gt;" ToolTip="По аквабластингу" Click="SortDetails" FontWeight="Bold" MinWidth="30"/>
                         <TextBlock Text="Аква" FontWeight="Bold" ToolTip="Аквабластинг для всех" Margin="5,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>

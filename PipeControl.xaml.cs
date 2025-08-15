@@ -12,6 +12,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Text.RegularExpressions;
 using System.Windows.Media;
+using System.Collections.ObjectModel;
 
 namespace Metal_Code
 {
@@ -107,7 +108,7 @@ namespace Metal_Code
         }
 
         public TubeType Tube { get; set; }
-        public List<PartControl>? Parts { get; set; }
+        public ObservableCollection<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
         public TabItem TabItem { get; set; } = new();
         public List<Part>? PartDetails { get; set; } = new();
@@ -358,11 +359,11 @@ namespace Metal_Code
             MainWindow.M.PartsTab.Items.Remove(TabItem);
         }
 
-        public List<PartControl> PartList(DataTableCollection? tables = null, string? path = null)
+        public ObservableCollection<PartControl> PartList(DataTableCollection? tables = null, string? path = null)
         {
             if (tables is not null && $"{tables[0].Rows[0].ItemArray[0]}".Contains("ИН сечения")) return PartList(true, tables, path);
 
-            List<PartControl> _parts = new();
+            ObservableCollection<PartControl> _parts = new();
 
             if (tables != null)
             {
@@ -605,9 +606,9 @@ namespace Metal_Code
             return _parts;
         }
 
-        public List<PartControl> PartList(bool b, DataTableCollection? tables = null, string? path = null)
+        public ObservableCollection<PartControl> PartList(bool b, DataTableCollection? tables = null, string? path = null)
         {
-            List<PartControl> _parts = new();
+            ObservableCollection<PartControl> _parts = new();
 
             if (tables != null)
             {

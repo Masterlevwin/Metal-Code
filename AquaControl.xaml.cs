@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -28,7 +29,7 @@ namespace Metal_Code
         }
 
         private const int priceMeter = 2000;    //стоимость обработки 1 квадратного метра
-        public List<PartControl>? Parts { get; set; }
+        public ObservableCollection<PartControl>? Parts { get; set; }
 
         public readonly UserControl owner;
         public AquaControl(UserControl _work)

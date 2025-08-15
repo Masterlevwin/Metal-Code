@@ -13,6 +13,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Runtime.Serialization;
 using System.Diagnostics;
+using System.Collections.ObjectModel;
 
 namespace Metal_Code
 {
@@ -94,7 +95,7 @@ namespace Metal_Code
             set => haveNitro = value;
         }
 
-        public List<PartControl>? Parts { get; set; }
+        public ObservableCollection<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
         public TabItem TabItem { get; set; } = new();
         public List<Part>? PartDetails { get; set; } = new();
@@ -134,10 +135,24 @@ namespace Metal_Code
             OnPriceChanged();
         }
 
-        private void OnPriceChanged(object sender, RoutedEventArgs e)
+        private void Setting(object sender, RoutedEventArgs e)
         {
+            if (sender is not CheckBox cBox) return;
+
+            if (cBox.IsChecked == false && PartsControl is null && !work.type.det.Detail.IsComplect)
+            {
+                PartsControl = Parts is null ? new(this, new()) : new(this, Parts);
+                AddPartsTab();
+            }
+            else if (cBox.IsChecked == true && PartsControl is not null && !work.type.det.Detail.IsComplect)
+            {
+                PartsControl = null;
+                MainWindow.M.PartsTab.Items.Remove(TabItem);
+            }
+
             OnPriceChanged();
         }
+
         public void OnPriceChanged()
         {
             BtnEnabled();
@@ -427,9 +442,9 @@ namespace Metal_Code
             MainWindow.M.PartsTab.Items.Remove(TabItem);
         }
 
-        public List<PartControl> PartList(DataTable? table = null)
+        public ObservableCollection<PartControl> PartList(DataTable? table = null)
         {
-            List<PartControl> _parts = new();
+            ObservableCollection<PartControl> _parts = new();
 
             if (table != null)
             {

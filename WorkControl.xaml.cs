@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -480,7 +481,7 @@ namespace Metal_Code
 
     public interface IPriceChanged
     {
-        List<PartControl>? Parts { get; set; }
+        ObservableCollection<PartControl>? Parts { get; set; }
         void OnPriceChanged();
         void SaveOrLoadProperties(UserControl uc, bool isSaved);
     }

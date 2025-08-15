@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -29,7 +30,7 @@ namespace Metal_Code
         public string[] structures = { "глян", "мат", "шагр", "муар" };
         public int priceMeter = 500;    //стоимость обработки 1 квадратного метра
 
-        public List<PartControl>? Parts { get; set; }
+        public ObservableCollection<PartControl>? Parts { get; set; }
 
         public readonly UserControl owner;
         public PaintControl(UserControl _work)
