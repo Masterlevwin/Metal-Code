@@ -142,11 +142,13 @@ namespace Metal_Code
             if (cBox.IsChecked == false && PartsControl is null && !work.type.det.Detail.IsComplect)
             {
                 PartsControl = Parts is null ? new(this, new()) : new(this, Parts);
+                work.type.HasMetal = false;
                 AddPartsTab();
             }
             else if (cBox.IsChecked == true && PartsControl is not null && !work.type.det.Detail.IsComplect)
             {
                 PartsControl = null;
+                work.type.HasMetal = true;
                 MainWindow.M.PartsTab.Items.Remove(TabItem);
             }
 

@@ -26,6 +26,8 @@ namespace Metal_Code
             partsList.ItemsSource = Parts;
             StandartPartsDrop.ItemsSource = standartParts;
 
+            if (Parts.Count > 0) StandartPartBtn.IsEnabled = false;
+
             BendControl Bend = new(owner);
             // формирование списка длин стороны гиба
             foreach (string s in Bend.BendDict[0.5f].Keys) BendDrop.Items.Add(s);
@@ -302,58 +304,52 @@ namespace Metal_Code
             if (StandartPartsDrop.SelectedItem is string title
                 && owner is CutControl cut && cut.work.type.MetalDrop.SelectedItem is Metal metal)
             {
-                if (cut.work.type.TypeDetailDrop.Text == "Лист металла")
+                StandartPartWindow standartPartWindow = new(new()
                 {
-                    StandartPartWindow standartPartWindow = new(new()
+                    Title = $"{title} {Parts.Count + 1}",
+                    IsLaser = true,
+                    IsPipe = false,
+                    Geometries = title switch
                     {
-                        Title = $"{title} {Parts.Count + 1}",
-                        IsLaser = true,
-                        IsPipe = false,
-                        Geometries = title switch
-                        {
-                            "Круг" => GetCircleGeometryDescriptors(30),
-                            _=> GetRectangleGeometryDescriptors(60, 60)
-                        }
-                    });
-
-                    if (standartPartWindow.ShowDialog() == true)
-                    {
-                        DetailData detailData = standartPartWindow.DetailData;
-
-                        Part part = new()
-                        {
-                            Title = detailData.Title,
-                            Count = detailData.Count,
-                            Metal = metal.Name,
-                            Destiny = cut.work.type.S,
-                            Geometries = detailData.Geometries,
-                            Way = (float)Math.Round(detailData.Width + detailData.Height / 1000, 3),
-                            Mass = (float)Math.Round(detailData.Height * detailData.Width * cut.work.type.S * metal.Density / 1000000, 3),
-                        };
-                        part.PropsDict[100] = new() { $"{detailData.Width}", $"{detailData.Height}", $"{detailData.Width}x{detailData.Height}" };
-
-                        PartControl partControl = new(owner, cut.work, part);
-                        if (part.Geometries?.Count > 0)
-                        {
-                            partControl.Picture.Visibility = Visibility.Collapsed;
-                            partControl.GeometryCanvas.Visibility = Visibility.Visible;
-
-                            CanvasHelper.SetGeometryDescriptors(partControl.GeometryCanvas, part.Geometries);
-                        }
-                        Parts.Add(partControl);
-
-                        cut.Parts ??= new() { partControl };
-                        cut.PartDetails?.Add(part);
-                        cut.MassTotal = Parts.Select(p => p.Part).Sum(p => p.Mass * p.Count);
-                        cut.WayTotal = Parts.Select(p => p.Part).Sum(p => p.Way * p.Count);
-
-                        //определяем деталь как комплект деталей
-                        if (!cut.work.type.det.Detail.IsComplect) cut.work.type.det.IsComplectChanged("Комплект деталей");
+                        "Круг" => GetCircleGeometryDescriptors(30),
+                        _ => GetRectangleGeometryDescriptors(60, 60)
                     }
-                }
-                else
-                {
+                });
 
+                if (standartPartWindow.ShowDialog() == true)
+                {
+                    DetailData detailData = standartPartWindow.DetailData;
+
+                    Part part = new()
+                    {
+                        Title = detailData.Title,
+                        Count = detailData.Count,
+                        Metal = metal.Name,
+                        Destiny = cut.work.type.S,
+                        Geometries = detailData.Geometries,
+                        Way = (float)Math.Round(detailData.Width + detailData.Height / 1000, 3),
+                        Mass = (float)Math.Round(detailData.Height * detailData.Width * cut.work.type.S * metal.Density / 1000000, 3),
+                    };
+                    part.PropsDict[100] = new() { $"{detailData.Width}", $"{detailData.Height}", $"{detailData.Width}x{detailData.Height}" };
+
+                    PartControl partControl = new(owner, cut.work, part);
+                    if (part.Geometries?.Count > 0)
+                    {
+                        partControl.Picture.Visibility = Visibility.Collapsed;
+                        partControl.GeometryCanvas.Visibility = Visibility.Visible;
+
+                        CanvasHelper.SetGeometryDescriptors(partControl.GeometryCanvas, part.Geometries);
+                    }
+                    Parts.Add(partControl);
+
+                    if (cut.Parts != null && !cut.Parts.Contains(partControl)) cut.Parts.Add(partControl);
+                    else cut.Parts = new() { partControl };
+
+                    cut.MassTotal = Parts.Select(p => p.Part).Sum(p => p.Mass * p.Count);
+                    cut.WayTotal = Parts.Select(p => p.Part).Sum(p => p.Way * p.Count);
+
+                    //определяем деталь как комплект деталей
+                    if (!cut.work.type.det.Detail.IsComplect) cut.work.type.det.IsComplectChanged("Комплект деталей");
                 }
             }
         }

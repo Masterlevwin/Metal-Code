@@ -24,7 +24,7 @@
                         <CheckBox Content="Раскладки" Click="ShowNesting" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Padding="3" MinWidth="85" MaxWidth="85"/>
                         <Image Source="/Images/works.png" MaxWidth="16" Margin="5,0,0,0"/>
                         <ComboBox x:Name="StandartPartsDrop" MinWidth="75" MaxWidth="75" Margin="5,0,0,0" SelectedIndex="0"/>
-                        <Button Margin="5,0,0,0" MinWidth="30" Content="Доб" Click="Add_StandartPart"/>
+                        <Button x:Name="StandartPartBtn" Margin="5,0,0,0" MinWidth="30" Content="Доб" Click="Add_StandartPart"/>
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" MaxHeight="20" MinHeight="20" Margin="3">

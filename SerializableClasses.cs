@@ -92,7 +92,7 @@ namespace Metal_Code
         private float price;
         public float Price
         {
-            get => (float)Math.Ceiling(price);
+            get => price;
             set
             {
                 if (Math.Abs(price - value) > 1e-6)

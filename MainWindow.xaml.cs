@@ -952,7 +952,6 @@ namespace Metal_Code
                             if (extra.Any()) part.Part.Price += extra.Sum(e => e.Result) / _cut.Parts.Count / part.Part.Count;
 
                             part.PropertiesChanged?.Invoke(part, true);
-
                         }
                         work.PropertiesChanged?.Invoke(work, true);
                     }
@@ -962,6 +961,7 @@ namespace Metal_Code
                 {
                     p.Price *= Ratio * ((100 + BonusRatio) / 100);
                     p.Price = p.Price < p.FixedPrice ? p.FixedPrice : p.Price;
+                    p.Price = (float)Math.Ceiling(p.Price);
                 }
 
                 TotalCount.Text = $"{Parts.Sum(t => t.Count)}";
