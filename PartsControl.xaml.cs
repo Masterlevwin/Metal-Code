@@ -345,6 +345,9 @@ namespace Metal_Code
                     if (cut.Parts != null && !cut.Parts.Contains(partControl)) cut.Parts.Add(partControl);
                     else cut.Parts = new() { partControl };
 
+                    if (cut.PartDetails != null && !cut.PartDetails.Contains(part)) cut.PartDetails.Add(part);
+                    else cut.PartDetails = new() { part };
+
                     cut.MassTotal = Parts.Select(p => p.Part).Sum(p => p.Mass * p.Count);
                     cut.WayTotal = Parts.Select(p => p.Part).Sum(p => p.Way * p.Count);
 

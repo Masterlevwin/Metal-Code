@@ -143,6 +143,7 @@ namespace Metal_Code
             {
                 PartsControl = Parts is null ? new(this, new()) : new(this, Parts);
                 work.type.HasMetal = false;
+                Way = Pinhole = 1;
                 AddPartsTab();
             }
             else if (cBox.IsChecked == true && PartsControl is not null && !work.type.det.Detail.IsComplect)

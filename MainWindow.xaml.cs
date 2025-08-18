@@ -1817,7 +1817,7 @@ namespace Metal_Code
                             SaveWork _saveWork = new(_work.Name, work.Ratio, work.TechRatio);
                             _saveWork.ExtraResult = work.ExtraResult;
 
-                            if (work.workType is ICut _cut && _cut.PartDetails?.Count > 0 && _cut.Items?.Count > 0)
+                            if (work.workType is ICut _cut && _cut.PartDetails?.Count > 0)
                             {
                                 foreach (Part p in _cut.PartDetails)
                                 {
@@ -1861,11 +1861,11 @@ namespace Metal_Code
                                         }
                                 }
 
-                                if (_cut.PartsControl?.Parts.Count > 0)
-                                    foreach (PartControl part in _cut.PartsControl.Parts) part.PropertiesChanged?.Invoke(part, true);
+                                if (_cut.Parts?.Count > 0)
+                                    foreach (PartControl part in _cut.Parts) part.PropertiesChanged?.Invoke(part, true);
 
                                 _saveWork.Parts = _cut.PartDetails;
-                                _saveWork.Items = _cut.Items;
+                                if (_cut.Items?.Count > 0) _saveWork.Items = _cut.Items;
                             }
 
                             work.PropertiesChanged?.Invoke(work, true);
@@ -1979,10 +1979,10 @@ namespace Metal_Code
                                     break;
                                 }
 
-                        if (_work.workType is ICut _cut && item.Items?.Count > 0)
+                        if (_work.workType is ICut _cut)
                         {
-                            _cut.Items = item.Items;
-                            _cut.PartDetails = item.Parts;
+                            if (item.Items?.Count > 0) _cut.Items = item.Items;
+                            if (item.Parts.Count > 0) _cut.PartDetails = item.Parts;
 
                             if (_cut is CutControl cut)
                             {
@@ -1999,9 +1999,9 @@ namespace Metal_Code
                                 pipe.SetTotalProperties();
                             }
 
-                            if (_cut.PartsControl?.Parts.Count > 0)
+                            if (_cut.Parts?.Count > 0)
                             {
-                                foreach (PartControl part in _cut.PartsControl.Parts)
+                                foreach (PartControl part in _cut.Parts)
                                 {
                                     if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
                                         foreach (int key in part.Part.PropsDict.Keys) if (key < 50)
