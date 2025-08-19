@@ -2000,7 +2000,6 @@ namespace Metal_Code
                             }
 
                             if (_cut.Parts?.Count > 0)
-                            {
                                 foreach (PartControl part in _cut.Parts)
                                 {
                                     if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
@@ -2008,7 +2007,6 @@ namespace Metal_Code
                                                 part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
                                     part.PropertiesChanged?.Invoke(part, false);
                                 }
-                            }
                         }
 
                         _work.propsList = item.PropsList;

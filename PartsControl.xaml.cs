@@ -348,6 +348,9 @@ namespace Metal_Code
                     if (cut.PartDetails != null && !cut.PartDetails.Contains(part)) cut.PartDetails.Add(part);
                     else cut.PartDetails = new() { part };
 
+                    if (cut.TabItem != null && cut.TabItem.Header is TextBlock block)
+                        block.Text = $"s{cut.work.type.S} {cut.work.type.MetalDrop.Text} ({cut.PartDetails?.Sum(x => x.Count)} шт)";
+
                     cut.MassTotal = Parts.Select(p => p.Part).Sum(p => p.Mass * p.Count);
                     cut.WayTotal = Parts.Select(p => p.Part).Sum(p => p.Way * p.Count);
 
