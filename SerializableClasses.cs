@@ -46,7 +46,7 @@ namespace Metal_Code
     public class Detail
     {
         public string? Metal {  get; set; }
-        public string? Destiny { get; set; }
+        public string Destiny { get; set; }
         public string? Description { get; set; }
         public string? Accuracy { get; set; }
         public string? Title { get; set; }

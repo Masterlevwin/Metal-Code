@@ -2131,21 +2131,35 @@ namespace Metal_Code
             worksheet.Cells[row, 1].LoadFromDataTable(detailTable, false);
             row += detailTable.Rows.Count;
 
-            //взависимости от исходящего контрагента добавляем к наименованию детали формулировку услуги или товара
-            foreach (var cell in worksheet.Cells[8, 5, row + 8, 5])
-                if (cell.Value != null)
-                {
-                    cell.Value = IsAgent ? $"{cell.Value}".Insert(0, "Изготовление детали ") : $"{cell.Value}".Insert(0, "Деталь ");
+            // Префикс в зависимости от типа контрагента
+            string prefix = IsAgent ? "Изготовление детали " : "Деталь ";
 
-                    //и обрезаем наименование
-                    foreach (Metal metal in Metals)
-                        if (metal.Name != null && $"{cell.Value}".ToLower().Contains(metal.Name))
-                        {
-                            cell.Value = $"{cell.Value}".Replace(metal.Name, "");
-                            break;
-                        }
-                    if ($"{cell.Value}".ToLower().Contains('s')) cell.Value = $"{cell.Value}"[..$"{cell.Value}".ToLower().LastIndexOf('s')];
+            foreach (var cell in worksheet.Cells[8, 5, row + 8, 5])
+            {
+                if (cell.Value == null) continue;
+
+                string? value = cell.Value.ToString();
+
+                // 1. Добавляем префикс
+                value = prefix + value;
+
+                // 2. Удаляем название металла (первое совпадение)
+                foreach (Metal metal in Metals)
+                {
+                    if (metal.Name != null && value.Contains(metal.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        value = value.Replace(metal.Name, "");
+                        break;
+                    }
                 }
+
+                // 3. Обрезаем по последнему 's' (если есть), только если он не в начале
+                int lastSIndex = value.ToLowerInvariant().LastIndexOf('s');
+                if (lastSIndex > 0) value = value[..lastSIndex];
+
+                // 4. Убираем лишние пробелы
+                cell.Value = value.Trim();
+            }
 
             //оформляем заголовки таблицы
             List<string> _headersD = new() { "Материал", "Толщина", "Работы", "Размеры, мм", "Наименование", "Кол-во, шт", "Цена за шт, руб", "Стоимость, руб" };
@@ -2251,28 +2265,52 @@ namespace Metal_Code
             if (Parts.Count > 0)        //в случае с нарезанными деталями, оформляем расшифровку работ
             {
                 worksheet.Cells[row + 6, 1].Value = "Расшифровка работ: ";
-                worksheet.Cells[row + 6, 2].Value = "";
-                foreach (ExcelRangeBase cell in worksheet.Cells[8, 3, row + 8, 3])
+                var descriptionCell = worksheet.Cells[row + 6, 2];
+                var foundOperations = new HashSet<string>(); // Уникальные операции
+
+                // Словарь: ключ (символ или строка) -> расшифровка
+                var operations = new Dictionary<string, string>
+    {
+        { "Л", "Л - Лазер " },
+        { "Б", "Б - Без лазера " },
+        { "Т", "Т - Труборез " },
+        { "Г ", "Г - Гибка " },
+        { "В ", "В - Вальцовка " },
+        { "Р ", "Р - Резьба " },
+        { "З ", "З - Зенковка " },
+        { "Зк ", "Зк - Заклепки " },
+        { "С ", "С - Сверловка " },
+        { "Св ", "Св - Сварка " },
+        { "О ", "О - Окраска " },
+        { "Ц ", "Ц - Цинкование " },
+        { "Ф ", "Ф - Фрезеровка " },
+        { "А ", "А - Аквабластинг " },
+        { "Доп ", "Доп - Дополнительные работы " }
+    };
+
+                // Проходим по ячейкам в столбце 3 (столбец C)
+                for (int r = 8; r <= row + 8; r++)
                 {
-                    if (cell.Value != null && $"{cell.Value}".Contains('Л') && !$"{worksheet.Cells[row + 6, 2].Value}".Contains('Л')) worksheet.Cells[row + 6, 2].Value += "Л - Лазер ";
-                    if (cell.Value != null && $"{cell.Value}".Contains('Б') && !$"{worksheet.Cells[row + 6, 2].Value}".Contains('Б')) worksheet.Cells[row + 6, 2].Value += "Б - Без лазера ";
-                    if (cell.Value != null && $"{cell.Value}".Contains('Т') && !$"{worksheet.Cells[row + 6, 2].Value}".Contains('Т')) worksheet.Cells[row + 6, 2].Value += "Т - Труборез ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Г ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Г ")) worksheet.Cells[row + 6, 2].Value += "Г - Гибка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("В ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("В ")) worksheet.Cells[row + 6, 2].Value += "В - Вальцовка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Р ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Р ")) worksheet.Cells[row + 6, 2].Value += "Р - Резьба ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("З ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("З ")) worksheet.Cells[row + 6, 2].Value += "З - Зенковка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Зк ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Зк ")) worksheet.Cells[row + 6, 2].Value += "Зк - Заклепки ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("С ")) worksheet.Cells[row + 6, 2].Value += "С - Сверловка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Св ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Св ")) worksheet.Cells[row + 6, 2].Value += "Св - Сварка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("О ")) worksheet.Cells[row + 6, 2].Value += "О - Окраска ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Ц ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Ц ")) worksheet.Cells[row + 6, 2].Value += "Ц - Цинкование ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Ф ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Ф ")) worksheet.Cells[row + 6, 2].Value += "Ф - Фрезеровка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("А ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("А ")) worksheet.Cells[row + 6, 2].Value += "А - Аквабластинг ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Доп ") && !$"{worksheet.Cells[row + 6, 2].Value}".Contains("Доп ")) worksheet.Cells[row + 6, 2].Value += "Доп - Дополнительные работы ";
+                    var cellValue = worksheet.Cells[r, 3].Value?.ToString();
+                    if (string.IsNullOrEmpty(cellValue)) continue;
+
+                    foreach (var op in operations)
+                        if (cellValue.Contains(op.Key) && !foundOperations.Contains(op.Key))
+                            foundOperations.Add(op.Key);
                 }
+
+                // Формируем итоговую строку
+                descriptionCell.Value = string.Join("", foundOperations.Select(k => operations[k]));
+
+                // Дополнительное уведомление
+                if (isAssemblyOffer) descriptionCell.Value += "  Внимание - в КП присутствуют сборочные единицы!";
+
+                // Объединение ячеек
                 worksheet.Cells[row + 6, 2, row + 6, 8].Merge = true;
-                if (isAssemblyOffer) worksheet.Cells[row + 6, 2].Value += "  Внимание - в КП присутствуют сборочные единицы!";
             }
+
+            //получаем строку расшифровки работ, если она есть, для передачи в pdf-файл
+            string? descriptionWorks = worksheet.Cells[row + 6, 2].Value.ToString();
 
             worksheet.Cells[row + 7, 1].Value = "Примечание:";
             worksheet.Cells[row + 7, 2].Value = Comment.Text;
@@ -3013,6 +3051,8 @@ namespace Metal_Code
 
             CreateScore(worksheet, row - 8, path, materials);                   //создаем файл для счета на основе полученного КП
             CreateComplect(path);                                               //создаем файл комплектации    
+            
+            OfferPdf offerPdf = new(path[..path.LastIndexOf(".")] + ".pdf", descriptionWorks);
         }
 
         //-СЧЕТ
