@@ -95,7 +95,12 @@
                         <Image Source="/Images/route.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Паспорт качества" Click="CreatePasport">
+                <MenuItem Header="Спецификация" Click="CreateSpec">
+                    <MenuItem.Icon>
+                        <Image Source="/Images/open.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Паспорт качества" Click="CreatePassport">
                     <MenuItem.Icon>
                         <Image Source="/Images/list.png"/>
                     </MenuItem.Icon>

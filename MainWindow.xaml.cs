@@ -2434,7 +2434,7 @@ namespace Metal_Code
 
             // ----- таблица разбивки цены детали по работам (Лист3 - "Статистика") -----
 
-                                        //      50      51      52      53      54      55        56      57        58      59      60          61          62         63         64       65      66      67         68           69     70
+            //      50      51      52      53      54      55        56      57        58      59      60          61          62         63         64       65      66      67         68           69     70
             List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "Фрезер", "Закл", "Аква", "Цинк", "S покр / вес", "цвет", "П" };
 
             int rowStat = 0;        //счетчик строк всех деталей
@@ -2862,7 +2862,7 @@ namespace Metal_Code
                             statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + beginBitrix, 12].Value = $"(ЛП) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
                             //"Лазер (время работ)"                                 //"Время лазерных работ"
                             statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
-                            
+
                             notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({type.L})";
                             notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
                             tempNote++;
@@ -3001,7 +3001,7 @@ namespace Metal_Code
                 statsheet.Cells[temp, 8].Value = CustomerDrop.Text;                                         //"Компания"
                 statsheet.Cells[temp, 10].Value = ManagerDrop.Text;                                         //"Менеджер"
                 statsheet.Cells[temp, 11].Value = CurrentManager.Name;                                      //"Инженер"
-                statsheet.Cells[temp, 12].Value = Math.Ceiling(sum * 60/ 2000);                             //"Время работ, мин"
+                statsheet.Cells[temp, 12].Value = Math.Ceiling(sum * 60 / 2000);                             //"Время работ, мин"
                 statsheet.Cells[temp, 13].Value = EndDate();                                                //"Дата отгрузки"
                 statsheet.Cells[temp, 13].Style.Numberformat.Format = "dd.mm.yy";
 
@@ -3051,8 +3051,11 @@ namespace Metal_Code
 
             CreateScore(worksheet, row - 8, path, materials);                   //создаем файл для счета на основе полученного КП
             CreateComplect(path);                                               //создаем файл комплектации    
-            
-            OfferPdf offerPdf = new(path[..path.LastIndexOf(".")] + ".pdf", descriptionWorks);
+
+            if (ManagerDrop.Text != "Гамолина Светлана")
+            {
+                OfferPdf offerPdf = new(path[..path.LastIndexOf(".")] + ".pdf", descriptionWorks);
+            }
         }
 
         //-СЧЕТ
@@ -3777,12 +3780,12 @@ namespace Metal_Code
         }
 
         //-ПАСПОРТ
-        private void CreatePasport(object sender, RoutedEventArgs e)
+        private void CreatePassport(object sender, RoutedEventArgs e)
         {
-            if (ActiveOffer is not null) CreatePasport(ActiveOffer);
+            if (ActiveOffer is not null) CreatePassport(ActiveOffer);
             else StatusBegin("Для создания паспорта необходимо загрузить расчет.");
         }
-        private void CreatePasport(Offer offer)
+        private void CreatePassport(Offer offer)
         {
             //если путь к расчету не сохранен, или файла комплектации по этому пути нет, выходим из метода
             if (offer.Act is null || !File.Exists($"{Path.GetDirectoryName(offer.Act)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx"))
@@ -4056,6 +4059,26 @@ namespace Metal_Code
 
             routeWindow.Show();
             StatusBegin($"Создан маршрут производства для расчета {ActiveOffer?.N}");
+        }
+
+        //-СПЕЦИФИКАЦИЯ
+        private void CreateSpec(object sender, RoutedEventArgs e)
+        {
+            if (ActiveOffer is null)
+            {
+                StatusBegin("Для создания спецификации необходимо загрузить расчет.");
+                return;
+            }
+            else if (ActiveOffer.Act is null)
+            {
+                StatusBegin("Не удалось найти файл КП для создания спецификации. Попробуйте пересохранить расчет заново.");
+                return;
+            }
+
+            UpdatePricePart();
+
+            SpecWindow specWindow = new(ActiveOffer.Act);
+            specWindow.Show();
         }
 
 
