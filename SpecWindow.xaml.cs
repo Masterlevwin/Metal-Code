@@ -45,7 +45,7 @@ namespace Metal_Code
 
             Agent.Text = TargetCustomer.Agent ? "ИП" : "ООО";
             EndDate.Text = $"до {MainWindow.M.EndDate()?.ToString("d")}";
-            Delivery.Text = MainWindow.M.HasDelivery is true ?
+            Delivery.Text = MainWindow.M.HasDelivery is not false ?
                 $"Доставка производится силами Поставщика до склада Покупателя, расположенного по адресу: {TargetCustomer.Address}."
                 : "Cамовывоз со склада Поставщика по адресу: Ленинградская область, Всеволожский район, Колтуши, деревня Мяглово, ул. Дорожная, уч. 4Б.";
         }
