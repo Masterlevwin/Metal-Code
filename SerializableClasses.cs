@@ -354,6 +354,8 @@ namespace Metal_Code
         public Manager? Manager { get; set; }
         public int ManagerId { get; set; }
 
+        public SpecTemplate SpecTemplate { get; set; } = new();
+
         public Customer()
         {
 
@@ -421,21 +423,39 @@ namespace Metal_Code
         public DbSet<Offer> Offers { get; set; } = null!;
         public DbSet<Customer> Customers { get; set; } = null!;
 
-        public string connectionString;
+        public string ConnectionString { get; }
+
         public ManagerContext(string connectionString)
         {
-            this.connectionString = connectionString;   // получаем извне строку подключения
+            ConnectionString = connectionString;
             Database.EnsureCreated();                   // гарантируем, что база данных создана
-            //Database.Migrate();                         //вместо создания базы используем миграции
             Database.SetCommandTimeout(9000);
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite(connectionString);
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseSqlite(ConnectionString);
+            }
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Customer>()
+                .OwnsOne(c => c.SpecTemplate, builder =>
+                {
+                    builder.ToTable("Customers");
+                    builder.Property(st => st.Header).HasColumnName("SpecTemplate_Header").HasMaxLength(500);
+                    builder.Property(st => st.Number).HasColumnName("SpecTemplate_Number");
+                    builder.Property(st => st.Provider).HasColumnName("SpecTemplate_Provider").HasMaxLength(200);
+                    builder.Property(st => st.Buyer).HasColumnName("SpecTemplate_Buyer").HasMaxLength(200);
+                });
         }
     }
-    
+
     public class MetalContext : DbContext
     {
         public DbSet<Metal> Metals { get; set; } = null!;

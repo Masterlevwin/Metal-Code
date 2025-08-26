@@ -21,10 +21,12 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public readonly string OutputPath = string.Empty;
-        public string[] Providers { get; set; } = { "ООО ЛАЗЕРФЛЕКС", "ООО ПРОВЭЛД", "ООО ПК ЛАЗЕРФЛЕКС", "ИП МЕШЕРОНОВА" };
+
+        public ObservableCollection<string> Providers { get; } = new() {
+            "ООО ЛАЗЕРФЛЕКС","ООО ПРОВЭЛД","ООО ПК ЛАЗЕРФЛЕКС","ИП МЕШЕРОНОВА" };
 
         public SpecTemplate CurrentTemplate { get; set; } = new();
-        public Customer CurrentCustomer { get; set; } = new();
+        public Customer TargetCustomer { get; set; } = new();
 
         public SpecWindow(string outputPath)
         {
@@ -32,11 +34,20 @@ namespace Metal_Code
 
             OutputPath = outputPath;
             DataContext = this;
+        }
 
-            if (MainWindow.M.ActiveOffer != null) Title = $"Спецификация на КП №{MainWindow.M.ActiveOffer.N}";
-            if (MainWindow.M.CustomerDrop.SelectedItem is Customer customer) CurrentCustomer = customer;
-
+        private void Loaded_Window(object sender, RoutedEventArgs e)
+        {
             QuestPDF.Settings.License = LicenseType.Community;
+
+            TargetCustomer = MainWindow.M.TargetCustomer;
+            CurrentTemplate = TargetCustomer.SpecTemplate;
+
+            Agent.Text = TargetCustomer.Agent ? "ИП" : "ООО";
+            EndDate.Text = $"до {MainWindow.M.EndDate()?.ToString("d")}";
+            Delivery.Text = MainWindow.M.HasDelivery is true ?
+                $"Доставка производится силами Поставщика до склада Покупателя, расположенного по адресу: {TargetCustomer.Address}."
+                : "Cамовывоз со склада Поставщика по адресу: Ленинградская область, Всеволожский район, Колтуши, деревня Мяглово, ул. Дорожная, уч. 4Б.";
         }
 
         private void Create_Spec(object sender, RoutedEventArgs e) { Create_Spec(OutputPath); }
@@ -64,18 +75,9 @@ namespace Metal_Code
                         content.Spacing(10);
 
                         // Заголовок
-                        content.Item().Row(row =>
-                        {
-                            row.ConstantItem(100).Column(col =>
-                            {
-                                col.Item().Text($"{CurrentTemplate.Header}").AlignRight().Bold();
-                            });
-                            
-                            row.ConstantItem(100).PaddingTop(30).Column(col =>
-                            {
-                                col.Item().Text("СПЕЦИФИКАЦИЯ № 16 от \"15\" августа 2025 г.").AlignCenter().Bold();
-                            });
-                        });
+                        content.Item().PaddingLeft(280).Text($"{CurrentTemplate.Header}").AlignRight().Bold();
+
+                        content.Item().PaddingTop(30).Text($"СПЕЦИФИКАЦИЯ № {CurrentTemplate.Number} от {DateTime.Now:dd MMMM yyyy} г.").AlignCenter().Bold();
 
                         float totalSum = 0;
 
@@ -109,7 +111,7 @@ namespace Metal_Code
                                         totalSum += part.Total;
 
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((i + 1).ToString());
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(part.Title ?? "-"));
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(part.Title ?? ""));
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Count.ToString());
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Total.ToString("N2"));
                                     }
@@ -122,10 +124,21 @@ namespace Metal_Code
                                         totalSum += detail.Total;
 
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((MainWindow.M.Parts.Count + i + 1).ToString());
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(detail.Title ?? "-"));
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(detail.Title ?? ""));
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Count.ToString());
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Total.ToString("N2"));
                                     }
+
+                                if (MainWindow.M.HasDelivery is true)
+                                {
+                                    float deliveryTotal = (float)Math.Ceiling(MainWindow.M.Delivery  * MainWindow.M.DeliveryRatio * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
+                                    totalSum += deliveryTotal;
+
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("Доставка");
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(MainWindow.M.DeliveryRatio.ToString());
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(deliveryTotal.ToString("N2"));
+                                }
                             }
 
                             // Итоговая строка
@@ -158,11 +171,11 @@ namespace Metal_Code
                                 // Формируем итоговую строку
                                 center.Item().Text($"ИТОГО: {totalSum:N0} ({rubText}) рублей {kopValue} коп., в т.ч. НДС 20%").Bold();
 
-                                center.Item().PaddingVertical(5).Text($"Срок поставки: до {MainWindow.M.EndDate()?.ToString("d")}");
+                                center.Item().PaddingTop(15).Text("Срок поставки: " + EndDate.Text);
 
-                                center.Item().PaddingVertical(5).Text($"Доставка производится силами Поставщика до склада Покупателя, расположенного по адресу: {MainWindow.M.Adress.Text}.");
+                                center.Item().PaddingTop(5).Text(Delivery.Text);
 
-                                center.Item().PaddingVertical(5).Text("Условия оплаты: 100% оплата в течение 10 дней после получения товара.");
+                                center.Item().PaddingVertical(5).Text($"Условия оплаты: {CurrentTemplate.Terms}");
                             });
                         });
 
@@ -173,29 +186,39 @@ namespace Metal_Code
                             row.RelativeItem().PaddingHorizontal(50).Column(left =>
                             {
                                 left.Item().Text("ПОСТАВЩИК").Bold();
-                                left.Item().Text("ООО \"ЛАЗЕРФЛЕКС\"");
+                                left.Item().Text(CurrentTemplate.Provider);
 
                                 // Место для подписи
                                 left.Item().PaddingVertical(20).LineHorizontal(1).LineColor(Colors.Black);
-                                left.Item().Text("/Мешеронова М.С.").AlignRight();
+                                left.Item().Text("/ Мешеронова М.С.").AlignRight();
                             });
 
                             // Покупатель
                             row.RelativeItem().PaddingHorizontal(50).Column(right =>
                             {
                                 right.Item().Text("ПОКУПАТЕЛЬ").Bold();
-                                right.Item().Text("ООО \"НТЦ ТПТ\"");
+                                right.Item().Text($"{Agent.Text} {TargetCustomer.Name}");
 
                                 // Место для подписи
                                 right.Item().PaddingVertical(20).LineHorizontal(1).LineColor(Colors.Black);
-                                right.Item().Text("/Орехов Д.Л.").AlignRight();
+                                right.Item().Text($"/ {CurrentTemplate.Buyer}").AlignRight();
                             });
                         });
                     });  
                 });
             }).GeneratePdf(outputPath);
 
-            MainWindow.M.StatusBegin($"Создана спецификация для текущего расчета: {MainWindow.M.Order.Text} {MainWindow.M.CustomerDrop.Text}");
+            using ManagerContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[0] : MainWindow.M.connections[1]);
+            Customer? _customer = db.Customers.FirstOrDefault(x => x.Id == TargetCustomer.Id);
+            if (_customer is not null)
+            {
+                _customer.SpecTemplate = CurrentTemplate;
+                db.SaveChanges();
+            }
+
+            MainWindow.M.StatusBegin($"Создана спецификация для текущего расчета: {MainWindow.M.Order.Text} {TargetCustomer.Name}");
+
+            Close();
         }
 
         // метод для стилизации заголовка таблицы
@@ -415,9 +438,7 @@ namespace Metal_Code
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
-        public int Id { get; set; }
-
-        private string header = "Приложение № 1";
+        private string header = "Приложение № 1 к договору поставки № 282-04/25 от «10» апреля 2025 г.";
         public string Header
         {
             get => header;
@@ -427,6 +448,62 @@ namespace Metal_Code
                 {
                     header = value;
                     OnPropertyChanged(nameof(Header));
+                }
+            }
+        }
+
+        private int number = 1;
+        public int Number
+        {
+            get => number;
+            set
+            {
+                if (number != value)
+                {
+                    number = value;
+                    OnPropertyChanged(nameof(Number));
+                }
+            }
+        }
+
+        private string terms = "100% предоплата.";
+        public string Terms
+        {
+            get => terms;
+            set
+            {
+                if (terms != value)
+                {
+                    terms = value;
+                    OnPropertyChanged(nameof(Terms));
+                }
+            }
+        }
+
+        private string provider = "ООО ЛАЗЕРФЛЕКС";
+        public string Provider
+        {
+            get => provider;
+            set
+            {
+                if (provider != value)
+                {
+                    provider = value;
+                    OnPropertyChanged(nameof(Provider));
+                }
+            }
+        }
+
+        private string buyer = string.Empty;
+        public string Buyer
+        {
+            get => buyer;
+            set
+            {
+                if (buyer != value)
+                {
+                    buyer = value;
+                    OnPropertyChanged(nameof(Buyer));
                 }
             }
         }

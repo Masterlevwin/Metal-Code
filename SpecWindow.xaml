@@ -5,49 +5,99 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:self="clr-namespace:Metal_Code"
         mc:Ignorable="d"
-        Title="Спецификация" WindowStartupLocation="CenterScreen" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" SizeToContent="WidthAndHeight" ResizeMode="NoResize">
+        Title="Спецификация" WindowStartupLocation="CenterScreen" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" SizeToContent="WidthAndHeight" ResizeMode="NoResize" Loaded="Loaded_Window">
 
     <DockPanel LastChildFill="True" Margin="10" VerticalAlignment="Center">
 
-        <GroupBox DockPanel.Dock="Top" DataContext="{Binding CurrentTemplate}">
-            <GroupBox.Header>
-                <TextBlock Text="Заголовок" FontWeight="Bold"/>
-            </GroupBox.Header>
+        <GroupBox DockPanel.Dock="Top" DataContext="{Binding CurrentTemplate}" Header="Заголовок">
+            <StackPanel Margin="10">
+                <!-- Заголовок -->
+                <TextBox Text="{Binding Header, UpdateSourceTrigger=PropertyChanged}"
+                 HorizontalContentAlignment="Center"
+                 VerticalContentAlignment="Center"
+                 TextWrapping="Wrap"
+                 MinHeight="30"
+                 MaxWidth="280"
+                 Padding="4"
+                 BorderThickness="2"
+                 Margin="5" HorizontalAlignment="Right" MinWidth="280"/>
 
-            <TextBox Text="{Binding Header}" Margin="5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" TextWrapping="Wrap" Width="200" MinHeight="30"/>
+                <!-- Номер спецификации -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="5">
+                    <TextBlock Text="СПЕЦИФИКАЦИЯ №" VerticalAlignment="Center"/>
+                    <TextBox Text="{Binding Number, UpdateSourceTrigger=PropertyChanged}"
+                     MaxLength="4"
+                     MinWidth="50"
+                     MinHeight="25"
+                     Margin="5"
+                     HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Срок поставки и т.д. -->
+                <StackPanel Margin="10,15,10,5">
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <TextBlock Text="Срок поставки:" MinWidth="105" VerticalAlignment="Center"/>
+                        <TextBox x:Name="EndDate" Margin="10,0,0,0" Width="300"
+                                 VerticalContentAlignment="Center" MinHeight="22" TextWrapping="Wrap" Padding="2" BorderThickness="2"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <TextBlock Text="Условия доставки:" MinWidth="105" VerticalAlignment="Center"/>
+                        <TextBox x:Name="Delivery" Margin="10,0,0,0" Width="300"
+                                 VerticalContentAlignment="Center" MinHeight="22" TextWrapping="Wrap" Padding="2" BorderThickness="2"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <TextBlock Text="Условия оплаты:" MinWidth="105" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding Terms, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="10,0,0,0" Width="300"
+                                 VerticalContentAlignment="Center" MinHeight="22" TextWrapping="Wrap" Padding="2" BorderThickness="2"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Поставщик и Покупатель -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
+                    <!-- Поставщик -->
+                    <StackPanel Margin="10">
+                        <TextBlock Text="ПОСТАВЩИК" Margin="0,0,0,5"/>
+                        <ComboBox SelectedItem="{Binding Provider}"
+                          ItemsSource="{Binding DataContext.Providers,
+                            RelativeSource={RelativeSource AncestorType=Window}}"
+                          MinWidth="150"
+                          MinHeight="22"
+                          Margin="0,0,0,5" HorizontalAlignment="Left"/>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" MinHeight="32">
+                            <Border BorderBrush="Black" BorderThickness="0,0,0,1" Width="80" Margin="5,0"/>
+                            <TextBlock Text="Мешеронова М.С." VerticalAlignment="Bottom"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Покупатель -->
+                    <StackPanel Margin="10">
+                        <TextBlock Text="ПОКУПАТЕЛЬ" Margin="0,0,0,5"/>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,5">
+                            <TextBox x:Name="Agent" Width="60" ToolTip="Введите форму юридического лица"
+                                     VerticalContentAlignment="Center"
+                                     HorizontalContentAlignment="Center" MinHeight="22"/>
+                            <TextBlock Text="{Binding DataContext.TargetCustomer.Name,
+                            RelativeSource={RelativeSource AncestorType=Window}}" Width="150" Margin="5,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" MinHeight="32">
+                            <Border BorderBrush="Black" BorderThickness="0,0,0,1" Width="80" Margin="5,0"/>
+                            <TextBox Text="{Binding Buyer, UpdateSourceTrigger=PropertyChanged}"
+                             Width="120"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center" VerticalAlignment="Bottom" MinHeight="22"/>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
         </GroupBox>
-        
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5" HorizontalAlignment="Center">
-            <TextBlock Text="СПЕЦИФИКАЦИЯ №" VerticalAlignment="Center"/>
-            <TextBox Margin="5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" MinHeight="25"/>
-            <TextBlock Text="от" VerticalAlignment="Center"/>
-            <TextBlock Text="/дата/" VerticalAlignment="Center" Margin="5"/>
-        </StackPanel>
-        
-        <StackPanel DockPanel.Dock="Top" Margin="5">
-            <TextBlock Text="Срок поставки:" VerticalAlignment="Center" Margin="5"/>
-            <TextBlock Text="Условия доставки:" VerticalAlignment="Center" Margin="5"/>
-            <TextBlock Text="Условия оплаты:" VerticalAlignment="Center" Margin="5"/>
-        </StackPanel>
 
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="5" HorizontalAlignment="Center">
-            <StackPanel Margin="5">
-                <TextBlock Text="ПОСТАВЩИК" VerticalAlignment="Center" Margin="5"/>
-                <ComboBox ItemsSource="{Binding Providers}" SelectedIndex="0" Width="150" MinHeight="22"/>
-                <TextBlock Text="_______________" VerticalAlignment="Center" Margin="5"/>
-            </StackPanel>
-
-            <StackPanel Margin="5">
-                <TextBlock Text="ПОКУПАТЕЛЬ" VerticalAlignment="Center" Margin="5"/>
-                <TextBlock Text="{Binding CurrentCustomer.Name}" VerticalAlignment="Center" FontWeight="Bold" HorizontalAlignment="Center" MinWidth="150" MinHeight="22"/>
-                <TextBlock Text="_______________" VerticalAlignment="Center" Margin="5"/>
-            </StackPanel>
-        </StackPanel>
-        
         <Button DockPanel.Dock="Bottom" Click="Create_Spec" Margin="5" HorizontalAlignment="Right">
             <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="20">
                 <Image Source="/Images/save4.png"/>
-                <TextBlock Text="Создать" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                <TextBlock Text="Создать" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="5"/>
             </StackPanel>
         </Button>
 

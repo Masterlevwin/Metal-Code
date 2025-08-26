@@ -109,10 +109,10 @@ namespace Metal_Code
 
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Metal);
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Destiny.ToString());
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Description ?? "-");
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Accuracy ?? "-");
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Description ?? "");
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Accuracy ?? "");
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((i + 1).ToString());
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(part.Title ?? "-"));
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(part.Title ?? ""));
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Count.ToString());
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Price.ToString("N2"));
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Total.ToString("N2"));
@@ -127,14 +127,27 @@ namespace Metal_Code
 
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Metal);
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Destiny.ToString());
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Description ?? "-");
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Accuracy ?? "-");
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Description ?? "");
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Accuracy ?? "");
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((MainWindow.M.Parts.Count + i + 1).ToString());
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(detail.Title ?? "-"));
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(detail.Title ?? ""));
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Count.ToString());
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Price.ToString("N2"));
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Total.ToString("N2"));
                                     }
+
+                                if (MainWindow.M.HasDelivery is true)
+                                {
+                                    float delivery = (float)Math.Ceiling(MainWindow.M.Delivery * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
+                                    float deliveryTotal = delivery * MainWindow.M.DeliveryRatio;
+                                    totalSum += deliveryTotal;
+
+                                    table.Cell().ColumnSpan(5).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("Доставка");
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(MainWindow.M.DeliveryRatio.ToString());
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(delivery.ToString("N2"));
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(deliveryTotal.ToString("N2"));
+                                }
                             }
 
                             // Итоговая строка

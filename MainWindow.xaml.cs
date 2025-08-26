@@ -526,6 +526,56 @@ namespace Metal_Code
 
         //-------------Основные методы-----------//
         #region
+        private void AddSpecTemplateColumnsIfMissing(ManagerContext db)
+        {
+            try
+            {
+                db.Database.ExecuteSqlRaw(@"
+            ALTER TABLE Customers ADD COLUMN ""SpecTemplate_Header"" TEXT 
+            DEFAULT 'Приложение № 1 к договору поставки №'");
+            }
+            catch { } // Игнорируем, если колонка уже есть
+
+            try
+            {
+                db.Database.ExecuteSqlRaw(@"ALTER TABLE Customers ADD COLUMN ""SpecTemplate_Number"" INTEGER DEFAULT 1");
+            }
+            catch { }
+
+            try
+            {
+                db.Database.ExecuteSqlRaw(@"ALTER TABLE Customers ADD COLUMN ""SpecTemplate_Terms"" TEXT DEFAULT '100% предоплата.'");
+            }
+            catch { }
+
+            try
+            {
+                db.Database.ExecuteSqlRaw(@"ALTER TABLE Customers ADD COLUMN ""SpecTemplate_Provider"" TEXT DEFAULT 'ООО ЛАЗЕРФЛЕКС'");
+            }
+            catch { }
+
+            try
+            {
+                db.Database.ExecuteSqlRaw(@"ALTER TABLE Customers ADD COLUMN ""SpecTemplate_Buyer"" TEXT DEFAULT ''");
+            }
+            catch { }
+
+            // Заполним старые записи
+            try
+            {
+                db.Database.ExecuteSqlRaw(@"
+            UPDATE Customers 
+            SET 
+                SpecTemplate_Header = 'Приложение № 1 к договору поставки №',
+                SpecTemplate_Number = 1,
+                SpecTemplate_Terms = '100% предоплата.',
+                SpecTemplate_Provider = 'ООО ЛАЗЕРФЛЕКС',
+                SpecTemplate_Buyer = ''
+            WHERE SpecTemplate_Buyer IS NULL");
+            }
+            catch { }
+        }
+
         private void LoadDataBases(object sender, RoutedEventArgs e)    // при загрузке окна
         {
             using TypeDetailContext dbT = new(IsLocal ? connections[2] : connections[3]);
@@ -543,6 +593,9 @@ namespace Metal_Code
             InitializeDict();
 
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
+            
+            AddSpecTemplateColumnsIfMissing(db);
+
             db.Managers.Load();
             Managers = db.Managers.Local.ToObservableCollection();
 
@@ -4069,6 +4122,11 @@ namespace Metal_Code
                 StatusBegin("Для создания спецификации необходимо загрузить расчет.");
                 return;
             }
+            else if (CustomerDrop.SelectedItem is not Customer)
+            {
+                StatusBegin("Не удалось определить заказчика для создания спецификации. Добавьте заказчика в базу.");
+                return;
+            }
             else if (ActiveOffer.Act is null)
             {
                 StatusBegin("Не удалось найти файл КП для создания спецификации. Попробуйте пересохранить расчет заново.");
@@ -4077,7 +4135,7 @@ namespace Metal_Code
 
             UpdatePricePart();
 
-            SpecWindow specWindow = new(ActiveOffer.Act);
+            SpecWindow specWindow = new(ActiveOffer.Act) { Title = $"Спецификация на КП № {ActiveOffer.N}" };
             specWindow.Show();
         }
 
