@@ -58,7 +58,9 @@
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
-                            <CheckBox Click="AddToAssembly" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <CheckBox Click="AddToAssembly"
+                                      IsChecked="{Binding RelativeSource={RelativeSource Self}, Path=IsChecked, Mode=OneWay}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding Title}" Margin="3,0,0,0"/>
                             <TextBlock Text=" (" Foreground="Blue" Margin="3,0,0,0" />
                             <TextBlock Text="{Binding Count}" Foreground="Blue"/>

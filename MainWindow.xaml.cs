@@ -2363,7 +2363,8 @@ namespace Metal_Code
             }
 
             //получаем строку расшифровки работ, если она есть, для передачи в pdf-файл
-            string? descriptionWorks = worksheet.Cells[row + 6, 2].Value.ToString();
+            string? descriptionWorks = string.Empty;
+            if (worksheet.Cells[row + 6, 2].Value != null) descriptionWorks = worksheet.Cells[row + 6, 2].Value.ToString();
 
             worksheet.Cells[row + 7, 1].Value = "Примечание:";
             worksheet.Cells[row + 7, 2].Value = Comment.Text;

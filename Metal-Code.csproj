@@ -63,6 +63,8 @@
     <None Remove="Images\preview2.png" />
     <None Remove="Images\preview3.png" />
     <None Remove="Images\print.jpg" />
+    <None Remove="Images\print1.jpg" />
+    <None Remove="Images\print1.png" />
     <None Remove="Images\print2.png" />
     <None Remove="Images\question.png" />
     <None Remove="Images\report.png" />
@@ -74,6 +76,7 @@
     <None Remove="Images\save4.png" />
     <None Remove="Images\screen.png" />
     <None Remove="Images\signature.jpg" />
+    <None Remove="Images\signature1.jpg" />
     <None Remove="Images\signature2.jpg" />
     <None Remove="Images\tableofbends.jpg" />
     <None Remove="Images\unlock.png" />
@@ -103,6 +106,12 @@
   <ItemGroup>
     <Content Include="app_logo.ico" />
     <Content Include="app_logo.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Images\print1.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Images\signature1.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="Metal-Code.Updater.exe">
@@ -195,7 +204,9 @@
     <Resource Include="Images\save4.png" />
     <Resource Include="Images\screen.png" />
     <Resource Include="Images\signature.jpg" />
-    <Resource Include="Images\signature2.jpg" />
+    <Resource Include="Images\signature2.jpg">
+      <CopyToOutputDirectory></CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Images\tableofbends.jpg" />
     <Resource Include="Images\unlock.png" />
     <Resource Include="Images\update.png" />

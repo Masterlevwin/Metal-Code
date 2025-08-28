@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -74,9 +75,106 @@ namespace Metal_Code
 
         private void SetProperties(object sender, RoutedEventArgs e)
         {
+            // Подписываемся на изменения списка сборок
+            AssemblyWindow.A.Assemblies.CollectionChanged += OnAssembliesCollectionChanged;
+
+            // Подписываемся на изменения Particles в каждой существующей сборке
+            SubscribeToAllAssemblies();
+
+            // Заполняем ComboBox сборками
             AssembliesDrop.ItemsSource = AssemblyWindow.A.Assemblies;
+
+            // Заполняем ComboBox работами
             WorksDrop.ItemsSource = works;
         }
+
+        private void OnAssembliesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.NewItems != null)
+            {
+                foreach (Assembly assembly in e.NewItems)
+                {
+                    SubscribeToAssembly(assembly);
+                }
+            }
+
+            if (e.OldItems != null)
+            {
+                foreach (Assembly assembly in e.OldItems)
+                {
+                    UnsubscribeFromAssembly(assembly);
+                }
+            }
+
+            // Обновляем отображение CheckBox'ов
+            UpdateAllCheckBoxStates();
+        }
+
+        private void SubscribeToAllAssemblies()
+        {
+            foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
+            {
+                SubscribeToAssembly(assembly);
+            }
+        }
+
+        private void SubscribeToAssembly(Assembly assembly)
+        {
+            if (assembly.Particles != null)
+            {
+                assembly.Particles.CollectionChanged += OnParticlesCollectionChanged;
+            }
+        }
+
+        private void UnsubscribeFromAssembly(Assembly assembly)
+        {
+            if (assembly.Particles != null)
+            {
+                assembly.Particles.CollectionChanged -= OnParticlesCollectionChanged;
+            }
+        }
+
+        private void OnParticlesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            // Обновляем состояние всех CheckBox'ов
+            UpdateAllCheckBoxStates();
+        }
+
+        private void UpdateAllCheckBoxStates()
+        {
+            // Перебираем все элементы ComboBox
+            for (int i = 0; i < AssembliesDrop.Items.Count; i++)
+            {
+                var item = AssembliesDrop.Items[i];
+                var container = AssembliesDrop.ItemContainerGenerator.ContainerFromIndex(i) as ComboBoxItem;
+
+                if (container != null && container.ContentTemplate != null)
+                {
+                    var checkBox = FindVisualChild<CheckBox>(container);
+                    if (checkBox != null && item is Assembly assembly)
+                        checkBox.IsChecked = assembly.Particles.Any(p => p.Title == Part.Title);
+                }
+            }
+        }
+
+        private T? FindVisualChild<T>(DependencyObject depObj) where T : DependencyObject
+        {
+            if (depObj == null) return null;
+
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
+            {
+                var child = VisualTreeHelper.GetChild(depObj, i);
+
+                if (child is T result)
+                    return result;
+
+                var childResult = FindVisualChild<T>(child);
+                if (childResult != null)
+                    return childResult;
+            }
+            return null;
+        }
+
         private void SetProperties()        //метод определения свойств детали
         {
             if (!Part.PropsDict.ContainsKey(100)) return;

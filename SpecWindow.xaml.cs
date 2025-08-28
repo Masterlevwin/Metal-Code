@@ -1,4 +1,5 @@
-﻿using QuestPDF.Fluent;
+﻿using ACadSharp.Tables;
+using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System;
@@ -183,14 +184,41 @@ namespace Metal_Code
                         content.Item().ShowEntire().Row(row =>
                         {
                             // Поставщик
-                            row.RelativeItem().PaddingHorizontal(50).Column(left =>
+                            row.RelativeItem().Column(left =>
                             {
                                 left.Item().Text("ПОСТАВЩИК").Bold();
                                 left.Item().Text(CurrentTemplate.Provider);
 
-                                // Место для подписи
-                                left.Item().PaddingVertical(20).LineHorizontal(1).LineColor(Colors.Black);
-                                left.Item().Text("/ Мешеронова М.С.").AlignRight();
+                                left.Item().Layers(layers =>
+                                {
+                                    layers.PrimaryLayer().Height(120);
+
+                                    layers.Layer().Column(column =>
+                                    {
+                                        column.Item().Row(row =>
+                                        {
+                                            row.ConstantItem(30);
+                                            row.ConstantItem(120).Image(Path.Combine("Images", "print1.jpg")).FitWidth();
+                                        });
+                                    });
+
+                                    layers.Layer().Column(column =>
+                                    {
+                                        column.Item().Row(row =>
+                                        {
+                                            row.ConstantItem(40).Image(Path.Combine("Images", "signature1.jpg")).FitWidth();
+
+                                            row.RelativeItem();
+
+                                            row.RelativeItem().AlignBottom().Text("/ Мешеронова М.С.");
+                                        });
+
+                                        column.Item().Row(row =>
+                                        {
+                                            row.RelativeItem().AlignTop().LineHorizontal(1).LineColor(Colors.Black);
+                                        });
+                                    });
+                                });
                             });
 
                             // Покупатель
@@ -199,9 +227,14 @@ namespace Metal_Code
                                 right.Item().Text("ПОКУПАТЕЛЬ").Bold();
                                 right.Item().Text($"{Agent.Text} {TargetCustomer.Name}");
 
-                                // Место для подписи
-                                right.Item().PaddingVertical(20).LineHorizontal(1).LineColor(Colors.Black);
-                                right.Item().Text($"/ {CurrentTemplate.Buyer}").AlignRight();
+                                right.Item().PaddingVertical(20).Row(row =>
+                                {
+                                    // Линия
+                                    row.RelativeItem().AlignBottom().LineHorizontal(1).LineColor(Colors.Black);
+
+                                    // Текст подписи
+                                    row.RelativeItem().AlignBottom().Text($"/ {CurrentTemplate.Buyer}");
+                                });
                             });
                         });
                     });  
@@ -438,7 +471,7 @@ namespace Metal_Code
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
-        private string header = "Приложение № 1 к договору поставки № 282-04/25 от «10» апреля 2025 г.";
+        private string header = "Приложение № 1 к договору поставки №";
         public string Header
         {
             get => header;
