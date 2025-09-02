@@ -180,7 +180,7 @@
                         <Button ToolTip="Обновить (F5)" Command="{Binding UpdateCommand}" Padding="0" BorderThickness="0" Margin="20,0,0,0">
                             <Image Source="/Images/update4.png"/>
                         </Button>
-                        <TextBox x:Name="ResultTB" Text="{Binding Result, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" AllowDrop="False" FontSize="14" BorderThickness="0" ToolTip="Общая стоимость расчета" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" MouseEnter="UpdateResult" Margin="10,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="50" IsReadOnly="True"/>
+                        <TextBox x:Name="ResultTB" Text="{Binding Result, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" AllowDrop="False" FontSize="14" BorderThickness="0" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Margin="10,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="50" IsReadOnly="True" MouseEnter="Show_Details"/>
                     </StackPanel>
                 </GroupBox.Header>
 
@@ -189,6 +189,14 @@
                 </ScrollViewer>
             </GroupBox>
 
+            <Popup x:Name="Popup" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Scroll" StaysOpen="False">
+                <Border BorderThickness="1" CornerRadius="1" BorderBrush="Red">
+                    <StackPanel Background="Snow">
+                        <TextBlock x:Name="Details" TextAlignment="Center" Padding="5"/>
+                    </StackPanel>
+                </Border>
+            </Popup>
+            
             <GroupBox x:Name="PartsBox" Grid.Row="2" Margin="5">
                 <GroupBox.Header>
                     <StackPanel Orientation="Horizontal" MinHeight="22" MaxHeight="22">

@@ -606,7 +606,7 @@ namespace Metal_Code
                 requestsheet.Cells[i + 3, 2].Value = TechItems[i].NumberName;
                 requestsheet.Cells[i + 3, 3].Value = TechItems[i].Sizes;
                 requestsheet.Cells[i + 3, 4].Value = TechItems[i].Material;
-                requestsheet.Cells[i + 3, 5].Value = TechItems[i].Destiny;
+                requestsheet.Cells[i + 3, 5].Value = NormalizeSeparator(TechItems[i].Destiny);
                 requestsheet.Cells[i + 3, 6].Value = TechItems[i].Count;
                 requestsheet.Cells[i + 3, 7].Value = TechItems[i].Route;
                 requestsheet.Cells[i + 3, 8].Value = TechItems[i].HasMaterial;
@@ -651,6 +651,11 @@ namespace Metal_Code
             }
 
             MainWindow.M.StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(Paths[0])}");
+        }
+
+        public static string? NormalizeSeparator(string input)
+        {
+            return input?.Replace('х', 'x').Replace('Х', 'X'); // заменяем кириллические на латинские
         }
 
         //-----подготовка папок в работу-----//

@@ -928,6 +928,18 @@ namespace Metal_Code
             DateProduction.Text = $"{workSorted.Count() * 5}";
         }
 
+        private void Show_Details(object sender, MouseEventArgs e)
+        {
+            UpdateResult();
+
+            if (Result <= 0) return;
+
+            Popup.IsOpen = true;
+
+            Details.Text = $"Общая стоимость материала - {Math.Ceiling(GetMetalPrice()):N0} руб.\n" +
+                $"Общая стоимость услуг - {Math.Ceiling(GetServices()):N0} руб.";
+        }
+
         //-----------Формирование списка нарезанных деталей-------//
         public ObservableCollection<Part> Parts = new();
         public ObservableCollection<Part> LooseParts = new();
@@ -2284,6 +2296,7 @@ namespace Metal_Code
             worksheet.Cells[row + 1, 2].Value = DetailControls[0].TypeDetailControls[0].HasMetal ? "Исполнителя" : "Заказчика";
             worksheet.Cells[row + 1, 2].Style.Font.Bold = true;
             worksheet.Cells[row + 1, 2, row + 1, 3].Merge = true;
+            
             if (!DetailControls[0].TypeDetailControls[0].HasMetal)
             {
                 worksheet.Cells[row + 1, 4].Value = "Внимание: остатки давальческого материала забираются вместе с заказом, иначе эти остатки утилизируются!";
@@ -3216,7 +3229,7 @@ namespace Metal_Code
             complectsheet.Row(1).Height = 60;
 
             //устанавливаем заголовки таблицы
-            List<string> _heads = new() { "№", "Вид", "Название детали", "Маршрут", "Кол-во", "Размеры детали", "Вес, кг", "Материал", "Толщина", "Факт" };
+            List<string> _heads = new() { "№", "Вид", "Название детали", "Маршрут", "Кол-во", "Размеры детали", "Вес, кг", "Металл", "Толщина", "Факт" };
             for (int head = 0; head < _heads.Count; head++) complectsheet.Cells[2, head + 1].Value = _heads[head];
 
             //параллельно создаем лист с раскладками
@@ -3401,6 +3414,31 @@ namespace Metal_Code
                 }
             }
 
+            // Заголовок легенды
+            complectsheet.Cells[temp + 6, 1].Value = "Легенда цветов:";
+
+            // Определяем цвета и соответствующие статусы
+            var legend = new[]
+            {  
+                (System.Drawing.Color.Green, "Отгружено"),
+                (System.Drawing.Color.Yellow, "Доработка"),  
+                (System.Drawing.Color.Orange, "Не хватает"),   
+                (System.Drawing.Color.Red, "Не вырезано"),  
+            };
+
+            foreach (var (color, status) in legend)
+            {
+                // Ячейка с заливкой цвета
+                complectsheet.Cells[temp + 6, 2].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                complectsheet.Cells[temp + 6, 2].Style.Fill.BackgroundColor.SetColor(color);
+                complectsheet.Cells[temp + 6, 2].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+
+                // Текст статуса рядом
+                complectsheet.Cells[temp + 6, 3].Value = status;
+
+                temp++;
+            }
+
             //создаем этикетку
             ExcelWorksheet labelsheet = workbook.Workbook.Worksheets.Add("Этикетка");
             var logo = labelsheet.Drawings.AddPicture("A1", IsLaser ? "laser_logo.jpg" : "app_logo.jpg");  //файлы должны быть в директории bin/Debug...
@@ -3427,6 +3465,146 @@ namespace Metal_Code
 
             //создаем реестр простых задач для Битрикса
             CreateSimpleRegistry(workbook);
+
+            //создаем лист со сборками, если они есть
+            if (isAssemblyOffer)
+            {
+                ExcelWorksheet assemblysheet = workbook.Workbook.Worksheets.Add("Сборки");
+
+                assemblysheet.Cells[1, 1, 1, 3].Merge = true;
+                assemblysheet.Cells[1, 1].Value = offer != null ? offer.Order : Order.Text;     //Номер КП
+                assemblysheet.Cells[1, 1].Style.Font.Size = 60;
+                assemblysheet.Cells[1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+
+                assemblysheet.Cells[1, 4, 1, 9].Merge = true;
+                assemblysheet.Cells[1, 4].Value = CustomerDrop.Text;                            //Компания
+                assemblysheet.Cells[1, 4].Style.Font.Size = 36;
+                assemblysheet.Cells[1, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+
+                //оформляем первую строку
+                assemblysheet.Row(1).Style.Font.Bold = true;
+                assemblysheet.Row(1).Height = 60;
+
+                for (int head = 0; head < _heads.Count - 1; head++)
+                {
+                    assemblysheet.Cells[2, head + 1].Value = _heads[head];
+                    assemblysheet.Cells[2, head + 1, 3, head + 1].Merge = true;
+                    assemblysheet.Cells[2, head + 1, 3, head + 1].Style.WrapText = true;
+                }
+
+                int number = 1, row = 3;
+
+                if (AssemblyWindow.A.Assemblies.Count > 0)
+                {
+                    ExcelRange assemblyRange;
+
+                    foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
+                    {
+                        row++;
+
+                        assemblysheet.Cells[row, 1].Value = number;
+                        assemblysheet.Cells[row, 3].Value = assembly.Title;
+                        assemblysheet.Cells[row, 5].Value = assembly.Count;
+                        assemblysheet.Cells[row, 1, row, 5].Style.Font.Bold = true;
+
+                        number++; row++;
+
+                        for (int p = 0; p < assembly.Particles.Count; p++)
+                        {
+                            Particle particle = assembly.Particles[p];
+                            Part? part = Parts.FirstOrDefault(p => p.Title == particle.Title);
+
+                            if (part is not null)
+                            {
+                                byte[]? bytes = part.ImageBytes;  //получаем изображение детали, если оно есть
+                                if (bytes is not null)
+                                {
+                                    Stream? stream = new MemoryStream(bytes);
+                                    ExcelPicture pic = assemblysheet.Drawings.AddPicture($"{part.Title}-{row}", stream);
+                                    assemblysheet.Row(row).Height = 32;    //увеличиваем высоту строки, чтобы вмещалось изображение
+                                    pic.SetSize(32, 32);
+                                    pic.SetPosition(row - 1, 5, 1, 5);     //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
+                                }
+                                assemblysheet.Cells[row, 3].Value = particle.Title;
+                                assemblysheet.Cells[row, 4].Value = part.Description;
+
+                                //строки с трубами выделяем бледно-розовым цветом
+                                if (part.Description != null && part.Description.Contains('Т')) assemblysheet.Cells[row, 1, row, 9].Style.Fill.SetBackground(System.Drawing.Color.Linen);
+
+                                assemblysheet.Cells[row, 5].Value = particle.Count;
+                                assemblysheet.Cells[row, 5].Style.Font.Bold = true;
+                                assemblysheet.Cells[row, 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+
+                                assemblysheet.Cells[row, 6].Value = part.Accuracy;
+                                assemblysheet.Cells[row, 7].Value = Math.Ceiling(part.Mass);
+                                assemblysheet.Cells[row, 8].Value = part.Metal;
+                                assemblysheet.Cells[row, 9].Value = part.Destiny;
+                            }
+
+                            row++;
+                        }
+
+                        assemblysheet.Cells[row, 1, row, 9].Merge = true;                    
+                        assemblyRange = assemblysheet.Cells[row - assembly.Particles.Count - 1, 1, row, 9];
+                        assemblyRange.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+                    }
+                }
+
+                assemblysheet.Cells[row + 2, 1].Value = "Зачистка деталей";
+                assemblysheet.Cells[row + 2, 1, row + 2, 2].Merge = true;
+                assemblysheet.Cells[row + 2, 3].Value = "(по необходимости / требованию)";
+                assemblysheet.Cells[row + 2, 3].Style.Font.Bold = true;
+                assemblysheet.Cells[row + 2, 3, row + 2, 9].Merge = true;
+
+                assemblysheet.Cells[row + 3, 1].Value = "Расшифровка: ";
+                assemblysheet.Cells[row + 3, 1, row + 3, 2].Merge = true;
+                var descriptionCell = assemblysheet.Cells[row + 3, 3];
+                var foundOperations = new HashSet<string>(); // Уникальные операции
+
+                // Словарь: ключ (символ или строка) -> расшифровка
+                var operations = new Dictionary<string, string>
+    {
+        { "Л", "Л - Лазер " },
+        { "Б", "Б - Без лазера " },
+        { "Т", "Т - Труборез " },
+        { "Г ", "Г - Гибка " },
+        { "В ", "В - Вальцовка " },
+        { "Р ", "Р - Резьба " },
+        { "З ", "З - Зенковка " },
+        { "Зк ", "Зк - Заклепки " },
+        { "С ", "С - Сверловка " },
+        { "Св ", "Св - Сварка " },
+        { "О ", "О - Окраска " },
+        { "Ц ", "Ц - Цинкование " },
+        { "Ф ", "Ф - Фрезеровка " },
+        { "А ", "А - Аквабластинг " },
+        { "Доп ", "Доп - Дополнительные работы " }
+    };
+
+                // Проходим по ячейкам в столбце 4 (столбец D)
+                for (int r = 4; r <= row + 3; r++)
+                {
+                    var cellValue = assemblysheet.Cells[r, 4].Value?.ToString();
+                    if (string.IsNullOrEmpty(cellValue)) continue;
+
+                    foreach (var op in operations)
+                        if (cellValue.Contains(op.Key) && !foundOperations.Contains(op.Key))
+                            foundOperations.Add(op.Key);
+                }
+
+                // Формируем итоговую строку
+                descriptionCell.Value = string.Join("", foundOperations.Select(k => operations[k]));
+
+                // Объединение ячеек
+                assemblysheet.Cells[row + 3, 3, row + 3, 9].Merge = true;
+
+                ExcelRange assemblies = assemblysheet.Cells[2, 1, row, 9];
+                assemblies.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                assemblies.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                assemblies.Style.Border.Right.Style = assemblies.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                assemblies.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+                assemblysheet.Cells.AutoFitColumns();
+            }
 
             //обводка границ и авторастягивание столбцов
             details.Style.HorizontalAlignment = label.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
