@@ -65,21 +65,33 @@
         <TreeView Grid.Row="2" Margin="20" x:Name="ParticleStack" ItemsSource="{Binding Assemblies}" BorderThickness="0">
             <TreeView.Resources>
                 <HierarchicalDataTemplate DataType="{x:Type self:Assembly}" ItemsSource="{Binding Particles}">
-                    <StackPanel Orientation="Horizontal" MinHeight="20" Margin="10">
+                    <StackPanel Orientation="Horizontal" Margin="5">
                         <Button Click="AddCurrentParts">
                             <StackPanel Orientation="Horizontal" MaxHeight="20">
                                 <Image Source="/Images/assembly.png"/>
-                                <TextBlock Text="Добавить в эту сборку" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Добавить в эту сборку" Margin="5,0,0,0" VerticalAlignment="Center" Padding="4"/>
                             </StackPanel>
                         </Button>
-                        <TextBox Text="{Binding Title}" MinWidth="100" MaxWidth="100" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите наименование сборки" Margin="20,0,0,0"/>
-                        <TextBox Text="{Binding Count}" Margin="10,0,0,0" MinWidth="40" MaxWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите количество сборок" LostFocus="SetAssemblyCount"/>
-                        <Button Content="Х" Click="Remove" ToolTip="Удалить сборку" FontWeight="Bold" FontSize="12" BorderThickness="0" Margin="30,0,0,0"/>
+                        <TextBox Text="{Binding Title}" MinWidth="155" MaxWidth="155" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите наименование сборки" Margin="10,0,0,0"/>
+                        <TextBox Text="{Binding Count}" Margin="15,0,0,0" MinWidth="40" MaxWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите количество сборок" LostFocus="SetAssemblyCount" FontWeight="Bold"/>
+
+                        <Button Content="Х" Click="Remove" ToolTip="Удалить сборку" FontWeight="Bold" FontSize="12" BorderThickness="0" Margin="20,0,0,0"/>
+
+                        <Image Source="/Images/works2.png" MaxWidth="16" Margin="15,0,0,0"/>
+
+                        <TextBlock Text="Свар" FontWeight="Bold" Margin="10,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding Weld}" ToolTip="Введите длину свариваемой поверхности, мм" MinWidth="55" MaxWidth="55" MaxLines="1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                        <ComboBox SelectedItem="{Binding Type}" ItemsSource="{Binding DataContext.Types, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,0,0,0" MinWidth="50" MaxWidth="50" ToolTip="Выберите тип расчета"/>
+
+                        <TextBlock Text="Окр" FontWeight="Bold" Margin="10,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding Ral}" ToolTip="Введите цвет RAL" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="40" MaxWidth="40" MaxLines="1"/>
+                        <ComboBox SelectedItem="{Binding Structure}" ItemsSource="{Binding DataContext.Structures, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,0,0,0" MinWidth="65" MaxWidth="65" ToolTip="Выберите структуру покрытия"/>
+
                     </StackPanel>
                 </HierarchicalDataTemplate>
                 <DataTemplate DataType="{x:Type self:Particle}">
-                    <StackPanel Orientation="Horizontal" MinHeight="20" Margin="2">
-                        <Image Loaded="SetPicture" MaxWidth="20"/>
+                    <StackPanel Orientation="Horizontal" Margin="2">
+                        <Image Loaded="SetPicture" MinWidth="20" MaxWidth="20"/>
                         <TextBlock Text="{Binding Title}" MinWidth="300" MaxWidth="300" Margin="5,0,0,0" VerticalAlignment="Center"/>
                         <TextBox Text="{Binding Count}" MinWidth="40" MaxWidth="40" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                         <Button Content="Х" Click="Remove" ToolTip="Убрать деталь из сборки" FontWeight="Bold" FontSize="12" BorderThickness="0" Margin="20,0,0,0"/>

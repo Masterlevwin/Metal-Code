@@ -54,7 +54,7 @@ namespace Metal_Code
         public void Create_Spec(string outputPath)
         {
             //генерируем имя файла спецификации
-            outputPath = $"{Path.GetDirectoryName(outputPath)}\\{MainWindow.M.Order.Text} {MainWindow.M.CustomerDrop.Text} - спецификация.pdf";
+            outputPath = $"{Path.GetDirectoryName(outputPath)}\\{MainWindow.M.Order.Text} {MainWindow.M.CustomerDrop.Text} - спецификация № {CurrentTemplate.Number}.pdf";
 
             //проверяем, не открыт ли уже такой файл
             outputPath = GetAvailableFilePath(outputPath);
@@ -197,7 +197,7 @@ namespace Metal_Code
                                         column.Item().Row(row =>
                                         {
                                             row.ConstantItem(30);
-                                            row.ConstantItem(120).Image(Path.Combine("Images", "print1.jpg")).FitWidth();
+                                            row.ConstantItem(120).Image(GetImageStream("Metal_Code.Images.print1.jpg")).FitWidth();
                                         });
                                     });
 
@@ -205,7 +205,7 @@ namespace Metal_Code
                                     {
                                         column.Item().Row(row =>
                                         {
-                                            row.ConstantItem(40).Image(Path.Combine("Images", "signature1.jpg")).FitWidth();
+                                            row.ConstantItem(40).Image(GetImageStream("Metal_Code.Images.signature1.jpg")).FitWidth();
 
                                             row.RelativeItem();
 
@@ -329,6 +329,14 @@ namespace Metal_Code
 
             return newFilePath;
         }
+
+        private static Stream GetImageStream(string resourceName)
+        {
+            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+            var stream = assembly.GetManifestResourceStream(resourceName);
+
+            return stream ?? throw new InvalidOperationException($"Ресурс '{resourceName}' не найден. Проверьте имя и действие при сборке.");
+        }
     }
 
     public static class NumberToWordsHelper
@@ -383,22 +391,33 @@ namespace Metal_Code
             // Тысячи
             if (number >= 1_000 && number < 1_000_000 || (number >= 1_000_000 && number % 1_000_000 != 0))
             {
-                int thousands = (number / 1_000) % 1_000; // остаток от деления на миллион
+                int thousands = (number / 1_000) % 1_000;
                 int remainder = number % 1_000;
 
                 if (thousands > 0)
                 {
-                    string thousandsText = ConvertNumberToWords(thousands);
+                    string thousandsText = ConvertNumberToWordsForFeminine(thousands);
 
                     // Склонение "тысяча"
-                    string thousandCase = thousands % 10 == 1 && thousands % 100 != 11 ? "тысяча" :
-                                          (thousands % 10 >= 2 && thousands % 10 <= 4 && (thousands % 100 < 10 || thousands % 100 >= 20)) ? "тысячи" : "тысяч";
+                    string thousandCase;
+                    int t = thousands % 100;
+
+                    if (t == 11 || t == 12 || t == 13 || t == 14)
+                        thousandCase = "тысяч";
+                    else
+                    {
+                        switch (t % 10)
+                        {
+                            case 1: thousandCase = "тысяча"; break;
+                            case 2:
+                            case 3:
+                            case 4: thousandCase = "тысячи"; break;
+                            default: thousandCase = "тысяч"; break;
+                        }
+                    }
 
                     result += $"{thousandsText} {thousandCase}";
-                    if (remainder > 0)
-                    {
-                        result += " ";
-                    }
+                    if (remainder > 0) result += " ";
                 }
                 else if (number >= 1_000 && number % 1_000_000 != 0)
                 {
@@ -443,6 +462,50 @@ namespace Metal_Code
             else if (n > 0)
             {
                 result += units[n];
+            }
+
+            return result.Trim();
+        }
+
+        private static string ConvertNumberToWordsForFeminine(int number)
+        {
+            if (number == 0) return "";
+
+            string[] unitsFem = { "", "одна", "две", "три", "четыре", "пять", "шесть", "семь", "восемь", "девять", "десять",
+                          "одиннадцать", "двенадцать", "тринадцать", "четырнадцать", "пятнадцать", "шестнадцать",
+                          "семнадцать", "восемнадцать", "девятнадцать" };
+
+            string[] tens = { "", "", "двадцать", "тридцать", "сорок", "пятьдесят", "шестьдесят", "семьдесят", "восемьдесят", "девяносто" };
+
+            string[] hundreds = { "", "сто", "двести", "триста", "четыреста", "пятьсот", "шестьсот", "семьсот", "восемьсот", "девятьсот" };
+
+            if (number == 1) return "одна";
+            if (number == 2) return "две";
+
+            string result = "";
+
+            // Сотни
+            if (number >= 100)
+            {
+                result += hundreds[number / 100];
+                number %= 100;
+                if (number > 0) result += " ";
+            }
+
+            // Десятки и единицы
+            if (number >= 20)
+            {
+                result += tens[number / 10];
+                if (number % 10 > 0)
+                {
+                    int digit = number % 10;
+                    if (digit >= 1 && digit <= 9)
+                        result += " " + unitsFem[digit];
+                }
+            }
+            else if (number > 0)
+            {
+                result += unitsFem[number];
             }
 
             return result.Trim();

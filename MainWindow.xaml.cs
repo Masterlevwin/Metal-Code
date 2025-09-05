@@ -2109,6 +2109,8 @@ namespace Metal_Code
             //если выбран формат сборочного КП
             if (isAssemblyOffer)
             {
+                AssemblyWindow.A.CheckAssemblies();
+
                 if (AssemblyWindow.A.Assemblies.Count > 0)
                     foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
                     {
@@ -2126,13 +2128,13 @@ namespace Metal_Code
                             Part? part = Parts.FirstOrDefault(p => p.Title == particle.Title);
                             if (part is not null)
                             {
-                                particle.Price = part.Price * particle.Count;
+                                particle.Price = (float)(part.Price + (assembly.weldPrice + assembly.paintPrice) / assembly.Particles.Sum(p => p.Count));
                                 worksheet.Cells[row, 5].Value = particle.Title;
                                 worksheet.Cells[row, 6].Value = particle.Count * assembly.Count;
                                 row++;
                             }
                         }
-                        assembly.Price = (float)Math.Ceiling(assembly.Particles.Sum(p => p.Price) * Ratio * ((100 + BonusRatio) / 100));
+                        assembly.Price = (float)Math.Ceiling(assembly.Particles.Sum(p => p.Price * p.Count) * Ratio * ((100 + BonusRatio) / 100));
                         assembly.Total = assembly.Price * assembly.Count;
 
                         worksheet.Cells[rowAssembly, 5, rowAssembly, 8].Style.Font.Bold = true;
@@ -2141,8 +2143,6 @@ namespace Metal_Code
                         worksheet.Cells[rowAssembly, 7].Value = assembly.Price;
                         worksheet.Cells[rowAssembly, 8].Value = assembly.Total;
                     }
-
-                AssemblyWindow.A.CheckAssemblies();
 
                 if (Parts.Count > 0)
                     foreach (Part part in Parts)
@@ -3419,11 +3419,11 @@ namespace Metal_Code
 
             // Определяем цвета и соответствующие статусы
             var legend = new[]
-            {  
-                (System.Drawing.Color.Green, "Отгружено"),
-                (System.Drawing.Color.Yellow, "Доработка"),  
-                (System.Drawing.Color.Orange, "Не хватает"),   
-                (System.Drawing.Color.Red, "Не вырезано"),  
+            {
+                (System.Drawing.Color.Green, "Всё хорошо"),
+                (System.Drawing.Color.Yellow, "Не хватает"),
+                (System.Drawing.Color.Orange, "Доп работы"),
+                (System.Drawing.Color.Aqua, "Отгружено")
             };
 
             foreach (var (color, status) in legend)

@@ -1,6 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using Org.BouncyCastle.Math;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -17,6 +21,150 @@ namespace Metal_Code
         public static AssemblyWindow A = new();
         public ObservableCollection<Part> CurrentParts { get; set; } = new();
         public ObservableCollection<Assembly> Assemblies { get; set; } = new();
+        
+        //сварка
+        public string[] Types { get; set; } = { "одн", "дву" };
+        public Dictionary<string, Dictionary<float, float>> WeldDict = new()
+        {
+            ["ст3"] = new Dictionary<float, float>()
+            {
+                [1] = 10,
+                [3] = 8,
+                [10] = 7,
+                [100] = 5
+            },
+            ["09г2с"] = new Dictionary<float, float>()
+            {
+                [1] = 10,
+                [3] = 8,
+                [10] = 7,
+                [100] = 5
+            },
+            ["хк"] = new Dictionary<float, float>()
+            {
+                [1] = 10,
+                [3] = 8,
+                [10] = 7,
+                [100] = 5
+            },
+            ["цинк"] = new Dictionary<float, float>()
+            {
+                [1] = 15,
+                [3] = 12,
+                [10] = 11,
+                [100] = 7
+            },
+            ["aisi430"] = new Dictionary<float, float>()
+            {
+                [1] = 20,
+                [3] = 17,
+                [10] = 15,
+                [100] = 10
+            },
+            ["aisi430шлиф"] = new Dictionary<float, float>()
+            {
+                [1] = 20,
+                [3] = 17,
+                [10] = 15,
+                [100] = 10
+            },
+            ["aisi430зерк"] = new Dictionary<float, float>()
+            {
+                [1] = 20,
+                [3] = 17,
+                [10] = 15,
+                [100] = 10
+            },
+            ["aisi304"] = new Dictionary<float, float>()
+            {
+                [1] = 20,
+                [3] = 17,
+                [10] = 15,
+                [100] = 10
+            },
+            ["aisi304шлиф"] = new Dictionary<float, float>()
+            {
+                [1] = 20,
+                [3] = 17,
+                [10] = 15,
+                [100] = 10
+            },
+            ["aisi304зерк"] = new Dictionary<float, float>()
+            {
+                [1] = 20,
+                [3] = 17,
+                [10] = 15,
+                [100] = 10
+            },
+            ["aisi321"] = new Dictionary<float, float>()
+            {
+                [1] = 20,
+                [3] = 17,
+                [10] = 15,
+                [100] = 10
+            },
+            ["aisi316"] = new Dictionary<float, float>()
+            {
+                [1] = 20,
+                [3] = 17,
+                [10] = 15,
+                [100] = 10
+            },
+            ["aisi201"] = new Dictionary<float, float>()
+            {
+                [1] = 20,
+                [3] = 17,
+                [10] = 15,
+                [100] = 10
+            },
+            ["амг2"] = new Dictionary<float, float>()
+            {
+                [1] = 30,
+                [3] = 27,
+                [10] = 25,
+                [100] = 20
+            },
+            ["амг5"] = new Dictionary<float, float>()
+            {
+                [1] = 30,
+                [3] = 27,
+                [10] = 25,
+                [100] = 20
+            },
+            ["амг6"] = new Dictionary<float, float>()
+            {
+                [1] = 30,
+                [3] = 27,
+                [10] = 25,
+                [100] = 20
+            },
+            ["д16АМ"] = new Dictionary<float, float>()
+            {
+                [1] = 30,
+                [3] = 27,
+                [10] = 25,
+                [100] = 20
+            },
+            ["д16АТ"] = new Dictionary<float, float>()
+            {
+                [1] = 30,
+                [3] = 27,
+                [10] = 25,
+                [100] = 20
+            },
+            ["рифл"] = new Dictionary<float, float>()
+            {
+                [1] = 30,
+                [3] = 27,
+                [10] = 25,
+                [100] = 20
+            }
+        };
+        
+        //окраска
+        public string[] Structures { get; set; } = { "глян", "мат", "шагр", "муар" };
+        public int priceMeter = 500;    //стоимость обработки 1 квадратного метра
+
         public AssemblyWindow()
         {
             InitializeComponent();
@@ -165,6 +313,9 @@ namespace Metal_Code
                     }
                 }
             }
+
+            Set_WorksPrice();
+
             if (!isFakes) report = "Сборки сформированы корректно!";
             return report;
         }
@@ -193,6 +344,112 @@ namespace Metal_Code
                 "Создайте одну или несколько сборок, назовите каждую,\n" +
                 "укажите их количество, и распределите эти детали.\n" +
                 "Проверьте целостность сборок кнопкой \"Проверить сборки\".";
+        }
+
+        private void Set_WorksPrice()
+        {
+            if (Assemblies.Count > 0)
+            {
+                foreach (Assembly assembly in Assemblies)
+                {
+                    if (assembly.Particles.Count == 0) continue;
+                    var part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == assembly.Particles[0].Title);
+
+                    //стоимость сварки
+                    float weld = ParserWeld(assembly.Weld);         //парсим длину шва
+                    if (weld > 0)
+                    {
+                        var sideRatio = weld switch                 //коэф за общую длину шва
+                        {
+                            < 1000 => 1,
+                            < 3000 => 3,
+                            < 10000 => 10,
+                            _ => 100,
+                        };
+
+                        var metal = part?.Metal;    //металл по умолчанию - алгоритм?
+                        if (metal != null && WeldDict.ContainsKey(metal))
+                        {
+                            //коэф "1.5" добавляется за зачистку от сварки, коэф "1.7" - за двустороннюю сварку
+                            assembly.weldPrice = WeldDict[metal][sideRatio] * 1.5f * weld * (assembly.Type == "одн" ? 1 : 1.7f);
+
+                            // стоимость данной работы должна быть не ниже минимальной
+                            foreach (Work w in MainWindow.M.Works)
+                                if (w.Name == "Сварка")
+                                {
+                                    assembly.weldPrice =
+                                        assembly.weldPrice > 0 && assembly.weldPrice < w.Price ?
+                                        w.Price : assembly.weldPrice;
+                                    break;
+                                }
+                        }
+                    }
+
+                    //стоимость окраски
+                    if (string.IsNullOrEmpty(assembly.Ral)) continue;
+
+                    float square = 0, mass = 0, destiny = 0;
+
+                    foreach (Particle particle in assembly.Particles)
+                    {
+                        Part? _part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == particle.Title);
+                        if (_part is not null)
+                        {
+                            if (_part.PropsDict.ContainsKey(100) && _part.PropsDict[100].Count > 2
+                                && float.TryParse($"{new DataTable().Compute(_part.PropsDict[100][2], null)}", out float value))
+                                square += value * particle.Count;
+                        }
+                    }
+
+                    var _square = part?.Way;                         //здесь нужен алгоритм расчета общей площади изделия
+                    if (_square > 0 && _square < .5f) _square = .5f;   //расчетная площадь окраски должна быть не меньше 0,5 кв м
+                    
+                    var _mass = part?.Mass;
+                    float _massRatio = _mass switch                  //рассчитываем наценку за тяжелые детали
+                    {
+                        <= 50 => 1,
+                        <= 100 => 1.5f,
+                        <= 150 => 2,
+                        _ => 3,
+                    };
+
+                    var _destiny = part?.Destiny;
+                    float _destinyRatio = _destiny switch            //рассчитываем наценку за прогрев толщин
+                    {
+                        >= 10 => 1.5f,
+                        >= 8 => 1.4f,
+                        >= 5 => 1.3f,
+                        _ => 1,
+                    };
+
+                    assembly.paintPrice = Math.Ceiling((double)(priceMeter * square * _massRatio * _destinyRatio));
+                    Trace.WriteLine($"{assembly.Title} - weldPrice: {assembly.weldPrice}, paintPrice: {assembly.paintPrice}");
+
+                    // стоимость данной работы должна быть не ниже минимальной
+                    foreach (Work w in MainWindow.M.Works)
+                        if (w.Name == "Окраска")
+                        {
+                            assembly.paintPrice =
+                                assembly.paintPrice > 0 && assembly.paintPrice < w.Price ?
+                                w.Price : assembly.paintPrice;
+                            break;
+                        }
+                }
+            }
+        }
+
+        private static float ParserWeld(string _weld)
+        {
+            try
+            {
+                object result = new DataTable().Compute(_weld, null);
+                if (float.TryParse($"{result}", out float f)) return f / 10;    //возвращаем длину свариваемой поверхности в см
+            }
+            catch
+            {
+                MainWindow.M.StatusBegin("В поле длины свариваемой поверхности должно быть число или математическое выражение");
+            }
+            return 0;
         }
     }
 }

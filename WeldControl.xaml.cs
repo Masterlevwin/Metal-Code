@@ -279,7 +279,7 @@ namespace Metal_Code
             return false;
         }
 
-        private float ParserWeld(string _weld)
+        private static float ParserWeld(string _weld)
         {
             try
             {

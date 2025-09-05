@@ -205,6 +205,72 @@ namespace Metal_Code
         public float Total { get; set; } = 0;
         public ObservableCollection<Particle> Particles { get; set; } = new();
 
+        [OptionalField]
+        private string weld = string.Empty;
+        public string Weld
+        {
+            get => weld;
+            set
+            {
+                if (value != weld)
+                {
+                    weld = value;
+                    OnPropertyChanged(nameof(Weld));
+                }
+            }
+        }
+
+        [OptionalField]
+        private string type = "одн";
+        public string Type
+        {
+            get => type;
+            set
+            {
+                if (value != type)
+                {
+                    type = value;
+                    OnPropertyChanged(nameof(Type));
+                }
+            }
+        }
+
+        [OptionalField]
+        private string ral = string.Empty;
+        public string Ral
+        {
+            get => ral;
+            set
+            {
+                if (value != ral)
+                {
+                    ral = value;
+                    OnPropertyChanged(nameof(Ral));
+                }
+            }
+        }
+
+        [OptionalField]
+        private string structure = "глян";
+        public string Structure
+        {
+            get => structure;
+            set
+            {
+                if (value != structure)
+                {
+                    structure = value;
+                    OnPropertyChanged(nameof(Structure));
+                }
+            }
+        }
+
+        [OptionalField]
+        public double weldPrice = 0;
+
+        [OptionalField]
+        public double paintPrice = 0;
+
         public Assembly() { }
     }
 
