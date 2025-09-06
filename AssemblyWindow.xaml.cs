@@ -355,6 +355,8 @@ namespace Metal_Code
                     if (assembly.Particles.Count == 0) continue;
                     var part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == assembly.Particles[0].Title);
 
+                    assembly.weldPrice = assembly.paintPrice = 0;
+
                     //стоимость сварки
                     float weld = ParserWeld(assembly.Weld);         //парсим длину шва
                     if (weld > 0)
@@ -388,42 +390,25 @@ namespace Metal_Code
                     //стоимость окраски
                     if (string.IsNullOrEmpty(assembly.Ral)) continue;
 
-                    float square = 0, mass = 0, destiny = 0;
+                    float square = 0;
 
                     foreach (Particle particle in assembly.Particles)
                     {
                         Part? _part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == particle.Title);
                         if (_part is not null)
                         {
-                            if (_part.PropsDict.ContainsKey(100) && _part.PropsDict[100].Count > 2
-                                && float.TryParse($"{new DataTable().Compute(_part.PropsDict[100][2], null)}", out float value))
-                                square += value * particle.Count;
+                            if (_part.PropsDict.ContainsKey(100) && _part.PropsDict[100].Count > 2)
+                            {
+                                var width = MainWindow.Parser(_part.PropsDict[100][0]);
+                                var height = MainWindow.Parser(_part.PropsDict[100][1]);
+                                square += width * height * particle.Count / 500_000;
+                            }
                         }
                     }
 
-                    var _square = part?.Way;                         //здесь нужен алгоритм расчета общей площади изделия
-                    if (_square > 0 && _square < .5f) _square = .5f;   //расчетная площадь окраски должна быть не меньше 0,5 кв м
-                    
-                    var _mass = part?.Mass;
-                    float _massRatio = _mass switch                  //рассчитываем наценку за тяжелые детали
-                    {
-                        <= 50 => 1,
-                        <= 100 => 1.5f,
-                        <= 150 => 2,
-                        _ => 3,
-                    };
+                    if (square > 0 && square < 1) square = 1;   //расчетная площадь окраски должна быть не меньше 1 кв м
 
-                    var _destiny = part?.Destiny;
-                    float _destinyRatio = _destiny switch            //рассчитываем наценку за прогрев толщин
-                    {
-                        >= 10 => 1.5f,
-                        >= 8 => 1.4f,
-                        >= 5 => 1.3f,
-                        _ => 1,
-                    };
-
-                    assembly.paintPrice = Math.Ceiling((double)(priceMeter * square * _massRatio * _destinyRatio));
-                    Trace.WriteLine($"{assembly.Title} - weldPrice: {assembly.weldPrice}, paintPrice: {assembly.paintPrice}");
+                    assembly.paintPrice = Math.Ceiling(priceMeter * square);
 
                     // стоимость данной работы должна быть не ниже минимальной
                     foreach (Work w in MainWindow.M.Works)
@@ -434,6 +419,7 @@ namespace Metal_Code
                                 w.Price : assembly.paintPrice;
                             break;
                         }
+                    Trace.WriteLine($"{assembly.Title} - weldPrice: {assembly.weldPrice}, paintPrice: {assembly.paintPrice}");
                 }
             }
         }

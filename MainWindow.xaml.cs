@@ -897,6 +897,10 @@ namespace Metal_Code
 
             foreach (DetailControl d in DetailControls) Result += d.Detail.Total;
 
+            if (AssemblyWindow.A.Assemblies.Count > 0)
+                foreach (var assembly in AssemblyWindow.A.Assemblies)
+                    Result += (float)((assembly.weldPrice + assembly.paintPrice) * assembly.Count);
+
             Result *= Count;
 
             Result += Delivery * DeliveryRatio;
