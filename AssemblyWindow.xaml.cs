@@ -1,10 +1,8 @@
-﻿using Org.BouncyCastle.Math;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -346,7 +344,7 @@ namespace Metal_Code
                 "Проверьте целостность сборок кнопкой \"Проверить сборки\".";
         }
 
-        private void Set_WorksPrice()
+        public void Set_WorksPrice()
         {
             if (Assemblies.Count > 0)
             {
@@ -355,7 +353,7 @@ namespace Metal_Code
                     if (assembly.Particles.Count == 0) continue;
                     var part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == assembly.Particles[0].Title);
 
-                    assembly.weldPrice = assembly.paintPrice = 0;
+                    assembly.WeldPrice = assembly.PaintPrice = assembly.Square = 0;
 
                     //стоимость сварки
                     float weld = ParserWeld(assembly.Weld);         //парсим длину шва
@@ -373,15 +371,15 @@ namespace Metal_Code
                         if (metal != null && WeldDict.ContainsKey(metal))
                         {
                             //коэф "1.5" добавляется за зачистку от сварки, коэф "1.7" - за двустороннюю сварку
-                            assembly.weldPrice = WeldDict[metal][sideRatio] * 1.5f * weld * (assembly.Type == "одн" ? 1 : 1.7f);
+                            assembly.WeldPrice = WeldDict[metal][sideRatio] * 1.5f * weld * (assembly.Type == "одн" ? 1 : 1.7f);
 
                             // стоимость данной работы должна быть не ниже минимальной
                             foreach (Work w in MainWindow.M.Works)
                                 if (w.Name == "Сварка")
                                 {
-                                    assembly.weldPrice =
-                                        assembly.weldPrice > 0 && assembly.weldPrice < w.Price ?
-                                        w.Price : assembly.weldPrice;
+                                    assembly.WeldPrice =
+                                        assembly.WeldPrice > 0 && assembly.WeldPrice < w.Price ?
+                                        w.Price : assembly.WeldPrice;
                                     break;
                                 }
                         }
@@ -389,8 +387,6 @@ namespace Metal_Code
 
                     //стоимость окраски
                     if (string.IsNullOrEmpty(assembly.Ral)) continue;
-
-                    float square = 0;
 
                     foreach (Particle particle in assembly.Particles)
                     {
@@ -401,25 +397,39 @@ namespace Metal_Code
                             {
                                 var width = MainWindow.Parser(_part.PropsDict[100][0]);
                                 var height = MainWindow.Parser(_part.PropsDict[100][1]);
-                                square += width * height * particle.Count / 500_000;
+                                assembly.Square +=
+                                    _part.Mass switch       //рассчитываем наценку за тяжелые детали
+                                    {
+                                        <= 50 => 1,
+                                        <= 100 => 1.5f,
+                                        <= 150 => 2,
+                                        _ => 3,
+                                    }
+                                    * _part.Destiny switch  //рассчитываем наценку за прогрев толщин
+                                    {
+                                        >= 10 => 1.5f,
+                                        >= 8 => 1.4f,
+                                        >= 5 => 1.3f,
+                                        _ => 1,
+                                    }
+                                    * width * height * particle.Count / 500_000;
                             }
                         }
                     }
 
-                    if (square > 0 && square < 1) square = 1;   //расчетная площадь окраски должна быть не меньше 1 кв м
+                    if (assembly.Square > 0 && assembly.Square < 1) assembly.Square = 1;   //расчетная площадь окраски должна быть не меньше 1 кв м
 
-                    assembly.paintPrice = Math.Ceiling(priceMeter * square);
+                    assembly.PaintPrice = (float)Math.Ceiling(priceMeter * assembly.Square);
 
                     // стоимость данной работы должна быть не ниже минимальной
                     foreach (Work w in MainWindow.M.Works)
                         if (w.Name == "Окраска")
                         {
-                            assembly.paintPrice =
-                                assembly.paintPrice > 0 && assembly.paintPrice < w.Price ?
-                                w.Price : assembly.paintPrice;
+                            assembly.PaintPrice =
+                                assembly.PaintPrice > 0 && assembly.PaintPrice < w.Price ?
+                                w.Price : assembly.PaintPrice;
                             break;
                         }
-                    Trace.WriteLine($"{assembly.Title} - weldPrice: {assembly.weldPrice}, paintPrice: {assembly.paintPrice}");
                 }
             }
         }

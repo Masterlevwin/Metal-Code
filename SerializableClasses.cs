@@ -216,6 +216,7 @@ namespace Metal_Code
                 {
                     weld = value;
                     OnPropertyChanged(nameof(Weld));
+                    AssemblyWindow.A.Set_WorksPrice();
                 }
             }
         }
@@ -231,6 +232,7 @@ namespace Metal_Code
                 {
                     type = value;
                     OnPropertyChanged(nameof(Type));
+                    AssemblyWindow.A.Set_WorksPrice();
                 }
             }
         }
@@ -246,6 +248,7 @@ namespace Metal_Code
                 {
                     ral = value;
                     OnPropertyChanged(nameof(Ral));
+                    AssemblyWindow.A.Set_WorksPrice();
                 }
             }
         }
@@ -266,10 +269,49 @@ namespace Metal_Code
         }
 
         [OptionalField]
-        public double weldPrice = 0;
+        private float square = 0;
+        public float Square
+        {
+            get => (float)Math.Round(square, 2);
+            set
+            {
+                if (value != square)
+                {
+                    square = value;
+                    OnPropertyChanged(nameof(Square));
+                }
+            }
+        }
 
         [OptionalField]
-        public double paintPrice = 0;
+        private float weldPrice = 0;
+        public float WeldPrice
+        {
+            get => weldPrice;
+            set
+            {
+                if (value != weldPrice)
+                {
+                    weldPrice = value;
+                    OnPropertyChanged(nameof(WeldPrice));
+                }
+            }
+        }
+
+        [OptionalField]
+        private float paintPrice = 0;
+        public float PaintPrice
+        {
+            get => paintPrice;
+            set
+            {
+                if (value != paintPrice)
+                {
+                    paintPrice = value;
+                    OnPropertyChanged(nameof(PaintPrice));
+                }
+            }
+        }
 
         public Assembly() { }
     }

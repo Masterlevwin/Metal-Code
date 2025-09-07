@@ -6,6 +6,9 @@
         xmlns:self="clr-namespace:Metal_Code"
         mc:Ignorable="d"
         Title="Управление сборками" Closing="HideWindow" WindowStartupLocation="CenterScreen" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" SizeToContent="WidthAndHeight">
+    <Window.Resources>
+        <self:CostConverter x:Key="CostConverter"/>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition MinHeight="200"/>
@@ -72,20 +75,34 @@
                                 <TextBlock Text="Добавить в эту сборку" Margin="5,0,0,0" VerticalAlignment="Center" Padding="4"/>
                             </StackPanel>
                         </Button>
-                        <TextBox Text="{Binding Title}" MinWidth="155" MaxWidth="155" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите наименование сборки" Margin="10,0,0,0"/>
-                        <TextBox Text="{Binding Count}" Margin="15,0,0,0" MinWidth="40" MaxWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите количество сборок" LostFocus="SetAssemblyCount" FontWeight="Bold"/>
+                        <TextBox Text="{Binding Title}" MinWidth="155" MaxWidth="155" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите наименование сборки" Margin="15,0,0,0"/>
+                        <TextBox Text="{Binding Count}" Margin="16,0,0,0" MinWidth="40" MaxWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите количество сборок" LostFocus="SetAssemblyCount" FontWeight="Bold"/>
 
                         <Button Content="Х" Click="Remove" ToolTip="Удалить сборку" FontWeight="Bold" FontSize="12" BorderThickness="0" Margin="20,0,0,0"/>
 
                         <Image Source="/Images/works2.png" MaxWidth="16" Margin="15,0,0,0"/>
 
-                        <TextBlock Text="Свар" FontWeight="Bold" Margin="10,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <TextBox Text="{Binding Weld}" ToolTip="Введите длину свариваемой поверхности, мм" MinWidth="55" MaxWidth="55" MaxLines="1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                        <ComboBox SelectedItem="{Binding Type}" ItemsSource="{Binding DataContext.Types, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,0,0,0" MinWidth="50" MaxWidth="50" ToolTip="Выберите тип расчета"/>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Свар" FontWeight="Bold" Margin="10,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBox Text="{Binding Weld}" ToolTip="Введите длину свариваемой поверхности, мм" MinWidth="55" MaxWidth="55" MaxLines="1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                                <ComboBox SelectedItem="{Binding Type}" ItemsSource="{Binding DataContext.Types, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,0,0,0" MinWidth="50" MaxWidth="50" ToolTip="Выберите тип расчета"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding WeldPrice, Converter={StaticResource CostConverter}}" Margin="10,2,0,0"/>
+                        </StackPanel>
 
-                        <TextBlock Text="Окр" FontWeight="Bold" Margin="10,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        <TextBox Text="{Binding Ral}" ToolTip="Введите цвет RAL" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="40" MaxWidth="40" MaxLines="1"/>
-                        <ComboBox SelectedItem="{Binding Structure}" ItemsSource="{Binding DataContext.Structures, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,0,0,0" MinWidth="65" MaxWidth="65" ToolTip="Выберите структуру покрытия"/>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Окр" FontWeight="Bold" Margin="10,0,0,0" MinWidth="36" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <TextBox Text="{Binding Ral}" ToolTip="Введите цвет RAL" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="40" MaxWidth="40" MaxLines="1"/>
+                                <ComboBox SelectedItem="{Binding Structure}" ItemsSource="{Binding DataContext.Structures, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,0,0,0" MinWidth="65" MaxWidth="65" ToolTip="Выберите структуру покрытия"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding PaintPrice, Converter={StaticResource CostConverter}}" Margin="10,2,0,0"/>
+                                <TextBlock Text="{Binding Square}" Margin="50,2,0,0"/>
+                                <TextBlock Text="кв м" Margin="5,2,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
 
                     </StackPanel>
                 </HierarchicalDataTemplate>

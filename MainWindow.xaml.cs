@@ -899,7 +899,7 @@ namespace Metal_Code
 
             if (AssemblyWindow.A.Assemblies.Count > 0)
                 foreach (var assembly in AssemblyWindow.A.Assemblies)
-                    Result += (float)((assembly.weldPrice + assembly.paintPrice) * assembly.Count);
+                    Result += (float)((assembly.WeldPrice + assembly.PaintPrice) * assembly.Count);
 
             Result *= Count;
 
@@ -2132,7 +2132,7 @@ namespace Metal_Code
                             Part? part = Parts.FirstOrDefault(p => p.Title == particle.Title);
                             if (part is not null)
                             {
-                                particle.Price = (float)(part.Price + (assembly.weldPrice + assembly.paintPrice) / assembly.Particles.Sum(p => p.Count));
+                                particle.Price = (float)(part.Price + (assembly.WeldPrice + assembly.PaintPrice) / assembly.Particles.Sum(p => p.Count));
                                 worksheet.Cells[row, 5].Value = particle.Title;
                                 worksheet.Cells[row, 6].Value = particle.Count * assembly.Count;
                                 row++;
@@ -2513,7 +2513,26 @@ namespace Metal_Code
 
             if (isAssemblyOffer && AssemblyWindow.A.Assemblies.Count > 0)
             {
-                int startRow = AssemblyWindow.A.Assemblies.Count + AssemblyWindow.A.Assemblies.Sum(p => p.Particles.Count);
+                int rowAssembly = 2;
+
+                foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
+                {
+                    scoresheet.Cells[rowAssembly, 8].Value = Math.Round(assembly.WeldPrice, 2);                 //стоимость сварки
+                    scoresheet.Cells[rowAssembly, 9].Value = Math.Round(assembly.PaintPrice, 2);                //стоимость окраски
+                    scoresheet.Cells[rowAssembly, 23].Value = Math.Round(assembly.Square * assembly.Count, 2);  //площадь покрытия
+                    scoresheet.Cells[rowAssembly, 24].Value = $"{assembly.Ral} {assembly.Structure}";           //цвет
+                    scoresheet.Cells[rowAssembly, 25].Value = "П";
+                    rowAssembly += assembly.Particles.Count + 1;
+
+                    //если список работ еще не содержит сварку, создаем такую запись, иначе просто добавляем стоимость
+                    if (!TempWorksDict.ContainsKey("Сварка")) TempWorksDict["Сварка"] = assembly.WeldPrice;
+                    else TempWorksDict["Сварка"] += assembly.WeldPrice;
+
+                    //если список работ еще не содержит окраску в этот цвет, создаем такую запись, иначе просто добавляем стоимость
+                    if (!TempWorksDict.ContainsKey($"Окраска в {assembly.Ral} {assembly.Structure}"))
+                        TempWorksDict[$"Окраска в {assembly.Ral} {assembly.Structure}"] = assembly.PaintPrice;
+                    else TempWorksDict[$"Окраска в {assembly.Ral} {assembly.Structure}"] += assembly.PaintPrice;
+                }
 
                 if (LooseParts.Count > 0)
                 {
@@ -2525,32 +2544,32 @@ namespace Metal_Code
                         {
                             Stream? stream = new MemoryStream(bytes);
                             ExcelPicture pic = scoresheet.Drawings.AddPicture($"{LooseParts[i].Title}", stream);
-                            scoresheet.Row(i + startRow + 2).Height = 32;   //увеличиваем высоту строки, чтобы вмещалось изображение
+                            scoresheet.Row(i + rowAssembly).Height = 32;   //увеличиваем высоту строки, чтобы вмещалось изображение
                             pic.SetSize(32, 32);
-                            pic.SetPosition(i + startRow + 1, 5, 3, 5);     //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
+                            pic.SetPosition(i + rowAssembly - 1, 5, 3, 5);     //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
                         }
 
                         for (int j = 0; j < 20; j++)        //пробегаемся по ключам от 50 до 70, которые зарезервированы под конкретные работы
                             if (LooseParts[i].PropsDict.ContainsKey(j + 50) && float.TryParse(LooseParts[i].PropsDict[j + 50][0], out float value))
                             {
-                                scoresheet.Cells[i + startRow + 2, j + 5].Value = Math.Round(value, 2);
+                                scoresheet.Cells[i + rowAssembly, j + 5].Value = Math.Round(value, 2);
 
                                 //подробности окраски/аква/цинк для каждой детали
                                 if (j == 4 || j == 16 || j == 17)
                                 {
-                                    if (float.TryParse(LooseParts[i].PropsDict[j + 50][1], out float square)) scoresheet.Cells[i + startRow + 2, 23].Value = Math.Round(square, 3);     //площадь покрытия
-                                    if (LooseParts[i].PropsDict[j + 50].Count > 2) scoresheet.Cells[i + startRow + 2, 24].Value = LooseParts[i].PropsDict[j + 50][2];                   //цвет
+                                    if (float.TryParse(LooseParts[i].PropsDict[j + 50][1], out float square)) scoresheet.Cells[i + rowAssembly, 23].Value = Math.Round(square, 3);     //площадь покрытия
+                                    if (LooseParts[i].PropsDict[j + 50].Count > 2) scoresheet.Cells[i + rowAssembly, 24].Value = LooseParts[i].PropsDict[j + 50][2];                   //цвет
                                 }
 
                                 //ставим галочку, если деталь добавлена в работы для Провэлда
-                                if (scoresheet.Cells[i + startRow + 2, 25].Value == null && (j >= 3 && j <= 9 || (j >= 15 && j <= 17))) scoresheet.Cells[i + startRow + 2, 25].Value = "П";
+                                if (scoresheet.Cells[i + rowAssembly, 25].Value == null && (j >= 3 && j <= 9 || (j >= 15 && j <= 17))) scoresheet.Cells[i + rowAssembly, 25].Value = "П";
                             }
 
-                        if (scoresheet.Cells[i + startRow + 2, 25].Value != null && int.TryParse($"{scoresheet.Cells[i + startRow + 2, 2].Value}", out int _c)) countProweld += _c;
+                        if (scoresheet.Cells[i + rowAssembly, 25].Value != null && int.TryParse($"{scoresheet.Cells[i + rowAssembly, 2].Value}", out int _c)) countProweld += _c;
                     }
                 }
 
-                rowStat = startRow + LooseParts.Count;
+                rowStat = rowAssembly + LooseParts.Count - 2;
             }
             else if (Parts.Count > 0)
             {
@@ -2711,7 +2730,7 @@ namespace Metal_Code
             };
             for (int col = 0; col < _headersBitrix.Count; col++) statsheet.Cells[1, col + 7].Value = _headersBitrix[col];
 
-            int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count) + 1;
+            int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count) + 1 + AssemblyWindow.A.Assemblies.Count;
 
             ExcelRange registryBitrix = statsheet.Cells[1, 7, countTypeDetails, 20];
             registryBitrix.Style.Fill.PatternType = ExcelFillStyle.Solid;
@@ -2971,6 +2990,34 @@ namespace Metal_Code
                 beginBitrix += det.TypeDetailControls.Count;
             }
 
+            if (isAssemblyOffer && AssemblyWindow.A.Assemblies.Count > 0)
+            {
+                foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
+                {
+                    if (assembly.WeldPrice == 0 && assembly.PaintPrice == 0) continue;
+
+                    statsheet.Cells[beginBitrix, 8].Value = CustomerDrop.Text;  //"Заказчик"
+                    statsheet.Cells[beginBitrix, 9].Value = ShortManager();     //"Менеджер"
+                    statsheet.Cells[beginBitrix, 10].Value = assembly.Count;    //"Кол-во"
+                    statsheet.Cells[beginBitrix, 19].Value = EndDate();         //"Дата сдачи"
+                    statsheet.Cells[beginBitrix, 19].Style.Numberformat.Format = "d MMM";
+
+                    if (assembly.WeldPrice > 0)         //"Производство"
+                    {
+                        statsheet.Cells[beginBitrix, 15].Value = "Сварка (сборка)";
+                    }
+
+                    if (assembly.PaintPrice > 0)        //"Нанесение покрытий" и "Комментарий"
+                    {
+                        statsheet.Cells[beginBitrix, 16].Value = $"{assembly.Ral} {assembly.Structure}";
+                        statsheet.Cells[beginBitrix, 18].Value +=
+                            $"Окраска в {assembly.Ral} {assembly.Structure} " +
+                            $"({Math.Round(assembly.Square * assembly.Count, 2)} кв м - {assembly.Count} шт) ";
+                    }
+                    beginBitrix++;
+                }
+            }
+
             for (int n = 1; n <= tempNote - 9; n++) notesheet.Cells[n + 8, 1].Value = notesheet.Cells[n + 8, 6].Value = n;
             worksheet.Select();
 
@@ -3041,16 +3088,41 @@ namespace Metal_Code
                         int _count = 0;
                         float _square = 0;
 
-                        for (int i = 0; i < Parts.Count; i++)
+                        if (isAssemblyOffer && AssemblyWindow.A.Assemblies.Count > 0)
                         {
-                            //если в столбце "цвет" не пусто, и данная окраска соответствует по RAL, считаем кол-во и площадь таких деталей
-                            if ($"{scoresheet.Cells[i + 2, 24].Value}" != "" && $"{key[10..]}".Trim() == $"{scoresheet.Cells[i + 2, 24].Value}".Trim())
+                            foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
                             {
-                                _count += (int)Parser($"{scoresheet.Cells[i + 2, 2].Value}");
-                                if (float.TryParse($"{scoresheet.Cells[i + 2, 23].Value}", out float s))
-                                    _square += s * Parser($"{scoresheet.Cells[i + 2, 2].Value}");
+                                //если в столбце "цвет" не пусто, и данная окраска соответствует по RAL, считаем кол-во и площадь таких деталей
+                                if ($"{key}".Trim() == $"Окраска в {assembly.Ral} {assembly.Structure}".Trim())
+                                {
+                                    _count += assembly.Count;
+                                    _square += assembly.Square * assembly.Count;
+                                }
                             }
+
+                            if (LooseParts.Count > 0)
+                                for (int i = 0; i < LooseParts.Count; i++)
+                                {
+                                    //если в столбце "цвет" не пусто, и данная окраска соответствует по RAL, считаем кол-во и площадь таких деталей
+                                    if ($"{scoresheet.Cells[i + rowStat - AssemblyWindow.A.Assemblies.Count, 24].Value}" != "" && $"{key[10..]}".Trim() == $"{scoresheet.Cells[i + rowStat - AssemblyWindow.A.Assemblies.Count, 24].Value}".Trim())
+                                    {
+                                        _count += (int)Parser($"{scoresheet.Cells[i + rowStat - AssemblyWindow.A.Assemblies.Count, 2].Value}");
+                                        if (float.TryParse($"{scoresheet.Cells[i + rowStat - AssemblyWindow.A.Assemblies.Count, 23].Value}", out float s))
+                                            _square += s * Parser($"{scoresheet.Cells[i + rowStat - AssemblyWindow.A.Assemblies.Count, 2].Value}");
+                                    }
+                                }
                         }
+                        else if (Parts.Count > 0)
+                            for (int i = 0; i < Parts.Count; i++)
+                            {
+                                //если в столбце "цвет" не пусто, и данная окраска соответствует по RAL, считаем кол-во и площадь таких деталей
+                                if ($"{scoresheet.Cells[i + 2, 24].Value}" != "" && $"{key[10..]}".Trim() == $"{scoresheet.Cells[i + 2, 24].Value}".Trim())
+                                {
+                                    _count += (int)Parser($"{scoresheet.Cells[i + 2, 2].Value}");
+                                    if (float.TryParse($"{scoresheet.Cells[i + 2, 23].Value}", out float s))
+                                        _square += s * Parser($"{scoresheet.Cells[i + 2, 2].Value}");
+                                }
+                            }
 
                         statsheet.Cells[temp, 17].Value += $"{key[10..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
                         notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{key[10..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
@@ -3072,7 +3144,7 @@ namespace Metal_Code
                 statsheet.Cells[temp, 8].Value = CustomerDrop.Text;                                         //"Компания"
                 statsheet.Cells[temp, 10].Value = ManagerDrop.Text;                                         //"Менеджер"
                 statsheet.Cells[temp, 11].Value = CurrentManager.Name;                                      //"Инженер"
-                statsheet.Cells[temp, 12].Value = Math.Ceiling(sum * 60 / 2000);                             //"Время работ, мин"
+                statsheet.Cells[temp, 12].Value = Math.Ceiling(sum * 60 / 2000);                            //"Время работ, мин"
                 statsheet.Cells[temp, 13].Value = EndDate();                                                //"Дата отгрузки"
                 statsheet.Cells[temp, 13].Style.Numberformat.Format = "dd.mm.yy";
 
@@ -3084,7 +3156,7 @@ namespace Metal_Code
                 if (isAssemblyOffer)
                     statsheet.Cells[temp, 18].Value = LooseParts.Count > 0 ?
                         $"{AssemblyWindow.A.Assemblies.Sum(x => x.Count)} - изделий, " +
-                        $"{scoresheet.Cells[AssemblyWindow.A.Assemblies.Count + LooseParts.Count + 2, 25].Value} - штучных деталей"
+                        $"{scoresheet.Cells[AssemblyWindow.A.Assemblies.Count + AssemblyWindow.A.Assemblies.Sum(p => p.Particles.Count) + LooseParts.Count + 2, 25].Value} - штучных деталей"
                         : $"{AssemblyWindow.A.Assemblies.Sum(x => x.Count)} - изделий";
 
                 statsheet.Cells[temp, 21].Value = Math.Ceiling(sum);                                        //"Стоимость работ"
@@ -3672,7 +3744,7 @@ namespace Metal_Code
             };
             for (int col = 0; col < _headersBitrix.Count; col++) registrysheet.Cells[1, col + 7].Value = _headersBitrix[col];
 
-            int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count) + 1;
+            int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count) + 1 + AssemblyWindow.A.Assemblies.Count;
 
             ExcelRange registryBitrix = registrysheet.Cells[1, 7, countTypeDetails, 20];
             registryBitrix.Style.Fill.SetBackground(System.Drawing.Color.LavenderBlush);
@@ -3768,6 +3840,34 @@ namespace Metal_Code
                     }
                 }
                 beginBitrix += det.TypeDetailControls.Count;
+            }
+
+            if (isAssemblyOffer && AssemblyWindow.A.Assemblies.Count > 0)
+            {
+                foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
+                {
+                    if (assembly.WeldPrice == 0 && assembly.PaintPrice == 0) continue;
+
+                    registrysheet.Cells[beginBitrix, 8].Value = CustomerDrop.Text;  //"Заказчик"
+                    registrysheet.Cells[beginBitrix, 9].Value = ShortManager();     //"Менеджер"
+                    registrysheet.Cells[beginBitrix, 10].Value = assembly.Count;    //"Кол-во"
+                    registrysheet.Cells[beginBitrix, 19].Value = EndDate();         //"Дата сдачи"
+                    registrysheet.Cells[beginBitrix, 19].Style.Numberformat.Format = "d MMM";
+
+                    if (assembly.WeldPrice > 0)         //"Производство"
+                    {
+                        registrysheet.Cells[beginBitrix, 15].Value = "Сварка (сборка)";
+                    }
+
+                    if (assembly.PaintPrice > 0)        //"Нанесение покрытий" и "Комментарий"
+                    {
+                        registrysheet.Cells[beginBitrix, 16].Value = $"{assembly.Ral} {assembly.Structure}";
+                        registrysheet.Cells[beginBitrix, 18].Value +=
+                            $"Окраска в {assembly.Ral} {assembly.Structure} " +
+                            $"({Math.Round(assembly.Square * assembly.Count, 2)} кв м - {assembly.Count} шт) ";
+                    }
+                    beginBitrix++;
+                }
             }
 
             //обводка границ и авторастягивание столбцов
