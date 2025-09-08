@@ -75,7 +75,7 @@
                                 <TextBlock Text="Добавить в эту сборку" Margin="5,0,0,0" VerticalAlignment="Center" Padding="4"/>
                             </StackPanel>
                         </Button>
-                        <TextBox Text="{Binding Title}" MinWidth="155" MaxWidth="155" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите наименование сборки" Margin="15,0,0,0"/>
+                        <TextBox Text="{Binding Title}" MinWidth="155" MaxWidth="155" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите наименование сборки" Margin="10,0,0,0"/>
                         <TextBox Text="{Binding Count}" Margin="16,0,0,0" MinWidth="40" MaxWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите количество сборок" LostFocus="SetAssemblyCount" FontWeight="Bold"/>
 
                         <Button Content="Х" Click="Remove" ToolTip="Удалить сборку" FontWeight="Bold" FontSize="12" BorderThickness="0" Margin="20,0,0,0"/>
