@@ -340,71 +340,72 @@ namespace Metal_Code
             }
         }
 
-        public void PartTitleAnalysis(PartControl part)        //метод анализа наименования детали, для автоматического создания блоков работ
+        public void PartTitleAnalysis(PartControl part)         //метод анализа наименования детали для автоматического создания блоков работ
         {
-            // если в наименовании детали есть скобки...
-            if (part.Part.Title != null && part.Part.Title.Length > 0 && part.Part.Title.Contains('(') && part.Part.Title.Contains(')'))
-            {
-                // ...получаем массив строк, разделенных пробелами, внутри скобок, и добавляем соответствующие блоки работ
-                string[] nameWorks = GetSubstringByString("(", ")", part.Part.Title).ToLower().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                if (nameWorks.Length > 0)
-                    foreach (string str in nameWorks)
+            string? title = part.Part?.Title;
+
+            if (MainWindow.M.TechItems.Count > 0)
+                foreach (TechItem item in MainWindow.M.TechItems)
+                    if (title != null && title.ToLower().Contains(item.NumberName.ToLower()))
                     {
-                        if (str.Contains("гиб"))    // в случае с гибкой дополнительно определяем количество разнотипных гибов
-                        {
-                            // разделяем строку на новый массив, разделенный символом "г"
-                            string[] bends = str.Split(new[] { 'г' }, StringSplitOptions.RemoveEmptyEntries);
-
-                            // если новый массив содержит больше одного элемента, и этот элемент успешно парсится в число...
-                            if (bends.Length > 1 && int.TryParse(bends[0], out int num))
-                                for (int i = 0; i < num; i++) part.AddControl(0);       // ...добавляем такое число блоков гибки
-                            else part.AddControl(0);                                    // иначе просто добавляем один блок гибки
-                        }
-                        else if (str.Contains("рез"))    // в случае с резьбой дополнительно определяем количество разнотипных отверстий
-                        {
-                            // разделяем строку на новый массив, разделенный символом "р"
-                            string[] threads = str.Split(new[] { 'р' }, StringSplitOptions.RemoveEmptyEntries);
-
-                            // если новый массив содержит больше одного элемента, и этот элемент успешно парсится в число...
-                            if (threads.Length > 1 && int.TryParse(threads[0], out int num))
-                                for (int i = 0; i < num; i++) part.AddControl(3);       // ...добавляем такое число блоков резьбы
-                            else part.AddControl(3);                                    // иначе просто добавляем один блок резьбы
-                        }
-                        else if (str.Contains("зен"))    // в случае с зенковкой дополнительно определяем количество разнотипных отверстий
-                        {
-                            // разделяем строку на новый массив, разделенный символом "з"
-                            string[] threads = str.Split(new[] { 'з' }, StringSplitOptions.RemoveEmptyEntries);
-
-                            // если новый массив содержит больше одного элемента, и этот элемент успешно парсится в число...
-                            if (threads.Length > 1 && int.TryParse(threads[0], out int num))
-                                for (int i = 0; i < num; i++) part.AddControl(4);       // ...добавляем такое число блоков зенковки
-                            else part.AddControl(4);                                    // иначе просто добавляем один блок зенковки
-                        }
-                        else if (str.Contains("свер"))    // в случае с сверловкой дополнительно определяем количество разнотипных отверстий
-                        {
-                            // разделяем строку на новый массив, разделенный символом "р"
-                            string[] threads = str.Split(new[] { 'с' }, StringSplitOptions.RemoveEmptyEntries);
-
-                            // если новый массив содержит больше одного элемента, и этот элемент успешно парсится в число...
-                            if (threads.Length > 1 && int.TryParse(threads[0], out int num))
-                                for (int i = 0; i < num; i++) part.AddControl(5);       // ...добавляем такое число блоков сверловки
-                            else part.AddControl(5);                                    // иначе просто добавляем один блок сверловки
-                        }
-
-                        switch (str)                // далее проверяем строку на наличие других работ
-                        {
-                            case "свар":
-                                part.AddControl(1);
-                                break;
-                            case "окр":
-                                part.AddControl(2);
-                                break;
-                            case "вальц":
-                                part.AddControl(6);
-                                break;
-                        }
+                        title = $"({item.Route})";
+                        break;
                     }
+            
+            if (string.IsNullOrWhiteSpace(title) || !title.Contains('(') || !title.Contains(')')) return;
+
+            string content = GetSubstringByString("(", ")", title).ToLower();
+            string[] nameWorks = content.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string str in nameWorks) HandleWorkOperation(str, part);
+        }
+
+        private void HandleWorkOperation(string str, PartControl part)
+        {
+            var operations = new List<(string Key, char? Separator, int ControlType, bool AllowQuantity)>
+            {
+                ("гиб",  'г', 0, true),
+                ("свар", null, 1, false),
+                ("окр",  null, 2, false),
+                ("вальц",null, 6, false),
+                ("оц",   null, 7, false),             
+                ("фрез", null, 8, false),
+                ("аква", null, 10, false),
+                ("рез",  'р', 3, true),
+                ("зен",  'з', 4, true),
+                ("свер", 'с', 5, true),
+                ("зак",  'з', 9, true),
+            };
+
+            string normalized = RemoveLeadingDigits(str);
+
+            foreach (var op in operations)
+            {
+                if (normalized.StartsWith(op.Key))
+                {
+                    if (op.AllowQuantity && op.Separator.HasValue)
+                    {
+                        string[] parts = str.Split(new[] { op.Separator.Value }, StringSplitOptions.RemoveEmptyEntries);
+                        int count = parts.Length > 1 && int.TryParse(parts[0], out int num) ? num : 1;
+                        for (int i = 0; i < count; i++)
+                            part.AddControl(op.ControlType);
+                    }
+                    else
+                    {
+                        part.AddControl(op.ControlType);
+                    }
+                    return;
+                }
             }
+        }
+
+        private static string RemoveLeadingDigits(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return s;
+            int i = 0;
+            while (i < s.Length && char.IsDigit(s[i]))
+                i++;
+            return s.Substring(i);
         }
 
         private void PartsValidate()                            //метод анализа общего пути резки и общего веса деталей

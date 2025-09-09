@@ -1,5 +1,4 @@
 using ExcelDataReader;
-using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -8,6 +7,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Media;
 using Path = System.IO.Path;
@@ -101,81 +101,50 @@ namespace Metal_Code
 
                 string[] extensions = { "pdf", "tiff", "tif", "gpeg", "gpg" };     //основные расширения чертежей
 
-                //сортируем pdf-файлы по папкам работ
-                foreach (var work in works)
-                    if (work.Key != "")
+                // Определяем маппинг: ключевое слово → имя папки
+                var workMappings = new Dictionary<string, string>
+                {
+                    { "гиб", "Гибка" },
+                    { "вальц", "Вальцовка" },
+                    { "фрез", "Фрезеровка" },
+                    { "рез", "Резьба" },
+                    { "зен", "Зенковка" },
+                    { "зак", "Заклепки" },
+                    { "свер", "Сверловка" },
+                    { "свар", "Сварка" },
+                    { "окр", "Окраска" },
+                    { "оц", "Оцинковка" },
+                    { "лен", "Лентопил" },
+                    { "аква", "Аквабластинг" }
+                };
+
+                // Базовый путь — вычисляем один раз
+                string? baseDir = Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile));
+                if (baseDir != null)
+                {
+                    // Сортируем PDF-файлы по папкам работ
+                    foreach (var work in works)
                     {
-                        if (work.Key.ToLower().Contains("гиб"))
-                        {
-                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Гибка");
-                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
-                        }
-                        
-                        if (work.Key.ToLower().Contains("вальц"))
-                        {
-                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Вальцовка");
-                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
-                        }
+                        if (string.IsNullOrWhiteSpace(work.Key)) continue;
 
-                        if (work.Key.ToLower().Contains("фрез"))
-                        {
-                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Фрезеровка");
-                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
-                        }
-                        else if (work.Key.ToLower().Contains("рез"))
-                        {
-                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Резьба");
-                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
-                        }
+                        string keyLower = work.Key.ToLower();
 
-                        if (work.Key.ToLower().Contains("зен"))
+                        // Ищем первое совпадение по ключевому слову
+                        foreach (var mapping in workMappings)
                         {
-                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Зенковка");
-                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
-                        }
+                            if (keyLower.Contains(mapping.Key))
+                            {
+                                string folderName = mapping.Value;
+                                string folderPath = Path.Combine(baseDir, folderName);
+                                DirectoryInfo dirWork = Directory.CreateDirectory(folderPath);
 
-                        if (work.Key.ToLower().Contains("зак"))
-                        {
-                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Заклепки");
-                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
-                        }
-
-                        if (work.Key.ToLower().Contains("свер"))
-                        {
-                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Сверловка");
-                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
-                        }
-
-                        if (work.Key.ToLower().Contains("свар"))
-                        {
-                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Сварка");
-                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
-                        }
-
-                        if (work.Key.ToLower().Contains("окр"))
-                        {
-                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Окраска");
-                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
-                        }
-
-                        if (work.Key.ToLower().Contains("оц"))
-                        {
-                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Оцинковка");
-                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
-                        }
-
-                        if (work.Key.ToLower().Contains("лен"))
-                        {
-                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Лентопил");
-                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
-                        }
-
-                        if (work.Key.ToLower().Contains("аква"))
-                        {
-                            DirectoryInfo dirWork = Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "Аквабластинг");
-                            foreach (string extension in extensions) SortExtension(dirWork, extension.ToLower(), work.Select(t => t).ToList());
+                                var fileList = work.ToList();
+                                foreach (string extension in extensions)
+                                    SortExtension(dirWork, extension.ToLower(), fileList);
+                            }
                         }
                     }
+                }
 
                 if (MainWindow.M.TechItems.Count > 0) MainWindow.M.TechItems.Clear();
                 MainWindow.M.TechItems = TechItems;
@@ -289,7 +258,7 @@ namespace Metal_Code
 
                             string destination = $"{techItem.Route}" == "" ?
                                 dirMain + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count}{extension}"
-                                : dirMain + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route}){extension}";
+                                : dirMain + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({Regex.Replace(techItem.Route, @"\b\d+", "")}){extension}";
 
                             //если файла с таким названием еще нет, просто копируем его
                             if (!File.Exists(destination)) File.Copy(techItem.PathToModel, destination);
@@ -304,7 +273,7 @@ namespace Metal_Code
                                     count++;
                                     destination = $"{techItem.Route}" == "" ?
                                     dirMain + $"{techItem.NumberName}_{count} {techItem.Material} {techItem.Destiny} n{techItem.Count}{extension}"
-                                    : dirMain + $"{techItem.NumberName}_{count} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({techItem.Route}){extension}";
+                                    : dirMain + $"{techItem.NumberName}_{count} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({Regex.Replace(techItem.Route, @"\b\d+", "")}){extension}";
                                 }
 
                                 File.Copy(techItem.PathToModel, destination);

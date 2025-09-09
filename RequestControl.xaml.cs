@@ -557,20 +557,26 @@ namespace Metal_Code
 
 
         //-----создание заявки и подготовка папок одновременно-----//
-        private void Launch_Tech(object sender, RoutedEventArgs e)
-        {
-            Create_Request();
-            Create_Tech();
-        }
+        private void Launch_Tech(object sender, RoutedEventArgs e) { if (Create_Request()) Create_Tech(); }
 
         //-----создание заявки в формате Excel-----//
         private void Create_Request(object sender, RoutedEventArgs e) { Create_Request(); }
-        private void Create_Request()
+        private bool Create_Request()
         {
             if (TechItems.Count == 0)
             {
                 MainWindow.M.StatusBegin("Чтобы создать заявку, запустите анализ файлов.");
-                return;
+                return false;
+            }
+
+            if (Directory.Exists(Path.GetDirectoryName(Paths[0])))
+            {
+                var baseDir = Directory.GetParent(Paths[0]);
+                if (baseDir != null && !baseDir.Name.Contains("ТЗ", StringComparison.OrdinalIgnoreCase))
+                {
+                    MainWindow.M.StatusBegin("Папка с моделями, в которой будет создана заявка, должна называться \"ТЗ\".");
+                    return false;
+                }
             }
 
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
@@ -651,6 +657,7 @@ namespace Metal_Code
             }
 
             MainWindow.M.StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(Paths[0])}");
+            return true;
         }
 
         public static string? NormalizeSeparator(string input)

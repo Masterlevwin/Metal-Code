@@ -3787,6 +3787,7 @@ namespace Metal_Code
                             //"Толщина и марка металла"
                             string description = "";
                             if ((type.MetalDrop.Text.Contains("ст") && type.S >= 3) || (type.MetalDrop.Text.Contains("хк") && type.S < 3)) description = $"s{type.S}";
+                            else if (type.MetalDrop.Text.Contains("ст") && type.S < 3) description = $"s{type.S} гк";
                             else if (type.MetalDrop.Text.Contains("амг2")) description = $"al{type.S}";
                             else if (type.MetalDrop.Text.Contains("амг") || type.MetalDrop.Text.Contains("д16")) description = $"al{type.S} {type.MetalDrop.Text}";
                             else if (type.MetalDrop.Text.Contains("латунь")) description = $"br{type.S}";

@@ -75,12 +75,12 @@ namespace Metal_Code
                                 columns.RelativeColumn(40);  // Материал
                                 columns.RelativeColumn(30);  // Толщина
                                 columns.RelativeColumn(30);  // Работы
-                                columns.RelativeColumn(30);  // Размеры
+                                columns.RelativeColumn(35);  // Размеры
                                 columns.RelativeColumn(20);  // №
                                 columns.RelativeColumn(80);  // Наименование
                                 columns.RelativeColumn(25);  // Кол-во
-                                columns.RelativeColumn(35);  // Цена
-                                columns.RelativeColumn(35);  // Стоимость
+                                columns.RelativeColumn(30);  // Цена
+                                columns.RelativeColumn(40);  // Стоимость
                             });
 
                             // Заголовок таблицы

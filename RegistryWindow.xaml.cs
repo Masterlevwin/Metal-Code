@@ -178,6 +178,8 @@ namespace Metal_Code
                 else if (propertyName.Contains("Нанесение покрытий"))
                     Details.Text = $"Укажите цвет и структуру окраски\n" +
                         $"или \"БП\", если окраска не нужна.";
+                else if (propertyName.Contains("Комментарий"))
+                    Details.Text = $"Добавьте комментарий при необходимости.";
             }
         }
     }
@@ -347,7 +349,6 @@ namespace Metal_Code
         }
 
         private string comment = string.Empty;
-        [Browsable(false)]
         public string Comment
         {
             get => comment;
