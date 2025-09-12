@@ -627,6 +627,23 @@ namespace Metal_Code
                             else if (Comment != null && Comment.Contains(" Азот")) SetComment(Comment.Replace(" Азот!", ""));
                         }
                         break;
+                    case "кром":
+                        if (Comment is null || Comment == "")
+                        {
+                            SetComment(" Или зачистка кромки!");
+                            btn.Background = Brushes.PaleGreen;
+                        }
+                        else if (Comment != null && !Comment.Contains(" Или зачистка кромки!"))
+                        {
+                            SetComment(Comment.Insert(Comment.Length, " Или зачистка кромки!"));
+                            btn.Background = Brushes.PaleGreen;
+                        }
+                        else if (Comment != null && Comment.Contains(" Или зачистка кромки!"))
+                        {
+                            SetComment(Comment.Replace(" Или зачистка кромки!", ""));
+                            btn.Background = Brushes.White;
+                        }
+                        break;
                     case "шлиф":
                         if (Comment is null || Comment == "")
                         {
@@ -638,7 +655,7 @@ namespace Metal_Code
                             SetComment(Comment.Insert(Comment.Length, " Внимание на направление шлифовки!"));
                             btn.Background = Brushes.PaleGreen;
                         }
-                        else if (Comment != null && Comment.Contains(" Внимание на направление шлифовки"))
+                        else if (Comment != null && Comment.Contains(" Внимание на направление шлифовки!"))
                         {
                             SetComment(Comment.Replace(" Внимание на направление шлифовки!", ""));
                             btn.Background = Brushes.White;

@@ -49,6 +49,7 @@
                         <TextBox Text="{Binding Comment}" TextChanged="SetComment" MinWidth="200" MaxWidth="200" MinHeight="40" MinLines="2" Margin="0,0,5,0" TextWrapping="Wrap"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,5,0">
                             <Button Content="азот" Margin="2" Padding="2" FontSize="10" Click="AddInfoToComment"/>
+                            <Button Content="кром" Margin="2" Padding="2" FontSize="10" Click="AddInfoToComment"/>
                             <Button Content="шлиф" Margin="2" Padding="2" FontSize="10" Click="AddInfoToComment"/>
                         </StackPanel>
                     </StackPanel>
