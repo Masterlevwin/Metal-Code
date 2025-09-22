@@ -3,8 +3,13 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Metal_Code"
         x:Class="Metal_Code.ProductWindow"
-        mc:Ignorable="d" WindowStartupLocation="CenterScreen" MinHeight="800" MinWidth="800">
+        mc:Ignorable="d" WindowStartupLocation="CenterScreen" MinHeight="800" MinWidth="800" Loaded="Loaded_Window">
+    <Window.Resources>
+        <local:CostConverter x:Key="CostConverter"/>
+    </Window.Resources>
+    
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition/>
@@ -13,21 +18,59 @@
 
         <GroupBox Header="{Binding ProductName}" Margin="10,10,10,5">
             <Grid>
-                <StackPanel Orientation="Horizontal" MaxHeight="20" Margin="10" VerticalAlignment="Top">
-                    <TextBox Text="{Binding ProductName}" MinWidth="200" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="14" IsReadOnly="True" Margin="10,0,0,0"/>
-                    <TextBlock Text="Общий коэффициент" VerticalAlignment="Center" Margin="50,0,0,0" MinWidth="120"/>
-                    <TextBlock Text="{Binding Ratio}" VerticalAlignment="Center" FontSize="14" FontWeight="Bold" MinWidth="40" Margin="10,0,0,0"/>
-                    <TextBlock Text="Стоимость" VerticalAlignment="Center" Margin="20,0,0,0" MinWidth="60"/>
-                    <TextBlock x:Name="Amount" VerticalAlignment="Center" FontSize="14" FontWeight="Bold" Margin="10,0,0,0" MinWidth="80"/>
+                <StackPanel Orientation="Horizontal" Margin="10" VerticalAlignment="Top">
 
-                    <CheckBox IsChecked="{Binding HasDelivery}" Content="Доставка" ToolTip="v - отдельной строкой в КП, ■ - включена в цены деталей" IsThreeState="True" MinWidth="75" Margin="45,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                    <TextBox IsEnabled="{Binding HasDelivery}" Text="{Binding Delivery}" ToolTip="Цена доставки" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MinWidth="50" Margin="10,0,0,0" IsReadOnly="True"/>
-                    <TextBox IsEnabled="{Binding HasDelivery}" Text="{Binding DeliveryRatio}" ToolTip="Количество доставок" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MaxLines="1" Margin="5,0,0,0" IsReadOnly="True"/>
-                    <TextBlock Text="Конструктор" VerticalAlignment="Center" Margin="20,0,0,0"/>
-                    <CheckBox IsChecked="{Binding HasConstruct}" Content="{Binding Construct}" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsThreeState="True" Margin="10,0,0,0" MinWidth="60"/>
-                    <TextBox Text="{Binding ConstructRatio}" ToolTip="Количество часов" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MinWidth="40" Margin="5,0,0,0" IsReadOnly="True"/>
+                    <Border BorderBrush="Gray" CornerRadius="3" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal" Margin="5">
+                            <TextBlock Text="Общий коэффициент" VerticalAlignment="Center" Padding="2"/>
+                            <TextBlock Text="{Binding Ratio}" FontWeight="Bold" VerticalAlignment="Center" Margin="5,0,0,0" Padding="2"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border BorderBrush="Gray" CornerRadius="3" BorderThickness="1" Margin="20,0,0,0">
+                        <StackPanel Orientation="Horizontal" Margin="5">
+                            <TextBlock Text="Стоимость" VerticalAlignment="Center" Padding="2"/>
+                            <TextBlock Text="{Binding Amount, Converter={StaticResource CostConverter}}" VerticalAlignment="Center" FontSize="14" FontWeight="Bold" Margin="5,0,0,0" Padding="2"/>
+                            <TextBlock Text="{Binding Agent}" VerticalAlignment="Center" Margin="5,0,0,0" Padding="2" Foreground="Blue"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border BorderBrush="Gray" CornerRadius="3" BorderThickness="1" Margin="20,0,0,0">
+                        <StackPanel Orientation="Horizontal" Margin="5">
+                            <CheckBox IsChecked="{Binding HasDelivery}" Content="Доставка" ToolTip="v - отдельной строкой в КП, ■ - включена в цены деталей" IsThreeState="True" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                            <TextBlock Text="{Binding Delivery}" FontWeight="Bold" VerticalAlignment="Center" ToolTip="Цена доставки" Margin="5,0,0,0" Padding="2"/>
+                            <TextBlock Text="х" VerticalAlignment="Center" Margin="5,0,0,0" Padding="2"/>
+                            <TextBlock Text="{Binding DeliveryRatio}" FontWeight="Bold" VerticalAlignment="Center" ToolTip="Количество доставок" Margin="5,0,0,0" Padding="2"/>
+                            <TextBlock Text="шт" VerticalAlignment="Center" Margin="2,0,0,0" Padding="2"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border BorderBrush="Gray" CornerRadius="3" BorderThickness="1" Margin="20,0,0,0">
+                        <StackPanel Orientation="Horizontal" Margin="5">
+                            <CheckBox IsChecked="{Binding HasConstruct}" Content="Конструктор" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsThreeState="True" Margin="5,0,0,0" Padding="2"/>
+                            <TextBlock Text="{Binding Construct, Converter={StaticResource CostConverter}}" FontWeight="Bold" VerticalAlignment="Center" ToolTip="Цена доставки" Margin="5,0,0,0" Padding="2"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border BorderBrush="Gray" CornerRadius="3" BorderThickness="1" Margin="20,0,0,0">
+                        <StackPanel Orientation="Horizontal" Margin="5">
+                            <TextBlock Text="Бонус" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding BonusRatio}" VerticalAlignment="Center" ToolTip="Процент наценки" Margin="5,0,0,0" Padding="2"/>
+                            <TextBlock Text="% -" VerticalAlignment="Center" ToolTip="Процент наценки" Margin="5,0,0,0" Padding="2"/>
+                            <TextBlock Text="{Binding Bonus, Converter={StaticResource CostConverter}}" FontWeight="Bold" VerticalAlignment="Center" Margin="2,0,0,0" Padding="2"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border BorderBrush="Gray" CornerRadius="3" BorderThickness="1" Margin="20,0,0,0">
+                        <StackPanel Orientation="Horizontal" Margin="5">
+                            <TextBlock Text="Срок" VerticalAlignment="Center" Margin="5,0,0,0" Padding="2"/>
+                            <TextBlock Text="{Binding Production}" FontWeight="Bold" VerticalAlignment="Center" Margin="5,0,0,0" Padding="2"/>
+                            <TextBlock Text="раб/дней" VerticalAlignment="Center" Margin="2,0,0,0" Padding="2"/>
+                        </StackPanel>
+                    </Border>
+
                 </StackPanel>
-                <ScrollViewer VerticalAlignment="Top" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Margin="10,40,10,10">
+                <ScrollViewer VerticalAlignment="Top" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Margin="10,50,10,10">
                     <StackPanel x:Name="DetailsStack"/>
                 </ScrollViewer>
             </Grid>

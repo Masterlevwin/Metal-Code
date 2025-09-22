@@ -1,5 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -8,16 +11,34 @@ namespace Metal_Code
     /// <summary>
     /// Логика взаимодействия для ProductWindow.xaml
     /// </summary>
-    public partial class ProductWindow : Window
+    public partial class ProductWindow : Window, INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
         public string ProductName { get; set; } = "Изделие";
         public float Ratio { get; set; } = 1;
+        public float Amount { get; set; } = 0;
+        public string Agent { get; set; } = string.Empty;
         public bool? HasDelivery { get; set; } = false;
         public int Delivery { get; set; } = 0;
         public int DeliveryRatio { get; set; } = 1;
         public bool? HasConstruct { get; set; } = false;
         public float Construct {  get; set; } = 0;
-        public string? ConstructRatio { get; set; }
+        public float BonusRatio { get; set; } = 0;
+
+        private float bonus = 0;
+        public float Bonus
+        {
+            get => bonus;
+            set
+            {
+                bonus = value;
+                OnPropertyChanged(nameof(Bonus));
+            }
+        }
+
+        public string Production { get; set; } = string.Empty;
 
         public Product Product { get; set; } = new();
         public List<PartControl> Parts { get; set; } = new();
@@ -30,13 +51,22 @@ namespace Metal_Code
 
             ProductName = product.Name;
             Ratio = Product.Ratio;
+            Agent = product.IsAgent is true ? "без НДС" : "с НДС";
             HasDelivery = product.HasDelivery;
             Delivery = product.Delivery;
             DeliveryRatio = product.DeliveryRatio;
             HasConstruct = product.HasConstruct;
-            ConstructRatio = product.ConstructRatio;
-            if (ConstructRatio is not null) Construct = MainWindow.Parser(ConstructRatio) * 1500;
+            if (product.ConstructRatio is not null) Construct = MainWindow.Parser(product.ConstructRatio) * 1500;
+            BonusRatio = product.BonusRatio;
+            Production = product.Production;
+
             if (Product.Details.Count > 0) LoadDetails(Product.Details);
+        }
+
+        //-----------Загрузка окна---------------------------------------//
+        private void Loaded_Window(object sender, RoutedEventArgs e)
+        {
+            if (BonusRatio > 0) Bonus = Amount - (Amount / (1 + BonusRatio / 100));
         }
 
         //-----------Загрузка контролов----------------------------------//
@@ -129,10 +159,7 @@ namespace Metal_Code
 
         //-----------Добавление контрола детали--------------------------//
         public List<DetailControl> DetailControls = new();
-        private void AddDetail(object sender, RoutedEventArgs e)
-        {
-            AddDetail();
-        }
+        private void AddDetail(object sender, RoutedEventArgs e) { AddDetail(); }
         public void AddDetail()
         {
             DetailControl detail = new(new());
@@ -142,7 +169,7 @@ namespace Metal_Code
 
             DetailsStack.Children.Add(detail);
 
-            detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
+            detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп заготовки
         }
 
 
@@ -188,5 +215,6 @@ namespace Metal_Code
 
             MainWindow.M.StatusBegin($"Если открытый для чтения расчет больше не требуется, рекомендуется закрыть его окно.");
         }
+
     }
 }

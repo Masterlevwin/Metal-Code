@@ -5275,8 +5275,7 @@ namespace Metal_Code
                     return;
                 }
 
-                ProductWindow clon = new(product) { Title = $"{offer.N}  {offer.Company}" };
-                clon.Amount.Text = $"{offer.Amount} руб";
+                ProductWindow clon = new(product) { Title = $"{offer.N}  {offer.Company}", Amount = offer.Amount };
                 clon.Show();
                 StatusBegin($"Расчет {offer.N} открыт для чтения");
             }
