@@ -344,6 +344,7 @@
                                     <MenuItem Header="Сохранить изменения" Click="UpdateOffer"/>
                                     <MenuItem Header="Запустить в производство" Click="LaunchToWork"/>
                                     <MenuItem Header="Открыть для чтения" Click="OpenOffer"/>
+                                    <MenuItem Header="Объединить в одно КП" Command="{Binding MergeOffersCommand}"/>
                                 </ContextMenu>
                             </DataGrid.ContextMenu>
                         </DataGrid>

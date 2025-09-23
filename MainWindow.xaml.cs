@@ -1883,8 +1883,7 @@ namespace Metal_Code
                                 else TempWorksDict[_work.Name] += work.Result;
                             }
 
-                            SaveWork _saveWork = new(_work.Name, work.Ratio, work.TechRatio);
-                            _saveWork.ExtraResult = work.ExtraResult;
+                            SaveWork _saveWork = new(_work.Name, work.Ratio, work.TechRatio) { ExtraResult = work.ExtraResult };
 
                             if (work.workType is ICut _cut && _cut.PartDetails?.Count > 0)
                             {
@@ -1987,6 +1986,7 @@ namespace Metal_Code
             SetBonusRatio(ProductModel.Product.BonusRatio);
 
             IsLoadData = true;
+            ClearDetails();     // очищаем текущий расчет
             LoadDetails(ProductModel.Product.Details);
             IsLoadData = false;
 
@@ -1995,8 +1995,6 @@ namespace Metal_Code
         }
         public void LoadDetails(ObservableCollection<Detail> details)
         {
-            ClearDetails();   // очищаем текущий расчет
-
             for (int i = 0; i < details.Count; i++)
             {
                 AddDetail();
