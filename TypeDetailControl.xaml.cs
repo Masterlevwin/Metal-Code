@@ -661,6 +661,23 @@ namespace Metal_Code
                             btn.Background = Brushes.White;
                         }
                         break;
+                    case "плен":
+                        if (Comment is null || Comment == "")
+                        {
+                            SetComment(" Пленку не снимать!");
+                            btn.Background = Brushes.PaleGreen;
+                        }
+                        else if (Comment != null && !Comment.Contains(" Пленку не снимать!"))
+                        {
+                            SetComment(Comment.Insert(Comment.Length, " Пленку не снимать!"));
+                            btn.Background = Brushes.PaleGreen;
+                        }
+                        else if (Comment != null && Comment.Contains(" Пленку не снимать!"))
+                        {
+                            SetComment(Comment.Replace(" Пленку не снимать!", ""));
+                            btn.Background = Brushes.White;
+                        }
+                        break;
                 };
         }
     }

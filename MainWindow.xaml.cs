@@ -2131,6 +2131,10 @@ namespace Metal_Code
                             if (part is not null)
                             {
                                 particle.Price = (float)(part.Price + (assembly.WeldPrice + assembly.PaintPrice) / assembly.Particles.Sum(p => p.Count));
+                                worksheet.Cells[row, 1].Value = part.Metal;
+                                worksheet.Cells[row, 2].Value = part.Destiny;
+                                worksheet.Cells[row, 3].Value = part.Description;
+                                worksheet.Cells[row, 4].Value = part.Accuracy;
                                 worksheet.Cells[row, 5].Value = particle.Title;
                                 worksheet.Cells[row, 6].Value = particle.Count * assembly.Count;
                                 row++;
@@ -2155,6 +2159,10 @@ namespace Metal_Code
 
                 if (LooseParts.Count > 0)
                 {
+                    worksheet.Cells[row, 5].Value = "Дополнительные детали:";
+                    worksheet.Cells[row, 5].Style.Font.Bold = true;
+                    row++;
+
                     for (int i = 0; i < LooseParts.Count; i++)
                     {
                         LooseParts[i].Price = (float)Math.Ceiling(LooseParts[i].Price * Ratio * ((100 + BonusRatio) / 100));
@@ -2203,7 +2211,7 @@ namespace Metal_Code
 
             foreach (var cell in worksheet.Cells[8, 5, row + 8, 5])
             {
-                if (cell.Value == null) continue;
+                if (cell.Value == null || $"{cell.Value}" == "Дополнительные детали:") continue;
 
                 string? value = cell.Value.ToString();
 
@@ -2261,6 +2269,7 @@ namespace Metal_Code
             if (HasDelivery is true)                //если требуется указать доставку отдельной строкой
             {
                 worksheet.Cells[row, 5].Value = "Доставка";
+                worksheet.Cells[row, 5].Style.Font.Bold = true;
                 worksheet.Cells[row, 6].Value = DeliveryRatio;
                 worksheet.Cells[row, 7].Value = (float)Math.Ceiling(Delivery * Ratio * ((100 + BonusRatio) / 100));
                 worksheet.Cells[row, 8].Value = (float)Math.Ceiling(DeliveryRatio * Delivery * Ratio * ((100 + BonusRatio) / 100));
@@ -2534,6 +2543,8 @@ namespace Metal_Code
 
                 if (LooseParts.Count > 0)
                 {
+                    rowAssembly++;
+
                     //сначала заполняем ячейки по каждой детали и работе
                     for (int i = 0; i < LooseParts.Count; i++)
                     {
@@ -2541,7 +2552,8 @@ namespace Metal_Code
                         if (bytes is not null)
                         {
                             Stream? stream = new MemoryStream(bytes);
-                            ExcelPicture pic = scoresheet.Drawings.AddPicture($"{LooseParts[i].Title}", stream);
+                            string uniqueName = $"Image_{Guid.NewGuid().ToString("N")[..8]}"; // короткий уникальный ID
+                            ExcelPicture pic = scoresheet.Drawings.AddPicture(uniqueName, stream);
                             scoresheet.Row(i + rowAssembly).Height = 32;   //увеличиваем высоту строки, чтобы вмещалось изображение
                             pic.SetSize(32, 32);
                             pic.SetPosition(i + rowAssembly - 1, 5, 3, 5);     //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
@@ -2578,7 +2590,8 @@ namespace Metal_Code
                     if (bytes is not null)
                     {
                         Stream? stream = new MemoryStream(bytes);
-                        ExcelPicture pic = scoresheet.Drawings.AddPicture($"{Parts[i].Title}", stream);
+                        string uniqueName = $"Image_{Guid.NewGuid().ToString("N")[..8]}"; // короткий уникальный ID
+                        ExcelPicture pic = scoresheet.Drawings.AddPicture(uniqueName, stream);
                         scoresheet.Row(i + 2).Height = 32;          //увеличиваем высоту строки, чтобы вмещалось изображение
                         pic.SetSize(32, 32);
                         pic.SetPosition(i + 1, 5, 3, 5);            //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
@@ -2718,7 +2731,7 @@ namespace Metal_Code
 
             // ----- таблица общих сумм работ, выполняемых подразделениями (Лист2 - "Реестр") -----
 
-            int beginBitrix = 2;
+            int rowTask = 2;
 
             List<string> _headersBitrix = new()
             {
@@ -2727,13 +2740,6 @@ namespace Metal_Code
                 "Логистика", "Комментарий", "Дата сдачи", "Время фрезерных работ"
             };
             for (int col = 0; col < _headersBitrix.Count; col++) statsheet.Cells[1, col + 7].Value = _headersBitrix[col];
-
-            int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count) + 1 + AssemblyWindow.A.Assemblies.Count;
-
-            ExcelRange registryBitrix = statsheet.Cells[1, 7, countTypeDetails, 20];
-            registryBitrix.Style.Fill.PatternType = ExcelFillStyle.Solid;
-            registryBitrix.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LavenderBlush);
-            statsheet.Row(1).Style.Font.Bold = true;
 
             statsheet.Cells[1, 2].Value = "ПРОВЭЛД";
             statsheet.Cells[1, 2, 1, 3].Merge = true;
@@ -2746,13 +2752,13 @@ namespace Metal_Code
 
             if (TempWorksDict.Count > 0) foreach (string key in TempWorksDict.Keys)
                 {
-                    if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key == "Фрезеровка" || key.Contains("(Л)"))
+                    if (TempWorksDict[key] > 0 && (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key == "Фрезеровка" || key.Contains("(Л)")))
                     {
                         statsheet.Cells[3 + las, 4].Value = key;
                         statsheet.Cells[3 + las, 5].Value = Math.Round(TempWorksDict[key], 2);
                         las++;
                     }
-                    else
+                    else if (TempWorksDict[key] > 0)
                     {
                         statsheet.Cells[3 + pr, 2].Value = key;
                         statsheet.Cells[3 + pr, 3].Value = Math.Round(TempWorksDict[key], 2);
@@ -2785,11 +2791,11 @@ namespace Metal_Code
             statsheet.Cells[7 + temp, 2].Value = "Конструкторские работы:";
             statsheet.Cells[7 + temp, 3].Value = Construct;
 
-            temp = 7 + temp >= countTypeDetails + 1 ? 7 + temp : countTypeDetails + 1;
+            int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count) + AssemblyWindow.A.Assemblies.Count;
+            temp = 7 + temp >= countTypeDetails ? 7 + temp : countTypeDetails;
+
 
             // ----- реестр Лазерфлекс (Лист2 - "Реестр") -----
-
-
             int beginL = temp += 3;
 
             List<string> _headersL = new()
@@ -2817,30 +2823,29 @@ namespace Metal_Code
             notesheet.Cells[6, 2].Value = notesheet.Cells[6, 7].Value = CustomerDrop.Text;
             int tempNote = 9;       //строка, с которой начинаем заполнение
 
-
             foreach (DetailControl det in DetailControls)
             {
                 for (int i = 0; i < det.TypeDetailControls.Count; i++)
                 {
                     TypeDetailControl type = det.TypeDetailControls[i];
 
-                    statsheet.Cells[i + temp, 2].Value = statsheet.Cells[i + beginBitrix, 8].Value = CustomerDrop.Text; //"Заказчик"
-                    statsheet.Cells[i + temp, 3].Value = statsheet.Cells[i + beginBitrix, 9].Value = ShortManager();    //"Менеджер"
+                    statsheet.Cells[i + temp, 2].Value = statsheet.Cells[i + rowTask, 8].Value = CustomerDrop.Text; //"Заказчик"
+                    statsheet.Cells[i + temp, 3].Value = statsheet.Cells[i + rowTask, 9].Value = ShortManager();    //"Менеджер"
 
                     if (HasDelivery != false)
                     {
-                        statsheet.Cells[i + temp, 8].Value = statsheet.Cells[i + beginBitrix, 17].Value = "Доставка ";  //"Логистика"
+                        statsheet.Cells[i + temp, 8].Value = statsheet.Cells[i + rowTask, 17].Value = "Доставка ";  //"Логистика"
                     }
 
-                    if (type.CheckMetal.IsChecked == false) statsheet.Cells[i + temp, 10].Value = statsheet.Cells[i + beginBitrix, 18].Value = "Давальч. ";
+                    if (type.CheckMetal.IsChecked == false) statsheet.Cells[i + temp, 10].Value = statsheet.Cells[i + rowTask, 18].Value = "Давальч. ";
                     if (type.Comment != null && type.Comment != "")                                                     //"Комментарий"
                     {
                         statsheet.Cells[i + temp, 10].Value += $"{type.Comment}";
-                        statsheet.Cells[i + beginBitrix, 18].Value += $"{type.Comment}";
+                        statsheet.Cells[i + rowTask, 18].Value += $"{type.Comment}";
                     }
 
-                    statsheet.Cells[i + temp, 11].Value = statsheet.Cells[i + beginBitrix, 19].Value = EndDate();       //"Дата сдачи"
-                    statsheet.Cells[i + temp, 11].Style.Numberformat.Format = statsheet.Cells[i + beginBitrix, 19].Style.Numberformat.Format = "d MMM";
+                    statsheet.Cells[i + temp, 11].Value = statsheet.Cells[i + rowTask, 19].Value = EndDate();       //"Дата сдачи"
+                    statsheet.Cells[i + temp, 11].Style.Numberformat.Format = statsheet.Cells[i + rowTask, 19].Style.Numberformat.Format = "d MMM";
 
                     statsheet.Cells[i + temp, 15].Value = Order.Text;       //"Номер КП"
 
@@ -2858,7 +2863,7 @@ namespace Metal_Code
                             })
                             ) : 0)}р)";
 
-                        statsheet.Cells[i + beginBitrix, 10].Value = _mass; //"Количество материала"
+                        statsheet.Cells[i + rowTask, 10].Value = _mass; //"Количество материала"
                     }
 
                     foreach (WorkControl w in type.WorkControls)            //анализируем работы каждой типовой детали
@@ -2876,10 +2881,10 @@ namespace Metal_Code
                             else if (type.MetalDrop.Text.Contains("медь")) description = $"cu{type.S}";
                             else description = $"s{type.S} {type.MetalDrop.Text}";
 
-                            statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + beginBitrix, 11].Value = description;  //"Лазерные работы"
+                            statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + rowTask, 11].Value = description;  //"Лазерные работы"
 
                             //"Лазер (время работ)"                                 //"Время лазерных работ"
-                            statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
+                            statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + rowTask, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
 
                             if (w.Ratio != 1) _lkk += w.Ratio;
                             if (w.TechRatio > 1) _lpk += w.TechRatio;
@@ -2910,7 +2915,7 @@ namespace Metal_Code
                         {
                             statsheet.Cells[i + temp, 6].Value = "гибка";
                             //"Гибка (время работ)"                                 //"Гибочные работы"
-                            statsheet.Cells[i + temp, 13].Value = statsheet.Cells[i + beginBitrix, 13].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
+                            statsheet.Cells[i + temp, 13].Value = statsheet.Cells[i + rowTask, 13].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
 
                             if (w.Ratio != 1) _bkk += w.Ratio;
                             if (w.TechRatio > 1) _bpk += w.TechRatio;
@@ -2919,9 +2924,9 @@ namespace Metal_Code
                         else if (w.workType is PipeControl pipe)
                         {
                             //"Толщина и марка металла"                             //"Труборез"
-                            statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + beginBitrix, 12].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+                            statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + rowTask, 12].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
                             //"Лазер (время работ)"                                 //"Время лазерных работ"
-                            statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
+                            statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + rowTask, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
 
                             if (type.CheckMetal.IsChecked is not null)     //если материал давальческий, добавляем его в накладную
                             {
@@ -2947,9 +2952,9 @@ namespace Metal_Code
                         else if (w.workType is SawControl _saw)         //для лентопила указываем вид заготовки по аналогии с труборезом
                         {
                             //"Толщина и марка металла"                             //"Труборез"
-                            statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + beginBitrix, 12].Value = $"(ЛП) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+                            statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + rowTask, 12].Value = $"(ЛП) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
                             //"Лазер (время работ)"                                 //"Время лазерных работ"
-                            statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
+                            statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + rowTask, 14].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
 
                             notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({type.L})";
                             notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
@@ -2958,19 +2963,19 @@ namespace Metal_Code
                         else if (w.workType is ExtraControl _extra)     //для доп работы её наименование добавляем к наименованию работы - особый случай
                         {
                             statsheet.Cells[i + temp, 8].Value += $"{_extra.NameExtra} ";
-                            statsheet.Cells[i + beginBitrix, 15].Value += $"{_extra.NameExtra} ";       //"Производство"
+                            statsheet.Cells[i + rowTask, 15].Value += $"{_extra.NameExtra} ";       //"Производство"
                         }
                         else if (w.workType is MillingTotalControl _milling)
                         {
-                            statsheet.Cells[i + beginBitrix, 20].Value = _milling.TotalTime;            //"Время фрезерных работ"
+                            statsheet.Cells[i + rowTask, 20].Value = _milling.TotalTime;            //"Время фрезерных работ"
                         }
                         else if (w.WorkDrop.SelectedItem is Work work)
                         {
                             statsheet.Cells[i + temp, 8].Value += $"{work.Name} ";                      //"Доп работы"
 
                             if (w.workType is PaintControl _paint)                                      //"Нанесение покрытий"
-                                statsheet.Cells[i + beginBitrix, 16].Value += $"{_paint.Ral} {_paint.TypeDrop.SelectedItem} ";
-                            else statsheet.Cells[i + beginBitrix, 15].Value += $"{work.Name} ";         //"Производство"
+                                statsheet.Cells[i + rowTask, 16].Value += $"{_paint.Ral} {_paint.TypeDrop.SelectedItem} ";
+                            else statsheet.Cells[i + rowTask, 15].Value += $"{work.Name} ";         //"Производство"
                         }
 
                         //проверяем наличие коэффициентов
@@ -2985,7 +2990,7 @@ namespace Metal_Code
                     }
                 }
                 temp += det.TypeDetailControls.Count;
-                beginBitrix += det.TypeDetailControls.Count;
+                rowTask += det.TypeDetailControls.Count;
             }
 
             if (isAssemblyOffer && AssemblyWindow.A.Assemblies.Count > 0)
@@ -2994,27 +2999,32 @@ namespace Metal_Code
                 {
                     if (assembly.WeldPrice == 0 && assembly.PaintPrice == 0) continue;
 
-                    statsheet.Cells[beginBitrix, 8].Value = CustomerDrop.Text;  //"Заказчик"
-                    statsheet.Cells[beginBitrix, 9].Value = ShortManager();     //"Менеджер"
-                    statsheet.Cells[beginBitrix, 10].Value = assembly.Count;    //"Кол-во"
-                    statsheet.Cells[beginBitrix, 19].Value = EndDate();         //"Дата сдачи"
-                    statsheet.Cells[beginBitrix, 19].Style.Numberformat.Format = "d MMM";
+                    statsheet.Cells[rowTask, 8].Value = CustomerDrop.Text;  //"Заказчик"
+                    statsheet.Cells[rowTask, 9].Value = ShortManager();     //"Менеджер"
+                    statsheet.Cells[rowTask, 10].Value = assembly.Count;    //"Кол-во"
+                    statsheet.Cells[rowTask, 19].Value = EndDate();         //"Дата сдачи"
+                    statsheet.Cells[rowTask, 19].Style.Numberformat.Format = "d MMM";
 
                     if (assembly.WeldPrice > 0)         //"Производство"
                     {
-                        statsheet.Cells[beginBitrix, 15].Value = "Сварка (сборка)";
+                        statsheet.Cells[rowTask, 15].Value = "Сварка (сборка)";
                     }
 
                     if (assembly.PaintPrice > 0)        //"Нанесение покрытий" и "Комментарий"
                     {
-                        statsheet.Cells[beginBitrix, 16].Value = $"{assembly.Ral} {assembly.Structure}";
-                        statsheet.Cells[beginBitrix, 18].Value +=
+                        statsheet.Cells[rowTask, 16].Value = $"{assembly.Ral} {assembly.Structure}";
+                        statsheet.Cells[rowTask, 18].Value +=
                             $"Окраска в {assembly.Ral} {assembly.Structure} " +
                             $"({Math.Round(assembly.Square * assembly.Count, 2)} кв м - {assembly.Count} шт) ";
                     }
-                    beginBitrix++;
+                    rowTask++;
                 }
             }
+
+            ExcelRange registryBitrix = statsheet.Cells[1, 7, rowTask - 1, 20];
+            registryBitrix.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            registryBitrix.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LavenderBlush);
+            statsheet.Row(1).Style.Font.Bold = true;
 
             for (int n = 1; n <= tempNote - 9; n++) notesheet.Cells[n + 8, 1].Value = notesheet.Cells[n + 8, 6].Value = n;
             worksheet.Select();
@@ -3053,7 +3063,7 @@ namespace Metal_Code
 
                 foreach (string key in TempWorksDict.Keys)
                 {
-                    if (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key == "Фрезеровка" || key.Contains("(Л)")) continue;
+                    if (TempWorksDict[key] == 0 || key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key == "Фрезеровка" || key.Contains("(Л)")) continue;
 
                     if (key.Contains("Цинк"))
                     {
@@ -3331,7 +3341,8 @@ namespace Metal_Code
                                         if (bytes is not null)
                                         {
                                             Stream? stream = new MemoryStream(bytes);
-                                            ExcelPicture pic = complectsheet.Drawings.AddPicture($"{cut.PartDetails[i].Title}", stream);
+                                            string uniqueName = $"Image_{Guid.NewGuid().ToString("N")[..8]}"; // короткий уникальный ID
+                                            ExcelPicture pic = complectsheet.Drawings.AddPicture(uniqueName, stream);
                                             complectsheet.Row(temp + 2).Height = 32;    //увеличиваем высоту строки, чтобы вмещалось изображение
                                             pic.SetSize(32, 32);
                                             pic.SetPosition(temp + 1, 5, 1, 5);         //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
@@ -3382,7 +3393,8 @@ namespace Metal_Code
                                         if (bytes is not null)
                                         {
                                             Stream? stream = new MemoryStream(bytes);
-                                            ExcelPicture pic = itemsheet.Drawings.AddPicture($"{namePic}", stream);
+                                            string uniqueName = $"Image_{Guid.NewGuid().ToString("N")[..8]}"; // короткий уникальный ID
+                                            ExcelPicture pic = itemsheet.Drawings.AddPicture(uniqueName, stream);
                                             itemsheet.Cells[namePic + 1, 1].Value = $"s{type.S} {type.MetalDrop.Text}";
                                             itemsheet.Cells[namePic + 1, 1].Style.TextRotation = 90;
                                             itemsheet.Cells[namePic + 1, 1].Style.Font.Bold = true;
@@ -3541,7 +3553,7 @@ namespace Metal_Code
             CreateSimpleRegistry(workbook);
 
             //создаем лист со сборками, если они есть
-            if (isAssemblyOffer)
+            if (AssemblyWindow.A.Assemblies.Count > 0)
             {
                 ExcelWorksheet assemblysheet = workbook.Workbook.Worksheets.Add("Сборки");
 
@@ -3567,61 +3579,60 @@ namespace Metal_Code
                 }
 
                 int number = 1, row = 3;
+                ExcelRange assemblyRange;
 
-                if (AssemblyWindow.A.Assemblies.Count > 0)
+                foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
                 {
-                    ExcelRange assemblyRange;
+                    row++;
 
-                    foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
+                    assemblysheet.Cells[row, 1].Value = number;
+                    assemblysheet.Cells[row, 3].Value = assembly.Title;
+                    if (assembly.WeldPrice > 0) assemblysheet.Cells[row, 4].Value = "Сварка";
+                    if (assembly.PaintPrice > 0) assemblysheet.Cells[row, 4].Value += $" Окр {assembly.Ral} {assembly.Structure}";
+                    assemblysheet.Cells[row, 5].Value = assembly.Count;
+                    assemblysheet.Cells[row, 1, row, 5].Style.Font.Bold = true;
+
+                    number++; row++;
+
+                    for (int p = 0; p < assembly.Particles.Count; p++)
                     {
-                        row++;
+                        Particle particle = assembly.Particles[p];
+                        Part? part = Parts.FirstOrDefault(p => p.Title == particle.Title);
 
-                        assemblysheet.Cells[row, 1].Value = number;
-                        assemblysheet.Cells[row, 3].Value = assembly.Title;
-                        assemblysheet.Cells[row, 5].Value = assembly.Count;
-                        assemblysheet.Cells[row, 1, row, 5].Style.Font.Bold = true;
-
-                        number++; row++;
-
-                        for (int p = 0; p < assembly.Particles.Count; p++)
+                        if (part is not null)
                         {
-                            Particle particle = assembly.Particles[p];
-                            Part? part = Parts.FirstOrDefault(p => p.Title == particle.Title);
-
-                            if (part is not null)
+                            byte[]? bytes = part.ImageBytes;  //получаем изображение детали, если оно есть
+                            if (bytes is not null)
                             {
-                                byte[]? bytes = part.ImageBytes;  //получаем изображение детали, если оно есть
-                                if (bytes is not null)
-                                {
-                                    Stream? stream = new MemoryStream(bytes);
-                                    ExcelPicture pic = assemblysheet.Drawings.AddPicture($"{part.Title}-{row}", stream);
-                                    assemblysheet.Row(row).Height = 32;    //увеличиваем высоту строки, чтобы вмещалось изображение
-                                    pic.SetSize(32, 32);
-                                    pic.SetPosition(row - 1, 5, 1, 5);     //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
-                                }
-                                assemblysheet.Cells[row, 3].Value = particle.Title;
-                                assemblysheet.Cells[row, 4].Value = part.Description;
-
-                                //строки с трубами выделяем бледно-розовым цветом
-                                if (part.Description != null && part.Description.Contains('Т')) assemblysheet.Cells[row, 1, row, 9].Style.Fill.SetBackground(System.Drawing.Color.Linen);
-
-                                assemblysheet.Cells[row, 5].Value = particle.Count;
-                                assemblysheet.Cells[row, 5].Style.Font.Bold = true;
-                                assemblysheet.Cells[row, 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
-
-                                assemblysheet.Cells[row, 6].Value = part.Accuracy;
-                                assemblysheet.Cells[row, 7].Value = Math.Ceiling(part.Mass);
-                                assemblysheet.Cells[row, 8].Value = part.Metal;
-                                assemblysheet.Cells[row, 9].Value = part.Destiny;
+                                Stream? stream = new MemoryStream(bytes);
+                                string uniqueName = $"Image_{Guid.NewGuid().ToString("N")[..8]}"; // короткий уникальный ID
+                                ExcelPicture pic = assemblysheet.Drawings.AddPicture(uniqueName, stream);
+                                assemblysheet.Row(row).Height = 32;    //увеличиваем высоту строки, чтобы вмещалось изображение
+                                pic.SetSize(32, 32);
+                                pic.SetPosition(row - 1, 5, 1, 5);     //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
                             }
+                            assemblysheet.Cells[row, 3].Value = particle.Title;
+                            assemblysheet.Cells[row, 4].Value = part.Description;
 
-                            row++;
+                            //строки с трубами выделяем бледно-розовым цветом
+                            if (part.Description != null && part.Description.Contains('Т')) assemblysheet.Cells[row, 1, row, 9].Style.Fill.SetBackground(System.Drawing.Color.Linen);
+
+                            assemblysheet.Cells[row, 5].Value = particle.Count;
+                            assemblysheet.Cells[row, 5].Style.Font.Bold = true;
+                            assemblysheet.Cells[row, 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+
+                            assemblysheet.Cells[row, 6].Value = part.Accuracy;
+                            assemblysheet.Cells[row, 7].Value = Math.Ceiling(part.Mass);
+                            assemblysheet.Cells[row, 8].Value = part.Metal;
+                            assemblysheet.Cells[row, 9].Value = part.Destiny;
                         }
 
-                        assemblysheet.Cells[row, 1, row, 9].Merge = true;                    
-                        assemblyRange = assemblysheet.Cells[row - assembly.Particles.Count - 1, 1, row, 9];
-                        assemblyRange.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+                        row++;
                     }
+
+                    assemblysheet.Cells[row, 1, row, 9].Merge = true;
+                    assemblyRange = assemblysheet.Cells[row - assembly.Particles.Count - 1, 1, row, 9];
+                    assemblyRange.Style.Border.BorderAround(ExcelBorderStyle.Medium);
                 }
 
                 assemblysheet.Cells[row + 2, 1].Value = "Зачистка деталей";
@@ -3732,7 +3743,7 @@ namespace Metal_Code
         {
             ExcelWorksheet registrysheet = workbook.Workbook.Worksheets.Add("Реестр");
 
-            int beginBitrix = 2;
+            int rowTask = 2;
 
             List<string> _headersBitrix = new()
             {
@@ -3742,38 +3753,32 @@ namespace Metal_Code
             };
             for (int col = 0; col < _headersBitrix.Count; col++) registrysheet.Cells[1, col + 7].Value = _headersBitrix[col];
 
-            int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count) + 1 + AssemblyWindow.A.Assemblies.Count;
-
-            ExcelRange registryBitrix = registrysheet.Cells[1, 7, countTypeDetails, 20];
-            registryBitrix.Style.Fill.SetBackground(System.Drawing.Color.LavenderBlush);
-            registrysheet.Row(1).Style.Font.Bold = true;
-
             foreach (DetailControl det in DetailControls)
             {
                 for (int i = 0; i < det.TypeDetailControls.Count; i++)
                 {
                     TypeDetailControl type = det.TypeDetailControls[i];
 
-                    registrysheet.Cells[i + beginBitrix, 8].Value = CustomerDrop.Text;  //"Заказчик"
-                    registrysheet.Cells[i + beginBitrix, 9].Value = ShortManager();     //"Менеджер"
+                    registrysheet.Cells[i + rowTask, 8].Value = CustomerDrop.Text;  //"Заказчик"
+                    registrysheet.Cells[i + rowTask, 9].Value = ShortManager();     //"Менеджер"
 
                     if (HasDelivery != false)
-                        registrysheet.Cells[i + beginBitrix, 17].Value = "Доставка ";   //"Логистика"
+                        registrysheet.Cells[i + rowTask, 17].Value = "Доставка ";   //"Логистика"
 
                     if (type.CheckMetal.IsChecked == false)
-                        registrysheet.Cells[i + beginBitrix, 18].Value = "Давальч. ";   //"Комментарий"
+                        registrysheet.Cells[i + rowTask, 18].Value = "Давальч. ";   //"Комментарий"
 
                     if (type.Comment != null && type.Comment != "")
-                        registrysheet.Cells[i + beginBitrix, 18].Value += $"{type.Comment}";                                                     //"Комментарий"
+                        registrysheet.Cells[i + rowTask, 18].Value += $"{type.Comment}";
 
-                    registrysheet.Cells[i + beginBitrix, 19].Value = EndDate();         //"Дата сдачи"
-                    registrysheet.Cells[i + beginBitrix, 19].Style.Numberformat.Format = "d MMM";
+                    registrysheet.Cells[i + rowTask, 19].Value = EndDate();         //"Дата сдачи"
+                    registrysheet.Cells[i + rowTask, 19].Style.Numberformat.Format = "d MMM";
 
                     if (type.MetalDrop.SelectedItem is Metal met)
                     {
                         double _mass = Math.Ceiling(det.Detail.IsComplect ? type.Mass : type.Mass * type.Count);
 
-                        registrysheet.Cells[i + beginBitrix, 10].Value = _mass;         //"Количество материала"
+                        registrysheet.Cells[i + rowTask, 10].Value = _mass;         //"Количество материала"
                     }
 
                     foreach (WorkControl w in type.WorkControls)    //анализируем работы каждой заготовки
@@ -3793,81 +3798,85 @@ namespace Metal_Code
                             else description = $"s{type.S} {type.MetalDrop.Text}";
                             
                             //"Лазерные работы"
-                            registrysheet.Cells[i + beginBitrix, 11].Value = description;
+                            registrysheet.Cells[i + rowTask, 11].Value = description;
 
                             //"Время лазерных работ"
-                            registrysheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
+                            registrysheet.Cells[i + rowTask, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
                         }
                         else if (w.workType is BendControl)
                         {
                             //"Гибочные работы"
-                            registrysheet.Cells[i + beginBitrix, 13].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
+                            registrysheet.Cells[i + rowTask, 13].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
                         }
                         else if (w.workType is PipeControl pipe)
                         {
                             //"Труборез"
-                            registrysheet.Cells[i + beginBitrix, 12].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+                            registrysheet.Cells[i + rowTask, 12].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
                             
                             //"Время лазерных работ"
-                            registrysheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
+                            registrysheet.Cells[i + rowTask, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
                         }
                         else if (w.workType is SawControl _saw)
                         {
                             //"Труборез"
-                            registrysheet.Cells[i + beginBitrix, 12].Value = $"(ЛП) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+                            registrysheet.Cells[i + rowTask, 12].Value = $"(ЛП) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
                             //"Время лазерных работ"
-                            registrysheet.Cells[i + beginBitrix, 14].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
+                            registrysheet.Cells[i + rowTask, 14].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
                         }
                         else if (w.workType is ExtraControl _extra)     //для доп работы её наименование добавляем к наименованию работы - особый случай
                         {
                             //"Производство"
-                            registrysheet.Cells[i + beginBitrix, 15].Value += $"{_extra.NameExtra} ";
+                            registrysheet.Cells[i + rowTask, 15].Value += $"{_extra.NameExtra} ";
                         }
                         else if (w.workType is MillingTotalControl _milling)
                         {
                             //"Время фрезерных работ"
-                            registrysheet.Cells[i + beginBitrix, 20].Value = _milling.TotalTime;     
+                            registrysheet.Cells[i + rowTask, 20].Value = _milling.TotalTime;     
                         }
                         else if (w.WorkDrop.SelectedItem is Work work)
                         {
                             //"Нанесение покрытий"
                             if (w.workType is PaintControl _paint)                                      
-                                registrysheet.Cells[i + beginBitrix, 16].Value += $"{_paint.Ral} {_paint.TypeDrop.SelectedItem} ";
+                                registrysheet.Cells[i + rowTask, 16].Value += $"{_paint.Ral} {_paint.TypeDrop.SelectedItem} ";
                             //"Производство"
-                            else registrysheet.Cells[i + beginBitrix, 15].Value += $"{work.Name} ";
+                            else registrysheet.Cells[i + rowTask, 15].Value += $"{work.Name} ";
                         }
                     }
                 }
-                beginBitrix += det.TypeDetailControls.Count;
+                rowTask += det.TypeDetailControls.Count;
             }
 
-            if (isAssemblyOffer && AssemblyWindow.A.Assemblies.Count > 0)
+            if (AssemblyWindow.A.Assemblies.Count > 0)
             {
                 foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
                 {
                     if (assembly.WeldPrice == 0 && assembly.PaintPrice == 0) continue;
 
-                    registrysheet.Cells[beginBitrix, 8].Value = CustomerDrop.Text;  //"Заказчик"
-                    registrysheet.Cells[beginBitrix, 9].Value = ShortManager();     //"Менеджер"
-                    registrysheet.Cells[beginBitrix, 10].Value = assembly.Count;    //"Кол-во"
-                    registrysheet.Cells[beginBitrix, 19].Value = EndDate();         //"Дата сдачи"
-                    registrysheet.Cells[beginBitrix, 19].Style.Numberformat.Format = "d MMM";
+                    registrysheet.Cells[rowTask, 8].Value = CustomerDrop.Text;  //"Заказчик"
+                    registrysheet.Cells[rowTask, 9].Value = ShortManager();     //"Менеджер"
+                    registrysheet.Cells[rowTask, 10].Value = assembly.Count;    //"Кол-во"
+                    registrysheet.Cells[rowTask, 19].Value = EndDate();         //"Дата сдачи"
+                    registrysheet.Cells[rowTask, 19].Style.Numberformat.Format = "d MMM";
 
                     if (assembly.WeldPrice > 0)         //"Производство"
                     {
-                        registrysheet.Cells[beginBitrix, 15].Value = "Сварка (сборка)";
+                        registrysheet.Cells[rowTask, 15].Value = "Сварка (сборка)";
                     }
 
                     if (assembly.PaintPrice > 0)        //"Нанесение покрытий" и "Комментарий"
                     {
-                        registrysheet.Cells[beginBitrix, 16].Value = $"{assembly.Ral} {assembly.Structure}";
-                        registrysheet.Cells[beginBitrix, 18].Value +=
+                        registrysheet.Cells[rowTask, 16].Value = $"{assembly.Ral} {assembly.Structure}";
+                        registrysheet.Cells[rowTask, 18].Value +=
                             $"Окраска в {assembly.Ral} {assembly.Structure} " +
                             $"({Math.Round(assembly.Square * assembly.Count, 2)} кв м - {assembly.Count} шт) ";
                     }
-                    beginBitrix++;
+                    rowTask++;
                 }
             }
+
+            ExcelRange registryBitrix = registrysheet.Cells[1, 7, rowTask - 1, 20];
+            registryBitrix.Style.Fill.SetBackground(System.Drawing.Color.LavenderBlush);
+            registrysheet.Row(1).Style.Font.Bold = true;
 
             //обводка границ и авторастягивание столбцов
             registryBitrix.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;

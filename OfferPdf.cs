@@ -110,10 +110,7 @@ namespace Metal_Code
                                     {
                                         totalSum += assembly.Total;
 
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
+                                        table.Cell().ColumnSpan(4).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}").Bold();
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(assembly.Title ?? "")).Bold();
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{assembly.Count}").Bold();
@@ -124,11 +121,12 @@ namespace Metal_Code
                                         for (int p = 0; p < assembly.Particles.Count; p++)
                                         {
                                             Particle particle = assembly.Particles[p];
+                                            Part? part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == particle.Title);
 
-                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(particle.Metal);
-                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(particle.Destiny > 0 ? particle.Destiny.ToString() : "");
-                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(particle.Description ?? "");
-                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(particle.Accuracy ?? "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part is not null ? part.Metal : "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part is not null ? part.Destiny.ToString() : "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part is not null ? part.Description : "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part is not null ? part.Accuracy : "");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(particle.Title ?? ""));
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{particle.Count * assembly.Count}");
@@ -139,6 +137,8 @@ namespace Metal_Code
 
                                 if (MainWindow.M.LooseParts.Count > 0)
                                 {
+                                    table.Cell().ColumnSpan(9).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("Дополнительные детали:").Bold();
+
                                     for (int i = 0; i < MainWindow.M.LooseParts.Count; i++)
                                     {
                                         Part loosePart = MainWindow.M.LooseParts[i];
@@ -202,7 +202,7 @@ namespace Metal_Code
                                 totalSum += deliveryTotal;
 
                                 table.Cell().ColumnSpan(5).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
-                                table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("Доставка");
+                                table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("Доставка").Bold();
                                 table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(MainWindow.M.DeliveryRatio.ToString());
                                 table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(delivery.ToString("N2"));
                                 table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(deliveryTotal.ToString("N2"));
@@ -238,7 +238,7 @@ namespace Metal_Code
 
                                 left.Item().PaddingVertical(5).Text($"Расшифровка работ: {descriptionWorks}");
 
-                                left.Item().PaddingVertical(5).Text($"Примечание: {MainWindow.M.Comment.Text}");
+                                left.Item().PaddingVertical(5).Text($"Примечание: {MainWindow.M.Comment.Text}").Bold();
 
                                 left.Item().PaddingVertical(5).Text($"Ваш менеджер: {MainWindow.M.ManagerDrop.Text}");
 

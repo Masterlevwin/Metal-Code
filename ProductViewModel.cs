@@ -200,7 +200,7 @@ namespace Metal_Code
                                   if (Product != null)
                                   {
                                       details.AddRange(Product.Details);    //собираем детали в список
-                                      comment += $"\n{offer.N}";            //собираем номера расчетов
+                                      comment += $" {offer.N};";            //собираем номера расчетов
                                   }
                               }
                           }

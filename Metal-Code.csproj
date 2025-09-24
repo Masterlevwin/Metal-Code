@@ -25,13 +25,16 @@
     <None Remove="Images\comment.png" />
     <None Remove="Images\comment2.png" />
     <None Remove="Images\comment3.png" />
+    <None Remove="Images\compare.png" />
     <None Remove="Images\complect.png" />
     <None Remove="Images\complect2.png" />
     <None Remove="Images\convert.png" />
     <None Remove="Images\del.png" />
     <None Remove="Images\delete.png" />
     <None Remove="Images\delivery.png" />
+    <None Remove="Images\del_offer.png" />
     <None Remove="Images\edit.png" />
+    <None Remove="Images\edit_offer.png" />
     <None Remove="Images\exampe0.png" />
     <None Remove="Images\exampe1.png" />
     <None Remove="Images\exampe2.png" />
@@ -45,6 +48,8 @@
     <None Remove="Images\greenplus.png" />
     <None Remove="Images\lamp.png" />
     <None Remove="Images\list.png" />
+    <None Remove="Images\load.png" />
+    <None Remove="Images\merge.png" />
     <None Remove="Images\metalix.png" />
     <None Remove="Images\model.png" />
     <None Remove="Images\nesting.png" />
@@ -57,6 +62,7 @@
     <None Remove="Images\open2.png" />
     <None Remove="Images\open3.png" />
     <None Remove="Images\open4.png" />
+    <None Remove="Images\order.png" />
     <None Remove="Images\padlock.png" />
     <None Remove="Images\plus.png" />
     <None Remove="Images\preview.png" />
@@ -154,13 +160,16 @@
     <Resource Include="Images\close.png" />
     <Resource Include="Images\comment.png" />
     <Resource Include="Images\comment2.png" />
+    <Resource Include="Images\compare.png" />
     <Resource Include="Images\complect.png" />
     <Resource Include="Images\complect2.png" />
     <Resource Include="Images\convert.png" />
     <Resource Include="Images\del.png" />
     <Resource Include="Images\delete.png" />
     <Resource Include="Images\delivery.png" />
+    <Resource Include="Images\del_offer.png" />
     <Resource Include="Images\edit.png" />
+    <Resource Include="Images\edit_offer.png" />
     <Resource Include="Images\exampe0.png" />
     <Resource Include="Images\exampe1.png" />
     <Resource Include="Images\exampe2.png" />
@@ -174,6 +183,8 @@
     <Resource Include="Images\greenplus.png" />
     <Resource Include="Images\lamp.png" />
     <Resource Include="Images\list.png" />
+    <Resource Include="Images\load.png" />
+    <Resource Include="Images\merge.png" />
     <Resource Include="Images\metalix.png" />
     <Resource Include="Images\model.png" />
     <Resource Include="Images\nesting.png" />
@@ -185,6 +196,7 @@
     <Resource Include="Images\open2.png" />
     <Resource Include="Images\open3.png" />
     <Resource Include="Images\open4.png" />
+    <Resource Include="Images\order.png" />
     <Resource Include="Images\padlock.png" />
     <Resource Include="Images\plus.png" />
     <Resource Include="Images\preview.png" />
