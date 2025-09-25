@@ -1,25 +1,24 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 
 public static class FileSorter
 {
-    // Регулярное выражение для парсинга имён файлов: image_год_месяц_день
-    private static readonly Regex FileNameRegex = new Regex(
-        @"(\d{4})_(\d{1,2})_(\d{1,2})\.",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    // Словарь для преобразования номера месяца в его название на русском
     private static readonly string[] MonthNames = {
         "январь", "февраль", "март", "апрель", "май", "июнь",
         "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"
     };
 
-    /// <summary>
-    /// Сортирует файлы по папкам "год_месяц" на основе имени файла.
-    /// </summary>
-    /// <param name="sourceDirectory">Путь к папке с неотсортированными файлами</param>
+    // Регулярка для имён типа: image_2025_04_06.jpg
+    private static readonly Regex Format1Regex = new Regex(
+        @"^_(\d{4})_(\d{1,2})_(\d{1,2})\.",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    // Регулярка для имён типа: ...20250406..., например: photo_20250406.jpg, IMG_20250406_abc.png
+    private static readonly Regex Format2Regex = new Regex(
+        @"(\d{4})(\d{2})(\d{2})",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     public static void SortFilesByMonth(string sourceDirectory)
     {
         if (!Directory.Exists(sourceDirectory))
@@ -32,54 +31,86 @@ public static class FileSorter
         foreach (var file in files)
         {
             var fileName = Path.GetFileName(file);
-            var match = FileNameRegex.Match(fileName);
+            if (string.IsNullOrEmpty(fileName)) continue;
 
-            if (!match.Success)
+            DateTime? parsedDate = null;
+
+            // Попробуем первый формат: image_YYYY_MM_DD
+            var match1 = Format1Regex.Match(fileName);
+            if (match1.Success)
             {
-                Trace.WriteLine($"Пропущен файл (не соответствует формату): {fileName}");
-                continue; // Пропускаем файлы с неправильным именем
+                if (TryExtractDateFromParts(match1.Groups[1].Value, match1.Groups[2].Value, match1.Groups[3].Value, out DateTime date))
+                {
+                    parsedDate = date;
+                }
+            }
+            else
+            {
+                // Попробуем второй формат: любое имя с 8 цифрами подряд: YYYYMMDD
+                var matches = Format2Regex.Matches(fileName);
+                foreach (Match match in matches)
+                {
+                    string yearStr = match.Groups[1].Value;
+                    string monthStr = match.Groups[2].Value;
+                    string dayStr = match.Groups[3].Value;
+
+                    if (TryExtractDateFromParts(yearStr, monthStr, dayStr, out DateTime date))
+                    {
+                        parsedDate = date;
+                        break; // Нашли первую подходящую дату
+                    }
+                }
             }
 
-            // Извлекаем год и месяц
-            if (!int.TryParse(match.Groups[1].Value, out int year) ||
-                !int.TryParse(match.Groups[3].Value, out int month))
+            if (!parsedDate.HasValue)
             {
-                Trace.WriteLine($"Не удалось распарсить дату из имени: {fileName}");
+                Console.WriteLine($"Пропущен файл (не удалось извлечь дату): {fileName}");
                 continue;
             }
 
-            // Проверяем корректность даты
-            if (year < 1900 || year > 2100 || month < 1 || month > 12)
-            {
-                Trace.WriteLine($"Некорректная дата в имени файла: {fileName}");
-                continue;
-            }
-
-            // Получаем название месяца (учитываем, что массив индексируется с 0)
+            int year = parsedDate.Value.Year;
+            int month = parsedDate.Value.Month;
             string monthName = MonthNames[month - 1];
-
-            // Формируем имя папки: "2023_октябрь"
             string targetFolderName = $"{year:D4}_{monthName}";
             string targetFolderPath = Path.Combine(sourceDirectory, targetFolderName);
 
-            // Создаём папку, если её нет
             Directory.CreateDirectory(targetFolderPath);
 
-            // Формируем путь копирования
             string destinationFile = Path.Combine(targetFolderPath, fileName);
 
             try
             {
-                // Копируем файл (если уже есть — перезаписываем)
                 File.Copy(file, destinationFile, true);
-                Trace.WriteLine($"Файл скопирован: {fileName} -> {targetFolderName}");
+                Console.WriteLine($"Файл скопирован: {fileName} → {targetFolderName}");
             }
             catch (Exception ex)
             {
-                Trace.WriteLine($"Ошибка при копировании файла {fileName}: {ex.Message}");
+                Console.WriteLine($"Ошибка при копировании файла {fileName}: {ex.Message}");
             }
         }
 
-        Trace.WriteLine("Сортировка завершена.");
+        Console.WriteLine("Сортировка завершена.");
+    }
+
+    // Вспомогательный метод: проверяет, является ли тройка год/месяц/день корректной датой
+    private static bool TryExtractDateFromParts(string yearStr, string monthStr, string dayStr, out DateTime result)
+    {
+        result = default;
+
+        if (!int.TryParse(yearStr, out int year) ||
+            !int.TryParse(monthStr, out int month) ||
+            !int.TryParse(dayStr, out int day))
+        {
+            return false;
+        }
+
+        // Базовые проверки диапазонов
+        if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31)
+        {
+            return false;
+        }
+
+        // Полная валидация даты через DateTime
+        return DateTime.TryParse($"{year}-{month:D2}-{day:D2}", out result);
     }
 }
