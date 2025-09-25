@@ -2164,8 +2164,9 @@ namespace Metal_Code
                     row++;
 
                     for (int i = 0; i < LooseParts.Count; i++)
-                    {
+                    {                        
                         LooseParts[i].Price = (float)Math.Ceiling(LooseParts[i].Price * Ratio * ((100 + BonusRatio) / 100));
+                        LooseParts[i].Price = LooseParts[i].Price < LooseParts[i].FixedPrice ? LooseParts[i].FixedPrice : LooseParts[i].Price;
                         LooseParts[i].Total = LooseParts[i].Count * LooseParts[i].Price;
                     }
                     DataTable loosePartsTable = ToDataTable(LooseParts);
@@ -2179,6 +2180,7 @@ namespace Metal_Code
                 for (int i = 0; i < Parts.Count; i++)
                 {
                     Parts[i].Price = (float)Math.Ceiling(Parts[i].Price * Ratio * ((100 + BonusRatio) / 100));
+                    Parts[i].Price = Parts[i].Price < Parts[i].FixedPrice ? Parts[i].FixedPrice : Parts[i].Price;
                     Parts[i].Total = Parts[i].Count * Parts[i].Price;
                 }
                 DataTable partTable = ToDataTable(Parts);
@@ -6254,6 +6256,38 @@ namespace Metal_Code
 
             StatusBegin($"Лазер: {Math.Round((decimal)timeLaser / 60 / 12)} дней; Гибка: {Math.Round((decimal)timeBend / 60 / 12)} дней; Кол-во папок в работе - {dirs.Length}");
         }
+        
+        private void SortFilesByMonth(object sender, RoutedEventArgs e)
+        {
+            // Создаём диалог выбора папки
+            using var dialog = new System.Windows.Forms.FolderBrowserDialog();
+            dialog.Description = "Выберите папку с неотсортированными файлами";
+            dialog.UseDescriptionForTitle = true; // Для Windows Vista и выше
+                                                  // Показываем диалог и проверяем результат
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                string selectedPath = dialog.SelectedPath;
+
+                if (string.IsNullOrWhiteSpace(selectedPath))
+                {
+                    MessageBox.Show("Путь к папке пустой.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                try
+                {
+                    // Вызываем метод сортировки
+                    FileSorter.SortFilesByMonth(selectedPath);
+                    MessageBox.Show($"Файлы успешно отсортированы в папке:\n{selectedPath}", "Готово",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Произошла ошибка при сортировке файлов:\n{ex.Message}", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
 
         //метод расчета количества рабочих дней
         //private void SetDate(object sender, SelectionChangedEventArgs e)
@@ -6273,5 +6307,6 @@ namespace Metal_Code
         //    }
         //}
         #endregion
+
     }
 }

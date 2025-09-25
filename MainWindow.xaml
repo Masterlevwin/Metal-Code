@@ -120,6 +120,11 @@
                         <Image Source="/Images/express.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
+                <MenuItem Header="Сортировка файлов" Click="SortFilesByMonth">
+                    <MenuItem.Icon>
+                        <Image Source="/Images/screen.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="О программе">
                 <MenuItem Header="Руководство" Click="OpenExample">
