@@ -9,14 +9,15 @@ public static class FileSorter
         "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"
     };
 
-    // Регулярка для имён типа: image_2025_04_06.jpg
-    private static readonly Regex Format1Regex = new Regex(
-        @"^_(\d{4})_(\d{1,2})_(\d{1,2})\.",
+    // Регулярка для формата: ЛЮБОЕ_ИМЯ_ГГГГ_ММ_ДД_... (например: vid_2025_06_03-123456.mp4)
+    // Ищем 4 цифры, затем 2 цифры, затем 2 цифры — разделённые подчёркиванием
+    private static readonly Regex FormatStructuredRegex = new Regex(
+        @"(\d{4})_(\d{1,2})_(\d{1,2})",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    // Регулярка для имён типа: ...20250406..., например: photo_20250406.jpg, IMG_20250406_abc.png
-    private static readonly Regex Format2Regex = new Regex(
-        @"(\d{4})(\d{2})(\d{2})",
+    // Регулярка для формата: любое вхождение ГГГГММДД (8 цифр подряд)
+    private static readonly Regex FormatCompactRegex = new Regex(
+        @"(?<!\d)(\d{4})(\d{2})(\d{2})(?!\d)",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     public static void SortFilesByMonth(string sourceDirectory)
@@ -35,19 +36,25 @@ public static class FileSorter
 
             DateTime? parsedDate = null;
 
-            // Попробуем первый формат: image_YYYY_MM_DD
-            var match1 = Format1Regex.Match(fileName);
+            // === ШАГ 1: Попробуем найти дату по структурированному формату (YYYY_MM_DD) ===
+            var match1 = FormatStructuredRegex.Match(fileName);
             if (match1.Success)
             {
-                if (TryExtractDateFromParts(match1.Groups[1].Value, match1.Groups[2].Value, match1.Groups[3].Value, out DateTime date))
+                string yearStr = match1.Groups[1].Value;
+                string monthStr = match1.Groups[2].Value;
+                string dayStr = match1.Groups[3].Value;
+
+                if (TryExtractDateFromParts(yearStr, monthStr, dayStr, out DateTime date))
                 {
                     parsedDate = date;
+                    Console.WriteLine($"[Приоритет] Найдена структурированная дата: {date:yyyy-MM-dd} в файле {fileName}");
                 }
             }
-            else
+
+            // === ШАГ 2: Если структурированная дата не найдена — пробуем компактный формат (YYYYMMDD) ===
+            if (!parsedDate.HasValue)
             {
-                // Попробуем второй формат: любое имя с 8 цифрами подряд: YYYYMMDD
-                var matches = Format2Regex.Matches(fileName);
+                var matches = FormatCompactRegex.Matches(fileName);
                 foreach (Match match in matches)
                 {
                     string yearStr = match.Groups[1].Value;
@@ -57,17 +64,20 @@ public static class FileSorter
                     if (TryExtractDateFromParts(yearStr, monthStr, dayStr, out DateTime date))
                     {
                         parsedDate = date;
-                        break; // Нашли первую подходящую дату
+                        Console.WriteLine($"[Резерв] Найдена компактная дата: {date:yyyy-MM-dd} в файле {fileName}");
+                        break; // Берём первую подходящую
                     }
                 }
             }
 
+            // === Если ни одна дата не найдена ===
             if (!parsedDate.HasValue)
             {
                 Console.WriteLine($"Пропущен файл (не удалось извлечь дату): {fileName}");
                 continue;
             }
 
+            // === Создание папки и копирование ===
             int year = parsedDate.Value.Year;
             int month = parsedDate.Value.Month;
             string monthName = MonthNames[month - 1];
@@ -92,7 +102,7 @@ public static class FileSorter
         Console.WriteLine("Сортировка завершена.");
     }
 
-    // Вспомогательный метод: проверяет, является ли тройка год/месяц/день корректной датой
+    // Проверяет, является ли комбинация год/месяц/день корректной датой
     private static bool TryExtractDateFromParts(string yearStr, string monthStr, string dayStr, out DateTime result)
     {
         result = default;
@@ -104,13 +114,11 @@ public static class FileSorter
             return false;
         }
 
-        // Базовые проверки диапазонов
         if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31)
         {
             return false;
         }
 
-        // Полная валидация даты через DateTime
         return DateTime.TryParse($"{year}-{month:D2}-{day:D2}", out result);
     }
 }
