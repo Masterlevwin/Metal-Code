@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization.Json;
 using System.Windows;
@@ -189,171 +188,11 @@ namespace Metal_Code
                           }
 
                           MainWindow.M.ClearDetails();      //очищаем текущий расчет
-
-                          List<Detail> details = new();
-                          string comment = "Объединенное КП из:";
-                          foreach (Offer offer in MainWindow.M.OffersGrid.SelectedItems)
-                          {
-                              if (offer.Data != null)
-                              {
-                                  Product = MainWindow.OpenOfferData(offer.Data);   //десериализуем расчет
-                                  if (Product != null)
-                                  {
-                                      details.AddRange(Product.Details);    //собираем детали в список
-                                      comment += $" {offer.N};";            //собираем номера расчетов
-                                  }
-                              }
-                          }
-                          LoadDetails(details);                 //загружаем все детали
-                          MainWindow.M.Comment.Text = comment;  //формируем комментарий с ссылками
-                          MainWindow.M.StatusBegin($"Расчеты успешно объединены.");
+                          MergeOffer merge = new();
+                          merge.Run();
                       }
                       catch (Exception ex) { dialogService.ShowMessage(ex.Message); }
                   });
-            }
-        }
-
-        public void LoadDetails(List<Detail> details)
-        {
-            foreach (var detail in details)
-            {
-                if (string.IsNullOrEmpty(detail.Title)) continue;
-
-                DetailControl? existingDetail = MainWindow.M.DetailControls
-                    .FirstOrDefault(dc => dc.Detail.Title == detail.Title);
-
-                if (existingDetail == null)
-                {
-                    // Создаём новую деталь (автоматически добавит одну TypeDetail + Work)
-                    MainWindow.M.AddDetail();
-                    var newDetailControl = MainWindow.M.DetailControls.Last();
-
-                    newDetailControl.Detail.Title = detail.Title;
-
-                    if (detail.Title.Contains("Комплект"))
-                        newDetailControl.IsComplectChanged();
-
-                    newDetailControl.Detail.Count = detail.Count;
-                    newDetailControl.Detail.MillingHoles = detail.MillingHoles;
-                    newDetailControl.Detail.MillingGrooves = detail.MillingGrooves;
-
-                    if (newDetailControl.TypeDetailControls.Last().Count == 0)
-                        newDetailControl.TypeDetailControls.Last().Remove();
-
-                    // Добавляем все заготовки из detail
-                    foreach (var typeDetail in detail.TypeDetails)
-                        AddAndFillTypeDetail(newDetailControl, typeDetail);
-                }
-                else
-                {
-                    // Деталь уже существует — просто добавляем новые заготовки
-                    foreach (var typeDetail in detail.TypeDetails)
-                        AddAndFillTypeDetail(existingDetail, typeDetail);
-                }
-            }
-        }
-        private void AddAndFillTypeDetail(DetailControl detailControl, SaveTypeDetail typeDetail)
-        {
-            // Добавляем новую заготовку — это вызовет AddWork() внутри
-            detailControl.AddTypeDetail();
-            var typeControl = detailControl.TypeDetailControls.Last();
-
-            // Заполняем свойства заготовки
-            typeControl.TypeDetailDrop.SelectedIndex = typeDetail.Index;
-            typeControl.Count = typeDetail.Count;
-            typeControl.MetalDrop.SelectedIndex = typeDetail.Metal;
-            typeControl.SortDrop.SelectedIndex = typeDetail.Tuple.Item1;
-            typeControl.A = typeDetail.Tuple.Item2;
-            typeControl.B = typeDetail.Tuple.Item3;
-            typeControl.S = typeDetail.Tuple.Item4;
-            typeControl.L = typeDetail.Tuple.Item5;
-            typeControl.HasMetal = typeDetail.HasMetal;
-            typeControl.ExtraResult = typeDetail.ExtraResult;
-            typeControl.SetComment(typeDetail.Comment);
-
-            foreach (var workItem in typeDetail.Works)
-            {
-                if (workItem.NameWork is null) continue;
-
-                var workControl = typeControl.WorkControls.Last();
-
-                // Проверяем дубликаты (кроме "Доп" работ)
-                var existingWork = !workItem.NameWork.Contains("Доп")
-                    ? typeControl.WorkControls
-                        .FirstOrDefault(w => w.WorkDrop.Text == workItem.NameWork)
-                    : null;
-
-                if (existingWork != null)
-                {
-                    existingWork.Ratio = workItem.Ratio;
-                    existingWork.TechRatio = workItem.TechRatio;
-                    existingWork.ExtraResult = workItem.ExtraResult;
-                    continue;
-                }
-
-                // Подбираем работу по имени (устойчиво к изменению порядка)
-                foreach (Work workInCombo in workControl.WorkDrop.Items)
-                {
-                    if (workInCombo.Name == workItem.NameWork)
-                    {
-                        workControl.WorkDrop.SelectedItem = workInCombo;
-                        break;
-                    }
-                }
-
-                // Обработка ICut
-                if (workControl.workType is ICut cut)
-                {
-                    if (workItem.Items?.Count > 0) cut.Items = workItem.Items;
-                    if (workItem.Parts?.Count > 0) cut.PartDetails = workItem.Parts;
-
-                    if (cut is CutControl c)
-                    {
-                        if (c.Items?.Count > 0) c.SumProperties(c.Items);
-                        c.Parts = c.PartList();
-                        c.PartsControl = new(c, c.Parts);
-                        c.AddPartsTab();
-                    }
-                    else if (cut is PipeControl pipe)
-                    {
-                        pipe.Parts = pipe.PartList();
-                        pipe.PartsControl = new(pipe, pipe.Parts);
-                        pipe.AddPartsTab();
-                        pipe.SetTotalProperties();
-                    }
-
-                    // Обработка частей (PartControl)
-                    if (cut.Parts?.Count > 0)
-                    {
-                        foreach (var part in cut.Parts)
-                        {
-                            if (part.Part.PropsDict?.Count > 0)
-                            {
-                                foreach (int key in part.Part.PropsDict.Keys)
-                                {
-                                    if (key < 50)
-                                    {
-                                        var valueStr = part.Part.PropsDict[key][0];
-                                        if (double.TryParse(valueStr, out double parsed))
-                                            part.AddControl((int)parsed);
-                                        else
-                                            part.AddControl((int)MainWindow.Parser(valueStr));
-                                    }
-                                }
-                            }
-                            part.PropertiesChanged?.Invoke(part, false);
-                        }
-                    }
-                }
-
-                // Применяем свойства работы
-                workControl.propsList = workItem.PropsList;
-                workControl.PropertiesChanged?.Invoke(workControl, false);
-                workControl.Ratio = workItem.Ratio;
-                workControl.TechRatio = workItem.TechRatio;
-                workControl.ExtraResult = workItem.ExtraResult;
-
-                if (typeControl.WorkControls.Count < typeDetail.Works.Count) typeControl.AddWork();
             }
         }
 

@@ -2881,6 +2881,9 @@ namespace Metal_Code
                             else if (type.MetalDrop.Text.Contains("медь")) description = $"cu{type.S}";
                             else description = $"s{type.S} {type.MetalDrop.Text}";
 
+                            //добавляем тег срочности
+                            if (HasAssembly) description += " (ЭКСПРЕСС)";
+
                             statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + rowTask, 11].Value = description;  //"Лазерные работы"
 
                             //"Лазер (время работ)"                                 //"Время лазерных работ"
@@ -3796,7 +3799,10 @@ namespace Metal_Code
                             else if (type.MetalDrop.Text.Contains("латунь")) description = $"br{type.S}";
                             else if (type.MetalDrop.Text.Contains("медь")) description = $"cu{type.S}";
                             else description = $"s{type.S} {type.MetalDrop.Text}";
-                            
+
+                            //добавляем тег срочности
+                            if (HasAssembly) description += " (ЭКСПРЕСС)";
+
                             //"Лазерные работы"
                             registrysheet.Cells[i + rowTask, 11].Value = description;
 
@@ -5829,38 +5835,6 @@ namespace Metal_Code
                     if (subDir.Name.ToLower().Contains("кп") || subDir.Name.ToLower().Contains("тз") || subDir.Name.ToLower().Contains("архив")) continue;
                     string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
                     CopyDirectoryToWork(subDir.FullName, newDestinationDir, true, mainDir);
-                }
-            }
-        }
-        public static void CopyDirectory(string sourceDir, string destinationDir, bool recursive)
-        {
-            // Get information about the source directory
-            var dir = new DirectoryInfo(sourceDir);
-
-            // Check if the source directory exists
-            if (!dir.Exists)
-                throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
-
-            // Cache directories before we start copying
-            DirectoryInfo[] dirs = dir.GetDirectories();
-
-            // Create the destination directory
-            Directory.CreateDirectory(destinationDir);
-
-            // Get the files in the source directory and copy to the destination directory
-            foreach (FileInfo file in dir.GetFiles())
-            {
-                string targetFilePath = Path.Combine(destinationDir, file.Name);
-                file.CopyTo(targetFilePath);
-            }
-
-            // If recursive and copying subdirectories, recursively call this method
-            if (recursive)
-            {
-                foreach (DirectoryInfo subDir in dirs)
-                {
-                    string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
-                    CopyDirectory(subDir.FullName, newDestinationDir, true);
                 }
             }
         }
