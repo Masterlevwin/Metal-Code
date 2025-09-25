@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 
@@ -6,8 +7,14 @@ public static class FileSorter
 {
     // Регулярное выражение для парсинга имён файлов: image_год_месяц_день
     private static readonly Regex FileNameRegex = new Regex(
-        @"^image_(\d{4})_(\d{1,2})_(\d{1,2})\.",
+        @"(\d{4})_(\d{1,2})_(\d{1,2})\.",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    // Словарь для преобразования номера месяца в его название на русском
+    private static readonly string[] MonthNames = {
+        "январь", "февраль", "март", "апрель", "май", "июнь",
+        "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"
+    };
 
     /// <summary>
     /// Сортирует файлы по папкам "год_месяц" на основе имени файла.
@@ -29,27 +36,30 @@ public static class FileSorter
 
             if (!match.Success)
             {
-                Console.WriteLine($"Пропущен файл (не соответствует формату): {fileName}");
+                Trace.WriteLine($"Пропущен файл (не соответствует формату): {fileName}");
                 continue; // Пропускаем файлы с неправильным именем
             }
 
             // Извлекаем год и месяц
             if (!int.TryParse(match.Groups[1].Value, out int year) ||
-                !int.TryParse(match.Groups[2].Value, out int month))
+                !int.TryParse(match.Groups[3].Value, out int month))
             {
-                Console.WriteLine($"Не удалось распарсить дату из имени: {fileName}");
+                Trace.WriteLine($"Не удалось распарсить дату из имени: {fileName}");
                 continue;
             }
 
             // Проверяем корректность даты
             if (year < 1900 || year > 2100 || month < 1 || month > 12)
             {
-                Console.WriteLine($"Некорректная дата в имени файла: {fileName}");
+                Trace.WriteLine($"Некорректная дата в имени файла: {fileName}");
                 continue;
             }
 
-            // Формируем имя папки: "2023_10"
-            string targetFolderName = $"{year:D4}_{month:D2}";
+            // Получаем название месяца (учитываем, что массив индексируется с 0)
+            string monthName = MonthNames[month - 1];
+
+            // Формируем имя папки: "2023_октябрь"
+            string targetFolderName = $"{year:D4}_{monthName}";
             string targetFolderPath = Path.Combine(sourceDirectory, targetFolderName);
 
             // Создаём папку, если её нет
@@ -62,14 +72,14 @@ public static class FileSorter
             {
                 // Копируем файл (если уже есть — перезаписываем)
                 File.Copy(file, destinationFile, true);
-                Console.WriteLine($"Файл скопирован: {fileName} -> {targetFolderName}");
+                Trace.WriteLine($"Файл скопирован: {fileName} -> {targetFolderName}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка при копировании файла {fileName}: {ex.Message}");
+                Trace.WriteLine($"Ошибка при копировании файла {fileName}: {ex.Message}");
             }
         }
 
-        Console.WriteLine("Сортировка завершена.");
+        Trace.WriteLine("Сортировка завершена.");
     }
 }
