@@ -129,7 +129,7 @@ namespace Metal_Code
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part is not null ? part.Accuracy : "");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(particle.Title ?? ""));
-                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{particle.Count * assembly.Count}");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{particle.Count}");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
                                         }
@@ -197,7 +197,7 @@ namespace Metal_Code
 
                             if (MainWindow.M.HasDelivery is true)
                             {
-                                float delivery = (float)Math.Ceiling(MainWindow.M.Delivery * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
+                                float delivery = MainWindow.M.Delivery * MainWindow.M.Ratio;
                                 float deliveryTotal = delivery * MainWindow.M.DeliveryRatio;
                                 totalSum += deliveryTotal;
 

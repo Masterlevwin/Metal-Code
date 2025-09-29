@@ -899,17 +899,17 @@ namespace Metal_Code
 
             if (AssemblyWindow.A.Assemblies.Count > 0)
                 foreach (var assembly in AssemblyWindow.A.Assemblies)
-                    Result += (float)((assembly.WeldPrice + assembly.PaintPrice) * assembly.Count);
+                    Result += (float)(assembly.WeldPrice + assembly.PaintPrice);
 
             Result *= Count;
-
-            Result += Delivery * DeliveryRatio;
 
             float result = Result * Ratio;
 
             Bonus = result * ((100 + BonusRatio) / 100) - result;
 
             Result = result + Bonus;
+
+            Result += Delivery * DeliveryRatio;
 
             if (Result > 0) Parts = PartsSource();
         }
@@ -2130,13 +2130,13 @@ namespace Metal_Code
                             Part? part = Parts.FirstOrDefault(p => p.Title == particle.Title);
                             if (part is not null)
                             {
-                                particle.Price = (float)(part.Price + (assembly.WeldPrice + assembly.PaintPrice) / assembly.Particles.Sum(p => p.Count));
+                                particle.Price = (float)(part.Price + (assembly.WeldPrice + assembly.PaintPrice) / assembly.Count / assembly.Particles.Sum(p => p.Count));
                                 worksheet.Cells[row, 1].Value = part.Metal;
                                 worksheet.Cells[row, 2].Value = part.Destiny;
                                 worksheet.Cells[row, 3].Value = part.Description;
                                 worksheet.Cells[row, 4].Value = part.Accuracy;
                                 worksheet.Cells[row, 5].Value = particle.Title;
-                                worksheet.Cells[row, 6].Value = particle.Count * assembly.Count;
+                                worksheet.Cells[row, 6].Value = particle.Count;
                                 row++;
                             }
                         }
@@ -2273,8 +2273,8 @@ namespace Metal_Code
                 worksheet.Cells[row, 5].Value = "Доставка";
                 worksheet.Cells[row, 5].Style.Font.Bold = true;
                 worksheet.Cells[row, 6].Value = DeliveryRatio;
-                worksheet.Cells[row, 7].Value = (float)Math.Ceiling(Delivery * Ratio * ((100 + BonusRatio) / 100));
-                worksheet.Cells[row, 8].Value = (float)Math.Ceiling(DeliveryRatio * Delivery * Ratio * ((100 + BonusRatio) / 100));
+                worksheet.Cells[row, 7].Value = Delivery * Ratio;
+                worksheet.Cells[row, 8].Value = DeliveryRatio * Delivery * Ratio;
                 row++;
                 worksheet.Cells[row + 4, 2].Value = $"Доставка силами Исполнителя по адресу: {Adress.Text}.";
 
@@ -2340,8 +2340,9 @@ namespace Metal_Code
 
             worksheet.Cells[row + 5, 1].Value = "Точность:";
             worksheet.Cells[row + 5, 2].Value = "H14/h14 +-IT 14/2";
-
-            if (Parts.Count > 0)        //в случае с нарезанными деталями, оформляем расшифровку работ
+            
+            //в случае с нарезанными деталями, оформляем расшифровку работ
+            if (Parts.Count > 0)
             {
                 worksheet.Cells[row + 6, 1].Value = "Расшифровка работ: ";
                 var descriptionCell = worksheet.Cells[row + 6, 2];
@@ -2526,10 +2527,10 @@ namespace Metal_Code
 
                 foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
                 {
-                    scoresheet.Cells[rowAssembly, 8].Value = Math.Round(assembly.WeldPrice, 2);                 //стоимость сварки
-                    scoresheet.Cells[rowAssembly, 9].Value = Math.Round(assembly.PaintPrice, 2);                //стоимость окраски
-                    scoresheet.Cells[rowAssembly, 23].Value = Math.Round(assembly.Square * assembly.Count, 2);  //площадь покрытия
-                    scoresheet.Cells[rowAssembly, 24].Value = $"{assembly.Ral} {assembly.Structure}";           //цвет
+                    scoresheet.Cells[rowAssembly, 8].Value = Math.Round(assembly.WeldPrice / assembly.Count, 2);    //стоимость сварки
+                    scoresheet.Cells[rowAssembly, 9].Value = Math.Round(assembly.PaintPrice / assembly.Count, 2);   //стоимость окраски
+                    scoresheet.Cells[rowAssembly, 23].Value = Math.Round(assembly.Square, 2);                       //площадь покрытия
+                    scoresheet.Cells[rowAssembly, 24].Value = $"{assembly.Ral} {assembly.Structure}";               //цвет
                     scoresheet.Cells[rowAssembly, 25].Value = "П";
                     rowAssembly += assembly.Particles.Count + 1;
 
@@ -2752,7 +2753,8 @@ namespace Metal_Code
 
             int las = 0, pr = 0;        //количество видов работ Лазерфлекс / Провэлд
 
-            if (TempWorksDict.Count > 0) foreach (string key in TempWorksDict.Keys)
+            if (TempWorksDict.Count > 0)
+                foreach (string key in TempWorksDict.Keys)
                 {
                     if (TempWorksDict[key] > 0 && (key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key == "Фрезеровка" || key.Contains("(Л)")))
                     {
@@ -3020,7 +3022,7 @@ namespace Metal_Code
                         statsheet.Cells[rowTask, 16].Value = $"{assembly.Ral} {assembly.Structure}";
                         statsheet.Cells[rowTask, 18].Value +=
                             $"Окраска в {assembly.Ral} {assembly.Structure} " +
-                            $"({Math.Round(assembly.Square * assembly.Count, 2)} кв м - {assembly.Count} шт) ";
+                            $"({Math.Round(assembly.Square, 2)} кв м - {assembly.Count} шт) ";
                     }
                     rowTask++;
                 }
@@ -3070,7 +3072,7 @@ namespace Metal_Code
                 {
                     if (TempWorksDict[key] == 0 || key == "Лазерная резка" || key == "Гибка" || key == "Труборез" || key == "Фрезеровка" || key.Contains("(Л)")) continue;
 
-                    if (key.Contains("Цинк"))
+                    if (key.Contains("Цинк") && !key.Contains("Окраска"))   //уточнение "...&& !key.Contains("Окраска")" нужно, чтобы исключить цвет "цинко-грунт"
                     {
                         statsheet.Cells[temp, 4].Value += $"{key} ";
 
@@ -3109,7 +3111,7 @@ namespace Metal_Code
                                 if ($"{key}".Trim() == $"Окраска в {assembly.Ral} {assembly.Structure}".Trim())
                                 {
                                     _count += assembly.Count;
-                                    _square += assembly.Square * assembly.Count;
+                                    _square += assembly.Square;
                                 }
                             }
 
@@ -3876,7 +3878,7 @@ namespace Metal_Code
                         registrysheet.Cells[rowTask, 16].Value = $"{assembly.Ral} {assembly.Structure}";
                         registrysheet.Cells[rowTask, 18].Value +=
                             $"Окраска в {assembly.Ral} {assembly.Structure} " +
-                            $"({Math.Round(assembly.Square * assembly.Count, 2)} кв м - {assembly.Count} шт) ";
+                            $"({Math.Round(assembly.Square, 2)} кв м - {assembly.Count} шт) ";
                     }
                     rowTask++;
                 }
@@ -5789,11 +5791,15 @@ namespace Metal_Code
                 {
                     foreach (FileInfo file in dir.GetFiles())
                     {
-                        string pattern = @"№\s*(\d+)";              //регулярное выражение, для определения № счета
-                        Match match = Regex.Match(file.Name, pattern);
+                        // Регулярное выражение: ищет "счет" или "счёт" (не зависит от регистра),
+                        // затем любое количество пробельных символов, затем "№", затем пробелы и цифры
+                        string pattern = @"счет[ё]?\s*№\s*(\d+)";
+
+                        Match match = Regex.Match(file.Name, pattern, RegexOptions.IgnoreCase);
+
                         if (match.Success)
                         {
-                            offer.Invoice = $"№ {match.Groups[1].Value}";  //извлечение найденного числа
+                            offer.Invoice = $"№ {match.Groups[1].Value}";
                             break;
                         }
                     }

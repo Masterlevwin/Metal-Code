@@ -162,7 +162,7 @@ namespace Metal_Code
                               MainWindow.M.LoadProduct();
                               MainWindow.M.StatusBegin($"Расчет {MainWindow.M.ActiveOffer.N} загружен.");
                           }
-                      }
+                  }
                       catch (Exception ex)
                       {
                           dialogService.ShowMessage(ex.Message);

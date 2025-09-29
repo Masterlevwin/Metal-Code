@@ -131,7 +131,7 @@ namespace Metal_Code
 
                                 if (MainWindow.M.HasDelivery is true)
                                 {
-                                    float deliveryTotal = (float)Math.Ceiling(MainWindow.M.Delivery  * MainWindow.M.DeliveryRatio * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
+                                    float deliveryTotal = MainWindow.M.Delivery  * MainWindow.M.DeliveryRatio * MainWindow.M.Ratio;
                                     totalSum += deliveryTotal;
 
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");

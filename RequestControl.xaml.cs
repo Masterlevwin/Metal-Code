@@ -533,7 +533,7 @@ namespace Metal_Code
 
 
         //-----удаление строки из списка деталей-----//
-        private void Remove_TechItem(object sender, MouseButtonEventArgs e)
+        private void Remove_TechItem(object sender, RoutedEventArgs e)
         {
             if (RequestGrid.SelectedCells.Count > 0)
                 if (RequestGrid.SelectedCells[0].Item is TechItem techItem && TechItems.Contains(techItem))

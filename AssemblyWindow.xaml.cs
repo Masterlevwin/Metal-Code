@@ -356,7 +356,7 @@ namespace Metal_Code
                     assembly.WeldPrice = assembly.PaintPrice = assembly.Square = 0;
 
                     //стоимость сварки
-                    float weld = ParserWeld(assembly.Weld);         //парсим длину шва
+                    float weld = ParserWeld(assembly.Weld) * assembly.Count;    //парсим длину шва
                     if (weld > 0)
                     {
                         var sideRatio = weld switch                 //коэф за общую длину шва
@@ -412,7 +412,7 @@ namespace Metal_Code
                                         >= 5 => 1.3f,
                                         _ => 1,
                                     }
-                                    * width * height * particle.Count / 500_000;
+                                    * width * height * particle.Count * assembly.Count / 500_000;
                             }
                         }
                     }
