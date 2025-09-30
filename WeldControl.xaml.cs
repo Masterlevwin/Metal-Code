@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Linq;
 using System.Windows;
 using System.Collections.ObjectModel;
+using System;
 
 namespace Metal_Code
 {
@@ -28,6 +29,7 @@ namespace Metal_Code
             }
         }
 
+        public Guid Id { get; }
         public ObservableCollection<PartControl>? Parts { get; set; }
 
         public Dictionary<string, Dictionary<float, float>> WeldDict = new()
@@ -173,10 +175,11 @@ namespace Metal_Code
         };
 
         private readonly UserControl owner;
-        public WeldControl(UserControl _control)
+        public WeldControl(UserControl _control, Guid? id = null)
         {
             InitializeComponent();
             owner = _control;
+            Id = id ?? Guid.NewGuid();
             Tuning();
         }
 
@@ -325,7 +328,7 @@ namespace Metal_Code
                         return;
                     }
 
-                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{1}", $"{Weld}", $"{TypeDrop.SelectedIndex}" };
+                    p.Part.WorksDict[Id] = new() { $"{1}", $"{Weld}", $"{TypeDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + Св ")) p.Part.Description += " + Св ";
 
                     int count = 0;      //счетчик общего количества деталей
@@ -360,8 +363,16 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p && owner is PartControl _owner)
                 {
-                    SetWeld(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
-                    SetType((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));
+                    if (p.Part.WorksDict != null && p.Part.WorksDict.TryGetValue(Id, out List<string>? value))
+                    {
+                        SetWeld(value[1]);
+                        SetType((int)MainWindow.Parser(value[2]));
+                    }
+                    else
+                    {
+                        SetWeld(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
+                        SetType((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));
+                    }
                 }
             }
         }

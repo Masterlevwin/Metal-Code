@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -35,13 +36,15 @@ namespace Metal_Code
 
         MillingWindow? MillingWindow;
 
+        public Guid Id { get; }
         public ObservableCollection<PartControl>? Parts { get; set; }
 
         public readonly UserControl owner;
-        public MillingTotalControl(UserControl _control)
+        public MillingTotalControl(UserControl _control, Guid? id = null)
         {
             InitializeComponent();
             owner = _control;
+            Id = id ?? Guid.NewGuid();
             Tuning();
             OnPriceChanged();
         }
@@ -202,7 +205,7 @@ namespace Metal_Code
                         return;
                     }
 
-                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{8}", $"{TotalTime}", $"{MillingWindow?.IndexQualityOrRoughness}", $"{MillingWindow?.Way}" };
+                    p.Part.WorksDict[Id] = new() { $"{8}", $"{TotalTime}", $"{MillingWindow?.IndexQualityOrRoughness}", $"{MillingWindow?.Way}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + Ф ")) p.Part.Description += " + Ф ";
 
                     if (MillingWindow?.MillingHoles.Count > 0) p.Part.MillingHoles = MillingWindow.MillingHoles;
@@ -254,11 +257,11 @@ namespace Metal_Code
                         MillingWindow.SubscriptionMillingGrooves();
                     }
                 }
-                else if (uc is PartControl p && owner is PartControl _owner)
+                else if (uc is PartControl p && owner is PartControl _owner && p.Part.WorksDict != null && p.Part.WorksDict.TryGetValue(Id, out List<string>? value))
                 {
-                    SetTotalTime(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
-                    MillingWindow.IndexQualityOrRoughness = (int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]);
-                    MillingWindow.SetWay(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][3]);
+                    SetTotalTime(value[1]);
+                    MillingWindow.IndexQualityOrRoughness = (int)MainWindow.Parser(value[2]);
+                    MillingWindow.SetWay(value[3]);
 
                     if (p.Part.MillingHoles?.Count > 0)
                     {

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -26,6 +27,7 @@ namespace Metal_Code
             }
         }
 
+        public Guid Id { get; }
         public ObservableCollection<PartControl>? Parts { get; set; }
         
         public Dictionary<double, float> DestinyDict = new()

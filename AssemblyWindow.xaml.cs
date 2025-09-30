@@ -352,7 +352,8 @@ namespace Metal_Code
                 {
                     if (assembly.Particles.Count == 0) continue;
                     var part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == assembly.Particles[0].Title);
-
+                    
+                    assembly.Description = string.Empty;
                     assembly.WeldPrice = assembly.PaintPrice = assembly.Square = 0;
 
                     //стоимость сварки
@@ -382,6 +383,8 @@ namespace Metal_Code
                                         w.Price : assembly.WeldPrice;
                                     break;
                                 }
+
+                            if (!assembly.Description.Contains("Св")) assembly.Description = "Св";
                         }
                     }
 
@@ -430,6 +433,9 @@ namespace Metal_Code
                                 w.Price : assembly.PaintPrice;
                             break;
                         }
+
+                    if (!assembly.Description.Contains("Св")) assembly.Description = $"О ({assembly.Ral} {assembly.Structure})";
+                    else assembly.Description += $" + О ({assembly.Ral} {assembly.Structure})";
                 }
             }
         }

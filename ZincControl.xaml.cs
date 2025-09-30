@@ -28,13 +28,15 @@ namespace Metal_Code
             }
         }
 
+        public Guid Id { get; }
         public ObservableCollection<PartControl>? Parts { get; set; }
 
         public readonly UserControl owner;
-        public ZincControl(UserControl _control)
+        public ZincControl(UserControl _control, Guid? id = null)
         {
             InitializeComponent();
             owner = _control;
+            Id = id ?? Guid.NewGuid();
             Tuning();
             OnPriceChanged();
         }
@@ -130,7 +132,7 @@ namespace Metal_Code
                     if (p.work.type.MetalDrop.SelectedItem is Metal metal &&
                         (metal.Name == "ст3" || metal.Name == "хк" || metal.Name == "09г2с"))
                     {
-                        p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{7}" };
+                        p.Part.WorksDict[Id] = new() { $"{7}" };
                         if (p.Part.Description != null && !p.Part.Description.Contains(" + Ц ")) p.Part.Description += " + Ц ";
 
                         int count = 0;      //счетчик общего количества деталей

@@ -95,6 +95,7 @@ namespace Metal_Code
             set => haveNitro = value;
         }
 
+        public Guid Id { get; } = Guid.NewGuid();
         public ObservableCollection<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
         public TabItem TabItem { get; set; } = new();

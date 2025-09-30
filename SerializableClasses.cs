@@ -47,8 +47,8 @@ namespace Metal_Code
     {
         public string? Metal {  get; set; }
         public string Destiny { get; set; } = string.Empty;
-        public string? Description { get; set; }
         public string? Accuracy { get; set; }
+        public string? Description { get; set; }
         public string? Title { get; set; }
         public int Count { get; set; }
         public float Price { get; set; }
@@ -83,8 +83,8 @@ namespace Metal_Code
 
         public string? Metal { get; set; }
         public float Destiny { get; set; }
-        public string? Description { get; set; }
         public string? Accuracy { get; set; }
+        public string? Description { get; set; }
         public string? Title { get; set; }
         public int Count { get; set; }
 
@@ -137,6 +137,9 @@ namespace Metal_Code
         public float FixedPrice = 0;
 
         public Dictionary<int, List<string>> PropsDict = new();
+
+        [OptionalField]
+        public Dictionary<Guid, List<string>> WorksDict = new();
 
         public Part(string? _name = null, int _count = 1, string? _accuracy = null)
         {
@@ -204,6 +207,21 @@ namespace Metal_Code
         public float Price { get; set; } = 0;
         public float Total { get; set; } = 0;
         public ObservableCollection<Particle> Particles { get; set; } = new();
+
+        [OptionalField]
+        private string description = string.Empty;
+        public string Description
+        {
+            get => description;
+            set
+            {
+                if (value != description)
+                {
+                    description = value;
+                    OnPropertyChanged(nameof(Description));
+                }
+            }
+        }
 
         [OptionalField]
         private string weld = string.Empty;

@@ -29,13 +29,15 @@ namespace Metal_Code
         }
 
         private const int priceMeter = 2000;    //стоимость обработки 1 квадратного метра
+        public Guid Id { get; }
         public ObservableCollection<PartControl>? Parts { get; set; }
 
         public readonly UserControl owner;
-        public AquaControl(UserControl _work)
+        public AquaControl(UserControl _work, Guid? id = null)
         {
             InitializeComponent();
             owner = _work;
+            Id = id ?? Guid.NewGuid();
             Tuning();
             OnPriceChanged();
         }
@@ -128,7 +130,7 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p)
                 {
-                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{10}" };
+                    p.Part.WorksDict[Id] = new() { $"{10}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + А ")) p.Part.Description += $" + А ";
 
                     int count = 0;      //счетчик общего количества деталей

@@ -481,6 +481,7 @@ namespace Metal_Code
 
     public interface IPriceChanged
     {
+        Guid Id { get; }
         ObservableCollection<PartControl>? Parts { get; set; }
         void OnPriceChanged();
         void SaveOrLoadProperties(UserControl uc, bool isSaved);

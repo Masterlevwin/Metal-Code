@@ -74,8 +74,8 @@ namespace Metal_Code
                             {
                                 columns.RelativeColumn(40);  // Материал
                                 columns.RelativeColumn(30);  // Толщина
-                                columns.RelativeColumn(30);  // Работы
                                 columns.RelativeColumn(35);  // Размеры
+                                columns.RelativeColumn(30);  // Работы
                                 columns.RelativeColumn(20);  // №
                                 columns.RelativeColumn(80);  // Наименование
                                 columns.RelativeColumn(25);  // Кол-во
@@ -88,8 +88,8 @@ namespace Metal_Code
                             {
                                 StyleHeaderCell(header.Cell(), "Материал");
                                 StyleHeaderCell(header.Cell(), "Толщина");
-                                StyleHeaderCell(header.Cell(), "Работы");
                                 StyleHeaderCell(header.Cell(), "Размеры, мм");
+                                StyleHeaderCell(header.Cell(), "Работы");
                                 StyleHeaderCell(header.Cell(), "№");
                                 StyleHeaderCell(header.Cell(), "Наименование");
                                 StyleHeaderCell(header.Cell(), "Кол-во, шт");
@@ -110,7 +110,8 @@ namespace Metal_Code
                                     {
                                         totalSum += assembly.Total;
 
-                                        table.Cell().ColumnSpan(4).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
+                                        table.Cell().ColumnSpan(3).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(assembly.Description ?? "").Bold();
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}").Bold();
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(assembly.Title ?? "")).Bold();
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{assembly.Count}").Bold();
@@ -125,8 +126,8 @@ namespace Metal_Code
 
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part is not null ? part.Metal : "");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part is not null ? part.Destiny.ToString() : "");
-                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part is not null ? part.Description : "");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part is not null ? part.Accuracy : "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part is not null ? part.Description : "");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(particle.Title ?? ""));
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{particle.Count}");
@@ -146,8 +147,8 @@ namespace Metal_Code
 
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Metal);
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Destiny.ToString());
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Description ?? "");
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Accuracy ?? "");
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Description ?? "");
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}");
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(loosePart.Title ?? ""));
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{loosePart.Count}");
@@ -166,8 +167,8 @@ namespace Metal_Code
 
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Metal);
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Destiny.ToString());
-                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Description ?? "");
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Accuracy ?? "");
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Description ?? "");
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}");
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(part.Title ?? ""));
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Count.ToString());
@@ -185,8 +186,8 @@ namespace Metal_Code
 
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Metal);
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Destiny.ToString());
-                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Description ?? "");
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Accuracy ?? "");
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Description ?? "");
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}");
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(detail.Title ?? ""));
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Count.ToString());

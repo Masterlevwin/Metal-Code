@@ -1,4 +1,5 @@
 ﻿using NPOI.SS.Formula.Functions;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -32,6 +33,7 @@ namespace Metal_Code
             }
         }
 
+        public Guid Id { get; }
         public ObservableCollection<PartControl>? Parts { get; set; }
 
         public List<string> Sides = new() { "(А) выс", "(В) шир" };
@@ -60,10 +62,11 @@ namespace Metal_Code
         };
 
         public readonly UserControl owner;
-        public RollingControl(UserControl _control)
+        public RollingControl(UserControl _control, Guid? id = null)
         {
             InitializeComponent();
             owner = _control;
+            Id = id ?? Guid.NewGuid();
             Tuning();
         }
 
@@ -185,7 +188,7 @@ namespace Metal_Code
                         return;
                     }
 
-                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{6}", $"{TypeDrop.SelectedIndex}" };
+                    p.Part.WorksDict[Id] = new() { $"{6}", $"{TypeDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + В ")) p.Part.Description += " + В ";
 
                     foreach (WorkControl _w in p.work.type.WorkControls)        // находим вальцовку среди работ и получаем её минималку
@@ -206,7 +209,9 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p && owner is PartControl _owner)
                 {
-                    SetType((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]));
+                    if (p.Part.WorksDict != null && p.Part.WorksDict.TryGetValue(Id, out List<string>? value))
+                        SetType((int)MainWindow.Parser(value[1]));
+                    else SetType((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]));
                 }
             }
         }

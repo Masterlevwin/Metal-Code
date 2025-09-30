@@ -74,13 +74,15 @@ namespace Metal_Code
             }
         }
 
+        public Guid Id { get; } = Guid.NewGuid();
         public ObservableCollection<PartControl>? Parts { get; set; }
 
         public readonly UserControl owner;
-        public ThreadControl(UserControl _control, string _charName)
+        public ThreadControl(UserControl _control, string _charName, Guid? id = null)
         {
             InitializeComponent();
             owner = _control;
+            Id = id ?? Guid.NewGuid();
             CharName = _charName;
             Tuning();
         }
@@ -240,25 +242,25 @@ namespace Metal_Code
                     int key = -1;
                     if (CharName == "Р")
                     {
-                        p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{3}", $"{Wide}", $"{Holes}" };
+                        p.Part.WorksDict[Id] = new() { $"{3}", $"{Wide}", $"{Holes}" };
                         if (p.Part.Description != null && !p.Part.Description.Contains(" + Р ")) p.Part.Description += " + Р ";
                         key = 55;
                     }
                     else if (CharName == "З")
                     {
-                        p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{4}", $"{Wide}", $"{Holes}" };
+                        p.Part.WorksDict[Id] = new() { $"{4}", $"{Wide}", $"{Holes}" };
                         if (p.Part.Description != null && !p.Part.Description.Contains(" + З ")) p.Part.Description += " + З ";
                         key = 56;
                     }
                     else if (CharName == "С")
                     {
-                        p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{5}", $"{Wide}", $"{Holes}" };
+                        p.Part.WorksDict[Id] = new() { $"{5}", $"{Wide}", $"{Holes}" };
                         if (p.Part.Description != null && !p.Part.Description.Contains(" + С ")) p.Part.Description += " + С ";
                         key = 57;
                     }
                     else if (CharName == "Зк")
                     {
-                        p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{9}", $"{Wide}", $"{Holes}" };
+                        p.Part.WorksDict[Id] = new() { $"{9}", $"{Wide}", $"{Holes}" };
                         if (p.Part.Description != null && !p.Part.Description.Contains(" + Зк ")) p.Part.Description += " + Зк ";
                         key = 65;
                     }
@@ -294,8 +296,16 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p && owner is PartControl _owner)
                 {
-                    SetWide(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
-                    SetHoles(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]);
+                    if (p.Part.WorksDict != null && p.Part.WorksDict.TryGetValue(Id, out List<string>? value))
+                    {
+                        SetWide(value[1]);
+                        SetHoles(value[2]);
+                    }
+                    else
+                    {
+                        SetWide(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
+                        SetHoles(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]);
+                    }
                 }
             }
         }

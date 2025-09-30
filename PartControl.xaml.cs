@@ -199,12 +199,12 @@ namespace Metal_Code
         private void ViewPopupDimensions(object sender, MouseWheelEventArgs e) { PopupDimensions.IsOpen = true; }
 
         private void AddControl(object sender, RoutedEventArgs e) { AddControl(WorksDrop.SelectedIndex); }
-        public void AddControl(int index)
+        public void AddControl(int index, Guid? guid = null)
         {
             switch (index)
             {
                 case 0:
-                    AddControl(new BendControl(this));
+                    AddControl(new BendControl(this, guid));
                     break;
                 case 1:
                     if (UserControls.Count > 0 && UserControls.Any(r => r is WeldControl))
@@ -212,19 +212,19 @@ namespace Metal_Code
                         MainWindow.M.StatusBegin("Нельзя добавить больше одной сварки на деталь");
                         return;
                     }
-                    AddControl(new WeldControl(this));
+                    AddControl(new WeldControl(this, guid));
                     break;
                 case 2:
-                    AddControl(new PaintControl(this));
+                    AddControl(new PaintControl(this, guid));
                     break;
                 case 3:
-                    AddControl(new ThreadControl(this, "Р"));
+                    AddControl(new ThreadControl(this, "Р", guid));
                     break;
                 case 4:
-                    AddControl(new ThreadControl(this, "З"));
+                    AddControl(new ThreadControl(this, "З", guid));
                     break;
                 case 5:
-                    AddControl(new ThreadControl(this, "С"));
+                    AddControl(new ThreadControl(this, "С", guid));
                     break;
                 case 6:
                     if (UserControls.Count > 0 && UserControls.Any(r => r is RollingControl))
@@ -232,7 +232,7 @@ namespace Metal_Code
                         MainWindow.M.StatusBegin("Нельзя добавить больше одной вальцовки на деталь");
                         return;
                     }
-                    AddControl(new RollingControl(this));
+                    AddControl(new RollingControl(this, guid));
                     break;
                 case 7:
                     if (UserControls.Count > 0 && UserControls.Any(r => r is ZincControl))
@@ -240,7 +240,7 @@ namespace Metal_Code
                         MainWindow.M.StatusBegin("Нельзя добавить больше одной оцинковки на деталь");
                         return;
                     }
-                    AddControl(new ZincControl(this));
+                    AddControl(new ZincControl(this, guid));
                     break;
                 case 8:
                     if (UserControls.Count > 0 && UserControls.Any(r => r is MillingTotalControl))
@@ -248,10 +248,10 @@ namespace Metal_Code
                         MainWindow.M.StatusBegin("Нельзя добавить больше одной фрезеровки на деталь");
                         return;
                     }
-                    AddControl(new MillingTotalControl(this));
+                    AddControl(new MillingTotalControl(this, guid));
                     break;
                 case 9:
-                    AddControl(new ThreadControl(this, "Зк"));
+                    AddControl(new ThreadControl(this, "Зк", guid));
                     break;
                 case 10:
                     if (UserControls.Count > 0 && UserControls.Any(r => r is AquaControl))
@@ -259,7 +259,7 @@ namespace Metal_Code
                         MainWindow.M.StatusBegin("Нельзя добавить больше одного аквабластинга на деталь");
                         return;
                     }
-                    AddControl(new AquaControl(this));
+                    AddControl(new AquaControl(this, guid));
                     break;
             }
         }
@@ -275,8 +275,12 @@ namespace Metal_Code
 
         public void RemoveControl(UserControl uc)
         {
-            if (uc is IPriceChanged work) PropertiesChanged -= work.SaveOrLoadProperties;
-            if (Part.PropsDict.ContainsKey(UserControls.IndexOf(uc))) Part.PropsDict.Remove(UserControls.IndexOf(uc));
+            if (uc is IPriceChanged work)
+            {
+                PropertiesChanged -= work.SaveOrLoadProperties;
+                Part.WorksDict.Remove(work.Id);
+            }
+
             UserControls.Remove(uc);
             ControlGrid.Children.Remove(uc);
         }

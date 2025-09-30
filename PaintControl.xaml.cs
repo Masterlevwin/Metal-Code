@@ -1,4 +1,6 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -29,13 +31,15 @@ namespace Metal_Code
         public string[] structures = { "глян", "мат", "шагр", "муар" };
         public int priceMeter = 500;    //стоимость обработки 1 квадратного метра
 
+        public Guid Id { get; }
         public ObservableCollection<PartControl>? Parts { get; set; }
 
         public readonly UserControl owner;
-        public PaintControl(UserControl _work)
+        public PaintControl(UserControl _work, Guid? id = null)
         {
             InitializeComponent();
             owner = _work;
+            Id = id ?? Guid.NewGuid();
             Tuning();
         }
 
@@ -182,7 +186,7 @@ namespace Metal_Code
                         return;
                     }
 
-                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{2}", $"{Ral}", $"{TypeDrop.SelectedIndex}" };
+                    p.Part.WorksDict[Id] = new() { $"{2}", $"{Ral}", $"{TypeDrop.SelectedIndex}" };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + О ")) p.Part.Description += $" + О ({Ral} {TypeDrop.SelectedItem}) ";
 
                     int count = 0;      //счетчик общего количества деталей
@@ -222,8 +226,16 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p && owner is PartControl _owner)
                 {
-                    SetRal(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
-                    SetType((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));
+                    if (p.Part.WorksDict != null && p.Part.WorksDict.TryGetValue(Id, out List<string>? value))
+                    {
+                        SetRal(value[1]);
+                        SetType((int)MainWindow.Parser(value[2]));
+                    }
+                    else
+                    {
+                        SetRal(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
+                        SetType((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));
+                    }
                 }
             }
         }

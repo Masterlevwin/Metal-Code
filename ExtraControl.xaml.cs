@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
@@ -42,7 +43,7 @@ namespace Metal_Code
                 }
             }
         }
-
+        public Guid Id { get; } = Guid.NewGuid();
         public ObservableCollection<PartControl>? Parts { get; set; }
 
         public readonly WorkControl work;

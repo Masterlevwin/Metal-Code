@@ -1900,6 +1900,7 @@ namespace Metal_Code
                                     //пробегаемся по ключам от 50 до 70, которые зарезервированы под конкретные работы
                                     if (p.PropsDict.Count > 0)
                                         for (int key = 50; key < 70; key++) p.PropsDict.Remove(key);
+                                    p.WorksDict.Clear();
 
                                     //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
                                     if (CheckConstruct.IsChecked == true)
@@ -2072,6 +2073,11 @@ namespace Metal_Code
                                     if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
                                         foreach (int key in part.Part.PropsDict.Keys) if (key < 50)
                                                 part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
+
+                                    if (part.Part.WorksDict?.Count > 0)
+                                        foreach (var guid in part.Part.WorksDict.Keys)
+                                            part.AddControl((int)Parser(part.Part.WorksDict[guid][0]), guid);
+
                                     part.PropertiesChanged?.Invoke(part, false);
                                 }
                         }
@@ -2133,8 +2139,8 @@ namespace Metal_Code
                                 particle.Price = (float)(part.Price + (assembly.WeldPrice + assembly.PaintPrice) / assembly.Count / assembly.Particles.Sum(p => p.Count));
                                 worksheet.Cells[row, 1].Value = part.Metal;
                                 worksheet.Cells[row, 2].Value = part.Destiny;
-                                worksheet.Cells[row, 3].Value = part.Description;
-                                worksheet.Cells[row, 4].Value = part.Accuracy;
+                                worksheet.Cells[row, 3].Value = part.Accuracy;
+                                worksheet.Cells[row, 4].Value = part.Description;
                                 worksheet.Cells[row, 5].Value = particle.Title;
                                 worksheet.Cells[row, 6].Value = particle.Count;
                                 row++;
@@ -2143,11 +2149,12 @@ namespace Metal_Code
                         assembly.Price = (float)Math.Ceiling(assembly.Particles.Sum(p => p.Price * p.Count) * Ratio * ((100 + BonusRatio) / 100));
                         assembly.Total = assembly.Price * assembly.Count;
 
-                        worksheet.Cells[rowAssembly, 5, rowAssembly, 8].Style.Font.Bold = true;
+                        worksheet.Cells[rowAssembly, 4].Value = assembly.Description;
                         worksheet.Cells[rowAssembly, 5].Value = assembly.Title;
                         worksheet.Cells[rowAssembly, 6].Value = assembly.Count;
                         worksheet.Cells[rowAssembly, 7].Value = assembly.Price;
                         worksheet.Cells[rowAssembly, 8].Value = assembly.Total;
+                        worksheet.Row(rowAssembly).Style.Font.Bold = true;
                     }
 
                 if (Parts.Count > 0)
@@ -2239,7 +2246,7 @@ namespace Metal_Code
             }
 
             //оформляем заголовки таблицы
-            List<string> _headersD = new() { "Материал", "Толщина", "Работы", "Размеры, мм", "Наименование", "Кол-во, шт", "Цена за шт, руб", "Стоимость, руб" };
+            List<string> _headersD = new() { "Материал", "Толщина", "Размеры, мм", "Работы", "Наименование", "Кол-во, шт", "Цена за шт, руб", "Стоимость, руб" };
             for (int col = 0; col < _headersD.Count; col++)
             {
                 worksheet.Cells[6, col + 1].Value = _headersD[col];
@@ -2368,10 +2375,10 @@ namespace Metal_Code
         { "Доп ", "Доп - Дополнительные работы " }
     };
 
-                // Проходим по ячейкам в столбце 3 (столбец C)
+                // Проходим по ячейкам в столбце 4 (столбец D)
                 for (int r = 8; r <= row + 8; r++)
                 {
-                    var cellValue = worksheet.Cells[r, 3].Value?.ToString();
+                    var cellValue = worksheet.Cells[r, 4].Value?.ToString();
                     if (string.IsNullOrEmpty(cellValue)) continue;
 
                     foreach (var op in operations)
@@ -2885,11 +2892,6 @@ namespace Metal_Code
                             else if (type.MetalDrop.Text.Contains("медь")) description = $"cu{type.S}";
                             else description = $"s{type.S} {type.MetalDrop.Text}";
 
-                            //добавляем тег срочности
-                            if (HasAssembly) description += " (ЭКСПРЕСС)";
-
-                            statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + rowTask, 11].Value = description;  //"Лазерные работы"
-
                             //"Лазер (время работ)"                                 //"Время лазерных работ"
                             statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + rowTask, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
 
@@ -2917,6 +2919,12 @@ namespace Metal_Code
                                     tempNote++;
                                 }
                             }
+
+                            //добавляем тег срочности
+                            if (HasAssembly) description += " (ЭКСПРЕСС)";
+
+                            statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + rowTask, 11].Value = description;  //"Лазерные работы"
+
                         }
                         else if (w.workType is BendControl)
                         {
@@ -3594,10 +3602,9 @@ namespace Metal_Code
 
                     assemblysheet.Cells[row, 1].Value = number;
                     assemblysheet.Cells[row, 3].Value = assembly.Title;
-                    if (assembly.WeldPrice > 0) assemblysheet.Cells[row, 4].Value = "Сварка";
-                    if (assembly.PaintPrice > 0) assemblysheet.Cells[row, 4].Value += $" Окр {assembly.Ral} {assembly.Structure}";
+                    assemblysheet.Cells[row, 4].Value = assembly.Description;
                     assemblysheet.Cells[row, 5].Value = assembly.Count;
-                    assemblysheet.Cells[row, 1, row, 5].Style.Font.Bold = true;
+                    assemblysheet.Row(row).Style.Font.Bold = true;
 
                     number++; row++;
 

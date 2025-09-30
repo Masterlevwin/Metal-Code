@@ -108,6 +108,7 @@ namespace Metal_Code
         }
 
         public TubeType Tube { get; set; }
+        public Guid Id { get; } = Guid.NewGuid();
         public ObservableCollection<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
         public TabItem TabItem { get; set; } = new();

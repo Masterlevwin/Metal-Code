@@ -7,6 +7,7 @@ using System.Windows;
 using System.Text.RegularExpressions;
 using System.Windows.Media;
 using System.Collections.ObjectModel;
+using System;
 
 namespace Metal_Code
 {
@@ -43,6 +44,7 @@ namespace Metal_Code
             }
         }
 
+        public Guid Id { get; }
         public ObservableCollection<PartControl>? Parts { get; set; }
 
         public Dictionary<float, Dictionary<string, float>> BendDict = new()
@@ -169,10 +171,11 @@ namespace Metal_Code
         };
 
         public readonly UserControl owner;
-        public BendControl(UserControl _control)
+        public BendControl(UserControl _control, Guid? id =null)
         {
             InitializeComponent();
             owner = _control;
+            Id = id ?? Guid.NewGuid();
             Tuning();
         }
 
@@ -352,7 +355,7 @@ namespace Metal_Code
 
                     ValidateShelf();
 
-                    p.Part.PropsDict[p.UserControls.IndexOf(this)] = new() { $"{0}", $"{Bend}", $"{ShelfDrop.SelectedIndex}", Group };
+                    p.Part.WorksDict[Id] = new() { $"{0}", $"{Bend}", $"{ShelfDrop.SelectedIndex}", Group };
                     if (p.Part.Description != null && !p.Part.Description.Contains(" + Г ")) p.Part.Description += " + Г ";
 
                     int count = 0;      //счетчик общего количества деталей
@@ -408,10 +411,19 @@ namespace Metal_Code
                 }
                 else if (uc is PartControl p && owner is PartControl _owner)
                 {
-                    SetBend(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
-                    SetShelf((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));
-                    if (p.Part.PropsDict[_owner.UserControls.IndexOf(this)].Count > 3)
-                        SetGroup(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][3]);
+                    if (p.Part.WorksDict != null && p.Part.WorksDict.TryGetValue(Id, out List<string>? value))
+                    {
+                        SetBend(value[1]);
+                        SetShelf((int)MainWindow.Parser(value[2]));
+                        SetGroup(value[3]);
+                    }
+                    else
+                    {
+                        SetBend(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
+                        SetShelf((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));
+                        if (p.Part.PropsDict[_owner.UserControls.IndexOf(this)].Count > 3)
+                            SetGroup(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][3]);
+                    }
                 }
             }
         }
