@@ -1020,6 +1020,7 @@ namespace Metal_Code
                             var extra = work.type.WorkControls.Where(e => e.workType is ExtraControl);
                             if (extra.Any()) part.Part.Price += extra.Sum(e => e.Result) / _cut.Parts.Count / part.Part.Count;
 
+                            if (part.Part.WorksDict is null) part.Part.WorksDict = new();
                             part.PropertiesChanged?.Invoke(part, true);
                         }
                         work.PropertiesChanged?.Invoke(work, true);
@@ -2070,13 +2071,13 @@ namespace Metal_Code
                             if (_cut.Parts?.Count > 0)
                                 foreach (PartControl part in _cut.Parts)
                                 {
-                                    if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
-                                        foreach (int key in part.Part.PropsDict.Keys) if (key < 50)
-                                                part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
-
                                     if (part.Part.WorksDict?.Count > 0)
                                         foreach (var guid in part.Part.WorksDict.Keys)
                                             part.AddControl((int)Parser(part.Part.WorksDict[guid][0]), guid);
+
+                                    if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
+                                        foreach (int key in part.Part.PropsDict.Keys) if (key < 50)
+                                                part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
 
                                     part.PropertiesChanged?.Invoke(part, false);
                                 }
