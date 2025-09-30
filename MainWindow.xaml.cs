@@ -2075,7 +2075,7 @@ namespace Metal_Code
                                         foreach (var guid in part.Part.WorksDict.Keys)
                                             part.AddControl((int)Parser(part.Part.WorksDict[guid][0]), guid);
 
-                                    if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
+                                    else if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
                                         foreach (int key in part.Part.PropsDict.Keys) if (key < 50)
                                                 part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
 
