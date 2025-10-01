@@ -1011,6 +1011,9 @@ namespace Metal_Code
                             if (part.Part.PropsDict.Count > 0)
                                 for (int key = 50; key < 70; key++) part.Part.PropsDict.Remove(key);
 
+                            part.Part.WorksDict ??= new();
+                            part.Part.WorksDict.Clear();
+
                             //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
                             if (CheckConstruct.IsChecked == true) part.Part.Price += Construct / Parts.Count / part.Part.Count;
 
@@ -1020,7 +1023,6 @@ namespace Metal_Code
                             var extra = work.type.WorkControls.Where(e => e.workType is ExtraControl);
                             if (extra.Any()) part.Part.Price += extra.Sum(e => e.Result) / _cut.Parts.Count / part.Part.Count;
 
-                            if (part.Part.WorksDict is null) part.Part.WorksDict = new();
                             part.PropertiesChanged?.Invoke(part, true);
                         }
                         work.PropertiesChanged?.Invoke(work, true);
@@ -1901,6 +1903,8 @@ namespace Metal_Code
                                     //пробегаемся по ключам от 50 до 70, которые зарезервированы под конкретные работы
                                     if (p.PropsDict.Count > 0)
                                         for (int key = 50; key < 70; key++) p.PropsDict.Remove(key);
+
+                                    p.WorksDict ??= new();
                                     p.WorksDict.Clear();
 
                                     //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
@@ -1932,7 +1936,8 @@ namespace Metal_Code
                                 }
 
                                 if (_cut.Parts?.Count > 0)
-                                    foreach (PartControl part in _cut.Parts) part.PropertiesChanged?.Invoke(part, true);
+                                    foreach (PartControl part in _cut.Parts)
+                                        part.PropertiesChanged?.Invoke(part, true);
 
                                 _saveWork.Parts = _cut.PartDetails;
                                 if (_cut.Items?.Count > 0) _saveWork.Items = _cut.Items;
