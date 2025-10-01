@@ -5804,9 +5804,8 @@ namespace Metal_Code
                 {
                     foreach (FileInfo file in dir.GetFiles())
                     {
-                        // Регулярное выражение: ищет "счет" или "счёт" (не зависит от регистра),
-                        // затем любое количество пробельных символов, затем "№", затем пробелы и цифры
-                        string pattern = @"счет[ё]?\s*№\s*(\d+)";
+                        // Регулярное выражение: ищет "счет" или "счёт", затем любые слова, затем "№" и цифры
+                        string pattern = @"счет[ё]?(?:\s+\S+)*\s+№\s*(\d+)";
 
                         Match match = Regex.Match(file.Name, pattern, RegexOptions.IgnoreCase);
 
