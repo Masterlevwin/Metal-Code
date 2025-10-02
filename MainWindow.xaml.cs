@@ -3474,6 +3474,8 @@ namespace Metal_Code
             complectsheet.Names.Add("totalCount", complectsheet.Cells[3, 5, temp + 1, 5]);
             complectsheet.Cells[temp + 2, 5].Formula = "=SUM(totalCount)";
             complectsheet.Cells[temp + 2, 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            complectsheet.Cells[temp + 2, 5].Calculate();
+            var totalCount = complectsheet.Cells[temp + 2, 5].Value;
 
             complectsheet.Cells[temp + 2, 6].Value = "общий вес:";
             complectsheet.Cells[temp + 2, 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
@@ -3488,36 +3490,66 @@ namespace Metal_Code
 
             ExcelRange details = complectsheet.Cells[2, 1, temp + 1, 10];    //получаем таблицу деталей для оформления
 
-            if (Parts.Count > 0)        //в случае с нарезанными деталями, оформляем расшифровку работ
+            //в случае с нарезанными деталями, оформляем расшифровку работ
+            if (Parts.Count > 0)
             {
+                // Зачистка деталей
                 complectsheet.Cells[temp + 3, 1].Value = "Зачистка деталей";
                 complectsheet.Cells[temp + 3, 1, temp + 3, 2].Merge = true;
+
                 complectsheet.Cells[temp + 3, 3].Value = "(по необходимости / требованию)";
                 complectsheet.Cells[temp + 3, 3].Style.Font.Bold = true;
                 complectsheet.Cells[temp + 3, 3, temp + 3, 9].Merge = true;
 
+                // Расшифровка
                 complectsheet.Cells[temp + 4, 1].Value = "Расшифровка:";
                 complectsheet.Cells[temp + 4, 1, temp + 4, 2].Merge = true;
-                complectsheet.Cells[temp + 4, 3].Value = "";
                 complectsheet.Cells[temp + 4, 3, temp + 4, 9].Merge = true;
 
-                foreach (ExcelRangeBase cell in complectsheet.Cells[3, 4, temp + 2, 4])
+                var descriptionCell = complectsheet.Cells[temp + 4, 3];
+                descriptionCell.Value = string.Empty;
+
+                // Словарь: ключ — символ/подстрока в ячейке, значение — расшифровка
+                var operationsMap = new Dictionary<string, string>
+    {
+        { "Л", "Л - Лазер " },
+        { "Б", "Б - Без лазера " },
+        { "Т", "Т - Труборез " },
+        { "Г ", "Г - Гибка " },
+        { "В ", "В - Вальцовка " },
+        { "Р ", "Р - Резьба " },
+        { "З ", "З - Зенковка " },
+        { "Зк ", "Зк - Заклепки " },
+        { "С ", "С - Сверловка " },
+        { "Св ", "Св - Сварка " },
+        { "О ", "О - Окраска " },
+        { "Ц ", "Ц - Цинкование " },
+        { "Ф ", "Ф - Фрезеровка " },
+        { "А ", "А - Аквабластинг " },
+        { "Доп ", "Доп - Дополнительные работы " }
+    };
+
+                var addedKeys = new HashSet<string>(); // Чтобы избежать дублирования
+
+                // Перебираем все ячейки в диапазоне [3,4] до [temp+2,4]
+                for (int row = 3; row <= temp + 2; row++)
                 {
-                    if (cell.Value != null && $"{cell.Value}".Contains('Л') && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains('Л')) complectsheet.Cells[temp + 4, 3].Value += "Л - Лазер ";
-                    if (cell.Value != null && $"{cell.Value}".Contains('Б') && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains('Б')) complectsheet.Cells[temp + 4, 3].Value += "Б - Без лазера ";
-                    if (cell.Value != null && $"{cell.Value}".Contains('Т') && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains('Т')) complectsheet.Cells[temp + 4, 3].Value += "Т - Труборез ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Г ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("Г ")) complectsheet.Cells[temp + 4, 3].Value += "Г - Гибка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("В ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("В ")) complectsheet.Cells[temp + 4, 3].Value += "В - Вальцовка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Р ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("Р ")) complectsheet.Cells[temp + 4, 3].Value += "Р - Резьба ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("З ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("З ")) complectsheet.Cells[temp + 4, 3].Value += "З - Зенковка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Зк ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("Зк ")) complectsheet.Cells[temp + 4, 3].Value += "Зк - Заклепки ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("С ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("С ")) complectsheet.Cells[temp + 4, 3].Value += "С - Сверловка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Св ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("Св ")) complectsheet.Cells[temp + 4, 3].Value += "Св - Сварка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("О ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("О ")) complectsheet.Cells[temp + 4, 3].Value += "О - Окраска ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Ц ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("Ц ")) complectsheet.Cells[temp + 4, 3].Value += "Ц - Цинкование ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Ф ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("Ф ")) complectsheet.Cells[temp + 4, 3].Value += "Ф - Фрезеровка ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("А ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("А ")) complectsheet.Cells[temp + 4, 3].Value += "А - Аквабластинг ";
-                    if (cell.Value != null && $"{cell.Value}".Contains("Доп ") && !$"{complectsheet.Cells[temp + 4, 3].Value}".Contains("Доп ")) complectsheet.Cells[temp + 4, 3].Value += "Доп - Дополнительные работы ";
+                    var cell = complectsheet.Cells[row, 4];
+                    if (cell?.Value == null) continue;
+
+                    string cellValue = $"{cell.Value}";
+
+                    foreach (var kvp in operationsMap)
+                    {
+                        string key = kvp.Key;
+                        string value = kvp.Value;
+
+                        if (cellValue.Contains(key) && !addedKeys.Contains(key))
+                        {
+                            descriptionCell.Value += value;
+                            addedKeys.Add(key);
+                        }
+                    }
                 }
             }
 
@@ -3561,14 +3593,13 @@ namespace Metal_Code
             labelsheet.Cells[3, 1].Style.Font.Bold = true;
             labelsheet.Cells[3, 1, 3, 2].Merge = true;
             labelsheet.Cells[4, 1].Value = $"общее кол-во деталей:";
-            labelsheet.Names.Add("totalCount", complectsheet.Cells[3, 5, temp + 1, 5]);
-            labelsheet.Cells[4, 2].Formula = "=SUM(totalCount)";
+            labelsheet.Cells[4, 2].Value = totalCount;
             labelsheet.Cells[4, 1, 4, 2].Style.Font.Size = 16;
             labelsheet.Cells[4, 1, 4, 2].Style.Font.Bold = true;
             labelsheet.Cells[5, 1].Value = IsLaser ? "тел : (812) 509 - 60 - 11" : "тел:(812) 603 - 45 - 33";
             labelsheet.Cells[5, 1, 5, 2].Merge = true;
 
-            ExcelRange label = labelsheet.Cells[1, 1, 5, 2];                        //получаем этикетку для оформления
+            ExcelRange label = labelsheet.Cells[1, 1, 5, 2];        //получаем этикетку для оформления
 
             //создаем реестр простых задач для Битрикса
             CreateSimpleRegistry(workbook);
