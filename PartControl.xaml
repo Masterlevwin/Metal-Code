@@ -20,7 +20,7 @@
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="3">
-                <TextBox Text="{Binding Title}" TextWrapping="Wrap" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="90"/>
+                <TextBox Text="{Binding Title}" TextWrapping="Wrap" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="90" Height="60"/>
                 <Image x:Name="Picture" MouseWheel="ViewPopupDimensions" Loaded="SetPicture" Margin="5,0,0,0" MouseLeftButtonDown="OpenPlan" Height="60" Width="60"/>
                 <Canvas x:Name="GeometryCanvas" Background="White"  MouseWheel="ViewPopupDimensions" Loaded="SetPicture" Margin="5,0,0,0" Height="60" Width="60" MouseLeftButtonDown="OpenPlan" Visibility="Collapsed"/>
                 <Button Margin="5,0,0,0" VerticalAlignment="Top" Content="X" FontWeight="Bold" Padding="0" Click="RemovePart" Width="16" Height="16"/>

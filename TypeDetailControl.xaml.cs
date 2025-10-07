@@ -469,7 +469,7 @@ namespace Metal_Code
                             }
 
                             // определяем заголовок списка нарезанных деталей
-                            PartsToggle.Content = $"{(cut is PipeControl ? "(ТР) " : "")}s{S} {metal.Name} ({cut.PartDetails.Sum(x => x.Count)} шт) - список деталей";
+                            PartsToggle.Content = $"{(cut is PipeControl ? "(ТР) " : "")}s{S} {metal.Name} ({cut.PartDetails.Sum(x => x.Count)} шт) - список деталей {(PartsToggle.IsChecked == true ? "▲" : "▼")}";
                         }
                         break;
                     }
@@ -572,8 +572,6 @@ namespace Metal_Code
 
         public void PriceChanged()
         {
-            PartsToggle.IsEnabled = det.Detail.IsComplect;          //показываем или скрываем заголовок списка нарезанных деталей
-
             Result = HasMetal ? (float)Math.Round(                  //проверяем наличие материала
                 (det.Detail.IsComplect ? 1 : Count) *               //проверяем количество заготовок
                 (ExtraResult > 0 ? ExtraResult : Price * Mass)      //проверяем наличие стоимости пользователя
@@ -693,12 +691,12 @@ namespace Metal_Code
         {
             if (PartsToggle.IsChecked == true)
             {
-                //PartsToggle.Content = "Список нарезанных деталей ▲";
+                PartsToggle.Content = $"{PartsToggle.Content}".Replace("▼", "▲");
                 ((Storyboard)FindResource("ExpandParts")).Begin(this);
             }
             else
             {
-                //PartsToggle.Content = "Список нарезанных деталей ▼";
+                PartsToggle.Content = $"{PartsToggle.Content}".Replace("▲", "▼");
                 ((Storyboard)FindResource("CollapseParts")).Begin(this);
             }
         }

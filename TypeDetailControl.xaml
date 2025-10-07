@@ -19,7 +19,7 @@
         <Storyboard x:Key="ExpandParts">
             <DoubleAnimation Storyboard.TargetName="PartsStack"
                              Storyboard.TargetProperty="MaxHeight"
-                             To="500"
+                             To="400"
                              Duration="0:0:0.35">
                 <DoubleAnimation.EasingFunction>
                     <StaticResource ResourceKey="EaseOut"/>
