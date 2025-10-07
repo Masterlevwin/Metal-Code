@@ -8,76 +8,124 @@
     <UserControl.Resources>
         <local:CostConverter x:Key="CostConverter"/>
     </UserControl.Resources>
-    
-    <Grid x:Name="ControlGrid">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" MinHeight="170"/>
-            <RowDefinition/>
-        </Grid.RowDefinitions>
 
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Center" MinHeight="20">
-            <TextBox x:Name="PricePart" Text="{Binding Price, Converter={StaticResource CostConverter}}" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" BorderThickness="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-            <Button Margin="5,0,0,0" Click="SetFixedPrice" BorderThickness="0" Padding="0" MaxWidth="12">
-                <Image Source="/Images/fixed.png" MouseEnter="ViewPopupFixedPrice"/>
-            </Button>
-        </StackPanel>
+    <Border BorderBrush="Gray" CornerRadius="6" BorderThickness="1">
+        <StackPanel Margin="3">
 
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="60" Margin="5,20,5,5" MaxHeight="60">
-            <TextBox Text="{Binding Title}" TextWrapping="Wrap" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="90" MaxWidth="90"/>
-            <Image x:Name="Picture" MouseWheel="ViewPopupDimensions" Loaded="SetPicture" Margin="5,0,0,0" MinHeight="60" MaxHeight="60" MinWidth="60" MaxWidth="60" MouseLeftButtonDown="OpenPlan"/>
-            <Canvas x:Name="GeometryCanvas" Background="White"  MouseWheel="ViewPopupDimensions" Loaded="SetPicture" Margin="5,0,0,0" MinWidth="60" MinHeight="60" MouseLeftButtonDown="OpenPlan" Visibility="Collapsed"/>
-            <Button Margin="5,0,0,0" VerticalAlignment="Top" Content="X" MinWidth="16" MinHeight="16" FontWeight="Bold" Padding="0" Click="RemovePart"/>
-        </StackPanel>
-        
-        <Popup x:Name="PopupDimensions" StaysOpen="False" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5">
-            <StackPanel Background="Lavender" Orientation="Horizontal">
-                <TextBlock Text="{Binding Square, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" TextAlignment="Center" Padding="3"/>
-                <TextBlock Text="кв м" MouseWheel="ViewPopupDimensions" VerticalAlignment="Center" Padding="3"/>
+            <StackPanel Orientation="Horizontal"  Margin="3" HorizontalAlignment="Center">
+                <TextBox x:Name="PricePart" Text="{Binding Price, Converter={StaticResource CostConverter}}" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" BorderThickness="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                <Button Margin="5,0,0,0" Click="SetFixedPrice" BorderThickness="0" Padding="0" Width="16" Height="16">
+                    <Image Source="/Images/fixed.png" MouseEnter="ViewPopupFixedPrice"/>
+                </Button>
             </StackPanel>
-        </Popup>
 
-        <Popup x:Name="Popup" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Scroll" StaysOpen="False">
-            <Border BorderThickness="1" CornerRadius="1" BorderBrush="Red">
-                <StackPanel Background="Snow">
-                    <TextBlock x:Name="Details" TextAlignment="Center" Padding="5"/>
+            <StackPanel Orientation="Horizontal" Margin="3">
+                <TextBox Text="{Binding Title}" TextWrapping="Wrap" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="90"/>
+                <Image x:Name="Picture" MouseWheel="ViewPopupDimensions" Loaded="SetPicture" Margin="5,0,0,0" MouseLeftButtonDown="OpenPlan" Height="60" Width="60"/>
+                <Canvas x:Name="GeometryCanvas" Background="White"  MouseWheel="ViewPopupDimensions" Loaded="SetPicture" Margin="5,0,0,0" Height="60" Width="60" MouseLeftButtonDown="OpenPlan" Visibility="Collapsed"/>
+                <Button Margin="5,0,0,0" VerticalAlignment="Top" Content="X" FontWeight="Bold" Padding="0" Click="RemovePart" Width="16" Height="16"/>
+            </StackPanel>
+
+            <Popup x:Name="PopupDimensions" StaysOpen="False" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5">
+                <StackPanel Background="Lavender" Orientation="Horizontal">
+                    <TextBlock Text="{Binding Square, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" TextAlignment="Center" Padding="3"/>
+                    <TextBlock Text="кв м" MouseWheel="ViewPopupDimensions" VerticalAlignment="Center" Padding="3"/>
                 </StackPanel>
-            </Border>
-        </Popup>
+            </Popup>
 
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="0,90,0,0" MaxHeight="20">
-            <TextBox Text="{Binding Count}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Количество вырезанных деталей" MinWidth="40" MinHeight="20" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="Blue"/>
-            <TextBlock Text="шт" Margin="5,0,0,0" VerticalAlignment="Center"/>
-            <TextBlock x:Name="DimensionsText" Text="{Binding Dimensions, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" ToolTip="Размеры детали" Margin="30,0,0,0" VerticalAlignment="Center"/>
-            <TextBlock Text="мм" MouseWheel="ViewPopupDimensions" Margin="5,0,0,0" VerticalAlignment="Center"/>
-        </StackPanel>
+            <Popup x:Name="Popup" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Scroll" StaysOpen="False">
+                <Border BorderThickness="1" CornerRadius="1" BorderBrush="Red">
+                    <StackPanel Background="Snow">
+                        <TextBlock x:Name="Details" TextAlignment="Center" Padding="5"/>
+                    </StackPanel>
+                </Border>
+            </Popup>
 
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="5,115,0,0" MaxHeight="20">
-            <Image Source="/Images/assembly.png" VerticalAlignment="Top" MaxWidth="16"/>
+            <StackPanel Orientation="Horizontal" Margin="3">
+                <TextBox Text="{Binding Count}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Количество вырезанных деталей" Width="40" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="Blue"/>
+                <TextBlock Text="шт" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="DimensionsText" Text="{Binding Dimensions, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" ToolTip="Размеры детали" Margin="30,0,0,0" VerticalAlignment="Center"/>
+                <TextBlock Text="мм" MouseWheel="ViewPopupDimensions" Margin="5,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
 
-            <ComboBox x:Name="AssembliesDrop" MinWidth="100" MaxWidth="100" Margin="4,0,0,0">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <CheckBox Click="AddToAssembly"
+            <StackPanel Orientation="Horizontal" Margin="3">
+                <Image Source="/Images/assembly.png" Width="16"/>
+                <ComboBox x:Name="AssembliesDrop" Margin="4,0,0,0" Width="100">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox Click="AddToAssembly"
                                       IsChecked="{Binding RelativeSource={RelativeSource Self}, Path=IsChecked, Mode=OneWay}"
                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding Title}" Margin="3,0,0,0"/>
-                            <TextBlock Text=" (" Foreground="Blue" Margin="3,0,0,0" />
-                            <TextBlock Text="{Binding Count}" Foreground="Blue"/>
-                            <TextBlock Text=" сб)" Foreground="Blue"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <TextBlock Text="{Binding Mass}" ToolTip="Масса детали" Margin="10,0,0,0" VerticalAlignment="Center"/>
-            <TextBlock Text="кг" VerticalAlignment="Center" Margin="5,0,0,0"/>
-        </StackPanel>
+                                <TextBlock Text="{Binding Title}" Margin="3,0,0,0"/>
+                                <TextBlock Text=" (" Foreground="Blue" Margin="3,0,0,0" />
+                                <TextBlock Text="{Binding Count}" Foreground="Blue"/>
+                                <TextBlock Text=" сб)" Foreground="Blue"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Text="{Binding Mass}" ToolTip="Масса детали" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                <TextBlock Text="кг" VerticalAlignment="Center" Margin="5,0,0,0"/>
+            </StackPanel>
 
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="5,140,0,0" MaxHeight="20">
-            <Image Source="/Images/works2.png" VerticalAlignment="Top" MaxWidth="16"/>
+            <StackPanel Orientation="Horizontal" Margin="3">
+                <Image Source="/Images/works2.png" Width="16"/>
+                <ComboBox x:Name="WorksDrop" Width="140" Margin="4,0,0,0">
+                    <ComboBox.ItemContainerStyle>
+                        <Style TargetType="ComboBoxItem">
+                            <Setter Property="Height" Value="28"/>
+                            <!-- Обязательно: иначе IsMouseOver не сработает на пустом месте -->
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Padding" Value="2"/>
+                            <Setter Property="Margin" Value="2,0,2,0"/>
+                            <!-- опционально: отступы -->
+                        </Style>
+                    </ComboBox.ItemContainerStyle>
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <!-- Используем Grid вместо StackPanel для лучшего контроля -->
+                            <Grid x:Name="ItemContainer" Background="Transparent">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
 
-            <ComboBox x:Name="WorksDrop" MinWidth="100" MaxWidth="100" Margin="4,0,0,0"/>
-            <Button Margin="10,0,0,0" MinWidth="45" Content="Доб" Click="AddControl"/>
+                                <TextBlock Text="{Binding}" 
+                           VerticalAlignment="Center" 
+                           Margin="3,0"/>
+
+                                <Button Content="+" 
+                        Grid.Column="1"
+                        Width="20" 
+                        Margin="0,0,5,0"
+                        Click="AddControl"
+                        Tag="{Binding}">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsMouseOver, ElementName=ItemContainer}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+
+            <!-- === Прокручиваемая область для добавленных работ === -->
+            <Border BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Margin="0,5,0,0" MaxHeight="150" Padding="3">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          CanContentScroll="True">
+                    <StackPanel x:Name="WorksStackPanel" />
+                </ScrollViewer>
+            </Border>
         </StackPanel>
-    </Grid>
+    </Border>
 </UserControl>

@@ -120,13 +120,13 @@ namespace Metal_Code
                                 if (_cut.Items?.Count > 0) cut.SumProperties(_cut.Items);
                                 cut.Parts = cut.PartList();
                                 cut.PartsControl = new(cut, cut.Parts);
-                                cut.AddPartsTab(this);
+                                cut.AddPartsControl(this);
                             }
                             else if (_cut is PipeControl pipe)
                             {
                                 pipe.Parts = pipe.PartList();
                                 pipe.PartsControl = new(pipe, pipe.Parts);
-                                pipe.AddPartsTab(this);
+                                pipe.AddPartsControl(this);
                                 pipe.SetTotalProperties();
                             }
 
@@ -176,44 +176,44 @@ namespace Metal_Code
         //-----------Копирование всех контролов списка вложений----------//
         private void CopyUserControls(object sender, RoutedEventArgs e)
         {
-            if (MainWindow.M.PartsTab.Items.Count == 0)
-            {
-                MessageBox.Show($"В текущем расчете нет списка нарезанных деталей.\nДобавьте раскладки или загрузите расчет с ними.");
-                return;
-            }
+            //if (MainWindow.M.PartsTab.Items.Count == 0)
+            //{
+            //    MessageBox.Show($"В текущем расчете нет списка нарезанных деталей.\nДобавьте раскладки или загрузите расчет с ними.");
+            //    return;
+            //}
 
-            bool isMatch = false;
+            //bool isMatch = false;
 
-            for (int i = 0; i < MainWindow.M.PartsTab.Items.Count; i++)
-            {
-                TabItem? _tab = MainWindow.M.PartsTab.Items[i] as TabItem;
-                if (_tab is not null && _tab.Content is PartsControl _partsMain)
-                {
-                    foreach (PartControl partMain in _partsMain.Parts)
-                    {
-                        while (partMain.UserControls.Count > 0) partMain.RemoveControl(partMain.UserControls[^1]);
+            //for (int i = 0; i < MainWindow.M.PartsTab.Items.Count; i++)
+            //{
+            //    TabItem? _tab = MainWindow.M.PartsTab.Items[i] as TabItem;
+            //    if (_tab is not null && _tab.Content is PartsControl _partsMain)
+            //    {
+            //        foreach (PartControl partMain in _partsMain.Parts)
+            //        {
+            //            while (partMain.UserControls.Count > 0) partMain.RemoveControl(partMain.UserControls[^1]);
 
-                        foreach (PartControl _part in Parts)
-                        {
-                            if (partMain.Part.Title != null && partMain.Part.Title.ToLower().Contains('n') &&
-                                _part.Part.Title != null && _part.Part.Title.ToLower().Contains('n') &&
-                                partMain.Part.Title?[..$"{partMain.Part.Title}".ToLower().LastIndexOf('n')] == _part.Part.Title?[.._part.Part.Title.ToLower().LastIndexOf('n')])
-                            {
-                                if (_part.Part.PropsDict.Count > 0)
-                                    foreach (int key in _part.Part.PropsDict.Keys) if (key < 50)
-                                            partMain.AddControl((int)MainWindow.Parser(_part.Part.PropsDict[key][0]));
-                                partMain.PropertiesChanged?.Invoke(_part, false);
-                                isMatch = true;
-                            }
-                        }
-                    }
-                } 
-            }
+            //            foreach (PartControl _part in Parts)
+            //            {
+            //                if (partMain.Part.Title != null && partMain.Part.Title.ToLower().Contains('n') &&
+            //                    _part.Part.Title != null && _part.Part.Title.ToLower().Contains('n') &&
+            //                    partMain.Part.Title?[..$"{partMain.Part.Title}".ToLower().LastIndexOf('n')] == _part.Part.Title?[.._part.Part.Title.ToLower().LastIndexOf('n')])
+            //                {
+            //                    if (_part.Part.PropsDict.Count > 0)
+            //                        foreach (int key in _part.Part.PropsDict.Keys) if (key < 50)
+            //                                partMain.AddControl((int)MainWindow.Parser(_part.Part.PropsDict[key][0]));
+            //                    partMain.PropertiesChanged?.Invoke(_part, false);
+            //                    isMatch = true;
+            //                }
+            //            }
+            //        }
+            //    } 
+            //}
 
-            if (!isMatch) MessageBox.Show($"Совпадений не найдено.\nПоменяйте имена нарезанных деталей и попробуйте снова.");
-            else MessageBox.Show($"Работы по нарезанным деталям текущего расчета добавлены!");
+            //if (!isMatch) MessageBox.Show($"Совпадений не найдено.\nПоменяйте имена нарезанных деталей и попробуйте снова.");
+            //else MessageBox.Show($"Работы по нарезанным деталям текущего расчета добавлены!");
 
-            MainWindow.M.StatusBegin($"Если открытый для чтения расчет больше не требуется, рекомендуется закрыть его окно.");
+            //MainWindow.M.StatusBegin($"Если открытый для чтения расчет больше не требуется, рекомендуется закрыть его окно.");
         }
 
     }

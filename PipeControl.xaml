@@ -1,28 +1,144 @@
 ﻿<UserControl x:Class="Metal_Code.PipeControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Metal_Code"
-             mc:Ignorable="d" 
-             d:DesignHeight="30" d:DesignWidth="150" Unloaded="RemovePartsTab">
-    
-    <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="20">
-        <CheckBox IsChecked="{Binding IsMassPipe, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" Click="SetMassPipe" ToolTip="Посчитать материал самих деталей" Margin="2,0,0,0" VerticalAlignment="Center"/>
-        <Button x:Name="CutBtn" Click="LoadFiles" Content=". . ." ToolTip="Загрузить отчет трубы" FontWeight="Bold" Margin="2,0,0,0" MinWidth="25"/>
-        <TextBox Text="{Binding Mold, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetMold" ToolTip="Длина трубы, пог м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxWidth="30" MinWidth="30" ToolTipOpening="SetToolTipForMold"/>
-        <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetWay" MinWidth="25" ToolTip="Длина пути резки, м" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="25" Margin="5,0,0,0" ToolTipOpening="SetToolTipForWay"/>
-        <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:PipeControl}, Mode=FindAncestor}}" TextChanged="SetPinhole" MinWidth="25" ToolTip="Количество проколов, шт" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxWidth="25" Margin="5,0,0,0" ToolTipOpening="SetToolTipForPinhole"/>
+             mc:Ignorable="d"
+             d:DesignHeight="30" d:DesignWidth="170">
 
-        <Image Source="/Images/question.png" MaxWidth="10" Margin="2,0,0,0" VerticalAlignment="Top">
-            <Image.ToolTip>
-                <ToolTip Background="Snow" BorderBrush="Red" Padding="5" BorderThickness="1">
-                    <StackPanel >
-                        <TextBlock Text="Стоимость трубореза = кол пог метров * цена пог метра * 0,7 + кол метров резки * цена метра + кол проколов * цена проколов * 3" TextWrapping="Wrap" MaxWidth="300"/>
-                    </StackPanel>
-                </ToolTip>
-            </Image.ToolTip>
-        </Image>
+    <UserControl.Resources>
+        <!-- Анимации -->
+        <PowerEase x:Key="EaseOut" EasingMode="EaseOut"/>
+        <PowerEase x:Key="EaseIn" EasingMode="EaseIn"/>
 
-    </StackPanel>
+        <Storyboard x:Key="ExpandAnimation">
+            <DoubleAnimation Storyboard.TargetName="DetailsSection"
+                             Storyboard.TargetProperty="MaxHeight"
+                             To="80"
+                             Duration="0:0:0.3">
+                <DoubleAnimation.EasingFunction>
+                    <StaticResource ResourceKey="EaseOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DetailsSection"
+                                           Storyboard.TargetProperty="Visibility">
+                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
+            </ObjectAnimationUsingKeyFrames>
+        </Storyboard>
+
+        <Storyboard x:Key="CollapseAnimation">
+            <DoubleAnimation Storyboard.TargetName="DetailsSection"
+                             Storyboard.TargetProperty="MaxHeight"
+                             To="0"
+                             Duration="0:0:0.3">
+                <DoubleAnimation.EasingFunction>
+                    <StaticResource ResourceKey="EaseIn"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DetailsSection"
+                                           Storyboard.TargetProperty="Visibility">
+                <DiscreteObjectKeyFrame KeyTime="0:0:0.3" Value="{x:Static Visibility.Collapsed}"/>
+            </ObjectAnimationUsingKeyFrames>
+        </Storyboard>
+    </UserControl.Resources>
+
+    <!-- Внешний Grid: две строки -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Основная строка -->
+            <RowDefinition Height="Auto"/>
+            <!-- Раскрывающаяся секция -->
+        </Grid.RowDefinitions>
+
+        <!-- Основная строка: горизонтальные элементы -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal">
+            
+            <CheckBox IsChecked="{Binding IsMassPipe, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      Click="SetMassPipe"
+                      ToolTip="Посчитать материал самих деталей"
+                      Margin="2,0,0,0"
+                      VerticalAlignment="Center"/>
+
+            <Button x:Name="CutBtn"
+                    Content=". . ."
+                    Click="LoadFiles"
+                    FontWeight="Bold"
+                    Width="50"
+                    Margin="5,0,0,0"
+                    ToolTip="Загрузить отчет трубы"/>
+
+            <Button x:Name="ShowDetailsButton"
+                    Content="параметры"
+                    Width="85"
+                    Margin="2,0,0,0"
+                    ToolTip="Показать параметры резки"
+                    Click="OnShowDetailsClick"
+                    Cursor="Hand"
+                    BorderThickness="0"
+                    Background="Transparent"
+                    Foreground="#007ACC"
+                    VerticalAlignment="Center"/>
+
+            <Image Source="/Images/question.png" Width="10" Margin="2,0,0,0" VerticalAlignment="Top">
+                <Image.ToolTip>
+                    <ToolTip Background="Snow" BorderBrush="Red" Padding="5" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="Стоимость трубореза = кол пог метров * цена пог метра * 0,7 + кол метров резки * цена метра + кол проколов * цена проколов * 3"
+                                      TextWrapping="Wrap" MaxWidth="300"/>
+                        </StackPanel>
+                    </ToolTip>
+                </Image.ToolTip>
+            </Image>
+        </StackPanel>
+
+        <!-- Раскрывающаяся секция: появляется ПОД основной строкой -->
+        <Border x:Name="DetailsSection"
+                Grid.Row="1"
+                Background="#F9F9F9"
+                BorderBrush="#E0E0E0"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="10,6"
+                MaxHeight="0"
+                Visibility="Collapsed"
+                Margin="0,2,0,0">
+            
+            <StackPanel Orientation="Horizontal">
+                <!-- Погонаж -->
+                <StackPanel Width="50">
+                    <TextBlock Text="пог м" HorizontalAlignment="Center"/>
+                    <TextBox x:Name="MoldTextBox"
+                             Text="{Binding Mold, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             TextChanged="SetMold" ToolTip="Длина трубы, пог м"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center"
+                             ToolTipOpening="SetToolTipForMold"/>
+                </StackPanel>
+
+                <!-- Путь резки -->
+                <StackPanel Margin="5,0,0,0" Width="50">
+                    <TextBlock Text="м" HorizontalAlignment="Center"/>
+                    <TextBox x:Name="WayTextBox"
+                             Text="{Binding Way, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             TextChanged="SetWay" ToolTip="Длина пути резки, м"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center"
+                             ToolTipOpening="SetToolTipForWay"/>
+                </StackPanel>
+
+                <!-- Проколы -->
+                <StackPanel Margin="5,0,0,0" Width="40">
+                    <TextBlock Text="шт" HorizontalAlignment="Center"/>
+                    <TextBox x:Name="PinholeTextBox"
+                             Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             TextChanged="SetPinhole" ToolTip="Количество проколов, шт"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center"
+                             ToolTipOpening="SetToolTipForPinhole"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
 </UserControl>

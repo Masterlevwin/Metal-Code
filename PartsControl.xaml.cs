@@ -18,6 +18,9 @@ namespace Metal_Code
 
         private readonly string[] standartParts = { "Прямоугольник", "Круг" };
 
+        private string[] works = { "Выберите работу", "Гибка", "Сварка", "Окраска", "Резьба", "Зенковка", "Сверловка",
+                                    "Вальцовка", "Цинкование", "Фрезеровка", "Заклепки", "Аквабластинг"};
+
         public PartsControl(UserControl _owner, ObservableCollection<PartControl> _parts)
         {
             InitializeComponent();
@@ -26,7 +29,11 @@ namespace Metal_Code
             partsList.ItemsSource = Parts;
             StandartPartsDrop.ItemsSource = standartParts;
 
-            if (Parts.Count > 0) StandartPartBtn.IsEnabled = false;
+            // Отключаем стак стандартных деталей, если есть нарезанные
+            if (Parts.Count > 0) StandartStack.IsEnabled = false;
+
+            // Заполняем ComboBox работами
+            WorksDrop.ItemsSource = works;
 
             BendControl Bend = new(owner);
             // формирование списка длин стороны гиба
@@ -42,6 +49,81 @@ namespace Metal_Code
             foreach (string s in Roll.Sides) RollDrop.Items.Add(s);
         }
 
+        // показываем выбранный блок работы
+        private void SetVisibleControl(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is string workName)
+            {
+                // Находим индекс работы в массиве `works`
+                int index = Array.IndexOf(works, workName);
+                if (index >= 1)
+                {
+                    WorksDrop.SelectedIndex = 0;        //сбрасываем выбор
+
+                    //активируем выбранную работу
+                    WorksGrid.Children[index - 1].Visibility = Visibility.Visible;
+
+                    //остальные работы скрываем
+                    foreach (StackPanel stack in WorksGrid.Children)
+                        if (stack != WorksGrid.Children[index - 1])
+                            stack.Visibility = Visibility.Collapsed;
+
+                    //добавляем блок на каждую деталь
+                    foreach (PartControl p in Parts)
+                        p.AddControl(index - 1);
+                }
+            }
+        }
+
+        // сортировка по выбранной работе
+        private void SortDetails(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button button || button.Tag is not string workName)
+                return;
+
+            int index = Array.IndexOf(works, workName);
+            if (index < 1) return;
+
+            IEnumerable<PartControl> sortedParts = index switch
+            {
+                1 => SortByControlType<BendControl>(),
+                2 => SortByControlType<WeldControl>(),
+                3 => SortByControlType<PaintControl>(),
+                4 => SortByThreadChar("Р"),
+                5 => SortByThreadChar("З"),
+                6 => SortByThreadChar("С"),
+                7 => SortByControlType<RollingControl>(),
+                8 => SortByControlType<ZincControl>(),
+                9 => SortByControlType<MillingTotalControl>(),
+                10 => SortByThreadChar("Зк"),
+                11 => SortByControlType<AquaControl>(),
+                _ => Parts
+            };
+
+            partsList.ItemsSource = sortedParts.ToList();
+        }
+
+        // Вспомогательный метод: сортировка по типу UserControl
+        private IEnumerable<PartControl> SortByControlType<T>() where T : UserControl
+        {
+            var withControl = Parts.Where(p => p.UserControls.OfType<T>().Any());
+            var withoutControl = Parts.Except(withControl);
+            return withControl.Concat(withoutControl);
+        }
+
+        // Вспомогательный метод: сортировка по ThreadControl с заданным CharName
+        private IEnumerable<PartControl> SortByThreadChar(string charName)
+        {
+            var withControl = Parts.Where(p => p.UserControls.OfType<ThreadControl>()
+                .Any(tc => tc.CharName == charName));
+            var withoutControl = Parts.Except(withControl);
+            return withControl.Concat(withoutControl);
+        }
+
+        // сбрасываем выбор работы
+        private void SelectedWork(object sender, SelectionChangedEventArgs e) { WorksDrop.SelectedIndex = 0; }
+
+        // добавляем работу во все детали
         private void AddControl(object sender, RoutedEventArgs e)
         {
             foreach (PartControl p in Parts)
@@ -86,7 +168,8 @@ namespace Metal_Code
             }
         }
 
-        private void SetPropertyThread(object sender, RoutedEventArgs e)      //обработчик события LostFocus для текстовых полей диаметра отверстий
+        // обработчик события LostFocus для текстовых полей диаметра отверстий
+        private void SetPropertyThread(object sender, RoutedEventArgs e)
         {
             if (Parts.Count > 0 && sender is TextBox tBox && tBox.Text != "")
             {
@@ -115,14 +198,16 @@ namespace Metal_Code
                 }
             }
         }
-
-        private void SetProperty(object sender, RoutedEventArgs e)      //обработчик события LostFocus для текстового поля окраски
+        
+        // обработчик события LostFocus для текстового поля окраски
+        private void SetProperty(object sender, RoutedEventArgs e)
         {
             if (Parts.Count > 0 && sender is TextBox tBox && tBox.Text != "")
                 foreach (PartControl p in Parts)
                     foreach (PaintControl item in p.UserControls.OfType<PaintControl>()) item.SetRal(tBox.Text);
         }
 
+        // обработчик события TextChangeds для текстовых полей
         private void SetProperty(object sender, TextChangedEventArgs e)
         {
             if (Parts.Count > 0 && sender is TextBox tBox && tBox.Text != "")
@@ -166,6 +251,7 @@ namespace Metal_Code
             }
         }
 
+        // обработчик события SelectionChanged для дропов работ
         private void SetType(object sender, SelectionChangedEventArgs e)
         {
             if (Parts.Count > 0 && sender is ComboBox cBox)
@@ -192,77 +278,12 @@ namespace Metal_Code
             }
         }
 
-        private void SortDetails(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button btn)
-                switch (btn.Content)
-                {
-                    //case "И>":
-                    //    partsList.ItemsSource = Parts.OrderBy(p => p.Part.Title).ToList();
-                    //    break;
-                    case "Г>":
-                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is BendControl))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is BendControl)))).ToList();
-                        break;
-                    case "Св>":
-                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is WeldControl))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is WeldControl)))).ToList();
-                        break;
-                    case "О>":
-                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is PaintControl))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is PaintControl)))).ToList();
-                        break;
-                    case "Р>":
-                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "Р"))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "Р")))).ToList();
-                        break;
-                    case "З>":
-                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "З"))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "З")))).ToList();
-                        break;
-                    case "С>":
-                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "С"))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "С")))).ToList();
-                        break;
-                    case "Зк>":
-                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "Зк"))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ThreadControl thread && thread.CharName == "Зк")))).ToList();
-                        break;
-                    case "В>":
-                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is RollingControl))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is RollingControl)))).ToList();
-                        break;
-                    case "Ц>":
-                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ZincControl))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is ZincControl)))).ToList();
-                        break;
-                    case "Ф>":
-                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is MillingTotalControl))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is MillingTotalControl)))).ToList();
-                        break;
-                    case "А>":
-                        partsList.ItemsSource = Parts.Where(p => p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is AquaControl))).Union(Parts.Where(p => !p.UserControls.Contains(
-                            p.UserControls.FirstOrDefault(u => u is AquaControl)))).ToList();
-                        break;
-                }
-        }
-
+        // показать или скрыть раскладки
         private void ShowNesting(object sender, RoutedEventArgs e)
         {
-            if (sender is CheckBox cBox && cBox is not null)
+            if (sender is Button btn)
             {
-                if (cBox.IsChecked is true && owner is ICut cut && cut.Items?.Count > 0)
+                if ($"{btn.Content}" == "Показать раскладки" && owner is ICut cut && cut.Items?.Count > 0)
                 {
                     List<Image> images = new();
                     foreach (LaserItem item in cut.Items)
@@ -272,7 +293,7 @@ namespace Metal_Code
                             Image _img = new()
                             {
                                 Source = MainWindow.CreateBitmap(item.imageBytes),
-                                Margin = new Thickness(10, 5, 0, 5),
+                                Margin = new Thickness(5),
                                 Height = 320
                             };
                             images.Add(_img);
@@ -280,25 +301,27 @@ namespace Metal_Code
                     }
                     imagesList.ItemsSource = images;
 
-                    imagesList.Visibility = Visibility.Visible;
-                    partsList.Visibility = Visibility.Collapsed;
-
+                    imagesScroll.Visibility = Visibility.Visible;
+                    partsScroll.Visibility = Visibility.Collapsed;
+                    btn.Content = "Скрыть раскладки";
                 }
                 else
                 {
-                    partsList.Visibility = Visibility.Visible;
-                    imagesList.Visibility = Visibility.Collapsed;
+                    partsScroll.Visibility = Visibility.Visible;
+                    imagesScroll.Visibility = Visibility.Collapsed;
+                    btn.Content = "Показать раскладки";
                 }
             }
         }
 
+        // обработчик кнопки сброса групп гибки
         private void SetDefaultBends(object sender, RoutedEventArgs e)
         {
             foreach (PartControl p in Parts)
                 foreach (BendControl item in p.UserControls.OfType<BendControl>()) item.SetGroup("-");
         }
 
-        //стандартные детали
+        // добавить стандартную деталь
         private void Add_StandartPart(object sender, RoutedEventArgs e)
         {
             if (StandartPartsDrop.SelectedItem is string title

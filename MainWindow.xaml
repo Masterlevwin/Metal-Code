@@ -136,9 +136,9 @@
             </MenuItem>
             <MenuItem x:Name="Login" ToolTip="Сменить пользователя" Click="ShowLoginWindow"/>
         </Menu>
-        <StatusBar x:Name="Status" DockPanel.Dock="Bottom" BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}" Background="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}" MinHeight="25" MaxHeight="25" Margin="10">
+        <StatusBar x:Name="Status" DockPanel.Dock="Bottom" Margin="10">
             <StackPanel Orientation="Horizontal">
-                <ProgressBar x:Name="InsertProgressBar" MinWidth="200" MinHeight="20" Visibility="Collapsed" IsIndeterminate="True" />
+                <ProgressBar x:Name="InsertProgressBar" MinWidth="200" Visibility="Collapsed" IsIndeterminate="True" />
                 <TextBox x:Name="NotifyText" BorderThickness="0" Margin="5,0,0,0" Background="{x:Null}"/>
             </StackPanel>
         </StatusBar>
@@ -155,12 +155,11 @@
                 <ColumnDefinition Width="600"/>
             </Grid.ColumnDefinitions>
 
-            <GroupBox x:Name="DetailsBox" Margin="5">
+            <GroupBox x:Name="DetailsBox" Margin="5" Grid.RowSpan="3">
                 <GroupBox.Header>
-                    <StackPanel Orientation="Horizontal" MinHeight="24" MaxHeight="24">
-                        <TextBox x:Name="ProductName" Text="Изделие" ToolTip="Введите наименование изделия" MinWidth="150" HorizontalContentAlignment="Center" MaxLines="1" SpellCheck.IsEnabled="True" Language="ru-ru" VerticalContentAlignment="Center" AllowDrop="False" MaxWidth="150" FontWeight="Bold"/>
-                        <Button Click="AddDetail" Margin="10,0,0,0">
-                            <StackPanel Orientation="Horizontal" MaxHeight="14" Margin="2" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <Button Click="AddDetail">
+                            <StackPanel Orientation="Horizontal" Margin="2" VerticalAlignment="Center">
                                 <Image Source="Images/plus.png"/>
                                 <TextBlock Text="Добавить деталь" VerticalAlignment="Center" Margin="3,0,0,0"/>
                             </StackPanel>
@@ -180,16 +179,16 @@
                         <Button ToolTip="Загрузить раскладки (Ctrl+F)" Command="{Binding LoadCommand}" Padding="0" BorderThickness="0" Margin="15,0,0,0">
                             <Image Source="Images/xlsx_load.png"/>
                         </Button>
-                        <TextBlock Text="Общий коэффициент" VerticalAlignment="Center" Margin="30,0,0,0"/>
+                        <TextBlock Text="Общий коэффициент" VerticalAlignment="Center" Margin="20,0,0,0"/>
                         <TextBox ToolTip="Введите наценку на всё КП" Text="{Binding Ratio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" AllowDrop="False" MaxLines="1" MaxLength="4" FontSize="14" TextChanged="SetRatio" Margin="10,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="40" MaxWidth="40"/>
                         <Button ToolTip="Обновить (F5)" Command="{Binding UpdateCommand}" Padding="0" BorderThickness="0" Margin="20,0,0,0">
                             <Image Source="/Images/update4.png"/>
                         </Button>
-                        <TextBox x:Name="ResultTB" Text="{Binding Result, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" AllowDrop="False" FontSize="14" BorderThickness="0" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Margin="10,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="50" IsReadOnly="True" MouseEnter="Show_Details"/>
+                        <TextBox x:Name="ResultTB" Text="{Binding Result, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" AllowDrop="False" FontSize="14" BorderThickness="0" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Margin="10,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="60" IsReadOnly="True" MouseEnter="Show_Details"/>
                     </StackPanel>
                 </GroupBox.Header>
 
-                <ScrollViewer x:Name="DetailsScroll" Margin="5,15,5,5" HorizontalScrollBarVisibility="Auto">
+                <ScrollViewer x:Name="DetailsScroll">
                     <StackPanel x:Name="DetailsStack" Margin="5"/>
                 </ScrollViewer>
             </GroupBox>
@@ -202,31 +201,12 @@
                 </Border>
             </Popup>
             
-            <GroupBox x:Name="PartsBox" Grid.Row="2" Margin="5">
-                <GroupBox.Header>
-                    <StackPanel Orientation="Horizontal" MinHeight="22" MaxHeight="22">
-                        <TextBlock Text="Список нарезанных деталей" FontWeight="Bold"/>
-                        <TextBox Text="{Binding SearchDetails, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Введите название детали" Margin="150,0,0,0" MinWidth="200" MaxWidth="200" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                        <Button Content="Поиск детали" MinWidth="40" Margin="10,0,0,0" Click="Search_Details"/>
-                        <Button Margin="40,0,0,0" Click="ShowAssemblyWindow">
-                            <StackPanel Orientation="Horizontal" MaxHeight="20">
-                                <Image Source="/Images/assembly.png"/>
-                                <TextBlock Text="Добавить все детали в сборку" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-                </GroupBox.Header>
-
-                <TabControl x:Name="PartsTab"/>
-            </GroupBox>
-
-            <GridSplitter x:Name="HorisontalSplitter" Grid.Row="1" ShowsPreview="False" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" BorderThickness="1"/>
             <GridSplitter  Grid.Column="2" Grid.Row="1" ShowsPreview="False" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" BorderThickness="1"/>
             <GridSplitter Grid.Column="1" Grid.RowSpan="3" ShowsPreview="False" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" BorderThickness="1"/>
 
             <GroupBox Grid.Column="2" Margin="5">
                     <GroupBox.Header>
-                        <StackPanel Orientation="Horizontal" MinHeight="24" MaxHeight="24">
+                        <StackPanel Orientation="Horizontal" Margin="5">
                             <TextBlock Text="КП №" VerticalAlignment="Center" FontWeight="Bold"/>
                             <TextBox x:Name="Order" MaxLines="1" ToolTip="Введите номер предложения" MinWidth="50" Margin="5,0,0,0" MaxWidth="50" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
                             <TextBlock Text="для" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="14"/>
@@ -240,17 +220,17 @@
                             </ComboBox>
                             <TextBlock Text="от" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="14"/>
                             <RadioButton GroupName="Boss" x:Name="AppRadioButton" Checked="IsLaserChanged" IsChecked="True" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                            <Image Source="/app_logo.jpeg" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,0,0,0"/>
+                        <Image Source="/app_logo.jpeg" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,0,0,0" MaxHeight="24"/>
                             <RadioButton GroupName="Boss" x:Name="LaserRadioButton" HorizontalAlignment="Left" VerticalAlignment="Center" Checked="IsLaserChanged" Margin="15,0,0,0"/>
-                            <Image Source="/laser_logo.jpg" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,0,0,0"/>
+                        <Image Source="/laser_logo.jpg" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,0,0,0" MaxHeight="24"/>
                         </StackPanel>
                     </GroupBox.Header>
                     
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                         <StackPanel x:Name="OrderGrid">
 
-                            <StackPanel Orientation="Horizontal" MaxHeight="20" Margin="5,10,0,0">
-                                <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет с НДС" HorizontalAlignment="Left" VerticalAlignment="Center" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;"/>
+                            <StackPanel Orientation="Horizontal" Margin="5">
+                                <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет с НДС" HorizontalAlignment="Left" VerticalAlignment="Center" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;" Margin="5,0,0,0"/>
                                 <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет без НДС" HorizontalAlignment="Left" VerticalAlignment="Center" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;" Margin="10,0,0,0"/>
                                 <CheckBox x:Name="LimitCheck" Content="Снять ограничения" Margin="20,0,0,0" VerticalAlignment="Center" MinWidth="135" MaxWidth="135"/>
                                 <Button ToolTip="Добавить заказчика" Click="AddCustomer" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="0" Margin="40,0,0,0">
@@ -264,49 +244,49 @@
                                 </Button>
                             </StackPanel>
 
-                            <StackPanel Orientation="Horizontal" MinHeight="25" Margin="5,10,0,0">
-                                <TextBlock Text="Срок изготовления" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="110"/>
-                                <TextBox ToolTip="Введите срок изготовления" x:Name="DateProduction" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" Margin="10,0,0,0" MinHeight="20" MaxWidth="50"/>
+                            <StackPanel Orientation="Horizontal" Margin="5">
+                                <TextBlock Text="Срок изготовления" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="120"/>
+                                <TextBox ToolTip="Введите срок изготовления" x:Name="DateProduction" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" Margin="10,0,0,0" MaxWidth="50"/>
                                 <TextBlock Text="раб/дней" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0" MinWidth="55"/>
                                 <TextBlock Text="Экспресс" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="50,0,0,0" MinWidth="75"/>
                                 <CheckBox HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Click="SetExpress" ToolTip="Добавить наценку за срочность" Margin="10,0,0,0" MinWidth="60"/>
-                                <TextBox x:Name="AssemblyRatio" ToolTip="Коэффициент" TextChanged="SetExpress" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" MinWidth="40" MinHeight="20" Margin="20,0,0,0"/>
+                                <TextBox x:Name="AssemblyRatio" ToolTip="Коэффициент" TextChanged="SetExpress" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" Margin="20,0,0,0" MinWidth="40"/>
                             </StackPanel>
 
-                            <StackPanel Orientation="Horizontal" MinHeight="30" Margin="5,10,0,0">
-                                <Button IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать запрос в логистику" HorizontalAlignment="Left" VerticalAlignment="Center" Padding="0" BorderThickness="0" Click="CreateDelivery" Margin="5,0,0,0" MaxWidth="20">
-                                    <Image Source="/Images/new.png"/>
+                            <StackPanel Orientation="Horizontal" Margin="5">
+                                <Button IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать запрос в логистику" HorizontalAlignment="Left" VerticalAlignment="Center" Padding="0" BorderThickness="0" Click="CreateDelivery" Margin="5,0,0,0">
+                                    <Image Source="/Images/new.png" MinWidth="30"/>
                                 </Button>
                                 <CheckBox x:Name="DeliveryCheck" Content="Доставка" IsChecked="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="v - отдельной строкой в КП, ■ - включена в цены деталей" HorizontalAlignment="Left" VerticalAlignment="Center" Click="HasDeliveryChanged" IsThreeState="True" Margin="10,0,0,0" MinWidth="80"/>
-                                <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="DeliveryPrice" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите цену доставки" TextChanged="SetDelivery" Margin="10,0,0,0" Width="50" MinHeight="20" MinWidth="50" MaxWidth="50"/>
+                                <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="DeliveryPrice" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите цену доставки" TextChanged="SetDelivery" Margin="10,0,0,0" Width="50" MinWidth="50" MaxWidth="50"/>
                                 <TextBlock Text="руб"  HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0" MinWidth="20"/>
-                                <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding DeliveryRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MaxLines="1" ToolTip="Количество доставок" TextChanged="SetDeliveryRatio" Margin="10,0,0,0" MinHeight="20"/>
+                                <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding DeliveryRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MaxLines="1" ToolTip="Количество доставок" TextChanged="SetDeliveryRatio" Margin="10,0,0,0"/>
                                 <TextBlock Text="шт" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="20"/>
                                 <TextBlock Text="Конструктор" HorizontalAlignment="Left" VerticalAlignment="Center" TextWrapping="NoWrap" Margin="20,0,0,0" MinWidth="75"/>
                                 <CheckBox x:Name="CheckConstruct" Content="{Binding Construct, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="False" Margin="10,0,0,0" MinWidth="60"/>
-                                <TextBox x:Name="ConstructRatio" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Коэффициент" TextChanged="UpdateResult" MinHeight="20" MinWidth="40" Margin="20,0,0,0"/>
+                                <TextBox x:Name="ConstructRatio" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Коэффициент" TextChanged="UpdateResult" MinWidth="40" Margin="20,0,0,0"/>
                             </StackPanel>
 
-                            <StackPanel Orientation="Horizontal" MinHeight="45" Margin="5,10,0,0">
-                                <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="Adress" ToolTip="Введите адрес доставки" TextWrapping="Wrap" Width="255" Height="45" Margin="5,0,0,0"/>
-                                <Button IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать расчет на доставку" Click="CreateOfferDelivery" Padding="0" BorderThickness="0" MaxWidth="20" VerticalAlignment="Top" Margin="-5,-2,0,0">
-                                    <Image Source="/Images/address.png"/>
+                            <StackPanel Orientation="Horizontal" Margin="5">
+                                <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="Adress" ToolTip="Введите адрес доставки" TextWrapping="Wrap" Margin="5,0,0,0" Width="250"/>
+                                <Button IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать расчет на доставку" Click="CreateOfferDelivery" Padding="0" BorderThickness="0" VerticalAlignment="Top">
+                                    <Image Source="/Images/address.png" MaxWidth="20" VerticalAlignment="Top" Margin="-10,-2,0,0"/>
                                 </Button>
-                                <TextBox x:Name="Comment" ToolTip="Введите комментарий" TextWrapping="Wrap" Width="215" Height="45" Margin="15,0,0,0"/>
-                                <Image Source="/Images/comment2.png" MaxWidth="20" VerticalAlignment="Top" Margin="-10,-2,0,0"/>
+                            <TextBox x:Name="Comment" ToolTip="Введите комментарий" TextWrapping="Wrap" Height="45" Margin="15,0,0,0" Width="250"/>
+                            <Image Source="/Images/comment2.png" MaxWidth="20" VerticalAlignment="Top" Margin="-10,-2,0,0"/>
                             </StackPanel>
 
-                            <StackPanel Orientation="Horizontal" MinHeight="25" Margin="5,10,0,0">
+                            <StackPanel Orientation="Horizontal" Margin="5">
                                 <TextBlock Text="Ваш менеджер:" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                                <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="20" Width="150" Margin="10,0,0,0"/>
+                                <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged" HorizontalAlignment="Left" VerticalAlignment="Center" Width="150" Margin="10,0,0,0"/>
                                 <TextBlock Text="Бонус, %" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="90,0,0,0" MinWidth="40"/>
-                                <TextBox Text="{Binding BonusRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите процент наценки" TextChanged="SetBonusRatio" MinHeight="20" MinWidth="40" Margin="10,0,0,0"/>
+                                <TextBox Text="{Binding BonusRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите процент наценки" TextChanged="SetBonusRatio" MinWidth="40" Margin="10,0,0,0"/>
                                 <TextBlock Text="{Binding Bonus, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0"/>
                             </StackPanel>
 
-                            <StackPanel Orientation="Horizontal" MaxHeight="30" Margin="5,20,0,0">
+                        <StackPanel Orientation="Horizontal" Margin="5">
                                 <Button Command="{Binding SaveCommand}" ToolTip="Сохранить расчет (Ctrl+D)" Margin="10,0,0,0">
-                                    <StackPanel Orientation="Horizontal" MaxHeight="25" Margin="2">
+                                    <StackPanel Orientation="Horizontal">
                                         <Image Source="Images/save.png"/>
                                         <TextBlock Text="Сохранить КП в файл" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                     </StackPanel>
@@ -319,8 +299,8 @@
 
             <GroupBox Grid.Row="2" Grid.Column="2" Margin="5">
                 <GroupBox.Header>
-                    <StackPanel Orientation="Horizontal" MinHeight="22" MaxHeight="22">
-                        <TextBlock Text="Список расчетов" FontWeight="Bold"/>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <TextBlock Text="Список расчетов" FontWeight="Bold" VerticalAlignment="Center"/>
                         <Button x:Name="UpdateBtn" Click="UpdateOffersCollection" Margin="200,0,0,0">
                             <StackPanel Orientation="Horizontal" Margin="2">
                                 <Image Source="/Images/update.png"/>
@@ -333,7 +313,7 @@
                 <TabControl Margin="5">
                     <TabItem x:Name="OffersTab">
                         <TabItem.Header>
-                            <StackPanel Orientation="Horizontal" MinHeight="20" MaxHeight="20">
+                            <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Расчеты" Margin="5,0,0,0" VerticalAlignment="Center"/>
                                 <TextBox ToolTip="Введите номер расчета или название компании" MinWidth="140" Text="{Binding SearchOffers, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="10,0,0,0"/>
                                 <Button x:Name="SearchBtn" Content="Поиск" Click="Search_Offers" MinWidth="40" BorderBrush="#FF00C800" Margin="5,0,0,0"/>
@@ -382,7 +362,7 @@
 
                     <TabItem GotFocus="PartsView">
                         <TabItem.Header>
-                            <StackPanel Orientation="Horizontal" MinHeight="20" MaxHeight="20">
+                            <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Предпросмотр КП" Margin="5,0,0,0" VerticalAlignment="Center"/>
                                 <Button Margin="5,0,0,0" Click="UpdatePricePart" ToolTip="Обновить цены деталей" BorderThickness="0" Padding="0">
                                     <Image Source="/Images/preview3.png"/>
@@ -398,7 +378,7 @@
                             
                             <DataGrid x:Name="PartsGrid" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsReadOnly="True" AutoGeneratingColumn="PartsGrid_AutoGeneratingColumn"/>
 
-                            <StackPanel Orientation="Horizontal" Margin="5" MinHeight="20" MaxHeight="20" VerticalAlignment="Bottom" Grid.Row="1" HorizontalAlignment="Right">
+                            <StackPanel Orientation="Horizontal" Margin="5" VerticalAlignment="Bottom" Grid.Row="1" HorizontalAlignment="Right">
                                 <TextBlock Text="Общее кол-во деталей:" TextAlignment="Center" VerticalAlignment="Center"/>
                                 <TextBox x:Name="TotalCount" MinWidth="60" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" Margin="5,0,0,0" MaxWidth="60"/>
                                 <TextBlock Text="Итого:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="40" MaxWidth="40"/>
@@ -410,7 +390,7 @@
 
                     <TabItem x:Name="ReportTab" GotFocus="ReportView">
                         <TabItem.Header>
-                            <StackPanel Orientation="Horizontal" MinHeight="20" MaxHeight="20">
+                            <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Отчет за" Margin="5,0,0,0" VerticalAlignment="Center"/>
                                 <ComboBox x:Name="ReportDrop" MinWidth="120" Margin="5,0,0,0" SelectionChanged="ReportChanged"/>
                                 <Button Click="CreateManagerReport" Margin="5,0,0,0" ToolTip="Сохранить отчет в папке" BorderThickness="0" Padding="0" >
@@ -427,7 +407,7 @@
                             
                             <DataGrid x:Name="ReportGrid" CanUserReorderColumns="False" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserAddRows="False" BorderBrush="Red" ClipboardCopyMode="IncludeHeader" AutoGeneratedColumns="DataGrid_AutoGeneratedColumn" LoadingRow="ReportGrid_LoadingRow"/>
 
-                            <StackPanel Orientation="Horizontal" Margin="5" MinHeight="20" MaxHeight="20" VerticalAlignment="Bottom" Grid.Row="1">
+                            <StackPanel Orientation="Horizontal" Margin="5" VerticalAlignment="Bottom" Grid.Row="1">
                                 <TextBlock Text="Прибыль:" TextAlignment="Center" VerticalAlignment="Center"/>
                                 <TextBox x:Name="Plan" MinWidth="60" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" Margin="5,0,0,0" MaxWidth="60"/>
                                 <TextBlock Text="Бонус ООО:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center"/>

@@ -859,7 +859,7 @@ namespace Metal_Code
                                     cut.PartDetails = parts;
                                     cut.Parts = cut.PartList();
                                     cut.PartsControl = new(cut, cut.Parts);
-                                    cut.AddPartsTab();
+                                    cut.AddPartsControl();
                                 }
                                 break;
                             }

@@ -8,6 +8,7 @@ using System.Runtime.Serialization;
 using System.Linq;
 using System.Windows.Media;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 
 namespace Metal_Code
 {
@@ -460,11 +461,16 @@ namespace Metal_Code
 
                         //меняем свойство материала у каждой детали при изменении металла, и толщину при изменении толщины
                         if (cut.PartDetails?.Count > 0)
+                        {
                             foreach (Part part in cut.PartDetails)
                             {
                                 if (part.Metal != metal.Name) part.Metal = metal.Name;
                                 if (part.Destiny != S) part.Destiny = S;
                             }
+
+                            // определяем заголовок списка нарезанных деталей
+                            PartsToggle.Content = $"{(cut is PipeControl ? "(ТР) " : "")}s{S} {metal.Name} ({cut.PartDetails.Sum(x => x.Count)} шт) - список деталей";
+                        }
                         break;
                     }
             }
@@ -566,9 +572,11 @@ namespace Metal_Code
 
         public void PriceChanged()
         {
-            Result = HasMetal ? (float)Math.Round(                          //проверяем наличие материала
-                (det.Detail.IsComplect ? 1 : Count) *                       //проверяем количество заготовок
-                (ExtraResult > 0 ? ExtraResult : Price * Mass)              //проверяем наличие стоимости пользователя
+            PartsToggle.IsEnabled = det.Detail.IsComplect;          //показываем или скрываем заголовок списка нарезанных деталей
+
+            Result = HasMetal ? (float)Math.Round(                  //проверяем наличие материала
+                (det.Detail.IsComplect ? 1 : Count) *               //проверяем количество заготовок
+                (ExtraResult > 0 ? ExtraResult : Price * Mass)      //проверяем наличие стоимости пользователя
                 , 2) : 0;
 
             Priced?.Invoke();
@@ -679,6 +687,20 @@ namespace Metal_Code
                         }
                         break;
                 };
+        }
+
+        private void OnPartsToggleClick(object sender, RoutedEventArgs e)
+        {
+            if (PartsToggle.IsChecked == true)
+            {
+                //PartsToggle.Content = "Список нарезанных деталей ▲";
+                ((Storyboard)FindResource("ExpandParts")).Begin(this);
+            }
+            else
+            {
+                //PartsToggle.Content = "Список нарезанных деталей ▼";
+                ((Storyboard)FindResource("CollapseParts")).Begin(this);
+            }
         }
     }
 }

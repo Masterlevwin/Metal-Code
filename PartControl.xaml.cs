@@ -198,7 +198,19 @@ namespace Metal_Code
 
         private void ViewPopupDimensions(object sender, MouseWheelEventArgs e) { PopupDimensions.IsOpen = true; }
 
-        private void AddControl(object sender, RoutedEventArgs e) { AddControl(WorksDrop.SelectedIndex); }
+        private void AddControl(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is string workName)
+            {
+                // Находим индекс работы в массиве `works`
+                int index = Array.IndexOf(works, workName);
+                if (index >= 0)
+                {
+                    AddControl(index);
+                }
+            }
+        }
+        
         public void AddControl(int index, Guid? guid = null)
         {
             switch (index)
@@ -265,12 +277,11 @@ namespace Metal_Code
         }
         public void AddControl(UserControl uc)
         {
-            if (UserControls.Count > 0) uc.Margin = new Thickness(0, UserControls[^1].Margin.Top + 30, 0, 0);
+            // Устанавливаем отступ сверху (например, 5 пикселей между работами)
+            uc.Margin = new Thickness(0, 5, 0, 0);
 
             UserControls.Add(uc);
-            ControlGrid.Children.Add(uc);
-
-            Grid.SetRow(uc, 1);
+            WorksStackPanel.Children.Add(uc);
         }
 
         public void RemoveControl(UserControl uc)
@@ -282,7 +293,7 @@ namespace Metal_Code
             }
 
             UserControls.Remove(uc);
-            ControlGrid.Children.Remove(uc);
+            WorksStackPanel.Children.Remove(uc);
         }
 
         private void SetPicture(object sender, RoutedEventArgs e)       //метод вызывается при загрузке элемента Image (Image.Loaded) 

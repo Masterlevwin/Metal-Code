@@ -14,6 +14,7 @@ using System.Windows.Controls;
 using System.Runtime.Serialization;
 using System.Diagnostics;
 using System.Collections.ObjectModel;
+using System.Windows.Media.Animation;
 
 namespace Metal_Code
 {
@@ -145,13 +146,13 @@ namespace Metal_Code
                 PartsControl = Parts is null ? new(this, new()) : new(this, Parts);
                 work.type.HasMetal = false;
                 Way = Pinhole = 1;
-                AddPartsTab();
+                AddPartsControl();
             }
             else if (cBox.IsChecked == true && PartsControl is not null && !work.type.det.Detail.IsComplect)
             {
                 PartsControl = null;
                 work.type.HasMetal = true;
-                MainWindow.M.PartsTab.Items.Remove(TabItem);
+                //MainWindow.M.PartsTab.Items.Remove(TabItem);
             }
 
             OnPriceChanged();
@@ -294,7 +295,7 @@ namespace Metal_Code
                     ItemList(table);                    // формируем список листов из раскладки
                     SetImagesForParts(stream);          // устанавливаем поле Part.ImageBytes для каждой детали                
                     PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
-                    AddPartsTab();                      // добавляем вкладку в "Список нарезанных деталей"
+                    AddPartsControl();                      // добавляем вкладку в "Список нарезанных деталей"
 
                     work.type.CreateSort();             // обновляем заготовку и все, связанные с ней, данные
 
@@ -328,7 +329,7 @@ namespace Metal_Code
                         _cut.ItemList(table);
                         _cut.SetImagesForParts(stream);
                         _cut.PartsControl = new(_cut, _cut.Parts);
-                        _cut.AddPartsTab();
+                        _cut.AddPartsControl();
 
                         _cut.work.type.CreateSort();
 
@@ -432,19 +433,9 @@ namespace Metal_Code
             }
         }
 
-        public void AddPartsTab(ProductWindow? clon = null)                 //метод добавления вкладки для PartsControl
+        public void AddPartsControl(ProductWindow? clon = null)     //метод добавления PartsControl
         {
-            TabItem.Header = new TextBlock { Text = $"s{work.type.S} {work.type.MetalDrop.Text} ({PartDetails?.Sum(x => x.Count)} шт)" }; // установка заголовка вкладки
-            TabItem.Content = PartsControl;                                 // установка содержимого вкладки
-
-            if (clon is not null) clon.PartsTab.Items.Add(TabItem);
-            else MainWindow.M.PartsTab.Items.Add(TabItem);
-        }
-
-        private void RemovePartsTab(object sender, RoutedEventArgs e)       //метод удаления вкладки нарезанных деталей этой резки,
-                                                                            //вызывается по событию CutControl.Unloaded
-        {
-            MainWindow.M.PartsTab.Items.Remove(TabItem);
+            work.type.PartsStack.Children.Add(PartsControl);
         }
 
         public ObservableCollection<PartControl> PartList(DataTable? table = null)
@@ -697,6 +688,17 @@ namespace Metal_Code
             if (sender is TextBox box && work.type.MetalDrop.SelectedItem is Metal metal
                 && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
                 box.ToolTip = $"Количество проколов, шт\n(цена прокола - {MainWindow.M.MetalDict[metal.Name][destiny].Item2} руб)";
+        }
+
+        private bool _isExpanded = false;
+
+        private void OnShowDetailsClick(object sender, RoutedEventArgs e)
+        {
+            _isExpanded = !_isExpanded;
+
+            string storyboardKey = _isExpanded ? "ExpandAnimation" : "CollapseAnimation";
+            var storyboard = FindResource(storyboardKey) as Storyboard;
+            storyboard?.Begin();
         }
     }
 

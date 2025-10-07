@@ -125,7 +125,7 @@ namespace Metal_Code
             set
             {
                 isRequest = value;
-                HorisontalSplitter.Visibility = DetailsBox.Visibility = PartsBox.Visibility = isRequest ? Visibility.Collapsed : Visibility.Visible;
+                //HorisontalSplitter.Visibility = DetailsBox.Visibility = PartsBox.Visibility = isRequest ? Visibility.Collapsed : Visibility.Visible;
                 
                 OnPropertyChanged(nameof(IsRequest));
             }
@@ -170,12 +170,12 @@ namespace Metal_Code
                 if (IsLaser)
                 {
                     LaserRadioButton.IsChecked = true;
-                    ThemeChange("laserTheme");
+                    //ThemeChange("laserTheme");
                 }
                 else
                 {
                     AppRadioButton.IsChecked = true;
-                    ThemeChange("appTheme");
+                    //ThemeChange("appTheme");
                 }
                 OnPropertyChanged(nameof(IsLaser));
             }
@@ -856,7 +856,7 @@ namespace Metal_Code
             IsExpressOffer = false;
             HasAssembly = false;
             Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = Comment.Text = ConstructRatio.Text = AssemblyRatio.Text = TotalCount.Text = TotalPrice.Text = "";
-            ProductName.Text = $"Изделие";
+            //ProductName.Text = $"Изделие";
             ActiveOffer = null;
             Log = null;
         }
@@ -1790,7 +1790,7 @@ namespace Metal_Code
 
             Product product = new()
             {
-                Name = ProductName.Text,
+                //Name = ProductName.Text,
                 Order = Order.Text,
                 Company = CustomerDrop.Text,
                 Production = DateProduction.Text,
@@ -1974,7 +1974,7 @@ namespace Metal_Code
             //выйти из режима заявки
             if (RequestControl != null) CloseRequestControl();
 
-            ProductName.Text = ProductModel.Product.Name;
+            //ProductName.Text = ProductModel.Product.Name;
             Order.Text = ProductModel.Product.Order;
             CustomerDrop.Text = ProductModel.Product.Company;
             DateProduction.Text = ProductModel.Product.Production;
@@ -2063,13 +2063,13 @@ namespace Metal_Code
                                 if (_cut.Items?.Count > 0) cut.SumProperties(_cut.Items);
                                 cut.Parts = cut.PartList();
                                 cut.PartsControl = new(cut, cut.Parts);
-                                cut.AddPartsTab();
+                                cut.AddPartsControl();
                             }
                             else if (_cut is PipeControl pipe)
                             {
                                 pipe.Parts = pipe.PartList();
                                 pipe.PartsControl = new(pipe, pipe.Parts);
-                                pipe.AddPartsTab();
+                                pipe.AddPartsControl();
                                 pipe.SetTotalProperties();
                             }
 
@@ -2471,7 +2471,7 @@ namespace Metal_Code
                 worksheet.Cells["C5"].Value = "понадобятся следующие детали и работы:";
                 worksheet.Cells[4, 3, 4, 4].Merge = true;
                 worksheet.Cells[5, 3, 5, 6].Merge = true;
-                worksheet.Cells["E4"].Value = ProductName.Text;
+                //worksheet.Cells["E4"].Value = ProductName.Text;
                 worksheet.Cells["E4"].Style.Font.Bold = true;
             }
 
@@ -5983,7 +5983,7 @@ namespace Metal_Code
                 if (foundDetails[0].owner is ICut _cut && _cut.TabItem != null)
                 {
                     _cut.TabItem.Focus();
-                    _cut.PartsControl?.partsList.ScrollIntoView(foundDetails[0]);
+                    //_cut.PartsControl?.partsList.ScrollIntoView(foundDetails[0]);
 
                     if (foundDetails.Count > 1)
                         StatusBegin($"Деталей по запросу \"{SearchDetails}\" найдено {foundDetails.Count}. " +

@@ -5,22 +5,125 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             d:DesignHeight="30" d:DesignWidth="150" Unloaded="RemovePartsTab">
-    
-    <StackPanel Orientation="Horizontal" MaxHeight="20" VerticalAlignment="Top">
-        <CheckBox IsChecked="{Binding HaveCut, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" ToolTip="Убрать стоимость лазера из расчета" Margin="2,0,0,0" VerticalAlignment="Center" Click="Setting"/>
-        <Button x:Name="CutBtn" Click="LoadFiles" Content=". . ." MinWidth="25" ToolTip="Загрузить раскладки" FontWeight="Bold" Margin="2,0,0,0"/>
-        <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" TextChanged="SetWay" ToolTip="Длина пути резки, м" Margin="5,0,0,0" MinWidth="40" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" ToolTipOpening="SetToolTipForWay"/>
-        <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}" TextChanged="SetPinhole" ToolTip="Количество проколов, шт" MinWidth="45" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" ToolTipOpening="SetToolTipForPinhole"/>
+             d:DesignHeight="30" d:DesignWidth="170">
 
-        <Image Source="/Images/question.png" VerticalAlignment="Top" MaxWidth="10" Margin="2,0,0,0">
-            <Image.ToolTip>
-                <ToolTip Background="Snow" BorderBrush="Red" Padding="5" BorderThickness="1">
-                    <StackPanel >
-                        <TextBlock Text="Стоимость лазерной резки = кол метров резки * цена метра + кол проколов * цена проколов" TextWrapping="Wrap" MaxWidth="280"/>
-                    </StackPanel>
-                </ToolTip>
-            </Image.ToolTip>
-        </Image>
-    </StackPanel>
+    <UserControl.Resources>
+        <!-- Анимации -->
+        <PowerEase x:Key="EaseOut" EasingMode="EaseOut"/>
+        <PowerEase x:Key="EaseIn" EasingMode="EaseIn"/>
+
+        <Storyboard x:Key="ExpandAnimation">
+            <DoubleAnimation Storyboard.TargetName="DetailsSection"
+                             Storyboard.TargetProperty="MaxHeight"
+                             To="80"
+                             Duration="0:0:0.3">
+                <DoubleAnimation.EasingFunction>
+                    <StaticResource ResourceKey="EaseOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DetailsSection"
+                                           Storyboard.TargetProperty="Visibility">
+                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
+            </ObjectAnimationUsingKeyFrames>
+        </Storyboard>
+
+        <Storyboard x:Key="CollapseAnimation">
+            <DoubleAnimation Storyboard.TargetName="DetailsSection"
+                             Storyboard.TargetProperty="MaxHeight"
+                             To="0"
+                             Duration="0:0:0.3">
+                <DoubleAnimation.EasingFunction>
+                    <StaticResource ResourceKey="EaseIn"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <ObjectAnimationUsingKeyFrames Storyboard.TargetName="DetailsSection"
+                                           Storyboard.TargetProperty="Visibility">
+                <DiscreteObjectKeyFrame KeyTime="0:0:0.3" Value="{x:Static Visibility.Collapsed}"/>
+            </ObjectAnimationUsingKeyFrames>
+        </Storyboard>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Основная строка -->
+            <RowDefinition Height="Auto"/>
+            <!-- Раскрывающаяся секция -->
+        </Grid.RowDefinitions>
+
+        <!-- Основная строка: горизонтальные элементы -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal">
+
+            <CheckBox IsChecked="{Binding HaveCut, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}"
+                      ToolTip="Убрать стоимость лазера из расчета"
+                      Margin="2,0,0,0"
+                      VerticalAlignment="Center"
+                      Click="Setting"/>
+
+            <Button x:Name="CutBtn"
+                    Click="LoadFiles"
+                    Content=". . ."
+                    ToolTip="Загрузить раскладки"
+                    FontWeight="Bold"
+                    Margin="5,0,0,0"
+                    Width="50"/>
+
+            <Button x:Name="ShowDetailsButton"
+                    Content="параметры"
+                    Width="85"
+                    Margin="2,0,0,0"
+                    ToolTip="Показать параметры резки"
+                    Click="OnShowDetailsClick"
+                    Cursor="Hand"
+                    BorderThickness="0"
+                    Background="Transparent"
+                    Foreground="#007ACC"
+                    VerticalAlignment="Center"/>
+
+            <Image Source="/Images/question.png" VerticalAlignment="Top" Margin="2,0,0,0" Width="10">
+                <Image.ToolTip>
+                    <ToolTip Background="Snow" BorderBrush="Red" Padding="5" BorderThickness="1">
+                        <StackPanel >
+                            <TextBlock Text="Стоимость лазерной резки = кол метров резки * цена метра + кол проколов * цена проколов" TextWrapping="Wrap" MaxWidth="280"/>
+                        </StackPanel>
+                    </ToolTip>
+                </Image.ToolTip>
+            </Image>
+        </StackPanel>
+
+        <!-- Раскрывающаяся секция: появляется ПОД основной строкой -->
+        <Border x:Name="DetailsSection"
+                Grid.Row="1"
+                Background="#F9F9F9"
+                BorderBrush="#E0E0E0"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="10,6"
+                MaxHeight="0"
+                Visibility="Collapsed"
+                Margin="0,2,0,0">
+
+            <StackPanel Orientation="Horizontal">
+                <!-- Путь резки -->
+                <StackPanel Width="50">
+                    <TextBlock Text="м" HorizontalAlignment="Center"/>
+                    <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}"
+                             TextChanged="SetWay" ToolTip="Длина пути резки, м"
+                             VerticalContentAlignment="Center"
+                             HorizontalContentAlignment="Center"
+                             ToolTipOpening="SetToolTipForWay"/>
+                </StackPanel>
+
+                <!-- Проколы -->
+                <StackPanel Margin="5,0,0,0" Width="50">
+                    <TextBlock Text="шт" HorizontalAlignment="Center"/>
+                    <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}"
+                             TextChanged="SetPinhole" ToolTip="Количество проколов, шт"
+                             VerticalContentAlignment="Center"
+                             HorizontalContentAlignment="Center"
+                             ToolTipOpening="SetToolTipForPinhole"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
 </UserControl>

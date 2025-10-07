@@ -13,6 +13,7 @@ using System.Windows.Controls;
 using System.Text.RegularExpressions;
 using System.Windows.Media;
 using System.Collections.ObjectModel;
+using System.Windows.Media.Animation;
 
 namespace Metal_Code
 {
@@ -311,7 +312,7 @@ namespace Metal_Code
                     Parts = PartList(tables, paths[i]); // формируем список элементов PartControl
                     SetImagesForParts(stream);          // устанавливаем поле Part.ImageBytes для каждой детали
                     PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
-                    AddPartsTab();                      // добавляем вкладку в "Список нарезанных деталей"
+                    AddPartsControl();                      // добавляем вкладку в "Список нарезанных деталей"
                     SetTotalProperties();               // определяем общую массу и общую длину нарезанных труб
                 }
                 else
@@ -338,26 +339,16 @@ namespace Metal_Code
                         _pipe.Parts = _pipe.PartList(tables, paths[i]);
                         _pipe.SetImagesForParts(stream);
                         _pipe.PartsControl = new(_pipe, _pipe.Parts);
-                        _pipe.AddPartsTab();
+                        _pipe.AddPartsControl();
                         _pipe.SetTotalProperties();
                     }
                 }
             }
         }
 
-        public void AddPartsTab(ProductWindow? clon = null)                 //метод добавления вкладки для PartsControl
+        public void AddPartsControl(ProductWindow? clon = null)     //метод добавления PartsControl
         {
-            TabItem.Header = new TextBlock { Text = $"(ТР) s{work.type.S} {work.type.MetalDrop.Text} ({PartDetails?.Sum(x => x.Count)} шт)" };    // установка заголовка вкладки
-            TabItem.Content = PartsControl;                                 // установка содержимого вкладки
-
-            if (clon is not null) clon.PartsTab.Items.Add(TabItem);
-            else MainWindow.M.PartsTab.Items.Add(TabItem);
-        }
-
-        private void RemovePartsTab(object sender, RoutedEventArgs e)       //метод удаления вкладки нарезанных деталей этой резки,
-                                                                            //вызывается по событию PipeControl.Unloaded
-        {
-            MainWindow.M.PartsTab.Items.Remove(TabItem);
+            work.type.PartsStack.Children.Add(PartsControl);
         }
 
         public ObservableCollection<PartControl> PartList(DataTableCollection? tables = null, string? path = null)
@@ -1047,6 +1038,18 @@ namespace Metal_Code
                 for (int i = 0; i < PartDetails.Count; i++)
                     PartDetails[i].ImageBytes = pictures[0].Image.ImageBytes;   //для каждой детали записываем массив байтов соответствующей картинки
                                                                                 //в случае с трубами на данный момент картинка одна и та же!
+        }
+
+
+        private bool _isExpanded = false;
+
+        private void OnShowDetailsClick(object sender, RoutedEventArgs e)
+        {
+            _isExpanded = !_isExpanded;
+
+            string storyboardKey = _isExpanded ? "ExpandAnimation" : "CollapseAnimation";
+            var storyboard = FindResource(storyboardKey) as Storyboard;
+            storyboard?.Begin();
         }
     }
 }

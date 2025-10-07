@@ -5,56 +5,36 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d" 
              VerticalAlignment="Top">
-    <UserControl.ContextMenu>
-        <ContextMenu>
-            <MenuItem Header="Добавить" Click="AddDetail"></MenuItem>
-            <MenuItem Header="Удалить" Click="Remove"></MenuItem>
-        </ContextMenu>
-    </UserControl.ContextMenu>
 
-    <GroupBox x:Name="DetailBox" Header="Деталь" Margin="5" HorizontalAlignment="Left">
-        <GroupBox.Background>
-            <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
-                <GradientStop Color="White"/>
-                <GradientStop Color="#FFD2E1FA" Offset="1"/>
-            </LinearGradientBrush>
-        </GroupBox.Background>
-        <StackPanel Margin="5">
-
-            <StackPanel Orientation="Horizontal" MinHeight="22" MaxHeight="22" VerticalAlignment="Top">
-
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                    <TextBox x:Name="Counter" MaxWidth="20" MinWidth="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinHeight="20" MaxHeight="20" IsReadOnly="True"/>
-                    <TextBox ToolTip="Введите наименование детали" Text="{Binding Title}" TextChanged="SetName" x:Name="DetailName" MinWidth="130" MaxWidth="130" MaxLines="1" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+    <GroupBox x:Name="DetailBox" Margin="5">
+        <GroupBox.Header>
+            <StackPanel Orientation="Horizontal" Margin="5">
+                    <TextBox x:Name="Counter" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsReadOnly="True" MinWidth="28"/>
+                    <TextBox ToolTip="Введите наименование детали" Text="{Binding Title}" TextChanged="SetName" x:Name="DetailName" MinWidth="150" MaxWidth="150" MaxLines="1" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                     <TextBlock Text="N" VerticalAlignment="Top" FontSize="10" Margin="10,0,0,0" MinWidth="8"/>
-                    <TextBox ToolTip="Введите количество деталей" Text="{Binding Count}" TextChanged="SetCount" x:Name="Count" MaxWidth="35" MinWidth="35" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" Foreground="Blue"/>
-                    <Button Margin="10,0,0,0" Click="ShowDetailData" MinWidth="22" Padding="2" BorderThickness="0" ToolTip="Сделать простой раскрой">
+                    <TextBox ToolTip="Введите количество деталей" Text="{Binding Count}" TextChanged="SetCount" x:Name="Count" MaxWidth="40" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" Foreground="Blue"/>
+                    <Button Margin="10,0,0,0" Click="ShowDetailData" Padding="2" BorderThickness="0" ToolTip="Сделать простой раскрой">
                         <Image Source="Images/nesting.png"/>
                     </Button>
-                </StackPanel>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="351,0,0,0">
-                    <ComboBox x:Name="MetalDrop" DisplayMemberPath="Name" ToolTip="Выберите материал для ВСЕХ заготовок" SelectionChanged="SetAllMaterial" MinWidth="80" MaxWidth="80" MinHeight="22"/>
+                    <ComboBox x:Name="MetalDrop" DisplayMemberPath="Name" ToolTip="Выберите материал для ВСЕХ заготовок" SelectionChanged="SetAllMaterial" Width="120" Margin="200,0,0,0"/>
                     <CheckBox ToolTip="Добавить к расчету стоимость материала ВСЕХ заготовок" Click="SetAllMetal" VerticalAlignment="Center" IsChecked="True" Margin="5,0,0,0"/>
-                    <Button Click="Remove" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" MinHeight="22" Margin="10,0,0,0">
-                        <StackPanel Orientation="Horizontal" MaxHeight="12" Margin="2">
+                    <Button Click="Remove" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" Margin="10,0,0,0">
+                        <StackPanel Orientation="Horizontal" Margin="2">
                             <TextBlock Text="Х" FontSize="16" FontWeight="Bold" Padding="0" VerticalAlignment="Center"/>
                             <TextBlock Text="Удалить" VerticalAlignment="Center" Margin="5,0,0,0"/>
                         </StackPanel>
                     </Button>
+            </StackPanel>
+        </GroupBox.Header>
+        
+        <StackPanel x:Name="BilletsStack" Margin="0,3,0,0" HorizontalAlignment="Right">
+            <Button Click="AddTypeDetail" HorizontalAlignment="Left" Margin="10,5,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="Images/plus.png" Width="12" Height="12"/>
+                    <TextBlock Text="Добавить заготовку" VerticalAlignment="Center" Margin="3,0,0,0" Padding="2"/>
                 </StackPanel>
-
-            </StackPanel>
-
-            <StackPanel x:Name="BilletsStack" Margin="0,3,0,0" HorizontalAlignment="Left">
-                <Button Click="AddTypeDetail" HorizontalAlignment="Left" Margin="30,5,0,0">
-                    <StackPanel Orientation="Horizontal" MaxHeight="14" Margin="2">
-                        <Image Source="Images/plus.png"/>
-                        <TextBlock Text="Добавить заготовку" VerticalAlignment="Center" Margin="3,0,0,0"/>
-                    </StackPanel>
-                </Button>
-            </StackPanel>
-
+            </Button>
         </StackPanel>
     </GroupBox>
 </UserControl>

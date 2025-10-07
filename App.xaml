@@ -4,9 +4,17 @@
              xmlns:databinding="clr-namespace:Metal_Code"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-        <databinding:CostConverter x:Key="CostConverter"/>
-        <databinding:MassConverter x:Key="MassConverter"/>
-        <databinding:DestinyConverter x:Key="DestinyConverter"/>
-        <databinding:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/HandyControl;component/Themes/SkinDefault.xaml"/>
+                <ResourceDictionary Source="pack://application:,,,/HandyControl;component/Themes/Theme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <databinding:CostConverter x:Key="CostConverter"/>
+            <databinding:MassConverter x:Key="MassConverter"/>
+            <databinding:DestinyConverter x:Key="DestinyConverter"/>
+            <databinding:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

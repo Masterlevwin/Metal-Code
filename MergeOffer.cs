@@ -350,13 +350,13 @@ namespace Metal_Code
                         if (c.Items?.Count > 0) c.SumProperties(c.Items);
                         c.Parts = c.PartList();
                         c.PartsControl = new(c, c.Parts);
-                        c.AddPartsTab();
+                        c.AddPartsControl();
                     }
                     else if (cut is PipeControl pipe)
                     {
                         pipe.Parts = pipe.PartList();
                         pipe.PartsControl = new(pipe, pipe.Parts);
-                        pipe.AddPartsTab();
+                        pipe.AddPartsControl();
                         pipe.SetTotalProperties();
                     }
 

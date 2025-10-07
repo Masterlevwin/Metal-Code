@@ -156,7 +156,7 @@ namespace Metal_Code
                                     cut.PartDetails = _item.ToList();
                                     cut.Parts = cut.PartList();
                                     cut.PartsControl = new(cut, cut.Parts);
-                                    cut.AddPartsTab();
+                                    cut.AddPartsControl();
 
                                     cut.work.type.CreateSort();
 
