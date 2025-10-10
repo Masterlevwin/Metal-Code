@@ -46,6 +46,63 @@
                 <DiscreteObjectKeyFrame KeyTime="0:0:0.3" Value="{x:Static Visibility.Collapsed}"/>
             </ObjectAnimationUsingKeyFrames>
         </Storyboard>
+
+        <!-- Цвета -->
+        <SolidColorBrush x:Key="ButtonBackground" Color="#FFFFFFE1"/>
+        <SolidColorBrush x:Key="BorderColor" Color="#D1D9E0"/>
+        <SolidColorBrush x:Key="FocusBorderColor" Color="#4A90E2"/>
+
+        <!-- Общая толщина границы -->
+        <Thickness x:Key="DefaultBorderThickness">1</Thickness>
+
+        <!-- Стиль для ToggleButton -->
+        <Style x:Key="ExpandToggleButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="{StaticResource ButtonBackground}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="4"
+                        Padding="{TemplateBinding Padding}">
+                            <StackPanel Orientation="Horizontal" 
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                                <!-- Основной текст из Content -->
+                                <ContentPresenter x:Name="ContentPresenter"
+                                          ContentSource="Content"
+                                          RecognizesAccessKey="True"
+                                          VerticalAlignment="Center"/>
+                                <!-- Стрелка-индикатор состояния -->
+                                <TextBlock x:Name="Arrow"
+                                   Text="▼"
+                                   Margin="6,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{TemplateBinding Foreground}"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Arrow" Property="Text" Value="▲"/>
+                                <!-- Опционально: подсветка при раскрытом состоянии -->
+                                <Setter Property="Background" Value="#F0F8FF"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="BorderBrush" Value="{StaticResource FocusBorderColor}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </UserControl.Resources>
 
     <GroupBox x:Name="TypeDetailBox">
@@ -99,25 +156,13 @@
 
             <!-- Кнопка для сворачивания/разворачивания PartsControl -->
             <ToggleButton x:Name="PartsToggle"
-                          Content="Список нарезанных деталей ▼"
-                          FontWeight="Medium"
-                          Background="Transparent"
-                          BorderThickness="0"
-                          Cursor="Hand"
+                          Style="{StaticResource ExpandToggleButtonStyle}"
+                          Focusable="True"
+                          Content="Список нарезанных деталей"
                           Click="OnPartsToggleClick"
                           ToolTip="Показать/скрыть список"
                           HorizontalAlignment="Right"
-                          Margin="5,10,0,5" BorderBrush="Gray">
-                <ToggleButton.Template>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                CornerRadius="6"
-                                Padding="{TemplateBinding Padding}" BorderThickness="1">
-                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </ToggleButton.Template>
+                          Margin="5,10,0,5">
             </ToggleButton>
 
             <!-- Контейнер для PartsControl -->

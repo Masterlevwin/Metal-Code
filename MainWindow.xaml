@@ -8,8 +8,143 @@
         mc:Ignorable="d" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" Closing="Exit" WindowState="Maximized" Icon="/app_logo.jpeg" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveCaptionTextBrushKey}}" FontFamily="Century" MinWidth="1280" MinHeight="720">
     <Window.Resources>
         <local:CostConverter x:Key="CostConverter"/>
+        <local:IsAgentToTextConverter x:Key="IsAgentToTextConverter"/>
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+
+        <!-- Плавные функции для анимации -->
+        <PowerEase x:Key="EaseOut" EasingMode="EaseOut"/>
+        <PowerEase x:Key="EaseIn" EasingMode="EaseIn"/>
+        
+        <Storyboard x:Key="ExpandParts">
+            <DoubleAnimation Storyboard.TargetName="PartsStack"
+                     Storyboard.TargetProperty="Height"
+                     Duration="0:0:0.35"
+                     EasingFunction="{StaticResource EaseOut}"/>
+        </Storyboard>
+
+        <Storyboard x:Key="CollapseParts">
+            <DoubleAnimation Storyboard.TargetName="PartsStack"
+                     Storyboard.TargetProperty="Height"
+                     To="0"
+                     Duration="0:0:0.3"
+                     EasingFunction="{StaticResource EaseIn}"/>
+        </Storyboard>
+
+        <!-- Цвета -->
+        <SolidColorBrush x:Key="ButtonBackground" Color="#FFFFFFE1"/>
+        <SolidColorBrush x:Key="BorderColor" Color="#D1D9E0"/>
+        <SolidColorBrush x:Key="FocusBorderColor" Color="#4A90E2"/>
+
+        <!-- Общая толщина границы -->
+        <Thickness x:Key="DefaultBorderThickness">1</Thickness>
+
+        <!-- Стиль для TextBox -->
+        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}" />
+            <Setter Property="BorderThickness" Value="{StaticResource DefaultBorderThickness}" />
+            <Setter Property="Padding" Value="4" />
+            <Style.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="{StaticResource FocusBorderColor}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Стиль для ComboBox -->
+        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}" />
+            <Setter Property="BorderThickness" Value="{StaticResource DefaultBorderThickness}" />
+            <Style.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="{StaticResource FocusBorderColor}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Стиль для Button -->
+        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource ButtonBackground}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}" />
+            <Setter Property="BorderThickness" Value="{StaticResource DefaultBorderThickness}" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Foreground" Value="Black" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="4"
+                        Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#FFFFFFFF" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource FocusBorderColor}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#F0F0F0" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Стиль для ToggleButton -->
+        <Style x:Key="ExpandToggleButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="{StaticResource ButtonBackground}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="4"
+                        Padding="{TemplateBinding Padding}">
+                            <StackPanel Orientation="Horizontal" 
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                                <!-- Основной текст из Content -->
+                                <ContentPresenter x:Name="ContentPresenter"
+                                          ContentSource="Content"
+                                          RecognizesAccessKey="True"
+                                          VerticalAlignment="Center"/>
+                                <!-- Стрелка-индикатор состояния -->
+                                <TextBlock x:Name="Arrow"
+                                   Text="▼"
+                                   Margin="6,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{TemplateBinding Foreground}"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Arrow" Property="Text" Value="▲"/>
+                                <!-- Опционально: подсветка при раскрытом состоянии -->
+                                <Setter Property="Background" Value="#F0F8FF"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="BorderBrush" Value="{StaticResource FocusBorderColor}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </Window.Resources>
+    
     <Window.InputBindings>
         <KeyBinding Key="Q"
               Modifiers="Control" 
@@ -135,6 +270,16 @@
                 <MenuItem Header="Обновить программу" Click="Restart"/>
             </MenuItem>
             <MenuItem x:Name="Login" ToolTip="Сменить пользователя" Click="ShowLoginWindow"/>
+            <MenuItem>
+                <MenuItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton GroupName="Boss" x:Name="AppRadioButton" Checked="IsLaserChanged" IsChecked="True"/>
+                        <Image Source="/app_logo.jpeg" Margin="5,0,0,0" Height="24"/>
+                        <RadioButton GroupName="Boss" x:Name="LaserRadioButton" Checked="IsLaserChanged" Margin="15,0,0,0"/>
+                        <Image Source="/laser_logo.jpg" Margin="5,0,0,0" Height="24"/>
+                    </StackPanel>
+                </MenuItem.Header>
+            </MenuItem>
         </Menu>
         <StatusBar x:Name="Status" DockPanel.Dock="Bottom" Margin="10">
             <StackPanel Orientation="Horizontal">
@@ -144,15 +289,10 @@
         </StatusBar>
 
         <Grid x:Name="WindowGrid" Margin="5">
-            <Grid.RowDefinitions>
-                <RowDefinition MinHeight="300"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition MinHeight="300"/>
-            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
                 <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="600"/>
+                <ColumnDefinition Width="600" MinWidth="600"/>
             </Grid.ColumnDefinitions>
 
             <GroupBox x:Name="DetailsBox" Margin="5" Grid.RowSpan="3">
@@ -200,232 +340,241 @@
                     </StackPanel>
                 </Border>
             </Popup>
-            
-            <GridSplitter  Grid.Column="2" Grid.Row="1" ShowsPreview="False" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" BorderThickness="1"/>
-            <GridSplitter Grid.Column="1" Grid.RowSpan="3" ShowsPreview="False" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" BorderThickness="1"/>
+
+            <GridSplitter Grid.Column="1" ShowsPreview="False" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" BorderThickness="1"/>
 
             <GroupBox Grid.Column="2" Margin="5">
-                    <GroupBox.Header>
-                        <StackPanel Orientation="Horizontal" Margin="5">
-                            <TextBlock Text="КП №" VerticalAlignment="Center" FontWeight="Bold"/>
-                            <TextBox x:Name="Order" MaxLines="1" ToolTip="Введите номер предложения" MinWidth="50" Margin="5,0,0,0" MaxWidth="50" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                            <TextBlock Text="для" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="14"/>
-                            <ComboBox x:Name="CustomerDrop" DisplayMemberPath="Name" IsEditable="True" SelectedIndex="0" SelectionChanged="CustomerChanged" MinWidth="140" MaxWidth="140" Margin="5,0,0,0">
-                                <ComboBox.Background>
-                                    <LinearGradientBrush EndPoint="0,1">
-                                        <GradientStop Color="White"/>
-                                        <GradientStop Color="#FFE5E5E5" Offset="1"/>
-                                    </LinearGradientBrush>
-                                </ComboBox.Background>
-                            </ComboBox>
-                            <TextBlock Text="от" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="14"/>
-                            <RadioButton GroupName="Boss" x:Name="AppRadioButton" Checked="IsLaserChanged" IsChecked="True" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                        <Image Source="/app_logo.jpeg" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,0,0,0" MaxHeight="24"/>
-                            <RadioButton GroupName="Boss" x:Name="LaserRadioButton" HorizontalAlignment="Left" VerticalAlignment="Center" Checked="IsLaserChanged" Margin="15,0,0,0"/>
-                        <Image Source="/laser_logo.jpg" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5,0,0,0" MaxHeight="24"/>
-                        </StackPanel>
-                    </GroupBox.Header>
-                    
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                        <StackPanel x:Name="OrderGrid">
-
-                            <StackPanel Orientation="Horizontal" Margin="5">
-                                <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет с НДС" HorizontalAlignment="Left" VerticalAlignment="Center" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;" Margin="5,0,0,0"/>
-                                <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет без НДС" HorizontalAlignment="Left" VerticalAlignment="Center" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;" Margin="10,0,0,0"/>
-                                <CheckBox x:Name="LimitCheck" Content="Снять ограничения" Margin="20,0,0,0" VerticalAlignment="Center" MinWidth="135" MaxWidth="135"/>
-                                <Button ToolTip="Добавить заказчика" Click="AddCustomer" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="0" Margin="40,0,0,0">
-                                    <Image Source="/Images/add.png"/>
-                                </Button>
-                                <Button ToolTip="Изменить данные заказчика" Click="EditCustomer" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="0" Margin="20,0,0,0">
-                                    <Image Source="/Images/edit.png"/>
-                                </Button>
-                                <Button ToolTip="Удалить заказчика" Click="DeleteCustomer" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="0" Margin="20,0,0,0">
-                                    <Image Source="/Images/del.png"/>
-                                </Button>
-                            </StackPanel>
-
-                            <StackPanel Orientation="Horizontal" Margin="5">
-                                <TextBlock Text="Срок изготовления" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="120"/>
-                                <TextBox ToolTip="Введите срок изготовления" x:Name="DateProduction" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" MinWidth="50" MaxLines="1" Margin="10,0,0,0" MaxWidth="50"/>
-                                <TextBlock Text="раб/дней" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0" MinWidth="55"/>
-                                <TextBlock Text="Экспресс" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="50,0,0,0" MinWidth="75"/>
-                                <CheckBox HorizontalAlignment="Left" VerticalAlignment="Center" IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Click="SetExpress" ToolTip="Добавить наценку за срочность" Margin="10,0,0,0" MinWidth="60"/>
-                                <TextBox x:Name="AssemblyRatio" ToolTip="Коэффициент" TextChanged="SetExpress" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" Margin="20,0,0,0" MinWidth="40"/>
-                            </StackPanel>
-
-                            <StackPanel Orientation="Horizontal" Margin="5">
-                                <Button IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать запрос в логистику" HorizontalAlignment="Left" VerticalAlignment="Center" Padding="0" BorderThickness="0" Click="CreateDelivery" Margin="5,0,0,0">
-                                    <Image Source="/Images/new.png" MinWidth="30"/>
-                                </Button>
-                                <CheckBox x:Name="DeliveryCheck" Content="Доставка" IsChecked="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="v - отдельной строкой в КП, ■ - включена в цены деталей" HorizontalAlignment="Left" VerticalAlignment="Center" Click="HasDeliveryChanged" IsThreeState="True" Margin="10,0,0,0" MinWidth="80"/>
-                                <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="DeliveryPrice" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите цену доставки" TextChanged="SetDelivery" Margin="10,0,0,0" Width="50" MinWidth="50" MaxWidth="50"/>
-                                <TextBlock Text="руб"  HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0" MinWidth="20"/>
-                                <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding DeliveryRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="30" MaxLines="1" ToolTip="Количество доставок" TextChanged="SetDeliveryRatio" Margin="10,0,0,0"/>
-                                <TextBlock Text="шт" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="20"/>
-                                <TextBlock Text="Конструктор" HorizontalAlignment="Left" VerticalAlignment="Center" TextWrapping="NoWrap" Margin="20,0,0,0" MinWidth="75"/>
-                                <CheckBox x:Name="CheckConstruct" Content="{Binding Construct, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="False" Margin="10,0,0,0" MinWidth="60"/>
-                                <TextBox x:Name="ConstructRatio" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Коэффициент" TextChanged="UpdateResult" MinWidth="40" Margin="20,0,0,0"/>
-                            </StackPanel>
-
-                            <StackPanel Orientation="Horizontal" Margin="5">
-                                <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="Adress" ToolTip="Введите адрес доставки" TextWrapping="Wrap" Margin="5,0,0,0" Width="250"/>
-                                <Button IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать расчет на доставку" Click="CreateOfferDelivery" Padding="0" BorderThickness="0" VerticalAlignment="Top">
-                                    <Image Source="/Images/address.png" MaxWidth="20" VerticalAlignment="Top" Margin="-10,-2,0,0"/>
-                                </Button>
-                            <TextBox x:Name="Comment" ToolTip="Введите комментарий" TextWrapping="Wrap" Height="45" Margin="15,0,0,0" Width="250"/>
-                            <Image Source="/Images/comment2.png" MaxWidth="20" VerticalAlignment="Top" Margin="-10,-2,0,0"/>
-                            </StackPanel>
-
-                            <StackPanel Orientation="Horizontal" Margin="5">
-                                <TextBlock Text="Ваш менеджер:" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                                <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged" HorizontalAlignment="Left" VerticalAlignment="Center" Width="150" Margin="10,0,0,0"/>
-                                <TextBlock Text="Бонус, %" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="90,0,0,0" MinWidth="40"/>
-                                <TextBox Text="{Binding BonusRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите процент наценки" TextChanged="SetBonusRatio" MinWidth="40" Margin="10,0,0,0"/>
-                                <TextBlock Text="{Binding Bonus, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                            </StackPanel>
-
-                        <StackPanel Orientation="Horizontal" Margin="5">
-                                <Button Command="{Binding SaveCommand}" ToolTip="Сохранить расчет (Ctrl+D)" Margin="10,0,0,0">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Image Source="Images/save.png"/>
-                                        <TextBlock Text="Сохранить КП в файл" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                                    </StackPanel>
-                                </Button>
-                            </StackPanel>
-                            
-                        </StackPanel>
-                    </ScrollViewer>
-                </GroupBox>
-
-            <GroupBox Grid.Row="2" Grid.Column="2" Margin="5">
                 <GroupBox.Header>
-                    <StackPanel Orientation="Horizontal" Margin="5">
-                        <TextBlock Text="Список расчетов" FontWeight="Bold" VerticalAlignment="Center"/>
-                        <Button x:Name="UpdateBtn" Click="UpdateOffersCollection" Margin="200,0,0,0">
-                            <StackPanel Orientation="Horizontal" Margin="2">
-                                <Image Source="/Images/update.png"/>
-                                <TextBlock Text="Обновить список расчетов" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                            </StackPanel>
-                        </Button>
+                    <StackPanel Orientation="Horizontal" Margin="5" HorizontalAlignment="Center">
+                        <TextBlock Text="КП №" VerticalAlignment="Center" FontWeight="Bold" Width="40"/>
+                        <TextBox x:Name="Order" MaxLines="1" ToolTip="Введите номер предложения" Width="60" Margin="5,0,0,0" HorizontalContentAlignment="Center"/>
+                        <TextBlock Text="{Binding IsAgent, Converter={StaticResource IsAgentToTextConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="Blue" Width="50"/>
+                        <ComboBox x:Name="CustomerDrop" DisplayMemberPath="Name" IsEditable="True" SelectedIndex="0" SelectionChanged="CustomerChanged" Margin="5,0,0,0" Width="140" ToolTip="Выберите заказчика">
+                            <ComboBox.Background>
+                                <LinearGradientBrush EndPoint="0,1">
+                                    <GradientStop Color="White"/>
+                                    <GradientStop Color="#FFE5E5E5" Offset="1"/>
+                                </LinearGradientBrush>
+                            </ComboBox.Background>
+                        </ComboBox>
+                        <TextBlock Text="Срок" VerticalAlignment="Center" Margin="10,0,0,0" Width="30"/>
+                        <TextBox x:Name="DateProduction" ToolTip="Введите срок изготовления" FontWeight="Bold" MaxLines="1" Margin="5,0,0,0" Width="50" HorizontalContentAlignment="Center"/>
+                        <TextBlock Text="раб/дней" Margin="5,0,0,0" VerticalAlignment="Center" Width="51"/>
                     </StackPanel>
                 </GroupBox.Header>
 
-                <TabControl Margin="5">
-                    <TabItem x:Name="OffersTab">
-                        <TabItem.Header>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Расчеты" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                                <TextBox ToolTip="Введите номер расчета или название компании" MinWidth="140" Text="{Binding SearchOffers, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="10,0,0,0"/>
-                                <Button x:Name="SearchBtn" Content="Поиск" Click="Search_Offers" MinWidth="40" BorderBrush="#FF00C800" Margin="5,0,0,0"/>
-                                <Button Content="Х" Click="ResetDates" BorderBrush="#FFFF0046" ToolTip="Очистить фильтр поиска и получить все расчеты" MinWidth="20" Margin="5,0,0,0"/>
-                            </StackPanel>
-                        </TabItem.Header>
-
-                        <DataGrid x:Name="OffersGrid" Margin="5" CanUserReorderColumns="False" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False" BorderBrush="Red" AutoGeneratedColumns="DataGrid_AutoGeneratedColumn" LoadingRow="OffersGrid_LoadingRow" EnableColumnVirtualization="True" CanUserResizeRows="False" HorizontalAlignment="Left" VerticalAlignment="Top">
-                            <DataGrid.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="Загрузить" Command="{Binding OpenOfferCommand}">
-                                        <MenuItem.Icon>
-                                            <Image Source="/Images/load.png"/>
-                                        </MenuItem.Icon>
-                                    </MenuItem>
-                                    <MenuItem Header="Удалить" Command="{Binding RemoveOfferCommand}">
-                                        <MenuItem.Icon>
-                                            <Image Source="/Images/del_offer.png"/>
-                                        </MenuItem.Icon>
-                                    </MenuItem>
-                                    <MenuItem Header="Сохранить изменения" Click="UpdateOffer">
-                                        <MenuItem.Icon>
-                                            <Image Source="/Images/edit_offer.png"/>
-                                        </MenuItem.Icon>
-                                    </MenuItem>
-                                    <MenuItem Header="Запустить в производство" Click="LaunchToWork">
-                                        <MenuItem.Icon>
-                                            <Image Source="/Images/order.png"/>
-                                        </MenuItem.Icon>
-                                    </MenuItem>
-                                    <MenuItem Header="Открыть для чтения" Click="OpenOffer">
-                                        <MenuItem.Icon>
-                                            <Image Source="/Images/compare.png"/>
-                                        </MenuItem.Icon>
-                                    </MenuItem>
-                                    <MenuItem Header="Объединить в одно КП" Command="{Binding MergeOffersCommand}">
-                                        <MenuItem.Icon>
-                                            <Image Source="/Images/merge.png"/>
-                                        </MenuItem.Icon>
-                                    </MenuItem>
-                                </ContextMenu>
-                            </DataGrid.ContextMenu>
-                        </DataGrid>
-
-                    </TabItem>
-
-                    <TabItem GotFocus="PartsView">
-                        <TabItem.Header>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Предпросмотр КП" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                                <Button Margin="5,0,0,0" Click="UpdatePricePart" ToolTip="Обновить цены деталей" BorderThickness="0" Padding="0">
-                                    <Image Source="/Images/preview3.png"/>
-                                </Button>
-                            </StackPanel>
-                        </TabItem.Header>
-
-                        <Grid Margin="5">
-                            <Grid.RowDefinitions>
-                                <RowDefinition/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            
-                            <DataGrid x:Name="PartsGrid" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsReadOnly="True" AutoGeneratingColumn="PartsGrid_AutoGeneratingColumn"/>
-
-                            <StackPanel Orientation="Horizontal" Margin="5" VerticalAlignment="Bottom" Grid.Row="1" HorizontalAlignment="Right">
-                                <TextBlock Text="Общее кол-во деталей:" TextAlignment="Center" VerticalAlignment="Center"/>
-                                <TextBox x:Name="TotalCount" MinWidth="60" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" Margin="5,0,0,0" MaxWidth="60"/>
-                                <TextBlock Text="Итого:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="40" MaxWidth="40"/>
-                                <TextBox x:Name="TotalPrice" MinWidth="60" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" MaxWidth="60"/>
-                            </StackPanel>
-                            
-                        </Grid>
-                    </TabItem>
-
-                    <TabItem x:Name="ReportTab" GotFocus="ReportView">
-                        <TabItem.Header>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Отчет за" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="ReportDrop" MinWidth="120" Margin="5,0,0,0" SelectionChanged="ReportChanged"/>
-                                <Button Click="CreateManagerReport" Margin="5,0,0,0" ToolTip="Сохранить отчет в папке" BorderThickness="0" Padding="0" >
-                                    <Image Source="/Images/report.png"/>
-                                </Button>
-                            </StackPanel>
-                        </TabItem.Header>
-
-                        <Grid Margin="5">
-                            <Grid.RowDefinitions>
-                                <RowDefinition/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            
-                            <DataGrid x:Name="ReportGrid" CanUserReorderColumns="False" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserAddRows="False" BorderBrush="Red" ClipboardCopyMode="IncludeHeader" AutoGeneratedColumns="DataGrid_AutoGeneratedColumn" LoadingRow="ReportGrid_LoadingRow"/>
-
-                            <StackPanel Orientation="Horizontal" Margin="5" VerticalAlignment="Bottom" Grid.Row="1">
-                                <TextBlock Text="Прибыль:" TextAlignment="Center" VerticalAlignment="Center"/>
-                                <TextBox x:Name="Plan" MinWidth="60" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" Margin="5,0,0,0" MaxWidth="60"/>
-                                <TextBlock Text="Бонус ООО:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center"/>
-                                <TextBox x:Name="BonusOOO" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" MinWidth="45" MaxWidth="45"/>
-                                <TextBlock Text="Бонус ИП и ПК:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="100" MaxWidth="100"/>
-                                <TextBox x:Name="BonusIP" MinWidth="45" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" MaxWidth="45"/>
-                                <TextBlock Text="Итого:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="40" MaxWidth="40"/>
-                                <TextBox x:Name="Salary" MinWidth="60" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" MaxWidth="60"/>
-                            </StackPanel>
-
-                        </Grid>
-                    </TabItem>
+                <Grid x:Name="OrderGrid">
+                    <Grid.RowDefinitions>
+                        <!-- Верхняя панель с кнопками -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Раскрывающаяся панель PartsStack -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Основное содержимое: TabControl -->
+                        <RowDefinition Height="*"/>
+                        <!-- Занимает всё оставшееся пространство -->
+                    </Grid.RowDefinitions>
                     
-                </TabControl>
+                    <DockPanel HorizontalAlignment="Center" Margin="5">
+                        <Button Command="{Binding SaveCommand}" ToolTip="Сохранить расчет (Ctrl+D)" Padding="10,5">
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="Images/save.png"/>
+                                <TextBlock Text="Сохранить КП" VerticalAlignment="Center" Margin="5,0,0,0" Width="85"/>
+                            </StackPanel>
+                        </Button>
 
+                        <ToggleButton x:Name="OfferToggle"
+                                      Style="{StaticResource ExpandToggleButtonStyle}"
+                                      Content="дополнительно" Width="125" Margin="14,0,0,0"
+                                      ToolTip="Настройки КП — коэффициенты, доставка и прочее"
+                                      Click="OnOfferToggleClick"/>
+                        <StackPanel Orientation="Horizontal" Margin="14,0,0,0">
+                            <TextBox Text="{Binding SearchDetails, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Width="150" ToolTip="Введите наименование детали для поиска"/>
+                            <Button Margin="5,0,0,0" Click="Search_Details" Padding="2" BorderThickness="0" ToolTip="Поиск детали">
+                                <Image Source="Images/preview2.png" Width="16"/>
+                            </Button>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <StackPanel Grid.Row="1" x:Name="PartsStack" Margin="5" Height="0" ClipToBounds="True" HorizontalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Margin="5">
+                            <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет с НДС" VerticalAlignment="Center" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;" Margin="5,0,0,0"/>
+                            <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет без НДС" VerticalAlignment="Center" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;" Margin="10,0,0,0"/>
+                            <CheckBox x:Name="LimitCheck" Content="Снять ограничения" Margin="10,0,0,0" VerticalAlignment="Center" Width="140"/>
+                            <Button ToolTip="Добавить заказчика" Click="AddCustomer" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="0" Margin="40,0,0,0">
+                                <Image Source="/Images/add.png"/>
+                            </Button>
+                            <Button ToolTip="Изменить данные заказчика" Click="EditCustomer" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="0" Margin="20,0,0,0">
+                                <Image Source="/Images/edit.png"/>
+                            </Button>
+                            <Button ToolTip="Удалить заказчика" Click="DeleteCustomer" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="0" Margin="20,0,0,0">
+                                <Image Source="/Images/del.png"/>
+                            </Button>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="5">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="5">
+                                    <TextBlock Text="Экспресс" VerticalAlignment="Center" Width="75"/>
+                                    <CheckBox VerticalAlignment="Center" IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Click="SetExpress" ToolTip="Добавить наценку за срочность" Margin="10,0,0,0" Width="60"/>
+                                    <TextBox x:Name="AssemblyRatio" ToolTip="Коэффициент" TextChanged="SetExpress" VerticalAlignment="Center" MaxLines="1" Margin="10,0,0,0" HorizontalContentAlignment="Center" Width="40"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="5">
+                                    <TextBlock Text="Конструктор" VerticalAlignment="Center" Width="75"/>
+                                    <CheckBox x:Name="CheckConstruct" Content="{Binding Construct, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" VerticalAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="False" Margin="10,0,0,0" HorizontalContentAlignment="Center" Width="60"/>
+                                    <TextBox x:Name="ConstructRatio" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Коэффициент" TextChanged="UpdateResult" Margin="10,0,0,0" Width="40"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="5">
+                                    <TextBlock Text="Бонус, %" VerticalAlignment="Center" Width="75"/>
+                                    <TextBox Text="{Binding BonusRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите процент наценки" TextChanged="SetBonusRatio" Margin="10,0,0,0" Width="40"/>
+                                    <TextBlock Text="{Binding Bonus, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="5">
+                                    <TextBox x:Name="Comment" ToolTip="Введите комментарий" TextWrapping="Wrap" Width="250" HorizontalContentAlignment="Center" Height="45"/>
+                                    <Image Source="/Images/comment2.png" Margin="-10,-2,0,0" Width="20" VerticalAlignment="Top"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="5">
+                                    <Button Click="CreateOfferDelivery" IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать расчет на доставку" HorizontalAlignment="Left" VerticalAlignment="Center" Padding="0" BorderThickness="0" Margin="5,0,0,0">
+                                        <Image Source="/Images/address.png" Width="20"/>
+                                    </Button>
+                                    <CheckBox x:Name="DeliveryCheck" Content="Доставка" IsChecked="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="v - отдельной строкой в КП, ■ - включена в цены деталей" VerticalAlignment="Center" Click="HasDeliveryChanged" IsThreeState="True" Margin="10,0,0,0" Width="80"/>
+                                    <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="DeliveryPrice" MaxLines="1" ToolTip="Введите цену доставки" TextChanged="SetDelivery" Margin="5,0,0,0" Width="50" HorizontalContentAlignment="Center"/>
+                                    <TextBlock Text="руб" VerticalAlignment="Center" Margin="10,0,0,0" Width="20"/>
+                                    <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding DeliveryRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Количество доставок" TextChanged="SetDeliveryRatio" Margin="10,0,0,0" Width="30"/>
+                                    <TextBlock Text="шт" VerticalAlignment="Center" Margin="5,0,0,0" Width="20"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="5">
+                                    <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="Adress" ToolTip="Введите адрес доставки" TextWrapping="Wrap" Margin="5,0,0,0" Width="250" HorizontalContentAlignment="Center" Height="80"/>
+                                    <Button Click="CreateDelivery" IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать запрос в логистику" Padding="0" BorderThickness="0" VerticalAlignment="Top" Background="{x:Null}">
+                                        <Image Source="/Images/new.png" VerticalAlignment="Top" Margin="-10,-5,0,0" Width="20"/>
+                                    </Button>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="5">
+                                    <TextBlock Text="Ваш менеджер:" VerticalAlignment="Center" Width="90" Margin="5,0,0,0"/>
+                                    <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged" VerticalAlignment="Center" Width="150" Margin="10,0,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <TabControl Grid.Row="2" Margin="5">
+                        <TabItem x:Name="OffersTab">
+                            <TabItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Расчеты" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                                    <TextBox ToolTip="Введите номер расчета или название компании" Text="{Binding SearchOffers, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="10,0,0,0" Width="140"/>
+                                    <Button x:Name="SearchBtn" Content="Поиск" Click="Search_Offers" BorderBrush="#FF00C800" Margin="5,0,0,0"/>
+                                    <Button Content="Х" Click="ResetDates" BorderBrush="#FFFF0046" ToolTip="Очистить фильтр поиска и получить все расчеты" Margin="5,0,0,0"/>
+                                    <Button x:Name="UpdateBtn" Click="UpdateOffersCollection" Margin="20,0,0,0" Padding="10,5">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Source="/Images/update.png"/>
+                                            <TextBlock Text="Обновить список расчетов" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </TabItem.Header>
+
+                            <DataGrid x:Name="OffersGrid" Margin="5" CanUserReorderColumns="False" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserDeleteRows="False" CanUserAddRows="False" BorderBrush="Red" AutoGeneratedColumns="DataGrid_AutoGeneratedColumn" LoadingRow="OffersGrid_LoadingRow" EnableColumnVirtualization="True" CanUserResizeRows="False">
+                                <DataGrid.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Загрузить" Command="{Binding OpenOfferCommand}">
+                                            <MenuItem.Icon>
+                                                <Image Source="/Images/load.png"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Удалить" Command="{Binding RemoveOfferCommand}">
+                                            <MenuItem.Icon>
+                                                <Image Source="/Images/del_offer.png"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Сохранить изменения" Click="UpdateOffer">
+                                            <MenuItem.Icon>
+                                                <Image Source="/Images/edit_offer.png"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Запустить в производство" Click="LaunchToWork">
+                                            <MenuItem.Icon>
+                                                <Image Source="/Images/order.png"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Открыть для чтения" Click="OpenOffer">
+                                            <MenuItem.Icon>
+                                                <Image Source="/Images/compare.png"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Объединить в одно КП" Command="{Binding MergeOffersCommand}">
+                                            <MenuItem.Icon>
+                                                <Image Source="/Images/merge.png"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                    </ContextMenu>
+                                </DataGrid.ContextMenu>
+                            </DataGrid>
+                        </TabItem>
+
+                        <TabItem GotFocus="PartsView">
+                            <TabItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Предпросмотр КП" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                                    <Button Margin="5,0,0,0" Click="UpdatePricePart" ToolTip="Обновить цены деталей" BorderThickness="0" Padding="0">
+                                        <Image Source="/Images/preview3.png" Width="16"/>
+                                    </Button>
+                                </StackPanel>
+                            </TabItem.Header>
+
+                            <Grid Margin="5">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <DataGrid x:Name="PartsGrid" IsReadOnly="True" AutoGeneratingColumn="PartsGrid_AutoGeneratingColumn"/>
+
+                                <StackPanel Orientation="Horizontal" Margin="5" VerticalAlignment="Bottom" Grid.Row="1" HorizontalAlignment="Right">
+                                    <TextBlock Text="Общее кол-во деталей:" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="TotalCount" MinWidth="60" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" Margin="5,0,0,0" MaxWidth="60"/>
+                                    <TextBlock Text="Итого:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="40" MaxWidth="40"/>
+                                    <TextBox x:Name="TotalPrice" MinWidth="60" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" MaxWidth="60"/>
+                                </StackPanel>
+                            </Grid>
+                        </TabItem>
+
+                        <TabItem x:Name="ReportTab" GotFocus="ReportView">
+                            <TabItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Отчет за" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="ReportDrop" MinWidth="120" Margin="5,0,0,0" SelectionChanged="ReportChanged"/>
+                                    <Button Click="CreateManagerReport" Margin="5,0,0,0" ToolTip="Сохранить отчет в папке" BorderThickness="0" Padding="0" >
+                                        <Image Source="/Images/report.png" Width="16"/>
+                                    </Button>
+                                </StackPanel>
+                            </TabItem.Header>
+
+                            <Grid Margin="5">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <DataGrid x:Name="ReportGrid" CanUserReorderColumns="False" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" CanUserAddRows="False" BorderBrush="Red" ClipboardCopyMode="IncludeHeader" AutoGeneratedColumns="DataGrid_AutoGeneratedColumn" LoadingRow="ReportGrid_LoadingRow"/>
+
+                                <StackPanel Orientation="Horizontal" Margin="5" VerticalAlignment="Bottom" Grid.Row="1">
+                                    <TextBlock Text="Прибыль:" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="Plan" MinWidth="60" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" Margin="5,0,0,0" MaxWidth="60"/>
+                                    <TextBlock Text="Бонус ООО:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="BonusOOO" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" MinWidth="45" MaxWidth="45"/>
+                                    <TextBlock Text="Бонус ИП и ПК:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="100" MaxWidth="100"/>
+                                    <TextBox x:Name="BonusIP" MinWidth="45" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" MaxWidth="45"/>
+                                    <TextBlock Text="Итого:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="40" MaxWidth="40"/>
+                                    <TextBox x:Name="Salary" MinWidth="60" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" MaxWidth="60"/>
+                                </StackPanel>
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
             </GroupBox>
-
         </Grid>
-
     </DockPanel>
 </Window>

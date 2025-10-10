@@ -469,7 +469,7 @@ namespace Metal_Code
                             }
 
                             // определяем заголовок списка нарезанных деталей
-                            PartsToggle.Content = $"{(cut is PipeControl ? "(ТР) " : "")}s{S} {metal.Name} ({cut.PartDetails.Sum(x => x.Count)} шт) - список деталей {(PartsToggle.IsChecked == true ? "▲" : "▼")}";
+                            PartsToggle.Content = $"{(cut is PipeControl ? "(ТР) " : "")}s{S} {metal.Name} ({cut.PartDetails.Sum(x => x.Count)} деталей)";
                         }
                         break;
                     }
@@ -691,12 +691,10 @@ namespace Metal_Code
         {
             if (PartsToggle.IsChecked == true)
             {
-                PartsToggle.Content = $"{PartsToggle.Content}".Replace("▼", "▲");
                 ((Storyboard)FindResource("ExpandParts")).Begin(this);
             }
             else
             {
-                PartsToggle.Content = $"{PartsToggle.Content}".Replace("▲", "▼");
                 ((Storyboard)FindResource("CollapseParts")).Begin(this);
             }
         }

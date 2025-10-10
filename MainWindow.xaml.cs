@@ -24,10 +24,12 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Path = System.IO.Path;
 using Point = System.Windows.Point;
 
@@ -1500,12 +1502,7 @@ namespace Metal_Code
         //метод загрузки строк в таблицу ВСЕХ расчетов
         private void OffersGrid_LoadingRow(object sender, DataGridRowEventArgs e)
         {
-            Button btn = new()
-            {
-                Height = 20,
-                Width = 20,
-                BorderThickness = new Thickness(0),
-            };
+            Button btn = new() { BorderThickness = new Thickness(0) };
 
             if (e.Row.Item is Offer offer)
             {
@@ -1566,18 +1563,13 @@ namespace Metal_Code
         //метод загрузки строк в таблицу ОТЧЕТНЫХ расчетов
         private void ReportGrid_LoadingRow(object sender, DataGridRowEventArgs e)
         {
-            Button btn = new()
-            {
-                Height = 20,
-                Width = 20,
-                BorderThickness = new Thickness(0),
-            };
+            Button btn = new() { BorderThickness = new Thickness(0) };
 
             if (e.Row.Item is Offer offer)
             {
                 if (offer.Invoice is not null && offer.Invoice.Contains(" (без бонуса)"))
                 {
-                    btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/notbonus.png", UriKind.Relative)) };
+                    btn.Content = new Image() {Source = new BitmapImage(new Uri($"Images/notbonus.png", UriKind.Relative)) };
                     btn.ToolTip = "Добавить бонус";
                     btn.Click += RemoveOfferFromBonus;
                 }
@@ -5197,6 +5189,98 @@ namespace Metal_Code
         //-----------Вспомогательные методы----------------------//
         #region
 
+        //-----------Поиск нарезанной детали-----------//
+        private void Search_Details(object sender, RoutedEventArgs e)
+        {
+            //получаем все работы из комплектов деталей
+            var works = DetailControls.Where(d => d.Detail.IsComplect)
+                                .SelectMany(t => t.TypeDetailControls)
+                                .SelectMany(w => w.WorkControls);
+
+            //получаем контроллы всех нарезанных деталей
+            List<PartControl> parts = new();
+
+            foreach (WorkControl work in works)
+                if (work.workType is ICut cut && cut.Parts?.Count > 0) parts.AddRange(cut.Parts);
+
+            //если поле поиска пустое или нарезанных деталей нет, выходим
+            if (SearchDetails.Replace(" ", "") == "")
+            {
+                foreach (PartControl part in parts) part.Background = Brushes.White;
+                return;
+            }
+
+            //ищем детали, совпадающие по имени с введенным тестом пользователя
+            List<PartControl> foundDetails = parts.Where(x => x.Part.Title is not null &&
+                            x.Part.Title.Contains(SearchDetails, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (foundDetails.Count > 0)
+            {
+                //окрашиваем зеленым найденные детали
+                foreach (PartControl part in parts)
+                    part.Background = foundDetails.Contains(part) ? Brushes.LightGreen : Brushes.White;
+
+                //и фокусируем пользователя на первой найденной детали
+                var types = MainWindow.M.DetailControls
+                    .Where(d => d.Detail.IsComplect)
+                    .SelectMany(t => t.TypeDetailControls);
+
+                foreach (var type in types)
+                {
+                    if (IsVisualChild(type.PartsStack, foundDetails[0]))
+                    {
+                        // 1. Обновляем заголовок (вы уже это делаете)
+                        if (type.FindName("PartsToggle") is ToggleButton toggle)
+                        {
+                            toggle.SetCurrentValue(ToggleButton.IsCheckedProperty, true);
+
+                            // 2. Визуальное выделение (на 2 секунды)
+                            var originalBorder = toggle.BorderBrush;
+                            toggle.BorderBrush = Brushes.OrangeRed;
+                            toggle.BorderThickness = new Thickness(2);
+
+                            // Вернуть обратно через 2 сек
+                            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+                            timer.Tick += (s, e) =>
+                            {
+                                toggle.BorderBrush = originalBorder;
+                                toggle.BorderThickness = new Thickness(1);
+                                timer.Stop();
+                            };
+                            timer.Start();
+
+                            // 3. Прокручиваем к ToggleButton
+                            toggle.BringIntoView();
+
+                            // 4. Устанавливаем фокус на кнопку
+                            toggle.Focus();
+                        }
+
+                        break;
+                    }
+                }
+                if (foundDetails.Count > 1)
+                    StatusBegin($"Деталей по запросу \"{SearchDetails}\" найдено {foundDetails.Count}. " +
+                        $"Все они окрашены зеленым цветом и могут находиться в других заготовках.");
+            }
+            else StatusBegin($"Деталей по запросу \"{SearchDetails}\" не найдено.");
+        }
+
+        public static bool IsVisualChild(DependencyObject parent, DependencyObject child)
+        {
+            if (child == null || parent == null) return false;
+            if (parent == child) return true;
+
+            int count = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < count; i++)
+            {
+                var descendant = VisualTreeHelper.GetChild(parent, i);
+                if (IsVisualChild(descendant, child))
+                    return true;
+            }
+            return false;
+        }
+
         //-------------Даты-----------//
         public DateTime? EndDate()
         {
@@ -5949,50 +6033,6 @@ namespace Metal_Code
             registryWindow.Show();
         }
 
-        private void Search_Details(object sender, RoutedEventArgs e)       //метод поиска нарезанной детали
-        {
-            //получаем все работы из комплектов деталей
-            var works = DetailControls.Where(d => d.Detail.IsComplect)
-                                .SelectMany(t => t.TypeDetailControls)
-                                .SelectMany(w => w.WorkControls);
-            
-            //получаем контроллы всех нарезанных деталей
-            List<PartControl> parts = new();
-
-            foreach (WorkControl work in works)
-                if (work.workType is ICut cut && cut.Parts?.Count > 0) parts.AddRange(cut.Parts);
-
-            //если поле поиска пустое или нарезанных деталей нет, выходим
-            if (SearchDetails.Replace(" ", "") == "" || Parts.Count == 0)
-            {
-                foreach (PartControl part in parts) part.Background = Brushes.White;
-                return;
-            }
-
-            //ищем детали, совпадающие по имени с введенным тестом пользователя
-            List<PartControl> foundDetails = parts.Where(x => x.Part.Title is not null &&
-                            x.Part.Title.Contains(SearchDetails, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            if (foundDetails.Count > 0)
-            {
-                //окрашиваем зеленым найденные детали
-                foreach (PartControl part in parts)
-                    part.Background = foundDetails.Contains(part) ? Brushes.LightGreen : Brushes.White;
-
-                //и фокусируем пользователя на первой найденной детали
-                if (foundDetails[0].owner is ICut _cut && _cut.TabItem != null)
-                {
-                    _cut.TabItem.Focus();
-                    //_cut.PartsControl?.partsList.ScrollIntoView(foundDetails[0]);
-
-                    if (foundDetails.Count > 1)
-                        StatusBegin($"Деталей по запросу \"{SearchDetails}\" найдено {foundDetails.Count}. " +
-                            $"Все они окрашены зеленым цветом и могут находиться в других вкладках.");
-                }
-            }
-            else StatusBegin($"Деталей по запросу \"{SearchDetails}\" не найдено.");
-        }
-
         public float CorrectDestiny(float _destiny)     //метод определения расчетной толщины
         {
             if (_destiny < 0.5f || _destiny > 30) return 0;
@@ -6203,6 +6243,41 @@ namespace Metal_Code
             bitmapEncoder.Frames.Add(BitmapFrame.Create(renderTarget));
             using var stm = File.Create(fileName);
             bitmapEncoder.Save(stm);
+        }
+
+        private double? _partsStackExpandedHeight = null;
+        private void OnOfferToggleClick(object sender, RoutedEventArgs e)
+        {
+            if (OfferToggle.IsChecked == true)
+            {
+                // Кэшируем высоту при первом раскрытии
+                if (!_partsStackExpandedHeight.HasValue)
+                {
+                    // Сохраняем текущую высоту, чтобы не мигало
+                    var originalHeight = PartsStack.Height;
+                    PartsStack.Height = double.NaN; // сбрасываем ограничение
+
+                    // Измеряем с шириной, равной ActualWidth родителя (OrderGrid)
+                    double width = OrderGrid.ActualWidth - PartsStack.Margin.Left - PartsStack.Margin.Right;
+                    if (width <= 0) width = 600; // fallback
+
+                    PartsStack.Measure(new Size(width, double.PositiveInfinity));
+                    _partsStackExpandedHeight = PartsStack.DesiredSize.Height;
+
+                    // Возвращаем исходную высоту (0), чтобы не отобразилось до анимации
+                    PartsStack.Height = originalHeight;
+                }
+
+                var expand = (Storyboard)FindResource("ExpandParts");
+                var anim = (DoubleAnimation)expand.Children[0];
+                anim.To = _partsStackExpandedHeight.Value;
+                expand.Begin(this);
+            }
+            else
+            {
+                var collapse = (Storyboard)FindResource("CollapseParts");
+                collapse.Begin(this);
+            }
         }
         #endregion
 
