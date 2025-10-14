@@ -282,6 +282,7 @@
                 </MenuItem.Header>
             </MenuItem>
         </Menu>
+        
         <StatusBar x:Name="Status" DockPanel.Dock="Bottom" Margin="10">
             <StackPanel Orientation="Horizontal">
                 <ProgressBar x:Name="InsertProgressBar" MinWidth="200" Visibility="Collapsed" IsIndeterminate="True" />
@@ -293,7 +294,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
                 <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="600" MinWidth="600"/>
+                <ColumnDefinition Width="600"/>
             </Grid.ColumnDefinitions>
 
             <GroupBox x:Name="DetailsBox" Style="{StaticResource GroupBoxOriginal}" Margin="5" Grid.RowSpan="3">
@@ -356,14 +357,14 @@
                         <TextBlock Text="КП №" VerticalAlignment="Center" FontWeight="Bold" Width="40"/>
                         <TextBox x:Name="Order" MaxLines="1" ToolTip="Введите номер предложения" Width="60" Margin="5,0,0,0" HorizontalContentAlignment="Center"/>
                         <TextBlock Text="{Binding IsAgent, Converter={StaticResource IsAgentToTextConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="Blue" Width="50"/>
-                        <ComboBox x:Name="CustomerDrop" DisplayMemberPath="Name" IsEditable="True" SelectedIndex="0" SelectionChanged="CustomerChanged" Margin="5,0,0,0" Width="140" ToolTip="Выберите заказчика">
+                        <hc:ComboBox hc:InfoElement.Placeholder="Выбор заказчика" x:Name="CustomerDrop" DisplayMemberPath="Name" IsEditable="True" SelectedIndex="0" SelectionChanged="CustomerChanged" Margin="5,0,0,0" Width="140" ToolTip="Выберите заказчика">
                             <ComboBox.Background>
                                 <LinearGradientBrush EndPoint="0,1">
                                     <GradientStop Color="White"/>
                                     <GradientStop Color="#FFE5E5E5" Offset="1"/>
                                 </LinearGradientBrush>
                             </ComboBox.Background>
-                        </ComboBox>
+                        </hc:ComboBox>
                         <TextBlock Text="Срок" VerticalAlignment="Center" Margin="10,0,0,0" Width="30"/>
                         <TextBox x:Name="DateProduction" ToolTip="Введите срок изготовления" FontWeight="Bold" MaxLines="1" Margin="5,0,0,0" Width="50" HorizontalContentAlignment="Center"/>
                         <TextBlock Text="раб/дней" Margin="5,0,0,0" VerticalAlignment="Center" Width="51"/>
@@ -395,7 +396,7 @@
                                       ToolTip="Настройки КП — коэффициенты, доставка и прочее"
                                       Click="OnOfferToggleClick"/>
                         <StackPanel Orientation="Horizontal" Margin="14,0,0,0">
-                            <TextBox Text="{Binding SearchDetails, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Width="150" ToolTip="Введите наименование детали для поиска"/>
+                            <hc:TextBox hc:InfoElement.Placeholder="Поиск детали" Text="{Binding SearchDetails, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Width="150" ToolTip="Введите наименование детали для поиска"/>
                             <Button Margin="5,0,0,0" Click="Search_Details" Padding="2" BorderThickness="0" ToolTip="Поиск детали">
                                 <Image Source="Images/preview2.png" Width="16"/>
                             </Button>
@@ -471,7 +472,7 @@
                             <TabItem.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="Расчеты" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                                    <TextBox ToolTip="Введите номер расчета или название компании" Text="{Binding SearchOffers, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="10,0,0,0" Width="140"/>
+                                    <hc:TextBox hc:InfoElement.Placeholder="Поиск расчета" ToolTip="Введите номер расчета или название компании" Text="{Binding SearchOffers, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="10,0,0,0" Width="140"/>
                                     <Button x:Name="SearchBtn" Content="Поиск" Click="Search_Offers" BorderBrush="#FF00C800" Margin="5,0,0,0"/>
                                     <Button Content="Х" Click="ResetDates" BorderBrush="#FFFF0046" ToolTip="Очистить фильтр поиска и получить все расчеты" Margin="5,0,0,0"/>
                                     <Button x:Name="UpdateBtn" Click="UpdateOffersCollection" Margin="20,0,0,0" Padding="10,5">

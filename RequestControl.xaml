@@ -141,7 +141,7 @@
                 </GroupBox.Header>
 
                 <Grid>
-                    <Canvas local:CanvasHelper.GeometryDescriptors="{Binding TargetTechItem.Geometries}" Background="White" VerticalAlignment="Center" HorizontalAlignment="Center" Width="100" Height="100"/>
+                    <Canvas local:CanvasHelper.GeometryDescriptors="{Binding TargetTechItem.Geometries}" Background="White" VerticalAlignment="Center" HorizontalAlignment="Center" Width="60" Height="60"/>
                 </Grid>
             </GroupBox>
 
