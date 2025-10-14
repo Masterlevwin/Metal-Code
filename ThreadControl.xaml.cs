@@ -301,7 +301,7 @@ namespace Metal_Code
                         SetWide(value[1]);
                         SetHoles(value[2]);
                     }
-                    else
+                    else if (p.Part.PropsDict.ContainsKey(_owner.UserControls.IndexOf(this)))
                     {
                         SetWide(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
                         SetHoles(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]);

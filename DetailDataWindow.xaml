@@ -5,51 +5,51 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Metal_Code"
         mc:Ignorable="d"
-        Title="Раскрой комплекта" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" FontFamily="Century" Closed="FocusMainWindow" SizeToContent="Width" Loaded="DetailDataWindow_Loaded">
+        Title="Раскрой комплекта" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" WindowStartupLocation="CenterScreen" FontFamily="Century" Closed="FocusMainWindow" Loaded="DetailDataWindow_Loaded" Width="300">
 
     <Window.Resources>
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     </Window.Resources>
 
-    <DockPanel LastChildFill="True" Margin="20">
+    <DockPanel LastChildFill="True" Margin="5">
 
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" MinHeight="30" Margin="10" HorizontalAlignment="Right">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="5" HorizontalAlignment="Right">
             <Button Content="Подтвердить" Click="Accept" Padding="5"/>
             <Button Content="Отмена" Click="Cancel" Margin="10,0,0,0" Padding="5" IsCancel="True"/>
         </StackPanel>
 
         <GroupBox DockPanel.Dock="Top">
             <GroupBox.Header>
-                <StackPanel Orientation="Horizontal" Margin="5" MinHeight="20">
+                <StackPanel Orientation="Horizontal" Margin="5">
                     <TextBlock Text="{Binding Detail.Title}" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold"/>
-                    <TextBox x:Name="Count" Text="{Binding Detail.Count}" Margin="10,0,0,0" MinWidth="50" MaxWidth="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                    <TextBlock Text="шт" Margin="10,0,0,0" MinWidth="20" TextAlignment="Center" VerticalAlignment="Center"/>
+                    <TextBox x:Name="Count" Text="{Binding Detail.Count}" Margin="10,0,0,0" Width="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                    <TextBlock Text="шт" Margin="10,0,0,0" Width="20" TextAlignment="Center" VerticalAlignment="Center"/>
                 </StackPanel>
             </GroupBox.Header>
 
-            <StackPanel Margin="10">
+            <StackPanel Margin="5">
                 
                 <Button Content="Загрузить DXF" Click="Load_Model" HorizontalAlignment="Left" Margin="5" Padding="5" Visibility="Hidden"/>
                 
                 <StackPanel Orientation="Horizontal" Margin="5">
                     <TextBlock x:Name="BilletType" VerticalAlignment="Center" FontWeight="Bold"/>
-                    <TextBlock Text="{Binding Billet.S}" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="Blue" MinWidth="30" MaxWidth="30" HorizontalAlignment="Center" TextAlignment="Center"/>
+                    <TextBlock Text="{Binding Billet.S}" Margin="10,0,0,0" VerticalAlignment="Center" FontWeight="Bold" Foreground="Blue" Width="30" HorizontalAlignment="Center" TextAlignment="Center"/>
                     <TextBlock Text="мм" VerticalAlignment="Center" Margin="5,0,0,0"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5" MinHeight="30">
-                    <TextBlock Text="Высота (А):" VerticalAlignment="Center" MinWidth="80"/>
-                    <TextBlock Text="{Binding Billet.A}" VerticalAlignment="Center" MinWidth="35" Margin="10,0,0,0" MaxWidth="35" FontWeight="Bold"/>
+                <StackPanel Orientation="Horizontal" Margin="5">
+                    <TextBlock Text="Высота (А):" VerticalAlignment="Center" Width="80"/>
+                    <TextBlock Text="{Binding Billet.A}" VerticalAlignment="Center" Width="35" Margin="10,0,0,0" FontWeight="Bold"/>
                     <TextBlock Text="мм" VerticalAlignment="Center" Margin="5,0,0,0"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="5" MinHeight="30">
-                    <TextBlock Text="Ширина (В):" VerticalAlignment="Center" MinWidth="80"/>
-                    <TextBlock Text="{Binding Billet.B}" VerticalAlignment="Center" MinWidth="35" Margin="10,0,0,0" MaxWidth="35" FontWeight="Bold"/>
+                <StackPanel Orientation="Horizontal" Margin="5">
+                    <TextBlock Text="Ширина (В):" VerticalAlignment="Center" Width="80"/>
+                    <TextBlock Text="{Binding Billet.B}" VerticalAlignment="Center" Width="35" Margin="10,0,0,0" FontWeight="Bold"/>
                     <TextBlock Text="мм" VerticalAlignment="Center" Margin="5,0,0,0"/>
                 </StackPanel>
             </StackPanel>
         </GroupBox>
 
-        <GroupBox DockPanel.Dock="Top" Margin="5" MinWidth="300">
+        <GroupBox DockPanel.Dock="Top" Margin="0,10,0,5">
             <GroupBox.Header>
                 <StackPanel Orientation="Horizontal" Margin="5">
                     <TextBlock Text="Состав комплекта" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Medium"/>
@@ -57,7 +57,7 @@
                 </StackPanel>
             </GroupBox.Header>
 
-            <ListBox ItemsSource="{Binding Details}" Margin="10" Padding="5" MaxHeight="400">
+            <ListBox ItemsSource="{Binding Details}" Margin="5" Padding="5" MaxHeight="400">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal" Margin="5">
@@ -66,28 +66,28 @@
                             </StackPanel>
                             
                             <StackPanel Margin="10,0,0,0">
-                                <StackPanel Orientation="Horizontal" Margin="5" Visibility="{Binding IsLaser, Converter={StaticResource BoolToVisibilityConverter}}" MinHeight="20">
-                                    <TextBlock Text="Высота" MinWidth="80" TextAlignment="Center" VerticalAlignment="Center"/>
-                                    <TextBox Text="{Binding Width}" Margin="10,0,0,0" MinWidth="50" MaxWidth="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                                    <TextBlock Text="мм" Margin="10,0,0,0" MinWidth="20" TextAlignment="Center" VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" Margin="5" Visibility="{Binding IsLaser, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <TextBlock Text="Высота" Width="80" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBox Text="{Binding Width}" Margin="10,0,0,0" Width="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                    <TextBlock Text="мм" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center"/>
                                 </StackPanel>
 
-                                <StackPanel Orientation="Horizontal" Margin="5" Visibility="{Binding IsLaser, Converter={StaticResource BoolToVisibilityConverter}}" MinHeight="20">
-                                    <TextBlock Text="Ширина" MinWidth="80" TextAlignment="Center" VerticalAlignment="Center"/>
-                                    <TextBox Text="{Binding Height}" Margin="10,0,0,0" MinWidth="50" MaxWidth="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                                    <TextBlock Text="мм" Margin="10,0,0,0" MinWidth="20" TextAlignment="Center" VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" Margin="5" Visibility="{Binding IsLaser, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <TextBlock Text="Ширина" Width="80" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBox Text="{Binding Height}" Margin="10,0,0,0" Width="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                    <TextBlock Text="мм" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center"/>
                                 </StackPanel>
 
-                                <StackPanel Orientation="Horizontal" Margin="5" Visibility="{Binding IsPipe, Converter={StaticResource BoolToVisibilityConverter}}" MinHeight="20">
-                                    <TextBlock Text="Длина" MinWidth="80" TextAlignment="Center" VerticalAlignment="Center"/>
-                                    <TextBox Text="{Binding Length}" Margin="10,0,0,0" MinWidth="50" MaxWidth="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                                    <TextBlock Text="мм" Margin="10,0,0,0" MinWidth="20" TextAlignment="Center" VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" Margin="5" Visibility="{Binding IsPipe, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <TextBlock Text="Длина" Width="80" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBox Text="{Binding Length}" Margin="10,0,0,0" Width="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                    <TextBlock Text="мм" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center"/>
                                 </StackPanel>
 
-                                <StackPanel Orientation="Horizontal" Margin="5" MinHeight="20">
-                                    <TextBlock Text="Количество" MinWidth="80" TextAlignment="Center" VerticalAlignment="Center"/>
-                                    <TextBox Text="{Binding Count}" Margin="10,0,0,0" MinWidth="50" MaxWidth="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                                    <TextBlock Text="шт" Margin="10,0,0,0" MinWidth="20" TextAlignment="Center" VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" Margin="5">
+                                    <TextBlock Text="Количество" Width="80" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBox Text="{Binding Count}" Margin="10,0,0,0" Width="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                    <TextBlock Text="шт" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </StackPanel>
 

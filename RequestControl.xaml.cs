@@ -355,7 +355,7 @@ namespace Metal_Code
                         techItem.Pinhole = data.Item3;
 
                         //заполняем геометрию для отрисовки
-                        techItem.Geometries = MainWindow.GetGeometries(dxf, data.Item1, 60, 60);
+                        techItem.Geometries = MainWindow.GetGeometries(dxf, data.Item1, 100, 100);
                     }
                     catch { MessageBox.Show($"Не удалось прочитать dxf ({path}).\n" +
                         $"Пересохраните файл в CAD-программе и попробуйте снова."); }

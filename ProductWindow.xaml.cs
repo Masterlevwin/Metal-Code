@@ -1,10 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
-using System.Windows.Controls;
 
 namespace Metal_Code
 {
@@ -134,7 +134,11 @@ namespace Metal_Code
                             {
                                 foreach (PartControl part in _cut.PartsControl.Parts)
                                 {
-                                    if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
+                                    if (part.Part.WorksDict?.Count > 0)
+                                        foreach (var guid in part.Part.WorksDict.Keys)
+                                            part.AddControl((int)MainWindow.Parser(part.Part.WorksDict[guid][0]), guid);
+
+                                    if (part.Part.PropsDict.Count > 0)
                                         foreach (int key in part.Part.PropsDict.Keys) if (key < 50)
                                                 part.AddControl((int)MainWindow.Parser(part.Part.PropsDict[key][0]));
                                     part.PropertiesChanged?.Invoke(part, false);
@@ -176,45 +180,106 @@ namespace Metal_Code
         //-----------Копирование всех контролов списка вложений----------//
         private void CopyUserControls(object sender, RoutedEventArgs e)
         {
-            //if (MainWindow.M.PartsTab.Items.Count == 0)
-            //{
-            //    MessageBox.Show($"В текущем расчете нет списка нарезанных деталей.\nДобавьте раскладки или загрузите расчет с ними.");
-            //    return;
-            //}
+            if (MainWindow.M.Parts.Count == 0)
+            {
+                MessageBox.Show("В текущем расчете нет нарезанных деталей.\nДобавьте раскладки или загрузите расчет с ними.");
+                return;
+            }
 
-            //bool isMatch = false;
+            // Получаем все "целевые" панели
+            var targetPanels = MainWindow.M.DetailControls
+                .Where(d => d.Detail.IsComplect)
+                .SelectMany(t => t.TypeDetailControls)
+                .Select(p => p.PartsStack)
+                .Where(panel => panel != null && panel.Children.Count > 0 && panel.Children[0] is PartsControl);
 
-            //for (int i = 0; i < MainWindow.M.PartsTab.Items.Count; i++)
-            //{
-            //    TabItem? _tab = MainWindow.M.PartsTab.Items[i] as TabItem;
-            //    if (_tab is not null && _tab.Content is PartsControl _partsMain)
-            //    {
-            //        foreach (PartControl partMain in _partsMain.Parts)
-            //        {
-            //            while (partMain.UserControls.Count > 0) partMain.RemoveControl(partMain.UserControls[^1]);
+            bool isMatch = false;
 
-            //            foreach (PartControl _part in Parts)
-            //            {
-            //                if (partMain.Part.Title != null && partMain.Part.Title.ToLower().Contains('n') &&
-            //                    _part.Part.Title != null && _part.Part.Title.ToLower().Contains('n') &&
-            //                    partMain.Part.Title?[..$"{partMain.Part.Title}".ToLower().LastIndexOf('n')] == _part.Part.Title?[.._part.Part.Title.ToLower().LastIndexOf('n')])
-            //                {
-            //                    if (_part.Part.PropsDict.Count > 0)
-            //                        foreach (int key in _part.Part.PropsDict.Keys) if (key < 50)
-            //                                partMain.AddControl((int)MainWindow.Parser(_part.Part.PropsDict[key][0]));
-            //                    partMain.PropertiesChanged?.Invoke(_part, false);
-            //                    isMatch = true;
-            //                }
-            //            }
-            //        }
-            //    } 
-            //}
+            // Группируем исходные Parts по "базовому имени" для быстрого поиска
+            var sourcePartsByBaseName = Parts
+                .Where(p => p.Part.Title != null)
+                .ToLookup(p => ExtractBaseName(p.Part.Title), StringComparer.OrdinalIgnoreCase);
 
-            //if (!isMatch) MessageBox.Show($"Совпадений не найдено.\nПоменяйте имена нарезанных деталей и попробуйте снова.");
-            //else MessageBox.Show($"Работы по нарезанным деталям текущего расчета добавлены!");
+            foreach (var panel in targetPanels)
+            {
+                var partsMain = (PartsControl)panel.Children[0];
+                foreach (PartControl partMain in partsMain.Parts)
+                {
+                    if (partMain.Part.Title == null) continue;
 
-            //MainWindow.M.StatusBegin($"Если открытый для чтения расчет больше не требуется, рекомендуется закрыть его окно.");
+                    string baseName = ExtractBaseName(partMain.Part.Title);
+                    var matchingSourceParts = sourcePartsByBaseName[baseName];
+
+                    if (!matchingSourceParts.Any()) continue;
+
+                    // Очистка текущих контролов
+                    while (partMain.UserControls.Count > 0)
+                        partMain.RemoveControl(partMain.UserControls[^1]);
+
+                    // Копируем данные из первого подходящего источника (можно уточнить логику, если нужно)
+                    foreach (var sourcePart in matchingSourceParts)
+                    {
+                        // Копируем работы
+                        if (sourcePart.Part.WorksDict?.Count > 0)
+                        {
+                            foreach (var kvp in sourcePart.Part.WorksDict)
+                            {
+                                var guid = kvp.Key;
+                                var value = kvp.Value;
+                                if (value != null && value.Count > 0)
+                                {
+                                    int controlType = (int)MainWindow.Parser(value[0]);
+                                    partMain.AddControl(controlType, guid);
+                                }
+                            }
+                        }
+
+                        // Копируем свойства (key < 50)
+                        if (sourcePart.Part.PropsDict?.Count > 0)
+                        {
+                            foreach (var kvp in sourcePart.Part.PropsDict)
+                            {
+                                if (kvp.Key < 50 && kvp.Value?.Count > 0)
+                                {
+                                    int controlType = (int)MainWindow.Parser(kvp.Value[0]);
+                                    partMain.AddControl(controlType);
+                                }
+                            }
+                        }
+
+                        partMain.PropertiesChanged?.Invoke(sourcePart, false);
+                        isMatch = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!isMatch)
+                MessageBox.Show("Совпадений не найдено.\nПоменяйте имена нарезанных деталей и попробуйте снова.");
+            else
+                MessageBox.Show("Работы по нарезанным деталям текущего расчета добавлены!");
+
+            MainWindow.M.StatusBegin("Если открытый для чтения расчет больше не требуется, рекомендуется закрыть его окно.");
         }
 
+        // Вспомогательный метод: извлекает "базовое имя" возле количества
+        private static string ExtractBaseName(string? title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                return string.Empty;
+
+            title = title.Trim();
+
+            var match = System.Text.RegularExpressions.Regex.Match(
+                title,
+                @"^(.*?)\s*(?:(?:\d+\s*шт\.?|n\.?\d+))\s*$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            );
+
+            if (match.Success)
+                return match.Groups[1].Value.Trim();
+
+            return title;
+        }
     }
 }

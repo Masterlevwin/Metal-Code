@@ -28,20 +28,20 @@
         <PasswordBox x:Name="PasswordText" Grid.Row="2" Grid.Column="1" Margin="8" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
 
         <TextBlock Text="Выберите должность" TextWrapping="Wrap" Margin="8" TextAlignment="Center" Grid.Row="3" />
-        <StackPanel Grid.Row="3" Grid.Column="1" Margin="8">
+        <StackPanel Grid.Row="3" Grid.Column="1" Margin="5">
             <RadioButton GroupName="Position" Content="Менеджер" IsChecked="True"/>
             <RadioButton GroupName="Position" Content="Инженер" x:Name="IsEngineer" Margin="0,5,0,0"/>
         </StackPanel>
         
         <TextBlock Text="Выберите компанию-работодателя" TextWrapping="Wrap" Margin="8" TextAlignment="Center" Grid.Row="4" />
-        <StackPanel Grid.Row="4" Grid.Column="1" Margin="8">
+        <StackPanel Grid.Row="4" Grid.Column="1" Margin="5">
             <RadioButton GroupName="Company" Content="Лазерфлекс"  x:Name="IsLaser" IsChecked="True"/>
             <RadioButton GroupName="Company" Content="Провэлд" Margin="0,5,0,0"/>
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" Grid.Row="5" Grid.ColumnSpan="2" HorizontalAlignment="Center">
-            <Button Margin="8" Content="Зарегистрироваться" Click="Accept_Click" IsDefault="True" MinWidth="60" Padding="5"/>
-            <Button Margin="8" Content="Выйти" Click="Exit" MinWidth="60"/>
+            <Button Margin="5" Content="Зарегистрироваться" Click="Accept_Click" IsDefault="True" MinWidth="60" Padding="5"/>
+            <Button Margin="5" Content="Выйти" Click="Exit" MinWidth="60"/>
         </StackPanel>
         
     </Grid>

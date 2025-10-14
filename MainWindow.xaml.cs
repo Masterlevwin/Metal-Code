@@ -127,7 +127,7 @@ namespace Metal_Code
             set
             {
                 isRequest = value;
-                //HorisontalSplitter.Visibility = DetailsBox.Visibility = PartsBox.Visibility = isRequest ? Visibility.Collapsed : Visibility.Visible;
+                DetailsBox.Visibility = isRequest ? Visibility.Collapsed : Visibility.Visible;
                 
                 OnPropertyChanged(nameof(IsRequest));
             }
@@ -1045,7 +1045,7 @@ namespace Metal_Code
         #endregion
 
 
-        //-----------Подключения к базе расчетов-----------------// 
+        //-----------Подключения к базе расчетов-----------------//
         #region
         private void AutoRemoveOffers()             //метод удаления старых расчетов из локальной базы
         {
@@ -4202,7 +4202,7 @@ namespace Metal_Code
 
                 //добавляем и настраиваем первую строку с заголовком
                 complectsheet.InsertRow(1, 1);
-                complectsheet.Cells[1, 1, 1, 9].Merge = true;
+                complectsheet.Cells[1, 1, 1, 10].Merge = true;
                 complectsheet.Cells[1, 1].Value = "Паспорт качества";
                 complectsheet.Cells[1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 complectsheet.Row(1).Style.Font.Bold = true;
@@ -4211,8 +4211,12 @@ namespace Metal_Code
                 complectsheet.Cells[2, 1].Value = "спец , упд ";
                 complectsheet.Cells[2, 4].Value = "ООО Лазерфлекс";
                 complectsheet.Row(2).Height = 16;
-                complectsheet.Cells[1, 1, 2, 9].Style.Font.Size = 12;
+                complectsheet.Cells[1, 1, 2, 10].Style.Font.Size = 12;
                 complectsheet.DeleteRow(Parts.Count + 5);
+                complectsheet.DeleteRow(Parts.Count + 7);
+                complectsheet.DeleteRow(Parts.Count + 7);
+                complectsheet.DeleteRow(Parts.Count + 7);
+                complectsheet.DeleteRow(Parts.Count + 7);
                 complectsheet.Cells[Parts.Count + 7, 3].Value = "Детали соответствуют конструкторской документации Заказчика";
                 complectsheet.Cells[Parts.Count + 9, 3].Value = "Начальник производства";
                 complectsheet.Cells[Parts.Count + 9, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
@@ -5221,10 +5225,8 @@ namespace Metal_Code
                     part.Background = foundDetails.Contains(part) ? Brushes.LightGreen : Brushes.White;
 
                 //и фокусируем пользователя на первой найденной детали
-                var types = MainWindow.M.DetailControls
-                    .Where(d => d.Detail.IsComplect)
-                    .SelectMany(t => t.TypeDetailControls);
-
+                var types = DetailControls.Where(d => d.Detail.IsComplect).SelectMany(t => t.TypeDetailControls);
+                            
                 foreach (var type in types)
                 {
                     if (IsVisualChild(type.PartsStack, foundDetails[0]))
@@ -5440,7 +5442,7 @@ namespace Metal_Code
                 NewProject();
                 RequestControl = new(openFileDialog.FileNames.ToList());
                 WindowGrid.Children.Insert(0, RequestControl);
-                Grid.SetRowSpan(RequestControl, 3);
+
                 IsRequest = true;
             }
             else StatusBegin($"Не выбрано ни одного файла");

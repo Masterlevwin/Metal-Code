@@ -21,9 +21,9 @@
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
             
             <Button Click="Load_Registry" Margin="5" HorizontalAlignment="Left" ToolTip="Загрузите ранее созданный список задач для редактирования">
-                <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="20">
+                <StackPanel Orientation="Horizontal">
                     <Image Source="/Images/express.png"/>
-                    <TextBlock Text="Загрузить" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    <TextBlock Text="Загрузить" Margin="5,0,0,0"/>
                 </StackPanel>
             </Button>
             
@@ -32,9 +32,9 @@
         </StackPanel>
 
         <Button DockPanel.Dock="Bottom" Click="Save_Registry" Margin="5" HorizontalAlignment="Right" ToolTip="Сохранить список задач в формате Excel">
-            <StackPanel Orientation="Horizontal" Margin="5" MaxHeight="20">
+            <StackPanel Orientation="Horizontal">
                 <Image Source="/Images/save4.png"/>
-                <TextBlock Text="Сохранить" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                <TextBlock Text="Сохранить" Margin="5,0,0,0"/>
             </StackPanel>
         </Button>
 

@@ -6,14 +6,14 @@
         mc:Ignorable="d"
         Title="Получение расчетов" Topmost="True" ResizeMode="NoResize" Icon="/app_logo.jpeg" SizeToContent="WidthAndHeight">
     <StackPanel>
-        <GroupBox MaxHeight="120" Margin="10" HorizontalAlignment="Center">
+        <GroupBox Margin="10">
             <GroupBox.Header>
                 <TextBlock Text="Поиск расчета" FontSize="14" FontWeight="Bold"/>
             </GroupBox.Header>
 
             <StackPanel Orientation="Horizontal" Margin="5">
-                <TextBox Text="{Binding Search}" Margin="5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="160" ToolTip="Введите № расчета или имя контрагента" MaxWidth="160"/>
-                <Button Content="Получить" Margin="5" Padding="5" Click="Get_Offers"/>
+                <TextBox Text="{Binding Search}" Margin="5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="160" ToolTip="Введите № расчета или имя контрагента"/>
+                <Button Content="Получить" Margin="5" Click="Get_Offers"/>
             </StackPanel>
         </GroupBox>
 

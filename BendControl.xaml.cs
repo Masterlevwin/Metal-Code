@@ -417,7 +417,7 @@ namespace Metal_Code
                         SetShelf((int)MainWindow.Parser(value[2]));
                         SetGroup(value[3]);
                     }
-                    else
+                    else if (p.Part.PropsDict.ContainsKey(_owner.UserControls.IndexOf(this)))
                     {
                         SetBend(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
                         SetShelf((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));

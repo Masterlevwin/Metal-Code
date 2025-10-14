@@ -231,7 +231,7 @@ namespace Metal_Code
                         SetRal(value[1]);
                         SetType((int)MainWindow.Parser(value[2]));
                     }
-                    else
+                    else if (p.Part.PropsDict.ContainsKey(_owner.UserControls.IndexOf(this)))
                     {
                         SetRal(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
                         SetType((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));
