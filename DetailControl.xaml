@@ -1,9 +1,11 @@
-﻿<UserControl xmlns:hc="https://handyorg.github.io/handycontrol"  x:Class="Metal_Code.DetailControl"
+﻿<UserControl x:Class="Metal_Code.DetailControl"
+             xmlns:hc="https://handyorg.github.io/handycontrol"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             mc:Ignorable="d" 
+             xmlns:local="clr-namespace:Metal_Code"
+             mc:Ignorable="d"
              VerticalAlignment="Top">
 
     <GroupBox x:Name="DetailBox" Margin="5">
@@ -21,7 +23,7 @@
 
                 <hc:ComboBox hc:InfoElement.Placeholder="Материал" x:Name="MetalDrop" DisplayMemberPath="Name" ToolTip="Выберите материал для ВСЕХ заготовок" SelectionChanged="SetAllMaterial" Width="120" Margin="25,0,0,0"/>
                 <CheckBox ToolTip="Добавить к расчету стоимость материала ВСЕХ заготовок" Click="SetAllMetal" VerticalAlignment="Center" IsChecked="True" Margin="5,0,0,0"/>
-                <Button Click="Remove" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" Margin="10,0,0,0">
+                <Button Click="Remove" Margin="10,0,0,0" local:DeleteHighlight.TargetElement="{Binding ElementName=DetailBox}">
                     <StackPanel Orientation="Horizontal" Margin="2">
                         <TextBlock Text="Х" FontSize="16" FontWeight="Bold" Padding="0" VerticalAlignment="Center"/>
                         <TextBlock Text="Удалить" VerticalAlignment="Center" Margin="5,0,0,0"/>
@@ -29,8 +31,8 @@
                 </Button>
             </StackPanel>
         </GroupBox.Header>
-        
-        <StackPanel x:Name="BilletsStack" Margin="0,3,0,0" HorizontalAlignment="Left">
+
+        <StackPanel hc:PanelElement.FluidMoveBehavior="{StaticResource BehaviorXY200}" x:Name="BilletsStack" Margin="0,3,0,0" HorizontalAlignment="Left">
             <Button Click="AddTypeDetail" HorizontalAlignment="Left" Margin="10,5,0,0">
                 <StackPanel Orientation="Horizontal">
                     <Image Source="Images/plus.png" Width="12" Height="12"/>

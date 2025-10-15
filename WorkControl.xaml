@@ -1,14 +1,17 @@
-﻿<UserControl xmlns:hc="https://handyorg.github.io/handycontrol"  x:Class="Metal_Code.WorkControl"
+﻿<UserControl x:Class="Metal_Code.WorkControl"
+             xmlns:hc="https://handyorg.github.io/handycontrol"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
              mc:Ignorable="d" 
-             VerticalAlignment="Top" Padding="3" BorderThickness="1">
+             VerticalAlignment="Top">
+    
     <UserControl.Resources>
         <local:CostConverter x:Key="CostConverter"/>
     </UserControl.Resources>
+    
     <UserControl.ContextMenu>
         <ContextMenu>
             <MenuItem Header="Добавить" Click="AddWork"></MenuItem>
@@ -16,19 +19,18 @@
         </ContextMenu>
     </UserControl.ContextMenu>
 
-    <StackPanel Orientation="Horizontal">
+    <Border x:Name="RootElement" BorderThickness="1" CornerRadius="4" Padding="3">
+        <StackPanel Orientation="Horizontal">
+            <hc:ComboBox hc:InfoElement.Placeholder="Выбор работы" x:Name="WorkDrop" DisplayMemberPath="Name" SelectionChanged="CreateWork" ToolTip="Выберите работу" VerticalAlignment="Top" HorizontalAlignment="Left" Width="140"/>
 
-        <hc:ComboBox hc:InfoElement.Placeholder="Выбор работы" x:Name="WorkDrop" DisplayMemberPath="Name" SelectionChanged="CreateWork" ToolTip="Выберите работу" VerticalAlignment="Top" HorizontalAlignment="Left" Width="140"/>
-        
-        <StackPanel x:Name="WorkGrid" Margin="5,0,0,0"/>
-        
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right">
-            <TextBox x:Name="RatioText" Text="{Binding Ratio}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Коммерческий" TextChanged="SetRatio" Margin="5,0,0,0" Width="35"/>
-            <TextBox x:Name="TechRatioText" Text="{Binding TechRatio}" MaxLines="1" ToolTip="Производственный" TextChanged="SetRatio" Margin="5,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="35"/>
-            <TextBox x:Name="ResultText" Text="{Binding Result, Converter={StaticResource CostConverter}}" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" BorderThickness="0" MouseDoubleClick="ResultTextEnabled" IsReadOnly="True" Margin="10,0,0,0" LostFocus="SetExtraResult" VerticalContentAlignment="Center" HorizontalContentAlignment="Right" Width="65"/>
-            <Button Click="Remove" ToolTip="Удалить работу" Content="Х" FontWeight="Bold" Padding="00" FontSize="8" BorderThickness="0" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" VerticalAlignment="Top" Margin="5,0,0,0" Width="10" Height="10"/>
+            <StackPanel x:Name="WorkGrid" Margin="5,0,0,0"/>
+
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right">
+                <TextBox x:Name="RatioText" Text="{Binding Ratio}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Коммерческий" TextChanged="SetRatio" Margin="5,0,0,0" Width="35"/>
+                <TextBox x:Name="TechRatioText" Text="{Binding TechRatio}" MaxLines="1" ToolTip="Производственный" TextChanged="SetRatio" Margin="5,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="35"/>
+                <TextBox x:Name="ResultText" Text="{Binding Result, Converter={StaticResource CostConverter}}" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" BorderThickness="0" MouseDoubleClick="ResultTextEnabled" IsReadOnly="True" Margin="10,0,0,0" LostFocus="SetExtraResult" VerticalContentAlignment="Center" HorizontalContentAlignment="Right" Width="65"/>
+                <Button Click="Remove"  local:DeleteHighlight.TargetElement="{Binding ElementName=RootElement}" ToolTip="Удалить работу" Content="Х" FontWeight="Bold" Padding="00" FontSize="8" BorderThickness="0" VerticalAlignment="Top" Margin="5,0,0,0" Width="10" Height="10"/>
+            </StackPanel>
         </StackPanel>
-        
-    </StackPanel>
-    
+    </Border>
 </UserControl>

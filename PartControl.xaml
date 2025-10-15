@@ -4,7 +4,8 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Metal_Code"
-             mc:Ignorable="d" Loaded="SetProperties">
+             mc:Ignorable="d" Loaded="SetProperties" Margin="3">
+    
     <UserControl.Resources>
         <local:CostConverter x:Key="CostConverter"/>
     </UserControl.Resources>
@@ -123,7 +124,7 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
                           CanContentScroll="True">
-                    <StackPanel x:Name="WorksStackPanel" />
+                    <StackPanel x:Name="WorksStackPanel" hc:PanelElement.FluidMoveBehavior="{StaticResource BehaviorXY200}"/>
                 </ScrollViewer>
             </Border>
         </StackPanel>

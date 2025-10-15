@@ -580,18 +580,6 @@ namespace Metal_Code
             Priced?.Invoke();
         }
 
-        private void EnterBorder(object sender, MouseEventArgs e)
-        {
-            TypeDetailBox.BorderBrush = Brushes.OrangeRed;
-            TypeDetailBox.BorderThickness = new Thickness(2);
-        }
-
-        private void LeaveBorder(object sender, MouseEventArgs e)
-        {
-            TypeDetailBox.BorderBrush = new SolidColorBrush(Color.FromArgb(0, 213, 223, 229));  //#FFD5DFE5           
-            TypeDetailBox.BorderThickness = new Thickness(1);
-        }
-
         private void SetToolTipForResult(object sender, ToolTipEventArgs e)
         {
             if (sender is not TextBox box || TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
@@ -697,6 +685,34 @@ namespace Metal_Code
             {
                 ((Storyboard)FindResource("CollapseParts")).Begin(this);
             }
+        }
+    }
+
+    public static class StockTypeColors
+    {
+        // Типы заготовок — основа фона
+        public static readonly Color SheetMetal = Color.FromRgb(220, 240, 255);     // Голубоватый (ледяной)
+        public static readonly Color OtherStock = Color.FromRgb(255, 235, 235);     // Розовато-бежевый (тёплый)
+    }
+
+    public static class MaterialColors
+    {
+        // Материалы — вторичный акцент (сделаем их заметно отличающимися)
+        public static readonly Color BlackSteel = Color.FromRgb(200, 200, 200);     // Нейтральный серый
+        public static readonly Color StainlessSteel = Color.FromRgb(200, 220, 255); // Ярко-голубой
+        public static readonly Color Aluminum = Color.FromRgb(255, 230, 200);       // Персиковый
+        public static readonly Color Other = Color.FromRgb(240, 255, 240);          // Салатовый (очень светлый зелёный)
+    }
+
+    public static class ColorHelper
+    {
+        public static Color Mix(Color color1, Color color2, double ratio = 0.5)
+        {
+            // ratio: 0 → color1, 1 → color2
+            byte r = (byte)(color1.R * (1 - ratio) + color2.R * ratio);
+            byte g = (byte)(color1.G * (1 - ratio) + color2.G * ratio);
+            byte b = (byte)(color1.B * (1 - ratio) + color2.B * ratio);
+            return Color.FromRgb(r, g, b);
         }
     }
 }

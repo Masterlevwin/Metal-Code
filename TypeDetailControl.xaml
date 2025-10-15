@@ -10,7 +10,8 @@
         <local:MassConverter x:Key="MassConverter"/>
         <local:DestinyConverter x:Key="DestinyConverter"/>
         <local:CostConverter x:Key="CostConverter"/>
-
+        <local:StockMaterialBackgroundConverter x:Key="StockMaterialBackgroundConverter"/>
+        
         <!-- Плавные функции для анимации -->
         <PowerEase x:Key="EaseOut" EasingMode="EaseOut"/>
         <PowerEase x:Key="EaseIn" EasingMode="EaseIn"/>
@@ -105,7 +106,14 @@
 
     </UserControl.Resources>
 
-    <GroupBox x:Name="TypeDetailBox">
+    <GroupBox x:Name="TypeDetailBox" BorderBrush="Gray">
+        <GroupBox.Background>
+            <MultiBinding Converter="{StaticResource StockMaterialBackgroundConverter}">
+                <Binding Path="SelectedItem.Name" ElementName="TypeDetailDrop"/>
+                <Binding Path="SelectedItem.Name" ElementName="MetalDrop"/>
+            </MultiBinding>
+        </GroupBox.Background>
+        
         <GroupBox.Header>
             <StackPanel Orientation="Horizontal" Margin="5">
                 <hc:ComboBox hc:InfoElement.Placeholder="Выбор заготовки" x:Name="TypeDetailDrop" DisplayMemberPath="Name" SelectedIndex="0" ToolTip="Выберите заготовку" SelectionChanged="CreateSort" Width="150"/>
@@ -125,7 +133,7 @@
                 <hc:ComboBox hc:InfoElement.Placeholder="Материал" x:Name="MetalDrop" DisplayMemberPath="Name" SelectedIndex="0" ToolTip="Выберите материал" SelectionChanged="MassCalculate" Margin="5,0,0,0" Width="120"/>
                 <CheckBox x:Name="CheckMetal" IsChecked="{Binding HasMetal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:TypeDetailControl}}}" Click="HasMetalChanged" ToolTip="Если не отмечено, материал - давальческий" Margin="5,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
                 <TextBox x:Name="ResultText" Text="{Binding Result, Converter={StaticResource CostConverter}}" MouseDoubleClick="ResultTextEnabled" IsReadOnly="True" ToolTipOpening="SetToolTipForResult" ToolTip="Стоимость материала, руб" Margin="10,0,0,0" LostFocus="SetExtraResult" VerticalContentAlignment="Center" HorizontalContentAlignment="Right" BorderThickness="0" Background="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}" Foreground="Blue" Width="65"/>
-                <Button Content="Х" FontWeight="Bold" Padding="0" MinWidth="20" MinHeight="20" MaxWidth="20" MaxHeight="20" FontSize="16" BorderThickness="0" Click="Remove" ToolTip="Удалить заготовку" MouseEnter="EnterBorder" MouseLeave="LeaveBorder" Margin="5,0,0,0"/>
+                <Button Content="Х" local:DeleteHighlight.TargetElement="{Binding ElementName=TypeDetailBox}" FontWeight="Bold" Padding="0" MinWidth="20" MinHeight="20" MaxWidth="20" MaxHeight="20" FontSize="16" BorderThickness="0" Click="Remove" ToolTip="Удалить заготовку" Margin="5,0,0,0"/>
             </StackPanel>
         </GroupBox.Header>
 
@@ -144,7 +152,7 @@
                     </StackPanel>
                 </Expander>
 
-                <StackPanel x:Name="WorksStack" Margin="10,0,0,0">
+                <StackPanel hc:PanelElement.FluidMoveBehavior="{StaticResource BehaviorXY200}" x:Name="WorksStack" Margin="10,0,0,0">
                     <Button Click="AddWork" HorizontalAlignment="Left" Margin="5,5,0,0">
                         <StackPanel Orientation="Horizontal">
                             <Image Source="Images/plus.png" Width="12"/>

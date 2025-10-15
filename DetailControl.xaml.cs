@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Threading;
 using Brushes = System.Windows.Media.Brushes;
 using Color = System.Windows.Media.Color;
 
@@ -132,18 +128,6 @@ namespace Metal_Code
             if (sender is ComboBox cBox)
                 foreach (TypeDetailControl t in TypeDetailControls) t.MetalDrop.SelectedIndex = cBox.SelectedIndex;
             MainWindow.M.UpdateResult();
-        }
-
-        private void EnterBorder(object sender, MouseEventArgs e)
-        {
-            DetailBox.BorderBrush = Brushes.Red;
-            DetailBox.BorderThickness = new Thickness(2);
-        }
-
-        private void LeaveBorder(object sender, MouseEventArgs e)
-        {
-            DetailBox.BorderBrush = new SolidColorBrush(Color.FromArgb(0, 213, 223, 229));  //#FFD5DFE5           
-            DetailBox.BorderThickness = new Thickness(1);
         }
 
         private void ShowDetailData(object sender, RoutedEventArgs e)

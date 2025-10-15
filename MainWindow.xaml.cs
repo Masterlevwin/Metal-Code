@@ -3,6 +3,7 @@ using ACadSharp.Entities;
 using ACadSharp.IO;
 using ACadSharp.Tables;
 using CSMath;
+using HandyControl.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using OfficeOpenXml;
@@ -436,6 +437,7 @@ namespace Metal_Code
             get => searchDetails;
             set
             {
+                if (searchDetails == value) return;
                 searchDetails = value;
                 OnPropertyChanged(nameof(SearchDetails));
             }
@@ -1091,25 +1093,6 @@ namespace Metal_Code
             return $"Список заказчиков обновлен. Заказчиков в базе - {Customers.Count}.";
         }
 
-        //метод запуска процесса поиска расчетов по номеру, компании или диапазону дат
-        private void Search_Offers(object sender, RoutedEventArgs e) { CreateWorker(Search_Offers, ActionState.search); }
-        private string Search_Offers(string? message = null)
-        {        
-            //сначала получаем все расчеты менеджера
-            List<Offer>? offers = Offers.Where(m => m.ManagerId == TargetManager.Id).ToList();
-
-            //затем ищем все КП согласно введенному номеру расчета или названию компании
-            if (SearchOffers != "") offers = offers?.Where(o => (o.N is not null && o.N.ToLower().Contains(SearchOffers.ToLower()))
-                                            || (o.Company is not null && o.Company.ToLower().Contains(SearchOffers.ToLower()))
-                                            || (o.Invoice is not null && o.Invoice.ToLower().Contains(SearchOffers.ToLower()))
-                                            || (o.Order is not null && o.Order.ToLower().Contains(SearchOffers.ToLower()))).ToList();
-
-            if (offers?.Count == 0) return $"Расчетов по выбранным параметрам не найдено";
-            else CurrentOffers = offers;
-
-            return $"Найдено {offers?.Count} расчетов";
-        }
-
         private void Show_SearchWindow(object sender, RoutedEventArgs e)
         {
             SearchWindow window = new SearchWindow();
@@ -1257,14 +1240,6 @@ namespace Metal_Code
                 catch (DbUpdateConcurrencyException ex) { return ex.Message; }
             }
             return $"Основная база обновлена. Добавлено {countAdd} расчетов. Удалено {countRemove} расчетов. Изменено {countChange} расчетов.";
-        }
-
-        private void ResetDates(object sender, RoutedEventArgs e)           //метод сброса дат на начало текущего месяца до начала дня
-        {
-            SearchOffers = "";
-            DateTime date = DateTime.UtcNow;
-            StartDay = new DateTime(date.Year, date.Month, 1);
-            EndDay = DateTime.UtcNow.AddDays(1);
         }
 
         public void SaveOrRemoveOffer(bool isSave, string? path = null)     //метод сохранения и удаления расчета
@@ -1502,7 +1477,7 @@ namespace Metal_Code
         //метод загрузки строк в таблицу ВСЕХ расчетов
         private void OffersGrid_LoadingRow(object sender, DataGridRowEventArgs e)
         {
-            Button btn = new() { BorderThickness = new Thickness(0) };
+            Button btn = new() { BorderThickness = new Thickness(0), Width = 20, Padding = new(2) };
 
             if (e.Row.Item is Offer offer)
             {
@@ -1563,7 +1538,7 @@ namespace Metal_Code
         //метод загрузки строк в таблицу ОТЧЕТНЫХ расчетов
         private void ReportGrid_LoadingRow(object sender, DataGridRowEventArgs e)
         {
-            Button btn = new() { BorderThickness = new Thickness(0) };
+            Button btn = new() { BorderThickness = new Thickness(0), Width = 20, Padding = new(2) };
 
             if (e.Row.Item is Offer offer)
             {
@@ -1662,12 +1637,6 @@ namespace Metal_Code
                     InsertBtn.IsEnabled = false;
                     UpdateBtn.IsEnabled = false;
                     break;
-                case ActionState.search:
-                    StatusBegin($"Подождите, идет поиск расчетов по заданным параметрам...");
-                    SearchBtn.Content = "Поиск...";
-                    SearchBtn.IsEnabled = false;
-                    UpdateBtn.IsEnabled = false;
-                    break;
                 case ActionState.update:
                     StatusBegin($"Подождите, идет обновление базы...");
                     IsEnabled = false;
@@ -1733,14 +1702,6 @@ namespace Metal_Code
                     InsertProgressBar.Visibility = Visibility.Collapsed;
                     message = $"{e.Result}";
                     CreateWorker(UpdateOffersCollection, ActionState.update);
-                    break;
-                case ActionState.search:
-                    OffersGrid.ItemsSource = CurrentOffers;
-                    StatusBegin($"{e.Result}");
-                    SearchBtn.IsEnabled = true;
-                    SearchBtn.Content = "Поиск";
-                    UpdateBtn.IsEnabled = true;
-                    InsertProgressBar.Visibility = Visibility.Collapsed;
                     break;
                 case ActionState.update:
                     ManagerChanged();
@@ -5194,7 +5155,7 @@ namespace Metal_Code
         #region
 
         //-----------Поиск нарезанной детали-----------//
-        private void Search_Details(object sender, RoutedEventArgs e)
+        private void Search_Details(object sender, FunctionEventArgs<string> e)
         {
             //получаем все работы из комплектов деталей
             var works = DetailControls.Where(d => d.Detail.IsComplect)
@@ -5234,8 +5195,6 @@ namespace Metal_Code
                         // 1. Обновляем заголовок (вы уже это делаете)
                         if (type.FindName("PartsToggle") is ToggleButton toggle)
                         {
-                            toggle.SetCurrentValue(ToggleButton.IsCheckedProperty, true);
-
                             // 2. Визуальное выделение (на 2 секунды)
                             var originalBorder = toggle.BorderBrush;
                             toggle.BorderBrush = Brushes.OrangeRed;
@@ -5267,7 +5226,6 @@ namespace Metal_Code
             }
             else StatusBegin($"Деталей по запросу \"{SearchDetails}\" не найдено.");
         }
-
         public static bool IsVisualChild(DependencyObject parent, DependencyObject child)
         {
             if (child == null || parent == null) return false;
@@ -5281,6 +5239,25 @@ namespace Metal_Code
                     return true;
             }
             return false;
+        }
+
+        //-----------Поиск расчетов по номеру КП, компании, номеру счета или заказа-----------//
+        private void Search_Offers(object sender, FunctionEventArgs<string> e)
+        {
+            //сначала получаем все расчеты менеджера
+            List<Offer>? offers = Offers.Where(m => m.ManagerId == TargetManager.Id).ToList();
+
+            //затем ищем все КП согласно введенному номеру расчета или названию компании
+            if (SearchOffers != "") offers = offers?.Where(o => (o.N is not null && o.N.ToLower().Contains(SearchOffers.ToLower()))
+                                            || (o.Company is not null && o.Company.ToLower().Contains(SearchOffers.ToLower()))
+                                            || (o.Invoice is not null && o.Invoice.ToLower().Contains(SearchOffers.ToLower()))
+                                            || (o.Order is not null && o.Order.ToLower().Contains(SearchOffers.ToLower()))).ToList();
+
+            if (offers?.Count == 0) StatusBegin("Расчетов по выбранным параметрам не найдено");
+            else CurrentOffers = offers;
+            OffersGrid.ItemsSource = CurrentOffers;
+
+            StatusBegin($"Найдено {offers?.Count} расчетов");
         }
 
         //-------------Даты-----------//

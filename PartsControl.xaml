@@ -242,7 +242,7 @@
         <ScrollViewer x:Name="partsScroll"
               Grid.Column="1"
               HorizontalScrollBarVisibility="Auto">
-            <ItemsControl x:Name="partsList" Margin="5" Padding="3">
+            <ItemsControl x:Name="partsList" Margin="3">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <VirtualizingStackPanel Orientation="Horizontal"/>

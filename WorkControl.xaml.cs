@@ -467,16 +467,6 @@ namespace Metal_Code
 
             type.det.PriceResult();
         }
-
-        private void EnterBorder(object sender, MouseEventArgs e)
-        {
-            BorderBrush = Brushes.OrangeRed;
-        }
-
-        private void LeaveBorder(object sender, MouseEventArgs e)
-        {
-            BorderBrush = null;
-        }
     }
 
     public interface IPriceChanged
