@@ -105,8 +105,16 @@ namespace Metal_Code
                                   if (response == MessageBoxResult.Yes) MainWindow.M.isAssemblyOffer = true;
                                   else MainWindow.M.isAssemblyOffer = false;
                               }
-                              MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);           //формируем КП в формате excel
-                              MainWindow.M.SaveOrRemoveOffer(true, dialogService.FilePaths[0]); //сохраняем расчет в базе данных
+
+                              if (File.Exists(dialogService.FilePaths[0]))
+                              {
+                                  dialogService.ShowMessage("Ошибка: Файл используется другим процессом.");
+                              }
+                              else      //формируем КП в формате excel и сохраняем расчет в базе данных
+                              {
+                                  MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);
+                                  MainWindow.M.SaveOrRemoveOffer(true, dialogService.FilePaths[0]);
+                              }
                           }
                       }
                       catch (Exception ex)

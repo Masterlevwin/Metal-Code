@@ -46,7 +46,7 @@
             </Border>
         </Popup>
         
-        <DataGrid x:Name="TaskGrid" ItemsSource="{Binding Tasks}" BorderBrush="Red" EnableColumnVirtualization="True" Margin="10" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" MaxHeight="300" MinHeight="300"/>
+        <DataGrid x:Name="TaskGrid" ItemsSource="{Binding Tasks}" BorderBrush="Red" EnableColumnVirtualization="True" Margin="10" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" Height="300" CanUserAddRows="True"/>
 
     </DockPanel>
 </Window>

@@ -357,14 +357,7 @@
                         <TextBlock Text="КП №" VerticalAlignment="Center" FontWeight="Bold" Width="40"/>
                         <TextBox x:Name="Order" MaxLines="1" ToolTip="Введите номер предложения" Width="60" Margin="5,0,0,0" HorizontalContentAlignment="Center"/>
                         <TextBlock Text="{Binding IsAgent, Converter={StaticResource IsAgentToTextConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="Blue" Width="50"/>
-                        <hc:ComboBox hc:InfoElement.Placeholder="Выбор заказчика" x:Name="CustomerDrop" DisplayMemberPath="Name" IsEditable="True" SelectedIndex="0" SelectionChanged="CustomerChanged" Margin="5,0,0,0" Width="200" ToolTip="Выберите заказчика">
-                            <ComboBox.Background>
-                                <LinearGradientBrush EndPoint="0,1">
-                                    <GradientStop Color="White"/>
-                                    <GradientStop Color="#FFE5E5E5" Offset="1"/>
-                                </LinearGradientBrush>
-                            </ComboBox.Background>
-                        </hc:ComboBox>
+                        <hc:ComboBox hc:InfoElement.Placeholder="Выбор заказчика" x:Name="CustomerDrop" DisplayMemberPath="Name" IsEditable="True" SelectedIndex="0" SelectionChanged="CustomerChanged" Margin="5,0,0,0" Width="200" ToolTip="Выберите заказчика"/>
                         <TextBlock Text="Срок" VerticalAlignment="Center" Margin="10,0,0,0" Width="30"/>
                         <TextBox x:Name="DateProduction" ToolTip="Введите срок изготовления" FontWeight="Bold" MaxLines="1" Margin="5,0,0,0" Width="50" HorizontalContentAlignment="Center"/>
                         <TextBlock Text="раб/дней" Margin="5,0,0,0" VerticalAlignment="Center" Width="51"/>
@@ -405,7 +398,9 @@
                         <StackPanel Orientation="Horizontal" Margin="5">
                             <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет с НДС" VerticalAlignment="Center" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;" Margin="5,0,0,0"/>
                             <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет без НДС" VerticalAlignment="Center" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;" Margin="10,0,0,0"/>
-                            <CheckBox x:Name="LimitCheck" Content="Снять ограничения" Margin="10,0,0,0" VerticalAlignment="Center" Width="140"/>
+                            <Border x:Name="LimitCheckBorder" Margin="10,0,0,0" Padding="4" CornerRadius="{DynamicResource DefaultCornerRadius}">
+                                <CheckBox x:Name="LimitCheck" Content="Снять ограничения" VerticalAlignment="Center" Width="140"/>
+                            </Border>
                             <Button ToolTip="Добавить заказчика" Click="AddCustomer" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="0" Margin="40,0,0,0">
                                 <Image Source="/Images/add.png"/>
                             </Button>

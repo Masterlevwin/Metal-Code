@@ -109,6 +109,13 @@ namespace Metal_Code
 
         //----------Свойства и их основные методы---------//
         #region
+        private string version = "2.6.5";
+        public string Version
+        {
+            get => version;
+            set => version = value;
+        }
+        
         private bool isLocal = true;    //запуск локальной версии
         //private bool isLocal = false;   //запуск основной версии
         public bool IsLocal
@@ -143,13 +150,6 @@ namespace Metal_Code
                 isLoadData = value;
                 OnPropertyChanged(nameof(IsLoadData));
             }
-        }
-
-        private string version = "2.6.5";
-        public string Version
-        {
-            get => version;
-            set => version = value;
         }
 
         private Offer? activeOffer;
@@ -735,14 +735,15 @@ namespace Metal_Code
                 if (CurrentManager.IsEngineer)
                 {
                     IsEnabled = false;
-                    if (CurrentManager.IsEngineer)
-                    {
-                        SetManagerWindow setManagerWindow = new();
-                        if (setManagerWindow.ShowDialog() == true) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
-                    }
-                    else ManagerDrop.SelectedItem = CurrentManager;
+
+                    SetManagerWindow setManagerWindow = new();
+                    if (setManagerWindow.ShowDialog() == true) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
+
                     IsEnabled = true;
                 }
+
+                LimitCheckBorder.Visibility = ReportTab.Visibility = CurrentManager.IsEngineer ? Visibility.Collapsed : Visibility.Visible;
+
                 return true;
             }
             return false;
@@ -770,7 +771,7 @@ namespace Metal_Code
                 }
                 else ManagerDrop.SelectedItem = CurrentManager;
 
-                ReportTab.Visibility = CurrentManager.IsEngineer ? Visibility.Collapsed : Visibility.Visible;
+                LimitCheckBorder.Visibility = ReportTab.Visibility = CurrentManager.IsEngineer ? Visibility.Collapsed : Visibility.Visible;
 
                 IsEnabled = true;
                 NewProject();
@@ -6027,67 +6028,62 @@ namespace Metal_Code
 
         public bool WarningSave()           //предупреждение о незаполненных полях и недостаточной суммы КП
         {
-            string _order = Order.Text;
-            string _customer = CustomerDrop.Text;
-            string _dateProduction = DateProduction.Text;
+            var fieldsToCheck = new Control[] { Order, CustomerDrop, DateProduction };
+            var emptyFields = new List<Control>();
 
-            Brush _orderB = Order.BorderBrush;
-            Brush _customerB = CustomerDrop.BorderBrush;
-            Brush _dateProductionB = DateProduction.BorderBrush;
-
-            if (_order == "" || _customer == "" || _dateProduction == "")
+            // Подсветка пустых полей
+            foreach (var control in fieldsToCheck)
             {
-                Order.BorderBrush = CustomerDrop.BorderBrush = DateProduction.BorderBrush = Brushes.OrangeRed;
-                Order.BorderThickness = CustomerDrop.BorderThickness = DateProduction.BorderThickness = new Thickness(2);
+                string text = "";
+                if (control is TextBox tb) text = tb.Text;
+                else if (control is ComboBox cb) text = cb.Text;
 
-                MessageBoxResult response = MessageBox.Show(
-                    "Некоторые поля не заполнены. Все равно сохранить расчет?",
-                    "Сохранение расчета", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-
-                if (response == MessageBoxResult.No)
+                if (string.IsNullOrWhiteSpace(text))
                 {
-                    Order.BorderBrush = _orderB;
-                    CustomerDrop.BorderBrush = _customerB;
-                    DateProduction.BorderBrush = _dateProductionB;
-                    Order.BorderThickness = CustomerDrop.BorderThickness = DateProduction.BorderThickness = new Thickness(1);
-                    return false;
-                }
-                else
-                {
-                    Order.BorderBrush = _orderB;
-                    CustomerDrop.BorderBrush = _customerB;
-                    DateProduction.BorderBrush = _dateProductionB;
-                    Order.BorderThickness = CustomerDrop.BorderThickness = DateProduction.BorderThickness = new Thickness(1);
+                    control.BorderBrush = Brushes.OrangeRed;
+                    emptyFields.Add(control);
                 }
             }
 
-            if (((!IsAgent && Result < 4000) || (IsAgent && Result < 2500)) && LimitCheck.IsChecked == false)
+            if (emptyFields.Count > 0)
             {
-                Brush _resultB = ResultTB.BorderBrush;
-                Brush _limitB = LimitCheck.BorderBrush;
+                var result = HandyControl.Controls.MessageBox.Show(
+                    "Некоторые поля не заполнены. Все равно сохранить расчет?",
+                    "Сохранение расчета",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Exclamation);
 
-                ResultTB.BorderBrush = LimitCheck.BorderBrush = Brushes.OrangeRed;
-                ResultTB.BorderThickness = new Thickness(2);
+                // Восстанавливаем стиль контрола в исходное состояние
+                foreach (var control in emptyFields) control.ClearValue(BorderBrushProperty);
 
-                ColorAnimation animation = new()
+                if (result == MessageBoxResult.No)
                 {
-                    From = Colors.White,
-                    To = Colors.OrangeRed,
-                    Duration = new Duration(TimeSpan.FromSeconds(1)),
-                    AutoReverse = true
-                };
-                LimitCheck.Background = new SolidColorBrush(Colors.White);
-                LimitCheck.Background.BeginAnimation(SolidColorBrush.ColorProperty, animation);
+                    emptyFields[0].Focus();
+                    return false;
+                }
+            }
 
-                MessageBox.Show("Проверьте стоимость КП:\n" +
-                    "Стоимость КП с НДС не должна быть меньше 4000 руб!\n" +
-                    "Стоимость КП без НДС не должна быть меньше 2500 руб!\n" +
-                    "Снимите ограничение, если хотите все равно сохранить расчет.",
-                    "Сохранение расчета", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+            // Проверка суммы КП
+            bool isBelowLimit = (!IsAgent && Result < 4000) || (IsAgent && Result < 2500);
+            if (isBelowLimit && LimitCheck.IsChecked == false)
+            {
+                // Подсветка суммы и чекбокса
+                ResultTB.BorderBrush = LimitCheckBorder.BorderBrush = Brushes.OrangeRed;
+                LimitCheckBorder.BorderThickness = new Thickness(1);
 
-                ResultTB.BorderBrush = _resultB;
-                LimitCheck.BorderBrush = _limitB;
-                ResultTB.BorderThickness = new Thickness(0);
+                HandyControl.Controls.MessageBox.Show(
+                    "Проверьте стоимость КП:\n" +
+                    "• С НДС — не менее 4000 руб.\n" +
+                    "• Без НДС — не менее 2500 руб.\n\n" +
+                    "Установите галочку «Снять ограничения»,\n" +
+                    "если всё равно хотите сохранить.",
+                    "Сохранение расчета",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Exclamation);
+
+                // Восстановление стиля суммы и чекбокса
+                ResultTB.BorderBrush = LimitCheckBorder.BorderBrush = null;
+                ResultTB.BorderThickness = new Thickness(1);
 
                 return false;
             }
