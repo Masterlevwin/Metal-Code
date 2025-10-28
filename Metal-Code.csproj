@@ -44,6 +44,7 @@
     <None Remove="Images\exampe6.png" />
     <None Remove="Images\exit.png" />
     <None Remove="Images\express.png" />
+    <None Remove="Images\eye.png" />
     <None Remove="Images\fixed.png" />
     <None Remove="Images\greenplus.png" />
     <None Remove="Images\lamp.png" />
@@ -180,6 +181,7 @@
     <Resource Include="Images\exampe6.png" />
     <Resource Include="Images\exit.png" />
     <Resource Include="Images\express.png" />
+    <Resource Include="Images\eye.png" />
     <Resource Include="Images\fixed.png" />
     <Resource Include="Images\greenplus.png" />
     <Resource Include="Images\lamp.png" />

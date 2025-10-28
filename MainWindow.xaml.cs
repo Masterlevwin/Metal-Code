@@ -1474,6 +1474,27 @@ namespace Metal_Code
             dg.FrozenColumnCount = 2;
         }
 
+        private void ToggleRowDetails_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement { DataContext: Offer } element)
+            {
+                // Находим строку DataGridRow, содержащую кнопку
+                if (FindVisualParent<DataGridRow>(element) is DataGridRow row)
+                {
+                    // Переключаем видимость
+                    bool isVisible = row.DetailsVisibility == Visibility.Visible;
+                    row.DetailsVisibility = isVisible ? Visibility.Collapsed : Visibility.Visible;
+                }
+            }
+        }
+
+        // Вспомогательный метод для поиска родителя в визуальном дереве
+        public static T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
+        {
+            while (child != null && child is not T)
+                child = VisualTreeHelper.GetParent(child);
+            return child as T;
+        }
 
         //метод загрузки строк в таблицу ВСЕХ расчетов
         private void OffersGrid_LoadingRow(object sender, DataGridRowEventArgs e)
@@ -1496,8 +1517,6 @@ namespace Metal_Code
                 }
             }
 
-            btn.MouseEnter += (sender, k) => { e.Row.IsSelected = true; };
-            btn.MouseLeave += (sender, k) => { e.Row.IsSelected = false; };
             e.Row.Header = btn;
         }
 
@@ -6051,7 +6070,7 @@ namespace Metal_Code
 
             if (emptyFields.Count > 0)
             {
-                var result = HandyControl.Controls.MessageBox.Show(
+                var result = MessageBox.Show(
                     "Некоторые поля не заполнены. Все равно сохранить расчет?",
                     "Сохранение расчета",
                     MessageBoxButton.YesNo,
@@ -6075,7 +6094,7 @@ namespace Metal_Code
                 ResultTB.BorderBrush = LimitCheckBorder.BorderBrush = Brushes.OrangeRed;
                 LimitCheckBorder.BorderThickness = new Thickness(1);
 
-                HandyControl.Controls.MessageBox.Show(
+                MessageBox.Show(
                     "Проверьте стоимость КП:\n" +
                     "• С НДС — не менее 4000 руб.\n" +
                     "• Без НДС — не менее 2500 руб.\n\n" +
