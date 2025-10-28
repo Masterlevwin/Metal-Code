@@ -464,7 +464,7 @@ namespace Metal_Code
                 OnPropertyChanged(nameof(EndDay));
             }
         }
-        
+
         private string? log;
         public string? Log
         {
@@ -5407,6 +5407,8 @@ namespace Metal_Code
         }
 
         //------------Создание заявки за клиента-----------------//
+        public string lastInputDirectory = string.Empty;            //директория для ТЗ
+
         private void CreateRequest(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new()
@@ -5418,6 +5420,8 @@ namespace Metal_Code
             if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
             {
                 NewProject();
+                lastInputDirectory = Path.GetDirectoryName(openFileDialog.FileNames[0]);
+
                 RequestControl = new(openFileDialog.FileNames.ToList());
                 WindowGrid.Children.Insert(0, RequestControl);
 

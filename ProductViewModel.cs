@@ -226,8 +226,17 @@ namespace Metal_Code
 
                           System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
+                          // Формируем путь на основе lastInputDirectory
+                          string? targetDirectory = null;
+                          if (MainWindow.M.lastInputDirectory != null && Directory.Exists(Path.GetDirectoryName(MainWindow.M.lastInputDirectory)))
+                          {
+                              var _targetDirectory = Path.GetDirectoryName(MainWindow.M.lastInputDirectory);
+                              if (_targetDirectory != null) targetDirectory = Path.Combine(_targetDirectory, "КП");
+                          }
+
                           OpenFileDialog openFileDialog = new()
                           {
+                              InitialDirectory = targetDirectory,
                               Filter = "All files (*.*)|*.*",
                               Multiselect = true
                           };
