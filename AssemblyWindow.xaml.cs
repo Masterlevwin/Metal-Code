@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -170,10 +171,7 @@ namespace Metal_Code
             DataContext = this;
         }
 
-        private void AddAssembly(object sender, RoutedEventArgs e)
-        {
-            AddAssembly();
-        }
+        private void AddAssembly(object sender, RoutedEventArgs e) { AddAssembly(); }
         public void AddAssembly()
         {
             Assembly assembly = new();
@@ -400,6 +398,10 @@ namespace Metal_Code
                             {
                                 var width = MainWindow.Parser(_part.PropsDict[100][0]);
                                 var height = MainWindow.Parser(_part.PropsDict[100][1]);
+                                if (height == 0) height = 1;
+
+                                Trace.WriteLine($"{_part.Title} - {_part.PropsDict[100][0]} x {_part.PropsDict[100][1]} ({height})");
+
                                 assembly.Square +=
                                     _part.Mass switch       //рассчитываем наценку за тяжелые детали
                                     {
@@ -415,7 +417,7 @@ namespace Metal_Code
                                         >= 5 => 1.3f,
                                         _ => 1,
                                     }
-                                    * width * height * particle.Count * assembly.Count / 500_000;
+                                    * width * height * particle.Count * assembly.Count / (height != 1 ? 500_000 : 1);
                             }
                         }
                     }

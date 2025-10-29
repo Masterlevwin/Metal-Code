@@ -138,7 +138,7 @@ namespace Metal_Code
                               MainWindow.M.ActiveOffer = null;
                               Product = fileService.Open(dialogService.FilePaths[0]);
                               MainWindow.M.LoadProduct();
-                              MainWindow.M.StatusBegin($"Расчет {Product?.Order} открыт.");
+                              MainWindow.M.StatusBegin($"Расчет {Product?.Order} открыт.", MainWindow.StatusMessageType.Success);
                               MainWindow.M.PdfMigrate(dialogService.FilePaths[0]);
                           }
                       }
@@ -166,7 +166,7 @@ namespace Metal_Code
                               MainWindow.M.ActiveOffer = offer;
                               Product = MainWindow.OpenOfferData(offer.Data);
                               MainWindow.M.LoadProduct();
-                              MainWindow.M.StatusBegin($"Расчет {MainWindow.M.ActiveOffer.N} загружен.");
+                              MainWindow.M.StatusBegin($"Расчет {MainWindow.M.ActiveOffer.N} загружен.", MainWindow.StatusMessageType.Success);
                           }
                   }
                       catch (Exception ex)
@@ -258,7 +258,7 @@ namespace Metal_Code
                               if (_metalix.Count > 0)
                               {
                                   Metalix metalix = new(_metalix[0]);
-                                  MainWindow.M.StatusBegin($"{metalix.Run()}");
+                                  MainWindow.M.StatusBegin($"{metalix.Run()}", MainWindow.StatusMessageType.Success);
                               }
 
                               if (_lasers.Count > 0)

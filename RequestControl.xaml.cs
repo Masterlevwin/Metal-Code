@@ -158,7 +158,7 @@ namespace Metal_Code
                 {
                     var item = TechItems.FirstOrDefault(s => s.Sizes is null || s.Sizes == "");
                     IsAvailable = item is null;
-                    MainWindow.M.StatusBegin("Заявка загружена");
+                    MainWindow.M.StatusBegin("Заявка загружена", MainWindow.StatusMessageType.Success);
                 }
             }
             catch (Exception ex) { MessageBox.Show($"{ex.Message}\nФорма этой заявки не поддерживается функцией загрузки."); }
@@ -177,7 +177,7 @@ namespace Metal_Code
             {
                 Update_Paths(openFileDialog.FileNames.ToList());
             }
-            else MainWindow.M.StatusBegin($"Не выбрано ни одного файла");
+            else MainWindow.M.StatusBegin($"Не выбрано ни одного файла", MainWindow.StatusMessageType.Warning);
         }
 
         //-----выход из режима заявки-----//
@@ -313,8 +313,14 @@ namespace Metal_Code
 
                 //определяем толщину
                 string destinyPattern;
-                if (template.PosDestiny) destinyPattern = $@"{Regex.Escape(template.DestinyPattern)}\s*(\d+(?:[,.]\d+)?)";
-                else destinyPattern = $@"(\d+(?:[,.]\d+)?)\s*{Regex.Escape(template.DestinyPattern)}";
+                if (template.PosDestiny)
+                {
+                    destinyPattern = $@"{Regex.Escape(template.DestinyPattern)}\s*(?<!\d)(\d{{1,2}}(?:[,.]\d+)?)(?!\d)";
+                }
+                else
+                {
+                    destinyPattern = $@"(?<!\d)(\d{{1,2}}(?:[,.]\d+)?)(?!\d)\s*{Regex.Escape(template.DestinyPattern)}";
+                }
 
                 Match matchDestiny = Regex.Match(path, destinyPattern, RegexOptions.IgnoreCase);
                 if (matchDestiny.Success)
@@ -369,7 +375,7 @@ namespace Metal_Code
                 var item = TechItems.FirstOrDefault(s => s.Sizes is null || s.Sizes == "");
                 IsAvailable = item is null;
 
-                MainWindow.M.StatusBegin("Файлы успешно проанализированы");
+                MainWindow.M.StatusBegin("Файлы успешно проанализированы", MainWindow.StatusMessageType.Success);
             }
         }
 
@@ -400,7 +406,7 @@ namespace Metal_Code
                         foreach (var _item in item)
                             _item.NumberName += $".{item.ToList().IndexOf(_item)}";
 
-            MainWindow.M.StatusBegin("Наименования деталей сгенерированы.");
+            MainWindow.M.StatusBegin("Наименования деталей сгенерированы.", MainWindow.StatusMessageType.Success);
         }
         private void ShowPopup_Gen(object sender, MouseEventArgs e)
         {
@@ -452,7 +458,7 @@ namespace Metal_Code
             string? propertyName = GetPropertyNameFromColumn(sourceColumn);
             if (string.IsNullOrEmpty(propertyName) || propertyName == "OriginalName")
             {
-                MainWindow.M.StatusBegin("Не удалось определить свойство для копирования, или такое копирование запрещено.");
+                MainWindow.M.StatusBegin("Не удалось определить свойство для копирования, или такое копирование запрещено.", MainWindow.StatusMessageType.Error);
                 return;
             }
 
@@ -476,7 +482,7 @@ namespace Metal_Code
 
             if (sameRow)
             {
-                MainWindow.M.StatusBegin("Копирование по горизонтали запрещено.");
+                MainWindow.M.StatusBegin("Копирование по горизонтали запрещено.", MainWindow.StatusMessageType.Error);
                 return;
             }
 
@@ -567,7 +573,7 @@ namespace Metal_Code
         {
             if (TechItems.Count == 0)
             {
-                MainWindow.M.StatusBegin("Чтобы создать заявку, запустите анализ файлов.");
+                MainWindow.M.StatusBegin("Чтобы создать заявку, запустите анализ файлов.", MainWindow.StatusMessageType.Error);
                 return false;
             }
 
@@ -576,7 +582,7 @@ namespace Metal_Code
                 var baseDir = Directory.GetParent(Paths[0]);
                 if (baseDir != null && !baseDir.Name.Contains("ТЗ", StringComparison.OrdinalIgnoreCase))
                 {
-                    MainWindow.M.StatusBegin("Папка с моделями, в которой будет создана заявка, должна называться \"ТЗ\".");
+                    MainWindow.M.StatusBegin("Папка с моделями, в которой будет создана заявка, должна называться \"ТЗ\".", MainWindow.StatusMessageType.Error);
                     return false;
                 }
             }
@@ -658,7 +664,7 @@ namespace Metal_Code
                 $"Возможно файл заявки уже открыт, поэтому ее не создать!");
             }
 
-            MainWindow.M.StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(Paths[0])}");
+            MainWindow.M.StatusBegin($"Создана заявка в папке {Path.GetDirectoryName(Paths[0])}", MainWindow.StatusMessageType.Success);
             return true;
         }
 
