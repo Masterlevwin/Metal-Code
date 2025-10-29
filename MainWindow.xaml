@@ -388,7 +388,7 @@
                                       Style="{StaticResource ExpandToggleButtonStyle}"
                                       Content="дополнительно" Width="125" Margin="45,0,0,0"
                                       ToolTip="Настройки КП — коэффициенты, доставка и прочее"
-                                      Click="OnOfferToggleClick"/>
+                                      Click="OnOfferToggleClick" IsChecked="True" Cursor="Hand"/>
                         
                         <hc:SearchBar hc:InfoElement.Placeholder="Поиск детали" Style="{StaticResource SearchBarExtend}" Text="{Binding SearchDetails, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="150" SearchStarted="Search_Details" Margin="45,0,0,0"/>
 

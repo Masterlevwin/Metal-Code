@@ -614,6 +614,8 @@ namespace Metal_Code
             //}
             else if (!CheckMachineName()) ShowWindow(new LoginWindow());    //проверяем пользователя
             else NewProject();                                              //если все проверки пройдены, создаем новый проект
+
+            OfferToggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
         }
 
         private void InitializeDict()       //метод заполнения словарей значениями
