@@ -44,7 +44,6 @@
     <None Remove="Images\exampe6.png" />
     <None Remove="Images\exit.png" />
     <None Remove="Images\express.png" />
-    <None Remove="Images\eye.png" />
     <None Remove="Images\fixed.png" />
     <None Remove="Images\greenplus.png" />
     <None Remove="Images\lamp.png" />
@@ -86,6 +85,7 @@
     <None Remove="Images\signature1.jpg" />
     <None Remove="Images\signature2.jpg" />
     <None Remove="Images\tableofbends.jpg" />
+    <None Remove="Images\tot.png" />
     <None Remove="Images\unlock.png" />
     <None Remove="Images\update.jpg" />
     <None Remove="Images\update.png" />
@@ -181,7 +181,6 @@
     <Resource Include="Images\exampe6.png" />
     <Resource Include="Images\exit.png" />
     <Resource Include="Images\express.png" />
-    <Resource Include="Images\eye.png" />
     <Resource Include="Images\fixed.png" />
     <Resource Include="Images\greenplus.png" />
     <Resource Include="Images\lamp.png" />
@@ -223,6 +222,7 @@
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </Resource>
     <Resource Include="Images\tableofbends.jpg" />
+    <Resource Include="Images\tot.png" />
     <Resource Include="Images\unlock.png" />
     <Resource Include="Images\update.png" />
     <Resource Include="Images\update4.png" />
