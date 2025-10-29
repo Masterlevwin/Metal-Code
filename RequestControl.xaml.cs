@@ -531,6 +531,8 @@ namespace Metal_Code
                 "найдет совпадение, то удалит это из каждого наименования.";
         }
 
+        //-----добавление пустой строки в список деталей-----//
+        private void Add_TechItem(object sender, RoutedEventArgs e) { TechItems.Add(new()); }
 
         //-----удаление строки из списка деталей-----//
         private void Remove_TechItem(object sender, RoutedEventArgs e)

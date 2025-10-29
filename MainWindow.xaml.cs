@@ -4837,10 +4837,7 @@ namespace Metal_Code
             return true;
         }
 
-        private void ReportView(object sender, RoutedEventArgs e)
-        {
-            ReportView();
-        }
+        private void ReportView(object sender, RoutedEventArgs e) { ReportView(); }
         private void ReportView()
         {
             List<Offer> _agentFalse = ReportOffers.Where(o => o.Agent == false).ToList();   //ООО
@@ -6276,6 +6273,12 @@ namespace Metal_Code
                 var collapse = (Storyboard)FindResource("CollapseParts");
                 collapse.Begin(this);
             }
+        }
+
+        private void OpenMaps(object sender, RoutedEventArgs e)         //метод открытия карт зонирования стоимости доставки
+        {
+            string url = "https://yandex.ru/maps/2/saint-petersburg/?ll=30.293848%2C59.914700&mode=usermaps&source=constructorLink&um=constructor%3Aee68688ecf05643f44c063ca6d885e8262ae116ac6d5f7921742ebb42a75a78d&z=12.11/";
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
         }
         #endregion
 

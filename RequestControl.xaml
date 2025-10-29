@@ -153,15 +153,19 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <DataGrid x:Name="RequestGrid" Style="{StaticResource DataGrid.Small}" ItemsSource="{Binding TechItems}" SelectionUnit="Cell" BorderBrush="Red" EnableColumnVirtualization="True" Margin="10" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" MouseUp="CopyValue_MouseUp" MaxHeight="300" CanUserAddRows="True" SelectedCellsChanged="Set_TargetTechItem">
+            <DataGrid x:Name="RequestGrid" Style="{StaticResource DataGrid.Small}" ItemsSource="{Binding TechItems}" SelectionUnit="Cell" BorderBrush="Red" EnableColumnVirtualization="True" Margin="10" AutoGeneratingColumn="DataGrid_AutoGeneratingColumn" MouseUp="CopyValue_MouseUp" MaxHeight="300" SelectedCellsChanged="Set_TargetTechItem">
                 <DataGrid.ContextMenu>
                     <ContextMenu>
+                        <MenuItem Header="Добавить строку" Click="Add_TechItem">
+                            <MenuItem.Icon>
+                                <Image Source="/Images/plus.png"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
                         <MenuItem Header="Удалить строку" Click="Remove_TechItem">
                             <MenuItem.Icon>
                                 <Image Source="/Images/del_offer.png"/>
                             </MenuItem.Icon>
                         </MenuItem>
-
                     </ContextMenu>
                 </DataGrid.ContextMenu>
             </DataGrid>

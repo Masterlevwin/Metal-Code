@@ -442,7 +442,9 @@
                                     </Button>
                                     <CheckBox x:Name="DeliveryCheck" Content="Доставка" IsChecked="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="v - отдельной строкой в КП, ■ - включена в цены деталей" VerticalAlignment="Center" Click="HasDeliveryChanged" IsThreeState="True" Margin="10,0,0,0" Width="80"/>
                                     <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="DeliveryPrice" MaxLines="1" ToolTip="Введите цену доставки" TextChanged="SetDelivery" Margin="5,0,0,0" Width="50" HorizontalContentAlignment="Center"/>
-                                    <TextBlock Text="руб" VerticalAlignment="Center" Margin="10,0,0,0" Width="20"/>
+                                    <Button Click="OpenMaps" IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Margin="5,0,0,0" ToolTip="Открыть карты" Padding="0" BorderThickness="0" Background="{x:Null}">
+                                        <Image Source="/Images/maps.png"  Width="16"/>
+                                    </Button>
                                     <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding DeliveryRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Количество доставок" TextChanged="SetDeliveryRatio" Margin="10,0,0,0" Width="30"/>
                                     <TextBlock Text="шт" VerticalAlignment="Center" Margin="5,0,0,0" Width="20"/>
                                 </StackPanel>

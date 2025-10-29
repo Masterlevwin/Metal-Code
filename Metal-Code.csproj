@@ -49,6 +49,7 @@
     <None Remove="Images\lamp.png" />
     <None Remove="Images\list.png" />
     <None Remove="Images\load.png" />
+    <None Remove="Images\maps.png" />
     <None Remove="Images\merge.png" />
     <None Remove="Images\metalix.png" />
     <None Remove="Images\model.png" />
@@ -186,6 +187,7 @@
     <Resource Include="Images\lamp.png" />
     <Resource Include="Images\list.png" />
     <Resource Include="Images\load.png" />
+    <Resource Include="Images\maps.png" />
     <Resource Include="Images\merge.png" />
     <Resource Include="Images\metalix.png" />
     <Resource Include="Images\model.png" />
