@@ -198,7 +198,7 @@ namespace Metal_Code
 
                             if (MainWindow.M.HasDelivery is true)
                             {
-                                float delivery = MainWindow.M.Delivery * MainWindow.M.Ratio;
+                                float delivery = (float)(MainWindow.M.Delivery * MainWindow.M.Ratio);
                                 float deliveryTotal = delivery * MainWindow.M.DeliveryRatio;
                                 totalSum += deliveryTotal;
 

@@ -110,7 +110,7 @@ namespace Metal_Code
 
         //----------Свойства и их основные методы---------//
         #region
-        private string version = "2.6.5";
+        private string version = "2.6.6";
         public string Version
         {
             get => version;
@@ -171,27 +171,8 @@ namespace Metal_Code
             set
             {
                 isLaser = value;
-                if (IsLaser)
-                {
-                    LaserRadioButton.IsChecked = true;
-                    //ThemeChange("laserTheme");
-                }
-                else
-                {
-                    AppRadioButton.IsChecked = true;
-                    //ThemeChange("appTheme");
-                }
                 OnPropertyChanged(nameof(IsLaser));
             }
-        }
-        private void IsLaserChanged(object sender, RoutedEventArgs e)
-        {
-            if (sender is RadioButton radioButton)
-            {
-                if (radioButton.Name == "AppRadioButton") IsLaser = false;
-                else if (radioButton.Name == "LaserRadioButton") IsLaser = true;
-            }
-            TotalResult();
         }
 
         private bool isAgent;
@@ -215,22 +196,24 @@ namespace Metal_Code
             }
         }
 
-        private float ratio;
-        public float Ratio
+        private double ratio;
+        public double Ratio
         {
             get => ratio;
             set
             {
-                ratio = value;
-                if (ratio <= 0) ratio = 1;
-                OnPropertyChanged(nameof(Ratio));
+
+                value = Math.Round(value, 2);
+                if (ratio != value)
+                {
+                    ratio = value;
+                    if (ratio <= 0) ratio = 1;
+                    TotalResult();
+                    OnPropertyChanged(nameof(Ratio));
+                }
             }
         }
-        private void SetRatio(object sender, TextChangedEventArgs e)
-        {
-            if (sender is TextBox tBox) if (float.TryParse(tBox.Text, out float r)) SetRatio(r);
-        }
-        public void SetRatio(float _ratio)
+        public void SetRatio(double _ratio)
         {
             Ratio = _ratio;
             TotalResult();
@@ -390,27 +373,26 @@ namespace Metal_Code
             {
                 hasAssembly = value;
                 OnPropertyChanged(nameof(HasAssembly));
+
+                if (!HasAssembly)
+                {
+                    DateProduction.Text = "";
+                }
+                else
+                {
+                    if (ServiceFactorBox.Value <= 2) ServiceFactorBox.Value = 2;
+                    DateProduction.Text = "3";
+                }
             }
         }
 
-        private void SetExpress(object sender, RoutedEventArgs e)
+        private void OnServiceFactorChanged(object sender, FunctionEventArgs<double> e)
         {
-            if (!HasAssembly)
+            var factor = (float)e.Info;
+            if (factor > 0)
             {
-                SetExpress(1);
-                DateProduction.Text = "";
+                SetExpress(factor);
             }
-            else
-            {
-                if (AssemblyRatio.Text == "") AssemblyRatio.Text = "2";
-                SetExpress(Parser(AssemblyRatio.Text));
-                DateProduction.Text = "3";
-            }
-        }
-        private void SetExpress(object sender, TextChangedEventArgs e)
-        {
-            if (!HasAssembly || sender is not TextBox tBox) return;
-            SetExpress(Parser(tBox.Text));
         }
         public void SetExpress(float express)
         {
@@ -863,18 +845,15 @@ namespace Metal_Code
             CheckConstruct.IsChecked = false;
             IsExpressOffer = false;
             HasAssembly = false;
-            Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = Comment.Text = ConstructRatio.Text = AssemblyRatio.Text = TotalCount.Text = TotalPrice.Text = "";
-            //ProductName.Text = $"Изделие";
+            Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = Comment.Text = ConstructRatio.Text = TotalCount.Text = TotalPrice.Text = "";
+            ServiceFactorBox.Value = 1;
             ActiveOffer = null;
             Log = null;
         }
 
         //-----------Добавление контрола детали----------//
         public List<DetailControl> DetailControls = new();
-        private void AddDetail(object sender, RoutedEventArgs e)
-        {
-            AddDetail();
-        }
+        private void AddDetail(object sender, RoutedEventArgs e) { AddDetail(); }
         public void AddDetail()
         {
             DetailControl detail = new(new());
@@ -888,6 +867,18 @@ namespace Metal_Code
             detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп комплектации
         }
 
+        //-----------Добавление контрола покупного изделя----------//
+        public List<BasketControl> BasketControls = new();
+        private void AddBasket(object sender, RoutedEventArgs e) { AddBasket(); }
+        private void AddBasket()
+        {
+            BasketControl basket = new();
+            BasketControls.Add(basket);
+
+            DetailsStack.Children.Add(basket);
+            DetailsScroll.ScrollToEnd();
+        }
+
         //---------Общий результат расчета и его обновление-------//
         private float result;
         public float Result
@@ -897,6 +888,12 @@ namespace Metal_Code
             {
                 result = value;
                 OnPropertyChanged(nameof(Result));
+
+                MaterialTotal.Text = $"{Math.Ceiling(GetMetalPrice()):N0} руб.";
+                ServicesTotal.Text = $"{Math.Ceiling(GetServices()):N0} руб.";
+                WeldTotal.Text = $"{Math.Ceiling(GetWeldAssembly()):N0} руб.";
+                PaintTotal.Text = $"{Math.Ceiling(GetPaintAssembly()):N0} руб.";
+                BasketTotal.Text = $"{Math.Ceiling(GetBasketPrice()):N0} руб.";
             }
         }
         public void TotalResult()
@@ -911,7 +908,7 @@ namespace Metal_Code
 
             Result *= Count;
 
-            float result = Result * Ratio;
+            float result = (float)(Result * Ratio);
 
             Bonus = result * ((100 + BonusRatio) / 100) - result;
 
@@ -934,22 +931,8 @@ namespace Metal_Code
                 foreach (TypeDetailControl t in d.TypeDetailControls) t.PriceChanged();
 
             var works = DetailControls.SelectMany(x => x.TypeDetailControls).SelectMany(x => x.WorkControls);
-
             var workSorted = works.GroupBy(x => x.workType?.GetType());
-
             DateProduction.Text = $"{workSorted.Count() * 5}";
-        }
-
-        private void Show_Details(object sender, MouseEventArgs e)
-        {
-            UpdateResult();
-
-            if (Result <= 0) return;
-
-            Popup.IsOpen = true;
-
-            Details.Text = $"Общая стоимость материала - {Math.Ceiling(GetMetalPrice()):N0} руб.\n" +
-                $"Общая стоимость услуг - {Math.Ceiling(GetServices()):N0} руб.";
         }
 
         //-----------Формирование списка нарезанных деталей-------//
@@ -1039,7 +1022,7 @@ namespace Metal_Code
 
                 foreach (Part p in Parts)
                 {
-                    p.Price *= Ratio * ((100 + BonusRatio) / 100);
+                    p.Price *= (float)(Ratio * ((100 + BonusRatio) / 100));
                     p.Price = p.Price < p.FixedPrice ? p.FixedPrice : p.Price;
                     p.Price = (float)Math.Ceiling(p.Price);
                 }
@@ -1738,7 +1721,7 @@ namespace Metal_Code
 
             Product product = new()
             {
-                //Name = ProductName.Text,
+                //NameBasket = ProductName.Text,
                 Order = Order.Text,
                 Company = CustomerDrop.Text,
                 Production = DateProduction.Text,
@@ -1922,10 +1905,9 @@ namespace Metal_Code
             //выйти из режима заявки
             if (RequestControl != null) CloseRequestControl();
 
-            //ProductName.Text = ProductModel.Product.Name;
+            //ProductName.Text = ProductModel.Product.NameBasket;
             Order.Text = ProductModel.Product.Order;
             CustomerDrop.Text = ProductModel.Product.Company;
-            DateProduction.Text = ProductModel.Product.Production;
             Adress.Text = ProductModel.Product.Manager;
             Comment.Text = ProductModel.Product.Comment;
             CheckConstruct.IsChecked = ProductModel.Product.HasConstruct;
@@ -1943,6 +1925,7 @@ namespace Metal_Code
             IsLoadData = true;
             ClearDetails();     // очищаем текущий расчет
             LoadDetails(ProductModel.Product.Details);
+            DateProduction.Text = ProductModel.Product.Production;
             IsLoadData = false;
 
             if (ProductModel.Product.Assemblies?.Count > 0)
@@ -5794,22 +5777,6 @@ namespace Metal_Code
         }
 
 
-        //------------Сортировка файлов по папкам----------------//
-        private void CreateTech(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog openFileDialog = new()
-            {
-                Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*"
-            };
-
-            if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
-            {
-                Tech tech = new(openFileDialog.FileNames[0]);
-                StatusBegin(tech.Run());
-            }
-            else StatusBegin($"Не выбрано ни одного файла", StatusMessageType.Error);
-        }
-
         //------------Перенос чертежей при загрузке сохранения---//
         public void PdfMigrate(string path)
         {
@@ -6103,7 +6070,7 @@ namespace Metal_Code
             if (isBelowLimit && LimitCheck.IsChecked == false)
             {
                 // Подсветка суммы и чекбокса
-                ResultTB.BorderBrush = LimitCheckBorder.BorderBrush = Brushes.OrangeRed;
+                DetailsToggle.BorderBrush = LimitCheckBorder.BorderBrush = Brushes.OrangeRed;
                 LimitCheckBorder.BorderThickness = new Thickness(1);
 
                 MessageBox.Show(
@@ -6117,8 +6084,8 @@ namespace Metal_Code
                     MessageBoxImage.Exclamation);
 
                 // Восстановление стиля суммы и чекбокса
-                ResultTB.BorderBrush = LimitCheckBorder.BorderBrush = null;
-                ResultTB.BorderThickness = new Thickness(1);
+                DetailsToggle.BorderBrush = LimitCheckBorder.BorderBrush = null;
+                DetailsToggle.BorderThickness = new Thickness(1);
 
                 return false;
             }
@@ -6129,13 +6096,38 @@ namespace Metal_Code
 
         public float GetMetalPrice()        //метод получения стоимости материала всего расчета
         {
-            float metalprice = 0;
+            float metalPrice = 0;
             foreach (DetailControl d in DetailControls)
-                foreach (TypeDetailControl t in d.TypeDetailControls) metalprice += t.Result;
-            return (float)Math.Round(metalprice, 2);
+                foreach (TypeDetailControl t in d.TypeDetailControls) metalPrice += t.Result;
+            return (float)Math.Ceiling(metalPrice);
         }
 
-        public float GetServices() => (float)Math.Round(Result - GetMetalPrice(), 2);
+        public float GetServices()          //метод получения стоимости услуг всего расчета
+        {
+            float servicesPrice = 0;
+            foreach (DetailControl det in DetailControls)
+                foreach (TypeDetailControl type in det.TypeDetailControls)
+                    foreach (WorkControl work in type.WorkControls) servicesPrice += work.Result;
+            return (float)Math.Ceiling(servicesPrice);
+        }
+
+        public float GetWeldAssembly()
+        {
+            float weldAssembly = 0;
+            if (AssemblyWindow.A.Assemblies.Count > 0)
+                foreach (var assembly in AssemblyWindow.A.Assemblies) weldAssembly += assembly.WeldPrice;
+            return (float)Math.Ceiling(weldAssembly);
+        }
+
+        public float GetPaintAssembly()
+        {
+            float paintAssembly = 0;
+            if (AssemblyWindow.A.Assemblies.Count > 0)
+                foreach (var assembly in AssemblyWindow.A.Assemblies) paintAssembly += assembly.PaintPrice;
+            return (float)Math.Ceiling(paintAssembly);
+        }
+
+        public float GetBasketPrice() => 0; //временная заглушка для покупных изделий
 
         public string ShortManager()       //метод, возвращающий сокращенное имя менеджера
         {
@@ -6288,6 +6280,11 @@ namespace Metal_Code
                 var collapse = (Storyboard)FindResource("CollapseParts");
                 collapse.Begin(this);
             }
+        }
+
+        private void OnDetailsToggleClick(object sender, RoutedEventArgs e)
+        {
+            DetailsPanel.Visibility = DetailsToggle.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void OpenMaps(object sender, RoutedEventArgs e)         //метод открытия карт зонирования стоимости доставки

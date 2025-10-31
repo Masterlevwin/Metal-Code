@@ -17,7 +17,7 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public string ProductName { get; set; } = "Изделие";
-        public float Ratio { get; set; } = 1;
+        public double Ratio { get; set; } = 1;
         public float Amount { get; set; } = 0;
         public string Agent { get; set; } = string.Empty;
         public bool? HasDelivery { get; set; } = false;

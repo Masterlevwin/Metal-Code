@@ -271,16 +271,6 @@
                 <MenuItem Header="Обновить программу" Click="Restart"/>
             </MenuItem>
             <MenuItem x:Name="Login" ToolTip="Сменить пользователя" Click="ShowLoginWindow"/>
-            <MenuItem>
-                <MenuItem.Header>
-                    <StackPanel Orientation="Horizontal">
-                        <RadioButton GroupName="Boss" x:Name="AppRadioButton" Checked="IsLaserChanged" IsChecked="True"/>
-                        <Image Source="/app_logo.jpeg" Margin="5,0,0,0" Height="24"/>
-                        <RadioButton GroupName="Boss" x:Name="LaserRadioButton" Checked="IsLaserChanged" Margin="15,0,0,0"/>
-                        <Image Source="/laser_logo.jpg" Margin="5,0,0,0" Height="24"/>
-                    </StackPanel>
-                </MenuItem.Header>
-            </MenuItem>
         </Menu>
         
         <StatusBar x:Name="Status" DockPanel.Dock="Bottom" Margin="10">
@@ -297,45 +287,112 @@
                 <ColumnDefinition Width="600"/>
             </Grid.ColumnDefinitions>
 
-            <GroupBox x:Name="DetailsBox" Style="{StaticResource GroupBoxOriginal}" Margin="5" Grid.RowSpan="3">
-                <GroupBox.Header>
+            <GroupBox x:Name="DetailsBox" Style="{StaticResource GroupBoxOriginal}" Margin="5">
+                <GroupBox.Header >
                     <StackPanel Orientation="Horizontal" Margin="5">
-                        <Button Click="ShowAssemblyWindow">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                        <Button Click="AddBasket" VerticalAlignment="Top">
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="Images/basket.png"/>
+                                <TextBlock Text="Покупные изделия" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Click="AddDetail" Margin="10,0,0,0" VerticalAlignment="Top">
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="Images/plus.png"/>
+                                <TextBlock Text="Добавить" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Click="ShowAssemblyWindow" Margin="10,0,0,0" VerticalAlignment="Top">
+                            <StackPanel Orientation="Horizontal">
                                 <Image Source="Images/assembly.png"/>
                                 <TextBlock Text="Сборки" VerticalAlignment="Center" Margin="3,0,0,0"/>
                             </StackPanel>
                         </Button>
-                        <Button Click="AddDetail" Margin="10,0,0,0">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Image Source="Images/plus.png"/>
-                                <TextBlock Text="Добавить деталь" VerticalAlignment="Center" Margin="3,0,0,0"/>
-                            </StackPanel>
-                        </Button>
-                        <Button ToolTip="Создать новый расчет (Ctrl+Q)" Command="{Binding NewProjectCommand}" Padding="0" BorderThickness="0" Margin="40,0,0,0">
+
+                        <Button ToolTip="Создать новый расчет (Ctrl+Q)" Command="{Binding NewProjectCommand}" BorderThickness="0" Margin="20,0,0,0" VerticalAlignment="Top">
                             <Image Source="Images/new3.png"/>
                         </Button>
-                        <Button ToolTip="Открыть сохраненный расчет (Ctrl+S)" Command="{Binding OpenCommand}" Padding="0" BorderThickness="0" Margin="15,0,0,0">
+
+                        <Button ToolTip="Открыть сохраненный расчет (Ctrl+S)" Command="{Binding OpenCommand}" BorderThickness="0" Margin="10,0,0,0" VerticalAlignment="Top">
                             <Image Source="Images/open4.png"/>
                         </Button>
-                        <Button ToolTip="Создать заявку за клиента" Click="CreateRequest" Padding="0" BorderThickness="0" Margin="50,0,0,0">
+
+                        <Button ToolTip="Создать заявку за клиента" Click="CreateRequest" BorderThickness="0" Margin="10,0,0,0" VerticalAlignment="Top">
                             <Image Source="Images/comment.png"/>
                         </Button>
-                        <Button ToolTip="Подготовить папки в работу" Click="CreateTech" Padding="0" BorderThickness="0" Margin="15,0,0,0">
-                            <Image Source="Images/complect.png"/>
-                        </Button>
-                        <Button ToolTip="Загрузить раскладки (Ctrl+F)" Command="{Binding LoadCommand}" Padding="0" BorderThickness="0" Margin="15,0,0,0">
+
+                        <Button ToolTip="Загрузить раскладки (Ctrl+F)" Command="{Binding LoadCommand}" BorderThickness="0" Margin="10,0,0,0" VerticalAlignment="Top">
                             <Image Source="Images/xlsx_load.png"/>
                         </Button>
-                        <TextBlock Text="Общий коэффициент" VerticalAlignment="Center" Margin="20,0,0,0"/>
-                        <TextBox ToolTip="Введите наценку на всё КП" Text="{Binding Ratio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" AllowDrop="False" MaxLines="1" MaxLength="4" FontSize="14" TextChanged="SetRatio" Margin="10,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="40" MaxWidth="40"/>
-                        <Button ToolTip="Обновить (F5)" Command="{Binding UpdateCommand}" Padding="0" BorderThickness="0" Margin="20,0,0,0">
-                            <Image Source="/Images/update4.png"/>
-                        </Button>
-                        <TextBox x:Name="ResultTB" Text="{Binding Result, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" AllowDrop="False" FontSize="14" BorderThickness="0" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Margin="10,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="60" IsReadOnly="True" MouseEnter="Show_Details"/>
-                    </StackPanel>
-                </GroupBox.Header>
 
+                        <Expander Header="Коэффициенты" IsExpanded="False" Margin="20,0,0,0" VerticalAlignment="Top" Width="150">
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="Общий" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                <hc:NumericUpDown Grid.Column="1"
+                          Value="{Binding Ratio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}, StringFormat='{}{0:F2}'}"
+                          Minimum="0" Maximum="10" Increment="0.01" ToolTip="Введите наценку на всё КП"/>
+
+                                <TextBlock Grid.Row="1" Text="Материал" Margin="0,8,8,0" VerticalAlignment="Center" />
+                                <hc:NumericUpDown Grid.Row="1" Grid.Column="1"
+                          Value="{Binding MaterialFactor, StringFormat='{}{0:F2}'}"
+                          Minimum="0" Maximum="10" Increment="0.01" Margin="0,8,0,0" />
+
+                                <TextBlock Grid.Row="2" Text="Услуги" Margin="0,8,8,0" VerticalAlignment="Center" />
+                                <hc:NumericUpDown x:Name="ServiceFactorBox" Grid.Row="2" Grid.Column="1"
+                                    Value="1" Minimum="0" Maximum="10" Increment="0.01" Margin="0,8,0,0"
+                                    hc:NumericUpDown.ValueChanged="OnServiceFactorChanged"/>
+                                
+                                <CheckBox Grid.Row="2" Grid.Column="2" Margin="5,8,0,0" VerticalAlignment="Center"
+                                    IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"
+                                    ToolTip="Добавить наценку за срочность"/>
+                            </Grid>
+                        </Expander>
+
+                        <StackPanel Margin="10,0,0,0">
+                            <ToggleButton x:Name="DetailsToggle" Content="{Binding Result, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}"
+                                          Click="OnDetailsToggleClick" Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}" Cursor="Hand" MinWidth="150" FontSize="14" MouseEnter="UpdateResult"/>
+                            <StackPanel x:Name="DetailsPanel" Visibility="Collapsed" Margin="0,6,0,0">
+                                <StackPanel Orientation="Horizontal" Margin="3">
+                                    <TextBlock Text="Материал - "/>
+                                    <TextBlock x:Name="MaterialTotal" Foreground="Blue"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="3">
+                                    <TextBlock Text="Услуги - "/>
+                                    <TextBlock x:Name="ServicesTotal" Foreground="Blue"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="3">
+                                    <TextBlock Text="Сварка (сборки) - "/>
+                                    <TextBlock x:Name="WeldTotal" Foreground="Blue"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="3">
+                                    <TextBlock Text="Окраска (сборки) - "/>
+                                    <TextBlock x:Name="PaintTotal" Foreground="Blue"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="3">
+                                    <TextBlock Text="Покупные изделия - "/>
+                                    <TextBlock x:Name="BasketTotal" Foreground="Blue"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                        
+                    </StackPanel>
+
+                </GroupBox.Header>
+                
                 <ScrollViewer x:Name="DetailsScroll">
                     <StackPanel x:Name="DetailsStack" Margin="5"/>
                 </ScrollViewer>
@@ -414,11 +471,6 @@
 
                         <StackPanel Orientation="Horizontal" Margin="5">
                             <StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="5">
-                                    <TextBlock Text="Экспресс" VerticalAlignment="Center" Width="75"/>
-                                    <CheckBox VerticalAlignment="Center" IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Click="SetExpress" ToolTip="Добавить наценку за срочность" Margin="10,0,0,0" Width="60"/>
-                                    <TextBox x:Name="AssemblyRatio" ToolTip="Коэффициент" TextChanged="SetExpress" VerticalAlignment="Center" MaxLines="1" Margin="10,0,0,0" HorizontalContentAlignment="Center" Width="40"/>
-                                </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="5">
                                     <TextBlock Text="Конструктор" VerticalAlignment="Center" Width="75"/>
                                     <CheckBox x:Name="CheckConstruct" Content="{Binding Construct, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" VerticalAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="False" Margin="10,0,0,0" HorizontalContentAlignment="Center" Width="60"/>

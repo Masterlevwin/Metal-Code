@@ -683,7 +683,7 @@ namespace Metal_Code
             }
 
             Tech tech = new($"{Path.GetDirectoryName(Paths[0])}\\Заявка.xlsx");
-            MainWindow.M.StatusBegin(tech.Run());
+            MainWindow.M.StatusBegin(tech.Run(), MainWindow.StatusMessageType.Success);
         }
 
 
