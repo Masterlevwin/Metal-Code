@@ -5485,13 +5485,13 @@ namespace Metal_Code
                 Product? product = OpenOfferData(offer.Data);
                 if (product is null)
                 {
-                    StatusBegin("Не удалось открыть расчет для чтения");
+                    StatusBegin("Не удалось открыть расчет для чтения", StatusMessageType.Error);
                     return;
                 }
 
                 ProductWindow clon = new(product) { Title = $"{offer.N}  {offer.Company}", Amount = offer.Amount };
                 clon.Show();
-                StatusBegin($"Расчет {offer.N} открыт для чтения");
+                StatusBegin($"Расчет {offer.N} открыт для чтения", StatusMessageType.Success);
             }
         }
 
@@ -5508,9 +5508,14 @@ namespace Metal_Code
 
             if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames.Length > 0)
             {
-                NewProject();
                 lastInputDirectory = Path.GetDirectoryName(openFileDialog.FileNames[0]);
+                if (lastInputDirectory != null && !lastInputDirectory.Contains("ТЗ", StringComparison.OrdinalIgnoreCase))
+                {
+                    StatusBegin("Папка с моделями, в которой будет создана заявка, должна называться \"ТЗ\".", StatusMessageType.Error);
+                    return;
+                }
 
+                NewProject();
                 RequestControl = new(openFileDialog.FileNames.ToList());
                 WindowGrid.Children.Insert(0, RequestControl);
 
