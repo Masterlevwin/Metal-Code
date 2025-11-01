@@ -829,6 +829,7 @@ namespace Metal_Code
         public void ClearDetails()      //удаление всех деталей и очищение текущего расчета
         {
             while (DetailControls.Count > 0) DetailControls[^1].Remove();
+            while (BasketControls.Count > 0) BasketControls[^1].Remove();
             AssemblyWindow.A.Assemblies.Clear();
             isAssemblyOffer = false;
             Parts.Clear();
@@ -869,13 +870,13 @@ namespace Metal_Code
 
         //-----------Добавление контрола покупного изделя----------//
         public List<BasketControl> BasketControls = new();
-        private void AddBasket(object sender, RoutedEventArgs e) { AddBasket(); }
-        private void AddBasket()
+        private void AddBasket(object sender, RoutedEventArgs e) { AddBasket(new()); }
+        private void AddBasket(Basket basket)
         {
-            BasketControl basket = new();
-            BasketControls.Add(basket);
+            BasketControl bc = new(basket);
+            BasketControls.Add(bc);
 
-            DetailsStack.Children.Add(basket);
+            DetailsStack.Children.Add(bc);
             DetailsScroll.ScrollToEnd();
         }
 
@@ -901,6 +902,7 @@ namespace Metal_Code
             Result = 0;
 
             foreach (DetailControl d in DetailControls) Result += d.Detail.Total;
+            foreach (BasketControl b in BasketControls) Result += b.Basket.Total;
 
             if (AssemblyWindow.A.Assemblies.Count > 0)
                 foreach (var assembly in AssemblyWindow.A.Assemblies)
@@ -1721,7 +1723,6 @@ namespace Metal_Code
 
             Product product = new()
             {
-                //NameBasket = ProductName.Text,
                 Order = Order.Text,
                 Company = CustomerDrop.Text,
                 Production = DateProduction.Text,
@@ -1739,10 +1740,12 @@ namespace Metal_Code
                 HasAssembly = HasAssembly,
                 IsExpressOffer = IsExpressOffer,
                 BonusRatio = BonusRatio,
+
+                Baskets = BasketControls.Select(b => b.Basket).ToList(),
+                Details = SaveDetails(),
+                Assemblies = AssemblyWindow.A.Assemblies
             };
 
-            product.Details = SaveDetails();
-            product.Assemblies = AssemblyWindow.A.Assemblies;
             ProductModel.Product = product;
 
             return product;
@@ -1905,7 +1908,6 @@ namespace Metal_Code
             //выйти из режима заявки
             if (RequestControl != null) CloseRequestControl();
 
-            //ProductName.Text = ProductModel.Product.NameBasket;
             Order.Text = ProductModel.Product.Order;
             CustomerDrop.Text = ProductModel.Product.Company;
             Adress.Text = ProductModel.Product.Manager;
@@ -1925,6 +1927,7 @@ namespace Metal_Code
             IsLoadData = true;
             ClearDetails();     // очищаем текущий расчет
             LoadDetails(ProductModel.Product.Details);
+            if (ProductModel.Product.Baskets?.Count > 0) LoadBaskets(ProductModel.Product.Baskets);
             DateProduction.Text = ProductModel.Product.Production;
             IsLoadData = false;
 
@@ -2031,6 +2034,10 @@ namespace Metal_Code
                     if (_det.TypeDetailControls.Count < details[i].TypeDetails.Count) _det.AddTypeDetail();
                 }
             }
+        }
+        public void LoadBaskets(List<Basket> baskets)
+        {
+            foreach (Basket basket in baskets) AddBasket(basket);
         }
         #endregion
 
@@ -2180,6 +2187,23 @@ namespace Metal_Code
 
                 // 4. Убираем лишние пробелы
                 cell.Value = value.Trim();
+            }
+
+            //добавляем покупные издели
+            if (ProductModel.Product.Baskets?.Count > 0)
+            {
+                worksheet.Cells[row, 5].Value = "Покупные изделия:";
+                worksheet.Cells[row, 5].Style.Font.Bold = true;
+                row++;
+
+                foreach (Basket basket in ProductModel.Product.Baskets)
+                {
+                    worksheet.Cells[row, 5].Value = basket.Name;
+                    worksheet.Cells[row, 6].Value = basket.Quantity;
+                    worksheet.Cells[row, 7].Value = (float)Math.Ceiling(basket.Price * Ratio * ((100 + BonusRatio) / 100));
+                    worksheet.Cells[row, 8].Value = basket.Quantity * (float)Math.Ceiling(basket.Price * Ratio * ((100 + BonusRatio) / 100));
+                    row++;
+                }
             }
 
             //оформляем заголовки таблицы
@@ -2631,9 +2655,16 @@ namespace Metal_Code
                 }
             }
 
-            scoresheet.Cells[rowStat + 2, 25].Value = countProweld;
+            //учитываем покупные изделия
+            if (ProductModel.Product.Baskets?.Count > 0) rowStat += ProductModel.Product.Baskets.Count + 1;
 
-            //оформляем заголовки таблицы и подсчитываем общую стоимость и количество деталей для каждой работы
+            if (HasDelivery is true)
+            {
+                rowStat++;
+                scoresheet.Cells[rowStat + 1, 18].Value = scoresheet.Cells[rowStat + 1, 3].Value;
+            }
+
+            //оформляем заголовки таблицы и подсчитываем общую стоимость и количество деталей для каждой работы   
             float workTotal = 0, workCount = 0;
 
             for (int col = 0; col < _heads.Count; col++)
@@ -2641,7 +2672,7 @@ namespace Metal_Code
                 scoresheet.Cells[1, col + 5].Value = _heads[col];       //заполняем заголовки из списка
                 if (col + 5 > 22) continue;
 
-                for (int i = 0; i < rowStat; i++)       //пробегаем по каждой детали и получаем стоимость работы с учетом количества деталей
+                for (int i = 1; i < rowStat; i++)       //пробегаем по каждой детали и получаем стоимость работы с учетом количества деталей
                 {
                     if (float.TryParse($"{scoresheet.Cells[i + 2, col + 5].Value}", out float w)    //кусочек цены работы за 1 шт
                         && float.TryParse($"{scoresheet.Cells[i + 2, 2].Value}", out float c))      //количество деталей
@@ -2655,11 +2686,7 @@ namespace Metal_Code
                 workTotal = workCount = 0;                      //обнуляем переменные для следующей работы
             }
 
-            if (HasDelivery is true)
-            {
-                scoresheet.Cells[extable.Rows + 1, 18].Value = scoresheet.Cells[extable.Rows + 1, 2].Value;
-                scoresheet.Cells[extable.Rows + 2, 18].Value = scoresheet.Cells[extable.Rows + 1, 3].Value;
-            }
+            scoresheet.Cells[rowStat + 2, 25].Value = countProweld;
 
             scoresheet.Cells[extable.Rows + 2, 1].Value = "общее кол-во:";
             scoresheet.Cells[extable.Rows + 2, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
@@ -3097,6 +3124,15 @@ namespace Metal_Code
                     sum += TempWorksDict[key];
                 }
 
+                //дополняем накладную покупными изделиями
+                if (ProductModel.Product.Baskets?.Count > 0)
+                    foreach (Basket basket in ProductModel.Product.Baskets)
+                    {
+                        notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = basket.Name;
+                        notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = basket.Quantity;
+                        tempNote++;
+                    }
+
                 statsheet.Cells[temp, 3].Value = Order.Text;                                                //"№ Проекта / Лазера"
                 statsheet.Cells[temp, 4].Style.WrapText = true;
                 statsheet.Cells[temp, 5].Value = isAssemblyOffer ?
@@ -3396,6 +3432,29 @@ namespace Metal_Code
 
                     temp++;
                 }
+            }
+
+            //добавляем покупные изделия
+            if (ProductModel.Product.Baskets?.Count > 0)
+            {
+                complectsheet.Cells[temp + 2, 3].Value = "Покупные изделия:";
+                complectsheet.Cells[temp + 2, 3].Style.Font.Bold = true;
+                complectsheet.Cells[temp + 1, 1, temp + 1, 10].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
+
+                foreach (Basket basket in ProductModel.Product.Baskets)
+                {
+                    complectsheet.Cells[temp + 3, 1].Value = temp;                 //номер по порядку
+                    complectsheet.Cells[temp + 3, 3].Value = basket.Name;          //наименование изделия
+                    
+                    complectsheet.Cells[temp + 3, 5].Value = basket.Quantity;      //количество изделий
+                    complectsheet.Cells[temp + 3, 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    complectsheet.Cells[temp + 3, 5].Style.Font.Bold = true;
+
+                    complectsheet.Cells[temp + 2, 1, temp + 2, 10].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                    complectsheet.Cells[temp + 3, 1, temp + 3, 10].Style.Fill.SetBackground(System.Drawing.Color.Linen);
+                    temp++;
+                }
+                temp++;     //добавляем к счетчику строку "Покупные изделия:"
             }
 
             //приводим float-значения типа 0,699999993 к формату 0,7
@@ -6111,7 +6170,7 @@ namespace Metal_Code
             return (float)Math.Ceiling(servicesPrice);
         }
 
-        public float GetWeldAssembly()
+        public float GetWeldAssembly()      //метод получения стоимости сварки из сборок
         {
             float weldAssembly = 0;
             if (AssemblyWindow.A.Assemblies.Count > 0)
@@ -6119,7 +6178,7 @@ namespace Metal_Code
             return (float)Math.Ceiling(weldAssembly);
         }
 
-        public float GetPaintAssembly()
+        public float GetPaintAssembly()     //метод получения стоимости окраски из сборок
         {
             float paintAssembly = 0;
             if (AssemblyWindow.A.Assemblies.Count > 0)
@@ -6127,9 +6186,15 @@ namespace Metal_Code
             return (float)Math.Ceiling(paintAssembly);
         }
 
-        public float GetBasketPrice() => 0; //временная заглушка для покупных изделий
+        public float GetBasketPrice()       //метод получения стоимости всех покупных изделий
+        {
+            float basketPrice = 0;
+            foreach (BasketControl b in BasketControls) basketPrice += b.Basket.Total;
 
-        public string ShortManager()       //метод, возвращающий сокращенное имя менеджера
+            return (float)Math.Ceiling(basketPrice);
+        }
+
+        public string ShortManager()        //метод, возвращающий сокращенное имя менеджера
         {
             return ManagerDrop.Text switch
             {

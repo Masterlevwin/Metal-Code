@@ -1,5 +1,7 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace Metal_Code
@@ -7,16 +9,33 @@ namespace Metal_Code
     /// <summary>
     /// Логика взаимодействия для BasketControl.xaml
     /// </summary>
-    public partial class BasketControl : UserControl, INotifyPropertyChanged
+    public partial class BasketControl : UserControl
     {
+        public Basket Basket { get; set; }
+        public BasketControl(Basket basket)
+        {
+            InitializeComponent();
+            Basket = basket;
+            DataContext = Basket;
+        }
+
+        private void Remove(object sender, RoutedEventArgs e) { Remove(); }
+        public void Remove()
+        {
+            MainWindow.M.BasketControls.Remove(this);
+            MainWindow.M.DetailsStack.Children.Remove(this);
+        }
+    }
+
+    [Serializable]
+    public class Basket: INotifyPropertyChanged
+    {
+        [field: NonSerialized]
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         private string _name = string.Empty;
-        private float _price;
-        private int _quantity = 1;
-
-        public string NameBasket
+        public string Name
         {
             get => _name;
             set
@@ -24,11 +43,12 @@ namespace Metal_Code
                 if (_name != value)
                 {
                     _name = value;
-                    OnPropertyChanged(nameof(NameBasket));
+                    OnPropertyChanged(nameof(Name));
                 }
             }
         }
 
+        private float _price;
         public float Price
         {
             get => _price;
@@ -43,6 +63,7 @@ namespace Metal_Code
             }
         }
 
+        private int _quantity = 1;
         public int Quantity
         {
             get => _quantity;
@@ -57,26 +78,8 @@ namespace Metal_Code
             }
         }
 
-        // Для отображения в UI (например, "Наименование (кол-во шт)")
-        public string DisplayName => $"{NameBasket} ({Quantity} шт)";
         public float Total => Price * Quantity;
 
-        public BasketControl()
-        {
-            InitializeComponent();
-            DataContext = this;
-        }
-
-        private void Remove(object sender, System.Windows.RoutedEventArgs e)
-        {
-
-        }
-    }
-
-    public class Basket
-    {
-        public string Name { get; set; } = string.Empty;
-        public float Price { get; set; }
-        public int Quantity { get; set; }
+        public Basket() { }
     }
 }

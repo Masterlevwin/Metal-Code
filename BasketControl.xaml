@@ -11,17 +11,21 @@
     <Border x:Name="RootElement" Padding="5" Margin="456,2,30,2" BorderBrush="Gray" BorderThickness="1" CornerRadius="4" HorizontalAlignment="Left">
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150"/>
+                <ColumnDefinition Width="160"/>
                 <ColumnDefinition Width="80"/>
                 <ColumnDefinition Width="80"/>
                 <ColumnDefinition Width="90"/>
             </Grid.ColumnDefinitions>
 
+            
             <!-- Наименование -->
-            <TextBox Grid.Column="0" Text="{Binding NameBasket}"
+            <StackPanel Orientation="Horizontal" Margin="0,0,4,0">
+                <Image Source="/Images/basket2.png" Width="16"/>
+                <TextBox Grid.Column="0" Text="{Binding Name}"
                      hc:InfoElement.Placeholder="Покупное изделие" 
-                     Style="{StaticResource TextBoxExtend}" Margin="0,0,4,0"
-                     ToolTip="Введите наименование изделия"/>
+                     Style="{StaticResource TextBoxExtend}"
+                     ToolTip="Введите наименование изделия" Margin="5,0,0,0" Width="130"/>
+            </StackPanel>
 
             <!-- Количество -->
             <hc:NumericUpDown Grid.Column="1" Value="{Binding Quantity}"

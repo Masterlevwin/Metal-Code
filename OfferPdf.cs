@@ -196,6 +196,27 @@ namespace Metal_Code
                                     row++;
                                 }
 
+                            //добавляем покупные издели
+                            if (MainWindow.M.ProductModel.Product.Baskets?.Count > 0)
+                            {
+                                table.Cell().ColumnSpan(9).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("Покупные изделия:").Bold();
+
+                                foreach (Basket basket in MainWindow.M.ProductModel.Product.Baskets)
+                                {
+                                    float price = (float)Math.Ceiling(basket.Price * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
+                                    float total = basket.Quantity * price;
+                                    totalSum += total;
+
+                                    table.Cell().ColumnSpan(4).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}");
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Name).Bold();
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Quantity.ToString());
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(price.ToString("N2"));
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(total.ToString("N2"));
+                                    row++;
+                                }
+                            }
+
                             if (MainWindow.M.HasDelivery is true)
                             {
                                 float delivery = (float)(MainWindow.M.Delivery * MainWindow.M.Ratio);

@@ -35,11 +35,11 @@ namespace Metal_Code
         [OptionalField]
         public float BonusRatio;
 
-        public ObservableCollection<Detail> Details { get; set; } = new();
-        public Product()
-        {
+        [OptionalField]
+        public List<Basket> Baskets = new();
 
-        }
+        public ObservableCollection<Detail> Details { get; set; } = new();
+        public Product() { }
     }
 
     [Serializable]

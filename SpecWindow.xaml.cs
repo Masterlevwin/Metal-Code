@@ -104,6 +104,8 @@ namespace Metal_Code
                             // Данные
                             if (!MainWindow.M.isAssemblyOffer)
                             {
+                                int row = MainWindow.M.Parts.Count;     //счетчик деталей и покупных изделий
+
                                 if (MainWindow.M.Parts.Count > 0)
                                     for (int i = 0; i < MainWindow.M.Parts.Count; i++)
                                     {
@@ -123,11 +125,28 @@ namespace Metal_Code
                                         Detail detail = details[i];
                                         totalSum += detail.Total;
 
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((MainWindow.M.Parts.Count + i + 1).ToString());
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((row + i + 1).ToString());
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(detail.Title ?? ""));
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Count.ToString());
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Total.ToString("N2"));
                                     }
+                                row += details.Count;
+
+                                //добавляем покупные издели
+                                if (MainWindow.M.ProductModel.Product.Baskets?.Count > 0)
+                                {
+                                    foreach (Basket basket in MainWindow.M.ProductModel.Product.Baskets)
+                                    {
+                                        float basketTotal = basket.Quantity * (float)Math.Ceiling(basket.Price * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
+                                        totalSum += basketTotal;
+
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row + 1}");
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Name);
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Quantity.ToString());
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketTotal.ToString("N2"));
+                                        row++;
+                                    }
+                                }
 
                                 if (MainWindow.M.HasDelivery is true)
                                 {
