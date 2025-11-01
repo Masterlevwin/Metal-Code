@@ -291,7 +291,14 @@
                 <GroupBox.Header >
                     <StackPanel Orientation="Horizontal" Margin="5">
 
-                        <Button Click="AddBasket" VerticalAlignment="Top">
+                        <Button Click="ShowAssemblyWindow" VerticalAlignment="Top">
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="Images/assembly.png"/>
+                                <TextBlock Text="Сборки" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Click="AddBasket" Margin="10,0,0,0" VerticalAlignment="Top">
                             <StackPanel Orientation="Horizontal">
                                 <Image Source="Images/basket.png"/>
                                 <TextBlock Text="Покупные изделия" VerticalAlignment="Center" Margin="3,0,0,0"/>
@@ -305,26 +312,19 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Click="ShowAssemblyWindow" Margin="10,0,0,0" VerticalAlignment="Top">
-                            <StackPanel Orientation="Horizontal">
-                                <Image Source="Images/assembly.png"/>
-                                <TextBlock Text="Сборки" VerticalAlignment="Center" Margin="3,0,0,0"/>
-                            </StackPanel>
-                        </Button>
-
-                        <Button ToolTip="Создать новый расчет (Ctrl+Q)" Command="{Binding NewProjectCommand}" BorderThickness="0" Margin="20,0,0,0" VerticalAlignment="Top">
+                        <Button ToolTip="Создать новый расчет (Ctrl+Q)" Command="{Binding NewProjectCommand}" Padding="0" BorderThickness="0" Margin="20,0,0,0" VerticalAlignment="Top">
                             <Image Source="Images/new3.png"/>
                         </Button>
 
-                        <Button ToolTip="Открыть сохраненный расчет (Ctrl+S)" Command="{Binding OpenCommand}" BorderThickness="0" Margin="10,0,0,0" VerticalAlignment="Top">
+                        <Button ToolTip="Открыть сохраненный расчет (Ctrl+S)" Command="{Binding OpenCommand}" Padding="0" BorderThickness="0" Margin="10,0,0,0" VerticalAlignment="Top">
                             <Image Source="Images/open4.png"/>
                         </Button>
 
-                        <Button ToolTip="Создать заявку за клиента" Click="CreateRequest" BorderThickness="0" Margin="10,0,0,0" VerticalAlignment="Top">
+                        <Button ToolTip="Создать заявку за клиента" Click="CreateRequest" Padding="0" BorderThickness="0" Margin="10,0,0,0" VerticalAlignment="Top">
                             <Image Source="Images/comment.png"/>
                         </Button>
 
-                        <Button ToolTip="Загрузить раскладки (Ctrl+F)" Command="{Binding LoadCommand}" BorderThickness="0" Margin="10,0,0,0" VerticalAlignment="Top">
+                        <Button ToolTip="Загрузить раскладки (Ctrl+F)" Command="{Binding LoadCommand}" Padding="0" BorderThickness="0" Margin="10,0,0,0" VerticalAlignment="Top">
                             <Image Source="Images/xlsx_load.png"/>
                         </Button>
 
@@ -348,13 +348,13 @@
 
                                 <TextBlock Grid.Row="1" Text="Материал" Margin="0,8,8,0" VerticalAlignment="Center" />
                                 <hc:NumericUpDown Grid.Row="1" Grid.Column="1"
-                          Value="{Binding MaterialFactor, StringFormat='{}{0:F2}'}"
-                          Minimum="0" Maximum="10" Increment="0.01" Margin="0,8,0,0" />
+                          Value="{Binding MaterialFactor, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}, StringFormat='{}{0:F2}'}"
+                          Minimum="0" Maximum="10" Increment="0.01" Margin="0,8,0,0" ToolTip="Введите наценку на весь материал"/>
 
                                 <TextBlock Grid.Row="2" Text="Услуги" Margin="0,8,8,0" VerticalAlignment="Center" />
                                 <hc:NumericUpDown x:Name="ServiceFactorBox" Grid.Row="2" Grid.Column="1"
-                                    Value="1" Minimum="0" Maximum="10" Increment="0.01" Margin="0,8,0,0"
-                                    hc:NumericUpDown.ValueChanged="OnServiceFactorChanged"/>
+                          Value="1" Minimum="0" Maximum="10" Increment="0.01" Margin="0,8,0,0" ToolTip="Введите наценку на все услуги"
+                          hc:NumericUpDown.ValueChanged="OnServiceFactorChanged"/>
                                 
                                 <CheckBox Grid.Row="2" Grid.Column="2" Margin="5,8,0,0" VerticalAlignment="Center"
                                     IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"

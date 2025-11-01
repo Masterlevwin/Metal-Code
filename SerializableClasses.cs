@@ -18,7 +18,7 @@ namespace Metal_Code
         public bool? HasConstruct, HasPaint, HasDelivery;
 
         [OptionalField]             //атрибут, который позволяет игнорировать это поле при загрузке старых сохранений
-        public double Ratio = 1;
+        public double Ratio = 1, MaterialFactor = 1;
 
         [OptionalField]
         public bool IsExpressOffer = false;     //это поле сохраняет ссылку на предварительный расчет

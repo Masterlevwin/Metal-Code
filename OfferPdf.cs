@@ -209,7 +209,7 @@ namespace Metal_Code
 
                                     table.Cell().ColumnSpan(4).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}");
-                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Name).Bold();
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Name);
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Quantity.ToString());
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(price.ToString("N2"));
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(total.ToString("N2"));

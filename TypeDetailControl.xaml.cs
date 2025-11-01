@@ -572,10 +572,10 @@ namespace Metal_Code
 
         public void PriceChanged()
         {
-            Result = HasMetal ? (float)Math.Round(                  //проверяем наличие материала
+            Result = (float)((HasMetal ? (float)Math.Round(         //проверяем наличие материала
                 (det.Detail.IsComplect ? 1 : Count) *               //проверяем количество заготовок
                 (ExtraResult > 0 ? ExtraResult : Price * Mass)      //проверяем наличие стоимости пользователя
-                , 2) : 0;
+                , 2) : 0) * MainWindow.M.MaterialFactor);
 
             Priced?.Invoke();
         }

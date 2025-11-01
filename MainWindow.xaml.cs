@@ -202,8 +202,6 @@ namespace Metal_Code
             get => ratio;
             set
             {
-
-                value = Math.Round(value, 2);
                 if (ratio != value)
                 {
                     ratio = value;
@@ -217,6 +215,21 @@ namespace Metal_Code
         {
             Ratio = _ratio;
             TotalResult();
+        }
+
+        private double materialFactor = 1.0;
+        public double MaterialFactor
+        {
+            get => materialFactor;
+            set
+            {
+                if (materialFactor != value)
+                {
+                    materialFactor = value;
+                    if (materialFactor <= 0) materialFactor = 1;
+                    OnPropertyChanged(nameof(MaterialFactor));
+                }
+            }
         }
 
         private int count;
@@ -841,6 +854,7 @@ namespace Metal_Code
             SetRatio(1);
             SetBonusRatio(0);
             SetCount(1);
+            MaterialFactor = 1;
             Construct = 0;
             HasDelivery = false;
             CheckConstruct.IsChecked = false;
@@ -1730,6 +1744,7 @@ namespace Metal_Code
                                                         //не менял название поля, чтобы загружались старые сохранения
                 Comment = Comment.Text,
                 Ratio = Ratio,
+                MaterialFactor = MaterialFactor,
                 Count = Count,
                 ConstructRatio = ConstructRatio.Text,
                 Delivery = Delivery,
@@ -1915,6 +1930,7 @@ namespace Metal_Code
             CheckConstruct.IsChecked = ProductModel.Product.HasConstruct;
             ConstructRatio.Text = ProductModel.Product.ConstructRatio;
             SetRatio(ProductModel.Product.Ratio);
+            MaterialFactor = ProductModel.Product.MaterialFactor;
             SetCount(ProductModel.Product.Count);
             SetDeliveryRatio(ProductModel.Product.DeliveryRatio);
             SetDelivery(ProductModel.Product.Delivery);
