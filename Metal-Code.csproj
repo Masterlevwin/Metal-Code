@@ -31,6 +31,7 @@
     <None Remove="Images\complect.png" />
     <None Remove="Images\complect2.png" />
     <None Remove="Images\convert.png" />
+    <None Remove="Images\copy.png" />
     <None Remove="Images\del.png" />
     <None Remove="Images\delete.png" />
     <None Remove="Images\delivery.png" />
@@ -171,6 +172,7 @@
     <Resource Include="Images\complect.png" />
     <Resource Include="Images\complect2.png" />
     <Resource Include="Images\convert.png" />
+    <Resource Include="Images\copy.png" />
     <Resource Include="Images\del.png" />
     <Resource Include="Images\delete.png" />
     <Resource Include="Images\delivery.png" />

@@ -116,7 +116,7 @@ namespace Metal_Code
             get => version;
             set => version = value;
         }
-        
+
         private bool isLocal = true;    //запуск локальной версии
         //private bool isLocal = false;   //запуск основной версии
         public bool IsLocal
@@ -230,6 +230,31 @@ namespace Metal_Code
                     OnPropertyChanged(nameof(MaterialFactor));
                 }
             }
+        }
+
+        private double serviceFactor = 1.0;
+        public double ServiceFactor
+        {
+            get => serviceFactor;
+            set
+            {
+                if (serviceFactor != value)
+                {
+                    serviceFactor = value;
+                    if (serviceFactor <= 0) serviceFactor = 1;
+                    if (!IsLoadData) SetServiceFactor(serviceFactor);
+                    OnPropertyChanged(nameof(ServiceFactor));
+                }
+            }
+        }
+
+        public void SetServiceFactor(double ratio)
+        {
+            if (ratio <= 0) return;
+            foreach (DetailControl det in DetailControls)
+                foreach (TypeDetailControl type in det.TypeDetailControls)
+                    foreach (WorkControl work in type.WorkControls)
+                        work.Ratio = (float)ratio;
         }
 
         private int count;
@@ -389,31 +414,15 @@ namespace Metal_Code
 
                 if (!HasAssembly)
                 {
+                    ServiceFactor = 1;
                     DateProduction.Text = "";
                 }
                 else
                 {
-                    if (ServiceFactorBox.Value <= 2) ServiceFactorBox.Value = 2;
+                    if (ServiceFactor < 2) ServiceFactor = 2;
                     DateProduction.Text = "3";
                 }
             }
-        }
-
-        private void OnServiceFactorChanged(object sender, FunctionEventArgs<double> e)
-        {
-            var factor = (float)e.Info;
-            if (factor > 0)
-            {
-                SetExpress(factor);
-            }
-        }
-        public void SetExpress(float express)
-        {
-            if (express <= 0) return;
-            foreach (DetailControl det in DetailControls)
-                foreach (TypeDetailControl type in det.TypeDetailControls)
-                    foreach (WorkControl work in type.WorkControls)
-                        work.Ratio = express;
         }
 
         private string searchOffers = "";
@@ -526,6 +535,71 @@ namespace Metal_Code
 
         //-------------Основные методы-----------//
         #region
+        private void LoadDataBases(object sender, RoutedEventArgs e)    // при загрузке окна
+        {
+            using TypeDetailContext dbT = new(IsLocal ? connections[2] : connections[3]);
+            dbT.TypeDetails.Load();
+            TypeDetails = dbT.TypeDetails.Local.ToObservableCollection();
+
+            using WorkContext dbW = new(IsLocal ? connections[4] : connections[5]);
+            dbW.Works.Load();
+            Works = dbW.Works.Local.ToObservableCollection();
+
+            using MetalContext dbM = new(IsLocal ? connections[6] : connections[7]);
+            dbM.Metals.Load();
+            Metals = dbM.Metals.Local.ToObservableCollection();
+
+            InitializeDict();
+
+            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
+            
+            AddSpecTemplateColumnsIfMissing(db);
+
+            db.Managers.Load();
+            Managers = db.Managers.Local.ToObservableCollection();
+
+            db.Offers.Load();
+            Offers = db.Offers.Local.ToObservableCollection();
+
+            if (Managers.Count == 0) ShowWindow(new RegistrationWindow());  //если пользователей в базе нет, запускаем процесс регистрации
+            //else if (!CheckMachine())                                       //проверяем защитный файл
+            //{
+            //    MessageBox.Show($"Данная копия программы защищена. Ее невозможно запустить на этом компьютере!");
+            //    Environment.Exit(0);
+            //}
+            else if (!CheckMachineName()) ShowWindow(new LoginWindow());    //проверяем пользователя
+            else NewProject();                                              //если все проверки пройдены, создаем новый проект
+
+            OfferToggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+
+            // Проверяем, нужно ли открыть файл
+            var filePath = App.StartupFileToOpen;
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                OpenFileOnStartup(filePath);
+            }
+        }
+        public void OpenFileOnStartup(string filePath)
+        {
+            try
+            {
+                var product = ProductModel.fileService.Open(filePath);
+                if (product != null)
+                {
+                    ProductModel.Product = product;
+                    LoadProduct();
+                }
+                else
+                {
+                    MessageBox.Show("Не удалось загрузить файл расчёта.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при открытии файла:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void AddSpecTemplateColumnsIfMissing(ManagerContext db)
         {
             try
@@ -574,44 +648,6 @@ namespace Metal_Code
             WHERE SpecTemplate_Buyer IS NULL");
             }
             catch { }
-        }
-
-        private void LoadDataBases(object sender, RoutedEventArgs e)    // при загрузке окна
-        {
-            using TypeDetailContext dbT = new(IsLocal ? connections[2] : connections[3]);
-            dbT.TypeDetails.Load();
-            TypeDetails = dbT.TypeDetails.Local.ToObservableCollection();
-
-            using WorkContext dbW = new(IsLocal ? connections[4] : connections[5]);
-            dbW.Works.Load();
-            Works = dbW.Works.Local.ToObservableCollection();
-
-            using MetalContext dbM = new(IsLocal ? connections[6] : connections[7]);
-            dbM.Metals.Load();
-            Metals = dbM.Metals.Local.ToObservableCollection();
-
-            InitializeDict();
-
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
-            
-            AddSpecTemplateColumnsIfMissing(db);
-
-            db.Managers.Load();
-            Managers = db.Managers.Local.ToObservableCollection();
-
-            db.Offers.Load();
-            Offers = db.Offers.Local.ToObservableCollection();
-
-            if (Managers.Count == 0) ShowWindow(new RegistrationWindow());  //если пользователей в базе нет, запускаем процесс регистрации
-            //else if (!CheckMachine())                                       //проверяем защитный файл
-            //{
-            //    MessageBox.Show($"Данная копия программы защищена. Ее невозможно запустить на этом компьютере!");
-            //    Environment.Exit(0);
-            //}
-            else if (!CheckMachineName()) ShowWindow(new LoginWindow());    //проверяем пользователя
-            else NewProject();                                              //если все проверки пройдены, создаем новый проект
-
-            OfferToggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
         }
 
         private void InitializeDict()       //метод заполнения словарей значениями
@@ -740,7 +776,7 @@ namespace Metal_Code
                     IsEnabled = true;
                 }
 
-                LimitCheckBorder.Visibility = ReportTab.Visibility = CurrentManager.IsEngineer ? Visibility.Collapsed : Visibility.Visible;
+                LimitCheckBorder.Visibility = ReportTab.Visibility = BonusStack.Visibility = CurrentManager.IsEngineer ? Visibility.Collapsed : Visibility.Visible;
 
                 return true;
             }
@@ -769,7 +805,7 @@ namespace Metal_Code
                 }
                 else ManagerDrop.SelectedItem = CurrentManager;
 
-                LimitCheckBorder.Visibility = ReportTab.Visibility = CurrentManager.IsEngineer ? Visibility.Collapsed : Visibility.Visible;
+                LimitCheckBorder.Visibility = ReportTab.Visibility = BonusStack.Visibility = CurrentManager.IsEngineer ? Visibility.Collapsed : Visibility.Visible;
 
                 IsEnabled = true;
                 NewProject();
@@ -854,14 +890,13 @@ namespace Metal_Code
             SetRatio(1);
             SetBonusRatio(0);
             SetCount(1);
-            MaterialFactor = 1;
+            MaterialFactor = ServiceFactor = 1;
             Construct = 0;
             HasDelivery = false;
             CheckConstruct.IsChecked = false;
             IsExpressOffer = false;
             HasAssembly = false;
             Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = Comment.Text = ConstructRatio.Text = TotalCount.Text = TotalPrice.Text = "";
-            ServiceFactorBox.Value = 1;
             ActiveOffer = null;
             Log = null;
         }
@@ -934,6 +969,8 @@ namespace Metal_Code
 
             if (Result > 0) Parts = PartsSource();
         }
+
+        private void Copy_Result(object sender, RoutedEventArgs e) { Clipboard.SetText($"{(float)Math.Ceiling(Result)}"); }
 
         //-----------Обновление общей стоимости расчета-----------//
         private void UpdateResult(object sender, MouseEventArgs e) { UpdateResult(); }
@@ -1742,9 +1779,9 @@ namespace Metal_Code
                 Production = DateProduction.Text,
                 Manager = Adress.Text,                  //поле "Manager" сохраняет ссылку на адрес доставки;
                                                         //не менял название поля, чтобы загружались старые сохранения
-                Comment = Comment.Text,
                 Ratio = Ratio,
                 MaterialFactor = MaterialFactor,
+                ServiceFactor = ServiceFactor,
                 Count = Count,
                 ConstructRatio = ConstructRatio.Text,
                 Delivery = Delivery,
@@ -1758,7 +1795,8 @@ namespace Metal_Code
 
                 Baskets = BasketControls.Select(b => b.Basket).ToList(),
                 Details = SaveDetails(),
-                Assemblies = AssemblyWindow.A.Assemblies
+                Assemblies = AssemblyWindow.A.Assemblies,
+                Comment = Comment.Text,
             };
 
             ProductModel.Product = product;
@@ -1808,6 +1846,13 @@ namespace Metal_Code
                         {
                             if (work.workType is ExtraControl extra && extra.NameExtra != null)         //проверяем наличие доп работ
                             {
+                                //если комментарий еще не содержит доп работу с таким именем, создаем такую запись
+                                if (!Comment.Text.Contains($"{extra.NameExtra}"))
+                                {
+                                    if (!Comment.Text.Contains("Доп работы -")) Comment.Text += " Доп работы -";
+                                    Comment.Text += $" {extra.NameExtra}";
+                                }
+
                                 //если список еще не содержит доп работу с таким именем, создаем такую запись, иначе просто добавляем стоимость
                                 if (_work.Name == "Доп работа П")
                                 {
@@ -1830,6 +1875,13 @@ namespace Metal_Code
                             }
                             else if (_work.Name != null)                                                //проверяем все остальные работы
                             {
+                                if (_work.Name == "Фрезеровка")
+                                {
+                                    //если комментарий еще не содержит предупреждение о заготовках, создаем такую запись
+                                    if (!Comment.Text.Contains("Для фрезеровки габариты некоторых деталей увеличены!"))
+                                        Comment.Text += " Для фрезеровки габариты некоторых деталей увеличены!";
+                                }
+
                                 //если список еще не содержит работу с таким именем, создаем такую запись, иначе просто добавляем стоимость
                                 if (!TempWorksDict.ContainsKey(_work.Name)) TempWorksDict[_work.Name] = work.Result;
                                 else TempWorksDict[_work.Name] += work.Result;
@@ -1943,6 +1995,7 @@ namespace Metal_Code
             IsLoadData = true;
             ClearDetails();     // очищаем текущий расчет
             LoadDetails(ProductModel.Product.Details);
+            ServiceFactor = ProductModel.Product.ServiceFactor;
             if (ProductModel.Product.Baskets?.Count > 0) LoadBaskets(ProductModel.Product.Baskets);
             DateProduction.Text = ProductModel.Product.Production;
             IsLoadData = false;

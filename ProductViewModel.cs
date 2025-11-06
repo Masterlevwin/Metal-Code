@@ -14,7 +14,7 @@ namespace Metal_Code
 {
     public class ProductViewModel : INotifyPropertyChanged
     {
-        readonly IFileService fileService;
+        public readonly IFileService fileService;
         public readonly IDialogService dialogService;
 
         public ProductViewModel(IDialogService _dialogService, IFileService _fileService, Product product)

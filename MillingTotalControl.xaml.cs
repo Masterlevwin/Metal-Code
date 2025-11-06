@@ -242,8 +242,11 @@ namespace Metal_Code
                 if (uc is WorkControl w)
                 {
                     SetTotalTime(w.propsList[0]);
-                    MillingWindow.IndexQualityOrRoughness = (int)MainWindow.Parser(w.propsList[1]);
-                    MillingWindow.SetWay(w.propsList[2]);
+                    if (w.propsList.Count > 2)
+                    {
+                        MillingWindow.IndexQualityOrRoughness = (int)MainWindow.Parser(w.propsList[1]);
+                        MillingWindow.SetWay(w.propsList[2]);
+                    }
 
                     if (w.type.det.Detail.MillingHoles?.Count > 0)
                     {

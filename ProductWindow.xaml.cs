@@ -18,8 +18,11 @@ namespace Metal_Code
 
         public string ProductName { get; set; } = "Изделие";
         public double Ratio { get; set; } = 1;
+        public double MaterialFactor { get; set; } = 1;
+        public double ServiceFactor { get; set; } = 1;
         public float Amount { get; set; } = 0;
         public string Agent { get; set; } = string.Empty;
+        public bool HasAssembly { get; set; } = false;
         public bool? HasDelivery { get; set; } = false;
         public int Delivery { get; set; } = 0;
         public int DeliveryRatio { get; set; } = 1;
@@ -50,8 +53,11 @@ namespace Metal_Code
             Product = product;
 
             ProductName = product.Name;
-            Ratio = Product.Ratio;
+            Ratio = product.Ratio;
+            MaterialFactor = product.MaterialFactor;
+            ServiceFactor = product.ServiceFactor;
             Agent = product.IsAgent is true ? "без НДС" : "с НДС";
+            HasAssembly = product.HasAssembly;
             HasDelivery = product.HasDelivery;
             Delivery = product.Delivery;
             DeliveryRatio = product.DeliveryRatio;
@@ -60,7 +66,8 @@ namespace Metal_Code
             BonusRatio = product.BonusRatio;
             Production = product.Production;
 
-            if (Product.Details.Count > 0) LoadDetails(Product.Details);
+            if (Product.Details.Count > 0) LoadDetails(product.Details);
+            if (Product.Baskets?.Count > 0) LoadBaskets(product.Baskets);
         }
 
         //-----------Загрузка окна---------------------------------------//
@@ -161,6 +168,11 @@ namespace Metal_Code
             }
         }
 
+        public void LoadBaskets(List<Basket> baskets)
+        {
+            foreach (Basket basket in baskets) AddBasket(basket);
+        }
+
         //-----------Добавление контрола детали--------------------------//
         public List<DetailControl> DetailControls = new();
         private void AddDetail(object sender, RoutedEventArgs e) { AddDetail(); }
@@ -174,6 +186,14 @@ namespace Metal_Code
             DetailsStack.Children.Add(detail);
 
             detail.AddTypeDetail();   // при добавлении новой детали добавляем дроп заготовки
+        }
+
+        //-----------Добавление контрола покупного изделя----------//
+        private void AddBasket(Basket basket)
+        {
+            BasketControl bc = new(basket);
+
+            DetailsStack.Children.Add(bc);
         }
 
 
@@ -280,6 +300,13 @@ namespace Metal_Code
                 return match.Groups[1].Value.Trim();
 
             return title;
+        }
+
+
+        //-----------Копирование всех покупных изделий----------//
+        private void CopyBaskets(object sender, RoutedEventArgs e)
+        {
+            if (Product.Baskets?.Count > 0) MainWindow.M.LoadBaskets(Product.Baskets);
         }
     }
 }

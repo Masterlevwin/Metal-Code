@@ -353,8 +353,8 @@
 
                                 <TextBlock Grid.Row="2" Text="Услуги" Margin="0,8,8,0" VerticalAlignment="Center" />
                                 <hc:NumericUpDown x:Name="ServiceFactorBox" Grid.Row="2" Grid.Column="1"
-                          Value="1" Minimum="0" Maximum="10" Increment="0.01" Margin="0,8,0,0" ToolTip="Введите наценку на все услуги"
-                          hc:NumericUpDown.ValueChanged="OnServiceFactorChanged"/>
+                          Value="{Binding ServiceFactor, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}, StringFormat='{}{0:F2}'}"
+                          Minimum="0" Maximum="10" Increment="0.01" Margin="0,8,0,0" ToolTip="Введите наценку на все услуги"/>
                                 
                                 <CheckBox Grid.Row="2" Grid.Column="2" Margin="5,8,0,0" VerticalAlignment="Center"
                                     IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"
@@ -388,7 +388,11 @@
                                 </StackPanel>
                             </StackPanel>
                         </StackPanel>
-                        
+
+                        <Button ToolTip="Скопировать стоимость" Padding="0" BorderThickness="0" VerticalAlignment="Top" Width="12" Height="12" Margin="-10,0,0,0" Background="Transparent" Click="Copy_Result">
+                            <Image Source="Images/copy.png"/>
+                        </Button>
+
                     </StackPanel>
 
                 </GroupBox.Header>
@@ -476,7 +480,7 @@
                                     <CheckBox x:Name="CheckConstruct" Content="{Binding Construct, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" VerticalAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="False" Margin="10,0,0,0" HorizontalContentAlignment="Center" Width="60"/>
                                     <TextBox x:Name="ConstructRatio" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Коэффициент" TextChanged="UpdateResult" Margin="10,0,0,0" Width="40"/>
                                 </StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="5">
+                                <StackPanel x:Name="BonusStack" Orientation="Horizontal" Margin="5">
                                     <TextBlock Text="Бонус, %" VerticalAlignment="Center" Width="75"/>
                                     <TextBox Text="{Binding BonusRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите процент наценки" TextChanged="SetBonusRatio" Margin="10,0,0,0" Width="40"/>
                                     <TextBlock Text="{Binding Bonus, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" VerticalAlignment="Center" Margin="10,0,0,0"/>
