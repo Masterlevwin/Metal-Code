@@ -15,6 +15,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
+using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Management;
@@ -110,7 +111,7 @@ namespace Metal_Code
 
         //----------Свойства и их основные методы---------//
         #region
-        private string version = "2.6.6";
+        private string version = "2.6.7";
         public string Version
         {
             get => version;
@@ -1007,25 +1008,85 @@ namespace Metal_Code
 
         private void PartsView(object sender, RoutedEventArgs e)    //предпросмотр КП
         {
-            PartsGrid.ItemsSource = Parts;
-            UpdatePricePart();
+            PartsGrid.ItemsSource = PartsViewCollection();
         }
 
-        private void PartsGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
+        private List<dynamic> PartsViewCollection()
         {
-            if (((PropertyDescriptor)e.PropertyDescriptor).IsBrowsable == false) e.Cancel = true;   //скрываем свойства с атрибутом [IsBrowsable]
+            var items = new List<dynamic>();
 
-            if (e.PropertyName == "Metal") e.Column.Header = "Материал";
-            if (e.PropertyName == "Destiny") e.Column.Header = "Толщина";
-            if (e.PropertyName == "Description") e.Column.Header = "Работы";
-            if (e.PropertyName == "Accuracy") e.Column.Header = "Размеры";
-            if (e.PropertyName == "Title") e.Column.Header = "Наименование";
-            if (e.PropertyName == "Count") e.Column.Header = "Кол-во";
-            if (e.PropertyName == "Price") e.Column.Header = "Цена за шт";
-            if (e.PropertyName == "Total") e.Column.Header = "Стоимость";
+            if (Parts.Count > 0)
+            {
+                UpdatePricePart();
+
+                foreach (Part part in Parts)
+                {
+                    dynamic item = new ExpandoObject();
+
+                    item.Title = part.Title;
+                    item.Count = part.Count;
+                    item.Price = part.Price;
+                    item.Total = part.Total;
+                    item.Metal = part.Metal;
+                    item.Destiny = part.Destiny;
+                    item.Description = part.Description;
+                    item.Accuracy = part.Accuracy;
+
+                    items.Add(item);
+                }
+            }
+
+            List<Detail> details = DetailControls.Where(d => !d.Detail.IsComplect).Select(d => d.Detail).ToList();
+            if (details.Count > 0)
+                foreach (Detail detail in details)
+                {
+                    dynamic item = new ExpandoObject();
+
+                    item.Title = detail.Title;
+                    item.Count = detail.Count;
+                    item.Price = (float)Math.Ceiling(detail.Price * Ratio * ((100 + BonusRatio) / 100));
+                    item.Total = item.Price * detail.Count;
+                    item.Metal = detail.Metal;
+                    item.Destiny = detail.Destiny;
+                    item.Description = detail.Description;
+                    item.Accuracy = detail.Accuracy;
+
+                    items.Add(item);
+                }
+
+            if (BasketControls.Count > 0)
+                foreach (BasketControl basket in BasketControls)
+                {
+                    dynamic item = new ExpandoObject();
+
+                    item.Title = basket.Basket.Name;
+                    item.Count = basket.Basket.Quantity;
+                    item.Price = (float)Math.Ceiling(basket.Basket.Price * Ratio * ((100 + BonusRatio) / 100));
+                    item.Total = item.Price * basket.Basket.Quantity;
+                    item.Metal = item.Destiny = item.Description = item.Accuracy = "";
+
+                    items.Add(item);
+                }
+
+            if (HasDelivery is true)
+            {
+                dynamic item = new ExpandoObject();
+
+                item.Title = "Доставка";
+                item.Count = DeliveryRatio;
+                item.Price = (float)(Delivery * Ratio);
+                item.Total = (float)(DeliveryRatio * Delivery * Ratio);
+                item.Metal = item.Destiny = item.Description = item.Accuracy = "";
+
+                items.Add(item);
+            }
+
+            TotalCount.Text = $"{items.Sum(t => t.Count)}";
+            TotalPrice.Text = $"{items.Sum(t => (float)t.Total)}";
+
+            return items;
         }
 
-        private void UpdatePricePart(object sender, RoutedEventArgs e) { UpdatePricePart(); }
         public void UpdatePricePart()   //формирование предварительной цены детали
         {
             if (Parts.Count == 0) return;
@@ -1059,10 +1120,10 @@ namespace Metal_Code
                             part.Part.WorksDict.Clear();
 
                             //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
-                            if (CheckConstruct.IsChecked == true) part.Part.Price += Construct / Parts.Count / part.Part.Count;
+                            if (CheckConstruct.IsChecked == true) part.Part.Price += (float)Math.Round((double)Construct / Parts.Count / part.Part.Count, 2);
 
                             //добавляем доставку в цену детали, если ее необходимо "размазать"
-                            if (HasDelivery is null) part.Part.Price += Delivery * DeliveryRatio / Parts.Count / part.Part.Count;
+                            if (HasDelivery is null) part.Part.Price += (float)Math.Round((double)Delivery * DeliveryRatio / Parts.Count / part.Part.Count, 2);
 
                             var extra = work.type.WorkControls.Where(e => e.workType is ExtraControl);
                             if (extra.Any()) part.Part.Price += extra.Sum(e => e.Result) / _cut.Parts.Count / part.Part.Count;
@@ -1079,9 +1140,6 @@ namespace Metal_Code
                     p.Price = p.Price < p.FixedPrice ? p.FixedPrice : p.Price;
                     p.Price = (float)Math.Ceiling(p.Price);
                 }
-
-                TotalCount.Text = $"{Parts.Sum(t => t.Count)}";
-                TotalPrice.Text = $"{Parts.Sum(t => t.Total)}";
             }
         }
         #endregion
@@ -1491,6 +1549,17 @@ namespace Metal_Code
             {
                 // Находим строку DataGridRow, содержащую кнопку
                 if (FindVisualParent<DataGridRow>(element) is DataGridRow row)
+                {
+                    // Переключаем видимость
+                    bool isVisible = row.DetailsVisibility == Visibility.Visible;
+                    row.DetailsVisibility = isVisible ? Visibility.Collapsed : Visibility.Visible;
+                }
+            }
+            
+            if (sender is FrameworkElement { DataContext: ExpandoObject } _element)
+            {
+                // Находим строку DataGridRow, содержащую кнопку
+                if (FindVisualParent<DataGridRow>(_element) is DataGridRow row)
                 {
                     // Переключаем видимость
                     bool isVisible = row.DetailsVisibility == Visibility.Visible;
@@ -1919,7 +1988,7 @@ namespace Metal_Code
                                     //добавляем доставку в цену детали, если ее необходимо "размазать"
                                     if (HasDelivery is null)
                                     {
-                                        float _send = (float)Math.Round((double)Delivery * DeliveryRatio / DetailControls.Where(d => d.Detail.IsComplect).Count() / det.TypeDetailControls.Count / _cut.PartDetails.Sum(p => p.Count), 2);
+                                        float _send = (float)Math.Round((double)Delivery * DeliveryRatio / Parts.Count / p.Count, 2);
                                         p.Price += _send;
                                         p.PropsDict[63] = new() { $"{_send}" };
                                     }
@@ -2741,7 +2810,7 @@ namespace Metal_Code
                 scoresheet.Cells[1, col + 5].Value = _heads[col];       //заполняем заголовки из списка
                 if (col + 5 > 22) continue;
 
-                for (int i = 1; i < rowStat; i++)       //пробегаем по каждой детали и получаем стоимость работы с учетом количества деталей
+                for (int i = 0; i < rowStat; i++)       //пробегаем по каждой детали и получаем стоимость работы с учетом количества деталей
                 {
                     if (float.TryParse($"{scoresheet.Cells[i + 2, col + 5].Value}", out float w)    //кусочек цены работы за 1 шт
                         && float.TryParse($"{scoresheet.Cells[i + 2, 2].Value}", out float c))      //количество деталей
