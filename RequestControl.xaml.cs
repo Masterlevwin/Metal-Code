@@ -427,22 +427,6 @@ namespace Metal_Code
                     TargetTechItem = techItem;
         }
 
-        //-----переименование заголовков при генерации колонок Datagrid-----//
-        private void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
-        {
-            if (((PropertyDescriptor)e.PropertyDescriptor).IsBrowsable == false) e.Cancel = true;   //скрываем свойства с атрибутом [IsBrowsable]
-
-            if (e.PropertyName == "N") e.Column.Header = "№";
-            if (e.PropertyName == "NumberName") e.Column.Header = "№ чертежа";
-            if (e.PropertyName == "Sizes") e.Column.Header = "Размеры";
-            if (e.PropertyName == "Material") e.Column.Header = "Металл";
-            if (e.PropertyName == "Destiny") e.Column.Header = "Толщина";
-            if (e.PropertyName == "Count") e.Column.Header = "Кол-во деталей";
-            if (e.PropertyName == "Route") e.Column.Header = "Маршрут";
-            if (e.PropertyName == "HasMaterial") e.Column.Header = "Давальч";
-            if (e.PropertyName == "OriginalName") e.Column.Header = "Исходник";
-        }
-
         //-----метод копирования данных в выделенные ячейки после отпускания мыши-----//
         private void CopyValue_MouseUp(object sender, MouseButtonEventArgs e) { CopyValue(); }
         private void CopyValue()
@@ -900,6 +884,20 @@ namespace Metal_Code
             Popup.IsOpen = true;
 
             Details.Text = $"Изображение приблизительно, и может отличаться от исходной модели.";
+        }
+
+        private void ToggleRowDetails_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement element)
+            {
+                var row = MainWindow.FindVisualParent<DataGridRow>(element);
+                if (row != null)
+                {
+                    row.DetailsVisibility = row.DetailsVisibility == Visibility.Visible
+                        ? Visibility.Collapsed
+                        : Visibility.Visible;
+                }
+            }
         }
     }
 

@@ -9,9 +9,13 @@ namespace Metal_Code
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            int max = 0;
+            if (parameter is string paramStr && int.TryParse(paramStr, out int p))
+                max = p;
+
             if (value is string title)
             {
-                return title.Length > 36 ? new SolidColorBrush(Color.FromArgb(255, 240, 100, 100)) : Brushes.Black;
+                return title.Length > max ? new SolidColorBrush(Color.FromArgb(255, 240, 100, 100)) : Brushes.Black;
             }
             return Brushes.Black;
         }

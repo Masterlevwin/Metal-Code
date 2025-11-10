@@ -8,8 +8,6 @@
     
     <UserControl.Resources>
         <local:CostConverter x:Key="CostConverter"/>
-        <local:TitleLengthToForegroundConverter x:Key="TitleLengthToForegroundConverter"/>
-        <local:StringLengthConverter x:Key="StringLengthConverter"/>
     </UserControl.Resources>
 
     <Border BorderBrush="Gray" CornerRadius="6" BorderThickness="1">
@@ -23,12 +21,11 @@
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="3">
-                <TextBox Text="{Binding Title}" Foreground="{Binding Title, Converter={StaticResource TitleLengthToForegroundConverter}}" TextWrapping="Wrap" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="90" Height="60"/>
+                <TextBox Text="{Binding Title}" TextWrapping="Wrap" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="90" Height="60"/>
                 <Image x:Name="Picture" MouseWheel="ViewPopupDimensions" Loaded="SetPicture" Margin="5,0,0,0" MouseLeftButtonDown="OpenPlan" Height="60" Width="60"/>
                 <Canvas x:Name="GeometryCanvas" Background="White"  MouseWheel="ViewPopupDimensions" Loaded="SetPicture" Margin="5,0,0,0" Height="60" Width="60" MouseLeftButtonDown="OpenPlan" Visibility="Collapsed"/>
                 <Button Margin="5,0,0,0" VerticalAlignment="Top" Content="X" FontWeight="Bold" Padding="0" Click="RemovePart" Width="16" Height="16"/>
             </StackPanel>
-            <TextBlock Text="{Binding Title, Converter={StaticResource StringLengthConverter}, ConverterParameter=40}" Foreground="{Binding Title, Converter={StaticResource TitleLengthToForegroundConverter}}" FontSize="10" HorizontalAlignment="Left" ToolTip="Наименование не должно превышать 40 символов" Margin="60,0,0,0"/>
 
             <Popup x:Name="PopupDimensions" StaysOpen="False" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5">
                 <StackPanel Background="Lavender" Orientation="Horizontal">
