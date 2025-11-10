@@ -15,6 +15,7 @@ using System.Runtime.Serialization;
 using System.Diagnostics;
 using System.Collections.ObjectModel;
 using System.Windows.Media.Animation;
+using System.Windows.Media;
 
 namespace Metal_Code
 {
@@ -295,7 +296,7 @@ namespace Metal_Code
                     ItemList(table);                    // формируем список листов из раскладки
                     SetImagesForParts(stream);          // устанавливаем поле Part.ImageBytes для каждой детали                
                     PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
-                    AddPartsControl();                      // добавляем вкладку в "Список нарезанных деталей"
+                    AddPartsControl();                  // добавляем вкладку в "Список нарезанных деталей"
 
                     work.type.CreateSort();             // обновляем заготовку и все, связанные с ней, данные
 
@@ -345,6 +346,12 @@ namespace Metal_Code
         public void PartTitleAnalysis(PartControl part)         //метод анализа наименования детали для автоматического создания блоков работ
         {
             string? title = part.Part?.Title;
+
+            if (title != null && title.Length > 40)
+            {
+                if (MainWindow.M.Log is null || !MainWindow.M.Log.Contains($"Проверьте наименования деталей!\nОни не должны быть длиннее 40 символов."))
+                    MainWindow.M.Log += $"\nПроверьте наименования деталей!\nОни не должны быть длиннее 40 символов.\n";
+            }
 
             if (MainWindow.M.TechItems.Count > 0)
                 foreach (TechItem item in MainWindow.M.TechItems)
@@ -577,7 +584,6 @@ namespace Metal_Code
                 if (table.Rows[i].ItemArray[0]?.ToString() == "Размер листа")
                 {
                     item.sheetSize = $"{table.Rows[i].ItemArray[1]}".TrimEnd('m').Trim();
-                    //SetSheetSize(item.sheetSize);
                 }
 
                 if (table.Rows[i].ItemArray[2]?.ToString() == "Кол-во повторов")

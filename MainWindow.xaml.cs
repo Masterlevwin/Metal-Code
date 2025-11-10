@@ -883,6 +883,7 @@ namespace Metal_Code
             AssemblyWindow.A.Assemblies.Clear();
             isAssemblyOffer = false;
             Parts.Clear();
+            InvalidatePartsData();
 
             OffersTab.Focus();
         }
@@ -1006,10 +1007,29 @@ namespace Metal_Code
             return parts;
         }
 
-        private void PartsView(object sender, RoutedEventArgs e)    //предпросмотр КП
+        //-----------Предпросмотр КП-----------------------------//
+        private bool _isPartsDataCurrent = false;
+
+        private void LoadPartsData_Click(object sender, RoutedEventArgs e)
         {
             PartsGrid.ItemsSource = PartsViewCollection();
+            _isPartsDataCurrent = true;
+            PartsGrid.Visibility = Visibility.Visible;
+            PlaceholderPanel.Visibility = Visibility.Collapsed;
         }
+
+        private void InvalidatePartsData()
+        {
+            _isPartsDataCurrent = false;
+            if (PartsGrid.Visibility == Visibility.Visible)
+            {
+                PartsGrid.Visibility = Visibility.Collapsed;
+                PlaceholderPanel.Visibility = Visibility.Visible;
+                TotalCount.Text = TotalPrice.Text = "";
+            }
+        }
+
+        private void PartsView(object sender, RoutedEventArgs e) { PartsGrid.ItemsSource = PartsViewCollection(); }
 
         private List<dynamic> PartsViewCollection()
         {
@@ -1141,6 +1161,27 @@ namespace Metal_Code
                     p.Price = (float)Math.Ceiling(p.Price);
                 }
             }
+        }
+
+        private void ToggleRowDetails_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement element)
+            {
+                var row = FindVisualParent<DataGridRow>(element);
+                if (row != null)
+                {
+                    row.DetailsVisibility = row.DetailsVisibility == Visibility.Visible
+                        ? Visibility.Collapsed
+                        : Visibility.Visible;
+                }
+            }
+        }
+
+        public static T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
+        {
+            while (child != null && child is not T)
+                child = VisualTreeHelper.GetParent(child);
+            return child as T;
         }
         #endregion
 
@@ -1498,7 +1539,7 @@ namespace Metal_Code
 
         public static Product? OpenOfferData(string json)           //метод десериализации расчета
         {
-            byte[] bytes = Encoding.Unicode.GetBytes(json);         //преобразуем строку в массив байтов
+            byte[] bytes = Encoding.UTF8.GetBytes(json);            //преобразуем строку в массив байтов
 
             using MemoryStream stream = new(bytes);
             DataContractJsonSerializer serializer = new(typeof(Product));
@@ -1541,39 +1582,6 @@ namespace Metal_Code
                 FileInfo dbMetalFile = new(path + "\\metals.db");
                 dbMetalFile.CopyTo(Directory.GetCurrentDirectory() + "\\metals.db", true);
             }
-        }
-
-        private void ToggleRowDetails_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is FrameworkElement { DataContext: Offer } element)
-            {
-                // Находим строку DataGridRow, содержащую кнопку
-                if (FindVisualParent<DataGridRow>(element) is DataGridRow row)
-                {
-                    // Переключаем видимость
-                    bool isVisible = row.DetailsVisibility == Visibility.Visible;
-                    row.DetailsVisibility = isVisible ? Visibility.Collapsed : Visibility.Visible;
-                }
-            }
-            
-            if (sender is FrameworkElement { DataContext: ExpandoObject } _element)
-            {
-                // Находим строку DataGridRow, содержащую кнопку
-                if (FindVisualParent<DataGridRow>(_element) is DataGridRow row)
-                {
-                    // Переключаем видимость
-                    bool isVisible = row.DetailsVisibility == Visibility.Visible;
-                    row.DetailsVisibility = isVisible ? Visibility.Collapsed : Visibility.Visible;
-                }
-            }
-        }
-
-        // Вспомогательный метод для поиска родителя в визуальном дереве
-        public static T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
-        {
-            while (child != null && child is not T)
-                child = VisualTreeHelper.GetParent(child);
-            return child as T;
         }
 
         //метод загрузки строк в таблицу ВСЕХ расчетов
@@ -6279,8 +6287,11 @@ namespace Metal_Code
                     "Проверьте стоимость КП:\n" +
                     "• С НДС — не менее 4000 руб.\n" +
                     "• Без НДС — не менее 2500 руб.\n\n" +
+                    (CurrentManager.IsEngineer ?
+                    "Увеличьте стоимость до минимальной,\n" +
+                    "например, коэффициентами." :
                     "Установите галочку «Снять ограничения»,\n" +
-                    "если всё равно хотите сохранить.",
+                    "если всё равно хотите сохранить."),
                     "Сохранение расчета",
                     MessageBoxButton.OK,
                     MessageBoxImage.Exclamation);
