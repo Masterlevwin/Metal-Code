@@ -347,10 +347,10 @@ namespace Metal_Code
         {
             string? title = part.Part?.Title;
 
-            if (title != null && title.Length > 40)
+            if (title != null && title.Length > 30)
             {
-                if (MainWindow.M.Log is null || !MainWindow.M.Log.Contains($"Проверьте наименования деталей!\nОни не должны быть длиннее 40 символов."))
-                    MainWindow.M.Log += $"\nПроверьте наименования деталей!\nОни не должны быть длиннее 40 символов.\n";
+                if (MainWindow.M.Log is null || !MainWindow.M.Log.Contains($"Проверьте наименования деталей в Лазере!\nОни не должны быть длиннее 30 символов."))
+                    MainWindow.M.Log += $"\nПроверьте наименования деталей в Лазере!\nОни не должны быть длиннее 30 символов.\n";
             }
 
             if (MainWindow.M.TechItems.Count > 0)

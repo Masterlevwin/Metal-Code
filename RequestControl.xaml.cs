@@ -63,6 +63,22 @@ namespace Metal_Code
 
         private readonly RequestContext db = new(MainWindow.M.connections[12]);
         public List<string> Paths { get; set; } = new();
+        public List<string> Works { get; set; } = new()
+        {
+            "гиб - гибка",
+            "вальц - вальцовка",
+            "зен - зенковка",
+            "рез - резьба",
+            "свар - сварка",
+            "окр - окраска",
+            "оц - оцинковка",
+            "грав - гравировка",
+            "фрез - фрезеровка",
+            "аква - аквабластинг",
+            "лен - лентопил",
+            "свер - сверловка"
+        };
+
         public RequestTemplate CurrentTemplate { get; set; } = new();
         public ObservableCollection<RequestTemplate> Templates { get; set; } = new();
         public ObservableCollection<TechItem> TechItems { get; set; } = new();
@@ -81,6 +97,8 @@ namespace Metal_Code
             db.Templates.Load();
             Templates = db.Templates.Local.ToObservableCollection();
             TemplatesList.ItemsSource = Templates;
+
+            MetalsDrop.ItemsSource = MainWindow.M.Metals.Select(m => m.Name);
         }
         private void Update_Paths(List<string> paths)
         {
@@ -898,6 +916,26 @@ namespace Metal_Code
                         : Visibility.Visible;
                 }
             }
+        }
+
+        private void ShowPopup_Rules(object sender, MouseEventArgs e)
+        {
+            Popup.IsOpen = true;
+
+            Details.Text = $"В соответствующем выпадающем списке можно увидеть,\n" +
+                $"как правильно называть материалы деталей\n" +
+                $"и добавляемые к ним работы.";
+        }
+
+        private void Copy_Metal(object sender, RoutedEventArgs e)
+        {
+            Clipboard.SetText($"{MetalsDrop.Text}");
+        }
+
+        private void Copy_Work(object sender, RoutedEventArgs e)
+        {
+            if (WorksDrop.SelectedItem is string work && work.Contains('-'))
+                Clipboard.SetText($"{work[..(work.IndexOf("-") - 1)]}");
         }
     }
 
