@@ -175,6 +175,9 @@ namespace Metal_Code
         {
             if (isSaved)
             {
+                if (MainWindow.M.Log is null || !MainWindow.M.Log.Contains($"Не забудьте создать шаблон для вальцовки,\nесли это необходимо!"))
+                    MainWindow.M.Log += $"Не забудьте создать шаблон для вальцовки,\nесли это необходимо!\n";
+
                 if (uc is WorkControl w)
                 {
                     w.propsList.Clear();

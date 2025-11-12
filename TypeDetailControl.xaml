@@ -148,6 +148,7 @@
                             <Button Content="кром" Margin="2" Padding="2" FontSize="10" Click="AddInfoToComment"/>
                             <Button Content="шлиф" Margin="2" Padding="2" FontSize="10" Click="AddInfoToComment"/>
                             <Button Content="плен" Margin="2" Padding="2" FontSize="10" Click="AddInfoToComment"/>
+                            <Button Content="чист" Margin="2" Padding="2" FontSize="10" Click="AddInfoToComment"/>
                         </StackPanel>
                     </StackPanel>
                 </Expander>

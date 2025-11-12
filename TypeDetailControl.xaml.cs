@@ -603,88 +603,85 @@ namespace Metal_Code
         {
             AddWork();
         }
+        
+        private void OnPartsToggleClick(object sender, RoutedEventArgs e)
+        {
+            if (PartsToggle.IsChecked == true) ((Storyboard)FindResource("ExpandParts")).Begin(this);
+            else ((Storyboard)FindResource("CollapseParts")).Begin(this);
+        }
+
+
+        //-----------Формирование комментария из тэгов-----------//
         private void AddInfoToComment(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Content != null)
-                switch (btn.Content)
+            {
+                string tag = $"{btn.Content}";
+
+                switch (tag)
                 {
                     case "азот":
-                        var work = WorkControls.FirstOrDefault(w => w.workType is CutControl);
-                        if (work != null && work.workType is CutControl cut)
-                        {
-                            cut.HaveNitro = !cut.HaveNitro;
-                            work.Ratio = cut.HaveNitro ? 1.5f : 1;
-                            btn.Background = cut.HaveNitro ? Brushes.PaleGreen : Brushes.White;
-
-                            if (cut.HaveNitro && (Comment is null || Comment == "")) SetComment(" Азот!");
-                            else if (cut.HaveNitro && Comment != null && !Comment.Contains(" Азот")) SetComment(Comment.Insert(Comment.Length, " Азот!"));
-                            else if (Comment != null && Comment.Contains(" Азот")) SetComment(Comment.Replace(" Азот!", ""));
-                        }
+                        HandleNitrogen(btn);
                         break;
                     case "кром":
-                        if (Comment is null || Comment == "")
-                        {
-                            SetComment(" Или зачистка кромки!");
-                            btn.Background = Brushes.PaleGreen;
-                        }
-                        else if (Comment != null && !Comment.Contains(" Или зачистка кромки!"))
-                        {
-                            SetComment(Comment.Insert(Comment.Length, " Или зачистка кромки!"));
-                            btn.Background = Brushes.PaleGreen;
-                        }
-                        else if (Comment != null && Comment.Contains(" Или зачистка кромки!"))
-                        {
-                            SetComment(Comment.Replace(" Или зачистка кромки!", ""));
-                            btn.Background = Brushes.White;
-                        }
+                        HandleCommentToggle(btn, " Или зачистка кромки!");
                         break;
                     case "шлиф":
-                        if (Comment is null || Comment == "")
-                        {
-                            SetComment(" Внимание на направление шлифовки!");
-                            btn.Background = Brushes.PaleGreen;
-                        }
-                        else if (Comment != null && !Comment.Contains(" Внимание на направление шлифовки!"))
-                        {
-                            SetComment(Comment.Insert(Comment.Length, " Внимание на направление шлифовки!"));
-                            btn.Background = Brushes.PaleGreen;
-                        }
-                        else if (Comment != null && Comment.Contains(" Внимание на направление шлифовки!"))
-                        {
-                            SetComment(Comment.Replace(" Внимание на направление шлифовки!", ""));
-                            btn.Background = Brushes.White;
-                        }
+                        HandleCommentToggle(btn, " Внимание на направление шлифовки!");
                         break;
                     case "плен":
-                        if (Comment is null || Comment == "")
-                        {
-                            SetComment(" Пленку не снимать!");
-                            btn.Background = Brushes.PaleGreen;
-                        }
-                        else if (Comment != null && !Comment.Contains(" Пленку не снимать!"))
-                        {
-                            SetComment(Comment.Insert(Comment.Length, " Пленку не снимать!"));
-                            btn.Background = Brushes.PaleGreen;
-                        }
-                        else if (Comment != null && Comment.Contains(" Пленку не снимать!"))
-                        {
-                            SetComment(Comment.Replace(" Пленку не снимать!", ""));
-                            btn.Background = Brushes.White;
-                        }
+                        HandleCommentToggle(btn, " Пленку не снимать!");
                         break;
-                };
+                    case "чист":
+                        HandleCommentToggle(btn, " Чистый материал! Без царапин!");
+                        break;
+                }
+            }
         }
 
-        private void OnPartsToggleClick(object sender, RoutedEventArgs e)
+        private void HandleNitrogen(Button btn)
         {
-            if (PartsToggle.IsChecked == true)
+            var work = WorkControls.FirstOrDefault(w => w.workType is CutControl);
+            if (work != null && work.workType is CutControl cut)
             {
-                ((Storyboard)FindResource("ExpandParts")).Begin(this);
+                cut.HaveNitro = !cut.HaveNitro;
+                work.Ratio = cut.HaveNitro ? 1.5f : 1;
+                btn.Background = cut.HaveNitro ? Brushes.PaleGreen : Brushes.White;
+
+                if (cut.HaveNitro) HandleCommentAddition(" Азот!");
+                else HandleCommentRemoval(" Азот!");
+            }
+        }
+
+        private void HandleCommentToggle(Button btn, string commentText)
+        {
+            if (IsCommentPresent(commentText))
+            {
+                HandleCommentRemoval(commentText);
+                btn.Background = Brushes.White;
             }
             else
             {
-                ((Storyboard)FindResource("CollapseParts")).Begin(this);
+                HandleCommentAddition(commentText);
+                btn.Background = Brushes.PaleGreen;
             }
+        }
+
+        private void HandleCommentAddition(string textToAdd)
+        {
+            if (string.IsNullOrEmpty(Comment)) SetComment(textToAdd);
+            else if (!Comment.Contains(textToAdd)) SetComment(Comment + textToAdd);
+        }
+
+        private void HandleCommentRemoval(string textToRemove)
+        {
+            if (Comment != null && Comment.Contains(textToRemove))
+                SetComment(Comment.Replace(textToRemove, ""));
+        }
+
+        private bool IsCommentPresent(string textToCheck)
+        {
+            return Comment != null && Comment.Contains(textToCheck);
         }
     }
 
