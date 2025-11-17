@@ -985,9 +985,12 @@ namespace Metal_Code
             foreach (DetailControl d in DetailControls)
                 foreach (TypeDetailControl t in d.TypeDetailControls) t.PriceChanged();
 
-            var works = DetailControls.SelectMany(x => x.TypeDetailControls).SelectMany(x => x.WorkControls);
-            var workSorted = works.GroupBy(x => x.workType?.GetType());
-            DateProduction.Text = $"{workSorted.Count() * 5}";
+            if (!HasAssembly)
+            {
+                var works = DetailControls.SelectMany(x => x.TypeDetailControls).SelectMany(x => x.WorkControls);
+                var workSorted = works.GroupBy(x => x.workType?.GetType());
+                DateProduction.Text = $"{workSorted.Count() * 5}";
+            }
         }
 
         //-----------Формирование списка нарезанных деталей-------//
@@ -1023,7 +1026,7 @@ namespace Metal_Code
             _isPartsDataCurrent = false;
             if (PartsGrid.Visibility == Visibility.Visible)
             {
-                PartsGrid.Visibility = Visibility.Collapsed;
+                PartsGrid.Visibility = Visibility.Hidden;
                 PlaceholderPanel.Visibility = Visibility.Visible;
                 TotalCount.Text = TotalPrice.Text = "";
             }
@@ -1818,6 +1821,10 @@ namespace Metal_Code
                     IsEnabled = true;
                     UpdateBtn.IsEnabled = true;
                     InsertProgressBar.Visibility = Visibility.Collapsed;
+
+                    var lastItem = OffersGrid.Items.Cast<object>().LastOrDefault();
+                    if (lastItem != null) OffersGrid.ScrollIntoView(lastItem);
+
                     break;
                 case ActionState.restartBases:
                     System.Windows.Forms.Application.Restart();
