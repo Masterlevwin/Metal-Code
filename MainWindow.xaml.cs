@@ -757,7 +757,6 @@ namespace Metal_Code
             if (manager != null)
             {
                 ManagerDrop.ItemsSource = Managers.Where(m => !m.IsEngineer);     //список ТОЛЬКО менеджеров (для выставления КП)
-                UserDrop.ItemsSource = Managers;                                  //список ВСЕХ пользователей (для отчетов)
 
                 db.Customers.Load();
                 Customers = db.Customers.Local.ToObservableCollection();
@@ -766,7 +765,6 @@ namespace Metal_Code
                 Login.Header = CurrentManager.Name;
                 if (ManagerDrop.Items.Contains(manager)) ManagerDrop.SelectedItem = manager;    //устанавливаем менеджера по умолчанию
 
-                UserDrop.SelectedItem = CurrentManager;
                 if (CurrentManager.IsEngineer)
                 {
                     IsEnabled = false;
@@ -798,7 +796,6 @@ namespace Metal_Code
 
             if (window.ShowDialog() == true)
             {
-                UserDrop.SelectedItem = CurrentManager;
                 if (CurrentManager.IsEngineer)
                 {
                     SetManagerWindow setManagerWindow = new();
@@ -830,6 +827,9 @@ namespace Metal_Code
             CurrentOffers = Offers.Where(m => m.ManagerId == TargetManager.Id).TakeLast(23).ToList();
             OffersGrid.ItemsSource = CurrentOffers;
 
+            SummaryInfoTextBlock.Text = $"Всего расчётов: {Offers.Count} шт.";
+            if (InProductionFilterToggle.IsChecked == true) InProductionFilterToggle.IsChecked = false;
+
             if (TargetManager == CurrentManager)
             {
                 ReportDrop.ItemsSource = Months;
@@ -839,6 +839,19 @@ namespace Metal_Code
             else ReportOffers.Clear();
         }
 
+        private void InProductionFilterToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (InProductionFilterToggle.IsChecked == true)
+            {
+                // Фильтр: в производстве (Order задан, EndDate — нет)
+                CurrentOffers = Offers.Where(o => !string.IsNullOrEmpty(o.Order) && o.EndDate == null).ToList();
+                OffersGrid.ItemsSource = CurrentOffers;
+
+                var totalAmount = Math.Ceiling(CurrentOffers.Sum(o => o.Amount));
+                SummaryInfoTextBlock.Text = $"В производстве расчётов: {CurrentOffers.Count} шт на сумму {totalAmount:N0} руб.";
+            }
+            else ManagerChanged();
+        }
 
         //-------------Настройка блока отчетов-----------//
         readonly string[] Months = { "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь" };
@@ -1402,7 +1415,6 @@ namespace Metal_Code
                         Offer _offer = new(Order.Text, CustomerDrop.Text, Result, GetMetalPrice(), GetServices())
                         {
                             Agent = IsAgent,
-                            EndDate = EndDate(),
                             Manager = _man,
                             Data = SaveOfferData(),     //сериализуем расчет в виде строки json
                             Act = path                  //запоминаем путь к расчету
@@ -1504,6 +1516,13 @@ namespace Metal_Code
                             db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
                         }
 
+                        //дата отгрузки меняется программно по кнопке добавления в отчет
+                        if (_offer.EndDate != offer.EndDate)
+                        {
+                            _offer.EndDate = offer.EndDate;
+                            db.Entry(_offer).Property(o => o.EndDate).IsModified = true;
+                        }
+
                         //добавляем расчет во временный список для синхронизации с основной базой
                         if (IsLocal && ManagerDrop.SelectedItem is Manager man && CurrentManager == man)
                         {
@@ -1594,7 +1613,7 @@ namespace Metal_Code
 
             if (e.Row.Item is Offer offer)
             {
-                if (offer.Order is not null && offer.Order != "")
+                if (offer.Order is not null && offer.Order != "" && offer.EndDate is not null)
                 {
                     btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/delete.png", UriKind.Relative)) };
                     btn.ToolTip = "Удалить из отчета";
@@ -1609,6 +1628,21 @@ namespace Metal_Code
             }
 
             e.Row.Header = btn;
+        }
+
+        private void OnShipmentToggleClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is ToggleButton btn &&
+                btn.DataContext is Offer offer &&
+                !string.IsNullOrEmpty(offer.Order))
+            {
+                offer.EndDate = btn.IsChecked == true ? DateTime.UtcNow : null;
+                UpdateOffer(OffersGrid);
+
+                btn.ToolTip = offer.EndDate.HasValue
+                    ? "Удалить из отчета"
+                    : "Добавить в отчет";
+            }
         }
 
         private void AddOfferToReport(object sender, RoutedEventArgs e)
@@ -1644,7 +1678,6 @@ namespace Metal_Code
                 }
             }
         }
-
 
         //метод загрузки строк в таблицу ОТЧЕТНЫХ расчетов
         private void ReportGrid_LoadingRow(object sender, DataGridRowEventArgs e)
@@ -4651,575 +4684,387 @@ namespace Metal_Code
             SpecWindow specWindow = new(ActiveOffer.Act) { Title = $"Спецификация на КП № {ActiveOffer.N}" };
             specWindow.Show();
         }
+        #endregion
 
 
-        //-------------Отчеты-----------------//
-        private void CreateReport(object sender, RoutedEventArgs e)
-        {
-            if (!CurrentManager.IsAdmin && UserDrop.SelectedItem is Manager user && user != CurrentManager)
-            {
-                StatusBegin("Нельзя получить отчет другого менеджера или инженера! Выберите себя.");
-                return;
-            }
-
-            try
-            {
-                SaveFileDialog saveFileDialog = new() { FileName = $"Отчет за {ReportCalendar.SelectedDates[^1]:MMMM}" };
-
-                if (saveFileDialog.ShowDialog() == true && saveFileDialog.FileName != null)
-                {
-                    if (ReportCalendar.SelectedDates.Count < 2)
-                    {
-                        StatusBegin("Выберите даты, по которым следует сформировать отчет");
-                        return;
-                    }
-
-                    if (sender is Button btn)
-                    {
-                        bool _report = false;
-
-                        switch (btn.Content)
-                        {
-                            case "по заказам":
-                                _report = ManagerReport(saveFileDialog.FileName);
-                                break;
-                            case "по расчетам":
-                                _report = EngineerReport(saveFileDialog.FileName);
-                                break;
-                        }
-                        if (_report) StatusBegin($"Создан отчёт {btn.Content} за {ReportCalendar.SelectedDates[^1]:MMMM}");
-                        else StatusBegin($"Нет расчетов за выбранный период");
-                    }
-                }
-            }
-            catch (Exception ex) { MessageBox.Show(ex.Message); }
-        }
-
+        //-------------Отчет по продажам-----------------//
+        #region
         private void CreateManagerReport(object sender, RoutedEventArgs e)
         {
-            if (!CurrentManager.IsAdmin && UserDrop.SelectedItem is Manager user && user != CurrentManager)
-            {
-                StatusBegin("Нельзя получить отчет другого менеджера! Выберите себя.");
-                return;
-            }
-
             try
             {
                 SaveFileDialog saveFileDialog = new() { FileName = $"Отчет за {ReportDrop.SelectedItem}" };
 
                 if (saveFileDialog.ShowDialog() == true && saveFileDialog.FileName != null)
                 {
-                    bool _report = ManagerReport(saveFileDialog.FileName, ReportOffers);
+                    bool _report = ManagerReport(saveFileDialog.FileName);
                     if (_report) StatusBegin($"Создан отчёт менеджера за {ReportDrop.SelectedItem}");
                     else StatusBegin($"Нет расчетов за выбранный период");
                 }
             }
             catch (Exception ex) { MessageBox.Show(ex.Message); }
         }
-        
-        //метод создания отчета по заказам
-        public bool ManagerReport(string path, List<Offer>? reportOffers = null)
-        {
-            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
-            using var workbook = new ExcelPackage();
-            ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("Лист1");
+        private const string BonusRatioPattern = @"""BonusRatio""\s*:\s*([\d.]+)";
+        private const string NoBonusMarker = "без бонуса";
 
-            if (reportOffers is null)
-            {
-                //подключаемся к базе данных
-                using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
+        private const decimal VatRateServices = 1.30m;     // НДС 30% для услуг
+        private const decimal VatRateMaterial = 1.15m;     // НДС 15% для материалов
+        private const decimal ProfitMargin = 1.20m;        // Маржа 20%
+        private const decimal BonusOooThreshold = 200_000m;
+        private const decimal BonusOooRate = 0.15m;
+        private const decimal BonusIpFactor = 30m;         // Бонус ИП = сумма / 30
 
-                bool isAvalaible = db.Database.CanConnect();                    //проверяем, свободна ли база для подключения
-                if (isAvalaible && UserDrop.SelectedItem is Manager man)        //если база свободна, получаем выбранного менеджера
-                {
-                    try
-                    {   //получаем список КП за выбранный период, которые выложены в работу, т.е. оплачены и имеют номер заказа
-                        DateTime start = ReportCalendar.SelectedDates[0];
-                        DateTime end = ReportCalendar.SelectedDates[^1].AddDays(1);
+        private const decimal BaseSalaryOoo = 50_000m;
+        private const decimal BaseSalaryIp = 30_000m;
 
-                        reportOffers = db.Offers.Where(o => o.ManagerId == man.Id && o.Order != null && o.Order != "" &&
-                        o.CreatedDate >= start && o.CreatedDate <= end).ToList();
-
-                        if (reportOffers.Count == 0) return false;
-                    }
-                    catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message, StatusMessageType.Error); }
-                }
-            }
-
-            List<string> _headers = new() { "дата", "№счета", "проект", "№заказа", "работа", "металл", "Итого", "%", "бонус", "№КП" };
-            List<Offer> _agentFalse = new();    //ООО
-            List<Offer> _agentTrue = new();     //ИП и ПК
-
-            if (reportOffers?.Count > 0)
-            {
-                _agentFalse = reportOffers.Where(o => o.Agent == false).ToList();
-                _agentTrue = reportOffers.Where(o => o.Agent == true).ToList();
-            }
-
-            if (_agentFalse.Count > 0)
-            {
-                worksheet.Cells[1, 1].Value = "ООО";
-                worksheet.Cells[1, 1].Style.Font.Bold = true;
-
-                for (int col = 0; col < _headers.Count; col++) worksheet.Cells[2, col + 1].Value = _headers[col];
-                worksheet.Cells[2, 1, 2, _headers.Count].Style.Fill.PatternType = ExcelFillStyle.Solid;
-                worksheet.Cells[2, 1, 2, _headers.Count].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
-
-                for (int f = 0; f < _agentFalse.Count; f++)
-                {
-                    worksheet.Cells[f + 3, 1].Value = _agentFalse[f].CreatedDate;
-                    worksheet.Cells[f + 3, 1].Style.Numberformat.Format = "d MMM";
-                    worksheet.Cells[f + 3, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
-                    worksheet.Cells[f + 3, 2].Value = _agentFalse[f].Invoice;
-                    worksheet.Cells[f + 3, 3].Value = _agentFalse[f].Company;
-                    worksheet.Cells[f + 3, 4].Value = _agentFalse[f].Order;
-                    
-                    float _services = (float)Math.Ceiling(_agentFalse[f].Services);
-                    worksheet.Cells[f + 3, 5].Value = _services;
-
-                    float _material = (float)Math.Ceiling(_agentFalse[f].Material);
-                    worksheet.Cells[f + 3, 6].Value = _material;
-
-                    float _amount = (float)Math.Ceiling(_agentFalse[f].Amount);
-                    worksheet.Cells[f + 3, 7].Value = _amount;
-
-                    float _bonusRatio = Parser(ExtractBonus(_agentFalse[f]));
-
-                    worksheet.Cells[f + 3, 8].Value = _bonusRatio;
-                    worksheet.Cells[f + 3, 9].Value = Math.Ceiling(_amount * _bonusRatio / (100 + _bonusRatio));
-
-                    float _servicesBonus = (float)Math.Ceiling(_services * _bonusRatio / (100 + _bonusRatio));
-                    worksheet.Cells[f + 3, 11].Value = _servicesBonus;
-                    worksheet.Cells[f + 3, 13].Value = _services - _servicesBonus;
-
-                    float _materialBonus = (float)Math.Ceiling(_material * _bonusRatio / (100 + _bonusRatio));
-                    worksheet.Cells[f + 3, 12].Value = _materialBonus;
-                    worksheet.Cells[f + 3, 14].Value = _material - _materialBonus;
-
-                    worksheet.Cells[f + 3, 10].Value = _agentFalse[f].N;
-                }
-
-                worksheet.Names.Add("totalS1", worksheet.Cells[3, 5, 2 + _agentFalse.Count, 5]);
-                worksheet.Cells[3 + _agentFalse.Count, 5].Formula = "=SUM(totalS1)";
-                worksheet.Cells[3 + _agentFalse.Count, 15].Formula = "=(SUM(totalS1)-SUM(totalS1)/1.3)/1.2";
-                if (float.TryParse($"{worksheet.Cells[3 + _agentFalse.Count, 15].Value}", out float total) && total > 0)
-                    worksheet.Cells[3 + _agentFalse.Count, 15].Value = Math.Ceiling(total);
-
-                worksheet.Names.Add("totalM1", worksheet.Cells[3, 6, 2 + _agentFalse.Count, 6]);
-                worksheet.Cells[3 + _agentFalse.Count, 6].Formula = "=SUM(totalM1)";
-                worksheet.Cells[3 + _agentFalse.Count, 16].Formula = "=(SUM(totalM1)-SUM(totalM1)/1.15)/1.2";
-                if (float.TryParse($"{worksheet.Cells[3 + _agentFalse.Count, 16].Value}", out float _total) && _total > 0)
-                    worksheet.Cells[3 + _agentFalse.Count, 16].Value = Math.Ceiling(_total);
-
-                worksheet.Names.Add("total1", worksheet.Cells[3, 7, 2 + _agentFalse.Count, 7]);
-                worksheet.Cells[3 + _agentFalse.Count, 7].Formula = "=SUM(total1)";
-
-                worksheet.Names.Add("bonus1", worksheet.Cells[3, 9, 2 + _agentFalse.Count, 9]);
-                worksheet.Cells[3 + _agentFalse.Count, 9].Formula = "=SUM(bonus1)";
-
-                worksheet.Names.Add("services1", worksheet.Cells[3, 13, 2 + _agentFalse.Count, 13]);
-                worksheet.Cells[3 + _agentFalse.Count, 13].Formula = "=SUM(services1)";
-
-                worksheet.Names.Add("material1", worksheet.Cells[3, 14, 2 + _agentFalse.Count, 14]);
-                worksheet.Cells[3 + _agentFalse.Count, 14].Formula = "=SUM(material1)";
-
-                worksheet.Cells[3 + _agentFalse.Count, 5, 3 + _agentFalse.Count, 10].Style.Font.Bold = true;
-                worksheet.Cells[3, 1, 3 + _agentFalse.Count, 10].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-                worksheet.Cells[3, 1, 3 + _agentFalse.Count, 10].Style.Border.Right.Style = ExcelBorderStyle.Thin;
-                worksheet.Cells[3, 1, 3 + _agentFalse.Count, 10].Style.Border.BorderAround(ExcelBorderStyle.Medium);
-
-                worksheet.Cells[3 + _agentFalse.Count, 15, 3 + _agentFalse.Count, 16].Style.Fill.PatternType = ExcelFillStyle.Solid;
-                worksheet.Cells[3 + _agentFalse.Count, 15, 3 + _agentFalse.Count, 16].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGreen);
-            }
-            else
-            {       //если вдруг за выбранный период не оказалось оплаченных счетов на ООО, устанавливаем общую сумму,
-                    //сумму за услуги и сумму за материал, в ноль по умолчанию во избежании ошибок
-                worksheet.Names.Add("totalS1", worksheet.Cells[1, 1, 1, 1]);
-                worksheet.Names.Add("totalM1", worksheet.Cells[1, 1, 1, 1]);
-                worksheet.Names.Add("total1", worksheet.Cells[1, 1, 1, 1]);
-            }
-
-            if (_agentTrue.Count > 0)
-            {
-                worksheet.Cells[4 + _agentFalse.Count, 1].Value = "ИП и ПК";
-                worksheet.Cells[4 + _agentFalse.Count, 1].Style.Font.Bold = true;
-
-                for (int col = 0; col < _headers.Count; col++) worksheet.Cells[5 + _agentFalse.Count, col + 1].Value = _headers[col];
-                worksheet.Cells[5 + _agentFalse.Count, 1, 5 + _agentFalse.Count, _headers.Count].Style.Fill.PatternType = ExcelFillStyle.Solid;
-                worksheet.Cells[5 + _agentFalse.Count, 1, 5 + _agentFalse.Count, _headers.Count].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
-
-                for (int t = 0; t < _agentTrue.Count; t++)
-                {
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 1].Value = _agentTrue[t].CreatedDate;
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 1].Style.Numberformat.Format = "d MMM";
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
-
-                    string? invoice = _agentTrue[t].Invoice;
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 2].Value = invoice;
-
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 3].Value = _agentTrue[t].Company;
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 4].Value = _agentTrue[t].Order;
-
-                    float _services = (float)Math.Ceiling(_agentTrue[t].Services);
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 5].Value = _services;
-
-                    float _material = (float)Math.Ceiling(_agentTrue[t].Material);
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 6].Value = _material;
-
-                    float _amount = (float)Math.Ceiling(_agentTrue[t].Amount);
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 7].Value = _amount;
-
-                    if (invoice != null && invoice.Contains("без бонуса", StringComparison.OrdinalIgnoreCase))
-                        worksheet.Cells[t + 6 + _agentFalse.Count, 17].Value = _amount;
-
-                    float _bonusRatio = Parser(ExtractBonus(_agentTrue[t]));
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 8].Value = _bonusRatio;
-
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 9].Value = Math.Ceiling(_amount * _bonusRatio / (100 + _bonusRatio));
-
-                    float _servicesBonus = (float)Math.Ceiling(_services * _bonusRatio / (100 + _bonusRatio));
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 11].Value = _servicesBonus;
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 13].Value = _services - _servicesBonus;
-
-                    float _materialBonus = (float)Math.Ceiling(_material * _bonusRatio / (100 + _bonusRatio));
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 12].Value = _materialBonus;
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 14].Value = _material - _materialBonus;
-
-                    worksheet.Cells[t + 6 + _agentFalse.Count, 10].Value = _agentTrue[t].N;
-                }
-
-                worksheet.Names.Add("totalS2", worksheet.Cells[6 + _agentFalse.Count, 5, 5 + _agentFalse.Count + _agentTrue.Count, 5]);
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 5].Formula = "=SUM(totalS2)";
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 15].Formula = "=(SUM(totalS2)-SUM(totalS2)/1.3)/1.2";
-                if (float.TryParse($"{worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 15].Value}", out float total) && total > 0)
-                    worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 15].Value = Math.Ceiling(total);
-
-                worksheet.Names.Add("totalM2", worksheet.Cells[6 + _agentFalse.Count, 6, 5 + _agentFalse.Count + _agentTrue.Count, 6]);
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 6].Formula = "=SUM(totalM2)";
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 16].Formula = "=SUM(totalM2)-SUM(totalM2)/1.15";
-                if (float.TryParse($"{worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 16].Value}", out float _total) && _total > 0)
-                    worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 16].Value = Math.Ceiling(_total);
-
-                worksheet.Names.Add("total2", worksheet.Cells[6 + _agentFalse.Count, 7, 5 + _agentFalse.Count + _agentTrue.Count, 7]);
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 7].Formula = "=SUM(total2)";
-                
-                worksheet.Names.Add("bonus2", worksheet.Cells[6 + _agentFalse.Count, 9, 5 + _agentFalse.Count + _agentTrue.Count, 9]);
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 9].Formula = "=SUM(bonus2)";
-
-                worksheet.Names.Add("services2", worksheet.Cells[6 + _agentFalse.Count, 13, 5 + _agentFalse.Count + _agentTrue.Count, 13]);
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 13].Formula = "=SUM(services2)";
-
-                worksheet.Names.Add("material2", worksheet.Cells[6 + _agentFalse.Count, 14, 5 + _agentFalse.Count + _agentTrue.Count, 14]);
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 14].Formula = "=SUM(material2)";
-
-                worksheet.Names.Add("notbonus", worksheet.Cells[6 + _agentFalse.Count, 17, 5 + _agentFalse.Count + _agentTrue.Count, 17]);
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 17].Formula = "=SUM(notbonus)";
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 17].Calculate();
-
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 5, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Font.Bold = true;
-                worksheet.Cells[6 + _agentFalse.Count, 1, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-                worksheet.Cells[6 + _agentFalse.Count, 1, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Border.Right.Style = ExcelBorderStyle.Thin;
-                worksheet.Cells[6 + _agentFalse.Count, 1, 6 + _agentFalse.Count + _agentTrue.Count, 10].Style.Border.BorderAround(ExcelBorderStyle.Medium);
-
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 15, 6 + _agentFalse.Count + _agentTrue.Count, 16].Style.Fill.PatternType = ExcelFillStyle.Solid;
-                worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 15, 6 + _agentFalse.Count + _agentTrue.Count, 16].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGreen);
-            }
-            else
-            {       //если вдруг за выбранный период не оказалось оплаченных счетов на ИП и ПК, устанавливаем общую сумму,
-                    //сумму за услуги и сумму за материал, в ноль по умолчанию во избежании ошибок
-                worksheet.Names.Add("totalS2", worksheet.Cells[1, 1, 1, 1]);
-                worksheet.Names.Add("totalM2", worksheet.Cells[1, 1, 1, 1]);
-                worksheet.Names.Add("total2", worksheet.Cells[1, 1, 1, 1]);
-            }
-
-            int plan = 200000;                      //сумма плана для продаж менеджера
-
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 4].Value = "ИТОГО:";
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 5].Formula = "=SUM(totalS1)+SUM(totalS2)";
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 6].Formula = "=SUM(totalM1)+SUM(totalM2)";
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 7].Formula = "=SUM(total1)+SUM(total2)";
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 9].Formula = "=SUM(bonus1)+SUM(bonus2)";
-
-            //определяем прибыль месяца
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Прибыль месяца:";
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Style.Font.Bold = true;
-
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 11].Value = "Чист:";
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 12].Formula =
-                "=(SUM(services1)-SUM(services1)/1.3)/1.2+(SUM(services2)-SUM(services2)/1.3)/1.2+(SUM(material1)-SUM(material1)/1.15)/1.2+SUM(material2)-SUM(material2)/1.15";
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 12].Calculate();
-            
-            if (float.TryParse($"{worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 12].Value}", out float _total1) && _total1 > 0)
-            {
-                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 12].Value = Math.Ceiling(_total1);
-                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 13].Value = "Устар:";
-                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 14].Formula = "=(SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15";
-                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 14].Calculate();
-                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 14].Value = Math.Ceiling(Parser($"{worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 14].Value}"));
-                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(bonus1)+SUM(bonus2)+(SUM(services1)-SUM(services1)/1.3)/1.2+(SUM(services2)-SUM(services2)/1.3)/1.2+(SUM(material1)-SUM(material1)/1.15)/1.2+SUM(material2)-SUM(material2)/1.15";
-            }
-            else worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=(SUM(totalS1)-SUM(totalS1)/1.3)/1.2+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2+SUM(totalM2)-SUM(totalM2)/1.15";
-
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Calculate();
-
-            if (float.TryParse($"{worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Value}", out float value))
-            {
-                worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 2].Value = Math.Ceiling(value);
-                worksheet.Cells[13 + _agentFalse.Count + _agentTrue.Count, 2].Value = value >= plan ? 20000 : 0;
-                worksheet.Cells[14 + _agentFalse.Count + _agentTrue.Count, 2].Value = value < plan ? "" : (value - plan) * 0.15f;
-            }
-
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 1, 8 + _agentFalse.Count + _agentTrue.Count, 14].Style.Fill.PatternType = ExcelFillStyle.Solid;
-            worksheet.Cells[8 + _agentFalse.Count + _agentTrue.Count, 1, 8 + _agentFalse.Count + _agentTrue.Count, 14].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightPink);
-
-            worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Доп бонус за ИП и ПК:";
-
-            if (Parser($"{worksheet.Cells[6 + _agentFalse.Count + _agentTrue.Count, 17].Value}") > 0)
-                worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=(SUM(total2)-SUM(notbonus))/30";
-            else worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(total2)/30";
-
-            if (float.TryParse($"{worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 2].Value}", out float _bonus) && _bonus > 0)
-                worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 2].Value = Math.Ceiling(_bonus);
-
-            worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Оклад:";
-            worksheet.Cells[12 + _agentFalse.Count + _agentTrue.Count, 2].Value = 30000;
-            worksheet.Cells[13 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Премия за план:";
-
-            worksheet.Cells[14 + _agentFalse.Count + _agentTrue.Count, 1].Value = "%:";
-            worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Аванс:";
-            worksheet.Cells[16 + _agentFalse.Count + _agentTrue.Count, 1].Value = "На карту:";
-
-            worksheet.Names.Add("totalPlus", worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 2, 14 + _agentFalse.Count + _agentTrue.Count, 2]);
-            worksheet.Names.Add("totalMinus", worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 2, 16 + _agentFalse.Count + _agentTrue.Count, 2]);
-
-            worksheet.Cells[18 + _agentFalse.Count + _agentTrue.Count, 1].Value = "Итоговая за месяц:";
-            worksheet.Cells[18 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(totalPlus)";
-            worksheet.Cells[19 + _agentFalse.Count + _agentTrue.Count, 1].Value = "К доплате:";
-            worksheet.Cells[19 + _agentFalse.Count + _agentTrue.Count, 2].Formula = "=SUM(totalPlus)-SUM(totalMinus)";
-            worksheet.Cells[19 + _agentFalse.Count + _agentTrue.Count, 2].Style.Font.Color.SetColor(System.Drawing.Color.Red);
-
-            worksheet.Column(10).Hidden = true;
-            worksheet.Column(11).Hidden = true;
-            worksheet.Column(12).Hidden = true;
-            worksheet.Column(13).Hidden = true;
-            worksheet.Column(14).Hidden = true;
-
-            ExcelRange tablePlus = worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 1, 14 + _agentFalse.Count + _agentTrue.Count, 2];
-            tablePlus.Style.Fill.PatternType = ExcelFillStyle.Solid;
-            tablePlus.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightBlue);
-
-            ExcelRange tableMinus = worksheet.Cells[15 + _agentFalse.Count + _agentTrue.Count, 1, 16 + _agentFalse.Count + _agentTrue.Count, 2];
-            tableMinus.Style.Fill.PatternType = ExcelFillStyle.Solid;
-            tableMinus.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightYellow);
-
-            ExcelRange bonus = worksheet.Cells[18 + _agentFalse.Count + _agentTrue.Count, 1, 19 + _agentFalse.Count + _agentTrue.Count, 2];
-            bonus.Style.Fill.PatternType = ExcelFillStyle.Solid;
-            bonus.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.GreenYellow);
-
-            ExcelRange table = worksheet.Cells[11 + _agentFalse.Count + _agentTrue.Count, 1, 19 + _agentFalse.Count + _agentTrue.Count, 2];
-            table.Style.Numberformat.Format = "0.00";
-            table.Style.Border.Right.Style = table.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-            table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
-
-            worksheet.Cells.AutoFitColumns();
-            workbook.SaveAs(path + ".xlsx");      //сохраняем отчет .xlsx
-
-            return true;
-        }
+        private ReportResult? _currentReport;
 
         private void ReportView(object sender, RoutedEventArgs e) { ReportView(); }
         private void ReportView()
         {
-            List<Offer> _agentFalse = ReportOffers.Where(o => o.Agent == false).ToList();   //ООО
-            List<Offer> _agentTrue = ReportOffers.Where(o => o.Agent == true).ToList();     //ИП и ПК
+            if (ReportOffers == null || ReportOffers.Count == 0) return;
 
-            float totalS1 = 0, totalM1 = 0, totalS2 = 0, totalM2 = 0, bonus1 = 0, bonus2 = 0, notbonus = 0;
-
-            string pattern = "\"BonusRatio\"\\s*:\\s*([\\d.]+)";    //регулярное выражение, для поска бонусного процента
-
-            foreach (Offer offer in _agentFalse)
-            {
-                if (offer.Data != null)
-                {
-                    int bonusRatio = 0;
-                    Match match = Regex.Match(offer.Data, pattern); //поиск совпадений
-                    if (match.Success) bonusRatio = (int)Parser(match.Groups[1].Value);  //извлечение найденного числа
-                    totalS1 += offer.Services - (offer.Services * bonusRatio / (100 + bonusRatio));
-                    totalM1 += offer.Material - (offer.Material * bonusRatio / (100 + bonusRatio));
-                    bonus1 += offer.Amount * bonusRatio / (100 + bonusRatio);
-                }
-            }
-
-            foreach (Offer offer in _agentTrue)
-            {
-                if (offer.Invoice != null && offer.Invoice.Contains("без бонуса", StringComparison.OrdinalIgnoreCase))
-                    notbonus += offer.Amount;
-
-                if (offer.Data != null)
-                {
-                    int bonusRatio = 0;
-                    Match match = Regex.Match(offer.Data, pattern); //поиск совпадений
-                    if (match.Success) bonusRatio = (int)Parser(match.Groups[1].Value);  //извлечение найденного числа
-                    totalS2 += offer.Services - (offer.Services * bonusRatio / (100 + bonusRatio));
-                    totalM2 += offer.Material - (offer.Material * bonusRatio / (100 + bonusRatio));
-                    bonus2 += offer.Amount * bonusRatio / (100 + bonusRatio);
-                }
-            }
-
-            double bonusOOO = 0, salary = 0, target = 200000;
-
-            double plan = Math.Ceiling((totalS1 - totalS1 / 1.3f) / 1.2f + (totalS2 - totalS2 / 1.3f) / 1.2f + (totalM1 - totalM1 / 1.15f) / 1.2f + (totalM2 - totalM2 / 1.15f) + bonus1 + bonus2);
-            Plan.Text = $"{plan}";
-            if (plan >= target)
-            {
-                Plan.BorderBrush = Brushes.Green;
-                bonusOOO = Math.Ceiling(((totalS1 - totalS1 / 1.3f) / 1.2f + (totalS2 - totalS2 / 1.3f) / 1.2f + (totalM1 - totalM1 / 1.15f) / 1.2f + (totalM2 - totalM2 / 1.15f) - target + bonus1 + bonus2) * 0.15f);
-            }
-            else Plan.BorderBrush = Brushes.Red;
-
-            BonusOOO.Text = $"{bonusOOO}";
-
-            double bonusIP = Math.Ceiling((totalS2 + totalM2 + bonus2 - notbonus) / 30);
-            BonusIP.Text = $"{bonusIP}";
-
-            salary = Math.Ceiling(bonusOOO > 0 ? bonusOOO + bonusIP + 50000 : bonusIP + 30000);
-            Salary.Text = $"{salary}";
+            _currentReport = BuildReport(ReportOffers);
+            UpdateReportUi((_currentReport.Plan, _currentReport.BonusOoo, _currentReport.BonusIp, _currentReport.TotalSalary));
         }
 
-        public static string ExtractBonus(Offer offer)
+        private ReportResult BuildReport(List<Offer> offers)
         {
-            string bonus = "";
+            var result = new ReportResult();
+            var regex = new Regex(BonusRatioPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-            if (offer.Data != null)
+            foreach (var offer in offers)
             {
-                Product? product = OpenOfferData(offer.Data);
-                if (product is not null && product.BonusRatio > 0) return $"{product.BonusRatio}";
+                if (offer == null) continue;
+
+                bool isAgent = offer.Agent == true;
+                bool isNoBonus = isAgent && !string.IsNullOrEmpty(offer.Invoice) &&
+                                 offer.Invoice.Contains(NoBonusMarker, StringComparison.OrdinalIgnoreCase);
+
+                decimal bonusRatio = 0;
+                if (!string.IsNullOrEmpty(offer.Data))
+                {
+                    var match = regex.Match(offer.Data);
+                    if (match.Success && decimal.TryParse(match.Groups[1].Value, out var ratio))
+                        bonusRatio = ratio;
+                }
+
+                decimal bonusAmount = (decimal)offer.Amount * bonusRatio / (100 + bonusRatio);
+                if (isNoBonus) bonusAmount = 0; // явно обнуляем
+
+                var item = new ReportOfferItem
+                {
+                    CreatedDate = offer.CreatedDate,
+                    Invoice = offer.Invoice,
+                    Company = offer.Company,
+                    Order = offer.Order,
+                    Services = (decimal)Math.Ceiling(offer.Services),
+                    Material = (decimal)Math.Ceiling(offer.Material),
+                    Amount = (decimal)Math.Ceiling(offer.Amount),
+                    N = offer.N,
+                    IsAgent = isAgent,
+                    BonusRatio = bonusRatio,
+                    BonusAmount = Math.Ceiling(bonusAmount),
+                    IsNoBonus = isNoBonus
+                };
+
+                if (isAgent)
+                {
+                    result.IpItems.Add(item);
+                    result.TotalServicesIp += item.Services;
+                    result.TotalMaterialIp += item.Material;
+                    result.TotalBonusIp += item.BonusAmount;
+                    if (isNoBonus) result.NoBonusAmount += item.Amount;
+                }
+                else
+                {
+                    result.OooItems.Add(item);
+                    result.TotalServicesOoo += item.Services;
+                    result.TotalMaterialOoo += item.Material;
+                    result.TotalBonusOoo += item.BonusAmount;
+                }
             }
 
-            return bonus;
+            // --- Расчёт итогов (точно как в ReportView) ---
+            decimal profitServicesOoo = (result.TotalServicesOoo - result.TotalServicesOoo / VatRateServices) / ProfitMargin;
+            decimal profitMaterialOoo = (result.TotalMaterialOoo - result.TotalMaterialOoo / VatRateMaterial) / ProfitMargin;
+            decimal profitServicesIp = (result.TotalServicesIp - result.TotalServicesIp / VatRateServices) / ProfitMargin;
+            decimal profitMaterialIp = (result.TotalMaterialIp - result.TotalMaterialIp / VatRateMaterial) / ProfitMargin;
+
+            result.Plan = Math.Ceiling(profitServicesOoo + profitMaterialOoo + profitServicesIp + profitMaterialIp + result.TotalBonusOoo + result.TotalBonusIp);
+
+            result.BonusOoo = result.Plan >= BonusOooThreshold
+                ? Math.Ceiling((result.Plan - BonusOooThreshold) * BonusOooRate)
+                : 0;
+
+            result.BonusIp = Math.Ceiling((result.TotalServicesIp + result.TotalMaterialIp + result.TotalBonusIp - result.NoBonusAmount) / BonusIpFactor);
+
+            result.TotalSalary = result.BonusOoo > 0
+                ? result.BonusOoo + result.BonusIp + BaseSalaryOoo
+                : result.BonusIp + BaseSalaryIp;
+
+            return result;
         }
 
-        public bool EngineerReport(string path)         //метод создания отчета по выполненным расчетам
+        private void UpdateReportUi((decimal Plan, decimal BonusOoo, decimal BonusIp, decimal TotalSalary) result)
+        {
+            // Форматирование без дробной части и с разделителями (если нужно — можно убрать)
+            Plan.Text = result.Plan.ToString("N0");
+            Plan.BorderBrush = result.Plan >= BonusOooThreshold ? Brushes.Green : Brushes.Red;
+
+            BonusOOO.Text = result.BonusOoo.ToString("N0");
+            BonusIP.Text = result.BonusIp.ToString("N0");
+            Salary.Text = result.TotalSalary.ToString("N0");
+        }
+
+        public bool ManagerReport(string path)
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
-            using var workbook = new ExcelPackage();
-            ExcelWorksheet worksheet = workbook.Workbook.Worksheets.Add("Лист1");
-
-            List<Offer> _offers = new();
-
-            //подключаемся к базе данных
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
-            bool isAvalaible = db.Database.CanConnect();                    //проверяем, свободна ли база для подключения
-            if (isAvalaible && UserDrop.SelectedItem is Manager man)        //если база свободна, получаем выбранного сотрудника
+            // Если вызван из UI — используем уже посчитанный отчёт
+            ReportResult report;
+            if (_currentReport != null)
             {
-                try
-                {   //получаем список расчетов за выбранный период, автором которых является выбранный сотрудник
-                    _offers = db.Offers.Where(o => o.Autor == man.Name &&
-                    o.CreatedDate >= ReportCalendar.SelectedDates[0] && o.CreatedDate <= ReportCalendar.SelectedDates[ReportCalendar.SelectedDates.Count - 1]).ToList();
-
-                    if (_offers.Count == 0) return false;
-                }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    StatusBegin(ex.Message, StatusMessageType.Error);
-                }
+                report = _currentReport;
+            }
+            else
+            {
+                report = BuildReport(ReportOffers);
             }
 
-            (int, int, int, int, int, int) _values;
+            // --- Создание Excel ---
+            using var workbook = new ExcelPackage();
+            var worksheet = workbook.Workbook.Worksheets.Add("Лист1");
 
-            if (_offers.Count > 0)
-                for (int i = 0; i < _offers.Count; i++)
+            int row = 1;
+            var _headers = new List<string> { "дата", "№счета", "проект", "№заказа", "работа", "металл", "Итого", "%", "бонус", "№КП" };
+
+            // === ООО ===
+            if (report.OooItems.Count > 0)
+            {
+                worksheet.Cells[row, 1].Value = "ООО";
+                worksheet.Cells[row, 1].Style.Font.Bold = true;
+                row++;
+
+                WriteHeaders(worksheet, row, _headers);
+                row++;
+
+                foreach (var item in report.OooItems)
                 {
-                    _values = TypesAndWorks(_offers[i]);
+                    worksheet.Cells[row, 1].Value = item.CreatedDate;
+                    worksheet.Cells[row, 1].Style.Numberformat.Format = "d MMM";
+                    worksheet.Cells[row, 2].Value = item.Invoice;
+                    worksheet.Cells[row, 3].Value = item.Company;
+                    worksheet.Cells[row, 4].Value = item.Order;
+                    worksheet.Cells[row, 5].Value = item.Services;
+                    worksheet.Cells[row, 6].Value = item.Material;
+                    worksheet.Cells[row, 7].Value = item.Amount;
+                    worksheet.Cells[row, 8].Value = item.BonusRatio;
+                    worksheet.Cells[row, 9].Value = item.BonusAmount;
+                    worksheet.Cells[row, 10].Value = item.N;
 
-                    worksheet.Cells[i + 2, 1].Value = _offers[i].CreatedDate;
-                    worksheet.Cells[i + 2, 1].Style.Numberformat.Format = "d MMM";
-                    worksheet.Cells[i + 2, 2].Value = _offers[i].N;
-                    worksheet.Cells[i + 2, 3].Value = _offers[i].Company;
-                    worksheet.Cells[i + 2, 4].Value = Math.Round(_offers[i].Amount, 2);
-                    worksheet.Cells[i + 2, 5].Value = _values.Item1;
-                    worksheet.Cells[i + 2, 6].Value = _values.Item2;
-                    worksheet.Cells[i + 2, 7].Value = _values.Item3;
-                    worksheet.Cells[i + 2, 8].Value = _values.Item4;
-                    worksheet.Cells[i + 2, 9].Value = _values.Item5;
-                    worksheet.Cells[i + 2, 10].Value = _values.Item6;
+                    // Детальные расчёты (если нужны)
+                    decimal servicesBonus = item.Services * item.BonusRatio / (100 + item.BonusRatio);
+                    decimal materialBonus = item.Material * item.BonusRatio / (100 + item.BonusRatio);
+                    worksheet.Cells[row, 11].Value = Math.Ceiling(servicesBonus);
+                    worksheet.Cells[row, 12].Value = Math.Ceiling(materialBonus);
+                    worksheet.Cells[row, 13].Value = item.Services - Math.Ceiling(servicesBonus);
+                    worksheet.Cells[row, 14].Value = item.Material - Math.Ceiling(materialBonus);
+
+                    row++;
                 }
 
-            List<string> _headers = new() { "дата", "№ расчета", "проект", "сумма, руб", "заготовок", "работ", "позиций", "блоков гибки", "моделей", "сборок" };
-            for (int col = 0; col < _headers.Count; col++) worksheet.Cells[1, col + 1].Value = _headers[col];
+                // Итоги ООО
+                int oooStart = row - report.OooItems.Count;
+                int oooEnd = row - 1;
 
-            worksheet.Cells[1, 1, 1, _headers.Count].Style.Font.Bold = true;
-            worksheet.Cells[1, 1, 1, _headers.Count].Style.Fill.PatternType = ExcelFillStyle.Solid;
-            worksheet.Cells[1, 1, 1, _headers.Count].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+                DefineName(worksheet, "totalS1", oooStart, oooEnd, 5);
+                DefineName(worksheet, "totalM1", oooStart, oooEnd, 6);
+                DefineName(worksheet, "total1", oooStart, oooEnd, 7);
+                DefineName(worksheet, "bonus1", oooStart, oooEnd, 9);
+                DefineName(worksheet, "services1", oooStart, oooEnd, 13);
+                DefineName(worksheet, "material1", oooStart, oooEnd, 14);
 
-            ExcelRange table = worksheet.Cells[1, 1, _offers.Count + 2, _headers.Count];
-            table.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
-            table.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                worksheet.Cells[row, 5].Formula = "=SUM(totalS1)";
+                worksheet.Cells[row, 6].Formula = "=SUM(totalM1)";
+                worksheet.Cells[row, 7].Formula = "=SUM(total1)";
+                worksheet.Cells[row, 9].Formula = "=SUM(bonus1)";
+                worksheet.Cells[row, 13].Formula = "=SUM(services1)";
+                worksheet.Cells[row, 14].Formula = "=SUM(material1)";
+
+                // Прибыль по формуле
+                worksheet.Cells[row, 15].Formula = "=(SUM(totalS1)-SUM(totalS1)/1.3)/1.2";
+                worksheet.Cells[row, 16].Formula = "=(SUM(totalM1)-SUM(totalM1)/1.15)/1.2";
+
+                // Стили
+                worksheet.Cells[oooStart, 1, row, 10].Style.Border.BorderAround(ExcelBorderStyle.Medium);
+                worksheet.Cells[row, 5, row, 10].Style.Font.Bold = true;
+                worksheet.Cells[row, 15, row, 16].Style.Fill.SetBackground(System.Drawing.Color.LightGreen);
+
+                row++;
+            }
+
+            // === ИП и ПК ===
+            if (report.IpItems.Count > 0)
+            {
+                worksheet.Cells[row, 1].Value = "ИП и ПК";
+                worksheet.Cells[row, 1].Style.Font.Bold = true;
+                row++;
+
+                WriteHeaders(worksheet, row, _headers);
+                row++;
+
+                foreach (var item in report.IpItems)
+                {
+                    worksheet.Cells[row, 1].Value = item.CreatedDate;
+                    worksheet.Cells[row, 1].Style.Numberformat.Format = "d MMM";
+                    worksheet.Cells[row, 2].Value = item.Invoice;
+                    worksheet.Cells[row, 3].Value = item.Company;
+                    worksheet.Cells[row, 4].Value = item.Order;
+                    worksheet.Cells[row, 5].Value = item.Services;
+                    worksheet.Cells[row, 6].Value = item.Material;
+                    worksheet.Cells[row, 7].Value = item.Amount;
+                    worksheet.Cells[row, 8].Value = item.BonusRatio;
+                    worksheet.Cells[row, 9].Value = item.BonusAmount;
+                    worksheet.Cells[row, 10].Value = item.N;
+
+                    // Детальные расчёты
+                    decimal servicesBonus = item.Services * item.BonusRatio / (100 + item.BonusRatio);
+                    decimal materialBonus = item.Material * item.BonusRatio / (100 + item.BonusRatio);
+                    worksheet.Cells[row, 11].Value = Math.Ceiling(servicesBonus);
+                    worksheet.Cells[row, 12].Value = Math.Ceiling(materialBonus);
+                    worksheet.Cells[row, 13].Value = item.Services - Math.Ceiling(servicesBonus);
+                    worksheet.Cells[row, 14].Value = item.Material - Math.Ceiling(materialBonus);
+
+                    // Только если "без бонуса" — фиксируем для вычета
+                    if (item.IsNoBonus)
+                        worksheet.Cells[row, 17].Value = item.Amount;
+
+                    row++;
+                }
+
+                int ipStart = row - report.IpItems.Count;
+                int ipEnd = row - 1;
+
+                DefineName(worksheet, "totalS2", ipStart, ipEnd, 5);
+                DefineName(worksheet, "totalM2", ipStart, ipEnd, 6);
+                DefineName(worksheet, "total2", ipStart, ipEnd, 7);
+                DefineName(worksheet, "bonus2", ipStart, ipEnd, 9);
+                DefineName(worksheet, "services2", ipStart, ipEnd, 13);
+                DefineName(worksheet, "material2", ipStart, ipEnd, 14);
+                DefineName(worksheet, "notbonus", ipStart, ipEnd, 17);
+
+                worksheet.Cells[row, 5].Formula = "=SUM(totalS2)";
+                worksheet.Cells[row, 6].Formula = "=SUM(totalM2)";
+                worksheet.Cells[row, 7].Formula = "=SUM(total2)";
+                worksheet.Cells[row, 9].Formula = "=SUM(bonus2)";
+                worksheet.Cells[row, 13].Formula = "=SUM(services2)";
+                worksheet.Cells[row, 14].Formula = "=SUM(material2)";
+                worksheet.Cells[row, 17].Formula = "=SUM(notbonus)";
+
+                worksheet.Cells[row, 15].Formula = "=(SUM(totalS2)-SUM(totalS2)/1.3)/1.2";
+                worksheet.Cells[row, 16].Formula = "=(SUM(totalM2)-SUM(totalM2)/1.15)/1.2";
+
+                worksheet.Cells[ipStart, 1, row, 10].Style.Border.BorderAround(ExcelBorderStyle.Medium);
+                worksheet.Cells[row, 5, row, 10].Style.Font.Bold = true;
+                worksheet.Cells[row, 15, row, 16].Style.Fill.SetBackground(System.Drawing.Color.LightGreen);
+
+                row++;
+            }
+
+            // === Общий итог ===
+            row++;
+            worksheet.Cells[row, 4].Value = "ИТОГО:";
+            worksheet.Cells[row, 5].Formula = "=SUM(totalS1)+SUM(totalS2)";
+            worksheet.Cells[row, 6].Formula = "=SUM(totalM1)+SUM(totalM2)";
+            worksheet.Cells[row, 7].Formula = "=SUM(total1)+SUM(total2)";
+            worksheet.Cells[row, 9].Formula = "=SUM(bonus1)+SUM(bonus2)";
+
+            // Прибыль (как в UI)
+            worksheet.Cells[row, 1].Value = "Прибыль месяца:";
+            worksheet.Cells[row, 2].Formula =
+                "=(SUM(services1)-SUM(services1)/1.3)/1.2+(SUM(services2)-SUM(services2)/1.3)/1.2+" +
+                "(SUM(material1)-SUM(material1)/1.15)/1.2+(SUM(material2)-SUM(material2)/1.15)/1.2+SUM(bonus1)+SUM(bonus2)";
+            worksheet.Cells[row, 2].Style.Font.Bold = true;
+
+            // Убедимся, что значение совпадает с Plan
+            worksheet.Cells[row, 2].Value = report.Plan; // ← жёстко подставляем, чтобы не было расхождений!
+
+            worksheet.Cells[row, 1, row, 14].Style.Fill.SetBackground(System.Drawing.Color.LightPink);
+            row += 3;
+
+            // === Расчёт зарплаты (с фиксированными значениями) ===
+            int salaryRow = row;
+
+            worksheet.Cells[salaryRow, 1].Value = "Доп бонус за ИП и ПК:";
+            worksheet.Cells[salaryRow, 2].Value = report.BonusIp;
+            worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightBlue);
+            salaryRow++;
+
+            worksheet.Cells[salaryRow, 1].Value = "Оклад:";
+            worksheet.Cells[salaryRow, 2].Value = 30000; // всегда 30 000
+            worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightBlue);
+            salaryRow++;
+
+            worksheet.Cells[salaryRow, 1].Value = "Премия за план:";
+            worksheet.Cells[salaryRow, 2].Value = report.Plan >= BonusOooThreshold ? 20000 : 0; // 20 000, если план выполнен
+            worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightBlue);
+            salaryRow++;
+
+            worksheet.Cells[salaryRow, 1].Value = "%:";
+            worksheet.Cells[salaryRow, 2].Value = report.BonusOoo; // это (Plan - 200000) * 0.15, если Plan >= 200000
+            worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightBlue);
+            salaryRow++;
+
+            worksheet.Cells[salaryRow, 1].Value = "Аванс:";
+            worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightYellow);
+            salaryRow++;
+
+            worksheet.Cells[salaryRow, 1].Value = "На карту:";
+            worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightYellow);
+            salaryRow += 2;
+
+            // Итоговая сумма
+            decimal totalSalary = report.BonusIp + 30000 +
+                                 (report.Plan >= BonusOooThreshold ? 20000 : 0) +
+                                 report.BonusOoo;
+
+            worksheet.Cells[salaryRow, 1].Value = "Итоговая за месяц:";
+            worksheet.Cells[salaryRow, 2].Value = totalSalary;
+            worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.GreenYellow);
+            salaryRow++;
+
+            worksheet.Cells[salaryRow, 1].Value = "К доплате:";
+            worksheet.Cells[salaryRow, 2].Value = totalSalary; // или можно сделать ссылку на ячейку
+            worksheet.Cells[salaryRow, 2].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+            worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.GreenYellow);
+
+            var table = worksheet.Cells[row, 1, salaryRow, 2];
+            table.Style.Border.Right.Style = table.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
             table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
-            worksheet.Names.Add("totalT", worksheet.Cells[2, 5, _offers.Count + 1, 5]);
-            worksheet.Cells[_offers.Count + 2, 5].Formula = "=SUM(totalT)";
-            worksheet.Names.Add("totalW", worksheet.Cells[2, 6, _offers.Count + 1, 6]);
-            worksheet.Cells[_offers.Count + 2, 6].Formula = "=SUM(totalW)";
-            worksheet.Names.Add("totalP", worksheet.Cells[2, 7, _offers.Count + 1, 7]);
-            worksheet.Cells[_offers.Count + 2, 7].Formula = "=SUM(totalP)";
-            worksheet.Names.Add("totalB", worksheet.Cells[2, 8, _offers.Count + 1, 8]);
-            worksheet.Cells[_offers.Count + 2, 8].Formula = "=SUM(totalB)";
-            worksheet.Names.Add("totalM", worksheet.Cells[2, 9, _offers.Count + 1, 9]);
-            worksheet.Cells[_offers.Count + 2, 9].Formula = "=SUM(totalM)";
-            worksheet.Names.Add("totalA", worksheet.Cells[2, 10, _offers.Count + 1, 10]);
-            worksheet.Cells[_offers.Count + 2, 10].Formula = "=SUM(totalA)";
-
-            ExcelRange row = worksheet.Cells[_offers.Count + 2, 1, _offers.Count + 2, _headers.Count];
-            row.Style.Font.Bold = true;
-            row.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+            // Скрыть вспомогательные столбцы
+            for (int col = 10; col <= 14; col++)
+                worksheet.Column(col).Hidden = true;
 
             worksheet.Cells.AutoFitColumns();
-            workbook.SaveAs(path + ".xlsx");      //сохраняем отчет .xlsx
-
+            workbook.SaveAs(path + ".xlsx");
             return true;
         }
 
-        private (int, int, int, int, int, int) TypesAndWorks(Offer offer)
+        private void WriteHeaders(ExcelWorksheet ws, int row, List<string> headers)
         {
-            if (offer.Data is null) return (0, 0, 0, 0, 0, 0);
-
-            int types = 0; int works = 0; int count = 0; int bends = 0; int models = 0; int assemblies = 0;
-
-            ProductModel.Product = OpenOfferData(offer.Data);
-
-            if (ProductModel.Product != null && ProductModel.Product.HasAssembly) assemblies++;
-
-            if (ProductModel.Product is not null && ProductModel.Product.Details.Count > 0)
-            {
-                foreach (Detail det in ProductModel.Product.Details)
-                    foreach (SaveTypeDetail type in det.TypeDetails)
-                    {
-                        types++;
-                        foreach (SaveWork work in type.Works)
-                        {
-                            if (work.NameWork == "Лазерная резка")
-                            {
-                                count += work.Parts.Count;
-
-                                foreach (Part part in work.Parts)
-                                    foreach (List<string> list in part.PropsDict.Values)
-                                        if (list.Count > 2 && list[0] == "0" && part.Description != null && part.Description.Contains(" + Г ")) bends++;
-                                break;
-                            }
-                            else if (work.NameWork == "Труборез")
-                            {
-                                count += work.Parts.Count;
-                                break;
-                            }
-                        }
-                        works += type.Works.Count;
-                    }
-            }
-
-            return (types, works, count, bends, models, assemblies);
+            for (int i = 0; i < headers.Count; i++)
+                ws.Cells[row, i + 1].Value = headers[i];
+            ws.Cells[row, 1, row, headers.Count].Style.Fill.SetBackground(System.Drawing.Color.LightGray);
+        }
+        private void DefineName(ExcelWorksheet ws, string name, int startRow, int endRow, int col)
+        {
+            if (startRow <= endRow)
+                ws.Names.Add(name, ws.Cells[startRow, col, endRow, col]);
+            else
+                ws.Names.Add(name, ws.Cells[1, 1]); // пустой диапазон
         }
         #endregion
 

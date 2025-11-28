@@ -25,7 +25,6 @@ namespace Metal_Code
             MainWindow.M.Managers = db.Managers.Local.ToObservableCollection();
 
             MainWindow.M.ManagerDrop.ItemsSource = MainWindow.M.Managers.Where(m => !m.IsEngineer);     //список ТОЛЬКО менеджеров (для выставления КП)
-            MainWindow.M.UserDrop.ItemsSource = MainWindow.M.Managers;                                  //список ВСЕХ пользователей (для отчетов)
 
             db.Customers.Load();
             MainWindow.M.Customers = db.Customers.Local.ToObservableCollection();
