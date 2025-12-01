@@ -6,49 +6,81 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Metal_Code"
         mc:Ignorable="d" WindowStartupLocation="CenterScreen" Loaded="Loaded_Window" SizeToContent="Width">
-    
+
     <Window.Resources>
         <local:CostConverter x:Key="CostConverter"/>
+
+        <SolidColorBrush x:Key="ButtonBackground" Color="#FFFFFFE1"/>
+        <SolidColorBrush x:Key="BorderColor" Color="#D1D9E0"/>
+        <SolidColorBrush x:Key="FocusBorderColor" Color="#4A90E2"/>
+
+        <!-- Стиль для Button -->
+        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource ButtonBackground}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Foreground" Value="Black" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="4"
+                        Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#FFFFFFFF" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource FocusBorderColor}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#F0F0F0" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
     </Window.Resources>
-    
+
     <DockPanel LastChildFill="True" Margin="5">
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10">
-            
-            <Expander Header="Коэффициенты" IsExpanded="False" Width="150" BorderBrush="Gray" VerticalAlignment="Center" Margin="5,0,0,0">
-                    <Grid Margin="0,8,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
 
-                        <TextBlock Text="Общий" Margin="0,0,8,0" VerticalAlignment="Center" />
-                        <hc:NumericUpDown Grid.Column="1"
+            <Expander Header="Коэффициенты" Width="150" BorderBrush="Gray" VerticalAlignment="Top" Margin="5,3,0,0">
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Общий" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <hc:NumericUpDown Grid.Column="1"
                           Value="{Binding Ratio, StringFormat='{}{0:F2}'}"
                           Minimum="0" Maximum="10" Increment="0.01" ToolTip="Введите наценку на всё КП"/>
 
-                        <TextBlock Grid.Row="1" Text="Материал" Margin="0,8,8,0" VerticalAlignment="Center" />
-                        <hc:NumericUpDown Grid.Row="1" Grid.Column="1"
+                    <TextBlock Grid.Row="1" Text="Материал" Margin="0,8,8,0" VerticalAlignment="Center" />
+                    <hc:NumericUpDown Grid.Row="1" Grid.Column="1"
                           Value="{Binding MaterialFactor, StringFormat='{}{0:F2}'}"
                           Minimum="0" Maximum="10" Increment="0.01" Margin="0,8,0,0" ToolTip="Введите наценку на весь материал"/>
 
-                        <TextBlock Grid.Row="2" Text="Услуги" Margin="0,8,8,0" VerticalAlignment="Center" />
-                        <hc:NumericUpDown Grid.Row="2" Grid.Column="1"
+                    <TextBlock Grid.Row="2" Text="Услуги" Margin="0,8,8,0" VerticalAlignment="Center" />
+                    <hc:NumericUpDown Grid.Row="2" Grid.Column="1"
                           Value="{Binding ServiceFactor, StringFormat='{}{0:F2}'}"
                           Minimum="0" Maximum="10" Increment="0.01" Margin="0,8,0,0" ToolTip="Введите наценку на все услуги"/>
+                </Grid>
+            </Expander>
 
-                        <CheckBox Grid.Row="2" Grid.Column="2" Margin="5,8,0,0" VerticalAlignment="Center"
-                                    IsChecked="{Binding HasAssembly}"
-                                    ToolTip="Добавить наценку за срочность"/>
-                    </Grid>
-                </Expander>
-
-            <Border BorderBrush="Gray" CornerRadius="3" BorderThickness="1" Margin="20,0,0,0" VerticalAlignment="Center">
+            <Border BorderBrush="Gray" CornerRadius="3" BorderThickness="1" Margin="20,0,0,0" VerticalAlignment="Top">
                 <StackPanel Orientation="Horizontal" Margin="5">
                     <TextBlock Text="Стоимость" VerticalAlignment="Center" Padding="2"/>
                     <TextBlock Text="{Binding Amount, Converter={StaticResource CostConverter}}" VerticalAlignment="Center" FontSize="14" FontWeight="Bold" Margin="5,0,0,0" Padding="2"/>
@@ -56,7 +88,7 @@
                 </StackPanel>
             </Border>
 
-            <Border BorderBrush="Gray" CornerRadius="3" BorderThickness="1" Margin="20,0,0,0" VerticalAlignment="Center">
+            <Border BorderBrush="Gray" CornerRadius="3" BorderThickness="1" Margin="20,0,0,0" VerticalAlignment="Top">
                 <StackPanel Orientation="Horizontal" Margin="5">
                     <CheckBox IsChecked="{Binding HasDelivery}" Content="Доставка" ToolTip="v - отдельной строкой в КП, ■ - включена в цены деталей" IsThreeState="True" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
                     <TextBlock Text="{Binding Delivery}" FontWeight="Bold" VerticalAlignment="Center" ToolTip="Цена доставки" Margin="5,0,0,0" Padding="2"/>
@@ -66,14 +98,14 @@
                 </StackPanel>
             </Border>
 
-            <Border BorderBrush="Gray" CornerRadius="3" BorderThickness="1" Margin="20,0,0,0" VerticalAlignment="Center">
+            <Border BorderBrush="Gray" CornerRadius="3" BorderThickness="1" Margin="20,0,0,0" VerticalAlignment="Top">
                 <StackPanel Orientation="Horizontal" Margin="5">
                     <CheckBox IsChecked="{Binding HasConstruct}" Content="Конструктор" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsThreeState="True" Margin="5,0,0,0" Padding="2"/>
                     <TextBlock Text="{Binding Construct, Converter={StaticResource CostConverter}}" FontWeight="Bold" VerticalAlignment="Center" ToolTip="Цена доставки" Margin="5,0,0,0" Padding="2"/>
                 </StackPanel>
             </Border>
 
-            <Border BorderBrush="Gray" CornerRadius="3" BorderThickness="1" Margin="20,0,0,0" VerticalAlignment="Center">
+            <Border BorderBrush="Gray" CornerRadius="3" BorderThickness="1" Margin="20,0,0,0" VerticalAlignment="Top">
                 <StackPanel Orientation="Horizontal" Margin="5">
                     <TextBlock Text="Бонус" VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding BonusRatio}" VerticalAlignment="Center" ToolTip="Процент наценки" Margin="5,0,0,0" Padding="2"/>
@@ -82,35 +114,38 @@
                 </StackPanel>
             </Border>
 
-            <Border BorderBrush="Gray" CornerRadius="3" BorderThickness="1" Margin="20,0,0,0" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Margin="5">
-                    <TextBlock Text="Срок" VerticalAlignment="Center" Margin="5,0,0,0" Padding="2"/>
-                    <TextBlock Text="{Binding Production}" FontWeight="Bold" VerticalAlignment="Center" Margin="5,0,0,0" Padding="2"/>
-                    <TextBlock Text="раб/дней" VerticalAlignment="Center" Margin="2,0,0,0" Padding="2"/>
-                </StackPanel>
-            </Border>
+            <Expander Width="150" BorderBrush="Gray" VerticalAlignment="Top" Margin="20,3,0,0" IsExpanded="True">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Срок" VerticalAlignment="Center" Padding="2"/>
+                        <TextBlock Text="{Binding Production}" FontWeight="Bold" VerticalAlignment="Center" Margin="3,0,0,0" Padding="2"/>
+                        <TextBlock Text="раб/дней" VerticalAlignment="Center" Margin="2,0,0,0" Padding="2"/>
+                    </StackPanel>
+                </Expander.Header>
 
-            <Expander Header="Скопировать" IsExpanded="False" Width="150" BorderBrush="#FF00C800" VerticalAlignment="Center" Margin="20,0,0,0">
+                <CheckBox Content="Экспресс" VerticalAlignment="Top" IsChecked="{Binding HasAssembly}" Margin="5,8,0,0"/>
+            </Expander>
+            
+            <Expander Header="Скопировать" Width="150" BorderBrush="#FF00C800" VerticalAlignment="Top" Margin="20,3,0,0">
                 <Grid Margin="0,8,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <Button Click="CopyUserControls" ToolTip="Перенести работы в основной расчет" Padding="8,4" Margin="3">
+                    <Button Click="CopyUserControls" ToolTip="Перенести работы в основной расчет" Margin="3">
                         <StackPanel Orientation="Horizontal">
                             <Image Source="/Images/works2.png" Width="16"/>
                             <TextBlock Text="Работы" Padding="2" Margin="3,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
 
-                    <Button Click="CopyBaskets" ToolTip="Перенести покупные изделия в основной расчет" Padding="8,4" Margin="3" Grid.Row="1">
+                    <Button Click="CopyBaskets" ToolTip="Перенести покупные изделия в основной расчет" Margin="3" Grid.Row="1">
                         <StackPanel Orientation="Horizontal">
                             <Image Source="Images/basket.png" Width="16"/>
                             <TextBlock Text="Покупные изделия" Padding="2" Margin="3,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    
                 </Grid>
             </Expander>
 
