@@ -4739,70 +4739,111 @@ namespace Metal_Code
                 if (offer == null) continue;
 
                 bool isAgent = offer.Agent == true;
-                bool isNoBonus = isAgent && !string.IsNullOrEmpty(offer.Invoice) &&
-                                 offer.Invoice.Contains(NoBonusMarker, StringComparison.OrdinalIgnoreCase);
+                string? invoice = offer.Invoice;
 
+                // Определяем, есть ли пометка "без бонуса"
+                bool isNoBonus = isAgent && !string.IsNullOrEmpty(invoice) &&
+                                 invoice.Contains(NoBonusMarker, StringComparison.OrdinalIgnoreCase);
+
+                // Округляем исходные суммы вверх (как в Excel)
+                decimal servicesGross = (decimal)Math.Ceiling(offer.Services);
+                decimal materialGross = (decimal)Math.Ceiling(offer.Material);
+                decimal amountGross = (decimal)Math.Ceiling(offer.Amount);
+
+                // Извлекаем бонусный процент
                 decimal bonusRatio = 0;
                 if (!string.IsNullOrEmpty(offer.Data))
                 {
                     var match = regex.Match(offer.Data);
-                    if (match.Success && decimal.TryParse(match.Groups[1].Value, out var ratio))
-                        bonusRatio = ratio;
+                    if (match.Success && decimal.TryParse(match.Groups[1].Value, out var parsedRatio))
+                        bonusRatio = parsedRatio;
                 }
 
-                decimal bonusAmount = (decimal)offer.Amount * bonusRatio / (100 + bonusRatio);
-                if (isNoBonus) bonusAmount = 0; // явно обнуляем
+                // Если "без бонуса" — обнуляем бонус
+                if (isNoBonus)
+                    bonusRatio = 0;
 
+                // Общая сумма для расчёта пропорции (не может быть 0, если есть бонус)
+                decimal totalGross = servicesGross + materialGross;
+
+                // Рассчитываем бонусную часть от услуг и материала
+                decimal servicesBonus = 0;
+                decimal materialBonus = 0;
+
+                if (bonusRatio > 0 && totalGross > 0)
+                {
+                    // Пропорциональное распределение бонуса
+                    servicesBonus = Math.Ceiling(servicesGross * bonusRatio / (100 + bonusRatio));
+                    materialBonus = Math.Ceiling(materialGross * bonusRatio / (100 + bonusRatio));
+                }
+
+                // Чистые суммы (остаются в компании)
+                decimal servicesNet = servicesGross - servicesBonus;
+                decimal materialNet = materialGross - materialBonus;
+                decimal bonusAmount = servicesBonus + materialBonus;
+
+                // Создаём элемент для Excel
                 var item = new ReportOfferItem
                 {
                     CreatedDate = offer.CreatedDate,
-                    Invoice = offer.Invoice,
+                    Invoice = invoice,
                     Company = offer.Company,
                     Order = offer.Order,
-                    Services = (decimal)Math.Ceiling(offer.Services),
-                    Material = (decimal)Math.Ceiling(offer.Material),
-                    Amount = (decimal)Math.Ceiling(offer.Amount),
                     N = offer.N,
                     IsAgent = isAgent,
+                    Services = servicesGross,
+                    Material = materialGross,
+                    Amount = amountGross,
+                    ServicesNet = servicesNet,
+                    MaterialNet = materialNet,
                     BonusRatio = bonusRatio,
-                    BonusAmount = Math.Ceiling(bonusAmount),
+                    BonusAmount = bonusAmount,
                     IsNoBonus = isNoBonus
                 };
 
                 if (isAgent)
                 {
                     result.IpItems.Add(item);
-                    result.TotalServicesIp += item.Services;
-                    result.TotalMaterialIp += item.Material;
-                    result.TotalBonusIp += item.BonusAmount;
-                    if (isNoBonus) result.NoBonusAmount += item.Amount;
+                    result.TotalServicesIp += servicesNet;
+                    result.TotalMaterialIp += materialNet;
+                    result.TotalBonusIp += bonusAmount;
+                    if (isNoBonus)
+                        result.NoBonusAmount += amountGross; // ← именно amountGross, как в Excel
                 }
                 else
                 {
                     result.OooItems.Add(item);
-                    result.TotalServicesOoo += item.Services;
-                    result.TotalMaterialOoo += item.Material;
-                    result.TotalBonusOoo += item.BonusAmount;
+                    result.TotalServicesOoo += servicesNet;
+                    result.TotalMaterialOoo += materialNet;
+                    result.TotalBonusOoo += bonusAmount;
                 }
             }
 
-            // --- Расчёт итогов (точно как в ReportView) ---
+            // === Расчёт ЧИСТОЙ прибыли (только от чистых сумм, без бонусов) ===
             decimal profitServicesOoo = (result.TotalServicesOoo - result.TotalServicesOoo / VatRateServices) / ProfitMargin;
             decimal profitMaterialOoo = (result.TotalMaterialOoo - result.TotalMaterialOoo / VatRateMaterial) / ProfitMargin;
             decimal profitServicesIp = (result.TotalServicesIp - result.TotalServicesIp / VatRateServices) / ProfitMargin;
             decimal profitMaterialIp = (result.TotalMaterialIp - result.TotalMaterialIp / VatRateMaterial) / ProfitMargin;
 
-            result.Plan = Math.Ceiling(profitServicesOoo + profitMaterialOoo + profitServicesIp + profitMaterialIp + result.TotalBonusOoo + result.TotalBonusIp);
+            result.CleanProfit = profitServicesOoo + profitMaterialOoo + profitServicesIp + profitMaterialIp;
 
+            // === План = Чистая прибыль + все бонусы (как отдельная надбавка) ===
+            result.Plan = Math.Ceiling(result.CleanProfit + result.TotalBonusOoo + result.TotalBonusIp);
+
+            // === Бонус за ООО (сверхплановый) ===
             result.BonusOoo = result.Plan >= BonusOooThreshold
                 ? Math.Ceiling((result.Plan - BonusOooThreshold) * BonusOooRate)
                 : 0;
 
-            result.BonusIp = Math.Ceiling((result.TotalServicesIp + result.TotalMaterialIp + result.TotalBonusIp - result.NoBonusAmount) / BonusIpFactor);
+            // === Бонус ИП ===
+            // Используем: (чистые услуги + чистый материал + бонусы ИП - "без бонуса") / 30
+            decimal ipBaseForBonus = result.TotalServicesIp + result.TotalMaterialIp + result.TotalBonusIp - result.NoBonusAmount;
+            result.BonusIp = Math.Ceiling(ipBaseForBonus / BonusIpFactor);
 
-            result.TotalSalary = result.BonusOoo > 0
-                ? result.BonusOoo + result.BonusIp + BaseSalaryOoo
-                : result.BonusIp + BaseSalaryIp;
+            // === Итоговая зарплата ===
+            decimal baseSalary = 30000m;
+            decimal planBonus = result.Plan >= BonusOooThreshold ? 20000m : 0;
+            result.TotalSalary = baseSalary + planBonus + result.BonusOoo + result.BonusIp;
 
             return result;
         }
@@ -4869,8 +4910,8 @@ namespace Metal_Code
                     decimal materialBonus = item.Material * item.BonusRatio / (100 + item.BonusRatio);
                     worksheet.Cells[row, 11].Value = Math.Ceiling(servicesBonus);
                     worksheet.Cells[row, 12].Value = Math.Ceiling(materialBonus);
-                    worksheet.Cells[row, 13].Value = item.Services - Math.Ceiling(servicesBonus);
-                    worksheet.Cells[row, 14].Value = item.Material - Math.Ceiling(materialBonus);
+                    worksheet.Cells[row, 13].Value = item.ServicesNet; // ← чистые (для расчёта прибыли)
+                    worksheet.Cells[row, 14].Value = item.MaterialNet;
 
                     row++;
                 }
@@ -4934,8 +4975,8 @@ namespace Metal_Code
                     decimal materialBonus = item.Material * item.BonusRatio / (100 + item.BonusRatio);
                     worksheet.Cells[row, 11].Value = Math.Ceiling(servicesBonus);
                     worksheet.Cells[row, 12].Value = Math.Ceiling(materialBonus);
-                    worksheet.Cells[row, 13].Value = item.Services - Math.Ceiling(servicesBonus);
-                    worksheet.Cells[row, 14].Value = item.Material - Math.Ceiling(materialBonus);
+                    worksheet.Cells[row, 13].Value = item.ServicesNet; // ← чистые (для расчёта прибыли)
+                    worksheet.Cells[row, 14].Value = item.MaterialNet;
 
                     // Только если "без бонуса" — фиксируем для вычета
                     if (item.IsNoBonus)
@@ -4973,23 +5014,32 @@ namespace Metal_Code
                 row++;
             }
 
-            // === Общий итог ===
+            // === Прибыль месяца (с разделением на "Чист" и "Устар") ===
             row++;
+            worksheet.Cells[row, 1].Value = "Прибыль месяца:";
+            worksheet.Cells[row, 2].Value = report.Plan; // ← это cleanProfit + бонусы
+            worksheet.Cells[row, 2].Style.Font.Bold = true;
+            
+            // === Общие итоги ===
             worksheet.Cells[row, 4].Value = "ИТОГО:";
             worksheet.Cells[row, 5].Formula = "=SUM(totalS1)+SUM(totalS2)";
             worksheet.Cells[row, 6].Formula = "=SUM(totalM1)+SUM(totalM2)";
             worksheet.Cells[row, 7].Formula = "=SUM(total1)+SUM(total2)";
             worksheet.Cells[row, 9].Formula = "=SUM(bonus1)+SUM(bonus2)";
 
-            // Прибыль (как в UI)
-            worksheet.Cells[row, 1].Value = "Прибыль месяца:";
-            worksheet.Cells[row, 2].Formula =
-                "=(SUM(services1)-SUM(services1)/1.3)/1.2+(SUM(services2)-SUM(services2)/1.3)/1.2+" +
-                "(SUM(material1)-SUM(material1)/1.15)/1.2+(SUM(material2)-SUM(material2)/1.15)/1.2+SUM(bonus1)+SUM(bonus2)";
-            worksheet.Cells[row, 2].Style.Font.Bold = true;
+            // Чистая прибыль (без бонусов в базе) — ОСНОВНАЯ
+            worksheet.Cells[row, 11].Value = "Чист:";
+            worksheet.Cells[row, 12].Value = Math.Ceiling(report.CleanProfit);
 
-            // Убедимся, что значение совпадает с Plan
-            worksheet.Cells[row, 2].Value = report.Plan; // ← жёстко подставляем, чтобы не было расхождений!
+            // Устаревший расчёт (для сравнения/проверки)
+            worksheet.Cells[row, 13].Value = "Устар:";
+            worksheet.Cells[row, 14].Formula =
+                "=ROUND(" +
+                    "(SUM(totalS1)-SUM(totalS1)/1.3)/1.2" +
+                    "+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2" +
+                    "+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2" +
+                    "+(SUM(totalM2)-SUM(totalM2)/1.15)/1.2" +
+                ", 0)";
 
             worksheet.Cells[row, 1, row, 14].Style.Fill.SetBackground(System.Drawing.Color.LightPink);
             row += 3;
