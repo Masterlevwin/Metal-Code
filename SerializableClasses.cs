@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 
@@ -603,6 +604,7 @@ namespace Metal_Code
     public class RequestContext : DbContext
     {
         public DbSet<RequestTemplate> Templates { get; set; } = null!;
+        public DbSet<UpdateItem> UpdateItems { get; set; } = null!;
 
         public string connectionString;
         public RequestContext(string connectionString)
@@ -615,6 +617,76 @@ namespace Metal_Code
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlite(connectionString);
+        }
+
+        public void EnsureUpdateTableExists()
+        {
+            var createTableSql = @"
+        CREATE TABLE IF NOT EXISTS UpdateItems (
+            Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            VersionTitle TEXT,
+            Description TEXT,
+            ScreenshotPath TEXT,
+            ReleaseDate TEXT NOT NULL,
+            IsShownAtStartup INTEGER NOT NULL
+        );";
+
+            Database.ExecuteSqlRaw(createTableSql);
+        }
+
+        public void EnsureUpdateHistoryInitialized()
+        {
+            // Если уже есть какие-то записи — ничего не делаем (идемпотентность)
+            if (UpdateItems.Any())
+                return;
+
+            // Заполняем начальными обновлениями
+            var initialUpdates = new List<UpdateItem>
+            {
+                new() {
+                    VersionTitle = "v1.0.0.0",
+                    ReleaseDate = new DateTime(2023, 08, 03),
+                    Description = "Первый релиз. Добавлена основная функциональность.",
+                    ScreenshotPath = null,
+                    IsShownAtStartup = false // ← пользователь уже "видел" старые версии
+                },
+                new() {
+                    VersionTitle = "v2.5.0.0",
+                    ReleaseDate = new DateTime(2024, 12, 08),
+                    Description = "Добавлено руководство пользователя.",
+                    ScreenshotPath = "/Images/example0.png",
+                    IsShownAtStartup = false
+                },
+                // Последняя версия — помечаем как НОВОЕ обновление (ещё не показано)
+                new() {
+                    VersionTitle = "v2.6.7.4",
+                    ReleaseDate = new DateTime(2025, 12, 1),
+                    Description = "Добавлено окно истории обновлений. Теперь можно просматривать все изменения.",
+                    ScreenshotPath = null,
+                    IsShownAtStartup = true // ← показать при запуске!
+                }
+            };
+
+            UpdateItems.AddRange(initialUpdates);
+            SaveChanges();
+        }
+
+        public List<UpdateItem> GetNewStartupUpdates()
+        {
+            return UpdateItems
+                .Where(u => u.IsShownAtStartup)
+                .OrderByDescending(u => u.ReleaseDate)
+                .ToList();
+        }
+
+        public void MarkStartupUpdatesAsSeen()
+        {
+            var unseen = UpdateItems.Where(u => u.IsShownAtStartup).ToList();
+            foreach (var item in unseen)
+            {
+                item.IsShownAtStartup = false;
+            }
+            SaveChanges();
         }
     }
 

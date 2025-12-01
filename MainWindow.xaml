@@ -263,6 +263,8 @@
                         <Image Source="/Images/lamp.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
+                <MenuItem Header="История обновлений" Click="OnUpdatesMenuItemClick"/>
+                <Separator/>
                 <MenuItem Header="Обновить программу" Click="Restart"/>
             </MenuItem>
             <MenuItem x:Name="Login" ToolTip="Сменить пользователя" Click="ShowLoginWindow"/>

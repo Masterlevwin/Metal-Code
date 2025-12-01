@@ -579,7 +579,44 @@ namespace Metal_Code
             {
                 OpenFileOnStartup(filePath);
             }
+
+            ShowUpdateWindow();
         }
+        public void ShowUpdateWindow()
+        {
+            // Создаём контекст
+            using var ctx = new RequestContext(connections[12]);
+            ctx.EnsureUpdateTableExists();
+
+            // Гарантируем, что история есть
+            ctx.EnsureUpdateHistoryInitialized();
+
+            // Получаем новые обновления
+            var newUpdates = ctx.GetNewStartupUpdates();
+
+            if (newUpdates.Any())
+            {
+                var updateWindow = new UpdateWindow(newUpdates); // передаём список в окно
+                updateWindow.ShowDialog();
+
+                // После закрытия — помечаем как просмотренные
+                using var freshCtx = new RequestContext(connections[12]); // или переиспользуйте, если в том же потоке
+                freshCtx.MarkStartupUpdatesAsSeen();
+            }
+        }
+        private void OnUpdatesMenuItemClick(object sender, RoutedEventArgs e)
+        {
+            using var ctx = new RequestContext(connections[12]);
+
+            // Показываем ВСЮ историю (без фильтра IsShownAtStartup)
+            var allUpdates = ctx.UpdateItems
+                .OrderByDescending(u => u.ReleaseDate)
+                .ToList();
+
+            var updateWindow = new UpdateWindow(allUpdates);
+            updateWindow.ShowDialog();
+        }
+
         public void OpenFileOnStartup(string filePath)
         {
             try
