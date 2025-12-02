@@ -316,9 +316,9 @@ namespace Metal_Code
         {
             float _squareRatio = _square switch             //рассчитываем наценку за площадь детали
             {
-                <= 0.8f => 1,
-                <= 1.4f => 1.5f,
-                _ => 2,
+                <= 0.8f => .5f,
+                <= 1.4f => .75f,
+                _ => 1,
             };
 
             float _bendRatio = _count switch
