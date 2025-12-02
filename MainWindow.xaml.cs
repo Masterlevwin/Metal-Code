@@ -582,7 +582,8 @@ namespace Metal_Code
 
             ShowUpdateWindow();
         }
-        public void ShowUpdateWindow()
+        
+        public void ShowUpdateWindow()          // метод добавления и загрузки обновлений
         {
             // Создаём контекст
             using var ctx = new RequestContext(connections[12]);
@@ -590,6 +591,15 @@ namespace Metal_Code
 
             // Гарантируем, что история есть
             ctx.EnsureUpdateHistoryInitialized();
+
+            // Добавить новое обновление (если его ещё нет)
+            ctx.AddNewUpdateIfNotExists(
+                version: "v2.6.7.5",
+                releaseDate: new DateTime(2025, 12, 2),
+                description: "Добавлено окно истории обновлений. Теперь можно просматривать все изменения.\n" +
+                                "Подробности обновления смотрите на скриншоте!",
+                screenshotPath: "/Updates/v2.6.7.5_2025-12-02.png"
+            );
 
             // Получаем новые обновления
             var newUpdates = ctx.GetNewStartupUpdates();
@@ -604,6 +614,7 @@ namespace Metal_Code
                 freshCtx.MarkStartupUpdatesAsSeen();
             }
         }
+
         private void OnUpdatesMenuItemClick(object sender, RoutedEventArgs e)
         {
             using var ctx = new RequestContext(connections[12]);

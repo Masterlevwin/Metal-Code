@@ -653,21 +653,33 @@ namespace Metal_Code
                 new() {
                     VersionTitle = "v2.5.0.0",
                     ReleaseDate = new DateTime(2024, 12, 08),
-                    Description = "Добавлено руководство пользователя.",
+                    Description = "Добавлено руководство пользователя. Добавлен режим заявки.",
                     ScreenshotPath = "/Images/example0.png",
                     IsShownAtStartup = false
                 },
-                // Последняя версия — помечаем как НОВОЕ обновление (ещё не показано)
-                new() {
-                    VersionTitle = "v2.6.7.4",
-                    ReleaseDate = new DateTime(2025, 12, 1),
-                    Description = "Добавлено окно истории обновлений. Теперь можно просматривать все изменения.",
-                    ScreenshotPath = null,
-                    IsShownAtStartup = true // ← показать при запуске!
-                }
             };
 
             UpdateItems.AddRange(initialUpdates);
+            SaveChanges();
+        }
+
+        public void AddNewUpdateIfNotExists(string version, DateTime releaseDate, string description, string? screenshotPath = null)
+        {
+            // Проверяем, существует ли уже обновление с такой версией
+            var exists = UpdateItems.Any(u => u.VersionTitle == version);
+            if (exists)
+                return;
+
+            var newItem = new UpdateItem
+            {
+                VersionTitle = version,
+                ReleaseDate = releaseDate,
+                Description = description,
+                ScreenshotPath = screenshotPath,
+                IsShownAtStartup = true // ← важно! чтобы показать при запуске
+            };
+
+            UpdateItems.Add(newItem);
             SaveChanges();
         }
 

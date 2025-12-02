@@ -12,6 +12,7 @@ namespace Metal_Code
         public UpdateWindow(List<UpdateItem> updates)
         {
             InitializeComponent();
+            Height = SystemParameters.WorkArea.Height;
             ChangesListItemsControl.ItemsSource = updates;
         }
 
