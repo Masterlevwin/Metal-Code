@@ -16,6 +16,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Dynamic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management;
@@ -4803,8 +4804,15 @@ namespace Metal_Code
                 if (!string.IsNullOrEmpty(offer.Data))
                 {
                     var match = regex.Match(offer.Data);
-                    if (match.Success && decimal.TryParse(match.Groups[1].Value, out var parsedRatio))
-                        bonusRatio = parsedRatio;
+                    if (match.Success)
+                    {
+                        // Нормализуем: заменяем запятую на точку для парсинга
+                        string ratioStr = match.Groups[1].Value.Replace(",", ".");
+                        if (decimal.TryParse(ratioStr, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedRatio))
+                        {
+                            bonusRatio = parsedRatio;
+                        }
+                    }
                 }
 
                 // Если "без бонуса" — обнуляем бонус
@@ -4828,7 +4836,7 @@ namespace Metal_Code
                 // Чистые суммы (остаются в компании)
                 decimal servicesNet = servicesGross - servicesBonus;
                 decimal materialNet = materialGross - materialBonus;
-                decimal bonusAmount = servicesBonus + materialBonus;
+                decimal bonusAmount = Math.Ceiling(amountGross - amountGross / (1 + bonusRatio / 100));
 
                 // Создаём элемент для Excel
                 var item = new ReportOfferItem
@@ -4871,7 +4879,7 @@ namespace Metal_Code
             decimal profitServicesOoo = (result.TotalServicesOoo - result.TotalServicesOoo / VatRateServices) / ProfitMargin;
             decimal profitMaterialOoo = (result.TotalMaterialOoo - result.TotalMaterialOoo / VatRateMaterial) / ProfitMargin;
             decimal profitServicesIp = (result.TotalServicesIp - result.TotalServicesIp / VatRateServices) / ProfitMargin;
-            decimal profitMaterialIp = (result.TotalMaterialIp - result.TotalMaterialIp / VatRateMaterial) / ProfitMargin;
+            decimal profitMaterialIp = result.TotalMaterialIp - result.TotalMaterialIp / VatRateMaterial;
 
             result.CleanProfit = profitServicesOoo + profitMaterialOoo + profitServicesIp + profitMaterialIp;
 
@@ -5053,7 +5061,7 @@ namespace Metal_Code
                 worksheet.Cells[row, 17].Formula = "=SUM(notbonus)";
 
                 worksheet.Cells[row, 15].Formula = "=(SUM(totalS2)-SUM(totalS2)/1.3)/1.2";
-                worksheet.Cells[row, 16].Formula = "=(SUM(totalM2)-SUM(totalM2)/1.15)/1.2";
+                worksheet.Cells[row, 16].Formula = "=SUM(totalM2)-SUM(totalM2)/1.15";
 
                 worksheet.Cells[ipStart, 1, row, 10].Style.Border.BorderAround(ExcelBorderStyle.Medium);
                 worksheet.Cells[row, 5, row, 10].Style.Font.Bold = true;
