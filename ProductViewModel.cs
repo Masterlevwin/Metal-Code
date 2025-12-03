@@ -524,7 +524,7 @@ namespace Metal_Code
             SaveFileDialog saveFileDialog = new()
             {
                 Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*",
-                FileName = $"КП {MainWindow.M.Order.Text}"
+                FileName = $"КП {MainWindow.M.Order.Text} от {DateTime.Now:d}"
             };
             if (saveFileDialog.ShowDialog() == true)
             {

@@ -1251,7 +1251,7 @@ namespace Metal_Code
         #endregion
 
 
-        //-----------Подключения к базе расчетов-----------------//
+        //-------------Подключения к базе расчетов-----------------//
         #region
         private void AutoRemoveOffers()             //метод удаления старых расчетов из локальной базы
         {
@@ -1662,7 +1662,8 @@ namespace Metal_Code
 
             if (e.Row.Item is Offer offer)
             {
-                if (offer.Order is not null && offer.Order != "" && offer.EndDate is not null)
+                // добавить в январе проверку даты отгрузки '&& offer.EndDate is not null'
+                if (offer.Order is not null && offer.Order != "")
                 {
                     btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/delete.png", UriKind.Relative)) };
                     btn.ToolTip = "Удалить из отчета";
@@ -1932,7 +1933,7 @@ namespace Metal_Code
         #endregion
 
 
-        //---------Сохранение и загрузка контролов расчета-------//
+        //-------------Сохранение и загрузка контролов расчета-------//
         #region
         public Product SaveProduct()
         {
@@ -4879,7 +4880,7 @@ namespace Metal_Code
             decimal profitServicesOoo = (result.TotalServicesOoo - result.TotalServicesOoo / VatRateServices) / ProfitMargin;
             decimal profitMaterialOoo = (result.TotalMaterialOoo - result.TotalMaterialOoo / VatRateMaterial) / ProfitMargin;
             decimal profitServicesIp = (result.TotalServicesIp - result.TotalServicesIp / VatRateServices) / ProfitMargin;
-            decimal profitMaterialIp = result.TotalMaterialIp - result.TotalMaterialIp / VatRateMaterial;
+            decimal profitMaterialIp = (result.TotalMaterialIp - result.TotalMaterialIp / VatRateMaterial) / ProfitMargin;
 
             result.CleanProfit = profitServicesOoo + profitMaterialOoo + profitServicesIp + profitMaterialIp;
 
@@ -4892,8 +4893,8 @@ namespace Metal_Code
                 : 0;
 
             // === Бонус ИП ===
-            // Используем: (чистые услуги + чистый материал + бонусы ИП - "без бонуса") / 30
-            decimal ipBaseForBonus = result.TotalServicesIp + result.TotalMaterialIp + result.TotalBonusIp - result.NoBonusAmount;
+            // Используем: (чистые услуги + чистый материал - "без бонуса") / 30
+            decimal ipBaseForBonus = result.TotalServicesIp + result.TotalMaterialIp - result.NoBonusAmount;
             result.BonusIp = Math.Ceiling(ipBaseForBonus / BonusIpFactor);
 
             // === Итоговая зарплата ===
@@ -5061,7 +5062,7 @@ namespace Metal_Code
                 worksheet.Cells[row, 17].Formula = "=SUM(notbonus)";
 
                 worksheet.Cells[row, 15].Formula = "=(SUM(totalS2)-SUM(totalS2)/1.3)/1.2";
-                worksheet.Cells[row, 16].Formula = "=SUM(totalM2)-SUM(totalM2)/1.15";
+                worksheet.Cells[row, 16].Formula = "=(SUM(totalM2)-SUM(totalM2)/1.15)/1.2";
 
                 worksheet.Cells[ipStart, 1, row, 10].Style.Border.BorderAround(ExcelBorderStyle.Medium);
                 worksheet.Cells[row, 5, row, 10].Style.Font.Bold = true;
@@ -5310,7 +5311,7 @@ namespace Metal_Code
         #endregion
 
 
-        //-----------Вспомогательные методы----------------------//
+        //-------------Вспомогательные методы----------------------//
         #region
 
         //-----------Поиск нарезанной детали-----------//
