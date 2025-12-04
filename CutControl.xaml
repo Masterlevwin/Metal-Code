@@ -113,8 +113,18 @@
                              ToolTipOpening="SetToolTipForWay"/>
                 </StackPanel>
 
-                <!-- Проколы -->
+                <!-- Маркировка -->
                 <StackPanel Margin="5,0,0,0" Width="50">
+                    <TextBlock Text="грав" HorizontalAlignment="Center"/>
+                    <TextBox Text="{Binding Marking, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}"
+                             TextChanged="SetMarking" ToolTip="Длина маркировки, м"
+                             VerticalContentAlignment="Center"
+                             HorizontalContentAlignment="Center"
+                             ToolTipOpening="SetToolTipForMarking"/>
+                </StackPanel>
+
+                <!-- Проколы -->
+                <StackPanel Margin="5,0,0,0" Width="40">
                     <TextBlock Text="шт" HorizontalAlignment="Center"/>
                     <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}"
                              TextChanged="SetPinhole" ToolTip="Количество проколов, шт"

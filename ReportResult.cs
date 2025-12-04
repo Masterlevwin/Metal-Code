@@ -43,6 +43,8 @@ namespace Metal_Code
         public decimal NoBonusAmount { get; set; }
 
         // Итоги
+        public decimal TotalAmountOoo { get; set; }   // общая сумма расчетов ООО
+        public decimal TotalAmountIp { get; set; }    // общая сумма расчетов ИП
         public decimal CleanProfit { get; set; }      // прибыль без бонусов
         public decimal Plan { get; set; }             // CleanProfit + бонусы
         public decimal BonusOoo { get; set; }         // сверхплановый бонус ООО

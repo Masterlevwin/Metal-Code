@@ -1004,7 +1004,7 @@ namespace Metal_Code
                 OnPropertyChanged(nameof(Result));
 
                 MaterialTotal.Text = $"{Math.Ceiling(GetMetalPrice()):N0} руб.";
-                ServicesTotal.Text = $"{Math.Ceiling(GetServices()):N0} руб.";
+                ServicesTotal.Text = $"{Math.Ceiling(GetServicesPrice()):N0} руб.";
                 WeldTotal.Text = $"{Math.Ceiling(GetWeldAssembly()):N0} руб.";
                 PaintTotal.Text = $"{Math.Ceiling(GetPaintAssembly()):N0} руб.";
                 BasketTotal.Text = $"{Math.Ceiling(GetBasketPrice()):N0} руб.";
@@ -1461,7 +1461,7 @@ namespace Metal_Code
                     if (isSave)     //если метод запущен с параметром true, то есть в режиме сохранения
                     {
                         //сначала создаем новое КП
-                        Offer _offer = new(Order.Text, CustomerDrop.Text, Result, GetMetalPrice(), GetServices())
+                        Offer _offer = new(Order.Text, CustomerDrop.Text, Result, GetMaterial(), GetServices())
                         {
                             Agent = IsAgent,
                             Manager = _man,
@@ -2996,7 +2996,7 @@ namespace Metal_Code
             material.Style.Fill.PatternType = ExcelFillStyle.Solid;
             material.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Lavender);
             statsheet.Cells[5 + temp, 2].Value = "Материал:";
-            statsheet.Cells[5 + temp, 3].Value = Math.Round(GetMetalPrice(), 2);
+            statsheet.Cells[5 + temp, 3].Value = Math.Round(GetMaterial(), 2);
             statsheet.Cells[6 + temp, 2].Value = "Доставка:";
             statsheet.Cells[6 + temp, 3].Value = Delivery * DeliveryRatio;
             statsheet.Cells[7 + temp, 2].Value = "Конструкторские работы:";
@@ -3429,11 +3429,12 @@ namespace Metal_Code
 
             CreateScore(worksheet, row - 8, path, materials);                   //создаем файл для счета на основе полученного КП
             CreateComplect(path);                                               //создаем файл комплектации    
+            OfferPdf offerPdf = new(path[..path.LastIndexOf(".")] + ".pdf", descriptionWorks);
 
-            if (ManagerDrop.Text != "Гамолина Светлана")
-            {
-                OfferPdf offerPdf = new(path[..path.LastIndexOf(".")] + ".pdf", descriptionWorks);
-            }
+            //if (ManagerDrop.Text != "Гамолина Светлана")
+            //{
+            //    OfferPdf offerPdf = new(path[..path.LastIndexOf(".")] + ".pdf", descriptionWorks);
+            //}
         }
 
         //-СЧЕТ
@@ -4779,6 +4780,17 @@ namespace Metal_Code
             UpdateReportUi((_currentReport.Plan, _currentReport.BonusOoo, _currentReport.BonusIp, _currentReport.TotalSalary));
         }
 
+        private void UpdateReportUi((decimal Plan, decimal BonusOoo, decimal BonusIp, decimal TotalSalary) result)
+        {
+            // Форматирование без дробной части и с разделителями (если нужно — можно убрать)
+            Plan.Text = result.Plan.ToString("N0");
+            Plan.BorderBrush = result.Plan >= BonusOooThreshold ? Brushes.Green : Brushes.Red;
+
+            BonusOOO.Text = result.BonusOoo.ToString("N0");
+            BonusIP.Text = result.BonusIp.ToString("N0");
+            Salary.Text = result.TotalSalary.ToString("N0");
+        }
+
         private ReportResult BuildReport(List<Offer> offers)
         {
             var result = new ReportResult();
@@ -4866,6 +4878,7 @@ namespace Metal_Code
                     result.TotalBonusIp += bonusAmount;
                     if (isNoBonus)
                         result.NoBonusAmount += amountGross; // ← именно amountGross, как в Excel
+                    result.TotalAmountIp += amountGross;
                 }
                 else
                 {
@@ -4873,6 +4886,7 @@ namespace Metal_Code
                     result.TotalServicesOoo += servicesNet;
                     result.TotalMaterialOoo += materialNet;
                     result.TotalBonusOoo += bonusAmount;
+                    result.TotalAmountOoo += amountGross;
                 }
             }
 
@@ -4893,8 +4907,8 @@ namespace Metal_Code
                 : 0;
 
             // === Бонус ИП ===
-            // Используем: (чистые услуги + чистый материал - "без бонуса") / 30
-            decimal ipBaseForBonus = result.TotalServicesIp + result.TotalMaterialIp - result.NoBonusAmount;
+            // Используем: (общая сумма расчетов ИП - "без бонуса") / 30
+            decimal ipBaseForBonus = result.TotalAmountIp - result.NoBonusAmount;
             result.BonusIp = Math.Ceiling(ipBaseForBonus / BonusIpFactor);
 
             // === Итоговая зарплата ===
@@ -4903,17 +4917,6 @@ namespace Metal_Code
             result.TotalSalary = baseSalary + planBonus + result.BonusOoo + result.BonusIp;
 
             return result;
-        }
-
-        private void UpdateReportUi((decimal Plan, decimal BonusOoo, decimal BonusIp, decimal TotalSalary) result)
-        {
-            // Форматирование без дробной части и с разделителями (если нужно — можно убрать)
-            Plan.Text = result.Plan.ToString("N0");
-            Plan.BorderBrush = result.Plan >= BonusOooThreshold ? Brushes.Green : Brushes.Red;
-
-            BonusOOO.Text = result.BonusOoo.ToString("N0");
-            BonusIP.Text = result.BonusIp.ToString("N0");
-            Salary.Text = result.TotalSalary.ToString("N0");
         }
 
         public bool ManagerReport(string path)
@@ -4955,20 +4958,28 @@ namespace Metal_Code
                     worksheet.Cells[row, 2].Value = item.Invoice;
                     worksheet.Cells[row, 3].Value = item.Company;
                     worksheet.Cells[row, 4].Value = item.Order;
-                    worksheet.Cells[row, 5].Value = item.Services;
-                    worksheet.Cells[row, 6].Value = item.Material;
-                    worksheet.Cells[row, 7].Value = item.Amount;
-                    worksheet.Cells[row, 8].Value = item.BonusRatio;
-                    worksheet.Cells[row, 9].Value = item.BonusAmount;
+                    worksheet.Cells[row, 5].Value = item.Services;     // исходные
+                    worksheet.Cells[row, 6].Value = item.Material;    // исходные
+                    worksheet.Cells[row, 7].Value = item.Amount;      // исходные
+                    worksheet.Cells[row, 8].Value = item.BonusRatio;  // из C#
                     worksheet.Cells[row, 10].Value = item.N;
 
-                    // Детальные расчёты (если нужны)
-                    decimal servicesBonus = item.Services * item.BonusRatio / (100 + item.BonusRatio);
-                    decimal materialBonus = item.Material * item.BonusRatio / (100 + item.BonusRatio);
-                    worksheet.Cells[row, 11].Value = Math.Ceiling(servicesBonus);
-                    worksheet.Cells[row, 12].Value = Math.Ceiling(materialBonus);
-                    worksheet.Cells[row, 13].Value = item.ServicesNet; // ← чистые (для расчёта прибыли)
-                    worksheet.Cells[row, 14].Value = item.MaterialNet;
+                    // Формулы
+                    if (item.BonusRatio > 0)
+                    {
+                        worksheet.Cells[row, 9].Formula = $"=ROUND(G{row} * H{row} / (100 + H{row}), 0)";
+                        worksheet.Cells[row, 11].Formula = $"=ROUND(E{row} * H{row} / (100 + H{row}), 0)";
+                        worksheet.Cells[row, 12].Formula = $"=ROUND(F{row} * H{row} / (100 + H{row}), 0)";
+                    }
+                    else
+                    {
+                        worksheet.Cells[row, 9].Value = 0;
+                        worksheet.Cells[row, 11].Value = 0;
+                        worksheet.Cells[row, 12].Value = 0;
+                    }
+
+                    worksheet.Cells[row, 13].Formula = $"=E{row} - K{row}"; // чистые услуги
+                    worksheet.Cells[row, 14].Formula = $"=F{row} - L{row}"; // чистый материал
 
                     row++;
                 }
@@ -5074,9 +5085,17 @@ namespace Metal_Code
             // === Прибыль месяца (с разделением на "Чист" и "Устар") ===
             row++;
             worksheet.Cells[row, 1].Value = "Прибыль месяца:";
-            worksheet.Cells[row, 2].Value = report.Plan; // ← это cleanProfit + бонусы
+            worksheet.Cells[row, 2].Formula =
+                "=ROUND(" +
+                    "(SUM(services1)-SUM(services1)/1.3)/1.2" +
+                    "+(SUM(material1)-SUM(material1)/1.15)/1.2" +
+                    "+(SUM(services2)-SUM(services2)/1.3)/1.2" +
+                    "+(SUM(material2)-SUM(material2)/1.15)/1.2" +
+                    "+SUM(bonus1)+SUM(bonus2)" +
+                ", 0)";
+            //worksheet.Cells[row, 2].Value = report.Plan; // ← это cleanProfit + бонусы
             worksheet.Cells[row, 2].Style.Font.Bold = true;
-            
+
             // === Общие итоги ===
             worksheet.Cells[row, 4].Value = "ИТОГО:";
             worksheet.Cells[row, 5].Formula = "=SUM(totalS1)+SUM(totalS2)";
@@ -5086,7 +5105,14 @@ namespace Metal_Code
 
             // Чистая прибыль (без бонусов в базе) — ОСНОВНАЯ
             worksheet.Cells[row, 11].Value = "Чист:";
-            worksheet.Cells[row, 12].Value = Math.Ceiling(report.CleanProfit);
+            worksheet.Cells[row, 12].Formula =
+                "=ROUND(" +
+                    "(SUM(services1)-SUM(services1)/1.3)/1.2" +
+                    "+(SUM(material1)-SUM(material1)/1.15)/1.2" +
+                    "+(SUM(services2)-SUM(services2)/1.3)/1.2" +
+                    "+(SUM(material2)-SUM(material2)/1.15)/1.2" +
+                ", 0)";
+            //worksheet.Cells[row, 12].Value = Math.Ceiling(report.CleanProfit);
 
             // Устаревший расчёт (для сравнения/проверки)
             worksheet.Cells[row, 13].Value = "Устар:";
@@ -5105,7 +5131,9 @@ namespace Metal_Code
             int salaryRow = row;
 
             worksheet.Cells[salaryRow, 1].Value = "Доп бонус за ИП и ПК:";
-            worksheet.Cells[salaryRow, 2].Value = report.BonusIp;
+            worksheet.Cells[salaryRow, 2].Formula = "=(SUM(total2)-SUM(notbonus))/30";
+            worksheet.Cells[salaryRow, 2].Style.Numberformat.Format = "0";
+            //worksheet.Cells[salaryRow, 2].Value = report.BonusIp;
             worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightBlue);
             salaryRow++;
 
@@ -5115,12 +5143,14 @@ namespace Metal_Code
             salaryRow++;
 
             worksheet.Cells[salaryRow, 1].Value = "Премия за план:";
-            worksheet.Cells[salaryRow, 2].Value = report.Plan >= BonusOooThreshold ? 20000 : 0; // 20 000, если план выполнен
+            worksheet.Cells[salaryRow, 2].Formula = $"=IF(B{row - 3}>=200000, 20000, 0)";
+            //worksheet.Cells[salaryRow, 2].Value = report.Plan >= BonusOooThreshold ? 20000 : 0; // 20 000, если план выполнен
             worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightBlue);
             salaryRow++;
 
             worksheet.Cells[salaryRow, 1].Value = "%:";
-            worksheet.Cells[salaryRow, 2].Value = report.BonusOoo; // это (Plan - 200000) * 0.15, если Plan >= 200000
+            worksheet.Cells[salaryRow, 2].Formula = $"=IF(B{row - 3}>=200000, ROUND((B{row - 3}-200000)*0.15, 0), 0)";
+            //worksheet.Cells[salaryRow, 2].Value = report.BonusOoo; // это (Plan - 200000) * 0.15, если Plan >= 200000
             worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightBlue);
             salaryRow++;
 
@@ -5133,17 +5163,19 @@ namespace Metal_Code
             salaryRow += 2;
 
             // Итоговая сумма
-            decimal totalSalary = report.BonusIp + 30000 +
-                                 (report.Plan >= BonusOooThreshold ? 20000 : 0) +
-                                 report.BonusOoo;
+            //decimal totalSalary = report.BonusIp + 30000 +
+            //                     (report.Plan >= BonusOooThreshold ? 20000 : 0) +
+            //                     report.BonusOoo;
 
             worksheet.Cells[salaryRow, 1].Value = "Итоговая за месяц:";
-            worksheet.Cells[salaryRow, 2].Value = totalSalary;
+            worksheet.Cells[salaryRow, 2].Formula = $"=ROUND(SUM(B{row}:B{row + 3}), 0)";
+            //worksheet.Cells[salaryRow, 2].Value = totalSalary;
             worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.GreenYellow);
             salaryRow++;
 
             worksheet.Cells[salaryRow, 1].Value = "К доплате:";
-            worksheet.Cells[salaryRow, 2].Value = totalSalary; // или можно сделать ссылку на ячейку
+            worksheet.Cells[salaryRow, 2].Formula = $"=ROUND(SUM(B{row}:B{row + 3})-SUM(B{row + 4}:B{row + 6}), 0)";
+            //worksheet.Cells[salaryRow, 2].Value = totalSalary; // или можно сделать ссылку на ячейку
             worksheet.Cells[salaryRow, 2].Style.Font.Color.SetColor(System.Drawing.Color.Red);
             worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.GreenYellow);
 
@@ -6266,7 +6298,29 @@ namespace Metal_Code
             return true;
         }
 
-        public float GetMetalPrice()        //метод получения стоимости материала всего расчета
+        public float GetServices()          //метод получения стоимости ВСЕХ услуг
+        {
+            float servicesPrice = 0;
+
+            servicesPrice += GetServicesPrice();            //получаем основные работы
+            servicesPrice += GetWeldAssembly();             //добавляем сварку из сборок
+            servicesPrice += GetPaintAssembly();            //добавляем окраску из сборок
+            servicesPrice += Delivery * DeliveryRatio;      //добавляем доставку
+
+            return (float)Math.Ceiling(servicesPrice);
+        }
+
+        public float GetMaterial()          //метод получения стоимости ВСЕГО материала
+        {
+            float metalPrice = 0;
+
+            metalPrice += GetMetalPrice();          //получаем основной материал
+            metalPrice += GetBasketPrice();         //добавляем покупные изделия
+
+            return (float)Math.Ceiling(metalPrice);
+        }
+
+        public float GetMetalPrice()        //метод получения стоимости металла
         {
             float metalPrice = 0;
             foreach (DetailControl d in DetailControls)
@@ -6274,7 +6328,7 @@ namespace Metal_Code
             return (float)Math.Ceiling(metalPrice);
         }
 
-        public float GetServices()          //метод получения стоимости услуг всего расчета
+        public float GetServicesPrice()          //метод получения стоимости основных работ
         {
             float servicesPrice = 0;
             foreach (DetailControl det in DetailControls)
@@ -6303,7 +6357,6 @@ namespace Metal_Code
         {
             float basketPrice = 0;
             foreach (BasketControl b in BasketControls) basketPrice += b.Basket.Total;
-
             return (float)Math.Ceiling(basketPrice);
         }
 

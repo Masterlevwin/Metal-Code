@@ -1,21 +1,19 @@
 ﻿using ExcelDataReader;
 using Microsoft.Win32;
-using OfficeOpenXml.Drawing;
 using OfficeOpenXml;
+using OfficeOpenXml.Drawing;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
 using System.Windows;
 using System.Windows.Controls;
-using System.Runtime.Serialization;
-using System.Diagnostics;
-using System.Collections.ObjectModel;
 using System.Windows.Media.Animation;
-using System.Windows.Media;
 
 namespace Metal_Code
 {
@@ -26,6 +24,20 @@ namespace Metal_Code
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        private float marking;
+        public float Marking
+        {
+            get => marking;
+            set
+            {
+                if (value != marking)
+                {
+                    marking = (float)Math.Ceiling(value);
+                    OnPropertyChanged(nameof(Marking));
+                }
+            }
+        }
 
         private float way;
         public float Way
@@ -128,6 +140,16 @@ namespace Metal_Code
             OnPriceChanged();
         }
 
+        private void SetMarking(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tBox) SetMarking(tBox.Text);
+        }
+        private void SetMarking(string _marking)
+        {
+            if (float.TryParse(_marking, out float m)) Marking = m;
+            OnPriceChanged();
+        }
+
         private void SetPinhole(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox) SetPinhole(tBox.Text);
@@ -164,9 +186,16 @@ namespace Metal_Code
             BtnEnabled();
             float price = 0;
 
+            if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
+
+            float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
+
             if (Items?.Count > 0)
             {
                 foreach (LaserItem item in Items) price += ItemPrice(item);
+
+                if (destiny <= 8 && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
+                    price += Marking * MainWindow.M.MetalDict[metal.Name][destiny].Item1;
 
                 // проверяем стоимость материала
                 float _result = (float)Math.Round((work.type.det.Detail.IsComplect ? 1 : work.type.Count) *
@@ -180,13 +209,11 @@ namespace Metal_Code
             else
             {
                 if (Way == 0 || Pinhole == 0) return;
-                if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
-
-                float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
 
                 if (metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
                 {
-                    price = Way * MainWindow.M.MetalDict[metal.Name][destiny].Item1
+                    price = (Way + (destiny <= 8 ? Marking : 0))
+                        * MainWindow.M.MetalDict[metal.Name][destiny].Item1
                         + Pinhole * MainWindow.M.MetalDict[metal.Name][destiny].Item2;
 
                     // проверяем стоимость материала
@@ -220,16 +247,29 @@ namespace Metal_Code
                 w.propsList.Add($"{MassTotal}");
                 w.propsList.Add($"{HaveCut}");
                 w.propsList.Add($"{HaveNitro}");
+                w.propsList.Add($"{Marking}");
 
                 if (PartDetails?.Count > 0)
+                {
+                    var averageMarking = Marking / PartDetails.Sum(c => c.Count);
+
                     foreach (Part p in PartDetails)
                     {
                         p.Price += work.type.Result * p.Mass / MassTotal;
                         p.Price += work.Result * p.Way / WayTotal;
 
+                        if (averageMarking > 0)
+                        {
+                            float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
+                            if (destiny <= 8 && work.type.MetalDrop.SelectedItem is Metal metal
+                                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
+                                p.Price += averageMarking * MainWindow.M.MetalDict[metal.Name][destiny].Item1 / p.Count;
+                        }
+
                         p.PropsDict[50] = new() { $"{work.type.Result * p.Mass / MassTotal}" };
                         p.PropsDict[51] = new() { $"{work.Result * p.Way / WayTotal}" };
                     }
+                }
             }
             else
             {
@@ -239,6 +279,7 @@ namespace Metal_Code
                 if (float.TryParse(w.propsList[3], out float _mass)) MassTotal = _mass;
                 if (w.propsList.Count > 4 && bool.TryParse(w.propsList[4], out bool _haveCut)) HaveCut = _haveCut;
                 if (w.propsList.Count > 5 && bool.TryParse(w.propsList[5], out bool _haveNitro)) HaveNitro = _haveNitro;
+                if (w.propsList.Count > 6 && float.TryParse(w.propsList[6], out float _marking)) Marking = _marking;
 
                 if (Items?.Count > 0) work.type.CreateSort();     //переопределяем содержимое SortDrop, если есть раскладки (List<LaserItem>))
             }
@@ -542,6 +583,11 @@ namespace Metal_Code
                     WayTotal = MainWindow.Parser($"{table.Rows[i].ItemArray[8]}");
                     if (WayTotal < .01f) WayTotal = 1f;
                 }
+                                
+                if ($"{table.Rows[i].ItemArray[6]}".Contains("Итого Длина пути маркировки (mm)"))
+                {
+                    Marking = (float)Math.Ceiling(MainWindow.Parser($"{table.Rows[i].ItemArray[8]}") / 1000);
+                }
 
                 if ($"{table.Rows[i].ItemArray[8]}" == "Материал")
                 {
@@ -705,6 +751,15 @@ namespace Metal_Code
             string storyboardKey = _isExpanded ? "ExpandAnimation" : "CollapseAnimation";
             var storyboard = FindResource(storyboardKey) as Storyboard;
             storyboard?.Begin();
+        }
+
+        private void SetToolTipForMarking(object sender, ToolTipEventArgs e)
+        {
+            float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
+
+            if (sender is TextBox box && work.type.MetalDrop.SelectedItem is Metal metal
+                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
+                box.ToolTip = $"Длина маркировки, м\n(цена метра - {MainWindow.M.MetalDict[metal.Name][destiny].Item1} руб)";
         }
     }
 
