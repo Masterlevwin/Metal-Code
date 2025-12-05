@@ -5586,7 +5586,7 @@ namespace Metal_Code
 
                         using DwgReader reader = new(_name);
                         doc = reader.Read();
-
+                        
                         using DxfWriter writer = new(Path.GetDirectoryName(_name) + "\\" + Path.GetFileNameWithoutExtension(_name) + ".dxf", doc, false);
                         writer.Write();
                     }
@@ -5677,6 +5677,15 @@ namespace Metal_Code
                     way += (float)GetPolylineLength(polyline);
                     if (polyline.IsClosed) pinholes++;
                 }
+                else if (entity is Spline spline)
+                {
+                    foreach (var cp in spline.ControlPoints)
+                    {
+                        bounds.Add(new Point(cp.X, cp.Y));
+                    }
+                    way += (float)GetSplineLength(spline);
+                    if (spline.IsClosed) pinholes++;
+                }
                 else if (entity is Arc arc)
                 {
                     // Добавляем центр дуги
@@ -5729,6 +5738,15 @@ namespace Metal_Code
 
                                 way += (float)GetPolylineLength(_polyline);
                                 if (_polyline.IsClosed) pinholes++;
+                            }
+                            else if (blockEntity is Spline _spline)
+                            {
+                                foreach (var cp in _spline.ControlPoints)
+                                {
+                                    bounds.Add(new Point(cp.X, cp.Y));
+                                }
+                                way += (float)GetSplineLength(_spline);
+                                if (_spline.IsClosed) pinholes++;
                             }
                             else if (blockEntity is Arc _arc)
                             {
@@ -5897,6 +5915,45 @@ namespace Metal_Code
             double y = flippedY * scale + offsetY;
 
             return new Point(x, y);
+        }
+
+        public static double GetSplineLength(Spline spline)
+        {
+            if (spline?.FitPoints != null && spline.FitPoints.Count > 1)
+            {
+                double length = 0.0;
+                for (int i = 1; i < spline.FitPoints.Count; i++)
+                {
+                    var p0 = spline.FitPoints[i - 1];
+                    var p1 = spline.FitPoints[i];
+                    length += Math.Sqrt((p1.X - p0.X) * (p1.X - p0.X) + (p1.Y - p0.Y) * (p1.Y - p0.Y));
+                }
+
+                // Если сплайн замкнут — добавляем сегмент от последней к первой точке
+                if (spline.IsClosed && spline.FitPoints.Count > 2)
+                {
+                    var first = spline.FitPoints[0];
+                    var last = spline.FitPoints[^1];
+                    length += Math.Sqrt((first.X - last.X) * (first.X - last.X) + (first.Y - last.Y) * (first.Y - last.Y));
+                }
+
+                return length;
+            }
+
+            // Если FitPoints нет — используем ControlPoints как fallback (с пониманием неточности)
+            if (spline?.ControlPoints != null && spline.ControlPoints.Count > 1)
+            {
+                double length = 0.0;
+                for (int i = 1; i < spline.ControlPoints.Count; i++)
+                {
+                    var p0 = spline.ControlPoints[i - 1];
+                    var p1 = spline.ControlPoints[i];
+                    length += Math.Sqrt((p1.X - p0.X) * (p1.X - p0.X) + (p1.Y - p0.Y) * (p1.Y - p0.Y));
+                }
+                return length; // без коэффициента — лучше перестраховаться в большую сторону для резки
+            }
+
+            return 0.0;
         }
 
         private static double GetPolylineLength(LwPolyline polyline)

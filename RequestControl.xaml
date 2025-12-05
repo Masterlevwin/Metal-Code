@@ -128,6 +128,7 @@
                             <Button Content="Генерация" Click="Rename_Details"/>
                             <Image Source="/Images/question.png" MouseEnter="ShowPopup_Gen" Width="16"/>
                         </StackPanel>
+                        <Button Content="Гравировка" Margin="5" Click="AddEngraving"/>
                     </StackPanel>
                 </StackPanel>
             </GroupBox>
@@ -217,6 +218,11 @@
                         <MenuItem Header="Удалить строку" Click="Remove_TechItem">
                             <MenuItem.Icon>
                                 <Image Source="/Images/del_offer.png"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="Добавить гравировку">
+                            <MenuItem.Icon>
+                                <Image Source="/Images/blueprint.png"/>
                             </MenuItem.Icon>
                         </MenuItem>
                     </ContextMenu>

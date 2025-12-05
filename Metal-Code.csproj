@@ -139,7 +139,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ACadSharp" Version="2.4.0-beta" />
+    <PackageReference Include="ACadSharp" Version="3.3.7" />
     <PackageReference Include="EPPlus" Version="7.0.0" />
     <PackageReference Include="ExcelDataReader" Version="3.6.0" />
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.6.0" />
@@ -266,6 +266,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="BasketControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="EngravingControl.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="StandartPartWindow.xaml.cs">

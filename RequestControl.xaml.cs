@@ -1,4 +1,5 @@
 ﻿using ACadSharp;
+using ACadSharp.Entities;
 using ACadSharp.IO;
 using ExcelDataReader;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Color = System.Windows.Media.Color;
+using Point = System.Windows.Point;
 
 namespace Metal_Code
 {
@@ -938,6 +940,45 @@ namespace Metal_Code
             if (WorksDrop.SelectedItem is string work && work.Contains('-'))
                 Clipboard.SetText($"{work[..(work.IndexOf("-") - 1)]}");
         }
+
+        private void AddEngraving(object sender, RoutedEventArgs e)
+        {
+            if (Paths.Count == 0) return;
+
+            foreach (string path in Paths)
+            {
+                if (Path.GetExtension(path) == ".dxf")
+                {
+                    try
+                    {
+                        // 1. Читаем и сразу закрываем файл
+                        CadDocument dxf;
+                        using (var reader = new DxfReader(path))
+                        {
+                            dxf = reader.Read();
+                        } // ← файл закрыт здесь
+
+                        // 2. Вычисляем размеры и параметры
+                        var (partBounds, _, _) = MainWindow.GetDrawingBounds(dxf);
+
+                        // Многострочный текст:
+                        string engravingText = "Б1-1\n№ в партии 1";
+
+                        // Добавляем гравировку
+                        Engraving.AddEngravingAsPolylines(dxf, engravingText, partBounds, "Danger");
+
+                        // 3. Пишем в тот же файл — он уже свободен
+                        using var writer = new DxfWriter(path, dxf);
+                        writer.Write();
+                    }
+                    catch
+                    {
+                        MessageBox.Show($"Не удалось прочитать dxf ({path}).\n" +
+                        $"Пересохраните файл в CAD-программе и попробуйте снова.");
+                    }
+                }
+            }
+        }
     }
 
     public class SheetPacker
@@ -1198,7 +1239,7 @@ namespace Metal_Code
                         double textX = x + (w - formattedText.Width) / 2;
                         double textY = y + (h - formattedText.Height) / 2;
 
-                        context.DrawText(formattedText, new Point(textX, textY));
+                        context.DrawText(formattedText, new System.Windows.Point(textX, textY));
                     }
                 }
             }
