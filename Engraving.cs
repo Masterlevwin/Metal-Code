@@ -27,7 +27,7 @@ namespace Metal_Code
             }
 
             // 1. Вычисляем оптимальный размер шрифта
-            double fontSize = CalculateOptimalFontSize(text, fontFamily, partBounds);
+            double fontSize = CalculateOptimalFontSize(text, fontFamily, partBounds, maxFontSize: 20, minFontSize: 10);
 
             // 2. Вычисляем позицию для центрирования
             var positionWpf = GetCenteredTextPosition(text, fontFamily, fontSize, partBounds);
@@ -68,60 +68,47 @@ namespace Metal_Code
 
         public static List<List<Point>> TextToPathGeometries(string text, string fontFamily, double fontSize, Point origin)
         {
-            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            if (lines.Length == 0) return new List<List<Point>>();
+            var formattedText = new FormattedText(
+                text,
+                System.Globalization.CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                new Typeface(fontFamily),
+                fontSize,
+                Brushes.Black,
+                1.0 /* pixels per dip */
+            );
 
-            // 1. Измеряем все строки и находим максимальную ширину
-            var formattedLines = new List<FormattedText>();
-            double maxWidth = 0;
+            var geometry = formattedText.BuildGeometry(origin);
+            var flattened = geometry.GetFlattenedPathGeometry(0.05, ToleranceType.Absolute); // точная аппроксимация
 
-            foreach (var line in lines)
+            var contours = new List<List<Point>>();
+
+            foreach (PathFigure figure in flattened.Figures)
             {
-                var ft = new FormattedText(
-                    line,
-                    CultureInfo.InvariantCulture,
-                    FlowDirection.LeftToRight,
-                    new Typeface(fontFamily),
-                    fontSize,
-                    Brushes.Black,
-                    1.0
-                );
-                ft.TextAlignment = TextAlignment.Center;
-                formattedLines.Add(ft);
-                maxWidth = Math.Max(maxWidth, ft.WidthIncludingTrailingWhitespace);
-            }
+                var points = new List<Point> { figure.StartPoint };
 
-            // 2. Генерируем геометрию
-            var allContours = new List<List<Point>>();
-            double currentY = origin.Y;
-
-            for (int i = 0; i < formattedLines.Count; i++)
-            {
-                var ft = formattedLines[i];
-                // Горизонтальное смещение для центрирования строки относительно maxWidth
-                double offsetX = (maxWidth - ft.WidthIncludingTrailingWhitespace) / 2.0;
-                Point lineOrigin = new Point(origin.X + offsetX, currentY);
-
-                var geometry = ft.BuildGeometry(lineOrigin);
-                var flattened = geometry.GetFlattenedPathGeometry(0.05, ToleranceType.Absolute);
-
-                foreach (PathFigure figure in flattened.Figures)
+                foreach (PathSegment seg in figure.Segments)
                 {
-                    var points = new List<Point> { figure.StartPoint };
-                    foreach (PathSegment seg in figure.Segments)
+                    if (seg is LineSegment line)
                     {
-                        if (seg is LineSegment l) points.Add(l.Point);
-                        else if (seg is PolyLineSegment p) points.AddRange(p.Points);
+                        points.Add(line.Point);
                     }
-                    if (figure.IsClosed && points.Count > 1)
-                        points.Add(figure.StartPoint);
-                    allContours.Add(points);
+                    else if (seg is PolyLineSegment poly)
+                    {
+                        points.AddRange(poly.Points);
+                    }
+                    // Другие сегменты уже линеаризованы Flatten
                 }
 
-                currentY += ft.Height;
+                if (figure.IsClosed && points.Count > 1)
+                {
+                    points.Add(figure.StartPoint); // явно замыкаем
+                }
+
+                contours.Add(points);
             }
 
-            return allContours;
+            return contours;
         }
 
         // Метод для измерения размера текста
@@ -157,42 +144,12 @@ namespace Metal_Code
         }
 
         // Центрирование: вычисление позиции текста
-        public static Point GetCenteredTextPosition(string text, string fontFamily, double fontSize, Rect partBounds)
+        public static Point GetCenteredTextPosition(string text, string fontFamily, double fontSize, Rect area)
         {
-            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            if (lines.Length == 0) return new Point(partBounds.X, partBounds.Y);
-
-            // Измеряем каждую строку
-            double maxWidth = 0;
-            double totalHeight = 0;
-            var lineHeights = new List<double>();
-
-            foreach (var line in lines)
-            {
-                var ft = new FormattedText(
-                    line,
-                    CultureInfo.InvariantCulture,
-                    FlowDirection.LeftToRight,
-                    new Typeface(fontFamily),
-                    fontSize,
-                    Brushes.Black,
-                    1.0
-                );
-                ft.TextAlignment = TextAlignment.Center; // важно для внутреннего центрирования глифов
-                maxWidth = Math.Max(maxWidth, ft.WidthIncludingTrailingWhitespace);
-                lineHeights.Add(ft.Height);
-                totalHeight += ft.Height;
-            }
-
-            // Центр детали
-            double centerX = partBounds.Left + partBounds.Width / 2.0;
-            double centerY = partBounds.Top + partBounds.Height / 2.0;
-
-            // Верхний левый угол текстового блока
-            double blockLeft = centerX - maxWidth / 2.0;
-            double blockTop = centerY - totalHeight / 2.0;
-
-            return new Point(blockLeft, blockTop);
+            var size = MeasureText(text, fontFamily, fontSize);
+            double x = area.Left + (area.Width - size.Width) / 2.0;
+            double y = area.Top + (area.Height - size.Height) / 2.0;
+            return new Point(x, y);
         }
     }
 }
