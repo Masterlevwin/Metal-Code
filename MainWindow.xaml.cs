@@ -595,11 +595,10 @@ namespace Metal_Code
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.6.7.5",
-                releaseDate: new DateTime(2025, 12, 2),
-                description: "Добавлено окно истории обновлений. Теперь можно просматривать все изменения.\n" +
-                                "Подробности обновления смотрите на скриншоте!",
-                screenshotPath: "/Updates/v2.6.7.5_2025-12-02.png"
+                version: "v2.6.7.6",
+                releaseDate: new DateTime(2025, 12, 5),
+                description: "Добавлено свойство маркировки (гравировки) в контрол лазерной резки.",
+                screenshotPath: "/Updates/v2.6.7.6_2025-12-05.png"
             );
 
             // Получаем новые обновления
