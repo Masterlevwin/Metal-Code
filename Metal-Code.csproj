@@ -38,6 +38,8 @@
     <None Remove="Images\del_offer.png" />
     <None Remove="Images\edit.png" />
     <None Remove="Images\edit_offer.png" />
+    <None Remove="Images\engraving.png" />
+    <None Remove="Images\engraving2.png" />
     <None Remove="Images\example0.png" />
     <None Remove="Images\example1.png" />
     <None Remove="Images\example2.png" />
@@ -184,6 +186,7 @@
     <Resource Include="Images\del_offer.png" />
     <Resource Include="Images\edit.png" />
     <Resource Include="Images\edit_offer.png" />
+    <Resource Include="Images\engraving.png" />
     <Resource Include="Images\example0.png" />
     <Resource Include="Images\example1.png" />
     <Resource Include="Images\example2.png" />
@@ -268,7 +271,7 @@
     <Compile Update="BasketControl.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="EngravingControl.xaml.cs">
+    <Compile Update="EngravingWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="StandartPartWindow.xaml.cs">

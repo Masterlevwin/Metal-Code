@@ -1,5 +1,4 @@
 ﻿using ACadSharp;
-using ACadSharp.Entities;
 using ACadSharp.IO;
 using ExcelDataReader;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +10,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -23,7 +23,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Color = System.Windows.Media.Color;
-using Point = System.Windows.Point;
 
 namespace Metal_Code
 {
@@ -57,9 +56,6 @@ namespace Metal_Code
             {
                 targetTechItem = value;
                 OnPropertyChanged(nameof(TargetTechItem));
-
-                //if (targetTechItem?.Geometries.Count == 0)
-                //    targetTechItem.NumberName = "Нет данных";
             }
         }
 
@@ -422,10 +418,10 @@ namespace Metal_Code
 
             //при совпадении сгенерированных имён добавляем порядковый индекс к имени
             var collect = TechItems.GroupBy(x => x.NumberName);
-                foreach (var item in collect)
-                    if (item.Count() > 1)
-                        foreach (var _item in item)
-                            _item.NumberName += $".{item.ToList().IndexOf(_item)}";
+            foreach (var item in collect)
+                if (item.Count() > 1)
+                    foreach (var _item in item)
+                        _item.NumberName += $".{item.ToList().IndexOf(_item)}";
 
             MainWindow.M.StatusBegin("Наименования деталей сгенерированы.", MainWindow.StatusMessageType.Success);
         }
@@ -587,8 +583,12 @@ namespace Metal_Code
                 var baseDir = Directory.GetParent(Paths[0]);
                 if (baseDir != null && !baseDir.Name.Contains("ТЗ", StringComparison.OrdinalIgnoreCase))
                 {
-                    MainWindow.M.StatusBegin("Папка с моделями, в которой будет создана заявка, должна называться \"ТЗ\".", MainWindow.StatusMessageType.Error);
-                    return false;
+                    MessageBoxResult response = MessageBox.Show(
+                        "Папка с моделями, в которой будет создана заявка, должна называться \"ТЗ\"!",
+                        "Создание заявки", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                    if (response == MessageBoxResult.Yes) return true;
+                    else return false;
                 }
             }
 
@@ -943,41 +943,130 @@ namespace Metal_Code
 
         private void AddEngraving(object sender, RoutedEventArgs e)
         {
-            if (Paths.Count == 0) return;
-
-            foreach (string path in Paths)
-            {
-                if (Path.GetExtension(path) == ".dxf")
+            if (RequestGrid.SelectedCells.Count > 0)
+                if (RequestGrid.SelectedCells[0].Item is TechItem techItem && TechItems.Contains(techItem))
                 {
-                    try
+                    var engravingWindow = new EngravingWindow(techItem);
+                    if (engravingWindow.ShowDialog() == true)
                     {
-                        // 1. Читаем и сразу закрываем файл
-                        CadDocument dxf;
-                        using (var reader = new DxfReader(path))
+                        string engravingText = engravingWindow.TextMarking;
+                        string font = engravingWindow.SelectedFont;
+
+                        try
                         {
-                            dxf = reader.Read();
-                        } // ← файл закрыт здесь
+                            CadDocument dxf;
+                            using (var reader = new DxfReader(techItem.PathToModel))
+                            {
+                                dxf = reader.Read();
+                            }
 
-                        // 2. Вычисляем размеры и параметры
-                        var (partBounds, _, _) = MainWindow.GetDrawingBounds(dxf);
+                            (Rect, float, int) data = MainWindow.GetDrawingBounds(dxf);
 
-                        // Многострочный текст:
-                        string engravingText = "Б1-1\n№ в партии 1";
+                            Rect partBoundsWpf = new(
+                                data.Item1.X,
+                                -data.Item1.Y - data.Item1.Height, // инверсия
+                                data.Item1.Width,
+                                data.Item1.Height
+                                );
 
-                        // Добавляем гравировку
-                        Engraving.AddEngravingAsPolylines(dxf, engravingText, partBounds, "Danger");
+                            Engraving.AddEngravingAsPolylines(dxf, engravingText, partBoundsWpf, font);
 
-                        // 3. Пишем в тот же файл — он уже свободен
-                        using var writer = new DxfWriter(path, dxf);
-                        writer.Write();
-                    }
-                    catch
-                    {
-                        MessageBox.Show($"Не удалось прочитать dxf ({path}).\n" +
-                        $"Пересохраните файл в CAD-программе и попробуйте снова.");
+                            string? directory = Path.GetDirectoryName(techItem.PathToModel);
+                            string fileNameWithoutExt = Path.GetFileNameWithoutExtension(techItem.PathToModel);
+                            if (Directory.Exists(directory))
+                            {
+                                string newPath = Path.Combine(directory, fileNameWithoutExt + " (грав).dxf");
+                                using var writer = new DxfWriter(newPath, dxf);
+                                writer.Write();
+                            }
+                        }
+                        catch
+                        {
+                            MessageBox.Show($"Не удалось прочитать dxf ({techItem.PathToModel}).\n" +
+                            $"Пересохраните файл в CAD-программе и попробуйте снова.");
+                        }
                     }
                 }
+        }
+
+        private void Shields_Engraving(object sender, RoutedEventArgs e)
+        {
+            // Выбор входного файла
+            var inputDialog = new OpenFileDialog
+            {
+                Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
+                Title = "Выберите \"shields_input.txt\"",
+                Multiselect = false
+            };
+
+            if (inputDialog.ShowDialog() != true) return;
+
+            var lines = File.ReadAllLines(inputDialog.FileName);
+
+            // Выбор DXF шаблона
+            var templateDialog = new OpenFileDialog
+            {
+                Filter = "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*",
+                Title = "Выберите \"Шильд пустой.dxf\"",
+                Multiselect = false
+            };
+
+            if (templateDialog.ShowDialog() != true) return;
+
+            string templatePath = templateDialog.FileName;
+            string outputDir = Path.GetDirectoryName(templatePath)!;
+
+            // Кэшируем данные границ один раз (если они зависят только от шаблона)
+            CadDocument templateDxf;
+            using (var reader = new DxfReader(templatePath))
+                templateDxf = reader.Read();
+
+            var boundsData = MainWindow.GetDrawingBounds(templateDxf);
+            Rect partBoundsWpf = new(
+                boundsData.Item1.X,
+                -boundsData.Item1.Y - boundsData.Item1.Height,
+                boundsData.Item1.Width,
+                boundsData.Item1.Height
+            );
+
+            // Для быстрого пересоздания — читаем шаблон в байты
+            byte[] templateBytes = File.ReadAllBytes(templatePath);
+
+            foreach (var line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                var parts = line.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length != 2) continue;
+
+                string engraving = parts[0];
+                if (!int.TryParse(parts[1], out int count) || count <= 0) continue;
+
+                for (int i = 1; i <= count; i++)
+                {
+                    string line1 = engraving;
+                    string line2 = $"№ в партии {i}";
+                    string engravingText = $"{line1}\n{line2}";
+                    string filename = $"{line1}_{line2}.dxf";
+                    string fullPath = Path.Combine(outputDir, filename);
+
+                    // ⚠️ Создаём НОВЫЙ документ из шаблона
+                    CadDocument dxf;
+                    using (var ms = new MemoryStream(templateBytes))
+                    using (var reader = new DxfReader(ms))
+                    {
+                        dxf = reader.Read();
+                    }
+
+                    // Добавляем гравировку
+                    Engraving.AddEngravingAsPolylines(dxf, engravingText, partBoundsWpf);
+
+                    // Сохраняем
+                    using var writer = new DxfWriter(fullPath, dxf);
+                    writer.Write();
+                }
             }
+
+            MainWindow.M.StatusBegin($"Создано {lines.Sum(l => l.Split(' ').Length > 1 && int.TryParse(l.Split(' ')[1], out int n) ? n : 0)} файлов", MainWindow.StatusMessageType.Info);
         }
     }
 

@@ -16,9 +16,9 @@ namespace Metal_Code
         public static void AddEngravingAsPolylines(
             CadDocument doc,
             string text,
-            Rect partBounds,                 // границы детали (в DXF-координатах)
-            string fontFamily = "GOST type A",
-            string layerName = "Engraving")
+            Rect partBounds,
+            string fontFamily = "Danger",
+            string layerName = "MARK")
         {
             if (!doc.Layers.TryGetValue(layerName, out Layer layer))
             {
@@ -26,14 +26,11 @@ namespace Metal_Code
                 doc.Layers.Add(layer);
             }
 
-            // 1. Вычисляем оптимальный размер шрифта
             double fontSize = CalculateOptimalFontSize(text, fontFamily, partBounds, maxFontSize: 20, minFontSize: 10);
 
-            // 2. Вычисляем позицию для центрирования
-            var positionWpf = GetCenteredTextPosition(text, fontFamily, fontSize, partBounds);
+            Point origin = GetCenteredTextPosition(text, fontFamily, fontSize, partBounds);
 
-            // 3. Генерируем геометрию
-            var contours = TextToPathGeometries(text, fontFamily, fontSize, positionWpf);
+            var contours = TextToPathGeometries(text, fontFamily, fontSize, origin);
 
             foreach (var contour in contours)
             {
@@ -43,7 +40,7 @@ namespace Metal_Code
                 foreach (var pt in contour)
                 {
                     float x = (float)pt.X;
-                    float y = (float)-pt.Y; // инверсия Y: WPF → DXF
+                    float y = (float)-pt.Y;
 
                     if (!float.IsFinite(x) || !float.IsFinite(y)) continue;
                     vertices.Add(new LwPolyline.Vertex(new XY(x, y)));
@@ -52,14 +49,15 @@ namespace Metal_Code
                 if (vertices.Count < 2) continue;
 
                 bool isClosed = contour.Count > 2 &&
-                                Math.Abs(contour[0].X - contour[^1].X) < 1e-3 &&
-                                Math.Abs(contour[0].Y - contour[^1].Y) < 1e-3;
+                                 Math.Abs(contour[0].X - contour[^1].X) < 1e-3 &&
+                                 Math.Abs(contour[0].Y - contour[^1].Y) < 1e-3;
 
                 var polyline = new LwPolyline(vertices)
                 {
                     Layer = layer,
                     IsClosed = isClosed,
-                    ConstantWidth = 0.0f
+                    ConstantWidth = 0.0f,
+                    Color = new ACadSharp.Color(100)
                 };
 
                 doc.Entities.Add(polyline);
@@ -68,87 +66,114 @@ namespace Metal_Code
 
         public static List<List<Point>> TextToPathGeometries(string text, string fontFamily, double fontSize, Point origin)
         {
-            var formattedText = new FormattedText(
-                text,
-                System.Globalization.CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight,
-                new Typeface(fontFamily),
-                fontSize,
-                Brushes.Black,
-                1.0 /* pixels per dip */
-            );
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            if (lines.Length == 0) return new List<List<Point>>();
 
-            var geometry = formattedText.BuildGeometry(origin);
-            var flattened = geometry.GetFlattenedPathGeometry(0.05, ToleranceType.Absolute); // точная аппроксимация
+            // 1. Измеряем ВСЕ строки и находим максимальную ширину
+            var lineGeometries = new List<FormattedText>();
+            double maxWidth = 0;
 
-            var contours = new List<List<Point>>();
-
-            foreach (PathFigure figure in flattened.Figures)
+            foreach (var line in lines)
             {
-                var points = new List<Point> { figure.StartPoint };
+                var ft = new FormattedText(
+                    line,
+                    CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface(fontFamily),
+                    fontSize,
+                    Brushes.Black,
+                    1.0
+                );
 
-                foreach (PathSegment seg in figure.Segments)
-                {
-                    if (seg is LineSegment line)
-                    {
-                        points.Add(line.Point);
-                    }
-                    else if (seg is PolyLineSegment poly)
-                    {
-                        points.AddRange(poly.Points);
-                    }
-                    // Другие сегменты уже линеаризованы Flatten
-                }
-
-                if (figure.IsClosed && points.Count > 1)
-                {
-                    points.Add(figure.StartPoint); // явно замыкаем
-                }
-
-                contours.Add(points);
+                lineGeometries.Add(ft);
+                maxWidth = Math.Max(maxWidth, ft.Width);
             }
 
-            return contours;
+            // 2. Генерируем геометрию
+            var allContours = new List<List<Point>>();
+            double currentY = origin.Y;
+
+            for (int i = 0; i < lineGeometries.Count; i++)
+            {
+                var ft = lineGeometries[i];
+
+                // Центрируем строку: левый край блока + (максШирина - ширина строки) / 2
+                double offsetX = (maxWidth - ft.Width) / 2.0;
+                Point lineOrigin = new(origin.X + offsetX, currentY);
+
+                var geometry = ft.BuildGeometry(lineOrigin);
+                var flattened = geometry.GetFlattenedPathGeometry(0.05, ToleranceType.Absolute);
+
+                foreach (PathFigure figure in flattened.Figures)
+                {
+                    var points = new List<Point> { figure.StartPoint };
+
+                    foreach (PathSegment seg in figure.Segments)
+                    {
+                        if (seg is LineSegment line)
+                            points.Add(line.Point);
+                        else if (seg is PolyLineSegment poly)
+                            points.AddRange(poly.Points);
+                    }
+
+                    if (figure.IsClosed && points.Count > 1)
+                        points.Add(figure.StartPoint);
+
+                    allContours.Add(points);
+                }
+
+                currentY += ft.Height;
+            }
+
+            return allContours;
         }
 
-        // Метод для измерения размера текста
-        public static Size MeasureText(string text, string fontFamily, double fontSize)
+        public static Size MeasureMultilineText(string text, string fontFamily, double fontSize)
         {
-            var formattedText = new FormattedText(
-                text,
-                CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight,
-                new Typeface(fontFamily),
-                fontSize,
-                Brushes.Transparent,
-                1.0
-            );
-            return new Size(formattedText.Width, formattedText.Height);
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            if (lines.Length == 0) return new Size(0, 0);
+
+            double maxWidth = 0;
+            double totalHeight = 0;
+
+            foreach (var line in lines)
+            {
+                var ft = new FormattedText(line, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                    new Typeface(fontFamily), fontSize, Brushes.Transparent, 1.0);
+                maxWidth = Math.Max(maxWidth, ft.Width);
+                totalHeight += ft.Height;
+            }
+
+            return new Size(maxWidth, totalHeight);
         }
 
-        // Метод подбора оптимального размера шрифта
-        public static double CalculateOptimalFontSize(string text, string fontFamily, Rect area, double maxFontSize = 20.0, double minFontSize = 10.0)
+        public static double CalculateOptimalFontSize(
+            string text,
+            string fontFamily,
+            Rect area,
+            double maxFontSize = 20.0,
+            double minFontSize = 10.0)
         {
-            const double paddingRatio = 0.8; // 80% от размера детали
+            const double paddingRatio = 0.8;
             double targetWidth = area.Width * paddingRatio;
             double targetHeight = area.Height * paddingRatio;
 
-            // Простой итеративный подбор (можно заменить на бинарный поиск)
             for (double size = maxFontSize; size >= minFontSize; size -= 0.5)
             {
-                var sizeText = MeasureText(text, fontFamily, size);
+                var sizeText = MeasureMultilineText(text, fontFamily, size);
                 if (sizeText.Width <= targetWidth && sizeText.Height <= targetHeight)
                     return size;
             }
-            return minFontSize; // fallback
+
+            return minFontSize;
         }
 
-        // Центрирование: вычисление позиции текста
         public static Point GetCenteredTextPosition(string text, string fontFamily, double fontSize, Rect area)
         {
-            var size = MeasureText(text, fontFamily, fontSize);
+            var size = MeasureMultilineText(text, fontFamily, fontSize);
             double x = area.Left + (area.Width - size.Width) / 2.0;
             double y = area.Top + (area.Height - size.Height) / 2.0;
+
             return new Point(x, y);
         }
     }

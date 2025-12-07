@@ -5631,8 +5631,11 @@ namespace Metal_Code
                 lastInputDirectory = Path.GetDirectoryName(openFileDialog.FileNames[0]);
                 if (lastInputDirectory != null && !lastInputDirectory.Contains("ТЗ", StringComparison.OrdinalIgnoreCase))
                 {
-                    StatusBegin("Папка с моделями, в которой будет создана заявка, должна называться \"ТЗ\".", StatusMessageType.Error);
-                    return;
+                    MessageBoxResult response = MessageBox.Show(
+                        "Папка с моделями, в которой будет создана заявка, должна называться \"ТЗ\"!",
+                        "Создание заявки", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                    if (response == MessageBoxResult.No) return;
                 }
 
                 NewProject();
@@ -5679,10 +5682,22 @@ namespace Metal_Code
                 }
                 else if (entity is Spline spline)
                 {
-                    foreach (var cp in spline.ControlPoints)
+                    if (spline.FitPoints != null && spline.FitPoints.Count > 0)
                     {
-                        bounds.Add(new Point(cp.X, cp.Y));
+                        foreach (var fp in spline.FitPoints)
+                        {
+                            bounds.Add(new Point(fp.X, fp.Y));
+                        }
                     }
+                    else if (spline.ControlPoints != null)
+                    {
+                        // fallback, если FitPoints нет
+                        foreach (var cp in spline.ControlPoints)
+                        {
+                            bounds.Add(new Point(cp.X, cp.Y));
+                        }
+                    }
+
                     way += (float)GetSplineLength(spline);
                     if (spline.IsClosed) pinholes++;
                 }
@@ -5741,10 +5756,22 @@ namespace Metal_Code
                             }
                             else if (blockEntity is Spline _spline)
                             {
-                                foreach (var cp in _spline.ControlPoints)
+                                if (_spline.FitPoints != null && _spline.FitPoints.Count > 0)
                                 {
-                                    bounds.Add(new Point(cp.X, cp.Y));
+                                    foreach (var fp in _spline.FitPoints)
+                                    {
+                                        bounds.Add(new Point(fp.X, fp.Y));
+                                    }
                                 }
+                                else if (_spline.ControlPoints != null)
+                                {
+                                    // fallback, если FitPoints нет
+                                    foreach (var cp in _spline.ControlPoints)
+                                    {
+                                        bounds.Add(new Point(cp.X, cp.Y));
+                                    }
+                                }
+
                                 way += (float)GetSplineLength(_spline);
                                 if (_spline.IsClosed) pinholes++;
                             }
@@ -5807,21 +5834,29 @@ namespace Metal_Code
 
             foreach (var entity in dxf.Entities)
             {
-                if (entity is Line line)
+                switch (entity)
                 {
-                    DrawLine(line, scale, offsetX, offsetY, geometries, drawingBounds);
-                }
-                else if (entity is Arc arc)
-                {
-                    DrawArc(arc, scale, offsetX, offsetY, geometries, drawingBounds);
-                }
-                else if (entity is Circle circle)
-                {
-                    DrawCircle(circle, scale, offsetX, offsetY, geometries, drawingBounds);
-                }
-                else if (entity is Insert insert)
-                {
-                    RenderBlock(insert.Block, scale, offsetX, offsetY, geometries, drawingBounds);
+                    case Line line:
+                        DrawLine(line, scale, offsetX, offsetY, geometries, drawingBounds);
+                        break;
+                    case Arc arc:
+                        DrawArc(arc, scale, offsetX, offsetY, geometries, drawingBounds);
+                        break;
+                    case Circle circle:
+                        DrawCircle(circle, scale, offsetX, offsetY, geometries, drawingBounds);
+                        break;
+                    case Ellipse ellipse:
+                        DrawEllipse(ellipse, scale, offsetX, offsetY, geometries, drawingBounds);
+                        break;
+                    case LwPolyline lwPoly:
+                        DrawLwPolyline(lwPoly, scale, offsetX, offsetY, geometries, drawingBounds);
+                        break;
+                    case Spline spline:
+                        DrawSpline(spline, scale, offsetX, offsetY, geometries, drawingBounds);
+                        break;
+                    case Insert insert:
+                        RenderBlock(insert.Block, scale, offsetX, offsetY, geometries, drawingBounds);
+                        break;
                 }
             }
 
@@ -5883,24 +5918,118 @@ namespace Metal_Code
                 Radius = radius
             });
         }
-        
+
+        public static void DrawEllipse(Ellipse ellipse, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries, Rect drawingBounds)
+        {
+            if (ellipse == null) return;
+
+            double radiusX = ellipse.MajorAxis * scale;
+
+            double radiusY = ellipse.MinorAxis * scale;
+
+            // Преобразуем центр эллипса
+            var center = Transform(ellipse.Center, scale, offsetX, offsetY, drawingBounds);
+
+            geometries.Add(new EllipseDescriptor
+            {
+                Center = center,
+                RadiusX = radiusX,
+                RadiusY = radiusY,
+                Stroke = Brushes.Red,
+                StrokeThickness = 0.5
+            });
+        }
+
+        public static void DrawLwPolyline(LwPolyline lwPolyline, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries, Rect drawingBounds)
+        {
+            if (lwPolyline?.Vertices == null || lwPolyline.Vertices.Count < 2)
+                return;
+
+            var points = new List<Point>();
+            foreach (var vertex in lwPolyline.Vertices)
+            {
+                var pt = Transform(new(vertex.Location.X,vertex.Location.Y, 0), scale, offsetX, offsetY, drawingBounds);
+                points.Add(pt);
+            }
+
+            // Если полилиния замкнута — добавим замыкающий сегмент (опционально для предпросмотра)
+            if (lwPolyline.IsClosed && points.Count > 2)
+            {
+                points.Add(points[0]);
+            }
+
+            // Создаём последовательность линий
+            for (int i = 1; i < points.Count; i++)
+            {
+                geometries.Add(new LineDescriptor
+                {
+                    Start = points[i - 1],
+                    End = points[i]
+                });
+            }
+        }
+
+        public static void DrawSpline(Spline spline, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries, Rect drawingBounds)
+        {
+            if (spline == null) return;
+
+            List<XYZ> sourcePoints;
+
+            if (spline.FitPoints != null && spline.FitPoints.Count >= 2)
+            {
+                sourcePoints = spline.FitPoints;
+            }
+            else if (spline.ControlPoints != null && spline.ControlPoints.Count >= 2)
+            {
+                sourcePoints = spline.ControlPoints;
+            }
+            else
+            {
+                return;
+            }
+
+            var points = new List<Point>();
+            foreach (var pt in sourcePoints)
+            {
+                var wpfPt = Transform(pt, scale, offsetX, offsetY, drawingBounds);
+                points.Add(wpfPt);
+            }
+
+            geometries.Add(new SplineDescriptor
+            {
+                Points = points,
+                IsClosed = spline.IsClosed,
+                Stroke = Brushes.Black,
+                StrokeThickness = 0.5
+            });
+        }
+
         public static void RenderBlock(BlockRecord block, double scale, double offsetX, double offsetY, ObservableCollection<IGeometryDescriptor> geometries, Rect drawingBounds)
         {
-            if (block == null || block.Entities == null) return;
+            if (block?.Entities == null) return;
 
-            foreach (var reference in block.Entities)
+            foreach (var entity in block.Entities)
             {
-                if (reference is Line line)
+                switch (entity)
                 {
-                    DrawLine(line, scale, offsetX, offsetY, geometries, drawingBounds);
-                }
-                else if (reference is Arc arc)
-                {
-                    DrawArc(arc, scale, offsetX, offsetY, geometries, drawingBounds);
-                }
-                else if (reference is Circle circle)
-                {
-                    DrawCircle(circle, scale, offsetX, offsetY, geometries, drawingBounds);
+                    case Line line:
+                        DrawLine(line, scale, offsetX, offsetY, geometries, drawingBounds);
+                        break;
+                    case Arc arc:
+                        DrawArc(arc, scale, offsetX, offsetY, geometries, drawingBounds);
+                        break;
+                    case Circle circle:
+                        DrawCircle(circle, scale, offsetX, offsetY, geometries, drawingBounds);
+                        break;
+                    case Ellipse ellipse:
+                        DrawEllipse(ellipse, scale, offsetX, offsetY, geometries, drawingBounds);
+                        break;
+                    case LwPolyline lwPolyline:
+                        DrawLwPolyline(lwPolyline, scale, offsetX, offsetY, geometries, drawingBounds);
+                        break;
+                    case Spline spline:
+                        DrawSpline(spline, scale, offsetX, offsetY, geometries, drawingBounds);
+                        break;
                 }
             }
         }

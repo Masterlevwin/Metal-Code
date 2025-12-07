@@ -128,7 +128,6 @@
                             <Button Content="Генерация" Click="Rename_Details"/>
                             <Image Source="/Images/question.png" MouseEnter="ShowPopup_Gen" Width="16"/>
                         </StackPanel>
-                        <Button Content="Гравировка" Margin="5" Click="AddEngraving"/>
                     </StackPanel>
                 </StackPanel>
             </GroupBox>
@@ -143,7 +142,12 @@
                 </GroupBox.Header>
 
                 <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
                     <Canvas local:CanvasHelper.GeometryDescriptors="{Binding TargetTechItem.Geometries}" Background="White" VerticalAlignment="Center" HorizontalAlignment="Center" Width="60" Height="60"/>
+                    <Button Grid.Row="1" Content="Шильда" Click="Shields_Engraving"/>
                 </Grid>
             </GroupBox>
 
@@ -220,9 +224,9 @@
                                 <Image Source="/Images/del_offer.png"/>
                             </MenuItem.Icon>
                         </MenuItem>
-                        <MenuItem Header="Добавить гравировку">
+                        <MenuItem Header="Добавить гравировку" Click="AddEngraving">
                             <MenuItem.Icon>
-                                <Image Source="/Images/blueprint.png"/>
+                                <Image Source="/Images/engraving.png"/>
                             </MenuItem.Icon>
                         </MenuItem>
                     </ContextMenu>

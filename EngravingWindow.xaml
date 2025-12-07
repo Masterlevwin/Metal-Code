@@ -1,0 +1,41 @@
+﻿<Window x:Class="Metal_Code.EngravingWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:hc="https://handyorg.github.io/handycontrol"
+             xmlns:local="clr-namespace:Metal_Code"
+        Title="Гравировка" Height="400" Width="300" WindowStartupLocation="CenterScreen">
+    
+    <Grid Margin="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+
+        <!-- Текст -->
+        <hc:TextBox hc:InfoElement.Placeholder="Введите текст гравировки"
+                        Text="{Binding TextMarking, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Center"
+                        TextWrapping="Wrap" Grid.Row="0"/>
+
+        <!-- Шрифт -->
+        <hc:ComboBox x:Name="FontBox" ItemsSource="{Binding FontList}"
+                         hc:InfoElement.Placeholder="Выбор шрифта"
+                         SelectedItem="{Binding SelectedFont}"
+                         Margin="0,5,0,5" Grid.Row="1"/>
+
+        <!-- Предпросмотр -->
+        <Border Grid.Row="2" BorderBrush="Gray" BorderThickness="1" Margin="0,10,0,0" Padding="5">
+            <Canvas x:Name="PreviewCanvas" Width="160" Height="160" VerticalAlignment="Center" HorizontalAlignment="Center" Background="White"/>
+        </Border>
+
+        <!-- Кнопки -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10,0,10" HorizontalAlignment="Right">
+            <Button Content="Отмена" Margin="0,0,10,0" Click="CancelButton_Click"/>
+            <Button Content="Применить" Click="ApplyButton_Click"/>
+        </StackPanel>
+        
+    </Grid>
+</Window>
