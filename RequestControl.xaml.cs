@@ -951,6 +951,7 @@ namespace Metal_Code
                     {
                         string engravingText = engravingWindow.TextMarking;
                         string font = engravingWindow.SelectedFont;
+                        double? fontSize = engravingWindow.FontSizeOverride;
 
                         try
                         {
@@ -969,7 +970,7 @@ namespace Metal_Code
                                 data.Item1.Height
                                 );
 
-                            Engraving.AddEngravingAsPolylines(dxf, engravingText, partBoundsWpf, font);
+                            Engraving.AddEngravingAsPolylines(dxf, engravingText, partBoundsWpf, font, fontSize);
 
                             string? directory = Path.GetDirectoryName(techItem.PathToModel);
                             string fileNameWithoutExt = Path.GetFileNameWithoutExtension(techItem.PathToModel);

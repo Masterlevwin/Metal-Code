@@ -185,6 +185,7 @@
                     <DataGridTextColumn Header="Кол-во" Binding="{Binding Count}"/>
                     <DataGridTextColumn Header="Маршрут" Binding="{Binding Route}"/>
                     <DataGridTextColumn Header="Давальч" Binding="{Binding HasMaterial}"/>
+                    <DataGridTextColumn Header="Грав" Binding="{Binding TextMarking}"/>
                     <DataGridTemplateColumn Header="Ещё" CanUserResize="False">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>

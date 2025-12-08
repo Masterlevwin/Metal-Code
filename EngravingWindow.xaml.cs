@@ -52,6 +52,18 @@ namespace Metal_Code
             "GOST type B"
         };
 
+        private double? fontSizeOverride = null;
+        public double? FontSizeOverride
+        {
+            get => fontSizeOverride;
+            set
+            {
+                fontSizeOverride = value > 10 ? value : null;
+                OnPropertyChanged(nameof(FontSizeOverride));
+                UpdateEngravingPreview();
+            }
+        }
+
         private TechItem? targetTechItem;
         public TechItem? TargetTechItem
         {
@@ -77,60 +89,54 @@ namespace Metal_Code
         private void UpdateEngravingPreview()
         {
             PreviewCanvas.Children.Clear();
-
-            if (TargetTechItem == null || string.IsNullOrWhiteSpace(TextMarking))
+            if (string.IsNullOrWhiteSpace(TextMarking))
+            {
+                PreviewCanvas.Width = 120;
+                PreviewCanvas.Height = 60;
                 return;
+            }
 
             try
             {
-                // 1. ПОЛУЧАЕМ DXF и габариты детали
-                using var reader = new DxfReader(TargetTechItem.PathToModel);
-                var dxf = reader.Read();
-                var (partBoundsDxf, _, _) = MainWindow.GetDrawingBounds(dxf);
+                // Используем фиксированный размер шрифта или override
+                double fontSize = 20;
 
-                // 2. РАЗМЕР CANVAS
-                double canvasWidth = Math.Max(PreviewCanvas.ActualWidth, 1);
-                double canvasHeight = Math.Max(PreviewCanvas.ActualHeight, 1);
+                // Генерируем контуры
+                var origin = new Point(0, 0);
+                var contours = Engraving.TextToPathGeometries(TextMarking, SelectedFont, fontSize, origin);
 
-                // 3. ВЫЧИСЛЯЕМ ОПТИМАЛЬНЫЙ РАЗМЕР ШРИФТА И ПОЗИЦИЮ
-                double fontSize = Engraving.CalculateOptimalFontSize(TextMarking, SelectedFont, partBoundsDxf, 20, 5);
-                Point originDxf = Engraving.GetCenteredTextPosition(TextMarking, SelectedFont, fontSize, partBoundsDxf);
-                var contours = Engraving.TextToPathGeometries(TextMarking, SelectedFont, fontSize, originDxf);
-
-                // 4. ВЫЧИСЛЯЕМ МАСШТАБ ДЛЯ ТЕКСТА (чтобы он заполнил холст)
-                // Сначала найдём bounding box текста в DXF-координатах
+                // Находим bounding box
                 Rect textBounds = new();
                 foreach (var contour in contours)
                 {
                     foreach (var pt in contour)
-                    {
                         textBounds.Union(new Rect(pt, new Size(1, 1)));
-                    }
                 }
 
-                if (textBounds.IsEmpty)
-                    return;
+                if (textBounds.IsEmpty) return;
 
-                // Масштабируем текст, чтобы он занял ~90% холста
-                double scaleX = canvasWidth / textBounds.Width;
-                double scaleY = canvasHeight / textBounds.Height;
-                double scale = Math.Min(scaleX, scaleY) * 0.9;
+                // Добавим отступы (например, 10 пикселей)
+                double margin = 10;
+                double canvasWidth = textBounds.Width + margin;
+                double canvasHeight = textBounds.Height + margin;
+
+                // Устанавливаем размер Canvas
+                PreviewCanvas.Width = Math.Max(canvasWidth, 120);
+                PreviewCanvas.Height = Math.Max(canvasHeight, 60);
 
                 // Центрируем текст в Canvas
-                double textCenterX = textBounds.Left + textBounds.Width / 2.0;
-                double textCenterY = textBounds.Top + textBounds.Height / 2.0;
-                double canvasCenterX = canvasWidth / 2.0;
-                double canvasCenterY = canvasHeight / 2.0;
+                double offsetX = (PreviewCanvas.Width - textBounds.Width) / 2.0 - textBounds.Left;
+                double offsetY = (PreviewCanvas.Height - textBounds.Height) / 2.0 - textBounds.Top;
 
-                // 5. РИСУЕМ КАЖДУЮ КОНТУРНУЮ ЛОМАНУЮ
                 foreach (var contour in contours)
                 {
                     var points = new PointCollection();
                     foreach (var pt in contour)
                     {
-                        // Переносим точку из DXF → Canvas с центрированием и масштабированием
-                        double x = canvasCenterX + (pt.X - textCenterX) * scale;
-                        double y = canvasCenterY - (pt.Y - textCenterY) * scale; // инверсия Y
+                        // Смещаем, чтобы текст был по центру
+                        double x = pt.X + offsetX;
+                        double y = pt.Y + offsetY; // без инверсии!
+                        if (!double.IsFinite(x) || !double.IsFinite(y)) continue;
                         points.Add(new Point(x, y));
                     }
 
@@ -145,18 +151,7 @@ namespace Metal_Code
                     }
                 }
             }
-            catch
-            {
-                // Игнорируем ошибки рендеринга
-            }
-        }
-
-        // Вспомогательный метод: преобразование из DXF → Canvas
-        private Point DxfToCanvas(double x, double y, double dxfCenterX, double dxfCenterY, double scale, double canvasCenterX, double canvasCenterY)
-        {
-            double canvasX = canvasCenterX + (x - dxfCenterX) * scale;
-            double canvasY = canvasCenterY - (y - dxfCenterY) * scale; // инверсия Y: DXF (вверх) → WPF (вниз)
-            return new Point(canvasX, canvasY);
+            catch { }
         }
 
         // ===== ОБРАБОТЧИКИ КНОПОК =====

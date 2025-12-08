@@ -108,7 +108,30 @@ namespace Metal_Code
 
                               //формируем КП в формате excel и сохраняем расчет в базе данных
                               MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);
-                              MainWindow.M.SaveOrRemoveOffer(true, dialogService.FilePaths[0]);
+
+                              string? originalFolderPath = Path.GetDirectoryName(dialogService.FilePaths[0]);
+                              string newFolderName = $"КП (от {DateTime.Now:dd.MM.yyyy HH-mm})";
+
+                              if (originalFolderPath != null)
+                              {
+                                  string? parentDir = Path.GetDirectoryName(originalFolderPath);
+                                  if (parentDir != null)
+                                  {
+                                      string destinationPath = Path.Combine(parentDir, newFolderName);
+                                      try
+                                      {
+                                          Directory.Move(originalFolderPath, destinationPath);
+                                          string newFolderPath = Path.Combine(Path.GetDirectoryName(originalFolderPath), newFolderName);
+                                          string newFilePath = Path.Combine(newFolderPath, Path.GetFileName(dialogService.FilePaths[0]));
+
+                                          MainWindow.M.SaveOrRemoveOffer(true, newFilePath);
+                                      }
+                                      catch (Exception ex)
+                                      {
+                                          MessageBox.Show($"Не удалось переименовать папку:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                      }
+                                  }
+                              }
                           }
                       }
                       catch (Exception ex)

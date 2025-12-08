@@ -154,7 +154,7 @@ namespace Metal_Code
                 ClearDirectories();             //очищаем пустые папки
 
                 //создаем папку "КП" в директории заявки
-                Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + $"КП (от {DateTime.Now:dd.MM.yyyy HH-mm})");
+                Directory.CreateDirectory(Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile)) + "\\" + "КП");
             }
             catch (Exception ex) { notify = ex.Message; }
 
@@ -486,6 +486,20 @@ namespace Metal_Code
                 {
                     originalName = value;
                     OnPropertyChanged(nameof(OriginalName));
+                }
+            }
+        }
+
+        private string textMarking = string.Empty;
+        public string TextMarking
+        {
+            get => textMarking;
+            set
+            {
+                if (textMarking != value)
+                {
+                    textMarking = value;
+                    OnPropertyChanged(nameof(TextMarking));
                 }
             }
         }

@@ -18,15 +18,16 @@ namespace Metal_Code
             string text,
             Rect partBounds,
             string fontFamily = "Danger",
-            string layerName = "MARK")
+            double? fixedSize = null)
         {
-            if (!doc.Layers.TryGetValue(layerName, out Layer layer))
+            if (!doc.Layers.TryGetValue("MARK", out Layer layer))
             {
-                layer = new Layer(layerName);
+                layer = new Layer("MARK");
                 doc.Layers.Add(layer);
             }
 
-            double fontSize = CalculateOptimalFontSize(text, fontFamily, partBounds, maxFontSize: 20, minFontSize: 10);
+            // Если пользователь задал фиксированный размер — используем его, иначе — подбираем автоматически
+            double fontSize = fixedSize ?? CalculateOptimalFontSize(text, fontFamily, partBounds, maxFontSize: 30, minFontSize: 10);
 
             Point origin = GetCenteredTextPosition(text, fontFamily, fontSize, partBounds);
 
@@ -151,7 +152,7 @@ namespace Metal_Code
             string text,
             string fontFamily,
             Rect area,
-            double maxFontSize = 20.0,
+            double maxFontSize = 30.0,
             double minFontSize = 10.0)
         {
             const double paddingRatio = 0.8;
