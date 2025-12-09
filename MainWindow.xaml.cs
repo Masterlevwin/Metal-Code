@@ -595,10 +595,10 @@ namespace Metal_Code
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.6.7.7",
-                releaseDate: new DateTime(2025, 12, 8),
-                description: "Добавлена функция нанесения маркировки (гравировки) в центр детали.",
-                screenshotPath: "/Updates/v2.6.7.7_2025-12-08.png"
+                version: "v2.6.7.8",
+                releaseDate: new DateTime(2025, 12, 9),
+                description: "Добавлена функция нанесения гравировки во все детали, у которых заполнено соответствующее поле.",
+                screenshotPath: "/Updates/v2.6.7.7_2025-12-09.png"
             );
 
             // Получаем новые обновления

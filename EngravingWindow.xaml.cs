@@ -75,21 +75,54 @@ namespace Metal_Code
             }
         }
 
-        public EngravingWindow(TechItem techItem)
+        private readonly EngravingMode _mode;
+
+        public EngravingWindow(EngravingMode mode, TechItem? techItem = null)
         {
             InitializeComponent();
             DataContext = this;
-
+            _mode = mode;
             TargetTechItem = techItem;
+
+            if (_mode == EngravingMode.SingleItem && TargetTechItem != null)
+            {
+                TextMarking = TargetTechItem.TextMarking ?? "";
+            }
+
+            InitializeUI();
 
             // Запускаем предпросмотр после загрузки
             PreviewCanvas.Loaded += (s, e) => UpdateEngravingPreview();
         }
 
+        private void InitializeUI()
+        {
+            switch (_mode)
+            {
+                case EngravingMode.SingleItem:
+                    TextEngraving.IsEnabled = true;
+                    TextEngraving.Visibility = Visibility.Visible;
+                    break;
+
+                case EngravingMode.BatchPreview:
+                    TextEngraving.IsEnabled = false;
+                    TextEngraving.Visibility = Visibility.Collapsed;
+                    break;
+            }
+        }
+
         private void UpdateEngravingPreview()
         {
             PreviewCanvas.Children.Clear();
-            if (string.IsNullOrWhiteSpace(TextMarking))
+
+            string previewText = _mode switch
+            {
+                EngravingMode.SingleItem => TextMarking,
+                EngravingMode.BatchPreview => SelectedFont ?? "Preview",
+                _ => ""
+            };
+
+            if (string.IsNullOrWhiteSpace(previewText))
             {
                 PreviewCanvas.Width = 120;
                 PreviewCanvas.Height = 60;
@@ -103,7 +136,7 @@ namespace Metal_Code
 
                 // Генерируем контуры
                 var origin = new Point(0, 0);
-                var contours = Engraving.TextToPathGeometries(TextMarking, SelectedFont, fontSize, origin);
+                var contours = Engraving.TextToPathGeometries(previewText, SelectedFont, fontSize, origin);
 
                 // Находим bounding box
                 Rect textBounds = new();
@@ -157,5 +190,12 @@ namespace Metal_Code
         // ===== ОБРАБОТЧИКИ КНОПОК =====
         private void CancelButton_Click(object sender, RoutedEventArgs e) => DialogResult = false;
         private void ApplyButton_Click(object sender, RoutedEventArgs e) => DialogResult = true;
+    }
+
+
+    public enum EngravingMode
+    {
+        SingleItem,   // Редактирование текста для одной детали
+        BatchPreview  // Только выбор шрифта/размера, текст = имя шрифта
     }
 }

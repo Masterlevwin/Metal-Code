@@ -115,6 +115,7 @@
     <None Remove="Updates\v2.6.7.5_2025-12-02.png" />
     <None Remove="Updates\v2.6.7.6_2025-12-05.png" />
     <None Remove="Updates\v2.6.7.7_2025-12-08.png" />
+    <None Remove="Updates\v2.6.7.7_2025-12-09.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -258,6 +259,7 @@
     <Resource Include="Updates\v2.6.7.5_2025-12-02.png" />
     <Resource Include="Updates\v2.6.7.6_2025-12-05.png" />
     <Resource Include="Updates\v2.6.7.7_2025-12-08.png" />
+    <Resource Include="Updates\v2.6.7.7_2025-12-09.png" />
     <Content Include="template.xlsx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

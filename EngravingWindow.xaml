@@ -6,7 +6,7 @@
              xmlns:hc="https://handyorg.github.io/handycontrol"
              xmlns:local="clr-namespace:Metal_Code"
         Title="Гравировка" WindowStartupLocation="CenterScreen" Width="300" Height="300">
-    
+
     <Grid Margin="5">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -16,7 +16,7 @@
         </Grid.RowDefinitions>
 
         <!-- Текст -->
-        <hc:TextBox hc:InfoElement.Placeholder="Введите текст гравировки"
+        <hc:TextBox x:Name="TextEngraving" hc:InfoElement.Placeholder="Введите текст гравировки"
                         Text="{Binding TextMarking, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Center"
                         TextWrapping="Wrap" AcceptsReturn="True" Grid.Row="0" Margin="5" MaxLines="4"/>
 

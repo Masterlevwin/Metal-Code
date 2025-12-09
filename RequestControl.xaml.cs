@@ -145,7 +145,8 @@ namespace Metal_Code
                         $"{table.Rows[i].ItemArray[7]}",        //давальческий материал      
                         $"{table.Rows[i].ItemArray[8]}",        //оригинальное наименование от заказчика
                         $"{table.Rows[i].ItemArray[9]}",        //путь к файлу модели
-                        $"{table.Rows[i].ItemArray[10]}");      //сгенерирован ли номер чертежа
+                        $"{table.Rows[i].ItemArray[10]}",       //сгенерирован ли номер чертежа
+                        $"{table.Rows[i].ItemArray[11]}");      //гравировка
                     TechItems.Add(techItem);
                 }
 
@@ -615,7 +616,7 @@ namespace Metal_Code
             requestsheet.Cells[TechItems.Count + 3, 5, TechItems.Count + 3, 6].Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             //устанавливаем заголовки таблицы
-            List<string> _heads = new() { "№", "№ чертежа", "Размеры", "Металл", "Толщина", "Кол-во деталей", "Маршрут", "Давальч", "Исходник", "Путь к модели", "Сген" };
+            List<string> _heads = new() { "№", "№ чертежа", "Размеры", "Металл", "Толщина", "Кол-во деталей", "Маршрут", "Давальч", "Исходник", "Путь к модели", "Сген", "Гравировка" };
             for (int head = 0; head < _heads.Count; head++) requestsheet.Cells[2, head + 1].Value = _heads[head];
 
             //string message = "";
@@ -632,6 +633,7 @@ namespace Metal_Code
                 requestsheet.Cells[i + 3, 9].Value = TechItems[i].OriginalName;
                 requestsheet.Cells[i + 3, 10].Value = TechItems[i].PathToModel;
                 requestsheet.Cells[i + 3, 11].Value = TechItems[i].IsGenerated ? "да" : "";
+                requestsheet.Cells[i + 3, 12].Value = TechItems[i].TextMarking;
             }
 
             requestsheet.Column(9).Hidden = true;
@@ -647,7 +649,7 @@ namespace Metal_Code
             ordersheet.Cells[3, 2].Value = MainWindow.M.ManagerDrop.Text;
 
             ExcelRange order = ordersheet.Cells[1, 1, 3, 2];                            //получаем данные КП для оформления
-            ExcelRange details = requestsheet.Cells[2, 1, TechItems.Count + 2, 8];      //получаем таблицу деталей для оформления
+            ExcelRange details = requestsheet.Cells[2, 1, TechItems.Count + 2, 12];     //получаем таблицу деталей для оформления
 
             //обводка границ и авторастягивание столбцов
             order.Style.HorizontalAlignment = details.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
@@ -656,8 +658,8 @@ namespace Metal_Code
             order.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
-            requestsheet.Cells[2, 1, 2, 8].Style.WrapText = true;
-            requestsheet.Cells[2, 1, 2, 8].Style.Font.Bold = true;
+            requestsheet.Cells[2, 1, 2, 12].Style.WrapText = true;
+            requestsheet.Cells[2, 1, 2, 12].Style.Font.Bold = true;
             requestsheet.Cells.AutoFitColumns();
             ordersheet.Cells.AutoFitColumns();
 
@@ -946,7 +948,7 @@ namespace Metal_Code
             if (RequestGrid.SelectedCells.Count > 0)
                 if (RequestGrid.SelectedCells[0].Item is TechItem techItem && TechItems.Contains(techItem))
                 {
-                    var engravingWindow = new EngravingWindow(techItem);
+                    var engravingWindow = new EngravingWindow(EngravingMode.SingleItem, techItem);
                     if (engravingWindow.ShowDialog() == true)
                     {
                         string engravingText = engravingWindow.TextMarking;
@@ -1068,6 +1070,65 @@ namespace Metal_Code
             }
 
             MainWindow.M.StatusBegin($"Создано {lines.Sum(l => l.Split(' ').Length > 1 && int.TryParse(l.Split(' ')[1], out int n) ? n : 0)} файлов", MainWindow.StatusMessageType.Info);
+        }
+
+        private void ShowPopup_Shield(object sender, MouseEventArgs e)
+        {
+            Popup.IsOpen = true;
+
+            Details.Text = $"Функция нанесения гравировки на шаблон шильды.\n" +
+                $"Подготовьте txt-файл с необходимыми строчками\n" +
+                $"и dxf-файл с шаблоном шильды.\n" +
+                $"Программа создаст шильду в формате dxf\n" +
+                $"на каждую строчку текста.";
+        }
+
+        private void AddEngraving_ToAllTechItems(object sender, RoutedEventArgs e)
+        {
+            if (TechItems.Count == 0 || !TechItems.Any(t => t.TextMarking != "")) return;
+
+            var engravingWindow = new EngravingWindow(EngravingMode.BatchPreview);
+            if (engravingWindow.ShowDialog() == true)
+            {
+                string font = engravingWindow.SelectedFont;
+                double? fontSize = engravingWindow.FontSizeOverride;
+
+                foreach (TechItem techItem in TechItems)
+                    if (techItem.TextMarking != "")
+                        try
+                        {
+                            CadDocument dxf;
+                            using (var reader = new DxfReader(techItem.PathToModel))
+                            {
+                                dxf = reader.Read();
+                            }
+
+                            (Rect, float, int) data = MainWindow.GetDrawingBounds(dxf);
+
+                            Rect partBoundsWpf = new(
+                                data.Item1.X,
+                                -data.Item1.Y - data.Item1.Height,
+                                data.Item1.Width,
+                                data.Item1.Height
+                                );
+
+                            Engraving.AddEngravingAsPolylines(dxf, techItem.TextMarking, partBoundsWpf, font, fontSize);
+
+                            string? directory = Path.GetDirectoryName(techItem.PathToModel);
+                            string fileNameWithoutExt = Path.GetFileNameWithoutExtension(techItem.PathToModel);
+                            if (Directory.Exists(directory))
+                            {
+                                string newPath = Path.Combine(directory, fileNameWithoutExt + " (грав).dxf");
+                                using var writer = new DxfWriter(newPath, dxf);
+                                writer.Write();
+                            }
+                        }
+                        catch
+                        {
+                            MessageBox.Show($"Не удалось прочитать dxf ({techItem.PathToModel}).\n" +
+                            $"Пересохраните файл в CAD-программе и попробуйте снова.");
+                        }
+            }
         }
     }
 

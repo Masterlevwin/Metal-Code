@@ -65,7 +65,7 @@ namespace Metal_Code
             }
         }
 
-        public static List<List<Point>> TextToPathGeometries(string text, string fontFamily, double fontSize, Point origin)
+        public static List<List<Point>> TextToPathGeometries(string text, string? fontFamily, double fontSize, Point origin)
         {
             var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             if (lines.Length == 0) return new List<List<Point>>();

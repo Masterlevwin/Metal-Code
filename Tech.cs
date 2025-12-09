@@ -57,7 +57,8 @@ namespace Metal_Code
                         $"{table.Rows[i].ItemArray[7]}",        //давальческий материал      
                         $"{table.Rows[i].ItemArray[8]}",        //оригинальное наименование от заказчика
                         $"{table.Rows[i].ItemArray[9]}",        //путь к файлу модели
-                        $"{table.Rows[i].ItemArray[10]}");      //сгенерирован ли номер чертежа
+                        $"{table.Rows[i].ItemArray[10]}",       //сгенерирован ли номер чертежа
+                        $"{table.Rows[i].ItemArray[11]}");      //гравировка
                     TechItems.Add(techItem);
                 }
                 CountTechItems = TechItems.Count;
@@ -541,7 +542,9 @@ namespace Metal_Code
         public int Pinhole { get; set; }
 
         public TechItem() { }
-        public TechItem(string numberName, string sizes, string material, string destiny, string count, string route, string hasMaterial, string originalName, string pathToModel, string isGenerated)
+        public TechItem(string numberName, string sizes, string material, string destiny,
+            string count, string route, string hasMaterial, string originalName,
+            string pathToModel, string isGenerated, string textMarking)
         {
             NumberName = numberName;
             Sizes = sizes;
@@ -555,6 +558,7 @@ namespace Metal_Code
             OriginalName = originalName;
             PathToModel = pathToModel;
             IsGenerated = isGenerated == "да";
+            TextMarking = textMarking;
         }
     }
 }
