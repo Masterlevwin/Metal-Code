@@ -263,7 +263,8 @@ namespace Metal_Code
             bool isFakes = false;
             MainWindow.M.LooseParts.Clear();
             List<TextBlock> blocks = FindTextBlock(ParticleStack);
-            if (blocks.Count > 0) foreach (TextBlock block in blocks) block.Foreground = Brushes.Black;
+            if (blocks.Count > 0) foreach (TextBlock block in blocks)
+                    block.ClearValue(TextBlock.ForegroundProperty);     //возврат к цвету по умолчанию
 
             if (Assemblies.Count > 0)
             {
@@ -324,7 +325,8 @@ namespace Metal_Code
             {
                 Visual child = (Visual)VisualTreeHelper.GetChild(vis, i);
 
-                if (child is TextBlock block && (tag == block.Text || tag is null)) blocks.Add(block);
+                if (child is TextBlock block && (tag == block.Text || tag is null)
+                    && block.Tag?.ToString() == "ParticleTitle") blocks.Add(block);
 
                 blocks.AddRange(FindTextBlock(child, tag));
             }
@@ -352,7 +354,7 @@ namespace Metal_Code
                     var part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == assembly.Particles[0].Title);
                     
                     assembly.Description = string.Empty;
-                    assembly.WeldPrice = assembly.PaintPrice = assembly.Square = 0;
+                    assembly.WeldPrice = assembly.PaintPrice = assembly.Square = assembly.Mass = 0;
 
                     //стоимость сварки
                     float weld = ParserWeld(assembly.Weld) * assembly.Count;    //парсим длину шва
@@ -400,8 +402,6 @@ namespace Metal_Code
                                 var height = MainWindow.Parser(_part.PropsDict[100][1]);
                                 if (height == 0) height = 1;
 
-                                Trace.WriteLine($"{_part.Title} - {_part.PropsDict[100][0]} x {_part.PropsDict[100][1]} ({height})");
-
                                 assembly.Square +=
                                     _part.Mass switch       //рассчитываем наценку за тяжелые детали
                                     {
@@ -419,6 +419,8 @@ namespace Metal_Code
                                     }
                                     * width * height * particle.Count * assembly.Count / (height != 1 ? 500_000 : 1);
                             }
+
+                            assembly.Mass += _part.Mass * particle.Count;
                         }
                     }
 
@@ -454,6 +456,107 @@ namespace Metal_Code
                 MainWindow.M.StatusBegin("В поле длины свариваемой поверхности должно быть число или математическое выражение");
             }
             return 0;
+        }
+
+
+        //----------Перетаскивание детали в сборки----------//
+        private Point _dragStartPoint;
+        private Part? _draggedPart;
+        private TreeViewItem? _dragOverItem;
+
+        private void ListView_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _dragStartPoint = e.GetPosition(null);
+        }
+
+        private void ListView_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                var currentPoint = e.GetPosition(null);
+                var diff = Point.Subtract(currentPoint, _dragStartPoint);
+
+                // Минимальное расстояние для начала drag (например, 10 пикселей)
+                if (Math.Abs(diff.X) > 10 || Math.Abs(diff.Y) > 10)
+                {
+                    var listView = sender as ListView;
+                    if (listView?.SelectedItem is Part item)
+                    {
+                        _draggedPart = item; // Сохраняем ссылку на перетаскиваемую деталь
+                        var data = new DataObject("PARTICLE", item);
+                        DragDrop.DoDragDrop(listView, data, DragDropEffects.Move);
+                    }
+                }
+            }
+        }
+
+        private TreeViewItem? GetTreeViewItemFromPoint(Point point)
+        {
+            var element = ParticleStack.InputHitTest(point) as DependencyObject;
+            while (element != null && element is not TreeViewItem)
+            {
+                element = VisualTreeHelper.GetParent(element);
+            }
+            return element as TreeViewItem;
+        }
+
+        private void TreeView_DragOver(object sender, DragEventArgs e)
+        {
+            var hitItem = GetTreeViewItemFromPoint(e.GetPosition(ParticleStack));
+
+            // Сброс предыдущего выделения
+            if (_dragOverItem != null)
+            {
+                _dragOverItem.ClearValue(BackgroundProperty);
+                _dragOverItem = null;
+            }
+
+            if (e.Data.GetDataPresent("PARTICLE") && hitItem?.DataContext is Assembly)
+            {
+                _dragOverItem = hitItem;
+                // Полупрозрачный синий фон (как в системных выделениях)
+                _dragOverItem.Background = new SolidColorBrush(Color.FromArgb(40, 0, 120, 215));
+                e.Effects = DragDropEffects.Move;
+                e.Handled = true;
+                return;
+            }
+
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void TreeView_Drop(object sender, DragEventArgs e)
+        {
+            // Сброс подсветки независимо от результата drop
+            if (_dragOverItem != null)
+            {
+                _dragOverItem.ClearValue(BackgroundProperty);
+                _dragOverItem = null;
+            }
+
+            if (e.Data.GetDataPresent("PARTICLE") && GetTreeViewItemFromPoint(e.GetPosition(ParticleStack)) is TreeViewItem targetItem)
+            {
+                if (targetItem.DataContext is Assembly assembly && _draggedPart is Part part)
+                {
+                    Particle? _particle = assembly.Particles.FirstOrDefault(p => p.Title == part.Title);
+                    if (_particle is null)
+                    {
+                        _particle = new()
+                        {
+                            Title = part.Title,
+                            Count = part.Count,
+                            ImageBytes = part.ImageBytes
+                        };
+                        assembly.Particles.Add(_particle);
+                    }
+
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
         }
     }
 }

@@ -306,7 +306,26 @@ namespace Metal_Code
         //-----------Копирование всех покупных изделий----------//
         private void CopyBaskets(object sender, RoutedEventArgs e)
         {
-            if (Product.Baskets?.Count > 0) MainWindow.M.LoadBaskets(Product.Baskets);
+            if (Product.Baskets?.Count > 0)
+            {
+                MainWindow.M.LoadBaskets(Product.Baskets);
+                MessageBox.Show("Покупные изделия добавлены!");
+                MainWindow.M.StatusBegin("Если открытый для чтения расчет больше не требуется, рекомендуется закрыть его окно.");
+            }
+            else MessageBox.Show("Нет покупных изделий для добавления.");
+        }
+
+        //-----------Копирование всех сборок----------//
+        private void CopyAssemblies(object sender, RoutedEventArgs e)
+        {
+            if (Product.Assemblies?.Count > 0)
+            {
+                AssemblyWindow.A = new() { Assemblies = Product.Assemblies };
+
+                MessageBox.Show("Сборки добавлены!\nПерепроверьте их корректность!");
+                MainWindow.M.StatusBegin("Если открытый для чтения расчет больше не требуется, рекомендуется закрыть его окно.");
+            }
+            else MessageBox.Show("Нет сборок для добавления.");
         }
     }
 }

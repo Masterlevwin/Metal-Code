@@ -1099,10 +1099,41 @@ namespace Metal_Code
         {
             var items = new List<dynamic>();
 
-            if (Parts.Count > 0)
-            {
-                UpdatePricePart();
+            UpdatePricePart();
 
+            if (AssemblyWindow.A.Assemblies.Count > 0)
+            {
+                foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
+                {
+                    dynamic item = new ExpandoObject();
+
+                    item.Title = assembly.Title;
+                    item.Count = assembly.Count;
+                    item.Price = (float)Math.Ceiling(assembly.Price * Ratio * ((100 + BonusRatio) / 100));
+                    item.Total = item.Price * assembly.Count;
+                    item.Metal = item.Destiny = item.Description = item.Accuracy = "";
+
+                    items.Add(item);
+                }
+
+                if (LooseParts.Count > 0)
+                    foreach (Part part in LooseParts)
+                    {
+                        dynamic item = new ExpandoObject();
+
+                        item.Title = part.Title;
+                        item.Count = part.Count;
+                        item.Price = part.Price;
+                        item.Total = part.Total;
+                        item.Metal = part.Metal;
+                        item.Destiny = part.Destiny;
+                        item.Description = part.Description;
+                        item.Accuracy = part.Accuracy;
+
+                        items.Add(item);
+                    }
+            }
+            else if (Parts.Count > 0)
                 foreach (Part part in Parts)
                 {
                     dynamic item = new ExpandoObject();
@@ -1118,7 +1149,6 @@ namespace Metal_Code
 
                     items.Add(item);
                 }
-            }
 
             List<Detail> details = DetailControls.Where(d => !d.Detail.IsComplect).Select(d => d.Detail).ToList();
             if (details.Count > 0)
@@ -1173,8 +1203,6 @@ namespace Metal_Code
 
         public void UpdatePricePart()   //формирование предварительной цены детали
         {
-            if (Parts.Count == 0) return;
-
             var works = DetailControls.Where(d => d.Detail.IsComplect)
                 .SelectMany(d => d.TypeDetailControls)
                 .SelectMany(t => t.WorkControls)
@@ -1224,6 +1252,18 @@ namespace Metal_Code
                     p.Price = p.Price < p.FixedPrice ? p.FixedPrice : p.Price;
                     p.Price = (float)Math.Ceiling(p.Price);
                 }
+            }
+
+            if (AssemblyWindow.A.Assemblies.Count > 0)
+            {
+                AssemblyWindow.A.CheckAssemblies();
+
+                if (Parts.Count > 0)
+                    foreach (Part part in Parts)
+                    {
+                        Part? _part = AssemblyWindow.A.Assemblies.SelectMany(a => a.Particles).FirstOrDefault(x => x.Title == part.Title);
+                        if (_part is null) LooseParts.Add(part);
+                    }
             }
         }
 

@@ -301,6 +301,21 @@ namespace Metal_Code
                 }
             }
         }
+        
+        [OptionalField]
+        private float mass = 0;
+        public float Mass
+        {
+            get => (float)Math.Round(mass, 2);
+            set
+            {
+                if (value != mass)
+                {
+                    mass = value;
+                    OnPropertyChanged(nameof(Mass));
+                }
+            }
+        }
 
         [OptionalField]
         private float weldPrice = 0;

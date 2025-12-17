@@ -131,6 +131,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <Button Click="CopyUserControls" ToolTip="Перенести работы в основной расчет" Margin="3">
@@ -144,6 +145,13 @@
                         <StackPanel Orientation="Horizontal">
                             <Image Source="Images/basket.png" Width="16"/>
                             <TextBlock Text="Покупные изделия" Padding="2" Margin="3,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Button Click="CopyAssemblies" ToolTip="Перенести сборки в основной расчет" Margin="3" Grid.Row="2">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="Images/assembly.png" Width="16"/>
+                            <TextBlock Text="Сборки" Padding="2" Margin="3,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                 </Grid>

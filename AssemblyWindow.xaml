@@ -5,47 +5,46 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:self="clr-namespace:Metal_Code"
         mc:Ignorable="d"
-        Title="Управление сборками" Closing="HideWindow" WindowStartupLocation="CenterScreen" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}" SizeToContent="WidthAndHeight">
+        Title="Управление сборками" Closing="HideWindow" WindowStartupLocation="CenterScreen" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}">
     <Window.Resources>
         <self:CostConverter x:Key="CostConverter"/>
     </Window.Resources>
+    
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition MinHeight="200"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition MinHeight="200"/>
-        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="400"/>
+            <!-- Кнопки и список деталей -->
+            <ColumnDefinition/>
+            <!-- TreeView со сборками -->
+        </Grid.ColumnDefinitions>
 
-        <StackPanel Orientation="Horizontal">
-            
-            <Button Click="AddAssembly" Padding="5" VerticalAlignment="Bottom" Margin="20">
-                <StackPanel Orientation="Horizontal">
-                    <Image Source="/Images/greenplus.png"/>
-                    <TextBlock Text="Создать сборку" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
-            
-            <GroupBox Margin="10" MinWidth="400" HorizontalAlignment="Center">
-                <GroupBox.Header>
-                    <TextBlock Text="Список деталей"/>
-                </GroupBox.Header>
-                
-                <ListView ItemsSource="{Binding CurrentParts}" Margin="5" Padding="2">
-                    <ListView.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <Image Loaded="SetPicture" Width="20"/>
-                                    <TextBlock Text="{Binding Title}" Margin="5,0,0,0"/>
-                                    <TextBlock Text=" (" Foreground="Blue" Margin="5,0,0,0" />
-                                    <TextBlock Text="{Binding Count}" Foreground="Blue"/>
-                                    <TextBlock Text=" шт)" Foreground="Blue"/>
-                                </StackPanel>
-                            </DataTemplate>
+        <StackPanel Margin="5">
+            <Expander Margin="10">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="/Images/question.png" MouseEnter="ShowPopup" Width="16"/>
+                        <TextBlock Text="Список деталей" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </Expander.Header>
+
+                <ListView ItemsSource="{Binding CurrentParts}" Padding="3" MaxHeight="400"
+                          Style="{StaticResource ListView.Small}"
+                          AllowDrop="False" MouseMove="ListView_MouseMove"
+                          PreviewMouseLeftButtonDown="ListView_PreviewMouseLeftButtonDown">
+                <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Image Loaded="SetPicture" Width="20"/>
+                                <TextBlock Text="{Binding Title}" Margin="5,0,0,0"/>
+                                <TextBlock Text=" (" Foreground="Blue" Margin="5,0,0,0" />
+                                <TextBlock Text="{Binding Count}" Foreground="Blue"/>
+                                <TextBlock Text=" шт)" Foreground="Blue"/>
+                            </StackPanel>
+                        </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView >
-            </GroupBox>
-                
-            <Image Source="/Images/question.png" Margin="-10,0,0,0" HorizontalAlignment="Right" VerticalAlignment="Top" MouseEnter="ShowPopup" Width="20"/>
+            </Expander>
+
             <Popup x:Name="Popup" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Scroll" StaysOpen="False">
                 <Border BorderThickness="1" CornerRadius="1" BorderBrush="Red">
                     <StackPanel Background="Snow">
@@ -54,65 +53,159 @@
                 </Border>
             </Popup>
 
-            <Button Click="CheckAssemblies" Padding="5" VerticalAlignment="Bottom" Margin="20">
-                <StackPanel Orientation="Horizontal">
-                    <Image Source="/Images/check.png"/>
-                    <TextBlock Text="Проверить сборки" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
-            
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
+                <Button Click="AddAssembly">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="/Images/greenplus.png"/>
+                        <TextBlock Text="Создать сборку" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Click="CheckAssemblies" Margin="50,0,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="/Images/check.png"/>
+                        <TextBlock Text="Проверить сборки" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
         </StackPanel>
 
-        <GridSplitter Grid.Row="1" ShowsPreview="False" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" BorderThickness="1"/>
-
-        <TreeView Grid.Row="2" Margin="20" x:Name="ParticleStack" ItemsSource="{Binding Assemblies}" BorderThickness="0">
+        <TreeView x:Name="ParticleStack" Grid.Column="1" Margin="10" ItemsSource="{Binding Assemblies}"
+                  BorderThickness="0" AllowDrop="True" DragOver="TreeView_DragOver" Drop="TreeView_Drop">
             <TreeView.Resources>
+                <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                    <Setter Property="AllowDrop" Value="True"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TreeViewItem">
+                                <StackPanel Background="{TemplateBinding Background}">
+                                    <!-- Заголовок с раскрывающейся стрелкой -->
+                                    <Grid x:Name="HeaderGrid" Background="Transparent">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Стрелка раскрытия -->
+                                        <ToggleButton x:Name="Expander" ClickMode="Press"
+                                                      IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                                      Background="Transparent" BorderThickness="0"
+                                                      Width="24" Height="24" Cursor="Hand"
+                                                      HorizontalAlignment="Left"
+                                                      VerticalAlignment="Center">
+                                            <ToggleButton.Template>
+                                                <ControlTemplate TargetType="ToggleButton">
+                                                    <Grid Background="Transparent">
+                                                        <!-- Увеличенная стрелка -->
+                                                        <Path x:Name="Arrow" Fill="Gray"
+                                                              Data="M 0 0 L 0 10 L 6 5 Z"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"
+                                                              RenderTransformOrigin="0.5,0.5">
+                                                            <Path.RenderTransform>
+                                                                <RotateTransform Angle="0"/>
+                                                            </Path.RenderTransform>
+                                                        </Path>
+                                                    </Grid>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsChecked" Value="True">
+                                                            <Setter TargetName="Arrow" Property="RenderTransform">
+                                                                <Setter.Value>
+                                                                    <RotateTransform Angle="90"/>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </Trigger>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Arrow" Property="Fill" Value="#FF0066CC"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </ToggleButton.Template>
+                                        </ToggleButton>
+                                        
+                                        <!-- Содержимое заголовка (ваш шаблон) -->
+                                        <ContentPresenter x:Name="PART_Header"
+                                              Grid.Column="1"
+                                              ContentSource="Header"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              Margin="4,0,0,0"/>
+                                    </Grid>
+
+                                    <!-- Контейнер для дочерних элементов -->
+                                    <Border x:Name="ItemsHostBorder"
+                                Visibility="Collapsed"
+                                BorderThickness="1"
+                                BorderBrush="#FFCCCCCC"
+                                CornerRadius="3"
+                                Margin="30,5,10,10"
+                                            Padding="5"
+                                Background="#08000000">
+                                        <ItemsPresenter x:Name="ItemsHost"/>
+                                    </Border>
+                                </StackPanel>
+
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsExpanded" Value="True">
+                                        <Setter TargetName="ItemsHostBorder" Property="Visibility" Value="Visible"/>
+                                    </Trigger>
+                                    <Trigger Property="HasItems" Value="False">
+                                        <Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
+                                        <Setter TargetName="ItemsHostBorder" Property="Visibility" Value="Collapsed"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
                 <HierarchicalDataTemplate DataType="{x:Type self:Assembly}" ItemsSource="{Binding Particles}">
-                    <StackPanel Orientation="Horizontal" Margin="2">
-                        <Button Click="AddCurrentParts">
-                            <StackPanel Orientation="Horizontal">
-                                <Image Source="/Images/assembly.png"/>
-                                <TextBlock Text="Добавить в эту сборку" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                    <Border BorderBrush="Gray" CornerRadius="6" BorderThickness="1">
+                        <StackPanel Margin="10">
+                            <StackPanel Orientation="Horizontal" Margin="3">
+                                <Button Click="AddCurrentParts">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="/Images/assembly.png"/>
+                                        <TextBlock Text="Добавить в эту сборку" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <TextBox Text="{Binding Title}" ToolTip="Введите наименование сборки" Margin="15,0,0,0" Width="160" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontWeight="Bold"/>
+                                <TextBox Text="{Binding Count}" Margin="15,0,0,0" Width="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите количество сборок" LostFocus="SetAssemblyCount" FontWeight="Bold"/>
+                                <Button Content="Х" Click="Remove" Margin="15,0,0,0" ToolTip="Удалить сборку"/>
                             </StackPanel>
-                        </Button>
-                        <TextBox Text="{Binding Title}" ToolTip="Введите наименование сборки" Margin="15,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Center" Width="150"/>
-                        <TextBox Text="{Binding Count}" Margin="16,0,0,0" Width="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите количество сборок" LostFocus="SetAssemblyCount" FontWeight="Bold" VerticalAlignment="Center"/>
 
-                        <Button Content="Х" Click="Remove" ToolTip="Удалить сборку" BorderThickness="0" Margin="20,0,0,0" VerticalAlignment="Center"/>
-
-                        <Image Source="/Images/works2.png" Width="16" Margin="15,0,0,0"/>
-
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal">
+                            <StackPanel Orientation="Horizontal" Margin="3">
+                                <Image Source="/Images/works2.png" Width="16"/>
                                 <TextBlock Text="Свар" FontWeight="Bold" Margin="10,0,0,0" Width="36" VerticalAlignment="Center"/>
-                                <TextBox Text="{Binding Weld}" ToolTip="Введите длину свариваемой поверхности, мм" Width="55" MaxLines="1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                                <TextBox Text="{Binding Weld}" ToolTip="Введите длину свариваемой поверхности, мм" MaxLines="1" Width="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
                                 <ComboBox SelectedItem="{Binding Type}" ItemsSource="{Binding DataContext.Types, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,0,0,0" Width="60" ToolTip="Выберите тип расчета"/>
+                                <TextBlock Text="{Binding Mass}" VerticalAlignment="Center" Margin="5,0,0,0" Width="30" ToolTip="Вес 1-ой сборки"/>
+                                <TextBlock Text="кг" VerticalAlignment="Center" Margin="5,0,0,0" Width="25" ToolTip="Вес 1-ой сборки"/>
+                                <TextBlock Text="{Binding WeldPrice, Converter={StaticResource CostConverter}}" Margin="10,0,0,0" Foreground="Blue" VerticalAlignment="Center"/>
                             </StackPanel>
-                            <TextBlock Text="{Binding WeldPrice, Converter={StaticResource CostConverter}}" Margin="10,2,0,0"/>
-                        </StackPanel>
 
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal">
+                            <StackPanel Orientation="Horizontal" Margin="3">
+                                <Image Source="/Images/works2.png" Width="16"/>
                                 <TextBlock Text="Окр" FontWeight="Bold" Margin="10,0,0,0" Width="36" VerticalAlignment="Center"/>
                                 <TextBox Text="{Binding Ral}" ToolTip="Введите цвет RAL" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" MaxLines="1"/>
                                 <ComboBox SelectedItem="{Binding Structure}" ItemsSource="{Binding DataContext.Structures, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,0,0,0" Width="80" ToolTip="Выберите структуру покрытия"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding PaintPrice, Converter={StaticResource CostConverter}}" Margin="10,2,0,0"/>
-                                <TextBlock Text="{Binding Square}" Margin="50,2,0,0"/>
-                                <TextBlock Text="кв м" Margin="5,2,0,0"/>
+                                <TextBlock Text="{Binding Square}" VerticalAlignment="Center" Margin="5,0,0,0" Width="30" ToolTip="Площаль покрытия 1-ой сборки"/>
+                                <TextBlock Text="кв м" VerticalAlignment="Center" Margin="5,0,0,0" Width="25" ToolTip="Площаль покрытия 1-ой сборки"/>
+                                <TextBlock Text="{Binding PaintPrice, Converter={StaticResource CostConverter}}" Margin="10,0,0,0" Foreground="Blue" VerticalAlignment="Center"/>
                             </StackPanel>
                         </StackPanel>
-                    </StackPanel>
+                    </Border>
                 </HierarchicalDataTemplate>
+
                 <DataTemplate DataType="{x:Type self:Particle}">
-                    <StackPanel Orientation="Horizontal" Margin="2">
+                    <StackPanel Orientation="Horizontal" Margin="3">
                         <Image Loaded="SetPicture" Width="20"/>
-                        <TextBlock Text="{Binding Title}" Width="300" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Title}" Width="300" Margin="5,0,0,0" VerticalAlignment="Center" Tag="ParticleTitle"/>
                         <TextBox Text="{Binding Count}" Foreground="Blue" Width="40" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                        <Button Content="Х" Click="Remove" ToolTip="Убрать деталь из сборки" BorderThickness="0" Margin="20,0,0,0"/>
+                        <Button Content="Х" Click="Remove" ToolTip="Убрать деталь из сборки" Margin="20,0,0,0"/>
                     </StackPanel>
                 </DataTemplate>
+
             </TreeView.Resources>
         </TreeView>
 

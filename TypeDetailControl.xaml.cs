@@ -9,6 +9,7 @@ using System.Linq;
 using System.Windows.Media;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
+using System.Diagnostics;
 
 namespace Metal_Code
 {
@@ -436,14 +437,21 @@ namespace Metal_Code
 
             float destiny = MainWindow.M.CorrectDestiny(S);    //получаем расчетную толщину
 
-            if (metal.Name is not null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
+            if (metal.Name is not null && type.Name is not null
+                && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
             {
-                Price = S switch
+                float basePrice = (type.Name.Contains("Труба") || type.Name == "Лист металла")
+                    ? metal.MassPrice
+                    : metal.MassPrice * 1.3f;
+
+                float thicknessMultiplier = S switch
                 {
-                    < 14 => type.Name == "Лист металла" ? metal.MassPrice : metal.MassPrice * 1.3f,
-                    < 18 => type.Name == "Лист металла" ? metal.MassPrice * 1.05f : metal.MassPrice * 1.3f * 1.05f,
-                    _ => type.Name == "Лист металла" ? metal.MassPrice * 1.15f : metal.MassPrice * 1.3f * 1.15f,
+                    < 14 => 1.0f,
+                    < 18 => 1.05f,
+                    _ => 1.15f
                 };
+
+                Price = basePrice * thicknessMultiplier;
             }
             else if (S == 0) Price = metal.MassPrice * 1.3f;       //для кругов и квадратов
 
@@ -586,17 +594,24 @@ namespace Metal_Code
 
             float destiny = MainWindow.M.CorrectDestiny(S);    //получаем расчетную толщину
 
-            if (metal.Name is not null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
+            if (metal.Name is not null && type.Name is not null
+                && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
             {
-                box.ToolTip = S switch
+                float basePrice = (type.Name.Contains("Труба") || type.Name == "Лист металла")
+                    ? metal.MassPrice
+                    : metal.MassPrice * 1.3f;
+
+                float thicknessMultiplier = S switch
                 {
-                    < 14 => $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(type.Name == "Лист металла" ? metal.MassPrice : metal.MassPrice * 1.3f)} руб)",
-                    < 18 => $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(type.Name == "Лист металла" ? metal.MassPrice * 1.05f : metal.MassPrice * 1.3f * 1.05f)} руб)",
-                    _ => $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(type.Name == "Лист металла" ? metal.MassPrice * 1.15f : metal.MassPrice * 1.3f * 1.15f)} руб)"
+                    < 14 => 1.0f,
+                    < 18 => 1.05f,
+                    _ => 1.15f
                 };
+
+                box.ToolTip = $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(basePrice * thicknessMultiplier)} руб)";
             }
             else if (S == 0)       //для кругов и квадратов
-                box.ToolTip = $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(type.Name == "Лист металла" ? metal.MassPrice : metal.MassPrice * 1.3f)} руб)";
+                box.ToolTip = $"Стоимость материала, руб\n(цена металла - {metal.MassPrice * 1.3f} руб)";
         }
 
         private void AddWork(object sender, RoutedEventArgs e)
