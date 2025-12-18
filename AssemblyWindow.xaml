@@ -8,6 +8,47 @@
         Title="Управление сборками" Closing="HideWindow" WindowStartupLocation="CenterScreen" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}">
     <Window.Resources>
         <self:CostConverter x:Key="CostConverter"/>
+        
+        <!-- Цвета -->
+        <SolidColorBrush x:Key="ButtonBackground" Color="#FFFFFFE1"/>
+        <SolidColorBrush x:Key="BorderColor" Color="#D1D9E0"/>
+        <SolidColorBrush x:Key="FocusBorderColor" Color="#4A90E2"/>
+
+        <!-- Общая толщина границы -->
+        <Thickness x:Key="DefaultBorderThickness">1</Thickness>
+
+        <!-- Стиль для Button -->
+        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource ButtonBackground}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}" />
+            <Setter Property="BorderThickness" Value="{StaticResource DefaultBorderThickness}" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Foreground" Value="Black" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="4"
+                        Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#FFFFFFFF" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource FocusBorderColor}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#F0F0F0" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </Window.Resources>
     
     <Grid>
@@ -27,7 +68,7 @@
                     </StackPanel>
                 </Expander.Header>
 
-                <ListView ItemsSource="{Binding CurrentParts}" Padding="3" MaxHeight="400"
+                <ListView ItemsSource="{Binding CurrentParts}" Padding="3" MaxHeight="360"
                           Style="{StaticResource ListView.Small}"
                           AllowDrop="False" MouseMove="ListView_MouseMove"
                           PreviewMouseLeftButtonDown="ListView_PreviewMouseLeftButtonDown">
@@ -53,6 +94,34 @@
                 </Border>
             </Popup>
 
+            <StackPanel Grid.Column="1" Margin="10" HorizontalAlignment="Center">
+                <!-- Глобальная сварка -->
+                <StackPanel Orientation="Horizontal" Margin="3">
+                    <Image Source="/Images/works2.png" Width="16"/>
+                    <TextBlock Text="Сварка (общ.):" VerticalAlignment="Center" Margin="10,0,0,0" Width="90"/>
+                    <TextBox x:Name="GlobalWeldBox" Width="60" Margin="5,0,0,0"
+                 ToolTip="Общая длина сварного шва для всех сборок" HorizontalContentAlignment="Center"/>
+                    <ComboBox x:Name="GlobalWeldTypeBox" SelectedIndex="0" Width="60" Margin="5,0,0,0"
+                  ItemsSource="{Binding DataContext.Types, RelativeSource={RelativeSource AncestorType=Window}}"
+                  ToolTip="Тип сварки по умолчанию"/>
+                </StackPanel>
+
+                <!-- Глобальная окраска -->
+                <StackPanel Orientation="Horizontal" Margin="3">
+                    <Image Source="/Images/works2.png" Width="16"/>
+                    <TextBlock Text="Окраска (общ.):" VerticalAlignment="Center" Margin="10,0,0,0" Width="90"/>
+                    <TextBox x:Name="GlobalRalBox" Width="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                 ToolTip="Цвет RAL по умолчанию" Margin="5,0,0,0"/>
+                    <ComboBox x:Name="GlobalStructureBox" SelectedIndex="0" Width="70" Margin="5,0,0,0"
+                  ItemsSource="{Binding DataContext.Structures, RelativeSource={RelativeSource AncestorType=Window}}"
+                  ToolTip="Структура покрытия по умолчанию"/>
+
+                    <Button Content="→ Применить" Click="ApplyGlobalToAllAssemblies"
+                        ToolTip="Применить значения ко всем сборкам" Margin="20,0,0,0"/>
+
+                </StackPanel>
+            </StackPanel>
+            
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
                 <Button Click="AddAssembly">
                     <StackPanel Orientation="Horizontal">
@@ -187,8 +256,8 @@
                             <StackPanel Orientation="Horizontal" Margin="3">
                                 <Image Source="/Images/works2.png" Width="16"/>
                                 <TextBlock Text="Окр" FontWeight="Bold" Margin="10,0,0,0" Width="36" VerticalAlignment="Center"/>
-                                <TextBox Text="{Binding Ral}" ToolTip="Введите цвет RAL" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="40" MaxLines="1"/>
-                                <ComboBox SelectedItem="{Binding Structure}" ItemsSource="{Binding DataContext.Structures, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,0,0,0" Width="80" ToolTip="Выберите структуру покрытия"/>
+                                <TextBox Text="{Binding Ral}" ToolTip="Введите цвет RAL" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="50" MaxLines="1"/>
+                                <ComboBox SelectedItem="{Binding Structure}" ItemsSource="{Binding DataContext.Structures, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,0,0,0" Width="70" ToolTip="Выберите структуру покрытия"/>
                                 <TextBlock Text="{Binding Square}" VerticalAlignment="Center" Margin="5,0,0,0" Width="30" ToolTip="Площаль покрытия 1-ой сборки"/>
                                 <TextBlock Text="кв м" VerticalAlignment="Center" Margin="5,0,0,0" Width="25" ToolTip="Площаль покрытия 1-ой сборки"/>
                                 <TextBlock Text="{Binding PaintPrice, Converter={StaticResource CostConverter}}" Margin="10,0,0,0" Foreground="Blue" VerticalAlignment="Center"/>

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -346,100 +345,114 @@ namespace Metal_Code
 
         public void Set_WorksPrice()
         {
-            if (Assemblies.Count > 0)
+            if (Assemblies.Count == 0) return;
+
+            foreach (Assembly assembly in Assemblies)
             {
-                foreach (Assembly assembly in Assemblies)
+                // Сброс накопленных значений
+                assembly.Description = string.Empty;
+                assembly.WeldPrice = assembly.PaintPrice = assembly.Square = assembly.Mass = 0;
+
+                // ===== 1. Расчёт массы и площади — ВСЕГДА =====
+                foreach (Particle particle in assembly.Particles)
                 {
-                    if (assembly.Particles.Count == 0) continue;
-                    var part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == assembly.Particles[0].Title);
-                    
-                    assembly.Description = string.Empty;
-                    assembly.WeldPrice = assembly.PaintPrice = assembly.Square = assembly.Mass = 0;
+                    Part? _part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == particle.Title);
+                    if (_part == null) continue;
 
-                    //стоимость сварки
-                    float weld = ParserWeld(assembly.Weld) * assembly.Count;    //парсим длину шва
-                    if (weld > 0)
+                    // Масса считается всегда
+                    assembly.Mass += _part.Mass * particle.Count;
+
+                    // Площадь считается всегда
+                    if (_part.PropsDict.ContainsKey(100) && _part.PropsDict[100].Count > 2)
                     {
-                        var sideRatio = weld switch                 //коэф за общую длину шва
-                        {
-                            < 1000 => 1,
-                            < 3000 => 3,
-                            < 10000 => 10,
-                            _ => 100,
-                        };
+                        var width = MainWindow.Parser(_part.PropsDict[100][0]);
+                        var height = MainWindow.Parser(_part.PropsDict[100][1]);
+                        if (height == 0) height = 1;
 
-                        var metal = part?.Metal;    //металл по умолчанию - алгоритм?
-                        if (metal != null && WeldDict.ContainsKey(metal))
-                        {
-                            //коэф "1.5" добавляется за зачистку от сварки, коэф "1.7" - за двустороннюю сварку
-                            assembly.WeldPrice = WeldDict[metal][sideRatio] * 1.5f * weld * (assembly.Type == "одн" ? 1 : 1.7f);
-
-                            // стоимость данной работы должна быть не ниже минимальной
-                            foreach (Work w in MainWindow.M.Works)
-                                if (w.Name == "Сварка")
-                                {
-                                    assembly.WeldPrice =
-                                        assembly.WeldPrice > 0 && assembly.WeldPrice < w.Price ?
-                                        w.Price : assembly.WeldPrice;
-                                    break;
-                                }
-
-                            if (!assembly.Description.Contains("Св")) assembly.Description = "Св";
-                        }
-                    }
-
-                    //стоимость окраски
-                    if (string.IsNullOrEmpty(assembly.Ral)) continue;
-
-                    foreach (Particle particle in assembly.Particles)
-                    {
-                        Part? _part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == particle.Title);
-                        if (_part is not null)
-                        {
-                            if (_part.PropsDict.ContainsKey(100) && _part.PropsDict[100].Count > 2)
+                        float areaFactor =
+                            _part.Mass switch
                             {
-                                var width = MainWindow.Parser(_part.PropsDict[100][0]);
-                                var height = MainWindow.Parser(_part.PropsDict[100][1]);
-                                if (height == 0) height = 1;
-
-                                assembly.Square +=
-                                    _part.Mass switch       //рассчитываем наценку за тяжелые детали
-                                    {
-                                        <= 50 => 1,
-                                        <= 100 => 1.5f,
-                                        <= 150 => 2,
-                                        _ => 3,
-                                    }
-                                    * _part.Destiny switch  //рассчитываем наценку за прогрев толщин
-                                    {
-                                        >= 10 => 1.5f,
-                                        >= 8 => 1.4f,
-                                        >= 5 => 1.3f,
-                                        _ => 1,
-                                    }
-                                    * width * height * particle.Count * assembly.Count / (height != 1 ? 500_000 : 1);
+                                <= 50 => 1,
+                                <= 100 => 1.5f,
+                                <= 150 => 2,
+                                _ => 3,
                             }
+                            * _part.Destiny switch
+                            {
+                                >= 10 => 1.5f,
+                                >= 8 => 1.4f,
+                                >= 5 => 1.3f,
+                                _ => 1,
+                            };
 
-                            assembly.Mass += _part.Mass * particle.Count;
+                        assembly.Square += areaFactor * width * height * particle.Count * assembly.Count / (height != 1 ? 500_000 : 1);
+                    }
+                }
+
+                // ===== 2. Стоимость сварки — ТОЛЬКО если указан шов =====
+                float weld = ParserWeld(assembly.Weld) * assembly.Count;
+                if (weld > 0)
+                {
+                    var sideRatio = weld switch
+                    {
+                        < 1000 => 1,
+                        < 3000 => 3,
+                        < 10000 => 10,
+                        _ => 100,
+                    };
+
+                    // Находим металл с МАКСИМАЛЬНОЙ ценой сварки среди всех деталей сборки
+                    string? mostExpensiveMetal = null;
+                    float maxPrice = -1;
+
+                    foreach (var particle in assembly.Particles)
+                    {
+                        var part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == particle.Title);
+                        if (part?.Metal == null) continue;
+
+                        string metal = part.Metal;
+                        if (!WeldDict.TryGetValue(metal, out var priceMap)) continue;
+                        if (!priceMap.TryGetValue(sideRatio, out float pricePerUnit)) continue;
+
+                        if (pricePerUnit > maxPrice)
+                        {
+                            maxPrice = pricePerUnit;
+                            mostExpensiveMetal = metal;
                         }
                     }
 
-                    if (assembly.Square > 0 && assembly.Square < 1) assembly.Square = 1;   //расчетная площадь окраски должна быть не меньше 1 кв м
+                    // Если нашли подходящий металл — считаем стоимость
+                    if (mostExpensiveMetal != null && maxPrice > 0)
+                    {
+                        assembly.WeldPrice = maxPrice * 1.5f * weld * (assembly.Type == "одн" ? 1 : 1.7f);
+
+                        // Минимальная цена сварки
+                        var minWeldPrice = MainWindow.M.Works.FirstOrDefault(w => w.Name == "Сварка")?.Price ?? 0;
+                        if (assembly.WeldPrice > 0 && assembly.WeldPrice < minWeldPrice)
+                            assembly.WeldPrice = minWeldPrice;
+
+                        if (!assembly.Description.Contains("Св"))
+                            assembly.Description = "Св";
+                    }
+                }
+
+                // ===== 3. Стоимость окраски — ТОЛЬКО если указан цвет =====
+                if (!string.IsNullOrEmpty(assembly.Ral))
+                {
+                    if (assembly.Square > 0 && assembly.Square < 1)
+                        assembly.Square = 1;
 
                     assembly.PaintPrice = (float)Math.Ceiling(priceMeter * assembly.Square);
 
-                    // стоимость данной работы должна быть не ниже минимальной
-                    foreach (Work w in MainWindow.M.Works)
-                        if (w.Name == "Окраска")
-                        {
-                            assembly.PaintPrice =
-                                assembly.PaintPrice > 0 && assembly.PaintPrice < w.Price ?
-                                w.Price : assembly.PaintPrice;
-                            break;
-                        }
+                    // Минимальная цена окраски
+                    var minPaintPrice = MainWindow.M.Works.FirstOrDefault(w => w.Name == "Окраска")?.Price ?? 0;
+                    if (assembly.PaintPrice > 0 && assembly.PaintPrice < minPaintPrice)
+                        assembly.PaintPrice = minPaintPrice;
 
-                    if (!assembly.Description.Contains("Св")) assembly.Description = $"О ({assembly.Ral} {assembly.Structure})";
-                    else assembly.Description += $" + О ({assembly.Ral} {assembly.Structure})";
+                    var paintDesc = $"О ({assembly.Ral} {assembly.Structure})";
+                    assembly.Description = assembly.Description.Contains("Св")
+                        ? assembly.Description + " + " + paintDesc
+                        : paintDesc;
                 }
             }
         }
@@ -458,6 +471,30 @@ namespace Metal_Code
             return 0;
         }
 
+        private void ApplyGlobalToAllAssemblies(object sender, RoutedEventArgs e)
+        {
+            string? globalWeld = GlobalWeldBox.Text.Trim();
+            string? globalType = GlobalWeldTypeBox.SelectedItem?.ToString();
+            string? globalRal = GlobalRalBox.Text.Trim();
+            string? globalStructure = GlobalStructureBox.SelectedItem?.ToString();
+
+            foreach (var assembly in Assemblies)
+            {
+                // Сварка
+                if (!string.IsNullOrEmpty(globalWeld))
+                    assembly.Weld = globalWeld;
+                if (!string.IsNullOrEmpty(globalType))
+                    assembly.Type = globalType;
+
+                // Окраска
+                if (!string.IsNullOrEmpty(globalRal))
+                    assembly.Ral = globalRal;
+                if (!string.IsNullOrEmpty(globalStructure))
+                    assembly.Structure = globalStructure;
+            }
+
+            Set_WorksPrice();
+        }
 
         //----------Перетаскивание детали в сборки----------//
         private Point _dragStartPoint;

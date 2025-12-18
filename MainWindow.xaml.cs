@@ -595,10 +595,10 @@ namespace Metal_Code
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.6.7.8",
-                releaseDate: new DateTime(2025, 12, 9),
-                description: "Добавлена функция нанесения гравировки во все детали, у которых заполнено соответствующее поле.",
-                screenshotPath: "/Updates/v2.6.7.7_2025-12-09.png"
+                version: "v2.6.7.9",
+                releaseDate: new DateTime(2025, 12, 18),
+                description: "Переработан интерфейс окна управления сборками.",
+                screenshotPath: "/Updates/v2.6.7.9_2025-12-18.png"
             );
 
             // Получаем новые обновления
@@ -1109,9 +1109,10 @@ namespace Metal_Code
 
                     item.Title = assembly.Title;
                     item.Count = assembly.Count;
-                    item.Price = (float)Math.Ceiling(assembly.Price * Ratio * ((100 + BonusRatio) / 100));
-                    item.Total = item.Price * assembly.Count;
-                    item.Metal = item.Destiny = item.Description = item.Accuracy = "";
+                    item.Price = assembly.Price;
+                    item.Total = assembly.Total;
+                    item.Description = assembly.Description;
+                    item.Metal = item.Destiny = item.Accuracy = "";
 
                     items.Add(item);
                 }
@@ -1257,6 +1258,27 @@ namespace Metal_Code
             if (AssemblyWindow.A.Assemblies.Count > 0)
             {
                 AssemblyWindow.A.CheckAssemblies();
+
+                foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
+                {
+                    if (assembly.Particles.Count == 0)
+                    {
+                        assembly.Price = assembly.Total = 0;
+                        continue;
+                    }
+
+                    foreach (Particle particle in assembly.Particles)
+                    {
+                        Part? part = Parts.FirstOrDefault(p => p.Title == particle.Title);
+                        if (part is not null)
+                            particle.Price = (float)(part.Price +
+                                (assembly.WeldPrice + assembly.PaintPrice)
+                                * Ratio * ((100 + BonusRatio) / 100)
+                                / assembly.Count / assembly.Particles.Sum(p => p.Count));
+                    }
+                    assembly.Price = (float)Math.Ceiling(assembly.Particles.Sum(p => p.Price * p.Count));
+                    assembly.Total = assembly.Price * assembly.Count;
+                }
 
                 if (Parts.Count > 0)
                     foreach (Part part in Parts)
