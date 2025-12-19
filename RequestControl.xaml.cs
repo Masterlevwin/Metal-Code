@@ -98,6 +98,7 @@ namespace Metal_Code
             TemplatesList.ItemsSource = Templates;
 
             MetalsDrop.ItemsSource = MainWindow.M.Metals.Select(m => m.Name);
+            DestinyDrop.ItemsSource = MainWindow.M.Destinies;
         }
         private void Update_Paths(List<string> paths)
         {
@@ -932,17 +933,78 @@ namespace Metal_Code
                 $"и добавляемые к ним работы.";
         }
 
+
+        //-----метод добавления металла, толщины или работ в выбранные строки-----//
         private void Copy_Metal(object sender, RoutedEventArgs e)
         {
-            Clipboard.SetText($"{MetalsDrop.Text}");
+            var selectedMetal = MetalsDrop.SelectedItem?.ToString();
+            if (string.IsNullOrEmpty(selectedMetal)) return;
+
+            foreach (var item in GetUniqueSelectedItems().OfType<TechItem>())
+            {
+                item.Material = selectedMetal;
+            }
+        }
+
+        private void Copy_Thickness(object sender, RoutedEventArgs e)
+        {
+            var selectedThickness = DestinyDrop.SelectedItem?.ToString();
+            if (string.IsNullOrEmpty(selectedThickness)) return;
+
+            foreach (var item in GetUniqueSelectedItems().OfType<TechItem>())
+            {
+                item.Destiny = selectedThickness;
+            }
         }
 
         private void Copy_Work(object sender, RoutedEventArgs e)
         {
-            if (WorksDrop.SelectedItem is string work && work.Contains('-'))
-                Clipboard.SetText($"{work[..(work.IndexOf("-") - 1)]}");
+            if (WorksDrop.SelectedItems == null || WorksDrop.SelectedItems.Count == 0)
+                return;
+
+            // Извлекаем сокращённые названия (до "-")
+            var selectedShortNames = WorksDrop.SelectedItems.Cast<string>()
+                .Where(w => w.Contains('-'))
+                .Select(w => w[..(w.IndexOf('-') - 1)].Trim())
+                .ToList();
+
+            if (selectedShortNames.Count == 0) return;
+
+            // Получаем уникальные выделенные строки
+            var selectedItems = GetUniqueSelectedItems().OfType<TechItem>().ToList();
+            if (selectedItems.Count == 0) return;
+
+            foreach (var item in selectedItems)
+            {
+                var currentRoute = (item.Route ?? "").Trim();
+                var currentWorks = string.IsNullOrEmpty(currentRoute)
+                    ? new HashSet<string>()
+                    : new HashSet<string>(currentRoute.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
+
+                // Добавляем только новые работы
+                bool updated = false;
+                foreach (var work in selectedShortNames)
+                {
+                    if (currentWorks.Add(work))
+                        updated = true;
+                }
+
+                if (updated)
+                {
+                    item.Route = string.Join(" ", currentWorks);
+                }
+            }
         }
 
+        private IEnumerable<object> GetUniqueSelectedItems()
+        {
+            return RequestGrid.SelectedCells
+                .Select(cell => cell.Item)
+                .Distinct();
+        }
+
+
+        //-----методы добавления гравировки в центр детали-----//
         private void AddEngraving(object sender, RoutedEventArgs e)
         {
             if (RequestGrid.SelectedCells.Count > 0)

@@ -256,7 +256,13 @@
                         </Button>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                        <hc:ComboBox x:Name="WorksDrop" ItemsSource="{Binding Works}" hc:InfoElement.Placeholder="Работы" Width="120"/>
+                        <hc:ComboBox x:Name="DestinyDrop" hc:InfoElement.Placeholder="Толщина" Width="120"/>
+                        <Button ToolTip="Скопировать толщину" Padding="0" BorderThickness="0" Background="Transparent" Click="Copy_Thickness" Margin="5,0,0,0">
+                            <Image Source="Images/copy.png" Width="12"/>
+                        </Button>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                        <hc:CheckComboBox x:Name="WorksDrop" ItemsSource="{Binding Works}" hc:InfoElement.Placeholder="Работы" Width="120" Style="{StaticResource CheckComboBoxPlus}"/>
                         <Button ToolTip="Скопировать работу" Padding="0" BorderThickness="0" Background="Transparent" Click="Copy_Work" Margin="5,0,0,0">
                             <Image Source="Images/copy.png" Width="12"/>
                         </Button>
