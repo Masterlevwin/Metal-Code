@@ -170,8 +170,18 @@
             </Grid.RowDefinitions>
 
             <DataGrid x:Name="RequestGrid" Style="{StaticResource DataGrid.Small}" ItemsSource="{Binding TechItems}" SelectionUnit="Cell" BorderBrush="Red" EnableColumnVirtualization="True" RowDetailsVisibilityMode="Collapsed" Margin="10"  AutoGenerateColumns="False" MouseUp="CopyValue_MouseUp" MaxHeight="300" SelectedCellsChanged="Set_TargetTechItem">
+                <DataGrid.Resources>
+                    <Style TargetType="DataGridCell">
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+                                <Setter Property="Foreground" Value="White" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.Resources>
                 <DataGrid.Columns>
-
                     <DataGridTemplateColumn Header="№ чертежа" SortMemberPath="NumberName">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -277,7 +287,7 @@
             </GroupBox>
             
             <StackPanel Orientation="Horizontal" Margin="5" Grid.Row="1" VerticalAlignment="Bottom">
-                <TextBox x:Name="DeleteText" Margin="5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="120" MaxWidth="120"/>
+                <TextBox x:Name="DeleteText" Margin="5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="120" Text="Развертка - "/>
                 <Button Content="Удалить" Margin="5" Padding="5" Click="Delete_WithoutNames"/>
                 <Image Source="/Images/question.png" MouseEnter="ShowPopup_Del" MaxHeight="20"/>
                 <TextBlock Text="Количество комплектов" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="100,0,0,0" MaxWidth="70" TextWrapping="Wrap"/>

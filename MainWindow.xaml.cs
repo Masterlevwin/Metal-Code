@@ -6301,21 +6301,43 @@ namespace Metal_Code
             string notify = $"Расчет {offer.N} запущен в производство с номером заказа ";
 
             string[] dirs = Directory.GetDirectories(connections[8]);   //получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
-            List<int> orders = new();                                   //список номеров заказов
 
-            //получаем все номера заказов в виде чисел
+            const int MIN_ORDER = 1000;
+            const int MAX_ORDER = 9999;
+
+            HashSet<int> existingOrders = new(); // используем HashSet для быстрого поиска
+
             string orderPattern = @"^\d{4,5}";
             foreach (string s in dirs)
             {
                 Match numOrder = Regex.Match(new DirectoryInfo(s).Name, orderPattern);
-                if (numOrder.Success) orders.Add((int)Parser(numOrder.Value));
+                if (numOrder.Success)
+                {
+                    if (int.TryParse(numOrder.Value, out int orderNum) &&
+                        orderNum >= MIN_ORDER && orderNum <= MAX_ORDER)
+                    {
+                        existingOrders.Add(orderNum);
+                    }
+                }
             }
 
-            if (orders.Count == 0) return $"Не удалось запустить в производство!\n" +
-                    $"В директории [{connections[8]}] не найдено папок.";
+            // Ищем следующий номер циклически
+            int nextOrder = existingOrders.Count == 0 ? MIN_ORDER : existingOrders.Max() + 1;
 
-            int nextOrder = orders.Max() + 1;                   //получаем следующий по порядку номер заказа
-            offer.Order = $"{nextOrder}";                       //присваиваем этот номер заказа текущему расчету
+            // Цикл по всем возможным номерам в диапазоне
+            for (int i = 0; i <= MAX_ORDER - MIN_ORDER; i++)
+            {
+                if (nextOrder > MAX_ORDER) nextOrder = MIN_ORDER;
+
+                if (!existingOrders.Contains(nextOrder))
+                {
+                    offer.Order = nextOrder.ToString();
+                    break;
+                }
+                nextOrder++;
+            }
+
+            offer.Order = $"{nextOrder}";           //присваиваем этот номер заказа текущему расчету
 
             //проверяем наличие трубореза среди работ
             bool hasPipe = false;
@@ -6369,6 +6391,7 @@ namespace Metal_Code
 
             return notify + nextOrder;
         }
+
         private void CopyDirectoryToWork(string sourceDir, string destinationDir, bool recursive, string mainDir)
         {
             // Get information about the source directory
