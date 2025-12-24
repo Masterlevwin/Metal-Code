@@ -6300,44 +6300,114 @@ namespace Metal_Code
 
             string notify = $"Расчет {offer.N} запущен в производство с номером заказа ";
 
-            string[] dirs = Directory.GetDirectories(connections[8]);   //получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
 
             const int MIN_ORDER = 1000;
             const int MAX_ORDER = 9999;
 
-            HashSet<int> existingOrders = new(); // используем HashSet для быстрого поиска
+            int nextOrder = MIN_ORDER;
 
-            string orderPattern = @"^\d{4,5}";
-            foreach (string s in dirs)
+            string workingDir = connections[8];
+            string logFilePath = Path.Combine(workingDir, "issued_orders.txt");
+
+            // Создаём файл, если он не существует, и делаем его скрытым
+            if (!File.Exists(logFilePath))
             {
-                Match numOrder = Regex.Match(new DirectoryInfo(s).Name, orderPattern);
-                if (numOrder.Success)
+                using (File.Create(logFilePath)) { }
+                File.SetAttributes(logFilePath, FileAttributes.Hidden);
+            }
+
+            HashSet<int> usedNumbers = new();
+
+            // Открываем файл с эксклюзивной блокировкой
+            using (var stream = new FileStream(logFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                // --- 1. Читаем существующие номера, НЕ закрывая поток ---
+                stream.Position = 0; // на всякий случай
+                using (var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true))
                 {
-                    if (int.TryParse(numOrder.Value, out int orderNum) &&
-                        orderNum >= MIN_ORDER && orderNum <= MAX_ORDER)
+                    string? line;
+                    while ((line = reader.ReadLine()) != null)
                     {
-                        existingOrders.Add(orderNum);
+                        if (int.TryParse(line.Trim(), out int num) && num >= MIN_ORDER && num <= MAX_ORDER)
+                        {
+                            usedNumbers.Add(num);
+                        }
                     }
                 }
-            }
 
-            // Ищем следующий номер циклически
-            int nextOrder = existingOrders.Count == 0 ? MIN_ORDER : existingOrders.Max() + 1;
-
-            // Цикл по всем возможным номерам в диапазоне
-            for (int i = 0; i <= MAX_ORDER - MIN_ORDER; i++)
-            {
-                if (nextOrder > MAX_ORDER) nextOrder = MIN_ORDER;
-
-                if (!existingOrders.Contains(nextOrder))
+                // --- 2. Добавляем номера из имён папок ---
+                string orderPattern = @"^\d{4,5}";
+                foreach (string dirPath in Directory.GetDirectories(workingDir))
                 {
-                    offer.Order = nextOrder.ToString();
-                    break;
+                    string dirName = Path.GetFileName(dirPath);
+                    Match match = Regex.Match(dirName, orderPattern);
+                    if (match.Success && int.TryParse(match.Value, out int orderNum) &&
+                        orderNum >= MIN_ORDER && orderNum <= MAX_ORDER)
+                    {
+                        usedNumbers.Add(orderNum);
+                    }
                 }
-                nextOrder++;
+
+                // --- 3. Ищем свободный номер ---
+                bool found = false;
+                for (int i = 0; i <= MAX_ORDER - MIN_ORDER; i++)
+                {
+                    if (!usedNumbers.Contains(nextOrder))
+                    {
+                        found = true;
+                        break;
+                    }
+                    nextOrder = nextOrder < MAX_ORDER ? nextOrder + 1 : MIN_ORDER;
+                }
+
+                if (!found)
+                {
+                    throw new InvalidOperationException("Все номера заказов в диапазоне [1000–9999] заняты.");
+                }
+
+                // --- 4. Записываем новый номер в конец файла ---
+                // Перемещаемся в конец (после чтения позиция может быть где угодно)
+                stream.Seek(0, SeekOrigin.End);
+
+                // Проверяем, нужно ли добавить перевод строки перед записью
+                if (stream.Length > 0)
+                {
+                    // Убеждаемся, что последний символ — это перевод строки
+                    // (необязательно, но улучшает читаемость)
+                    stream.Seek(-1, SeekOrigin.End);
+                    int lastByte = stream.ReadByte();
+                    if (lastByte != '\n' && lastByte != '\r')
+                    {
+                        stream.Seek(0, SeekOrigin.End);
+                        stream.WriteByte((byte)'\n');
+                    }
+                    else
+                    {
+                        stream.Seek(0, SeekOrigin.End);
+                    }
+                }
+
+                using (var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 1, leaveOpen: true))
+                {
+                    writer.WriteLine(nextOrder.ToString());
+                    writer.Flush(); // гарантированная запись на диск
+                }
             }
 
-            offer.Order = $"{nextOrder}";           //присваиваем этот номер заказа текущему расчету
+            // Присваиваем номер заказа (вне блока using, чтобы не писать в закрытый поток)
+            offer.Order = nextOrder.ToString();
+
+            // Убеждаемся, что файл остаётся скрытым
+            try
+            {
+                var attrs = File.GetAttributes(logFilePath);
+                if (!attrs.HasFlag(FileAttributes.Hidden))
+                {
+                    File.SetAttributes(logFilePath, attrs | FileAttributes.Hidden);
+                }
+            }
+            catch { /* без паники — не критично */ }
+
 
             //проверяем наличие трубореза среди работ
             bool hasPipe = false;
