@@ -3604,9 +3604,124 @@ namespace Metal_Code
             //устанавливаем заголовки таблицы
             List<string> _heads = new() { "№", "Вид", "Название детали", "Маршрут", "Кол-во", "Размеры детали", "Вес, кг", "Металл", "Толщина", "Факт" };
             for (int head = 0; head < _heads.Count; head++) complectsheet.Cells[2, head + 1].Value = _heads[head];
+            complectsheet.Row(2).Style.Font.Bold = true;
+            complectsheet.Cells[2, 1, 2, _heads.Count].Style.Fill.SetBackground(System.Drawing.Color.LightGray);
 
             //параллельно создаем лист с раскладками
             ExcelWorksheet itemsheet = workbook.Workbook.Worksheets.Add("Раскладки");
+
+            // и лист с дополнительными работами
+            ExcelWorksheet additionalSheet = workbook.Workbook.Worksheets.Add("Допы");
+            additionalSheet.Cells[1, 1].Value = "Работа";
+            additionalSheet.Cells[1, 2].Value = "Вид";
+            additionalSheet.Cells[1, 3].Value = "Наименование детали";
+            additionalSheet.Cells[1, 4].Value = "Кол-во";
+            additionalSheet.Cells[1, 5].Value = "Размеры";
+            additionalSheet.Row(1).Style.Font.Bold = true;
+            additionalSheet.Cells[1, 1, 1, 5].Style.Fill.SetBackground(System.Drawing.Color.LightGray);
+            int additionalRow = 2; // начальная строка данных для листа доп работ
+
+            // Словарь: ключ — символ/подстрока в ячейке, значение — расшифровка
+            var operationsMap = new Dictionary<string, string>
+    {
+        { "Л", "Л - Лазер " },
+        { "Б", "Б - Без лазера " },
+        { "Т", "Т - Труборез " },
+        { "Г", "Г - Гибка " },
+        { "В", "В - Вальцовка " },
+        { "Р", "Р - Резьба " },
+        { "З", "З - Зенковка " },
+        { "Зк", "Зк - Заклепки " },
+        { "С", "С - Сверловка " },
+        { "Св", "Св - Сварка " },
+        { "О", "О - Окраска " },
+        { "Ц", "Ц - Цинкование " },
+        { "Ф", "Ф - Фрезеровка " },
+        { "А", "А - Аквабластинг " },
+        { "Доп", "Доп - Дополнительные работы " }
+    };
+
+            // Цвета для чередования (очень светлые)
+            var color1 = System.Drawing.Color.White;
+            var color2 = System.Drawing.Color.LightBlue;
+
+            var excludedOps = new HashSet<string> { "Л", "Б", "Т", "Лазерная резка", "Труборез" };
+
+            // Словарь: операция → список деталей
+            var workGroups = new Dictionary<string, List<(string Name, object Count, byte[]? Bytes)>>();
+
+            // Общая коллекция деталей, приведенная к анонимному типу для группировки по работам
+            var combined = DetailControls.Where(d => !d.Detail.IsComplect)
+                .Select(d => new { d.Detail.Title, d.Detail.Description, d.Detail.Count, ImageBytes = (byte[]?)null })
+                .Concat(
+                Parts.Select(p => new { p.Title, p.Description, p.Count, ImageBytes = (byte[]?)p.ImageBytes }));
+
+            foreach (var item in combined)
+            {
+                if (string.IsNullOrWhiteSpace(item.Description))
+                    continue;
+
+                var opCodes = item.Description
+                    .Split('+')
+                    .Select(s => s.Trim())
+                    .Where(s => !string.IsNullOrEmpty(s) && !excludedOps.Contains(s))
+                    .ToList();
+
+                foreach (var opCode in opCodes)
+                {
+                    string opName = operationsMap.TryGetValue(opCode, out var name) ? name : opCode;
+
+                    if (!workGroups.ContainsKey(opName))
+                        workGroups[opName] = new List<(string, object, byte[]?)>();
+
+                    workGroups[opName].Add((item.Title, item.Count, item.ImageBytes));
+                }
+            }
+            
+            bool useColor1 = true;
+
+            // Проходим по каждой операции
+            foreach (var group in workGroups)
+            {
+                string operationName = group.Key;
+                var parts = group.Value;
+
+                for (int i = 0; i < parts.Count; i++)
+                {
+                    var (name, count, bytes) = parts[i];
+
+                    // Колонка A: название операции — только в первой строке группы
+                    if (i == 0)
+                        additionalSheet.Cells[additionalRow, 1].Value = operationName;
+
+                    // Колонка C: наименование
+                    additionalSheet.Cells[additionalRow, 3].Value = name;
+
+                    // Колонка D: количество
+                    additionalSheet.Cells[additionalRow, 4].Value = count;
+
+                    // Колонка B: изображение
+                    if (bytes != null)
+                    {
+                        Stream? stream = new MemoryStream(bytes);
+                        string uniqueName = $"Image_{Guid.NewGuid().ToString("N")[..8]}";   //короткий уникальный ID
+                        ExcelPicture pic_work = additionalSheet.Drawings.AddPicture(uniqueName, stream);
+                        pic_work.SetPosition(additionalRow - 1, 5, 1, 5); // строка row (0-based), колонка B (индекс 1)
+                        pic_work.SetSize(32, 32);
+                        additionalSheet.Row(additionalRow).Height = 32;
+                    }
+
+                    // === Стиль фона для всей строки ===
+                    additionalSheet.Cells[additionalRow, 1, additionalRow, 5].Style.Fill.SetBackground(useColor1 ? color1 : color2);
+
+                    additionalRow++;
+                }
+                    
+                useColor1 = !useColor1;
+
+                // === Жирная нижняя граница под последней строкой группы ===
+                additionalSheet.Cells[additionalRow - 1, 1, additionalRow - 1, 5].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
+            }
 
             int temp = 1;               //номер текущей строки
             float _totalMass = 0;       //счетчик общего веса деталей
@@ -3630,19 +3745,21 @@ namespace Metal_Code
                                         if (bytes is not null)
                                         {
                                             Stream? stream = new MemoryStream(bytes);
-                                            string uniqueName = $"Image_{Guid.NewGuid().ToString("N")[..8]}"; // короткий уникальный ID
+                                            string uniqueName = $"Image_{Guid.NewGuid().ToString("N")[..8]}";   //короткий уникальный ID
                                             ExcelPicture pic = complectsheet.Drawings.AddPicture(uniqueName, stream);
-                                            complectsheet.Row(temp + 2).Height = 32;    //увеличиваем высоту строки, чтобы вмещалось изображение
+
+                                            //увеличиваем высоту строки, чтобы вмещалось изображение
+                                            complectsheet.Row(temp + 2).Height = 32;
+
                                             pic.SetSize(32, 32);
-                                            pic.SetPosition(temp + 1, 5, 1, 5);         //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
+                                            pic.SetPosition(temp + 1, 5, 1, 5);     //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
                                         }
 
-                                        complectsheet.Cells[temp + 2, 3].Value = cut.PartDetails[i].Title;           //наименование детали
-
-                                        complectsheet.Cells[temp + 2, 4].Value = cut.PartDetails[i].Description;     //маршрут изготовления
+                                        complectsheet.Cells[temp + 2, 3].Value = cut.PartDetails[i].Title;          //наименование детали
+                                        complectsheet.Cells[temp + 2, 4].Value = cut.PartDetails[i].Description;    //маршрут изготовления
                                         complectsheet.Cells[temp + 2, 4].Style.WrapText = true;
 
-                                        complectsheet.Cells[temp + 2, 5].Value = cut.PartDetails[i].Count;           //количество деталей
+                                        complectsheet.Cells[temp + 2, 5].Value = cut.PartDetails[i].Count;          //количество деталей
                                         complectsheet.Cells[temp + 2, 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
                                         complectsheet.Cells[temp + 2, 5].Style.Font.Bold = true;
 
@@ -3702,12 +3819,15 @@ namespace Metal_Code
                 else
                 {
                     complectsheet.Cells[temp + 2, 1].Value = temp;                      //номер детали по порядку
-                    complectsheet.Cells[temp + 2, 3].Value = det.Detail.Title;          //наименование детали
+                    complectsheet.Cells[temp + 2, 3].Value =
+                        additionalSheet.Cells[additionalRow, 3].Value = det.Detail.Title;           //наименование детали
 
-                    complectsheet.Cells[temp + 2, 4].Value = det.Detail.Description;    //маршрут изготовления
+                    complectsheet.Cells[temp + 2, 4].Value =
+                        additionalSheet.Cells[additionalRow, 1].Value = det.Detail.Description;     //маршрут изготовления
                     complectsheet.Cells[temp + 2, 4].Style.WrapText = true;
 
-                    complectsheet.Cells[temp + 2, 5].Value = det.Detail.Count;          //количество деталей
+                    complectsheet.Cells[temp + 2, 5].Value =
+                        additionalSheet.Cells[additionalRow, 4].Value = det.Detail.Count;           //количество деталей
                     complectsheet.Cells[temp + 2, 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
                     complectsheet.Cells[temp + 2, 5].Style.Font.Bold = true;
 
@@ -3759,7 +3879,6 @@ namespace Metal_Code
             foreach (var cell in complectsheet.Cells[3, 9, temp, 9])
                 if (cell.Value != null && $"{cell.Value}".Contains(',')) cell.Style.Numberformat.Format = "0.0";
 
-
             complectsheet.Cells[temp + 2, 4].Value = "всего деталей:";
             complectsheet.Cells[temp + 2, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
             complectsheet.Names.Add("totalCount", complectsheet.Cells[3, 5, temp + 1, 5]);
@@ -3780,6 +3899,7 @@ namespace Metal_Code
             complectsheet.Row(temp + 2).Style.Font.Bold = true;     //выделяем жирным шрифтом подсчитанные кол-во и вес
 
             ExcelRange details = complectsheet.Cells[2, 1, temp + 1, 10];    //получаем таблицу деталей для оформления
+            ExcelRange works = additionalSheet.Cells[1, 1, additionalRow - 1, 5];
 
             //в случае с нарезанными деталями, оформляем расшифровку работ
             if (Parts.Count > 0)
@@ -3799,26 +3919,6 @@ namespace Metal_Code
 
                 var descriptionCell = complectsheet.Cells[temp + 4, 3];
                 descriptionCell.Value = string.Empty;
-
-                // Словарь: ключ — символ/подстрока в ячейке, значение — расшифровка
-                var operationsMap = new Dictionary<string, string>
-    {
-        { "Л", "Л - Лазер " },
-        { "Б", "Б - Без лазера " },
-        { "Т", "Т - Труборез " },
-        { "Г ", "Г - Гибка " },
-        { "В ", "В - Вальцовка " },
-        { "Р ", "Р - Резьба " },
-        { "З ", "З - Зенковка " },
-        { "Зк ", "Зк - Заклепки " },
-        { "С ", "С - Сверловка " },
-        { "Св ", "Св - Сварка " },
-        { "О ", "О - Окраска " },
-        { "Ц ", "Ц - Цинкование " },
-        { "Ф ", "Ф - Фрезеровка " },
-        { "А ", "А - Аквабластинг " },
-        { "Доп ", "Доп - Дополнительные работы " }
-    };
 
                 var addedKeys = new HashSet<string>(); // Чтобы избежать дублирования
 
@@ -3988,39 +4088,19 @@ namespace Metal_Code
                 var descriptionCell = assemblysheet.Cells[row + 3, 3];
                 var foundOperations = new HashSet<string>(); // Уникальные операции
 
-                // Словарь: ключ (символ или строка) -> расшифровка
-                var operations = new Dictionary<string, string>
-    {
-        { "Л", "Л - Лазер " },
-        { "Б", "Б - Без лазера " },
-        { "Т", "Т - Труборез " },
-        { "Г ", "Г - Гибка " },
-        { "В ", "В - Вальцовка " },
-        { "Р ", "Р - Резьба " },
-        { "З ", "З - Зенковка " },
-        { "Зк ", "Зк - Заклепки " },
-        { "С ", "С - Сверловка " },
-        { "Св ", "Св - Сварка " },
-        { "О ", "О - Окраска " },
-        { "Ц ", "Ц - Цинкование " },
-        { "Ф ", "Ф - Фрезеровка " },
-        { "А ", "А - Аквабластинг " },
-        { "Доп ", "Доп - Дополнительные работы " }
-    };
-
                 // Проходим по ячейкам в столбце 4 (столбец D)
                 for (int r = 4; r <= row + 3; r++)
                 {
                     var cellValue = assemblysheet.Cells[r, 4].Value?.ToString();
                     if (string.IsNullOrEmpty(cellValue)) continue;
 
-                    foreach (var op in operations)
+                    foreach (var op in operationsMap)
                         if (cellValue.Contains(op.Key) && !foundOperations.Contains(op.Key))
                             foundOperations.Add(op.Key);
                 }
 
                 // Формируем итоговую строку
-                descriptionCell.Value = string.Join("", foundOperations.Select(k => operations[k]));
+                descriptionCell.Value = string.Join("", foundOperations.Select(k => operationsMap[k]));
 
                 // Объединение ячеек
                 assemblysheet.Cells[row + 3, 3, row + 3, 9].Merge = true;
@@ -4034,14 +4114,17 @@ namespace Metal_Code
             }
 
             //обводка границ и авторастягивание столбцов
-            details.Style.HorizontalAlignment = label.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            details.Style.VerticalAlignment = label.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-            details.Style.Border.Right.Style = label.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            details.Style.HorizontalAlignment = label.Style.HorizontalAlignment = works.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            details.Style.VerticalAlignment = label.Style.VerticalAlignment = works.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            details.Style.Border.Right.Style = label.Style.Border.Bottom.Style = works.Style.Border.Right.Style = works.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
             details.Style.Border.BorderAround(ExcelBorderStyle.Medium);
             label.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+            works.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             complectsheet.Cells.AutoFitColumns();
             if (complectsheet.Column(3).Width < 40) complectsheet.Column(3).Width = 40;
+
+            additionalSheet.Cells.AutoFitColumns();
 
             labelsheet.DefaultRowHeight = 40;
             labelsheet.Cells.AutoFitColumns();
