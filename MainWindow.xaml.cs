@@ -6349,16 +6349,19 @@ namespace Metal_Code
         }
         private string LaunchToWork(Offer offer)
         {
-            if (!Directory.Exists(connections[8])) return $"Не удалось запустить в производство!\n" +
-                    $"Нет подключения к папке \"В работу\"";
+            if (!Directory.Exists(connections[8]))
+                return $"Не удалось запустить в производство!\n" +
+                       $"Нет подключения к папке \"В работу\"";
 
-            if (ActiveOffer is null || ActiveOffer.Data != offer.Data) return $"Не удалось запустить в производство!\n" +
-                    $"Расчет {offer.N} не загружен (не является активным).";
+            if (ActiveOffer is null || ActiveOffer.Data != offer.Data)
+                return $"Не удалось запустить в производство!\n" +
+                       $"Расчет {offer.N} не загружен (не является активным).";
 
-            string? sourceDir = null;       //путь к сохраненному расчету на диске (КП)
+            string? sourceDir = null; // путь к сохраненному расчету на диске (КП)
 
-            //проверяем путь к КП, или пытаемся обновить его по номеру расчета, если пути нет
-            if (File.Exists(offer.Act)) sourceDir = Path.GetDirectoryName(Path.GetDirectoryName(offer.Act));
+            // Проверяем путь к КП или пытаемся обновить его по номеру расчета, если пути нет
+            if (File.Exists(offer.Act))
+                sourceDir = Path.GetDirectoryName(Path.GetDirectoryName(offer.Act));
             else if (offer.Act is not null && !File.Exists(offer.Act))
             {
                 string? dirOffers = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(offer.Act)));
@@ -6377,18 +6380,18 @@ namespace Metal_Code
                     }
                 }
             }
-            
-            if (sourceDir is null || sourceDir == "") return $"Не удалось запустить в производство!\n" +
-                    $"Не найден путь к КП. Пересохраните расчет и повторите попытку.";
+
+            if (string.IsNullOrEmpty(sourceDir))
+                return $"Не удалось запустить в производство!\n" +
+                       $"Не найден путь к КП. Пересохраните расчет и повторите попытку.";
 
             string notify = $"Расчет {offer.N} запущен в производство с номером заказа ";
 
-
             const int MIN_ORDER = 1000;
             const int MAX_ORDER = 9999;
+            const int WINDOW_SIZE = 50; // Максимальное количество "ручных" папок вперёд от последнего номера
 
             int nextOrder = MIN_ORDER;
-
             string workingDir = connections[8];
             string logFilePath = Path.Combine(workingDir, "issued_orders.txt");
 
@@ -6399,64 +6402,66 @@ namespace Metal_Code
                 File.SetAttributes(logFilePath, FileAttributes.Hidden);
             }
 
-            HashSet<int> usedNumbers = new();
-
             // Открываем файл с эксклюзивной блокировкой
             using (var stream = new FileStream(logFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
             {
-                // --- 1. Читаем существующие номера, НЕ закрывая поток ---
-                stream.Position = 0; // на всякий случай
+                // --- 1. Читаем последнюю строку из файла (последний выданный номер программой) ---
+                stream.Position = 0;
+                string? lastLine = null;
                 using (var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true))
                 {
                     string? line;
                     while ((line = reader.ReadLine()) != null)
                     {
-                        if (int.TryParse(line.Trim(), out int num) && num >= MIN_ORDER && num <= MAX_ORDER)
+                        line = line.Trim();
+                        // Игнорируем пустые строки и комментарии (начинающиеся с #)
+                        if (!string.IsNullOrEmpty(line) && !line.StartsWith("#"))
                         {
-                            usedNumbers.Add(num);
+                            lastLine = line;
                         }
                     }
                 }
 
-                // --- 2. Добавляем номера из имён папок ---
-                string orderPattern = @"^\d{4,5}";
+                int lastIssued = MIN_ORDER - 1;
+                if (lastLine != null && int.TryParse(lastLine, out int parsed) &&
+                    parsed >= MIN_ORDER && parsed <= MAX_ORDER)
+                {
+                    lastIssued = parsed;
+                }
+
+                // --- 2. Собираем номера из папок в окне [lastIssued, lastIssued + WINDOW_SIZE] ---
+                int windowEnd = Math.Min(MAX_ORDER, lastIssued + WINDOW_SIZE);
+                HashSet<int> candidateNumbers = new() { lastIssued }; // всегда включаем последний из файла
+
+                string orderPattern = @"^\d{4}(?=\D|$)"; // ровно 4 цифры в начале имени папки
                 foreach (string dirPath in Directory.GetDirectories(workingDir))
                 {
                     string dirName = Path.GetFileName(dirPath);
                     Match match = Regex.Match(dirName, orderPattern);
-                    if (match.Success && int.TryParse(match.Value, out int orderNum) &&
-                        orderNum >= MIN_ORDER && orderNum <= MAX_ORDER)
+                    if (match.Success && int.TryParse(match.Value, out int orderNum))
                     {
-                        usedNumbers.Add(orderNum);
+                        // Учитываем только номера в пределах окна и допустимого диапазона
+                        if (orderNum >= lastIssued && orderNum <= windowEnd)
+                        {
+                            candidateNumbers.Add(orderNum);
+                        }
                     }
                 }
 
-                // --- 3. Ищем свободный номер ---
-                bool found = false;
-                for (int i = 0; i <= MAX_ORDER - MIN_ORDER; i++)
-                {
-                    if (!usedNumbers.Contains(nextOrder))
-                    {
-                        found = true;
-                        break;
-                    }
-                    nextOrder = nextOrder < MAX_ORDER ? nextOrder + 1 : MIN_ORDER;
-                }
+                // --- 3. Определяем следующий номер как максимум + 1 ---
+                nextOrder = candidateNumbers.Max() + 1;
 
-                if (!found)
+                if (nextOrder > MAX_ORDER)
                 {
-                    throw new InvalidOperationException("Все номера заказов в диапазоне [1000–9999] заняты.");
+                    throw new InvalidOperationException($"Достигнут максимальный номер заказа ({MAX_ORDER}). Невозможно назначить новый.");
                 }
 
                 // --- 4. Записываем новый номер в конец файла ---
-                // Перемещаемся в конец (после чтения позиция может быть где угодно)
                 stream.Seek(0, SeekOrigin.End);
 
-                // Проверяем, нужно ли добавить перевод строки перед записью
+                // Добавляем перевод строки, если файл не пуст и не заканчивается им
                 if (stream.Length > 0)
                 {
-                    // Убеждаемся, что последний символ — это перевод строки
-                    // (необязательно, но улучшает читаемость)
                     stream.Seek(-1, SeekOrigin.End);
                     int lastByte = stream.ReadByte();
                     if (lastByte != '\n' && lastByte != '\r')
@@ -6473,11 +6478,11 @@ namespace Metal_Code
                 using (var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 1, leaveOpen: true))
                 {
                     writer.WriteLine(nextOrder.ToString());
-                    writer.Flush(); // гарантированная запись на диск
+                    writer.Flush();
                 }
             }
 
-            // Присваиваем номер заказа (вне блока using, чтобы не писать в закрытый поток)
+            // Присваиваем номер заказа
             offer.Order = nextOrder.ToString();
 
             // Убеждаемся, что файл остаётся скрытым
@@ -6489,12 +6494,13 @@ namespace Metal_Code
                     File.SetAttributes(logFilePath, attrs | FileAttributes.Hidden);
                 }
             }
-            catch { /* без паники — не критично */ }
+            catch
+            {
+                /* Не критично — продолжаем работу */
+            }
 
-
-            //проверяем наличие трубореза среди работ
+            // Проверяем наличие трубореза среди работ
             bool hasPipe = false;
-
             foreach (DetailControl det in DetailControls)
                 foreach (TypeDetailControl type in det.TypeDetailControls)
                     foreach (WorkControl work in type.WorkControls)
@@ -6504,42 +6510,41 @@ namespace Metal_Code
                             break;
                         }
 
-            //создаем папку нового заказа
-            string destinationDir = $"{Directory.CreateDirectory(connections[8] + "\\"
-                + $"{nextOrder}"
-                + (hasPipe ? " (ТР) " : " ")
-                + $"{offer.Company}({ShortManager()})"
-                + (HasAssembly ? " ЭКСПРЕСС" : ""))}";
+            // Создаём папку нового заказа
+            string destinationDir = Directory.CreateDirectory(
+                Path.Combine(
+                    workingDir,
+                    $"{nextOrder}{(hasPipe ? " (ТР) " : " ")}{offer.Company}({ShortManager()}){(HasAssembly ? " ЭКСПРЕСС" : "")}"
+                )
+            ).FullName;
 
-            if (sourceDir is not null && sourceDir != "")
+            if (!string.IsNullOrEmpty(sourceDir))
             {
-                //копируем папки с рабочими файлами в папку созданного заказа
+                // Копируем папки с рабочими файлами в папку созданного заказа
                 CopyDirectoryToWork(sourceDir, destinationDir, true, sourceDir);
 
-                //ищем счет в корневой папке расчета
+                // Ищем счет в корневой папке расчета
                 DirectoryInfo dir = new(sourceDir);
-
-                if (dir.GetFiles().Length == 0) offer.Invoice = "нал";
+                if (dir.GetFiles().Length == 0)
+                {
+                    offer.Invoice = "нал";
+                }
                 else
                 {
                     foreach (FileInfo file in dir.GetFiles())
                     {
-                        // Регулярное выражение: ищет "счет" или "счёт", затем любые слова, затем "№" и цифры
                         string pattern = @"счет[ё]?(?:\s+\S+)*\s+№\s*(\d+)";
-
                         Match match = Regex.Match(file.Name, pattern, RegexOptions.IgnoreCase);
-
                         if (match.Success)
                         {
                             offer.Invoice = $"№ {match.Groups[1].Value}";
                             break;
                         }
                     }
-                } 
+                }
             }
 
-            UpdateOffer(OffersGrid);                  //сохраняем изменения данных текущего расчета в базе
-
+            UpdateOffer(OffersGrid); // Сохраняем изменения данных текущего расчета в базе
             Process.Start("explorer.exe", destinationDir);
 
             return notify + nextOrder;
