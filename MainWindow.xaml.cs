@@ -112,7 +112,7 @@ namespace Metal_Code
 
         //----------Свойства и их основные методы---------//
         #region
-        private string version = "2.6.7";
+        private string version = "2.6.8";
         public string Version
         {
             get => version;
@@ -823,7 +823,8 @@ namespace Metal_Code
                     IsEnabled = true;
                 }
 
-                LimitCheckBorder.Visibility = ReportTab.Visibility = BonusStack.Visibility = CurrentManager.IsEngineer ? Visibility.Collapsed : Visibility.Visible;
+                ReportTab.Visibility = BonusStack.Visibility = CurrentManager.IsEngineer ? Visibility.Collapsed : Visibility.Visible;
+                LimitCheck.Content = CurrentManager.IsEngineer ? "Минималка" : "Снять ограничения";
 
                 return true;
             }
@@ -851,7 +852,8 @@ namespace Metal_Code
                 }
                 else ManagerDrop.SelectedItem = CurrentManager;
 
-                LimitCheckBorder.Visibility = ReportTab.Visibility = BonusStack.Visibility = CurrentManager.IsEngineer ? Visibility.Collapsed : Visibility.Visible;
+                ReportTab.Visibility = BonusStack.Visibility = CurrentManager.IsEngineer ? Visibility.Collapsed : Visibility.Visible;
+                LimitCheck.Content = CurrentManager.IsEngineer ? "Минималка" : "Снять ограничения";
 
                 IsEnabled = true;
                 NewProject();
@@ -1538,6 +1540,7 @@ namespace Metal_Code
 
                         _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
                         ActiveOffer = _offer;
+                        LimitCheck.IsChecked = false;
                         message = $"Расчет {_offer.N} {_offer.Company} сохранен.";
                     }
                     else            //если метод запущен с параметром false, то есть в режиме удаления
@@ -3648,14 +3651,26 @@ namespace Metal_Code
             var excludedOps = new HashSet<string> { "Л", "Б", "Т", "Лазерная резка", "Труборез" };
 
             // Словарь: операция → список деталей
-            var workGroups = new Dictionary<string, List<(string Name, object Count, byte[]? Bytes)>>();
+            var workGroups = new Dictionary<string, List<(string Name, object Count, byte[]? Bytes, string Dimensions)>>();
 
             // Общая коллекция деталей, приведенная к анонимному типу для группировки по работам
             var combined = DetailControls.Where(d => !d.Detail.IsComplect)
-                .Select(d => new { d.Detail.Title, d.Detail.Description, d.Detail.Count, ImageBytes = (byte[]?)null })
+                .Select(d => new {
+                    d.Detail.Title,
+                    d.Detail.Description,
+                    d.Detail.Count,
+                    ImageBytes = (byte[]?)null,
+                    Dimensions = "" // Detail не имеет размеров
+                })
                 .Concat(
-                Parts.Select(p => new { p.Title, p.Description, p.Count, ImageBytes = (byte[]?)p.ImageBytes }));
-
+                    Parts.Select(p => new {
+                        p.Title,
+                        p.Description,
+                        p.Count,
+                        p.ImageBytes,
+                        Dimensions = GetDimensionsString(p.PropsDict)
+                    })
+                );
             foreach (var item in combined)
             {
                 if (string.IsNullOrWhiteSpace(item.Description))
@@ -3672,9 +3687,9 @@ namespace Metal_Code
                     string opName = operationsMap.TryGetValue(opCode, out var name) ? name : opCode;
 
                     if (!workGroups.ContainsKey(opName))
-                        workGroups[opName] = new List<(string, object, byte[]?)>();
+                        workGroups[opName] = new List<(string, object, byte[]?, string)>();
 
-                    workGroups[opName].Add((item.Title, item.Count, item.ImageBytes));
+                    workGroups[opName].Add((item.Title, item.Count, item.ImageBytes, item.Dimensions));
                 }
             }
             
@@ -3688,7 +3703,7 @@ namespace Metal_Code
 
                 for (int i = 0; i < parts.Count; i++)
                 {
-                    var (name, count, bytes) = parts[i];
+                    var (name, count, bytes, dimensions) = parts[i];
 
                     // Колонка A: название операции — только в первой строке группы
                     if (i == 0)
@@ -3699,6 +3714,9 @@ namespace Metal_Code
 
                     // Колонка D: количество
                     additionalSheet.Cells[additionalRow, 4].Value = count;
+
+                    // Колонка E: размеры
+                    additionalSheet.Cells[additionalRow, 5].Value = dimensions;
 
                     // Колонка B: изображение
                     if (bytes != null)
@@ -3721,6 +3739,12 @@ namespace Metal_Code
 
                 // === Жирная нижняя граница под последней строкой группы ===
                 additionalSheet.Cells[additionalRow - 1, 1, additionalRow - 1, 5].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
+            }
+
+            if (Delivery > 0)
+            {
+                additionalSheet.Cells[additionalRow, 1].Value = "Доставка";
+                additionalSheet.Cells[additionalRow, 1].Style.Font.Bold = true;
             }
 
             int temp = 1;               //номер текущей строки
@@ -3819,15 +3843,12 @@ namespace Metal_Code
                 else
                 {
                     complectsheet.Cells[temp + 2, 1].Value = temp;                      //номер детали по порядку
-                    complectsheet.Cells[temp + 2, 3].Value =
-                        additionalSheet.Cells[additionalRow, 3].Value = det.Detail.Title;           //наименование детали
+                    complectsheet.Cells[temp + 2, 3].Value = det.Detail.Title;          //наименование детали
 
-                    complectsheet.Cells[temp + 2, 4].Value =
-                        additionalSheet.Cells[additionalRow, 1].Value = det.Detail.Description;     //маршрут изготовления
+                    complectsheet.Cells[temp + 2, 4].Value = det.Detail.Description;    //маршрут изготовления
                     complectsheet.Cells[temp + 2, 4].Style.WrapText = true;
 
-                    complectsheet.Cells[temp + 2, 5].Value =
-                        additionalSheet.Cells[additionalRow, 4].Value = det.Detail.Count;           //количество деталей
+                    complectsheet.Cells[temp + 2, 5].Value = det.Detail.Count;          //количество деталей
                     complectsheet.Cells[temp + 2, 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
                     complectsheet.Cells[temp + 2, 5].Style.Font.Bold = true;
 
@@ -4124,6 +4145,7 @@ namespace Metal_Code
             complectsheet.Cells.AutoFitColumns();
             if (complectsheet.Column(3).Width < 40) complectsheet.Column(3).Width = 40;
 
+            additionalSheet.Column(1).Style.WrapText = true;
             additionalSheet.Cells.AutoFitColumns();
 
             labelsheet.DefaultRowHeight = 40;
@@ -4161,6 +4183,32 @@ namespace Metal_Code
                 }
             }
             else workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
+        }
+
+        private static string GetDimensionsString(Dictionary<int, List<string>> propsDict)
+        {
+            if (propsDict == null || !propsDict.TryGetValue(100, out var list) || list == null)
+                return "";
+
+            // Листовая деталь: ширина x высота
+            if (list.Count >= 2 && !string.IsNullOrEmpty(list[0]) && !string.IsNullOrEmpty(list[1]))
+            {
+                return $"{list[0]}×{list[1]}"; // используем × (U+00D7), а не x
+            }
+
+            // Труба: длина
+            if (list.Count >= 3 && !string.IsNullOrEmpty(list[2]))
+            {
+                return list[2];
+            }
+
+            // Если есть только ширина или только высота — можно вернуть как есть, но, скорее всего, это ошибка
+            if (list.Count >= 1 && !string.IsNullOrEmpty(list[0]))
+            {
+                return list[0]; // на всякий случай
+            }
+
+            return "";
         }
 
         //-ПРОСТЫЕ ЗАДАЧИ
@@ -6694,36 +6742,84 @@ namespace Metal_Code
                 }
             }
 
-            // Проверка суммы КП
-            bool isBelowLimit = (!IsAgent && Result < 4000) || (IsAgent && Result < 2500);
-            if (isBelowLimit && LimitCheck.IsChecked == false)
+
+            bool isBelowLimit = (!IsAgent && Result < 4200) || (IsAgent && Result < 2700);
+            if (isBelowLimit)
             {
-                // Подсветка суммы и чекбокса
-                DetailsToggle.BorderBrush = LimitCheckBorder.BorderBrush = Brushes.OrangeRed;
-                LimitCheckBorder.BorderThickness = new Thickness(1);
+                if (CurrentManager.IsEngineer)
+                {
+                    MessageBox.Show(
+                        "Стоимость КП ниже минимальной.\n" +
+                        "Установите корректный коэффициент или используйте галочку «Минималка» для автоматической подстройки.",
+                        "Сохранение расчета",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Exclamation);
 
-                MessageBox.Show(
-                    "Проверьте стоимость КП:\n" +
-                    "• С НДС — не менее 4000 руб.\n" +
-                    "• Без НДС — не менее 2500 руб.\n\n" +
-                    (CurrentManager.IsEngineer ?
-                    "Увеличьте стоимость до минимальной,\n" +
-                    "например, коэффициентами." :
-                    "Установите галочку «Снять ограничения»,\n" +
-                    "если всё равно хотите сохранить."),
-                    "Сохранение расчета",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Exclamation);
+                    // Подсветка
+                    DetailsToggle.BorderBrush = LimitCheckBorder.BorderBrush = Brushes.OrangeRed;
+                    LimitCheckBorder.BorderThickness = new Thickness(1);
 
-                // Восстановление стиля суммы и чекбокса
-                DetailsToggle.BorderBrush = LimitCheckBorder.BorderBrush = null;
-                DetailsToggle.BorderThickness = new Thickness(1);
+                    // Сброс подсветки через мгновение или при изменении — по желанию
+                    return false;
+                }
+                else
+                {
+                    // Менеджер: галочка = "снять ограничения"
+                    if (LimitCheck.IsChecked == false)
+                    {
+                        // Подсветка и сообщение (как у вас было)
+                        DetailsToggle.BorderBrush = LimitCheckBorder.BorderBrush = Brushes.OrangeRed;
+                        LimitCheckBorder.BorderThickness = new Thickness(1);
 
-                return false;
+                        MessageBox.Show(
+                            "Проверьте стоимость КП:\n" +
+                            "• С НДС — не менее 4200 руб.\n" +
+                            "• Без НДС — не менее 2700 руб.\n\n" +
+                            "Установите галочку «Снять ограничения», если всё равно хотите сохранить.",
+                            "Сохранение расчета",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Exclamation);
+
+                        DetailsToggle.BorderBrush = LimitCheckBorder.BorderBrush = null;
+                        DetailsToggle.BorderThickness = new Thickness(1);
+                        return false;
+                    }
+                    // Иначе — менеджер с галочкой → разрешаем сохранение
+                }
             }
 
-            LimitCheck.IsChecked = false;
             return true;
+        }
+
+        private void LimitCheck_Click(object sender, RoutedEventArgs e)
+        {
+            if (!CurrentManager.IsEngineer)
+                return; // Для менеджера — поведение не меняется (галочка просто игнорируется или используется по-другому)
+
+            if (LimitCheck.IsChecked == true)
+            {
+                // Включено: поднимаем коэффициент до минимального
+                double minLimit = IsAgent ? 2700 : 4200;
+
+                if (Result <= 0)
+                {
+                    MessageBox.Show("Невозможно рассчитать коэффициент: текущая стоимость недоступна или нулевая.");
+                    LimitCheck.IsChecked = false; // отменяем действие
+                    return;
+                }
+
+                SetRatio(Math.Ceiling(minLimit / Result * 100) / 100);
+            }
+            else
+            {
+                // Выключено: возвращаем коэффициент к 1 (или к исходному значению)
+                SetRatio(1);
+            }
+
+            // Снимаем визуальную подсветку
+            DetailsToggle.BorderBrush = null;
+            LimitCheckBorder.BorderBrush = null;
+            LimitCheckBorder.BorderThickness = new Thickness(0);
         }
 
         public float GetServices()          //метод получения стоимости ВСЕХ услуг
@@ -6756,7 +6852,7 @@ namespace Metal_Code
             return (float)Math.Ceiling(metalPrice);
         }
 
-        public float GetServicesPrice()          //метод получения стоимости основных работ
+        public float GetServicesPrice()     //метод получения стоимости основных работ
         {
             float servicesPrice = 0;
             foreach (DetailControl det in DetailControls)
@@ -6807,17 +6903,18 @@ namespace Metal_Code
         private void CreateDelivery(object sender, RoutedEventArgs e) { StatusBegin($"{CreateDelivery()}", StatusMessageType.Success); }
         private string CreateDelivery()     //метод построения строки запроса в логистику
         {
-            StringBuilder sb = new(EndDate()?.ToString("d MMM"));    //инициализируем строку датой отгрузки в формате "d MMM"
+            StringBuilder sb = new(EndDate()?.ToString("d MMM"));   //инициализируем строку датой отгрузки в формате "d MMM"
 
             //если есть номер заказа, добавляем его; иначе добавляем номер КП
             if (ActiveOffer != null && ActiveOffer.Order != null) sb.Append($", №{ActiveOffer.Order}");
             else sb.Append($", №{Order.Text}");
 
-            sb.Append($", {CustomerDrop.Text}({ShortManager()})");   //добавляем заказчика и менеджера в сокращенном виде
-            sb.Append($", примерно {GetTotalMass()} кг;");      //добавляем массу всех деталей
-            sb.Append($" {Adress.Text}");                       //и, наконец, адрес доставки и контакт
+            sb.Append($", {CustomerDrop.Text}({ShortManager()})");  //добавляем заказчика и менеджера в сокращенном виде
+            sb.Append($", примерно {GetTotalMass()} кг;");          //добавляем массу всех деталей
+            sb.Append($" {Adress.Text}");                           //и, наконец, адрес доставки и контакт
 
-            return $"{sb}";
+            Clipboard.SetText($"{sb} - запрос скопирован в буфер");
+            return $"{sb} - запрос скопирован в буфер";
         }
 
         private float GetTotalMass()        //метод расчета общей массы ВСЕХ деталей

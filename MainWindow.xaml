@@ -475,7 +475,7 @@
                             <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет с НДС" VerticalAlignment="Center" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;" Margin="5,0,0,0"/>
                             <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет без НДС" VerticalAlignment="Center" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;" Margin="10,0,0,0"/>
                             <Border x:Name="LimitCheckBorder" Margin="10,0,0,0" Padding="4" CornerRadius="{DynamicResource DefaultCornerRadius}">
-                                <CheckBox x:Name="LimitCheck" Content="Снять ограничения" VerticalAlignment="Center" Width="140"/>
+                                <CheckBox x:Name="LimitCheck" VerticalAlignment="Center" Width="140" Click="LimitCheck_Click"/>
                             </Border>
                             <hc:SearchBar hc:InfoElement.Placeholder="Поиск детали" Style="{StaticResource SearchBarExtend}" Text="{Binding SearchDetails, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="170" SearchStarted="Search_Details"/>
                         </StackPanel>
