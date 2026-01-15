@@ -244,7 +244,10 @@ namespace Metal_Code
                 {
                     serviceFactor = value;
                     if (serviceFactor <= 0) serviceFactor = 1;
-                    if (!IsLoadData) SetServiceFactor(serviceFactor);
+
+                    if (!IsLoadData)
+                        SetServiceFactor(serviceFactor);
+
                     OnPropertyChanged(nameof(ServiceFactor));
                 }
             }
@@ -961,6 +964,7 @@ namespace Metal_Code
             CheckConstruct.IsChecked = false;
             IsExpressOffer = false;
             HasAssembly = false;
+            IsLoadData = false;
             Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = Comment.Text = ConstructRatio.Text = TotalCount.Text = TotalPrice.Text = "";
             ActiveOffer = null;
             Log = null;
@@ -1598,7 +1602,7 @@ namespace Metal_Code
         {
             //подключаемся к базе данных
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
-            bool isAvalaible = db.Database.CanConnect();                    //проверяем, свободна ли база для подключения
+            bool isAvalaible = db.Database.CanConnect();                  //проверяем, свободна ли база для подключения
             if (isAvalaible && dataGrid.SelectedItem is Offer offer)      //если база свободна, получаем выбранный расчет
             {
                 try
@@ -1627,6 +1631,11 @@ namespace Metal_Code
                             db.Entry(_offer).Property(o => o.Order).IsModified = true;
                             _offer.CreatedDate = DateTime.UtcNow;
                             db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
+                        }
+                        if (_offer.Act != offer.Act)
+                        {
+                            _offer.Act = offer.Act;
+                            db.Entry(_offer).Property(a => a.Act).IsModified = true;
                         }
 
                         //дата отгрузки меняется программно по кнопке добавления в отчет
@@ -2518,6 +2527,7 @@ namespace Metal_Code
             }
             worksheet.Column(9).Hidden = true;
             worksheet.Column(10).Hidden = true;
+            worksheet.Column(11).Hidden = true;
 
             if (CheckConstruct.IsChecked == null)       //если требуется указать конструкторские работы отдельной строкой
             {
@@ -6590,6 +6600,64 @@ namespace Metal_Code
                         }
                     }
                 }
+            }
+
+            // === Дополнение имени папки КП (сохраняем исходное имя + добавляем счёт и заказ) ===
+            try
+            {
+                if (!string.IsNullOrEmpty(sourceDir) && Directory.Exists(sourceDir))
+                {
+                    string originalName = Path.GetFileName(sourceDir);
+
+                    // Формируем суффикс в зависимости от типа расчёта
+                    string invoiceNumber = "без_счёта";
+                    if (!string.IsNullOrEmpty(offer.Invoice))
+                    {
+                        // Извлекаем только цифры из offer.Invoice (например, "№ 20" → "20")
+                        var match = Regex.Match(offer.Invoice, @"\d+");
+                        if (match.Success)
+                            invoiceNumber = match.Value;
+                    }
+                    string invoiceSuffix = offer.Agent ? $"нал№{invoiceNumber}" : $"сч№{invoiceNumber}";
+
+                    string orderPart = !string.IsNullOrEmpty(offer.Order) ? offer.Order.Trim() : "без_заказа";
+
+                    // Удаляем недопустимые символы из динамических частей (но не из originalName — он уже существует)
+                    string SanitizePart(string input)
+                    {
+                        var invalid = Path.GetInvalidFileNameChars();
+                        return string.Join("_", input.Split(invalid, StringSplitOptions.RemoveEmptyEntries)).Trim('_');
+                    }
+
+                    invoiceSuffix = SanitizePart(invoiceSuffix);
+                    orderPart = SanitizePart(orderPart);
+
+                    // Формируем новое имя: "40762 МПС сч№20 1132"
+                    string newKpFolderName = $"{originalName} {invoiceSuffix} {orderPart}".Trim();
+
+                    // Избегаем повторного переименования и конфликтов
+                    if (originalName != newKpFolderName)
+                    {
+                        string parentDir = Path.GetDirectoryName(sourceDir)!;
+                        string newKpPath = Path.Combine(parentDir, newKpFolderName);
+
+                        if (!Directory.Exists(newKpPath))
+                        {
+                            Directory.Move(sourceDir, newKpPath);
+
+                            // Обновляем offer.Act, если он существует
+                            if (!string.IsNullOrEmpty(offer.Act))
+                            {
+                                string relativePath = Path.GetRelativePath(sourceDir, offer.Act);
+                                offer.Act = Path.Combine(newKpPath, relativePath);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusBegin($"Ошибка переименования КП: {ex.Message}", StatusMessageType.Error);
             }
 
             UpdateOffer(OffersGrid); // Сохраняем изменения данных текущего расчета в базе

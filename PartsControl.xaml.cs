@@ -359,9 +359,9 @@ namespace Metal_Code
                     if (part.Geometries?.Count > 0)
                     {
                         partControl.Picture.Visibility = Visibility.Collapsed;
-                        partControl.GeometryCanvas.Visibility = Visibility.Visible;
+                        partControl.GeometryViewbox.Visibility = Visibility.Visible;
 
-                        CanvasHelper.SetGeometryDescriptors(partControl.GeometryCanvas, part.Geometries);
+                        CanvasHelper.SetGeometryDescriptors(partControl.GeometryViewbox, part.Geometries);
                     }
                     Parts.Add(partControl);
 

@@ -517,11 +517,51 @@ namespace Metal_Code
         [Browsable(false)]
         public ObservableCollection<IGeometryDescriptor> Geometries { get; set; } = new();
 
-        [Browsable(false)]
-        public float Width { get; set; }
+        /// <summary>
+        /// Геометрия контура детали в миллиметрах (WPF-координаты: Y инвертирован).
+        /// Может содержать внешние и внутренние контуры (вырезы).
+        /// </summary>
+        public PathGeometry? DisplayGeometry { get; set; }
+
+        /// <summary>
+        /// Геометрия **с замкнутыми контурами** — для расчёта площади, массы, реза.
+        /// </summary>
+        public PathGeometry? CalculationGeometry { get; set; }
+
+        /// <summary>
+        /// StrokeThickness, компенсирующая масштаб Viewbox, чтобы линия всегда выглядела как ~1 пиксель.
+        /// Основано на реальных размерах DisplayGeometry.Bounds.
+        /// </summary>
+        public double VisualStrokeThickness
+        {
+            get
+            {
+                if (DisplayGeometry?.Bounds is Rect bounds && !bounds.IsEmpty)
+                {
+                    double sourceSize = Math.Max(bounds.Width, bounds.Height);
+                    if (sourceSize > 0)
+                    {
+                        // Viewbox растягивает до 80x80 (с учётом Uniform — меньшая сторона = 80)
+                        // Но для оценки масштаба используем max, т.к. Stretch="Uniform"
+                        double targetSize = 80.0;
+                        double scale = targetSize / sourceSize;
+                        // Чтобы визуальная толщина была ≈1, задаём:
+                        double stroke = 1.0 / scale;
+                        // Ограничиваем разумные пределы (на случай очень мелких или огромных геометрий)
+                        return Math.Max(1.0, Math.Min(5.0, stroke));
+                    }
+                }
+                // Если геометрия недоступна — используем 1 по умолчанию
+                return 1.0;
+            }
+        }
+
 
         [Browsable(false)]
-        public float Height { get; set; }
+        public double Width { get; set; }
+
+        [Browsable(false)]
+        public double Height { get; set; }
 
         [Browsable(false)]
         public double X { get; set; }

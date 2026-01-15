@@ -298,16 +298,14 @@ namespace Metal_Code
 
         private void SetPicture(object sender, RoutedEventArgs e)       //метод вызывается при загрузке элемента Image (Image.Loaded) 
         {
-            if (MainWindow.M.IsExpressOffer && Part.Geometries?.Count > 0)
+            if (MainWindow.M.IsExpressOffer && Part.DisplayGeometry != null)
             {
                 Picture.Visibility = Visibility.Collapsed;
-                GeometryCanvas.Visibility = Visibility.Visible;
-
-                CanvasHelper.SetGeometryDescriptors(GeometryCanvas, Part.Geometries);
+                GeometryViewbox.Visibility = Visibility.Visible;
             }
             else if (Part.ImageBytes != null)
             {
-                GeometryCanvas.Visibility = Visibility.Collapsed;
+                GeometryViewbox.Visibility = Visibility.Collapsed;
                 Picture.Visibility = Visibility.Visible;
 
                 Picture.Source = MainWindow.CreateBitmap(Part.ImageBytes);

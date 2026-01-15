@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Metal_Code.Utils;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -7,6 +8,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using System.Windows.Media;
 
 namespace Metal_Code
 {
@@ -130,6 +132,16 @@ namespace Metal_Code
         [OptionalField]
         [field: NonSerialized]
         public ObservableCollection<IGeometryDescriptor> Geometries = new();
+
+        [OptionalField]
+        private string? _displayGeometryXaml;
+
+        [Browsable(false)]
+        public PathGeometry? DisplayGeometry
+        {
+            get => GeometryHelper.FromXamlString(_displayGeometryXaml);
+            set => _displayGeometryXaml = GeometryHelper.ToXamlString(value);
+        }
 
         [OptionalField]
         public bool IsFixed = false;

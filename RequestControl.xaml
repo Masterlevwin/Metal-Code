@@ -54,7 +54,7 @@
                 </StackPanel>
             </Button>
 
-            <Button ToolTip="Доступен предварительный расчет" Click="Create_ExpressOffer" HorizontalAlignment="Center" Margin="5" Visibility="{Binding IsAvailable, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Button ToolTip="Доступен предварительный расчет" IsEnabled="{Binding IsAvailable}" Click="Create_ExpressOffer" HorizontalAlignment="Center" Margin="5">
                 <StackPanel Orientation="Horizontal">
                     <Image Source="/Images/open3.png"/>
                 </StackPanel>
@@ -141,15 +141,19 @@
                     </StackPanel>
                 </GroupBox.Header>
 
-                <Grid>
+                <Grid Background="White">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition/>
                     </Grid.RowDefinitions>
-                    
-                    <Canvas local:CanvasHelper.GeometryDescriptors="{Binding TargetTechItem.Geometries}" Background="White" VerticalAlignment="Center" HorizontalAlignment="Center" Width="60" Height="60"/>
-                    
-                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5" HorizontalAlignment="Center">
+
+                    <Viewbox Stretch="Uniform" Width="80" Height="80">
+                        <Path Data="{Binding TargetTechItem.DisplayGeometry}"
+                              Stroke="Black" Stretch="Fill"
+                              StrokeThickness="{Binding TargetTechItem.VisualStrokeThickness}"/>
+                    </Viewbox>
+
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5">
                         <Button Content="Шильда" Click="Shields_Engraving" Margin="20,0,0,0" ToolTip="Создать шильды на основе пустого шаблона"/>
                         <Image Source="/Images/question.png" MouseEnter="ShowPopup_Shield" Width="16"/>
                     </StackPanel>

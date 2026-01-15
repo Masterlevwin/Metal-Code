@@ -544,24 +544,58 @@ namespace Metal_Code
 
         public void SetImagesForParts(FileStream stream)        //метод извлечения картинок из файла и установки их для каждой детали в виде массива байтов
         {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
-            using var workbook = new ExcelPackage(stream);                      //получаем книгу Excel из потока
-            ExcelWorksheet worksheet = workbook.Workbook.Worksheets[0];
+            using var workbook = new ExcelPackage(stream);
+            if (workbook.Workbook.Worksheets.Count == 0)
+                return; // Нет листов — выходим
 
-            //извлекаем все изображения на листе в список картинок
-            List<ExcelPicture> pictures = worksheet.Drawings.Where(x => x.DrawingType == eDrawingType.Picture).Select(x => x.As.Picture).ToList();
-      
-            if (Parts?.Count > 0)
+            var worksheet = workbook.Workbook.Worksheets[0];
+
+            // Извлекаем только изображения
+            var pictures = worksheet.Drawings
+                .OfType<ExcelPicture>()
+                .ToList();
+
+            // Обработка Parts
+            if (Parts?.Count > 0 && pictures.Count > 0)
+            {
                 for (int i = 0; i < Parts.Count; i++)
-                    Parts[i].Part.ImageBytes = pictures[i].Image.ImageBytes;    //для каждой детали записываем массив байтов соответствующей картинки
+                {
+                    if (i < pictures.Count) // Защита от выхода за пределы списка
+                    {
+                        Parts[i].Part.ImageBytes = pictures[i].Image.ImageBytes;
+                    }
+                    else
+                    {
+                        Parts[i].Part.ImageBytes = null; // или пустой массив, если требуется
+                    }
+                }
+            }
 
-            //получаем выборку изображений самих раскладок на основе размера массива байтов
-            var images = pictures.Where(x => x.Image.ImageBytes.Length > 9999).ToList();
+            // Отфильтровываем "большие" изображения как раскладки
+            var layoutImages = pictures
+                .Where(p => p.Image?.ImageBytes?.Length > 0 && p.Image.ImageBytes.Length > 9999)
+                .ToList();
 
-            if (Items?.Count > 0)
+            // Обработка Items (раскладок)
+            if (Items?.Count > 0 && layoutImages.Count > 0)
+            {
                 for (int j = 0; j < Items.Count; j++)
-                    Items[j].imageBytes = images[j].Image.ImageBytes;           //для каждой раскладки записываем массив байтов соответствующей картинки
+                {
+                    if (j < layoutImages.Count)
+                    {
+                        Items[j].imageBytes = layoutImages[j].Image.ImageBytes;
+                    }
+                    else
+                    {
+                        Items[j].imageBytes = null; // или пустой массив
+                    }
+                }
+            }
         }
 
         public void ItemList(DataTable table)

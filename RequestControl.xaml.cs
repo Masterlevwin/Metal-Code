@@ -1,16 +1,18 @@
 ﻿using ACadSharp;
 using ACadSharp.IO;
 using ExcelDataReader;
+using Metal_Code.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
+using netDxf;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Data;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -80,12 +82,86 @@ namespace Metal_Code
 
         public RequestTemplate CurrentTemplate { get; set; } = new();
         public ObservableCollection<RequestTemplate> Templates { get; set; } = new();
-        public ObservableCollection<TechItem> TechItems { get; set; } = new();
 
+        // Коллекция деталей
+        private ObservableCollection<TechItem> _techItems = new();
+        public ObservableCollection<TechItem> TechItems
+        {
+            get => _techItems;
+            set
+            {
+                if (_techItems != value)
+                {
+                    // Отписываемся от старых элементов
+                    if (_techItems != null)
+                    {
+                        foreach (var item in _techItems)
+                            item.PropertyChanged -= OnTechItemPropertyChanged;
+                        _techItems.CollectionChanged -= OnTechItemsCollectionChanged;
+                    }
+
+                    _techItems = value;
+
+                    // Подписываемся на новые
+                    if (_techItems != null)
+                    {
+                        foreach (var item in _techItems)
+                            item.PropertyChanged += OnTechItemPropertyChanged;
+                        _techItems.CollectionChanged += OnTechItemsCollectionChanged;
+                    }
+
+                    UpdateIsAvailable(); // Обновляем сразу
+                    OnPropertyChanged(nameof(TechItems));
+                }
+            }
+        }
+
+        private void OnTechItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.OldItems != null)
+            {
+                foreach (TechItem item in e.OldItems)
+                    item.PropertyChanged -= OnTechItemPropertyChanged;
+            }
+
+            if (e.NewItems != null)
+            {
+                foreach (TechItem item in e.NewItems)
+                    item.PropertyChanged += OnTechItemPropertyChanged;
+            }
+
+            UpdateIsAvailable();
+        }
+
+        private void OnTechItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            // Проверяем только нужные свойства для оптимизации
+            if (e.PropertyName is nameof(TechItem.Sizes) or nameof(TechItem.Destiny) or nameof(TechItem.Count))
+            {
+                UpdateIsAvailable();
+            }
+        }
+
+        private void UpdateIsAvailable()
+        {
+            bool isValid = TechItems.Count > 0 && TechItems.All(IsTechItemValid);
+            IsAvailable = isValid;
+        }
+
+        private bool IsTechItemValid(TechItem item)
+        {
+            return !string.IsNullOrWhiteSpace(item?.Sizes)
+                && !string.IsNullOrWhiteSpace(item?.Destiny)
+                && !string.IsNullOrWhiteSpace(item?.Count);
+        }
+
+
+        // Конструктор
         public RequestControl(List<string> paths)
         {
             InitializeComponent();
             DataContext = this;
+            TechItems = new ObservableCollection<TechItem>();
             Update_Paths(paths);
         }
 
@@ -174,11 +250,7 @@ namespace Metal_Code
                 stream.Close();
 
                 if (TechItems.Count > 0)
-                {
-                    var item = TechItems.FirstOrDefault(s => s.Sizes is null || s.Sizes == "");
-                    IsAvailable = item is null;
                     MainWindow.M.StatusBegin("Заявка загружена", MainWindow.StatusMessageType.Success);
-                }
             }
             catch (Exception ex) { MessageBox.Show($"{ex.Message}\nФорма этой заявки не поддерживается функцией загрузки."); }
         }
@@ -364,38 +436,51 @@ namespace Metal_Code
                 techItem.NumberName = Regex.Replace(techItem.NumberName, @"[^\p{L}\p{Nd}]+$", "").Trim();
 
                 //определяем размеры
-                if (Path.GetExtension(path) == ".dxf")
+                if (string.Equals(Path.GetExtension(path), ".dxf", StringComparison.OrdinalIgnoreCase))
                 {
                     try
                     {
-                        var reader = new DxfReader(techItem.PathToModel);
-                        CadDocument dxf = reader.Read();
+                        var doc = DxfDocument.Load(path);
+                        var displayGeometry = DxfToWpfConverter.ConvertToPathGeometryAsIs(doc);
 
-                        (Rect, float, int) data = MainWindow.GetDrawingBounds(dxf);
+                        if (displayGeometry == null || displayGeometry.IsEmpty())
+                            throw new InvalidOperationException("DXF не содержит распознаваемых контуров.");
 
-                        techItem.Sizes = $"{Math.Ceiling(data.Item1.Width)}x{Math.Ceiling(data.Item1.Height)}";
-                        techItem.Width = (float)Math.Ceiling(data.Item1.Width);
-                        techItem.Height = (float)Math.Ceiling(data.Item1.Height);
-                        techItem.Way = data.Item2;
-                        techItem.Pinhole = data.Item3;
+                        var calculationGeometry = DxfToWpfConverter.ConvertToPathGeometryWithClosedContours(doc);
 
-                        //заполняем геометрию для отрисовки
-                        techItem.Geometries = MainWindow.GetGeometries(dxf, data.Item1, 60, 60);
+                        techItem.DisplayGeometry = displayGeometry;
+                        if (techItem.DisplayGeometry.CanFreeze)
+                            techItem.DisplayGeometry.Freeze();
+                        techItem.CalculationGeometry = calculationGeometry;
+
+                        TechItemCalculator.UpdateFromGeometry(techItem);
+
+                        //var reader = new DxfReader(techItem.PathToModel);
+                        //CadDocument dxf = reader.Read();
+
+                        //(Rect, float, int) data = MainWindow.GetDrawingBounds(dxf);
+
+                        //techItem.Sizes = $"{Math.Ceiling(data.Item1.Width)}x{Math.Ceiling(data.Item1.Height)}";
+                        //techItem.Width = (float)Math.Ceiling(data.Item1.Width);
+                        //techItem.Height = (float)Math.Ceiling(data.Item1.Height);
+                        //techItem.Way = data.Item2;
+                        //techItem.Pinhole = data.Item3;
+
+                        ////заполняем геометрию для отрисовки
+                        //techItem.Geometries = MainWindow.GetGeometries(dxf, data.Item1, 60, 60);
                     }
-                    catch { MessageBox.Show($"Не удалось прочитать dxf ({path}).\n" +
-                        $"Пересохраните файл в CAD-программе и попробуйте снова."); }
+                    catch
+                    {
+                        MessageBox.Show($"Не удалось прочитать dxf ({path}).\n" +
+                        $"Пересохраните файл в CAD-программе и попробуйте снова.");
+                    }
                 }
 
                 TechItems.Add(techItem);
             }
 
             if (TechItems.Count > 0)
-            {
-                var item = TechItems.FirstOrDefault(s => s.Sizes is null || s.Sizes == "");
-                IsAvailable = item is null;
-
                 MainWindow.M.StatusBegin("Файлы успешно проанализированы", MainWindow.StatusMessageType.Success);
-            }
         }
 
 
@@ -734,7 +819,7 @@ namespace Metal_Code
                             Height = item.Height,
                             Material = item.Material,
                             Destiny = item.Destiny,
-                            Geometries = item.Geometries,
+                            DisplayGeometry = item.DisplayGeometry,
                             Way = item.Way,
                             Pinhole = item.Pinhole,
                             Sizes = item.Sizes
@@ -776,7 +861,7 @@ namespace Metal_Code
 
                     if (packer is not null)
                     {
-                        float density = 7.8f;      //плотность материала по умолчанию
+                        float density = 7.85f;      //плотность материала по умолчанию
 
                         //устанавливаем "Лист металла" и заполняем эту заготовку
                         foreach (TypeDetail t in MainWindow.M.TypeDetails)
@@ -825,14 +910,14 @@ namespace Metal_Code
                                     {
                                         int count = (int)MainWindow.Parser(item.Count);
 
-                                        if (item.Geometries.Count > 0)
+                                        if (item.CalculationGeometry != null)
                                         {
                                             way += item.Way * count;
                                             pinholes += item.Pinhole * count;
                                         }
                                         else
                                         {
-                                            way += (item.Width + item.Height) * 2 * count;
+                                            way += (float)((item.Width + item.Height) * 2 * count);
                                             pinholes += 2 * count;
                                         }
 
@@ -841,8 +926,8 @@ namespace Metal_Code
                                             Metal = group.Key.Material.ToLower(),
                                             Destiny = type.S,
                                             Way = item.Way > 0 ? item.Way : (float)Math.Round((item.Width + item.Height) / 1000, 3),
-                                            Mass = (float)Math.Round(item.Width * item.Height * type.S * density / 1000000, 3),
-                                            Geometries = item.Geometries
+                                            DisplayGeometry = item.DisplayGeometry,
+                                            Mass = item.CalculationGeometry != null ? (float)Math.Round(TechItemCalculator.CalculateMass(item, density), 3) : (float)Math.Round(item.Width * item.Height * type.S * density / 1000000, 3)
                                         };
 
                                         //записываем полученные габариты и саму строку для их отображения в словарь свойств
@@ -1452,7 +1537,7 @@ namespace Metal_Code
                         double textX = x + (w - formattedText.Width) / 2;
                         double textY = y + (h - formattedText.Height) / 2;
 
-                        context.DrawText(formattedText, new System.Windows.Point(textX, textY));
+                        context.DrawText(formattedText, new Point(textX, textY));
                     }
                 }
             }

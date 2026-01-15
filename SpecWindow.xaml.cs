@@ -188,7 +188,7 @@ namespace Metal_Code
                                 }
 
                                 // Формируем итоговую строку
-                                center.Item().Text($"ИТОГО: {totalSum:N0} ({rubText}) рублей {kopValue} коп., в т.ч. НДС 20%").Bold();
+                                center.Item().Text($"ИТОГО: {totalSum:N0} ({rubText}) рублей {kopValue} коп., в т.ч. НДС 22%").Bold();
 
                                 center.Item().PaddingTop(15).Text("Срок поставки: " + EndDate.Text);
 
