@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization.Json;
@@ -28,8 +29,8 @@ namespace Metal_Code
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         public Product Product;
-        Detail selectedDetail;      //временно не используется
-        public Detail SelectedDetail
+        Detail? selectedDetail;      //временно не используется
+        public Detail? SelectedDetail
         {
             get { return selectedDetail; }
             set
@@ -40,8 +41,8 @@ namespace Metal_Code
         }
 
         // команда обновления общей стоимости
-        private RelayCommand updateCommand;
-        public RelayCommand UpdateCommand
+        private RelayCommand? updateCommand;
+        public RelayCommand? UpdateCommand
         {
             get
             {
@@ -53,8 +54,8 @@ namespace Metal_Code
         }
 
         // команда создания нового проекта
-        private RelayCommand newProjectCommand;
-        public RelayCommand NewProjectCommand
+        private RelayCommand? newProjectCommand;
+        public RelayCommand? NewProjectCommand
         {
             get
             {
@@ -72,8 +73,8 @@ namespace Metal_Code
         }
 
         // команда сохранения файла
-        private RelayCommand saveCommand;
-        public RelayCommand SaveCommand
+        private RelayCommand? saveCommand;
+        public RelayCommand? SaveCommand
         {
             get
             {
@@ -109,28 +110,24 @@ namespace Metal_Code
                               //формируем КП в формате excel и сохраняем расчет в базе данных
                               MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);
 
-                              string? originalFolderPath = Path.GetDirectoryName(dialogService.FilePaths[0]);
+                              string selectedFilePath = dialogService.FilePaths[0];
+                              string folderToRename = Path.GetDirectoryName(selectedFilePath)!; // папка с расчётом
+                              string parentDir = Path.GetDirectoryName(folderToRename)!;       // родитель (где будет новая папка)
+
                               string newFolderName = $"КП (от {DateTime.Now:dd.MM.yyyy HH-mm})";
+                              string destinationPath = Path.Combine(parentDir, newFolderName);
 
-                              if (originalFolderPath != null)
+                              try
                               {
-                                  string? parentDir = Path.GetDirectoryName(originalFolderPath);
-                                  if (parentDir != null)
-                                  {
-                                      string destinationPath = Path.Combine(parentDir, newFolderName);
-                                      try
-                                      {
-                                          Directory.Move(originalFolderPath, destinationPath);
-                                          string newFolderPath = Path.Combine(Path.GetDirectoryName(originalFolderPath), newFolderName);
-                                          string newFilePath = Path.Combine(newFolderPath, Path.GetFileName(dialogService.FilePaths[0]));
+                                  Directory.Move(folderToRename, destinationPath);
+                                  MainWindow.M.SaveOrRemoveOffer(true, destinationPath);
 
-                                          MainWindow.M.SaveOrRemoveOffer(true, newFilePath);
-                                      }
-                                      catch (Exception ex)
-                                      {
-                                          MessageBox.Show($"Не удалось переименовать папку:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                                      }
-                                  }
+                                  // 🔑 Сохраняем последний каталог
+                                  dialogService.LastUsedDirectory = destinationPath;
+                              }
+                              catch (Exception ex)
+                              {
+                                  MessageBox.Show($"Не удалось переименовать папку:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                               }
                           }
                       }
@@ -147,8 +144,8 @@ namespace Metal_Code
         }
 
         // команда открытия файла
-        private RelayCommand openCommand;
-        public RelayCommand OpenCommand
+        private RelayCommand? openCommand;
+        public RelayCommand? OpenCommand
         {
             get
             {
@@ -174,8 +171,8 @@ namespace Metal_Code
         }
 
         // команда загрузки расчета
-        private RelayCommand openOfferCommand;
-        public RelayCommand OpenOfferCommand
+        private RelayCommand? openOfferCommand;
+        public RelayCommand? OpenOfferCommand
         {
             get
             {
@@ -201,8 +198,8 @@ namespace Metal_Code
         }
                 
         // команда объединения расчетов в одно КП
-        private RelayCommand mergeOffersCommand;
-        public RelayCommand MergeOffersCommand
+        private RelayCommand? mergeOffersCommand;
+        public RelayCommand? MergeOffersCommand
         {
             get
             {
@@ -226,8 +223,8 @@ namespace Metal_Code
         }
 
         // команда загрузки раскладок и отчетов Excel общей кнопкой
-        private RelayCommand loadCommand;
-        public RelayCommand LoadCommand
+        private RelayCommand? loadCommand;
+        public RelayCommand? LoadCommand
         {
             get
             {
@@ -337,8 +334,8 @@ namespace Metal_Code
         }
 
         // команда загрузки раскладок Excel из блока работы
-        private RelayCommand loadExcelCommand;
-        public RelayCommand LoadExcelCommand
+        private RelayCommand? loadExcelCommand;
+        public RelayCommand? LoadExcelCommand
         {
             get
             {
@@ -375,8 +372,8 @@ namespace Metal_Code
         }
 
         // команда загрузки отчетов труб
-        private RelayCommand loadTubeCommand;
-        public RelayCommand LoadTubeCommand
+        private RelayCommand? loadTubeCommand;
+        public RelayCommand? LoadTubeCommand
         {
             get
             {
@@ -418,8 +415,8 @@ namespace Metal_Code
         }
 
         // команда добавления нового объекта
-        private RelayCommand addCommand;
-        public RelayCommand AddCommand
+        private RelayCommand? addCommand;
+        public RelayCommand? AddCommand
         {
             get
             {
@@ -433,8 +430,8 @@ namespace Metal_Code
         }
 
         // команда удаления объекта
-        private RelayCommand removeCommand;
-        public RelayCommand RemoveCommand
+        private RelayCommand? removeCommand;
+        public RelayCommand? RemoveCommand
         {
             get
             {
@@ -447,8 +444,8 @@ namespace Metal_Code
         }
 
         // команда удаления КП
-        private RelayCommand removeOfferCommand;
-        public RelayCommand RemoveOfferCommand
+        private RelayCommand? removeOfferCommand;
+        public RelayCommand? RemoveOfferCommand
         {
             get
             {
@@ -472,8 +469,8 @@ namespace Metal_Code
         }
 
         // команда копирования объекта
-        private RelayCommand doubleCommand;
-        public RelayCommand DoubleCommand
+        private RelayCommand? doubleCommand;
+        public RelayCommand? DoubleCommand
         {
             get
             {
@@ -518,21 +515,31 @@ namespace Metal_Code
 
     public interface IDialogService
     {
-        void ShowMessage(string message);   // показ сообщения
         string[]? FilePaths { get; set; }   // путь к выбранному файлу
+        string LastUsedDirectory { get; set; }  // путь к последней выбранной директории
+
+        void ShowMessage(string message);   // показ сообщения
         bool OpenFileDialog();  // открытие файла
         bool SaveFileDialog();  // сохранение файла
     }
 
     public class DefaultDialogService : IDialogService
     {
+        private string _lastUsedDirectory = AppDomain.CurrentDomain.BaseDirectory;
+        public string LastUsedDirectory
+        {
+            get => _lastUsedDirectory;
+            set => _lastUsedDirectory = value?.Trim() is { Length: > 0 } ? Path.GetFullPath(value) : null;
+        }
+
         public string[]? FilePaths { get; set; }
 
         public bool OpenFileDialog()
         {
             OpenFileDialog openFileDialog = new()
             {
-                Filter = "Metal-Code (*.mcm)|*.mcm|All files (*.*)|*.*"
+                Filter = "Metal-Code (*.mcm)|*.mcm",
+                InitialDirectory = LastUsedDirectory
             };
             if (openFileDialog.ShowDialog() == true)
             {
@@ -547,7 +554,8 @@ namespace Metal_Code
             SaveFileDialog saveFileDialog = new()
             {
                 Filter = "Excel-File (*.xlsx)|*.xlsx|All files (*.*)|*.*",
-                FileName = $"КП {MainWindow.M.Order.Text} от {DateTime.Now:d}"
+                FileName = $"КП {MainWindow.M.Order.Text} от {DateTime.Now:d}",
+                InitialDirectory = LastUsedDirectory
             };
             if (saveFileDialog.ShowDialog() == true)
             {

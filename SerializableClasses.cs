@@ -149,6 +149,23 @@ namespace Metal_Code
         [OptionalField]
         public float FixedPrice = 0;
 
+        [OptionalField]
+        private bool _isHiddenInOffer;
+
+        [Browsable(false)]
+        public bool IsHiddenInOffer
+        {
+            get => _isHiddenInOffer;
+            set
+            {
+                if (_isHiddenInOffer != value)
+                {
+                    _isHiddenInOffer = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public Dictionary<int, List<string>> PropsDict = new();
 
         [OptionalField]

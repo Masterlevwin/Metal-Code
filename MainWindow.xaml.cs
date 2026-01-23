@@ -4,6 +4,7 @@ using ACadSharp.IO;
 using ACadSharp.Tables;
 using CSMath;
 using HandyControl.Data;
+using Metal_Code.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using OfficeOpenXml;
@@ -130,7 +131,7 @@ namespace Metal_Code
                 OnPropertyChanged(nameof(IsLocal));
             }
         }
-        
+
         private bool isRequest = false;
         public bool IsRequest
         {
@@ -139,7 +140,7 @@ namespace Metal_Code
             {
                 isRequest = value;
                 DetailsBox.Visibility = isRequest ? Visibility.Collapsed : Visibility.Visible;
-                
+
                 OnPropertyChanged(nameof(IsRequest));
             }
         }
@@ -403,7 +404,7 @@ namespace Metal_Code
             else
             {
                 if (Comment.Text.Contains(" Предварительное КП"))
-                    Comment.Text = Comment.Text.Replace(" Предварительное КП","");
+                    Comment.Text = Comment.Text.Replace(" Предварительное КП", "");
                 MenuMain.Background = Brushes.White;
             }
         }
@@ -557,7 +558,7 @@ namespace Metal_Code
             InitializeDict();
 
             using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
-            
+
             AddSpecTemplateColumnsIfMissing(db);
 
             db.Managers.Load();
@@ -586,7 +587,7 @@ namespace Metal_Code
 
             ShowUpdateWindow();
         }
-        
+
         public void ShowUpdateWindow()          // метод добавления и загрузки обновлений
         {
             // Создаём контекст
@@ -598,10 +599,10 @@ namespace Metal_Code
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.6.7.9",
-                releaseDate: new DateTime(2025, 12, 18),
-                description: "Переработан интерфейс окна управления сборками.",
-                screenshotPath: "/Updates/v2.6.7.9_2025-12-18.png"
+                version: "v2.6.8.5",
+                releaseDate: new DateTime(2026, 01, 19),
+                description: "Добавлена поддержка скрытия деталей в КП.",
+                screenshotPath: "/Updates/v2.6.8.5_2026-01-19.png"
             );
 
             // Получаем новые обновления
@@ -908,6 +909,10 @@ namespace Metal_Code
 
         //-------------Настройка блока отчетов-----------//
         readonly string[] Months = { "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь" };
+        
+        // Норма рабочих часов по месяцам
+        private readonly int[] WorkingHours = { 136, 152, 168, 168, 144, 152, 168, 168, 168, 168, 160, 168 };
+
         private void ReportChanged(object sender, SelectionChangedEventArgs e)
         {
             if (TargetManager != CurrentManager) return;
@@ -1153,6 +1158,7 @@ namespace Metal_Code
                     item.Destiny = part.Destiny;
                     item.Description = part.Description;
                     item.Accuracy = part.Accuracy;
+                    item.IsHiddenInOffer = part.IsHiddenInOffer;
 
                     items.Add(item);
                 }
@@ -1811,7 +1817,7 @@ namespace Metal_Code
             {
                 if (offer.Invoice is not null && offer.Invoice.Contains(" (без бонуса)"))
                 {
-                    btn.Content = new Image() {Source = new BitmapImage(new Uri($"Images/notbonus.png", UriKind.Relative)) };
+                    btn.Content = new Image() { Source = new BitmapImage(new Uri($"Images/notbonus.png", UriKind.Relative)) };
                     btn.ToolTip = "Добавить бонус";
                     btn.Click += RemoveOfferFromBonus;
                 }
@@ -2424,7 +2430,7 @@ namespace Metal_Code
                     row++;
 
                     for (int i = 0; i < LooseParts.Count; i++)
-                    {                        
+                    {
                         LooseParts[i].Price = (float)Math.Ceiling(LooseParts[i].Price * Ratio * ((100 + BonusRatio) / 100));
                         LooseParts[i].Price = LooseParts[i].Price < LooseParts[i].FixedPrice ? LooseParts[i].FixedPrice : LooseParts[i].Price;
                         LooseParts[i].Total = LooseParts[i].Count * LooseParts[i].Price;
@@ -2437,13 +2443,9 @@ namespace Metal_Code
             //иначе если есть нарезанные детали, вычисляем их общую стоимость, и оформляем их в КП
             else if (Parts.Count > 0)
             {
-                for (int i = 0; i < Parts.Count; i++)
-                {
-                    Parts[i].Price = (float)Math.Ceiling(Parts[i].Price * Ratio * ((100 + BonusRatio) / 100));
-                    Parts[i].Price = Parts[i].Price < Parts[i].FixedPrice ? Parts[i].FixedPrice : Parts[i].Price;
-                    Parts[i].Total = Parts[i].Count * Parts[i].Price;
-                }
-                DataTable partTable = ToDataTable(Parts);
+                var visiblePartsForExport = OfferCalculator.PrepareVisiblePartsForOffer(Parts, (float)Ratio, BonusRatio);
+
+                DataTable partTable = ToDataTable(new ObservableCollection<Part>(visiblePartsForExport));
                 worksheet.Cells[row, 1].LoadFromDataTable(partTable, false);
                 row += partTable.Rows.Count;
             }
@@ -2528,6 +2530,7 @@ namespace Metal_Code
             worksheet.Column(9).Hidden = true;
             worksheet.Column(10).Hidden = true;
             worksheet.Column(11).Hidden = true;
+            worksheet.Column(12).Hidden = true;
 
             if (CheckConstruct.IsChecked == null)       //если требуется указать конструкторские работы отдельной строкой
             {
@@ -2587,7 +2590,7 @@ namespace Metal_Code
             worksheet.Cells[row + 1, 2].Value = DetailControls[0].TypeDetailControls[0].HasMetal ? "Исполнителя" : "Заказчика";
             worksheet.Cells[row + 1, 2].Style.Font.Bold = true;
             worksheet.Cells[row + 1, 2, row + 1, 3].Merge = true;
-            
+
             if (!DetailControls[0].TypeDetailControls[0].HasMetal)
             {
                 worksheet.Cells[row + 1, 4].Value = "Внимание: остатки давальческого материала забираются вместе с заказом, иначе эти остатки утилизируются!";
@@ -2618,7 +2621,7 @@ namespace Metal_Code
 
             worksheet.Cells[row + 5, 1].Value = "Точность:";
             worksheet.Cells[row + 5, 2].Value = "H14/h14 +-IT 14/2";
-            
+
             //в случае с нарезанными деталями, оформляем расшифровку работ
             if (Parts.Count > 0)
             {
@@ -2671,10 +2674,24 @@ namespace Metal_Code
             string? descriptionWorks = string.Empty;
             if (worksheet.Cells[row + 6, 2].Value != null) descriptionWorks = worksheet.Cells[row + 6, 2].Value.ToString();
 
+            // === Обновлённое примечание с юридической оговоркой ===
+            string disclaimer = "Изделия изготавливаются строго по предоставленным Заказчиком чертежам. " +
+                               "Исполнитель не несёт ответственности за корректность конструкторской документации.";
+
+            var userComment = Comment.Text?.Trim();
+            string finalNote = string.IsNullOrEmpty(userComment)
+                ? disclaimer
+                : $"{disclaimer}\n{userComment}";
+
             worksheet.Cells[row + 7, 1].Value = "Примечание:";
-            worksheet.Cells[row + 7, 2].Value = Comment.Text;
-            worksheet.Cells[row + 7, 2].Style.Font.Bold = true;
+            worksheet.Cells[row + 7, 1].Style.Font.Bold = true;
+            worksheet.Cells[row + 7, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+            worksheet.Cells[row + 7, 2].Value = finalNote;
+            worksheet.Row(row + 7).Height = 45;
             worksheet.Cells[row + 7, 2, row + 7, 8].Merge = true;
+            worksheet.Cells[row + 7, 2].Style.WrapText = true;
+            worksheet.Cells[row + 7, 2].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+            // ======================================================
 
             worksheet.Cells[row + 8, 1].Value = "Ваш менеджер:";
             worksheet.Cells[row + 8, 2].Value = ManagerDrop.Text;
@@ -3216,7 +3233,7 @@ namespace Metal_Code
                             statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + rowTask, 12].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
                             if (HasAssembly) statsheet.Cells[i + rowTask, 12].Value += " (ЭКСПРЕСС)";
                             if (type.Comment != null && type.Comment != "") statsheet.Cells[i + rowTask, 12].Value += " (комментарий)";
-                            
+
                             //"Лазер (время работ)"                                 //"Время лазерных работ"
                             statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + rowTask, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
 
@@ -3530,7 +3547,7 @@ namespace Metal_Code
             scoresheet.Cells["E1"].Value = "Ед. изм.";
 
             materials.Copy(scoresheet.Cells["G1"]);     //копируем стоимость материала из КП в файл для счета
-            
+
             for (int i = 0; i < extable.Rows; i++)
             {
                 if (float.TryParse($"{scoresheet.Cells[i + 2, 7].Value}", out float m)        //кусочек цены материала за 1 шт
@@ -3575,7 +3592,7 @@ namespace Metal_Code
             if (directory != null)
                 foreach (var file in Directory.GetFiles(directory))
                     if (file.Contains(Path.GetDirectoryName(_path) + template)) File.Delete(file);
- 
+
             workbook.SaveAs(Path.GetDirectoryName(_path) + template + $"{Result}" + ".xlsx");
         }
 
@@ -3702,7 +3719,7 @@ namespace Metal_Code
                     workGroups[opName].Add((item.Title, item.Count, item.ImageBytes, item.Dimensions));
                 }
             }
-            
+
             bool useColor1 = true;
 
             // Проходим по каждой операции
@@ -3744,7 +3761,7 @@ namespace Metal_Code
 
                     additionalRow++;
                 }
-                    
+
                 useColor1 = !useColor1;
 
                 // === Жирная нижняя граница под последней строкой группы ===
@@ -3894,7 +3911,7 @@ namespace Metal_Code
                 {
                     complectsheet.Cells[temp + 3, 1].Value = temp;                 //номер по порядку
                     complectsheet.Cells[temp + 3, 3].Value = basket.Name;          //наименование изделия
-                    
+
                     complectsheet.Cells[temp + 3, 5].Value = basket.Quantity;      //количество изделий
                     complectsheet.Cells[temp + 3, 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
                     complectsheet.Cells[temp + 3, 5].Style.Font.Bold = true;
@@ -4299,7 +4316,7 @@ namespace Metal_Code
                         {
                             //"Труборез"
                             registrysheet.Cells[i + rowTask, 12].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
-                            
+
                             //добавляем тег срочности и коментария
                             if (HasAssembly) registrysheet.Cells[i + rowTask, 12].Value += " (ЭКСПРЕСС)";
                             if (type.Comment != null && type.Comment != "") registrysheet.Cells[i + rowTask, 12].Value += " (комментарий)";
@@ -4315,7 +4332,7 @@ namespace Metal_Code
                             //добавляем тег срочности и коментария
                             if (HasAssembly) registrysheet.Cells[i + rowTask, 12].Value += " (ЭКСПРЕСС)";
                             if (type.Comment != null && type.Comment != "") registrysheet.Cells[i + rowTask, 12].Value += " (комментарий)";
-                            
+
                             //"Время лазерных работ"
                             registrysheet.Cells[i + rowTask, 14].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
                         }
@@ -4327,12 +4344,12 @@ namespace Metal_Code
                         else if (w.workType is MillingTotalControl _milling)
                         {
                             //"Время фрезерных работ"
-                            registrysheet.Cells[i + rowTask, 20].Value = _milling.TotalTime;     
+                            registrysheet.Cells[i + rowTask, 20].Value = _milling.TotalTime;
                         }
                         else if (w.WorkDrop.SelectedItem is Work work)
                         {
                             //"Нанесение покрытий"
-                            if (w.workType is PaintControl _paint)                                      
+                            if (w.workType is PaintControl _paint)
                                 registrysheet.Cells[i + rowTask, 16].Value += $"{_paint.Ral} {_paint.TypeDrop.SelectedItem} ";
                             //"Производство"
                             else registrysheet.Cells[i + rowTask, 15].Value += $"{work.Name} ";
@@ -4481,7 +4498,7 @@ namespace Metal_Code
                         else if (w.workType is PipeControl pipe)
                         {
                             description = $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
-                            
+
                             //добавляем тег срочности и коментария
                             if (HasAssembly) description += " (ЭКСПРЕСС)";
                             if (type.Comment != null && type.Comment != "") description += " (комментарий)";
@@ -4946,32 +4963,59 @@ namespace Metal_Code
         {
             try
             {
-                SaveFileDialog saveFileDialog = new() { FileName = $"Отчет за {ReportDrop.SelectedItem}" };
-
-                if (saveFileDialog.ShowDialog() == true && saveFileDialog.FileName != null)
+                var selectedMonth = ReportDrop.SelectedItem as string;
+                if (string.IsNullOrEmpty(selectedMonth))
                 {
-                    bool _report = ManagerReport(saveFileDialog.FileName);
-                    if (_report) StatusBegin($"Создан отчёт менеджера за {ReportDrop.SelectedItem}");
-                    else StatusBegin($"Нет расчетов за выбранный период");
+                    MessageBox.Show("Выберите месяц");
+                    return;
+                }
+
+                // Находим индекс месяца (0 = январь, 11 = декабрь)
+                int monthIndex = Array.IndexOf(Months, selectedMonth.ToLower());
+                if (monthIndex == -1)
+                {
+                    MessageBox.Show($"Неизвестный месяц: {selectedMonth}");
+                    return;
+                }
+
+                // Получаем норму часов
+                int normHours = WorkingHours[monthIndex];
+
+                SaveFileDialog saveFileDialog = new() { FileName = $"Отчет за {selectedMonth}" };
+
+                if (saveFileDialog.ShowDialog() == true && !string.IsNullOrEmpty(saveFileDialog.FileName))
+                {
+                    // Передаём normHours в ManagerReport
+                    bool _report = ManagerReport(saveFileDialog.FileName, normHours);
+                    if (_report)
+                        StatusBegin($"Создан отчёт менеджера за {selectedMonth}");
+                    else
+                        StatusBegin($"Нет расчётов за выбранный период");
                 }
             }
-            catch (Exception ex) { MessageBox.Show(ex.Message); }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
 
         private const string BonusRatioPattern = @"""BonusRatio""\s*:\s*([\d.]+)";
         private const string NoBonusMarker = "без бонуса";
 
-        private const decimal VatRateServices = 1.30m;     // НДС 30% для услуг
-        private const decimal VatRateMaterial = 1.15m;     // НДС 15% для материалов
-        private const decimal ProfitMargin = 1.20m;        // Маржа 20%
+        private const decimal VatRateServices = 1.30m;      // Маржа 30% для услуг
+        private const decimal VatRateMaterial = 1.15m;      // Маржа 15% для материалов
+        private const decimal ProfitMargin = 1.22m;         // НДС 22% для ООО
+        private const decimal ProfitMarginForIp = 1.17m;    // НДС 17% для ИП
+
         private const decimal BonusOooThreshold = 200_000m;
         private const decimal BonusOooRate = 0.15m;
-        private const decimal BonusIpFactor = 30m;         // Бонус ИП = сумма / 30
-
-        private const decimal BaseSalaryOoo = 50_000m;
-        private const decimal BaseSalaryIp = 30_000m;
+        private const decimal BonusIpFactor = 5m * ProfitMarginForIp / (ProfitMarginForIp - 1m);
 
         private ReportResult? _currentReport;
+
+        public decimal NormWorkingHours { get; set; } = 180m;
+        public decimal ActualWorkingHours { get; set; } = 180m;
+
 
         private void ReportView(object sender, RoutedEventArgs e) { ReportView(); }
         private void ReportView()
@@ -5109,7 +5153,7 @@ namespace Metal_Code
                 : 0;
 
             // === Бонус ИП ===
-            // Используем: (общая сумма расчетов ИП - "без бонуса") / 30
+            // Используем: (общая сумма расчетов ИП - "без бонуса") / расчетное значение от НДС
             decimal ipBaseForBonus = result.TotalAmountIp - result.NoBonusAmount;
             result.BonusIp = Math.Ceiling(ipBaseForBonus / BonusIpFactor);
 
@@ -5121,7 +5165,7 @@ namespace Metal_Code
             return result;
         }
 
-        public bool ManagerReport(string path)
+        public bool ManagerReport(string path, int normHours)
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
@@ -5135,6 +5179,13 @@ namespace Metal_Code
             {
                 report = BuildReport(ReportOffers);
             }
+
+            string VatRateServicesStr = VatRateServices.ToString(CultureInfo.InvariantCulture);
+            string VatRateMaterialStr = VatRateMaterial.ToString(CultureInfo.InvariantCulture);
+            string ProfitMarginStr = ProfitMargin.ToString(CultureInfo.InvariantCulture);
+            string ProfitMarginForIpStr = ProfitMarginForIp.ToString(CultureInfo.InvariantCulture);
+            string BonusOooThresholdStr = BonusOooThreshold.ToString(CultureInfo.InvariantCulture);
+            string BonusOooRateStr = BonusOooRate.ToString(CultureInfo.InvariantCulture);
 
             // --- Создание Excel ---
             using var workbook = new ExcelPackage();
@@ -5205,8 +5256,8 @@ namespace Metal_Code
                 worksheet.Cells[row, 14].Formula = "=SUM(material1)";
 
                 // Прибыль по формуле
-                worksheet.Cells[row, 15].Formula = "=(SUM(totalS1)-SUM(totalS1)/1.3)/1.2";
-                worksheet.Cells[row, 16].Formula = "=(SUM(totalM1)-SUM(totalM1)/1.15)/1.2";
+                worksheet.Cells[row, 15].Formula = $"=(SUM(totalS1)-SUM(totalS1)/{VatRateServicesStr})/{ProfitMarginStr}";
+                worksheet.Cells[row, 16].Formula = $"=(SUM(totalM1)-SUM(totalM1)/{VatRateMaterialStr})/{ProfitMarginStr}";
 
                 // Стили
                 worksheet.Cells[oooStart, 1, row, 10].Style.Border.BorderAround(ExcelBorderStyle.Medium);
@@ -5274,8 +5325,8 @@ namespace Metal_Code
                 worksheet.Cells[row, 14].Formula = "=SUM(material2)";
                 worksheet.Cells[row, 17].Formula = "=SUM(notbonus)";
 
-                worksheet.Cells[row, 15].Formula = "=(SUM(totalS2)-SUM(totalS2)/1.3)/1.2";
-                worksheet.Cells[row, 16].Formula = "=(SUM(totalM2)-SUM(totalM2)/1.15)/1.2";
+                worksheet.Cells[row, 15].Formula = $"=(SUM(totalS2)-SUM(totalS2)/{VatRateServicesStr})/{ProfitMarginStr}";
+                worksheet.Cells[row, 16].Formula = $"=(SUM(totalM2)-SUM(totalM2)/{VatRateMaterialStr})/{ProfitMarginStr}";
 
                 worksheet.Cells[ipStart, 1, row, 10].Style.Border.BorderAround(ExcelBorderStyle.Medium);
                 worksheet.Cells[row, 5, row, 10].Style.Font.Bold = true;
@@ -5288,13 +5339,13 @@ namespace Metal_Code
             row++;
             worksheet.Cells[row, 1].Value = "Прибыль месяца:";
             worksheet.Cells[row, 2].Formula =
-                "=ROUND(" +
-                    "(SUM(services1)-SUM(services1)/1.3)/1.2" +
-                    "+(SUM(material1)-SUM(material1)/1.15)/1.2" +
-                    "+(SUM(services2)-SUM(services2)/1.3)/1.2" +
-                    "+(SUM(material2)-SUM(material2)/1.15)/1.2" +
-                    "+SUM(bonus1)+SUM(bonus2)" +
-                ", 0)";
+                $"=ROUND(" +
+                $"(SUM(services1)-SUM(services1)/{VatRateServicesStr})/{ProfitMarginStr}" +
+                $"+(SUM(material1)-SUM(material1)/{VatRateMaterialStr})/{ProfitMarginStr}" +
+                $"+(SUM(services2)-SUM(services2)/{VatRateServicesStr})/{ProfitMarginStr}" +
+                $"+(SUM(material2)-SUM(material2)/{VatRateMaterialStr})/{ProfitMarginStr}" +
+                $"+SUM(bonus1)+SUM(bonus2)" +
+                $", 0)";
             //worksheet.Cells[row, 2].Value = report.Plan; // ← это cleanProfit + бонусы
             worksheet.Cells[row, 2].Style.Font.Bold = true;
 
@@ -5308,50 +5359,77 @@ namespace Metal_Code
             // Чистая прибыль (без бонусов в базе) — ОСНОВНАЯ
             worksheet.Cells[row, 11].Value = "Чист:";
             worksheet.Cells[row, 12].Formula =
-                "=ROUND(" +
-                    "(SUM(services1)-SUM(services1)/1.3)/1.2" +
-                    "+(SUM(material1)-SUM(material1)/1.15)/1.2" +
-                    "+(SUM(services2)-SUM(services2)/1.3)/1.2" +
-                    "+(SUM(material2)-SUM(material2)/1.15)/1.2" +
+                $"=ROUND(" +
+                    $"(SUM(services1)-SUM(services1)/{VatRateServicesStr})/{ProfitMarginStr}" +
+                    $"+(SUM(material1)-SUM(material1)/{VatRateMaterialStr})/{ProfitMarginStr}" +
+                    $"+(SUM(services2)-SUM(services2)/{VatRateServicesStr})/{ProfitMarginStr}" +
+                    $"+(SUM(material2)-SUM(material2)/{VatRateMaterialStr})/{ProfitMarginStr}" +
                 ", 0)";
             //worksheet.Cells[row, 12].Value = Math.Ceiling(report.CleanProfit);
 
             // Устаревший расчёт (для сравнения/проверки)
             worksheet.Cells[row, 13].Value = "Устар:";
             worksheet.Cells[row, 14].Formula =
-                "=ROUND(" +
-                    "(SUM(totalS1)-SUM(totalS1)/1.3)/1.2" +
-                    "+(SUM(totalS2)-SUM(totalS2)/1.3)/1.2" +
-                    "+(SUM(totalM1)-SUM(totalM1)/1.15)/1.2" +
-                    "+(SUM(totalM2)-SUM(totalM2)/1.15)/1.2" +
+                $"=ROUND(" +
+                    $"(SUM(totalS1)-SUM(totalS1)/{VatRateServicesStr})/{ProfitMarginStr}" +
+                    $"+(SUM(totalS2)-SUM(totalS2)/{VatRateServicesStr})/{ProfitMarginStr}" +
+                    $"+(SUM(totalM1)-SUM(totalM1)/{VatRateMaterialStr})/{ProfitMarginStr}" +
+                    $"+(SUM(totalM2)-SUM(totalM2)/{VatRateMaterialStr})/{ProfitMarginStr}" +
                 ", 0)";
 
             worksheet.Cells[row, 1, row, 14].Style.Fill.SetBackground(System.Drawing.Color.LightPink);
+            int totalRow = row;
             row += 3;
 
-            // === Расчёт зарплаты (с фиксированными значениями) ===
+
+            // === Учёт рабочего времени ===
+            worksheet.Cells[row, 1].Value = "Норма часов:";
+            worksheet.Cells[row, 2].Value = "Факт (ч):";
+            worksheet.Cells[row, 1, row, 2].Style.Fill.SetBackground(System.Drawing.Color.LightGray);
+            row++;
+
+            worksheet.Cells[row, 1].Value = worksheet.Cells[row, 2].Value = normHours;
+            int normRow = row;
+            row++;
+
+            worksheet.Cells[row, 1].Value = "Стоимость часа:";
+            worksheet.Cells[row, 2].Value = "Вычет из оклада:";
+            worksheet.Cells[row, 1, row, 2].Style.Fill.SetBackground(System.Drawing.Color.LightGray);
+            row++;
+
+            worksheet.Cells[row, 1].Formula = $"=IF(A{normRow}>0, 50000 / A{normRow}, 0)";
+            worksheet.Cells[row, 2].Formula = $"=MAX(0, A{normRow} - B{normRow}) * A{normRow + 2}";
+            int adjustedBaseRow = row;
+
+            worksheet.Cells[normRow - 1, 1, row, 2].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+            worksheet.Cells[normRow - 1, 1, row, 2].Style.Numberformat.Format = "0";
+            row += 2;
+
+
+            // === Расчёт зарплаты ===
             int salaryRow = row;
 
             worksheet.Cells[salaryRow, 1].Value = "Доп бонус за ИП и ПК:";
-            worksheet.Cells[salaryRow, 2].Formula = "=(SUM(total2)-SUM(notbonus))/30";
+            worksheet.Cells[salaryRow, 2].Formula =
+                $"=(SUM(total2)-SUM(notbonus)) / (5 * {ProfitMarginForIpStr} / ({ProfitMarginForIpStr} - 1))";
             worksheet.Cells[salaryRow, 2].Style.Numberformat.Format = "0";
             //worksheet.Cells[salaryRow, 2].Value = report.BonusIp;
             worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightBlue);
             salaryRow++;
 
             worksheet.Cells[salaryRow, 1].Value = "Оклад:";
-            worksheet.Cells[salaryRow, 2].Value = 30000; // всегда 30 000
+            worksheet.Cells[salaryRow, 2].Formula = $"=ROUND(MAX(0, 30000 - B{adjustedBaseRow}), 0)";
             worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightBlue);
             salaryRow++;
 
             worksheet.Cells[salaryRow, 1].Value = "Премия за план:";
-            worksheet.Cells[salaryRow, 2].Formula = $"=IF(B{row - 3}>=200000, 20000, 0)";
+            worksheet.Cells[salaryRow, 2].Formula = $"=IF(B{totalRow}>={BonusOooThresholdStr}, 20000, 0)";
             //worksheet.Cells[salaryRow, 2].Value = report.Plan >= BonusOooThreshold ? 20000 : 0; // 20 000, если план выполнен
             worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightBlue);
             salaryRow++;
 
             worksheet.Cells[salaryRow, 1].Value = "%:";
-            worksheet.Cells[salaryRow, 2].Formula = $"=IF(B{row - 3}>=200000, ROUND((B{row - 3}-200000)*0.15, 0), 0)";
+            worksheet.Cells[salaryRow, 2].Formula = $"=IF(B{totalRow}>={BonusOooThresholdStr}, ROUND((B{totalRow}-{BonusOooThresholdStr})*{BonusOooRateStr}, 0), 0)";
             //worksheet.Cells[salaryRow, 2].Value = report.BonusOoo; // это (Plan - 200000) * 0.15, если Plan >= 200000
             worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightBlue);
             salaryRow++;
@@ -6392,7 +6470,7 @@ namespace Metal_Code
                 return;
             }
             AssemblyWindow.A.CurrentParts.Clear();
-            foreach (Part part in Parts) AssemblyWindow.A.CurrentParts.Add(part);
+            foreach (Part part in Parts.OrderBy(p => p.Title)) AssemblyWindow.A.CurrentParts.Add(part);
             AssemblyWindow.A.Show();
         }
 
@@ -6632,8 +6710,13 @@ namespace Metal_Code
                     invoiceSuffix = SanitizePart(invoiceSuffix);
                     orderPart = SanitizePart(orderPart);
 
-                    // Формируем новое имя: "40762 МПС сч№20 1132"
-                    string newKpFolderName = $"{originalName} {invoiceSuffix} {orderPart}".Trim();
+                    // === Условное выравнивание ===
+                    const int ALIGN_WIDTH = 30;
+                    string baseNamePart = originalName.Length <= ALIGN_WIDTH
+                        ? originalName.PadRight(ALIGN_WIDTH)
+                        : originalName;
+
+                    string newKpFolderName = $"{baseNamePart} {invoiceSuffix} {orderPart}".TrimEnd();
 
                     // Избегаем повторного переименования и конфликтов
                     if (originalName != newKpFolderName)

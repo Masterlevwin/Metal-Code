@@ -1,4 +1,5 @@
-﻿using QuestPDF.Fluent;
+﻿using Metal_Code.Utils;
+using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System;
@@ -107,9 +108,11 @@ namespace Metal_Code
                                 int row = MainWindow.M.Parts.Count;     //счетчик деталей и покупных изделий
 
                                 if (MainWindow.M.Parts.Count > 0)
-                                    for (int i = 0; i < MainWindow.M.Parts.Count; i++)
+                                {
+                                    var visiblePartsForExport = OfferCalculator.PrepareVisiblePartsForOffer(MainWindow.M.Parts, (float)MainWindow.M.Ratio, MainWindow.M.BonusRatio);
+                                    for (int i = 0; i < visiblePartsForExport.Count; i++)
                                     {
-                                        var part = MainWindow.M.Parts[i];
+                                        var part = visiblePartsForExport[i];
                                         totalSum += part.Total;
 
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((i + 1).ToString());
@@ -117,6 +120,7 @@ namespace Metal_Code
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Count.ToString());
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Total.ToString("N2"));
                                     }
+                                }
 
                                 ObservableCollection<Detail> details = new(MainWindow.M.ProductModel.Product.Details.Where(d => !d.IsComplect));
                                 if (details.Count > 0)
@@ -176,7 +180,7 @@ namespace Metal_Code
 
                                 // Извлекаем часть до "рублей"
                                 int rubIndex = totalLine.IndexOf("рублей");
-                                string rubText = rubIndex > 0 ? totalLine.Substring(0, rubIndex).Trim() : totalLine;
+                                string rubText = rubIndex > 0 ? totalLine[..rubIndex].Trim() : totalLine;
 
                                 // Извлекаем копейки
                                 int kopStart = totalLine.IndexOf("копеек");

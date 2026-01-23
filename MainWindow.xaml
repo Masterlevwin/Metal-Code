@@ -676,10 +676,11 @@
                                         RowDetailsVisibilityMode="Collapsed" FrozenColumnCount="1"
                                         Visibility="Hidden" BorderBrush="#FF7D00FF">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="Наименование" Binding="{Binding Title}" Width="280"/>
+                                                <DataGridTextColumn Header="Наименование" Binding="{Binding Title}" Width="200"/>
                                                 <DataGridTextColumn Header="Кол-во" Binding="{Binding Count}"/>
                                                 <DataGridTextColumn Header="Цена за шт" Binding="{Binding Price, Converter={StaticResource CostConverter}}"/>
                                                 <DataGridTextColumn Header="Стоимость" Binding="{Binding Total, Converter={StaticResource CostConverter}}"/>
+                                                <DataGridCheckBoxColumn Header="Скрыта" Binding="{Binding IsHiddenInOffer}"/>
                                                 <DataGridTemplateColumn Header="Ещё" CanUserResize="False">
                                                     <DataGridTemplateColumn.CellTemplate>
                                                         <DataTemplate>

@@ -1,4 +1,5 @@
-﻿using QuestPDF.Fluent;
+﻿using Metal_Code.Utils;
+using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System;
@@ -160,9 +161,11 @@ namespace Metal_Code
                             }
                             // Иначе если есть нарезанные детали, вычисляем их общую стоимость, и оформляем их в КП
                             else if (MainWindow.M.Parts.Count > 0)
-                                for (int i = 0; i < MainWindow.M.Parts.Count; i++)
+                            {
+                                var visiblePartsForExport = OfferCalculator.PrepareVisiblePartsForOffer(MainWindow.M.Parts, (float)MainWindow.M.Ratio, MainWindow.M.BonusRatio);
+                                for (int i = 0; i < visiblePartsForExport.Count; i++)
                                 {
-                                    var part = MainWindow.M.Parts[i];
+                                    var part = visiblePartsForExport[i];
                                     totalSum += part.Total;
 
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Metal);
@@ -176,6 +179,7 @@ namespace Metal_Code
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Total.ToString("N2"));
                                     row++;
                                 }
+                            }
 
                             ObservableCollection<Detail> details = new(MainWindow.M.ProductModel.Product.Details.Where(d => !d.IsComplect));
                             if (details.Count > 0)
@@ -260,7 +264,13 @@ namespace Metal_Code
 
                                 left.Item().PaddingVertical(5).Text($"Расшифровка работ: {descriptionWorks}");
 
-                                left.Item().PaddingVertical(5).Text($"Примечание: {MainWindow.M.Comment.Text}").Bold();
+                                string disclaimer = "Изделия изготавливаются строго по предоставленным Заказчиком чертежам. " +
+                                                    "Исполнитель не несёт ответственности за корректность конструкторской документации.";
+                                var userComment = MainWindow.M.Comment.Text?.Trim();
+                                string finalNote = string.IsNullOrEmpty(userComment)
+                                    ? disclaimer
+                                    : $"{disclaimer}\n\n{userComment}";
+                                left.Item().PaddingVertical(5).Text($"Примечание: {finalNote}").Bold();
 
                                 left.Item().PaddingVertical(5).Text($"Ваш менеджер: {MainWindow.M.ManagerDrop.Text}");
 

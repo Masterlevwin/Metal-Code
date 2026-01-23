@@ -3,21 +3,42 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:local="clr-namespace:Metal_Code"
+             xmlns:local="clr-namespace:Metal_Code"       
+             xmlns:converters="clr-namespace:Metal_Code.Converters"
              mc:Ignorable="d" Loaded="SetProperties" Margin="3">
     
     <UserControl.Resources>
         <local:CostConverter x:Key="CostConverter"/>
+        <converters:BoolToEyeIconConverter x:Key="BoolToEyeIconConverter"/>
     </UserControl.Resources>
 
     <Border BorderBrush="Gray" CornerRadius="6" BorderThickness="1">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsHiddenInOffer}" Value="True">
+                        <!-- Наложение полупрозрачного серого фона поверх темы -->
+                        <Setter Property="Background" Value="#40AAAAAA"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+
         <StackPanel Margin="3">
 
             <StackPanel Orientation="Horizontal"  Margin="3" HorizontalAlignment="Center">
-                <TextBox x:Name="PricePart" Text="{Binding Price, Converter={StaticResource CostConverter}}" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" BorderThickness="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                <TextBox x:Name="PricePart" Text="{Binding Price, Converter={StaticResource CostConverter}}" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" BorderThickness="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Width="60"/>
                 <Button Margin="5,0,0,0" Click="SetFixedPrice" BorderThickness="0" Padding="0" Width="16" Height="16">
                     <Image Source="/Images/fixed.png" MouseEnter="ViewPopupFixedPrice"/>
                 </Button>
+                <ToggleButton Margin="5,0,0,0" Width="16" Height="16" Padding="0"
+                              Background="Transparent" BorderBrush="Transparent"
+                              ToolTip="Скрыть / Показать деталь в КП"
+                              IsChecked="{Binding IsHiddenInOffer}">
+                    <Path Fill="Gray" Width="14" Height="14" Stretch="Uniform"
+                          Data="{Binding IsHiddenInOffer, Converter={StaticResource BoolToEyeIconConverter}}"/>
+                </ToggleButton>
+                
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="3">

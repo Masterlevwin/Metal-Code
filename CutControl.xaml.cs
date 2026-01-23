@@ -814,6 +814,7 @@ namespace Metal_Code
     public class ExcelDialogService : IDialogService
     {
         public string[]? FilePaths { get; set; }
+        public string LastUsedDirectory { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         public bool OpenFileDialog()
         {

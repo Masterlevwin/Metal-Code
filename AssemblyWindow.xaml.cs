@@ -6,8 +6,10 @@ using System.Data;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace Metal_Code
 {
@@ -175,6 +177,10 @@ namespace Metal_Code
         {
             Assembly assembly = new();
             assembly.Title += $" {Assemblies.Count + 1}";
+
+            //создаем отсортированное по имени представление деталей
+            EnsureSortedView(assembly.Particles);
+
             Assemblies.Add(assembly);
         }
 
@@ -330,6 +336,15 @@ namespace Metal_Code
                 blocks.AddRange(FindTextBlock(child, tag));
             }
             return blocks;
+        }
+        
+        private static void EnsureSortedView(ObservableCollection<Particle> particles)
+        {
+            var view = CollectionViewSource.GetDefaultView(particles);
+            if (view.SortDescriptions.Count == 0)
+            {
+                view.SortDescriptions.Add(new SortDescription(nameof(Particle.Title), ListSortDirection.Ascending));
+            }
         }
 
         private void ShowPopup(object sender, MouseEventArgs e)
@@ -496,6 +511,7 @@ namespace Metal_Code
             Set_WorksPrice();
         }
 
+
         //----------Перетаскивание детали в сборки----------//
         private Point _dragStartPoint;
         private Part? _draggedPart;
@@ -585,6 +601,9 @@ namespace Metal_Code
                             ImageBytes = part.ImageBytes
                         };
                         assembly.Particles.Add(_particle);
+
+                        // Подсвечиваем добавленную деталь!
+                        HighlightNewItem(assembly, _particle);
                     }
 
                     e.Handled = true;
@@ -594,6 +613,43 @@ namespace Metal_Code
 
             e.Effects = DragDropEffects.None;
             e.Handled = true;
+        }
+
+        private async void HighlightNewItem(Assembly assembly, Particle particle)
+        {
+            // Дайте UI время обновиться после добавления и сортировки
+            await Dispatcher.Yield(DispatcherPriority.Background);
+
+            // Находим TreeViewItem, соответствующий particle
+            var treeViewItem = FindVisualChildByDataContext<TreeViewItem>(ParticleStack, particle);
+            if (treeViewItem != null)
+            {
+                // Прокручиваем к элементу
+                treeViewItem.BringIntoView();
+
+                // Временная подсветка (например, жёлтый фон на 1.5 сек)
+                var originalBg = treeViewItem.Background;
+                treeViewItem.Background = Brushes.LightBlue;
+
+                await System.Threading.Tasks.Task.Delay(3000);
+
+                treeViewItem.Background = originalBg;
+            }
+        }
+
+        public static T? FindVisualChildByDataContext<T>(DependencyObject parent, object dataContext) where T : FrameworkElement
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T t && t.DataContext == dataContext)
+                    return t;
+
+                var result = FindVisualChildByDataContext<T>(child, dataContext);
+                if (result != null)
+                    return result;
+            }
+            return null;
         }
     }
 }
