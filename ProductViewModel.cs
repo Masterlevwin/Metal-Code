@@ -111,6 +111,7 @@ namespace Metal_Code
                               MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);
 
                               string selectedFilePath = dialogService.FilePaths[0];
+                              string fileName = Path.GetFileName(selectedFilePath);
                               string folderToRename = Path.GetDirectoryName(selectedFilePath)!; // папка с расчётом
                               string parentDir = Path.GetDirectoryName(folderToRename)!;       // родитель (где будет новая папка)
 
@@ -120,7 +121,7 @@ namespace Metal_Code
                               try
                               {
                                   Directory.Move(folderToRename, destinationPath);
-                                  MainWindow.M.SaveOrRemoveOffer(true, destinationPath);
+                                  MainWindow.M.SaveOrRemoveOffer(true, Path.Combine(destinationPath, fileName));
 
                                   // 🔑 Сохраняем последний каталог
                                   dialogService.LastUsedDirectory = destinationPath;

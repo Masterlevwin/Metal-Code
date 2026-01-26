@@ -270,7 +270,7 @@ namespace Metal_Code
                                 string finalNote = string.IsNullOrEmpty(userComment)
                                     ? disclaimer
                                     : $"{disclaimer}\n\n{userComment}";
-                                left.Item().PaddingVertical(5).Text($"Примечание: {finalNote}").Bold();
+                                left.Item().PaddingVertical(5).Text($"Примечание: {finalNote}").SemiBold();
 
                                 left.Item().PaddingVertical(5).Text($"Ваш менеджер: {MainWindow.M.ManagerDrop.Text}");
 
