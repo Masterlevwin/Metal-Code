@@ -262,6 +262,8 @@ namespace Metal_Code
 
                           if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames != null)
                           {
+                              dialogService.LastUsedDirectory = targetDirectory;
+
                               List<string> _lasers = new(), _tubes = new(), _metalix = new();
 
                               foreach (string path in openFileDialog.FileNames)

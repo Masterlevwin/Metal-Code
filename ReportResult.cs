@@ -6,6 +6,7 @@ namespace Metal_Code
     public class ReportOfferItem
     {
         public DateTime? CreatedDate { get; set; }
+        public DateTime? EndDate { get; set; }
         public string? Invoice { get; set; }
         public string? Company { get; set; }
         public string? Order { get; set; }

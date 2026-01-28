@@ -913,6 +913,39 @@ namespace Metal_Code
         // Норма рабочих часов по месяцам
         private readonly int[] WorkingHours = { 136, 152, 168, 168, 144, 152, 168, 168, 168, 168, 160, 168 };
 
+        private bool _isReportByCreated = false; // false = EndDate (по умолчанию)
+        public bool IsReportByCreated
+        {
+            get => _isReportByCreated;
+            set
+            {
+                if (_isReportByCreated != value)
+                {
+                    _isReportByCreated = value;
+                    OnPropertyChanged(nameof(IsReportByCreated));
+                    RebuildCurrentReport();
+                }
+            }
+        }
+        private void RebuildCurrentReport()
+        {
+            if (ReportDrop.SelectedItem is string monthStr)
+            {
+                int monthIndex = Array.IndexOf(Months, monthStr);
+                if (monthIndex == -1) return;
+
+                var now = DateTime.Now;
+                int selectedMonth = monthIndex + 1;
+
+                int year = now.Year;
+                // Если сейчас начало года (янв–март), а выбран конец года (окт–дек) → прошлый год
+                if (now.Month <= 3 && selectedMonth >= 10)
+                    year--;
+
+                ReportChanged(new DateTime(year, selectedMonth, 1));
+            }
+        }
+
         private void ReportChanged(object sender, SelectionChangedEventArgs e)
         {
             if (TargetManager != CurrentManager) return;
@@ -934,8 +967,21 @@ namespace Metal_Code
             DateTime start = new(target.Year, target.Month, 1);
             DateTime end = start.AddMonths(1);
 
-            ReportOffers = Offers.Where(o => o.Order != null && o.Order != ""
-                            && o.CreatedDate >= start && o.CreatedDate < end).ToList();
+            ReportOffers = Offers.Where(o =>
+                !string.IsNullOrEmpty(o.Order) && // есть номер заказа
+                (
+                    (IsReportByCreated &&
+                     o.CreatedDate.HasValue &&
+                     o.CreatedDate.Value >= start &&
+                     o.CreatedDate.Value < end)
+                    ||
+                    (!IsReportByCreated &&
+                     o.EndDate.HasValue &&
+                     o.EndDate.Value >= start &&
+                     o.EndDate.Value < end)
+                )
+            ).ToList();
+
             ReportGrid.ItemsSource = ReportOffers;
             ReportView();
         }
@@ -5035,6 +5081,8 @@ namespace Metal_Code
             BonusOOO.Text = result.BonusOoo.ToString("N0");
             BonusIP.Text = result.BonusIp.ToString("N0");
             Salary.Text = result.TotalSalary.ToString("N0");
+
+            StatusBegin($"Отчет перестроен {(IsReportByCreated ? "по дате создания" : "по дате отгрузки")}");
         }
 
         private ReportResult BuildReport(List<Offer> offers)
@@ -5101,6 +5149,7 @@ namespace Metal_Code
                 var item = new ReportOfferItem
                 {
                     CreatedDate = offer.CreatedDate,
+                    EndDate = offer.EndDate,
                     Invoice = invoice,
                     Company = offer.Company,
                     Order = offer.Order,
@@ -5192,7 +5241,7 @@ namespace Metal_Code
             var worksheet = workbook.Workbook.Worksheets.Add("Лист1");
 
             int row = 1;
-            var _headers = new List<string> { "дата", "№счета", "проект", "№заказа", "работа", "металл", "Итого", "%", "бонус", "№КП" };
+            var _headers = new List<string> { $"дата {(IsReportByCreated ? "создания" : "отгрузки")}", "№счета", "проект", "№заказа", "работа", "металл", "Итого", "%", "бонус", "№КП" };
 
             // === ООО ===
             if (report.OooItems.Count > 0)
@@ -5206,7 +5255,7 @@ namespace Metal_Code
 
                 foreach (var item in report.OooItems)
                 {
-                    worksheet.Cells[row, 1].Value = item.CreatedDate;
+                    worksheet.Cells[row, 1].Value = IsReportByCreated ? item.CreatedDate : item.EndDate;
                     worksheet.Cells[row, 1].Style.Numberformat.Format = "d MMM";
                     worksheet.Cells[row, 2].Value = item.Invoice;
                     worksheet.Cells[row, 3].Value = item.Company;
@@ -5279,7 +5328,7 @@ namespace Metal_Code
 
                 foreach (var item in report.IpItems)
                 {
-                    worksheet.Cells[row, 1].Value = item.CreatedDate;
+                    worksheet.Cells[row, 1].Value = IsReportByCreated ? item.CreatedDate : item.EndDate;
                     worksheet.Cells[row, 1].Style.Numberformat.Format = "d MMM";
                     worksheet.Cells[row, 2].Value = item.Invoice;
                     worksheet.Cells[row, 3].Value = item.Company;

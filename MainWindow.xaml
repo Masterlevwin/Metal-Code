@@ -287,7 +287,7 @@
             <GroupBox x:Name="DetailsBox" Style="{StaticResource GroupBoxOriginal}" Margin="5">
                 <GroupBox.Header>
                     <StackPanel Orientation="Horizontal" Margin="5">
-                        
+
                         <Button Click="AddDetail" VerticalAlignment="Top">
                             <StackPanel Orientation="Horizontal">
                                 <Image Source="Images/plus.png"/>
@@ -311,22 +311,22 @@
 
                         <Button ToolTip="Создать новый расчет (Ctrl+Q)" Command="{Binding NewProjectCommand}"
                                 Padding="0" Margin="30,0,0,0" VerticalAlignment="Top">
-                                <Image Source="Images/new3.png"/>
+                            <Image Source="Images/new3.png"/>
                         </Button>
 
                         <Button ToolTip="Открыть сохраненный расчет (Ctrl+S)" Command="{Binding OpenCommand}"
                                 Padding="0" Margin="15,0,0,0" VerticalAlignment="Top">
-                                <Image Source="Images/open4.png"/>
+                            <Image Source="Images/open4.png"/>
                         </Button>
 
                         <Button ToolTip="Создать заявку за клиента" Click="CreateRequest"
                                 Padding="0" Margin="100,0,0,0" VerticalAlignment="Top">
-                                <Image Source="Images/comment.png"/>
+                            <Image Source="Images/comment.png"/>
                         </Button>
 
                         <Button ToolTip="Загрузить раскладки (Ctrl+F)" Command="{Binding LoadCommand}"
                                 Padding="0" Margin="15,0,0,0" VerticalAlignment="Top">
-                                <Image Source="Images/xlsx_load.png"/>
+                            <Image Source="Images/xlsx_load.png"/>
                         </Button>
 
                         <Expander Header="Коэффициенты" IsExpanded="False" Margin="20,0,0,0" VerticalAlignment="Top" Width="150">
@@ -797,13 +797,15 @@
 
                                     <StackPanel Orientation="Horizontal" Margin="5" VerticalAlignment="Bottom" Grid.Row="1">
                                         <TextBlock Text="Прибыль:" TextAlignment="Center" VerticalAlignment="Center"/>
-                                        <TextBox x:Name="Plan" MinWidth="60" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" Margin="5,0,0,0" MaxWidth="60"/>
-                                        <TextBlock Text="Бонус ООО:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center"/>
-                                        <TextBox x:Name="BonusOOO" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" MinWidth="45" MaxWidth="45"/>
-                                        <TextBlock Text="Бонус ИП и ПК:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="100" MaxWidth="100"/>
-                                        <TextBox x:Name="BonusIP" MinWidth="45" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" MaxWidth="45"/>
-                                        <TextBlock Text="Итого:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="40" MaxWidth="40"/>
-                                        <TextBox x:Name="Salary" MinWidth="60" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" MaxWidth="60"/>
+                                        <TextBox x:Name="Plan" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" Margin="5,0,0,0" Width="50"/>
+                                        <TextBlock Text="Бонус ООО:" Margin="5,0,0,0" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="BonusOOO" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" Width="50"/>
+                                        <TextBlock Text="Бонус ИП и ПК:" Margin="5,0,0,0" TextAlignment="Center" VerticalAlignment="Center" Width="100"/>
+                                        <TextBox x:Name="BonusIP" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" Width="50"/>
+                                        <TextBlock Text="Итого:" Margin="5,0,0,0" TextAlignment="Center" VerticalAlignment="Center" Width="40"/>
+                                        <TextBox x:Name="Salary" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" Width="50"/>
+                                        <ToggleButton IsChecked="{Binding IsReportByCreated, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"
+                                                      Margin="5,0,0,0" Style="{StaticResource ToggleButtonSwitch.Small}" ToolTip="Перестроить отчет по дате создания / по дате отрузки"/>
                                     </StackPanel>
                                 </Grid>
                             </Border>
