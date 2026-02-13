@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization.Json;
 using System.Windows;
@@ -234,14 +235,28 @@ namespace Metal_Code
                       try
                       {
                           MessageBoxResult response = MessageBox.Show(
-                              "Загрузить раскладки?\nЕсли \"Да\", текущий расчет будет очищен!",
-                              "Загрузка раскладок", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+                              "Выберите действие:\n\n" +
+                              "• Да — Очистить текущий расчет и загрузить заново\n" +
+                              "• Нет — Добавить раскладки к существующим комплектам\n" +
+                              "• Отмена — Отменить загрузку",
+                              "Загрузка раскладок",
+                              MessageBoxButton.YesNoCancel,
+                              MessageBoxImage.Question);
 
-                          if (response == MessageBoxResult.No) return;
+                          if (response == MessageBoxResult.Cancel)
+                              return;
 
-                          MainWindow.M.NewProject();        // создаем новый расчет
+                          bool appendMode = response == MessageBoxResult.No; // "Нет" = добавить к существующим
 
-                          if (MainWindow.M.IsRequest) MainWindow.M.CloseRequestControl();
+                          // Очистка расчета при режиме "заново"
+                          if (!appendMode)
+                          {
+                              MainWindow.M.ClearDetails();     // удаляем все детали
+                              MainWindow.M.ClearCalculate();   // очищаем расчет
+                          }
+
+                          if (MainWindow.M.IsRequest)
+                              MainWindow.M.CloseRequestControl();
 
                           System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
@@ -256,13 +271,14 @@ namespace Metal_Code
                           OpenFileDialog openFileDialog = new()
                           {
                               InitialDirectory = targetDirectory,
-                              Filter = "All files (*.*)|*.*",
-                              Multiselect = true
+                              Filter = "Файлы раскладок (*.xlsx;*.xls)|*.xlsx;*.xls|Все файлы (*.*)|*.*",
+                              Multiselect = true,
+                              Title = "Выберите файлы раскладок"
                           };
 
                           if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames != null)
                           {
-                              dialogService.LastUsedDirectory = targetDirectory;
+                              dialogService.LastUsedDirectory = Path.GetDirectoryName(openFileDialog.FileName);
 
                               List<string> _lasers = new(), _tubes = new(), _metalix = new();
 
@@ -286,35 +302,75 @@ namespace Metal_Code
 
                               if (_lasers.Count > 0)
                               {
-                                  if (_metalix.Count > 0) MainWindow.M.AddDetail();
+                                  var laserComplect = MainWindow.M.DetailControls.FirstOrDefault(d => d.Detail.Title == "Комплект деталей");
+                                  
+                                  if (appendMode && laserComplect != null)
+                                  {
+                                      laserComplect.AddTypeDetail();
+                                      // устанавливаем "Лазерная резка" в работу по умолчанию
+                                      foreach (Work w in MainWindow.M.Works) if (w.Name == "Лазерная резка")
+                                      {
+                                          laserComplect.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+                                          break;
+                                      }
+                                      if (laserComplect.TypeDetailControls[^1].WorkControls[^1].workType is CutControl cut)
+                                          cut.LoadExcel(_lasers.ToArray());
+                                  }
+                                  else
+                                  {
+                                      MainWindow.M.AddDetail();
 
-                                  // устанавливаем "Лазерная резка" в работу по умолчанию
-                                  foreach (Work w in MainWindow.M.Works) if (w.Name == "Лазерная резка")
+                                      // устанавливаем "Лазерная резка" в работу по умолчанию
+                                      foreach (Work w in MainWindow.M.Works) if (w.Name == "Лазерная резка")
                                       {
                                           MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
                                           break;
                                       }
-                                  if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is CutControl cut)
-                                      cut.LoadExcel(_lasers.ToArray());
+                                      if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is CutControl cut)
+                                          cut.LoadExcel(_lasers.ToArray());
+                                  }
                               }
 
                               if (_tubes.Count > 0)
                               {
-                                  if (_lasers.Count > 0 || _metalix.Count > 0) MainWindow.M.AddDetail();
+                                  var tubeComplect = MainWindow.M.DetailControls.FirstOrDefault(d => d.Detail.Title == "Комплект труб");
 
-                                  // устанавливаем "Труба профильная" в заготовке по умолчанию
-                                  foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба профильная")
+                                  if (appendMode && tubeComplect != null)
+                                  {
+                                      tubeComplect.AddTypeDetail();
+                                      // устанавливаем "Труба профильная" в заготовке по умолчанию
+                                      foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба профильная")
+                                      {
+                                          tubeComplect.TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
+                                          foreach (Work w in MainWindow.M.Works) if (w.Name == "Труборез")
+                                          {
+                                              tubeComplect.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+                                              break;
+                                          }
+                                          break;
+                                      }
+                                      if (tubeComplect.TypeDetailControls[^1].WorkControls[^1].workType is PipeControl pipe)
+                                          pipe.LoadExcel(_tubes.ToArray());
+                                  }
+
+                                  else
+                                  {
+                                      MainWindow.M.AddDetail();
+
+                                      // устанавливаем "Труба профильная" в заготовке по умолчанию
+                                      foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба профильная")
                                       {
                                           MainWindow.M.DetailControls[^1].TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
                                           foreach (Work w in MainWindow.M.Works) if (w.Name == "Труборез")
-                                              {
-                                                  MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
-                                                  break;
-                                              }
+                                          {
+                                              MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+                                              break;
+                                          }
                                           break;
                                       }
-                                  if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is PipeControl pipe)
-                                      pipe.LoadExcel(_tubes.ToArray());
+                                      if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is PipeControl pipe)
+                                          pipe.LoadExcel(_tubes.ToArray());
+                                  }
                               }
                           }
 

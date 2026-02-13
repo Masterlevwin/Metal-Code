@@ -739,7 +739,7 @@ namespace Metal_Code
             return _item.price * _item.sheets;
         }
 
-        public (float, float) SizesDetail(string str)       //метод извлечения из строки габаритов детали
+        public (float, float) SizesDetail(string str)           //метод извлечения из строки габаритов детали
         {
             //выходим из метода, если строки нет, или она не содержит информацию о размере детали
             if (str == null || !str.Contains('X')) return (1, 1);
@@ -813,14 +813,31 @@ namespace Metal_Code
 
     public class ExcelDialogService : IDialogService
     {
+        private string _lastUsedDirectory = AppDomain.CurrentDomain.BaseDirectory;
+        public string LastUsedDirectory
+        {
+            get => _lastUsedDirectory;
+            set => _lastUsedDirectory = value?.Trim() is { Length: > 0 } ? Path.GetFullPath(value) : null;
+        }
+
         public string[]? FilePaths { get; set; }
-        public string LastUsedDirectory { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         public bool OpenFileDialog()
         {
-            OpenFileDialog openFileDialog = new();
-            openFileDialog.Filter = "Excel (*.xlsx)|*.xlsx|All files (*.*)|*.*";
-            openFileDialog.Multiselect = true;
+            // Формируем путь на основе lastInputDirectory
+            string? targetDirectory = null;
+            if (MainWindow.M.lastInputDirectory != null && Directory.Exists(Path.GetDirectoryName(MainWindow.M.lastInputDirectory)))
+            {
+                var _targetDirectory = Path.GetDirectoryName(MainWindow.M.lastInputDirectory);
+                if (_targetDirectory != null) targetDirectory = Path.Combine(_targetDirectory, "КП");
+            }
+
+            OpenFileDialog openFileDialog = new()
+            {
+                Filter = "Excel (*.xlsx,*.xls)|*.xlsx;*.xls|All files (*.*)|*.*",
+                InitialDirectory = targetDirectory ?? LastUsedDirectory,
+                Multiselect = true
+            };
             if (openFileDialog.ShowDialog() == true)
             {
                 FilePaths = openFileDialog.FileNames;

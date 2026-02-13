@@ -454,20 +454,6 @@ namespace Metal_Code
                         techItem.CalculationGeometry = calculationGeometry;
 
                         TechItemCalculator.UpdateFromGeometry(techItem);
-
-                        //var reader = new DxfReader(techItem.PathToModel);
-                        //CadDocument dxf = reader.Read();
-
-                        //(Rect, float, int) data = MainWindow.GetDrawingBounds(dxf);
-
-                        //techItem.Sizes = $"{Math.Ceiling(data.Item1.Width)}x{Math.Ceiling(data.Item1.Height)}";
-                        //techItem.Width = (float)Math.Ceiling(data.Item1.Width);
-                        //techItem.Height = (float)Math.Ceiling(data.Item1.Height);
-                        //techItem.Way = data.Item2;
-                        //techItem.Pinhole = data.Item3;
-
-                        ////заполняем геометрию для отрисовки
-                        //techItem.Geometries = MainWindow.GetGeometries(dxf, data.Item1, 60, 60);
                     }
                     catch
                     {
