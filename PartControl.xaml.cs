@@ -298,7 +298,7 @@ namespace Metal_Code
 
         private void SetPicture(object sender, RoutedEventArgs e)       //метод вызывается при загрузке элемента Image (Image.Loaded) 
         {
-            if (MainWindow.M.IsExpressOffer && Part.DisplayGeometry != null)
+            if (Part.DisplayGeometry != null)
             {
                 Picture.Visibility = Visibility.Collapsed;
                 GeometryViewbox.Visibility = Visibility.Visible;

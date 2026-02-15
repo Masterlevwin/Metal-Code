@@ -1,6 +1,11 @@
-﻿using System;
+﻿using MathNet.Numerics.Statistics.Mcmc;
+using Metal_Code.Utils;
+using NPOI.SS.UserModel;
+using Org.BouncyCastle.Bcpg;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -28,9 +33,6 @@ namespace Metal_Code
             Parts = _parts;
             partsList.ItemsSource = Parts;
             StandartPartsDrop.ItemsSource = standartParts;
-
-            // Отключаем стак стандартных деталей, если есть нарезанные
-            if (Parts.Count > 0) StandartStack.IsEnabled = false;
 
             // Заполняем ComboBox работами
             WorksDrop.ItemsSource = works;
@@ -324,196 +326,137 @@ namespace Metal_Code
         // добавить стандартную деталь
         private void Add_StandartPart(object sender, RoutedEventArgs e)
         {
-            if (StandartPartsDrop.SelectedItem is string title
-                && owner is CutControl cut && cut.work.type.MetalDrop.SelectedItem is Metal metal)
+            if (sender is Button btn && btn.Tag is string title
+                && owner is CutControl cut
+                && cut.work.type.MetalDrop.SelectedItem is Metal metal)
             {
-                StandartPartWindow standartPartWindow = new(new()
+                // Создаём параметризованную стандартную деталь
+                var standartPart = new Part
                 {
                     Title = $"{title} {Parts.Count + 1}",
-                    IsLaser = true,
-                    IsPipe = false,
-                    Geometries = title switch
+                    Count = 1,
+                    Metal = metal.Name,
+                    Destiny = cut.work.type.S,
+                    PartType = title switch
                     {
-                        "Круг" => GetCircleGeometryDescriptors(30),
-                        _ => GetRectangleGeometryDescriptors(60, 60)
+                        "Круг" => PartType.Round,
+                        "Квадрат" => PartType.Rectangle,
+                        "Круглая труба" => PartType.RoundTube,
+                        "Прямоугольная труба" => PartType.RectangularTube,
+                        _ => PartType.Rectangle
                     }
-                });
+                };
 
+                // Устанавливаем базовые размеры
+                if (standartPart.PartType == PartType.Round || standartPart.PartType == PartType.RoundTube)
+                {
+                    standartPart.Width = standartPart.Height = 30;
+                }
+                else if (standartPart.PartType == PartType.Rectangle || standartPart.PartType == PartType.RectangularTube)
+                {
+                    standartPart.Width = 60;
+                    standartPart.Height = 40;
+                }
+
+                PartPreviewGenerator.EnsureDisplayGeometry(standartPart);
+
+                // Открываем окно с контекстом StandartPart
+                var standartPartWindow = new StandartPartWindow(standartPart);
                 if (standartPartWindow.ShowDialog() == true)
                 {
-                    DetailData detailData = standartPartWindow.DetailData;
+                    // Сбрасываем кэш, чтобы геометрия пересоздалась с новыми размерами
+                    standartPart.DisplayGeometry = null;
 
-                    Part part = new()
+                    // После редактирования в окне все данные уже обновлены в объекте standartPart
+                    PartPreviewGenerator.EnsureDisplayGeometry(standartPart);
+
+                    standartPart.PropsDict[100] = new()
                     {
-                        Title = detailData.Title,
-                        Count = detailData.Count,
-                        Metal = metal.Name,
-                        Destiny = cut.work.type.S,
-                        Geometries = detailData.Geometries,
-                        Way = (float)Math.Round(detailData.Width + detailData.Height / 1000, 3),
-                        Mass = (float)Math.Round(detailData.Height * detailData.Width * cut.work.type.S * metal.Density / 1000000, 3),
+                        $"{standartPart.Width}",
+                        $"{standartPart.Height}",
+                        $"{standartPart.Width}x{standartPart.Height}"
                     };
-                    part.PropsDict[100] = new() { $"{detailData.Width}", $"{detailData.Height}", $"{detailData.Width}x{detailData.Height}" };
 
-                    PartControl partControl = new(owner, cut.work, part);
-                    if (part.Geometries?.Count > 0)
+                    int pinholes = 0;
+
+                    // Пересчёт массы и длины реза
+                    if (standartPart.DisplayGeometry != null)
+                    {
+                        standartPart.Way = (float)Math.Round(TechItemCalculator.CalculateCuttingLength(standartPart.DisplayGeometry) / 1000, 3);
+                        pinholes = TechItemCalculator.CalculatePiercingCount(standartPart.DisplayGeometry);
+                    }
+
+                    if (standartPart.PartType == PartType.Round)
+                    {
+                        standartPart.Mass = (float)Math.Round(
+                            Math.PI * Math.Pow(standartPart.Width / 2, 2) * cut.work.type.S * metal.Density / 1000000,
+                            3);
+                    }
+                    else if (standartPart.PartType == PartType.RoundTube)
+                    {
+                        double outerR = standartPart.Width / 2;
+                        double innerR = outerR - standartPart.Destiny;
+                        standartPart.Way = (float)Math.Round(Math.PI * (outerR + innerR) * 2 / 1000, 3);
+                        standartPart.Mass = (float)Math.Round(
+                            Math.PI * (Math.Pow(outerR, 2) - Math.Pow(innerR, 2)) * cut.work.type.S * metal.Density / 1000000,
+                            3);
+                    }
+                    else if (standartPart.PartType == PartType.RectangularTube)
+                    {
+                        double innerW = standartPart.Width - 2 * standartPart.Destiny;
+                        double innerH = standartPart.Height - 2 * standartPart.Destiny;
+                        standartPart.Way = (float)Math.Round(
+                            (standartPart.Width + standartPart.Height + Math.Max(0, innerW) + Math.Max(0, innerH)) / 1000,
+                            3);
+                        standartPart.Mass = (float)Math.Round(
+                            (standartPart.Width * standartPart.Height - Math.Max(0, innerW) * Math.Max(0, innerH))
+                            * cut.work.type.S * metal.Density / 1000000,
+                            3);
+                    }
+                    else
+                    {
+                        standartPart.Mass = (float)Math.Round(
+                            standartPart.Width * standartPart.Height * cut.work.type.S * metal.Density / 1000000,
+                            3);
+                    }
+
+                    // Создаём контрол
+                    var partControl = new PartControl(owner, cut.work, standartPart);
+                    if (standartPart.DisplayGeometry != null)
                     {
                         partControl.Picture.Visibility = Visibility.Collapsed;
                         partControl.GeometryViewbox.Visibility = Visibility.Visible;
-
-                        CanvasHelper.SetGeometryDescriptors(partControl.GeometryViewbox, part.Geometries);
                     }
+
+                    // Добавляем в коллекции
                     Parts.Add(partControl);
+                    cut.Parts ??= new();
+                    if (!cut.Parts.Contains(partControl)) cut.Parts.Add(partControl);
 
-                    if (cut.Parts != null && !cut.Parts.Contains(partControl)) cut.Parts.Add(partControl);
-                    else cut.Parts = new() { partControl };
+                    cut.PartDetails ??= new();
+                    if (!cut.PartDetails.Contains(standartPart)) cut.PartDetails.Add(standartPart);
 
-                    if (cut.PartDetails != null && !cut.PartDetails.Contains(part)) cut.PartDetails.Add(part);
-                    else cut.PartDetails = new() { part };
+                    // Обновляем интерфейс
+                    if (cut.TabItem?.Header is TextBlock block)
+                        block.Text = $"s{cut.work.type.S} {cut.work.type.MetalDrop.Text} ({cut.PartDetails.Sum(x => x.Count)} шт)";
 
-                    if (cut.TabItem != null && cut.TabItem.Header is TextBlock block)
-                        block.Text = $"s{cut.work.type.S} {cut.work.type.MetalDrop.Text} ({cut.PartDetails?.Sum(x => x.Count)} шт)";
+                    // Обновляем расчетные данные
+                    cut.WayTotal += standartPart.Way * standartPart.Count;
+                    cut.MassTotal += standartPart.Mass * standartPart.Count;
 
-                    cut.MassTotal = Parts.Select(p => p.Part).Sum(p => p.Mass * p.Count);
-                    cut.WayTotal = Parts.Select(p => p.Part).Sum(p => p.Way * p.Count);
-
-                    //определяем деталь как комплект деталей
-                    if (!cut.work.type.det.Detail.IsComplect) cut.work.type.det.IsComplectChanged("Комплект деталей");
-                }
-            }
-        }
-
-        public static ObservableCollection<IGeometryDescriptor> GetRectangleGeometryDescriptors(
-            double width,
-            double height,
-            double cornerRadius = 0,
-            Point startPoint = new Point())
-        {
-            var descriptors = new ObservableCollection<IGeometryDescriptor>();
-
-            if (width <= 0 || height <= 0)
-                return descriptors;
-
-            // Ограничиваем радиус
-            if (cornerRadius > 0)
-                cornerRadius = Math.Min(cornerRadius, Math.Min(width, height) / 2);
-
-            // Определяем углы
-            double x = startPoint.X;
-            double y = startPoint.Y;
-            double right = x + width;
-            double bottom = y + height;
-            double startX = x + cornerRadius;
-            double endX = right - cornerRadius;
-            double startY = y + cornerRadius;
-            double endY = bottom - cornerRadius;
-
-            Point prevPoint = new Point(startX, y);
-
-            // Утилиты
-            void AddLineTo(Point endPoint)
-            {
-                if (prevPoint != endPoint)
-                {
-                    descriptors.Add(new LineDescriptor
+                    cut.Items?.Add(new()
                     {
-                        Start = prevPoint,
-                        End = endPoint
+                        sheets = 1,
+                        sheetSize = $"{standartPart.Width}x{standartPart.Height}",
+                        way = standartPart.Way * standartPart.Count,
+                        pinholes = pinholes * standartPart.Count,
+                        mass = standartPart.Mass * standartPart.Count,
                     });
-                    prevPoint = endPoint;
+
+                    if (cut.Items?.Count > 0) cut.SumProperties(cut.Items);
+                    cut.work.type.MassCalculate();      // обновляем значение массы заготовки
                 }
             }
-
-            void AddArcTo(Point endPoint, Point centerArc, SweepDirection sweep)
-            {
-                descriptors.Add(new ArcDescriptor
-                {
-                    StartPoint = prevPoint,
-                    EndPoint = endPoint,
-                    Size = new Size(cornerRadius, cornerRadius),
-                    IsLargeArc = false,
-                    SweepDirection = sweep
-                });
-                prevPoint = endPoint;
-            }
-
-            // 1. Верхняя сторона
-            AddLineTo(new Point(endX, y));
-
-            if (cornerRadius > 0)
-            {
-                // 2. Верхний правый угол
-                AddArcTo(new Point(right, startY), new Point(endX, startY), SweepDirection.Clockwise);
-
-                // 3. Правая сторона
-                AddLineTo(new Point(right, endY));
-
-                // 4. Нижний правый угол
-                AddArcTo(new Point(endX, bottom), new Point(endX, endY), SweepDirection.Clockwise);
-
-                // 5. Нижняя сторона
-                AddLineTo(new Point(startX, bottom));
-
-                // 6. Нижний левый угол
-                AddArcTo(new Point(x, endY), new Point(startX, endY), SweepDirection.Clockwise);
-
-                // 7. Левая сторона
-                AddLineTo(new Point(x, startY));
-
-                // 8. Верхний левый угол
-                AddArcTo(new Point(startX, y), new Point(startX, startY), SweepDirection.Clockwise);
-            }
-            else
-            {
-                // Прямые углы
-                AddLineTo(new Point(right, y));
-                AddLineTo(new Point(right, bottom));
-                AddLineTo(new Point(x, bottom));
-                AddLineTo(new Point(x, y));
-            }
-
-            return descriptors;
-        }
-
-        public static ObservableCollection<IGeometryDescriptor> GetCircleGeometryDescriptors(
-            double radius,
-            Point center = new Point())
-        {
-            var descriptors = new ObservableCollection<IGeometryDescriptor>();
-
-            if (radius <= 0)
-                return descriptors;
-
-            // Нормализуем центр
-            Point c = new Point(center.X + radius, center.Y + radius);
-
-            // Точки для двух полуокружностей
-            Point startPoint = new Point(c.X + radius, c.Y); // правая точка (0°)
-            Point topPoint = new Point(c.X, c.Y - radius);   // верх (90°)
-            Point leftPoint = new Point(c.X - radius, c.Y);  // лево (180°)
-            Point bottomPoint = new Point(c.X, c.Y + radius); // низ (270°)
-
-            // --- Первая половина: 0° → 180° (сверху)
-            descriptors.Add(new ArcDescriptor
-            {
-                StartPoint = startPoint,
-                EndPoint = leftPoint,
-                Size = new Size(radius, radius),
-                SweepDirection = SweepDirection.Clockwise,
-                IsLargeArc = false // дуга < 180°
-            });
-
-            // --- Вторая половина: 180° → 360° (снизу)
-            descriptors.Add(new ArcDescriptor
-            {
-                StartPoint = leftPoint,
-                EndPoint = startPoint,
-                Size = new Size(radius, radius),
-                SweepDirection = SweepDirection.Clockwise,
-                IsLargeArc = false
-            });
-
-            return descriptors;
         }
     }
 }

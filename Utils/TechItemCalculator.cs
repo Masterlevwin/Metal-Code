@@ -29,7 +29,7 @@ namespace Metal_Code.Utils
             techItem.Pinhole = CalculatePiercingCount(techItem.CalculationGeometry);
         }
 
-        private static double CalculateCuttingLength(PathGeometry geometry)
+        public static double CalculateCuttingLength(PathGeometry geometry)
         {
             double totalLength = 0.0;
             foreach (PathFigure figure in geometry.Figures)
@@ -99,7 +99,7 @@ namespace Metal_Code.Utils
             return (last, len);
         }
 
-        private static int CalculatePiercingCount(PathGeometry geometry)
+        public static int CalculatePiercingCount(PathGeometry geometry)
         {
             // Каждый замкнутый контур = 1 прокол
             return geometry.Figures.Count(fig => fig.IsClosed);

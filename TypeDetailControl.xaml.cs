@@ -112,6 +112,7 @@ namespace Metal_Code
                 {
                     hasMetal = value;
                     OnPropertyChanged(nameof(HasMetal));
+                    PriceChanged();
                 }
             }
         }
@@ -573,11 +574,6 @@ namespace Metal_Code
             PriceChanged();
         }
 
-        private void HasMetalChanged(object sender, RoutedEventArgs e)
-        {
-            PriceChanged();
-        }
-
         public void PriceChanged()
         {
             Result = (float)((HasMetal ? (float)Math.Round(         //проверяем наличие материала
@@ -618,11 +614,47 @@ namespace Metal_Code
         {
             AddWork();
         }
-        
+
         private void OnPartsToggleClick(object sender, RoutedEventArgs e)
         {
-            if (PartsToggle.IsChecked == true) ((Storyboard)FindResource("ExpandParts")).Begin(this);
-            else ((Storyboard)FindResource("CollapseParts")).Begin(this);
+            if (PartsToggle.IsChecked == true)
+            {
+                foreach (WorkControl w in WorkControls)
+                {
+                    if (w.workType is CutControl cut && cut.PartsControl is null)
+                    {
+                        var detail = MainWindow.M.DetailControls.FirstOrDefault(d => d.Detail.Title == "Комплект деталей");
+                        if (detail != null && detail != det)
+                        {
+                            MainWindow.M.StatusBegin($"\"Комплект деталей\" уже есть. Добавьте новую заготовку туда!");
+                            return;
+                        }
+
+                        cut.PartsControl = new(cut, new());
+                        cut.AddPartsControl();
+                        det.IsComplectChanged("Комплект деталей");
+                    }
+                    else if (w.workType is PipeControl pipe && pipe.PartsControl is null)
+                    {
+                        var detail = MainWindow.M.DetailControls.FirstOrDefault(d => d.Detail.Title == "Комплект труб");
+                        if (detail != null && detail != det)
+                        {
+                            MainWindow.M.StatusBegin($"\"Комплект труб\" уже есть. Добавьте новую заготовку туда!");
+                            return;
+                        }
+
+                        pipe.PartsControl = new(pipe, new());
+                        pipe.AddPartsControl();
+                        det.IsComplectChanged("Комплект труб");
+                    }
+                    break;
+                }  
+                ((Storyboard)FindResource("ExpandParts")).Begin(this);
+            }
+            else
+            {
+                ((Storyboard)FindResource("CollapseParts")).Begin(this);
+            }
         }
 
 

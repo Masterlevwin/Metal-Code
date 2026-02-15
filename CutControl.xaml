@@ -4,10 +4,13 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
+             xmlns:hc="https://handyorg.github.io/handycontrol"
              mc:Ignorable="d" 
              d:DesignHeight="30" d:DesignWidth="170">
 
     <UserControl.Resources>
+        <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+
         <!-- Анимации -->
         <PowerEase x:Key="EaseOut" EasingMode="EaseOut"/>
         <PowerEase x:Key="EaseIn" EasingMode="EaseIn"/>
@@ -41,6 +44,9 @@
                 <DiscreteObjectKeyFrame KeyTime="0:0:0.3" Value="{x:Static Visibility.Collapsed}"/>
             </ObjectAnimationUsingKeyFrames>
         </Storyboard>
+
+        <!-- Геометрия ножниц (резка) -->
+        <Geometry x:Key="CutGeometry">M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M12,6A5.5,5.5 0 0,0 6.5,11.5A5.5,5.5 0 0,0 8,16H16A5.5,5.5 0 0,0 17.5,11.5A5.5,5.5 0 0,0 12,6M6,18V19H18V18H6Z</Geometry>
     </UserControl.Resources>
 
     <Grid>
@@ -52,32 +58,25 @@
         </Grid.RowDefinitions>
 
         <!-- Основная строка: горизонтальные элементы -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal">
+        <StackPanel Orientation="Horizontal">
 
-            <CheckBox IsChecked="{Binding HaveCut, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}"
-                      ToolTip="Убрать стоимость лазера из расчета"
-                      Margin="2,0,0,0"
-                      VerticalAlignment="Center"
-                      Click="Setting"/>
-
-            <Button x:Name="CutBtn"
-                    Click="LoadFiles"
-                    Content=". . ."
-                    ToolTip="Загрузить раскладки"
-                    FontWeight="Bold"
-                    Margin="5,0,0,0"
-                    Width="50"/>
+            <CheckBox IsChecked="{Binding HaveCut}"
+                      Style="{StaticResource ToggleButtonSwitch.Small}"
+                      ToolTip="Убрать/добавить стоимость лазера"
+                      Margin="2,0" Width="45">
+                <Image Source="/Images/scissors.png"/>
+            </CheckBox>
 
             <Button x:Name="ShowDetailsButton"
-                    Content="параметры"
-                    Width="85"
+                    Content="{Binding ButtonContent}"
                     Margin="2,0,0,0"
-                    ToolTip="Показать параметры резки"
+                    ToolTip="{Binding ButtonTooltip}"
                     Click="OnShowDetailsClick"
                     Cursor="Hand"
                     BorderThickness="0"
                     Background="Transparent"
-                    VerticalAlignment="Center"/>
+                    VerticalAlignment="Center"
+                    Width="110"/>
 
             <Image Source="/Images/question.png" VerticalAlignment="Top" Margin="2,0,0,0" Width="10">
                 <Image.ToolTip>
@@ -106,7 +105,7 @@
                 <!-- Путь резки -->
                 <StackPanel Width="50">
                     <TextBlock Text="м" HorizontalAlignment="Center"/>
-                    <TextBox Text="{Binding Way, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}"
+                    <TextBox Text="{Binding Way}"
                              TextChanged="SetWay" ToolTip="Длина пути резки, м"
                              VerticalContentAlignment="Center"
                              HorizontalContentAlignment="Center"
@@ -116,7 +115,7 @@
                 <!-- Маркировка -->
                 <StackPanel Margin="5,0,0,0" Width="50">
                     <TextBlock Text="грав" HorizontalAlignment="Center"/>
-                    <TextBox Text="{Binding Marking, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}"
+                    <TextBox Text="{Binding Marking}"
                              TextChanged="SetMarking" ToolTip="Длина маркировки, м"
                              VerticalContentAlignment="Center"
                              HorizontalContentAlignment="Center"
@@ -126,7 +125,7 @@
                 <!-- Проколы -->
                 <StackPanel Margin="5,0,0,0" Width="40">
                     <TextBlock Text="шт" HorizontalAlignment="Center"/>
-                    <TextBox Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType={x:Type local:CutControl}, Mode=FindAncestor}}"
+                    <TextBox Text="{Binding Pinhole}"
                              TextChanged="SetPinhole" ToolTip="Количество проколов, шт"
                              VerticalContentAlignment="Center"
                              HorizontalContentAlignment="Center"

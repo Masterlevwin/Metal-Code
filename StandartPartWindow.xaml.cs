@@ -7,12 +7,12 @@ namespace Metal_Code
     /// </summary>
     public partial class StandartPartWindow : Window
     {
-        public DetailData DetailData { get; set; }
-        public StandartPartWindow(DetailData detailData)
+        public Part StandartPart { get; set; }
+        public StandartPartWindow(Part standartPart)
         {
             InitializeComponent();
-            DetailData = detailData;
-            DataContext = DetailData;
+            StandartPart = standartPart;
+            DataContext = StandartPart;
         }
 
         private void Accept(object sender, RoutedEventArgs e)

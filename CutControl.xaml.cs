@@ -95,11 +95,58 @@ namespace Metal_Code
             set => wayTotal = value;
         }
 
+        // Сохранённые значения для восстановления
+        private float _savedWay = 0;
+        private float _savedMarking = 0;
+        private int _savedPinhole = 0;
+
+        // Вычисляемое свойство для контента кнопки
+        public string ButtonContent => HaveCut ? "параметры" : "без лазера";
+        public string ButtonTooltip => HaveCut ? "Показать/скрыть параметры резки"
+            : "Включите галочку «Резка», чтобы настроить параметры";
+
         private bool haveCut = true;
         public bool HaveCut
         {
             get => haveCut;
-            set => haveCut = value;
+            set
+            {
+                if (haveCut == value) return;
+
+                if (!value)
+                {
+                    // 1. Сохраняем текущие значения ПЕРЕД обнулением
+                    _savedWay = Way;
+                    _savedMarking = Marking;
+                    _savedPinhole = Pinhole;
+
+                    // 2. Обнуляем параметры
+                    Way = 0;
+                    Marking = 0;
+                    Pinhole = 0;
+
+                    // 3. Сворачиваем секцию с анимацией
+                    if (_isExpanded)
+                    {
+                        _isExpanded = false;
+                        var collapse = FindResource("CollapseAnimation") as Storyboard;
+                        collapse?.Begin();
+                    }
+                }
+                else
+                {
+                    // Восстанавливаем сохранённые значения
+                    Way = _savedWay;
+                    Marking = _savedMarking;
+                    Pinhole = _savedPinhole;
+                }
+
+                haveCut = value;
+                OnPropertyChanged(nameof(HaveCut));
+                OnPropertyChanged(nameof(ButtonContent)); // Обновляем текст кнопки
+                OnPropertyChanged(nameof(ButtonTooltip)); // Обновляем подсказку кнопки
+                work.type.HasMetal = HaveCut;
+            }
         }
 
         private bool haveNitro = false;
@@ -122,12 +169,12 @@ namespace Metal_Code
         public CutControl(WorkControl _work, IDialogService _dialogService)
         {
             InitializeComponent();
+            DataContext = this;
             work = _work;
             dialogService = _dialogService;
 
             work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
             work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
-            BtnEnabled();       // проверяем типовую деталь: если не "Лист металла", делаем кнопку неактивной и наоборот
         }
 
         private void SetWay(object sender, TextChangedEventArgs e)
@@ -160,30 +207,8 @@ namespace Metal_Code
             OnPriceChanged();
         }
 
-        private void Setting(object sender, RoutedEventArgs e)
-        {
-            if (sender is not CheckBox cBox) return;
-
-            if (cBox.IsChecked == false && PartsControl is null && !work.type.det.Detail.IsComplect)
-            {
-                PartsControl = Parts is null ? new(this, new()) : new(this, Parts);
-                work.type.HasMetal = false;
-                Way = Pinhole = 1;
-                AddPartsControl();
-            }
-            else if (cBox.IsChecked == true && PartsControl is not null && !work.type.det.Detail.IsComplect)
-            {
-                PartsControl = null;
-                work.type.HasMetal = true;
-                //MainWindow.M.PartsTab.Items.Remove(TabItem);
-            }
-
-            OnPriceChanged();
-        }
-
         public void OnPriceChanged()
         {
-            BtnEnabled();
             float price = 0;
 
             if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
@@ -208,7 +233,11 @@ namespace Metal_Code
             }
             else
             {
-                if (Way == 0 || Pinhole == 0) return;
+                if (Way == 0 || Pinhole == 0)
+                {
+                    work.SetResult(1, false);
+                    return;
+                }
 
                 if (metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
                 {
@@ -224,15 +253,8 @@ namespace Metal_Code
                     if (_result > 0 && (price / _result) < 0.1f) price = _result * 0.1f;
                 }
 
-                if (HaveCut || HaveNitro) work.SetResult(price);
-                else work.SetResult(1, false);   
+                work.SetResult(price); 
             }
-        }
-
-        private void BtnEnabled()
-        {
-            if (work.type.TypeDetailDrop.SelectedItem is TypeDetail typeDetail && typeDetail.Name != "Лист металла") CutBtn.IsEnabled = false;
-            else CutBtn.IsEnabled = true;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
@@ -712,8 +734,6 @@ namespace Metal_Code
 
             if (Way == 0) Way = WayTotal;
 
-            //if (MassTotal < 1) MassTotal = ExtraTime;                // общий вес деталей не должен быть меньше 1 кг, иначе возникнет ошибка деления на 0
-
             work.type.SetCount(_items.Sum(s => s.sheets));      // устанавливаем общее количество порезанных листов
 
             OnPriceChanged();
@@ -780,6 +800,9 @@ namespace Metal_Code
 
         private void OnShowDetailsClick(object sender, RoutedEventArgs e)
         {
+            // Защита: кнопка кликабельна только при HaveCut = true (но для надёжности проверяем)
+            if (!HaveCut) return;
+
             _isExpanded = !_isExpanded;
 
             string storyboardKey = _isExpanded ? "ExpandAnimation" : "CollapseAnimation";

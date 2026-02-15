@@ -8,6 +8,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using System.Windows;
 using System.Windows.Media;
 
 namespace Metal_Code
@@ -135,12 +136,44 @@ namespace Metal_Code
 
         [OptionalField]
         private string? _displayGeometryXaml;
-
         [Browsable(false)]
         public PathGeometry? DisplayGeometry
         {
             get => GeometryHelper.FromXamlString(_displayGeometryXaml);
-            set => _displayGeometryXaml = GeometryHelper.ToXamlString(value);
+            set
+            {
+                var newXaml = GeometryHelper.ToXamlString(value);
+                if (_displayGeometryXaml != newXaml)
+                {
+                    _displayGeometryXaml = newXaml;
+                    OnPropertyChanged(nameof(DisplayGeometry));
+                }
+            }
+        }
+
+        [Browsable(false)]
+        public double VisualStrokeThickness
+        {
+            get
+            {
+                if (DisplayGeometry?.Bounds is Rect bounds && !bounds.IsEmpty)
+                {
+                    double sourceSize = Math.Max(bounds.Width, bounds.Height);
+                    if (sourceSize > 0)
+                    {
+                        // Viewbox растягивает до 60x60 (с учётом Uniform — меньшая сторона = 60)
+                        // Но для оценки масштаба используем max, т.к. Stretch="Uniform"
+                        double targetSize = 60.0;
+                        double scale = targetSize / sourceSize;
+                        // Чтобы визуальная толщина была ≈1, задаём:
+                        double stroke = 1.0 / scale;
+                        // Ограничиваем разумные пределы (на случай очень мелких или огромных геометрий)
+                        return Math.Max(1.0, Math.Min(5.0, stroke));
+                    }
+                }
+                // Если геометрия недоступна — используем 1 по умолчанию
+                return 1.0;
+            }
         }
 
         [OptionalField]
@@ -151,7 +184,6 @@ namespace Metal_Code
 
         [OptionalField]
         private bool _isHiddenInOffer;
-
         [Browsable(false)]
         public bool IsHiddenInOffer
         {
@@ -166,6 +198,41 @@ namespace Metal_Code
             }
         }
 
+        [OptionalField]
+        private PartType _partType;
+        [Browsable(false)]
+        public PartType PartType
+        {
+            get => _partType;
+            set => _partType = value;
+        }
+
+        [OptionalField]
+        private double _width;
+        [Browsable(false)]
+        public double Width
+        {
+            get => _width;
+            set
+            {
+                _width = value;
+                OnPropertyChanged();
+            }
+        }
+
+        [OptionalField]
+        private double _height;
+        [Browsable(false)]
+        public double Height
+        {
+            get => _height;
+            set
+            {
+                _height = value;
+                OnPropertyChanged();
+            }
+        }
+
         public Dictionary<int, List<string>> PropsDict = new();
 
         [OptionalField]
@@ -177,6 +244,14 @@ namespace Metal_Code
             Count = _count;
             Accuracy = _accuracy;
         }
+    }
+
+    public enum PartType
+    {
+        Rectangle,        // Прямоугольная листовая деталь
+        Round,            // Круглая листовая деталь
+        RectangularTube,  // Прямоугольная труба
+        RoundTube         // Круглая труба
     }
 
     [Serializable]

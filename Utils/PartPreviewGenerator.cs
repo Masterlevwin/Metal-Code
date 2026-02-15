@@ -10,14 +10,56 @@ namespace Metal_Code.Utils
             if (part.DisplayGeometry != null)
                 return;
 
-            //if (part.PartType == PartType.RoundTube && part.Width > 0 && part.Destiny > 0)
-            //{
-            //    part.DisplayGeometry = CreateRoundTubeSection(part.Width, part.Destiny);
-            //}
-            //else if (part.PartType == PartType.RectangularTube && part.Width > 0 && part.Height > 0 && part.Destiny > 0)
-            //{
-            //    part.DisplayGeometry = CreateRectangularTubeSection(part.Width, part.Height, part.Destiny);
-            //}
+            part.DisplayGeometry = part.PartType switch
+            {
+                PartType.Rectangle => CreateRectangleSection(part.Width, part.Height),
+                PartType.Round => CreateRoundSection(part.Width),
+                PartType.RectangularTube => CreateRectangularTubeSection(part.Width, part.Height, part.Destiny),
+                PartType.RoundTube => CreateRoundTubeSection(part.Width, part.Destiny),
+                _ => null
+            };
+        }
+
+        public static PathGeometry CreateRectangleSection(double width, double height)
+        {
+            var geometry = new PathGeometry();
+
+            var figure = new PathFigure
+            {
+                StartPoint = new Point(-width / 2, -height / 2),
+                IsClosed = true,
+                IsFilled = true
+            };
+            figure.Segments.Add(new LineSegment(new Point(width / 2, -height / 2), true));
+            figure.Segments.Add(new LineSegment(new Point(width / 2, height / 2), true));
+            figure.Segments.Add(new LineSegment(new Point(-width / 2, height / 2), true));
+            geometry.Figures.Add(figure);
+
+            return geometry;
+        }
+
+        public static PathGeometry CreateRoundSection(double diameter)
+        {
+            var geometry = new PathGeometry();
+
+            double radius = diameter / 2;
+            var figure = new PathFigure
+            {
+                StartPoint = new Point(radius, 0),
+                IsClosed = true,
+                IsFilled = true
+            };
+            figure.Segments.Add(new ArcSegment(
+                new Point(-radius, 0),
+                new Size(radius, radius),
+                0, false, SweepDirection.Clockwise, true));
+            figure.Segments.Add(new ArcSegment(
+                new Point(radius, 0),
+                new Size(radius, radius),
+                0, false, SweepDirection.Clockwise, true));
+            geometry.Figures.Add(figure);
+
+            return geometry;
         }
 
         public static PathGeometry CreateRectangularTubeSection(double width, double height, double thickness)

@@ -2577,6 +2577,9 @@ namespace Metal_Code
             worksheet.Column(10).Hidden = true;
             worksheet.Column(11).Hidden = true;
             worksheet.Column(12).Hidden = true;
+            worksheet.Column(13).Hidden = true;
+            worksheet.Column(14).Hidden = true;
+            worksheet.Column(15).Hidden = true;
 
             if (CheckConstruct.IsChecked == null)       //если требуется указать конструкторские работы отдельной строкой
             {
