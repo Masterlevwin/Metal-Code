@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Windows;
 
 namespace Metal_Code
@@ -290,18 +291,42 @@ namespace Metal_Code
 
             title = title.Trim();
 
-            var match = System.Text.RegularExpressions.Regex.Match(
-                title,
-                @"^(.*?)\s*(?:(?:\d+\s*шт\.?|n\.?\d+))\s*$",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase
-            );
+            // Получаем актуальный список материалов
+            var materials = MainWindow.M.Metals
+                .Select(m => m.Name?.Trim())
+                .Where(m => !string.IsNullOrWhiteSpace(m))
+                .Concat(new[] { "al", "br", "cu" })
+                .Select(m => m.ToLower())
+                .ToList() ?? new List<string>();
 
-            if (match.Success)
-                return match.Groups[1].Value.Trim();
+            // Ищем первый материал в строке
+            int firstMaterialIndex = title.Length;
+            foreach (var material in materials)
+            {
+                int index = title.ToLower().IndexOf(material);
+                if (index >= 0 && index < firstMaterialIndex)
+                {
+                    firstMaterialIndex = index;
+                }
+            }
 
-            return title;
+            // Также ищем маркеры толщины/количества
+            var markers = new[] { " s", "мм", " n", " шт" };
+            foreach (var marker in markers)
+            {
+                int index = title.ToLower().IndexOf(marker);
+                if (index >= 0 && index < firstMaterialIndex)
+                {
+                    firstMaterialIndex = index;
+                }
+            }
+
+            // Возвращаем часть до первого маркера
+            string baseName = title.Substring(0, firstMaterialIndex).Trim();
+
+            // Удаляем лишние пробелы в конце
+            return baseName.TrimEnd();
         }
-
 
         //-----------Копирование всех покупных изделий----------//
         private void CopyBaskets(object sender, RoutedEventArgs e)

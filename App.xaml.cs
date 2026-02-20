@@ -1,9 +1,11 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Markup;
 
 namespace Metal_Code
 {
@@ -19,6 +21,15 @@ namespace Metal_Code
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            // Заставляем WPF использовать текущую культуру ОС для форматирования
+            FrameworkElement.LanguageProperty.OverrideMetadata(
+                typeof(FrameworkElement),
+                new FrameworkPropertyMetadata(
+                    XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.IetfLanguageTag)));
+
+            // Включаем замену точки на запятую
+            NumericInputHelper.Register();
+
             // 🔑 Фиксируем рабочую директорию = папка с EXE
             Environment.CurrentDirectory = AppDomain.CurrentDomain.BaseDirectory;
 

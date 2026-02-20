@@ -159,8 +159,11 @@
 
         </StackPanel>
 
-        <ScrollViewer>
-            <StackPanel x:Name="DetailsStack"/>
-        </ScrollViewer>
+        <hc:ScrollViewer x:Name="DetailsScroll" IsInertiaEnabled="True">
+            <StackPanel>
+                <StackPanel x:Name="DetailsStack" Margin="5"/>
+                <hc:GotoTop Target="{Binding ElementName=DetailsScroll}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" AnimationTime="500" ToolTip="Наверх"/>
+            </StackPanel>
+        </hc:ScrollViewer>
     </DockPanel>
 </Window>

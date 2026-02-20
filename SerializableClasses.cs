@@ -103,15 +103,12 @@ namespace Metal_Code
                 {
                     price = value;
                     OnPropertyChanged(nameof(Price));
+                    OnPropertyChanged(nameof(Total));
                 }
             }
         }
 
-        public float Total
-        {
-            get => Price * Count;
-            set { }
-        }
+        public float Total => Price * Count;
 
         [Browsable(false)]
         public float Mass { get; set; }
@@ -233,6 +230,23 @@ namespace Metal_Code
             }
         }
 
+        /// <summary>
+        /// Длина трубы в мм (для трубных деталей)
+        /// Для листовых деталей не используется
+        /// </summary>
+        [OptionalField]
+        private double _length;
+        [Browsable(false)]
+        public double Length
+        {
+            get => _length;
+            set
+            {
+                _length = value;
+                OnPropertyChanged();
+            }
+        }
+
         public Dictionary<int, List<string>> PropsDict = new();
 
         [OptionalField]
@@ -249,7 +263,7 @@ namespace Metal_Code
     public enum PartType
     {
         Rectangle,        // Прямоугольная листовая деталь
-        Round,            // Круглая листовая деталь
+        Round,            // Круглая листовая деталь или круг (пруток)
         RectangularTube,  // Прямоугольная труба
         RoundTube         // Круглая труба
     }

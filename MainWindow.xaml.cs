@@ -599,10 +599,10 @@ namespace Metal_Code
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.6.8.5",
-                releaseDate: new DateTime(2026, 01, 19),
-                description: "Добавлена поддержка скрытия деталей в КП.",
-                screenshotPath: "/Updates/v2.6.8.5_2026-01-19.png"
+                version: "v2.6.8.9",
+                releaseDate: new DateTime(2026, 02, 20),
+                description: "Добавлена поддержка стандартных деталей в КП.",
+                screenshotPath: "/Updates/v2.6.8.9_2026-02-20.png"
             );
 
             // Получаем новые обновления
@@ -1275,7 +1275,10 @@ namespace Metal_Code
                     {
                         foreach (PartControl part in _cut.Parts)
                         {
-                            part.Part.Description = _cut is CutControl cut ? cut.HaveCut || cut.HaveNitro ? "Л" : "Б" : "Т";
+                            if (_cut is CutControl && _cut.HaveCut) part.Part.Description = "Л";
+                            else if (_cut is PipeControl && _cut.HaveCut) part.Part.Description = "Т";
+                            else part.Part.Description = "Б";
+
                             if (part.Part.PropsDict.ContainsKey(100) && part.Part.PropsDict[100].Count > 2)
                                 part.Part.Accuracy = _cut is CutControl ?
                                     $"{part.Part.PropsDict[100][0].Trim()}x{part.Part.PropsDict[100][1].Trim()}"
@@ -2185,7 +2188,10 @@ namespace Metal_Code
                             {
                                 foreach (Part p in _cut.PartDetails)
                                 {
-                                    p.Description = _cut is CutControl cut ? cut.HaveCut || cut.HaveNitro ? "Л" : "Б" : "Т";
+                                    if (_cut is CutControl && _cut.HaveCut) p.Description = "Л";
+                                    else if (_cut is PipeControl && _cut.HaveCut) p.Description = "Т";
+                                    else p.Description = "Б";
+                                    
                                     if (p.PropsDict.ContainsKey(100) && p.PropsDict[100].Count > 2)
                                         p.Accuracy = _cut is CutControl ?
                                             $"{p.PropsDict[100][0].Trim()}x{p.PropsDict[100][1].Trim()}"
@@ -2479,7 +2485,6 @@ namespace Metal_Code
                     {
                         LooseParts[i].Price = (float)Math.Ceiling(LooseParts[i].Price * Ratio * ((100 + BonusRatio) / 100));
                         LooseParts[i].Price = LooseParts[i].Price < LooseParts[i].FixedPrice ? LooseParts[i].FixedPrice : LooseParts[i].Price;
-                        LooseParts[i].Total = LooseParts[i].Count * LooseParts[i].Price;
                     }
                     DataTable loosePartsTable = ToDataTable(LooseParts);
                     worksheet.Cells[row, 1].LoadFromDataTable(loosePartsTable, false);
@@ -2580,6 +2585,8 @@ namespace Metal_Code
             worksheet.Column(13).Hidden = true;
             worksheet.Column(14).Hidden = true;
             worksheet.Column(15).Hidden = true;
+            worksheet.Column(16).Hidden = true;
+            worksheet.Column(17).Hidden = true;
 
             if (CheckConstruct.IsChecked == null)       //если требуется указать конструкторские работы отдельной строкой
             {

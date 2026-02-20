@@ -1,15 +1,10 @@
-﻿using MathNet.Numerics.Statistics.Mcmc;
-using Metal_Code.Utils;
-using NPOI.SS.UserModel;
-using Org.BouncyCastle.Bcpg;
+﻿using Metal_Code.Utils;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 
 namespace Metal_Code
 {
@@ -21,8 +16,6 @@ namespace Metal_Code
         public readonly UserControl owner;
         public ObservableCollection<PartControl> Parts { get; set; }
 
-        private readonly string[] standartParts = { "Прямоугольник", "Круг" };
-
         private string[] works = { "Выберите работу", "Гибка", "Сварка", "Окраска", "Резьба", "Зенковка", "Сверловка",
                                     "Вальцовка", "Цинкование", "Фрезеровка", "Заклепки", "Аквабластинг"};
 
@@ -32,7 +25,7 @@ namespace Metal_Code
             owner = _owner;
             Parts = _parts;
             partsList.ItemsSource = Parts;
-            StandartPartsDrop.ItemsSource = standartParts;
+            InitializeStandartPartsDropdown();
 
             // Заполняем ComboBox работами
             WorksDrop.ItemsSource = works;
@@ -323,140 +316,320 @@ namespace Metal_Code
                 foreach (BendControl item in p.UserControls.OfType<BendControl>()) item.SetGroup("-");
         }
 
+        // инициализация списка стандартных деталей
+        private void InitializeStandartPartsDropdown()
+        {
+            if (owner is CutControl)        // Только листовые детали для листового контроллера
+            {
+                StandartPartsDrop.ItemsSource = new List<string>
+                {
+                    "Прямоугольник",
+                    "Круг",
+                };
+            }
+            else if (owner is PipeControl pipe)     // Только трубы для трубного контроллера
+            {
+                StandartPartsDrop.ItemsSource = new List<string>
+                {
+                    pipe.Tube == TubeType.round ? "Круглая труба" : "Профильная труба"
+                };
+            }
+
+            // Устанавливаем первый элемент по умолчанию
+            if (StandartPartsDrop.Items.Count > 0)
+                StandartPartsDrop.SelectedIndex = 0;
+        }
+
         // добавить стандартную деталь
         private void Add_StandartPart(object sender, RoutedEventArgs e)
         {
-            if (sender is Button btn && btn.Tag is string title
-                && owner is CutControl cut
-                && cut.work.type.MetalDrop.SelectedItem is Metal metal)
+            if (sender is Button btn && btn.Tag is string title && owner != null)
             {
-                // Создаём параметризованную стандартную деталь
-                var standartPart = new Part
+                // === ШАГ 1: Получаем общие параметры от контроллера ===
+                (Metal? metal, float thickness, string? metalName) = GetMetalAndThickness(owner);
+                if (metal == null || string.IsNullOrEmpty(metalName))
+                    return;
+
+                // === ШАГ 2: Создаём и настраиваем деталь (общая логика) ===
+                var part = CreateStandardPart(title, metalName, thickness, Parts.Count);
+                if (part == null) return;
+
+                PartPreviewGenerator.EnsureDisplayGeometry(part);
+
+                // === ШАГ 3: Открываем окно редактирования ===
+                var window = new StandartPartWindow(part);
+                if (window.ShowDialog() != true) return;
+
+                // === ШАГ 4: Обновляем геометрию и расчёты ===
+                UpdatePartAfterEdit(part, metal, thickness);
+
+                // === ШАГ 5: Добавляем деталь в соответствующий контроллер ===
+                if (!AddPartToController(owner, part, metal))
                 {
-                    Title = $"{title} {Parts.Count + 1}",
-                    Count = 1,
-                    Metal = metal.Name,
-                    Destiny = cut.work.type.S,
-                    PartType = title switch
-                    {
-                        "Круг" => PartType.Round,
-                        "Квадрат" => PartType.Rectangle,
-                        "Круглая труба" => PartType.RoundTube,
-                        "Прямоугольная труба" => PartType.RectangularTube,
-                        _ => PartType.Rectangle
-                    }
-                };
-
-                // Устанавливаем базовые размеры
-                if (standartPart.PartType == PartType.Round || standartPart.PartType == PartType.RoundTube)
-                {
-                    standartPart.Width = standartPart.Height = 30;
-                }
-                else if (standartPart.PartType == PartType.Rectangle || standartPart.PartType == PartType.RectangularTube)
-                {
-                    standartPart.Width = 60;
-                    standartPart.Height = 40;
-                }
-
-                PartPreviewGenerator.EnsureDisplayGeometry(standartPart);
-
-                // Открываем окно с контекстом StandartPart
-                var standartPartWindow = new StandartPartWindow(standartPart);
-                if (standartPartWindow.ShowDialog() == true)
-                {
-                    // Сбрасываем кэш, чтобы геометрия пересоздалась с новыми размерами
-                    standartPart.DisplayGeometry = null;
-
-                    // После редактирования в окне все данные уже обновлены в объекте standartPart
-                    PartPreviewGenerator.EnsureDisplayGeometry(standartPart);
-
-                    standartPart.PropsDict[100] = new()
-                    {
-                        $"{standartPart.Width}",
-                        $"{standartPart.Height}",
-                        $"{standartPart.Width}x{standartPart.Height}"
-                    };
-
-                    int pinholes = 0;
-
-                    // Пересчёт массы и длины реза
-                    if (standartPart.DisplayGeometry != null)
-                    {
-                        standartPart.Way = (float)Math.Round(TechItemCalculator.CalculateCuttingLength(standartPart.DisplayGeometry) / 1000, 3);
-                        pinholes = TechItemCalculator.CalculatePiercingCount(standartPart.DisplayGeometry);
-                    }
-
-                    if (standartPart.PartType == PartType.Round)
-                    {
-                        standartPart.Mass = (float)Math.Round(
-                            Math.PI * Math.Pow(standartPart.Width / 2, 2) * cut.work.type.S * metal.Density / 1000000,
-                            3);
-                    }
-                    else if (standartPart.PartType == PartType.RoundTube)
-                    {
-                        double outerR = standartPart.Width / 2;
-                        double innerR = outerR - standartPart.Destiny;
-                        standartPart.Way = (float)Math.Round(Math.PI * (outerR + innerR) * 2 / 1000, 3);
-                        standartPart.Mass = (float)Math.Round(
-                            Math.PI * (Math.Pow(outerR, 2) - Math.Pow(innerR, 2)) * cut.work.type.S * metal.Density / 1000000,
-                            3);
-                    }
-                    else if (standartPart.PartType == PartType.RectangularTube)
-                    {
-                        double innerW = standartPart.Width - 2 * standartPart.Destiny;
-                        double innerH = standartPart.Height - 2 * standartPart.Destiny;
-                        standartPart.Way = (float)Math.Round(
-                            (standartPart.Width + standartPart.Height + Math.Max(0, innerW) + Math.Max(0, innerH)) / 1000,
-                            3);
-                        standartPart.Mass = (float)Math.Round(
-                            (standartPart.Width * standartPart.Height - Math.Max(0, innerW) * Math.Max(0, innerH))
-                            * cut.work.type.S * metal.Density / 1000000,
-                            3);
-                    }
-                    else
-                    {
-                        standartPart.Mass = (float)Math.Round(
-                            standartPart.Width * standartPart.Height * cut.work.type.S * metal.Density / 1000000,
-                            3);
-                    }
-
-                    // Создаём контрол
-                    var partControl = new PartControl(owner, cut.work, standartPart);
-                    if (standartPart.DisplayGeometry != null)
-                    {
-                        partControl.Picture.Visibility = Visibility.Collapsed;
-                        partControl.GeometryViewbox.Visibility = Visibility.Visible;
-                    }
-
-                    // Добавляем в коллекции
-                    Parts.Add(partControl);
-                    cut.Parts ??= new();
-                    if (!cut.Parts.Contains(partControl)) cut.Parts.Add(partControl);
-
-                    cut.PartDetails ??= new();
-                    if (!cut.PartDetails.Contains(standartPart)) cut.PartDetails.Add(standartPart);
-
-                    // Обновляем интерфейс
-                    if (cut.TabItem?.Header is TextBlock block)
-                        block.Text = $"s{cut.work.type.S} {cut.work.type.MetalDrop.Text} ({cut.PartDetails.Sum(x => x.Count)} шт)";
-
-                    // Обновляем расчетные данные
-                    cut.WayTotal += standartPart.Way * standartPart.Count;
-                    cut.MassTotal += standartPart.Mass * standartPart.Count;
-
-                    cut.Items?.Add(new()
-                    {
-                        sheets = 1,
-                        sheetSize = $"{standartPart.Width}x{standartPart.Height}",
-                        way = standartPart.Way * standartPart.Count,
-                        pinholes = pinholes * standartPart.Count,
-                        mass = standartPart.Mass * standartPart.Count,
-                    });
-
-                    if (cut.Items?.Count > 0) cut.SumProperties(cut.Items);
-                    cut.work.type.MassCalculate();      // обновляем значение массы заготовки
+                    MessageBox.Show("Не удалось добавить деталь: неподдерживаемый тип контроллера",
+                        "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+        }
+
+        // Вспомогательные методы (вынесены для чистоты кода)
+
+        private (Metal?, float, string?) GetMetalAndThickness(object controller)
+        {
+            if (controller is CutControl cut &&
+                cut.work?.type?.MetalDrop?.SelectedItem is Metal m)
+            {
+                return (m, cut.work.type.S, m.Name);
+            }
+
+            if (controller is PipeControl pipe &&
+                pipe.work?.type?.MetalDrop?.SelectedItem is Metal p)
+            {
+                return (p, pipe.work.type.S, p.Name);
+            }
+
+            return (null, 0, null);
+        }
+
+        private Part? CreateStandardPart(string title, string metalName, float thickness, int countIndex)
+        {
+            TypeDetailControl? type = owner is PipeControl pipe ? pipe.work.type : null;
+
+            var partType = title switch
+            {
+                "Круг" => PartType.Round,
+                "Прямоугольник" => PartType.Rectangle,
+                "Круглая труба" => PartType.RoundTube,
+                "Профильная труба" => PartType.RectangularTube,
+                _ => PartType.Rectangle
+            };
+
+            var part = new Part
+            {
+                Title = $"{title} {countIndex + 1}",
+                Count = 1,
+                Metal = metalName,
+                Destiny = thickness,
+                PartType = partType
+            };
+
+            // Устанавливаем базовые размеры
+            if (partType == PartType.Round)
+            {
+                part.Width = part.Height = 30; // диаметр
+            }
+            else if (partType == PartType.Rectangle)
+            {
+                part.Width = 60;
+                part.Height = 40;
+            }
+            else if (partType == PartType.RoundTube)
+            {
+                part.Width = part.Height = type != null ? type.A : 30; // внешний диаметр
+                part.Length = 1000; // базовая длина 1 метр
+            }
+            else if (partType == PartType.RectangularTube)
+            {
+                part.Width = type != null ? type.A : 60;
+                part.Height = type != null ? type.B : 40;
+                part.Length = 1000; // базовая длина 1 метр
+            }
+
+            return part;
+        }
+
+        private void UpdatePartAfterEdit(Part part, Metal metal, float thickness)
+        {
+            // Сбрасываем кэш для перегенерации геометрии
+            part.DisplayGeometry = null;
+            PartPreviewGenerator.EnsureDisplayGeometry(part);
+
+            int pinholes = 0;
+            if (part.DisplayGeometry != null)
+            {
+                // Для труб длина реза = периметр сечения × количество прорезей
+                // Для листов - просто периметр фигуры
+                part.Way = (float)Math.Round(
+                    TechItemCalculator.CalculateCuttingLength(part.DisplayGeometry) / 1000, 3);
+                pinholes = TechItemCalculator.CalculatePiercingCount(part.DisplayGeometry);
+            }
+
+            // Расчёт массы в зависимости от типа
+            if (part.PartType == PartType.Round || part.PartType == PartType.Rectangle)
+            {
+                // Листовые детали - площадь × толщина × плотность
+                part.Mass = part.PartType switch
+                {
+                    PartType.Round => (float)Math.Round(
+                        Math.PI * Math.Pow(part.Width / 2, 2) * thickness * metal.Density / 1000000, 3),
+
+                    _ => (float)Math.Round( // Rectangle
+                        part.Width * part.Height * thickness * metal.Density / 1000000, 3)
+                };
+
+                // Обновляем PropsDict для листов
+                part.PropsDict[100] = new()
+                {
+                    $"{part.Width}",
+                    $"{part.Height}",
+                    $"{part.Width}x{part.Height}"
+                };
+            }
+            else
+            {
+                // Трубные детали - площадь сечения × длина × плотность
+                double crossSectionArea = part.PartType switch
+                {
+                    PartType.RoundTube => Math.PI * (
+                        Math.Pow(part.Width / 2, 2) -
+                        Math.Pow(part.Width / 2 - thickness, 2)),
+
+                    PartType.RectangularTube =>
+                        (part.Width * part.Height) -
+                        Math.Max(0, part.Width - 2 * thickness) * Math.Max(0, part.Height - 2 * thickness),
+
+                    _ => 0
+                };
+
+                part.Mass = (float)Math.Round(
+                    crossSectionArea * part.Length * metal.Density / 1000000, 3);
+
+                // Для труб длина реза = периметр внешнего + периметр внутреннего
+                if (part.PartType == PartType.RoundTube)
+                {
+                    double outerPerimeter = Math.PI * part.Width;
+                    double innerPerimeter = Math.PI * (part.Width - 2 * thickness);
+                    part.Way = (float)Math.Round((outerPerimeter + innerPerimeter) / 1000, 3);
+                }
+                else if (part.PartType == PartType.RectangularTube)
+                {
+                    double outerPerimeter = 2 * (part.Width + part.Height);
+                    double innerW = Math.Max(0, part.Width - 2 * thickness);
+                    double innerH = Math.Max(0, part.Height - 2 * thickness);
+                    double innerPerimeter = 2 * (innerW + innerH);
+                    part.Way = (float)Math.Round((outerPerimeter + innerPerimeter) / 1000, 3);
+                }
+
+                // Обновляем PropsDict для труб
+                part.PropsDict[100] = new() { $"{SquareToPaint(part)}", "", $"{part.Length}" };
+            }
+
+            // Сохраняем pinholes для последующего использования
+            part.PropsDict[200] = new() { pinholes.ToString() };
+        }
+
+        private double SquareToPaint(Part part)
+        {
+            if (owner is PipeControl pipe)
+            {
+                return pipe.Tube switch
+                {
+                    TubeType.rect => part.Length * (pipe.work.type.A + pipe.work.type.B) * 2 / 1000000,
+                    TubeType.round => (float)(part.Length * pipe.work.type.A * Math.PI / 1000000),
+                    TubeType.circle => (float)(2 * part.Length * pipe.work.type.A * Math.PI / 1000000),
+                    TubeType.square => part.Length * (pipe.work.type.A + pipe.work.type.B) * 2 / 1000000,
+                    TubeType.rod => 2 * (part.Length * pipe.work.type.A + part.Way * pipe.work.type.B + pipe.work.type.A * pipe.work.type.B) / 1000000,
+                    TubeType.channel => pipe.work.type.ChannelsSquare[pipe.work.type.SortDrop.SelectedIndex] * part.Mass / 1000,
+                    TubeType.corner => part.Length * pipe.work.type.S * (pipe.work.type.A + pipe.work.type.A - pipe.work.type.S) / 1000000,
+                    TubeType.freeform => part.Length * pipe.work.type.S * (pipe.work.type.A + pipe.work.type.B - pipe.work.type.S) / 1000000,
+                    TubeType.hbeam => pipe.work.type.BeamDict[pipe.work.type.TypeDetailDrop.Text][pipe.work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000,
+                    _ => 0,
+                };
+            }
+
+            return 0;
+        }
+
+        private bool AddPartToController(object controller, Part part, Metal metal)
+        {
+            if (controller is CutControl cut)
+            {
+                return AddToCutControl(cut, part, metal);
+            }
+
+            if (controller is PipeControl pipe)
+            {
+                return AddToPipeControl(pipe, part, metal);
+            }
+
+            return false;
+        }
+
+        private bool AddToCutControl(CutControl cut, Part part, Metal metal)
+        {
+            var partControl = new PartControl(owner, cut.work, part);
+            Parts.Add(partControl);
+
+            cut.Parts ??= new();
+            if (!cut.Parts.Contains(partControl)) cut.Parts.Add(partControl);
+
+            cut.PartDetails ??= new();
+            if (!cut.PartDetails.Contains(part)) cut.PartDetails.Add(part);
+
+            if (cut.TabItem?.Header is TextBlock block)
+                block.Text = $"s{cut.work?.type?.S} {cut.work?.type?.MetalDrop?.Text} ({cut.PartDetails?.Sum(x => x.Count)} шт)";
+
+            cut.WayTotal += part.Way * part.Count;
+            cut.MassTotal += part.Mass * part.Count;
+
+            // Специфичные для листа операции
+            int pinholes = int.TryParse(part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var p) ? p : 0;
+
+            cut.Items?.Add(new()
+            {
+                sheets = 1,
+                sheetSize = $"{part.Width}x{part.Height}",
+                way = part.Way * part.Count,
+                pinholes = pinholes * part.Count,
+                mass = part.Mass * part.Count,
+            });
+
+            if (cut.Items?.Count > 0) cut.SumProperties(cut.Items);
+            cut.work?.type?.MassCalculate();
+
+            return true;
+        }
+
+        private bool AddToPipeControl(PipeControl pipe, Part part, Metal metal)
+        {
+            var partControl = new PartControl(owner, pipe.work, part);
+            Parts.Add(partControl);
+
+            pipe.Parts ??= new();
+            if (!pipe.Parts.Contains(partControl)) pipe.Parts.Add(partControl);
+
+            pipe.PartDetails ??= new();
+            if (!pipe.PartDetails.Contains(part)) pipe.PartDetails.Add(part);
+
+            if (pipe.TabItem?.Header is TextBlock block)
+                block.Text = $"s{pipe.work?.type?.S} {pipe.work?.type?.MetalDrop?.Text} ({pipe.PartDetails?.Sum(x => x.Count)} шт)";
+
+            float mold = (float)Math.Round(part.Length * part.Count * 0.95f / 1000, 1);
+            pipe.Mold += mold;
+
+            if (pipe.work != null)
+            {
+                int count = (int)Math.Ceiling((double)(mold * 1000 / pipe.work.type.L));
+
+                int pinholes = int.TryParse(part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var p) ? p : 0;
+                pipe.Pinhole += pinholes * part.Count;
+
+                pipe.Way += (float)Math.Ceiling(part.Way * part.Count);
+
+                pipe.Items?.Add(new()
+                {
+                    sheets = count,
+                    sheetSize = $"{pipe.work?.type.L}",
+                    way = part.Way * part.Count,
+                    pinholes = pinholes * part.Count,
+                    mass = part.Mass * part.Count,
+                });
+
+                if (pipe.work != null) pipe.work.type.Count += count;
+                pipe?.SetTotalProperties();
+            }
+            
+            return true;
         }
     }
 }

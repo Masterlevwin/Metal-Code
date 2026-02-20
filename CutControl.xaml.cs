@@ -121,9 +121,7 @@ namespace Metal_Code
                     _savedPinhole = Pinhole;
 
                     // 2. Обнуляем параметры
-                    Way = 0;
-                    Marking = 0;
-                    Pinhole = 0;
+                    Way = Marking = Pinhole = 0;
 
                     // 3. Сворачиваем секцию с анимацией
                     if (_isExpanded)
@@ -307,10 +305,6 @@ namespace Metal_Code
             }
         }
 
-        private void LoadFiles(object sender, RoutedEventArgs e)
-        {
-            LoadFiles();
-        }
         public void LoadFiles()
         {
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);

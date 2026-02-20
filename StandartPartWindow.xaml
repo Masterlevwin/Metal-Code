@@ -3,12 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"      
-        xmlns:local="clr-namespace:Metal_Code"
+        xmlns:converters="clr-namespace:Metal_Code.Converters"
         mc:Ignorable="d"
         Title ="{Binding Title}" Topmost="True" ResizeMode="NoResize" Icon="/app_logo.jpeg" SizeToContent="WidthAndHeight" WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
-        <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:PartTypeToVisibilityConverter x:Key="PartTypeToVisibilityConverter"/>
     </Window.Resources>
 
     <StackPanel>
@@ -29,19 +29,19 @@
                 </Viewbox>
 
                 <StackPanel Margin="10,0,0,0">
-                    <StackPanel Orientation="Horizontal" Margin="5" Visibility="{Binding IsLaser, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal" Margin="5" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle'}">
                         <TextBlock Text="Высота" MinWidth="80" TextAlignment="Center" VerticalAlignment="Center"/>
                         <TextBox Text="{Binding Width}" Margin="10,0,0,0" MinWidth="50" MaxWidth="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                         <TextBlock Text="мм" Margin="10,0,0,0" MinWidth="20" TextAlignment="Center" VerticalAlignment="Center"/>
                     </StackPanel>
 
-                    <StackPanel Orientation="Horizontal" Margin="5" Visibility="{Binding IsLaser, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal" Margin="5" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle'}">
                         <TextBlock Text="Ширина" MinWidth="80" TextAlignment="Center" VerticalAlignment="Center"/>
                         <TextBox Text="{Binding Height}" Margin="10,0,0,0" MinWidth="50" MaxWidth="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                         <TextBlock Text="мм" Margin="10,0,0,0" MinWidth="20" TextAlignment="Center" VerticalAlignment="Center"/>
                     </StackPanel>
 
-                    <StackPanel Orientation="Horizontal" Margin="5" Visibility="{Binding IsPipe, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal" Margin="5" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='RoundTube,RectangularTube'}">
                         <TextBlock Text="Длина" MinWidth="80" TextAlignment="Center" VerticalAlignment="Center"/>
                         <TextBox Text="{Binding Length}" Margin="10,0,0,0" MinWidth="50" MaxWidth="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                         <TextBlock Text="мм" Margin="10,0,0,0" MinWidth="20" TextAlignment="Center" VerticalAlignment="Center"/>

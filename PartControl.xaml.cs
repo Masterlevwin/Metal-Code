@@ -429,5 +429,6 @@ namespace Metal_Code
         public float Mass {  get; set; }
         public float Way { get; set; }
         public int Pinhole { get; set; }
+        public bool HaveCut { get; set; }
     }
 }

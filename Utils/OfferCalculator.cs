@@ -27,7 +27,6 @@ namespace Metal_Code.Utils
                     Title = p.Title,
                     Count = p.Count,
                     Price = newPrice,
-                    Total = newPrice * p.Count,
                     Mass = p.Mass,
                     Way = p.Way,
                 },

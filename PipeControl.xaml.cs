@@ -1,18 +1,20 @@
 ﻿using ExcelDataReader;
-using OfficeOpenXml.Drawing;
+using Metal_Code.Utils;
 using OfficeOpenXml;
+using OfficeOpenXml.Drawing;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
+using System.Drawing.Printing;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
-using System.Text.RegularExpressions;
 using System.Windows.Media;
-using System.Collections.ObjectModel;
 using System.Windows.Media.Animation;
 
 namespace Metal_Code
@@ -88,24 +90,63 @@ namespace Metal_Code
             set => wayTotal = value;
         }
 
+        // Сохранённые значения для восстановления
+        private float _savedmold;
+        private float _savedWay = 0;
+        private int _savedPinhole = 0;
+
+        // Вычисляемое свойство для контента кнопки
+        public string ButtonContent => HaveCut ? "параметры" : "без трубореза";
+        public string ButtonTooltip => HaveCut ? "Показать/скрыть параметры резки"
+            : "Включите галочку «Резка», чтобы настроить параметры";
+
+        private bool haveCut = true;
+        public bool HaveCut
+        {
+            get => haveCut;
+            set
+            {
+                if (haveCut == value) return;
+
+                if (!value)
+                {
+                    // 1. Сохраняем текущие значения ПЕРЕД обнулением
+                    _savedmold = Mold;
+                    _savedWay = Way;
+                    _savedPinhole = Pinhole;
+
+                    // 2. Обнуляем параметры
+                    Mold = Way = Pinhole = 0;
+
+                    // 3. Сворачиваем секцию с анимацией
+                    if (_isExpanded)
+                    {
+                        _isExpanded = false;
+                        var collapse = FindResource("CollapseAnimation") as Storyboard;
+                        collapse?.Begin();
+                    }
+                }
+                else
+                {
+                    // Восстанавливаем сохранённые значения
+                    Mold = _savedmold;
+                    Way = _savedWay;
+                    Pinhole = _savedPinhole;
+                }
+
+                haveCut = value;
+                OnPropertyChanged(nameof(HaveCut));
+                OnPropertyChanged(nameof(ButtonContent)); // Обновляем текст кнопки
+                OnPropertyChanged(nameof(ButtonTooltip)); // Обновляем подсказку кнопки
+                work.type.HasMetal = HaveCut;
+            }
+        }
+
         private bool isMassPipe;
         public bool IsMassPipe
         {
             get => isMassPipe;
             set => isMassPipe = value;
-        }
-
-        public enum TubeType
-        {
-            rect,
-            round,
-            circle,
-            square,
-            rod,
-            channel,
-            corner,
-            hbeam,
-            freeform
         }
 
         public TubeType Tube { get; set; }
@@ -122,13 +163,12 @@ namespace Metal_Code
         public PipeControl(WorkControl _work, IDialogService _dialogService)
         {
             InitializeComponent();
+            DataContext = this;
             work = _work;
             dialogService = _dialogService;
 
             work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
             work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
-
-            BtnEnabled();       // проверяем типовую деталь: если не труба или балка, делаем кнопку неактивной и наоборот
 
             SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");      //переносим погонные метры из типовой детали
         }
@@ -165,9 +205,12 @@ namespace Metal_Code
 
         public void OnPriceChanged()
         {
-            BtnEnabled();
+            if (Mold == 0 || Way == 0 || Pinhole == 0)
+            {
+                work.SetResult(1, false);
+                return;
+            }
 
-            if (Mold == 0 || Way == 0 || Pinhole == 0) return;
             if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
             float price = 0;
@@ -189,13 +232,7 @@ namespace Metal_Code
             // стоимость резки трубы должна быть не ниже минимальной
             if (work.WorkDrop.SelectedItem is Work _work) price = price > 0 && price < _work.Price ? _work.Price : price;
 
-            work.SetResult(price, false);
-        }
-
-        private void BtnEnabled()
-        {
-            if (work.type.TypeDetailDrop.SelectedItem is TypeDetail type && type.Name == "Лист металла") CutBtn.IsEnabled = false;
-            else CutBtn.IsEnabled = true;
+            work.SetResult(HaveCut ? price : 1, false);
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
@@ -209,6 +246,7 @@ namespace Metal_Code
                 w.propsList.Add($"{Pinhole}");
                 w.propsList.Add($"{Tube}");
                 w.propsList.Add($"{IsMassPipe}");
+                w.propsList.Add($"{HaveCut}");
 
                 if (PartDetails?.Count > 0)
                 {
@@ -231,6 +269,7 @@ namespace Metal_Code
                 SetPinhole(w.propsList[2]);
                 if (w.propsList.Count > 3 && Enum.TryParse(w.propsList[3], out TubeType tube)) Tube = tube;
                 if (w.propsList.Count > 4 && bool.TryParse(w.propsList[4], out bool isMassPipe)) SetMassPipe(isMassPipe);
+                if (w.propsList.Count > 5 && bool.TryParse(w.propsList[5], out bool _haveCut)) HaveCut = _haveCut;
             }
         }
 
@@ -261,10 +300,6 @@ namespace Metal_Code
                 box.ToolTip = $"Количество проколов, шт\n(цена прокола - {MainWindow.M.MetalDict[metal.Name][destiny].Item2 * 3} руб)";
         }
 
-        private void LoadFiles(object sender, RoutedEventArgs e)
-        {
-            LoadFiles();
-        }
         public void LoadFiles()
         {
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
@@ -310,9 +345,8 @@ namespace Metal_Code
                 if (i == 0)
                 {
                     Parts = PartList(tables, paths[i]); // формируем список элементов PartControl
-                    SetImagesForParts(stream);          // устанавливаем поле Part.ImageBytes для каждой детали
                     PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
-                    AddPartsControl();                      // добавляем вкладку в "Список нарезанных деталей"
+                    AddPartsControl();                  // добавляем вкладку в "Список нарезанных деталей"
                     SetTotalProperties();               // определяем общую массу и общую длину нарезанных труб
                 }
                 else
@@ -337,7 +371,6 @@ namespace Metal_Code
                     if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is PipeControl _pipe)
                     {
                         _pipe.Parts = _pipe.PartList(tables, paths[i]);
-                        _pipe.SetImagesForParts(stream);
                         _pipe.PartsControl = new(_pipe, _pipe.Parts);
                         _pipe.AddPartsControl();
                         _pipe.SetTotalProperties();
@@ -542,14 +575,23 @@ namespace Metal_Code
                                 case TubeType.rect:
                                     part.Mass = (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * part.Way * metal.Density / 7850, 3);
                                     part.PropsDict[100] = new() { $"{part.Way * (work.type.A + work.type.B) * 2 / 1000000}", "", $"{part.Way}" };
+                                    part.PartType = PartType.RectangularTube;
+                                    part.Height = work.type.A;
+                                    part.Width = work.type.B;
                                     break;
                                 case TubeType.round:
                                     part.Mass = (float)Math.Round(Math.PI * work.type.S * (work.type.A - work.type.S) * part.Way * metal.Density / 1000000, 3);
                                     part.PropsDict[100] = new() { $"{part.Way * work.type.A * Math.PI / 1000000}", "", $"{part.Way}" };
+                                    part.PartType = PartType.RoundTube;
+                                    part.Height = work.type.A;
+                                    part.Width = work.type.B;
                                     break;
                                 case TubeType.square:
                                     part.Mass = (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * part.Way * metal.Density / 7850, 3);
                                     part.PropsDict[100] = new() { $"{part.Way * (work.type.A + work.type.B) * 2 / 1000000}", "", $"{part.Way}" };
+                                    part.PartType = PartType.RectangularTube;
+                                    part.Height = work.type.A;
+                                    part.Width = work.type.B;
                                     break;
                                 case TubeType.channel:
                                     part.Mass = (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * part.Way / 1000, 3);
@@ -566,6 +608,9 @@ namespace Metal_Code
                                         * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
                                         * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
                                     part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.B - work.type.S) / 1000000}", "", $"{part.Way}" };
+                                    part.PartType = PartType.RectangularTube;
+                                    part.Height = work.type.A;
+                                    part.Width = work.type.B;
                                     break;
                                 case TubeType.hbeam:
                                     part.Mass = (float)Math.Round(work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item1 * part.Way / 1000, 3);
@@ -585,6 +630,7 @@ namespace Metal_Code
                                     break;
                                 }
                             }
+                        PartPreviewGenerator.EnsureDisplayGeometry(part);
                         _parts.Add(new(this, work, part));
                         PartDetails?.Add(part);
                     }
@@ -631,7 +677,8 @@ namespace Metal_Code
                     {
                         work.type.L_prop.BorderBrush = new SolidColorBrush(Colors.Red);
                         work.type.L_prop.BorderThickness = new Thickness(2);
-                        MessageBox.Show("Труба не должна быть длиннее 6000 мм!");
+                        if (MainWindow.M.Log is null || !MainWindow.M.Log.Contains($"Труба не должна быть длиннее 6000 мм!"))
+                            MainWindow.M.Log += $"\nТруба не должна быть длиннее 6000 мм!\n";
                     }
 
                     Items?.Add(item);
@@ -876,22 +923,37 @@ namespace Metal_Code
                                 case TubeType.rect:
                                     part.Mass = (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * part.Way * metal.Density / 7850, 3);
                                     part.PropsDict[100] = new() { $"{part.Way * (work.type.A + work.type.B) * 2 / 1000000}", "", $"{part.Way}" };
+                                    part.PartType = PartType.RectangularTube;
+                                    part.Height = work.type.A;
+                                    part.Width = work.type.B;
                                     break;
                                 case TubeType.round:
                                     part.Mass = (float)Math.Round(Math.PI * work.type.S * (work.type.A - work.type.S) * part.Way * metal.Density / 1000000, 3);
                                     part.PropsDict[100] = new() { $"{part.Way * work.type.A * Math.PI / 1000000}", "", $"{part.Way}" };
+                                    part.PartType = PartType.RoundTube;
+                                    part.Height = work.type.A;
+                                    part.Width = work.type.B;
                                     break;
                                 case TubeType.circle:
                                     part.Mass = (float)Math.Round(Math.PI * work.type.A * work.type.A * part.Way / 4 * metal.Density / 1000000, 3);
                                     part.PropsDict[100] = new() { $"{2 * part.Way * work.type.A * Math.PI / 1000000}", "", $"{part.Way}" };
+                                    part.PartType = PartType.Round;
+                                    part.Height = work.type.A;
+                                    part.Width = work.type.B;
                                     break;
                                 case TubeType.square:
                                     part.Mass = (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * part.Way * metal.Density / 7850, 3);
                                     part.PropsDict[100] = new() { $"{part.Way * (work.type.A + work.type.B) * 2 / 1000000}", "", $"{part.Way}" };
+                                    part.PartType = PartType.RectangularTube;
+                                    part.Height = work.type.A;
+                                    part.Width = work.type.B;
                                     break;
                                 case TubeType.rod:
                                     part.Mass = (float)Math.Round(work.type.A * work.type.A * part.Way * metal.Density / 1000000, 3);
                                     part.PropsDict[100] = new() { $"{2 * (part.Way * work.type.A + part.Way * work.type.B + work.type.A * work.type.B) / 1000000}", "", $"{part.Way}" };
+                                    part.PartType = PartType.Rectangle;
+                                    part.Height = work.type.A;
+                                    part.Width = work.type.B;
                                     break;
                                 case TubeType.channel:
                                     part.Mass = (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * part.Way / 1000, 3);
@@ -908,12 +970,16 @@ namespace Metal_Code
                                         * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
                                         * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
                                     part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.B - work.type.S) / 1000000}", "", $"{part.Way}" };
+                                    part.PartType = PartType.RectangularTube;
+                                    part.Height = work.type.A;
+                                    part.Width = work.type.B;
                                     break;
                                 case TubeType.hbeam:
                                     part.Mass = (float)Math.Round(work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item1 * part.Way / 1000, 3);
                                     part.PropsDict[100] = new() { $"{work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000}", "", $"{part.Way}" };     //площадь окрашиваемой поверхности
                                     break;
                             }
+                            PartPreviewGenerator.EnsureDisplayGeometry(part);
                             _parts.Add(new(this, work, part));
                         }
                         else MainWindow.M.StatusBegin("Не удалось определить массу и размеры деталей. Возможно в названии деталей не указана толщина!");
@@ -1024,32 +1090,32 @@ namespace Metal_Code
             work.type.MassCalculate();          // обновляем значение массы заготовки
         }
 
-        public void SetImagesForParts(FileStream stream)        //метод извлечения картинок из файла и установки их для каждой детали в виде массива байтов
-        {
-            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
-
-            using var workbook = new ExcelPackage(stream);                      //получаем книгу Excel из потока
-            ExcelWorksheet worksheet = workbook.Workbook.Worksheets[0];
-
-            //извлекаем все изображения на листе в список картинок
-            List<ExcelPicture> pictures = worksheet.Drawings.Where(x => x.DrawingType == eDrawingType.Picture).Select(x => x.As.Picture).ToList();
-
-            if (PartDetails?.Count > 0 && pictures.Count > 0)
-                for (int i = 0; i < PartDetails.Count; i++)
-                    PartDetails[i].ImageBytes = pictures[0].Image.ImageBytes;   //для каждой детали записываем массив байтов соответствующей картинки
-                                                                                //в случае с трубами на данный момент картинка одна и та же!
-        }
-
-
         private bool _isExpanded = false;
 
         private void OnShowDetailsClick(object sender, RoutedEventArgs e)
         {
+            // Защита: кнопка кликабельна только при HaveCut = true (но для надёжности проверяем)
+            if (!HaveCut) return;
+
             _isExpanded = !_isExpanded;
 
             string storyboardKey = _isExpanded ? "ExpandAnimation" : "CollapseAnimation";
             var storyboard = FindResource(storyboardKey) as Storyboard;
             storyboard?.Begin();
         }
+    }
+
+
+    public enum TubeType
+    {
+        rect,
+        round,
+        circle,
+        square,
+        rod,
+        channel,
+        corner,
+        hbeam,
+        freeform
     }
 }
