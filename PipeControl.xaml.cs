@@ -49,7 +49,7 @@ namespace Metal_Code
             {
                 if (value != way)
                 {
-                    way = value;
+                    way = (float)Math.Ceiling(value);
                     OnPropertyChanged(nameof(Way));
                 }
             }
@@ -149,8 +149,8 @@ namespace Metal_Code
             set => isMassPipe = value;
         }
 
-        public TubeType Tube { get; set; }
         public Guid Id { get; } = Guid.NewGuid();
+        public TubeType Tube { get; set; }
         public ObservableCollection<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
         public TabItem TabItem { get; set; } = new();
@@ -170,7 +170,30 @@ namespace Metal_Code
             work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
             work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
 
+            SetTube();
             SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");      //переносим погонные метры из типовой детали
+        }
+
+        private void SetTube()
+        {
+            if (work.type.TypeDetailDrop.SelectedItem is TypeDetail type && type.Name != "Лист металла")
+                Tube = type.Name switch
+                {
+                    "Труба профильная" => TubeType.rect,
+                    "Труба круглая" => TubeType.round,
+                    "Труба круглая ВГП" => TubeType.round,
+                    "Уголок неравнополочный" => TubeType.freeform,
+                    "Уголок равнополочный" => TubeType.corner,
+                    "Круг" => TubeType.circle,
+                    "Квадрат" => TubeType.rod,
+                    "Швеллер П" => TubeType.channel,
+                    "Швеллер У" => TubeType.channel,
+                    "Двутавр" => TubeType.rect,
+                    "Двутавр парал" => TubeType.hbeam,
+                    "Двутавр широк" => TubeType.rect,
+                    "Двутавр колон" => TubeType.rect,
+                    _ => TubeType.rect,
+                };
         }
 
         private void SetMold(object sender, TextChangedEventArgs e)

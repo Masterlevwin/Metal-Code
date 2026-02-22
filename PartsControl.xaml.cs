@@ -440,81 +440,102 @@ namespace Metal_Code
 
         private void UpdatePartAfterEdit(Part part, Metal metal, float thickness)
         {
-            // Сбрасываем кэш для перегенерации геометрии
+            // Сбрасываем кэш геометрии
             part.DisplayGeometry = null;
-            PartPreviewGenerator.EnsureDisplayGeometry(part);
+
+            bool isSheetPart = part.PartType == PartType.Round || part.PartType == PartType.Rectangle;
+            bool isPipePart = part.PartType == PartType.RoundTube || part.PartType == PartType.RectangularTube;
 
             int pinholes = 0;
-            if (part.DisplayGeometry != null)
+            double cuttingLength = 0;
+
+            // === ШАГ 1: Генерация геометрии ДЛЯ ВИЗУАЛИЗАЦИИ ===
+            if (isSheetPart)
             {
-                // Для труб длина реза = периметр сечения × количество прорезей
-                // Для листов - просто периметр фигуры
-                part.Way = (float)Math.Round(
-                    TechItemCalculator.CalculateCuttingLength(part.DisplayGeometry) / 1000, 3);
-                pinholes = TechItemCalculator.CalculatePiercingCount(part.DisplayGeometry);
+                // Листы: визуализируем с отверстиями
+                PartPreviewGenerator.EnsureDisplayGeometryWithHoles(part);
+            }
+            else if (isPipePart)
+            {
+                // Трубы: визуализируем ТОЛЬКО сечение (без отверстий!)
+                PartPreviewGenerator.EnsureDisplayGeometry(part);
             }
 
-            // Расчёт массы в зависимости от типа
-            if (part.PartType == PartType.Round || part.PartType == PartType.Rectangle)
+            // === ШАГ 2: Расчёт длины реза и проколов ===
+            if (part.DisplayGeometry != null)
             {
-                // Листовые детали - площадь × толщина × плотность
+                // Базовая длина реза из геометрии (периметр сечения)
+                cuttingLength = TechItemCalculator.CalculateCuttingLength(part.DisplayGeometry);
+
+                // Дополнительная длина реза за счёт отверстий
+                if (part.HoleGroups?.Count > 0)
+                {
+                    foreach (var group in part.HoleGroups)
+                    {
+                        double holePerimeter = Math.PI * group.Diameter; // Периметр одного отверстия
+                        cuttingLength += holePerimeter * group.Count;   // × количество отверстий в группе
+                    }
+                }
+
+                // Расчёт проколов
+                if (isSheetPart)
+                {
+                    // Для листов — проколы = количество замкнутых контуров в геометрии
+                    pinholes = TechItemCalculator.CalculatePiercingCount(part.DisplayGeometry);
+                }
+                else if (isPipePart)
+                {
+                    // Для труб — проколы = количество отверстий (каждое отверстие = 1 прокол при сверлении)
+                    if (part.HoleGroups != null) pinholes = part.HoleGroups.Sum(g => g.Count);
+                }
+            }
+
+            part.Way = (float)Math.Round(cuttingLength / 1000, 3);
+
+            // === ШАГ 3: Расчёт массы ===
+            if (isSheetPart)
+            {
                 part.Mass = part.PartType switch
                 {
                     PartType.Round => (float)Math.Round(
                         Math.PI * Math.Pow(part.Width / 2, 2) * thickness * metal.Density / 1000000, 3),
-
-                    _ => (float)Math.Round( // Rectangle
+                    _ => (float)Math.Round(
                         part.Width * part.Height * thickness * metal.Density / 1000000, 3)
                 };
 
-                // Обновляем PropsDict для листов
                 part.PropsDict[100] = new()
                 {
                     $"{part.Width}",
                     $"{part.Height}",
-                    $"{part.Width}x{part.Height}"
+                    part.PartType == PartType.Round
+                                    ? $"Ø{part.Width}"
+                                    : $"{part.Width}x{part.Height}"
                 };
             }
-            else
+            else if (isPipePart)
             {
-                // Трубные детали - площадь сечения × длина × плотность
                 double crossSectionArea = part.PartType switch
                 {
                     PartType.RoundTube => Math.PI * (
                         Math.Pow(part.Width / 2, 2) -
                         Math.Pow(part.Width / 2 - thickness, 2)),
-
                     PartType.RectangularTube =>
                         (part.Width * part.Height) -
                         Math.Max(0, part.Width - 2 * thickness) * Math.Max(0, part.Height - 2 * thickness),
-
                     _ => 0
                 };
 
                 part.Mass = (float)Math.Round(
                     crossSectionArea * part.Length * metal.Density / 1000000, 3);
 
-                // Для труб длина реза = периметр внешнего + периметр внутреннего
-                if (part.PartType == PartType.RoundTube)
-                {
-                    double outerPerimeter = Math.PI * part.Width;
-                    double innerPerimeter = Math.PI * (part.Width - 2 * thickness);
-                    part.Way = (float)Math.Round((outerPerimeter + innerPerimeter) / 1000, 3);
-                }
-                else if (part.PartType == PartType.RectangularTube)
-                {
-                    double outerPerimeter = 2 * (part.Width + part.Height);
-                    double innerW = Math.Max(0, part.Width - 2 * thickness);
-                    double innerH = Math.Max(0, part.Height - 2 * thickness);
-                    double innerPerimeter = 2 * (innerW + innerH);
-                    part.Way = (float)Math.Round((outerPerimeter + innerPerimeter) / 1000, 3);
-                }
-
-                // Обновляем PropsDict для труб
-                part.PropsDict[100] = new() { $"{SquareToPaint(part)}", "", $"{part.Length}" };
+                part.PropsDict[100] = new() {
+                    $"{SquareToPaint(part)}",
+                    "",
+                    $"{part.Length}"
+                };
             }
 
-            // Сохраняем pinholes для последующего использования
+            // === ШАГ 4: Сохранение данных об отверстиях ===
             part.PropsDict[200] = new() { pinholes.ToString() };
         }
 

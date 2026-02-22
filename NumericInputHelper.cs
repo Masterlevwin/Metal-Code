@@ -1,22 +1,31 @@
-﻿using System.Windows;
+﻿using System;
+using System.ComponentModel;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 
 namespace Metal_Code
 {
     public static class NumericInputHelper
     {
-        // Метод для глобальной регистрации (вызывать один раз при старте)
+        // Числовые типы, для которых нужна замена точки на запятую
+        private static readonly Type[] NumericTypes =
+        {
+        typeof(int), typeof(long), typeof(float), typeof(double),
+        typeof(decimal), typeof(short), typeof(byte),
+        typeof(uint), typeof(ulong), typeof(ushort), typeof(sbyte)
+    };
+
+        // Метод для глобальной регистрации
         public static void Register()
         {
-            // Перехват ввода текста (для всех TextBox)
             EventManager.RegisterClassHandler(
                 typeof(TextBox),
                 TextBox.PreviewTextInputEvent,
                 new TextCompositionEventHandler(TextBox_PreviewTextInput),
                 true);
 
-            // Перехват вставки из буфера (используем DataObject.PastingEvent)
             EventManager.RegisterClassHandler(
                 typeof(TextBox),
                 DataObject.PastingEvent,
@@ -24,7 +33,7 @@ namespace Metal_Code
                 true);
         }
 
-        // Метод для точечного подключения к конкретному TextBox
+        // Метод для точечного подключения
         public static void AttachNumericInput(TextBox textBox)
         {
             textBox.PreviewTextInput += TextBox_PreviewTextInput;
@@ -33,38 +42,82 @@ namespace Metal_Code
 
         private static void TextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
-            // Если ввели точку — заменяем на запятую
             if (e.Text == ".")
             {
                 var textBox = (TextBox)sender;
-                e.Handled = true; // Блокируем стандартный ввод точки
 
-                int cursor = textBox.CaretIndex;
-                // Вставляем запятую вместо точки
-                textBox.Text = textBox.Text.Insert(cursor, ",");
-                textBox.CaretIndex = cursor + 1;
+                // Проверяем, привязан ли TextBox к числовому свойству
+                if (IsBoundToNumericProperty(textBox))
+                {
+                    e.Handled = true;
+                    int cursor = textBox.CaretIndex;
+                    textBox.Text = textBox.Text.Insert(cursor, ",");
+                    textBox.CaretIndex = cursor + 1;
+                }
+                // Если свойство строковое — точка вводится как есть
             }
-            // Ввод запятой разрешаем (она валидна для ru-RU)
-            // Цифры разрешены по умолчанию
         }
 
         private static void TextBox_Pasting(object sender, DataObjectPastingEventArgs e)
         {
             if (e.DataObject.GetDataPresent(DataFormats.Text))
             {
-                string? text = e.DataObject.GetData(DataFormats.Text) as string;
-                if (!string.IsNullOrEmpty(text))
-                {
-                    // При вставке заменяем точки на запятые
-                    text = text.Replace('.', ',');
+                var textBox = (TextBox)sender;
 
-                    // Создаем новый объект данных с исправленным текстом
-                    e.DataObject = new DataObject(DataFormats.Text, text);
+                // Применяем замену только для числовых полей
+                if (IsBoundToNumericProperty(textBox))
+                {
+                    string? text = e.DataObject.GetData(DataFormats.Text) as string;
+                    if (!string.IsNullOrEmpty(text))
+                    {
+                        text = text.Replace('.', ',');
+                        e.DataObject = new DataObject(DataFormats.Text, text);
+                    }
                 }
             }
             else
             {
                 e.CancelCommand();
+            }
+        }
+
+        /// <summary>
+        /// Проверяет, привязан ли TextBox к свойству числового типа
+        /// </summary>
+        private static bool IsBoundToNumericProperty(TextBox textBox)
+        {
+            try
+            {
+                // Получаем привязку для свойства Text
+                BindingExpression binding = textBox.GetBindingExpression(TextBox.TextProperty);
+                if (binding == null)
+                    return false;
+
+                // Получаем информацию о свойстве
+                PropertyDescriptor? property = binding.ResolvedSourcePropertyName != null
+                    ? TypeDescriptor.GetProperties(binding.ResolvedSource)
+                        .Find(binding.ResolvedSourcePropertyName, true)
+                    : null;
+
+                if (property != null)
+                {
+                    Type propertyType = property.PropertyType;
+
+                    // Проверяем, является ли тип числовым
+                    return Array.Exists(NumericTypes, t => t == propertyType) ||
+                           propertyType == typeof(float?) ||  // Nullable типы
+                           propertyType == typeof(double?) ||
+                           propertyType == typeof(decimal?) ||
+                           propertyType == typeof(int?) ||
+                           propertyType == typeof(long?);
+                }
+
+                return false;
+            }
+            catch
+            {
+                // В случае ошибки считаем, что поле не числовое (безопасное поведение)
+                return false;
             }
         }
     }

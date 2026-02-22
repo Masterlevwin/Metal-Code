@@ -247,6 +247,9 @@ namespace Metal_Code
             }
         }
 
+        [OptionalField]
+        public List<HoleGroup> HoleGroups = new();
+
         public Dictionary<int, List<string>> PropsDict = new();
 
         [OptionalField]
@@ -257,6 +260,53 @@ namespace Metal_Code
             Title = _name;
             Count = _count;
             Accuracy = _accuracy;
+        }
+    }
+
+
+    public class Hole
+    {
+        public double Diameter { get; set; }
+
+        public Hole(double diameter)
+        {
+            Diameter = diameter;
+        }
+    }
+
+    [Serializable]
+    public class HoleGroup
+    {
+        private int _count;
+        private double _diameter;
+
+        public double Diameter
+        {
+            get => _diameter;
+            set
+            {
+                _diameter = Math.Max(1, Math.Min(100, value)); // Ограничение: 1-100мм
+            }
+        }
+
+        public int Count
+        {
+            get => _count;
+            set
+            {
+                _count = Math.Max(1, Math.Min(100, value)); // Ограничение: 1-100 шт
+            }
+        }
+
+        /// <summary>
+        /// Общая площадь всех отверстий в группе
+        /// </summary>
+        public double TotalArea => Count * Math.PI * Math.Pow(Diameter / 2, 2);
+
+        public HoleGroup(double diameter = 10, int count = 1)
+        {
+            Diameter = diameter;
+            Count = count;
         }
     }
 

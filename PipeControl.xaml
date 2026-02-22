@@ -109,7 +109,7 @@
                 <StackPanel Width="50">
                     <TextBlock Text="пог м" HorizontalAlignment="Center"/>
                     <TextBox x:Name="MoldTextBox"
-                             Text="{Binding Mold, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             Text="{Binding Mold}"
                              TextChanged="SetMold" ToolTip="Длина трубы, пог м"
                              HorizontalContentAlignment="Center"
                              VerticalContentAlignment="Center"
@@ -120,7 +120,7 @@
                 <StackPanel Margin="5,0,0,0" Width="50">
                     <TextBlock Text="м" HorizontalAlignment="Center"/>
                     <TextBox x:Name="WayTextBox"
-                             Text="{Binding Way, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             Text="{Binding Way}"
                              TextChanged="SetWay" ToolTip="Длина пути резки, м"
                              HorizontalContentAlignment="Center"
                              VerticalContentAlignment="Center"
@@ -131,7 +131,7 @@
                 <StackPanel Margin="5,0,0,0" Width="40">
                     <TextBlock Text="шт" HorizontalAlignment="Center"/>
                     <TextBox x:Name="PinholeTextBox"
-                             Text="{Binding Pinhole, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             Text="{Binding Pinhole}"
                              TextChanged="SetPinhole" ToolTip="Количество проколов, шт"
                              HorizontalContentAlignment="Center"
                              VerticalContentAlignment="Center"

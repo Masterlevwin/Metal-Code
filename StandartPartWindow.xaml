@@ -24,11 +24,86 @@
                     <Button Content="Отмена" Margin="20,0,0,0" IsCancel="True"/>
                 </StackPanel>
 
-                <Viewbox x:Name="GeometryViewbox" Stretch="Uniform" Height="60" Width="60">
+                <!-- Секция отверстий -->
+                <GroupBox Header="Отверстия" DockPanel.Dock="Bottom" Margin="5" Padding="5">
+                    <StackPanel>
+                        <TextBlock Text="Добавьте группы отверстий" 
+                                       FontStyle="Italic" 
+                                       Margin="0,0,0,10"
+                                       Visibility="{Binding HoleGroups.Count}"/>
+
+                        <!-- Форма добавления новой группы -->
+                        <Border BorderBrush="Gray" BorderThickness="1" Padding="10" Margin="0,0,0,10" 
+                                    CornerRadius="3" Background="#F9F9F9">
+                            <StackPanel>
+                                <TextBlock Text="Новая группа отверстий:" FontWeight="Bold" Margin="0,0,0,5"/>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
+                                    <TextBlock Text="Диаметр" MinWidth="80" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="DiameterInput" Text="10" MinWidth="50" MaxWidth="50" 
+                                                 VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                    <TextBlock Text="мм" Margin="5,0,20,0" VerticalAlignment="Center"/>
+
+                                    <TextBlock Text="Количество" MinWidth="80" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="CountInput" Text="1" MinWidth="50" MaxWidth="50" 
+                                                 VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                    <TextBlock Text="шт" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <Button Content="+ Добавить группу" Click="AddHoleGroup_Click" 
+                                            HorizontalAlignment="Left" Margin="0,5,0,0" Padding="10,3"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Список добавленных групп -->
+                        <ItemsControl ItemsSource="{Binding HoleGroups}" Margin="0,5,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="LightGray" BorderThickness="0,0,0,1" Padding="5" Margin="0,2,0,2">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="⌀" VerticalAlignment="Center" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding Diameter, StringFormat={}{0:F1}}" 
+                                                           VerticalAlignment="Center" MinWidth="30"/>
+                                            <TextBlock Text="мм ×" VerticalAlignment="Center" Margin="5,0,5,0"/>
+                                            <TextBlock Text="{Binding Count}" VerticalAlignment="Center" MinWidth="20" FontWeight="Bold"/>
+                                            <TextBlock Text="шт" VerticalAlignment="Center" Margin="5,0,0,0"/>
+
+                                            <Button Content="×" Margin="15,0,0,0" Padding="8,2" 
+                                                        Click="RemoveHoleGroup_Click" Tag="{Binding}"
+                                                        ToolTip="Удалить группу"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <!-- Статистика -->
+                        <StackPanel Margin="0,10,0,0" Visibility="{Binding HoleGroups.Count}">
+                            <Border BorderBrush="DarkGray" BorderThickness="1" Padding="8" CornerRadius="3" 
+                                        Background="#F0F8FF">
+                                <StackPanel>
+                                    <TextBlock Text="Статистика:" FontWeight="Bold" Margin="0,0,0,5"/>
+                                    <TextBlock x:Name="HoleStatsText" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Предупреждение о ошибках -->
+                        <Border x:Name="ValidationErrorBorder" Visibility="Collapsed" 
+                                    BorderBrush="Red" BorderThickness="1" Padding="8" Margin="0,10,0,0"
+                                    CornerRadius="3" Background="#FFF0F0">
+                            <StackPanel>
+                                <TextBlock Text="⚠ Ошибки размещения:" FontWeight="Bold" Foreground="Red" Margin="0,0,0,3"/>
+                                <TextBlock x:Name="ValidationErrorMessage" Foreground="DarkRed" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </GroupBox>
+
+                <Viewbox x:Name="GeometryViewbox" Stretch="Uniform" Height="100" Width="100" Margin="5">
                     <Path Data="{Binding DisplayGeometry}" Stroke="Black" StrokeThickness="{Binding VisualStrokeThickness}" Stretch="Fill"/>
                 </Viewbox>
 
-                <StackPanel Margin="10,0,0,0">
+                <StackPanel Margin="5">
                     <StackPanel Orientation="Horizontal" Margin="5" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle'}">
                         <TextBlock Text="Высота" MinWidth="80" TextAlignment="Center" VerticalAlignment="Center"/>
                         <TextBox Text="{Binding Width}" Margin="10,0,0,0" MinWidth="50" MaxWidth="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>

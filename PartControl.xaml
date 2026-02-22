@@ -43,9 +43,9 @@
 
             <StackPanel Orientation="Horizontal" Margin="3">
                 <TextBox Text="{Binding Title}" TextWrapping="Wrap" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="90" Height="60"/>
-                <Grid Background="White" Margin="5,0,0,0">
-                    <Image x:Name="Picture" MouseWheel="ViewPopupDimensions" Loaded="SetPicture" MouseLeftButtonDown="OpenPlan" Height="60" Width="60"/>
-                    <Viewbox x:Name="GeometryViewbox" Stretch="Uniform" MouseWheel="ViewPopupDimensions" Loaded="SetPicture" Height="60" Width="60" MouseLeftButtonDown="OpenPlan" Visibility="Collapsed">
+                <Grid Background="White" Margin="5,0,0,0" MouseWheel="ViewPopupDimensions">
+                    <Image x:Name="Picture" Loaded="SetPicture" MouseLeftButtonDown="OpenPlan" Height="60" Width="60"/>
+                    <Viewbox x:Name="GeometryViewbox" Stretch="Uniform" Loaded="SetPicture" Height="60" Width="60" MouseLeftButtonDown="OpenPlan" Visibility="Collapsed">
                         <Path Data="{Binding DisplayGeometry}" Stroke="Black" StrokeThickness="{Binding VisualStrokeThickness}" Stretch="Fill"/>
                     </Viewbox>
                 </Grid>
