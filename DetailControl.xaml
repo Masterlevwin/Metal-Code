@@ -17,7 +17,7 @@
                 <TextBlock Text="N" VerticalAlignment="Top" FontSize="10" Margin="10,0,0,0" MinWidth="8"/>
                 <TextBox ToolTip="Введите количество деталей" Text="{Binding Count}" TextChanged="SetCount" x:Name="Count" MaxWidth="40" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" Foreground="Blue"/>
                 
-                <Button Margin="25,0,0,0" Click="ShowDetailData" Padding="2" BorderThickness="0" ToolTip="Сделать простой раскрой">
+                <Button Margin="25,0,0,0" Click="ShowDetailData" Padding="2" BorderThickness="0" ToolTip="Сделать простой раскрой" Visibility="Hidden">
                     <Image Source="Images/nesting.png"/>
                 </Button>
 

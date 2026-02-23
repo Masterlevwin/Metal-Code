@@ -1,4 +1,5 @@
 ﻿using ExcelDataReader;
+using Metal_Code.Utils;
 using Microsoft.Win32;
 using OfficeOpenXml;
 using OfficeOpenXml.Drawing;
@@ -826,6 +827,8 @@ namespace Metal_Code
         public string metal = "ст3";
         [OptionalField]
         public string destiny = "1";
+        [OptionalField]
+        public List<NestingSheet>? NestingSheets;
     }
 
     public class ExcelDialogService : IDialogService

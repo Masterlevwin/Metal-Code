@@ -3734,7 +3734,7 @@ namespace Metal_Code
             var excludedOps = new HashSet<string> { "Л", "Б", "Т", "Лазерная резка", "Труборез" };
 
             // Словарь: операция → список деталей
-            var workGroups = new Dictionary<string, List<(string Name, object Count, byte[]? Bytes, string Dimensions)>>();
+            var workGroups = new Dictionary<string, List<(string? Name, object Count, byte[]? Bytes, string Dimensions)>>();
 
             // Общая коллекция деталей, приведенная к анонимному типу для группировки по работам
             var combined = DetailControls.Where(d => !d.Detail.IsComplect)
@@ -3770,7 +3770,7 @@ namespace Metal_Code
                     string opName = operationsMap.TryGetValue(opCode, out var name) ? name : opCode;
 
                     if (!workGroups.ContainsKey(opName))
-                        workGroups[opName] = new List<(string, object, byte[]?, string)>();
+                        workGroups[opName] = new List<(string?, object, byte[]?, string)>();
 
                     workGroups[opName].Add((item.Title, item.Count, item.ImageBytes, item.Dimensions));
                 }

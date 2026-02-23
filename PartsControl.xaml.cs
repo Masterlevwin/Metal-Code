@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace Metal_Code
 {
@@ -280,10 +281,55 @@ namespace Metal_Code
             {
                 if ($"{btn.Content}" == "Показать раскладки" && owner is ICut cut && cut.Items?.Count > 0)
                 {
-                    List<Image> images = new();
+                    imagesList.Items.Clear();
+
                     foreach (LaserItem item in cut.Items)
                     {
-                        if (item.imageBytes is not null)
+                        if (item.NestingSheets != null && item.NestingSheets.Count > 0)
+                        {
+
+                            var sheet = item.NestingSheets[0]; // Берём первый (единственный) лист из группы
+
+                            var preview = new NestingPreviewControl
+                            {
+                                Height = 320,
+                                Margin = new Thickness(15, 0, 5, 0)
+                            };
+                            preview.ShowSheet(sheet);
+
+                            // Добавляем подпись с типом листа
+                            var border = new Border
+                            {
+                                Child = preview,
+                                BorderBrush = item.sheets > 1 ? Brushes.Orange : Brushes.Gray,
+                                BorderThickness = new Thickness(1),
+                                CornerRadius = new CornerRadius(3),
+                                Padding = new Thickness(5)
+                            };
+
+                            // Добавляем информацию о листе
+                            var stack = new StackPanel { Orientation = Orientation.Vertical };
+                            stack.Children.Add(border);
+
+                            // Подпись с размером, количеством деталей и количеством листов
+                            string sheetInfo = $"{item.sheetSize} ({item.sheets} шт)\n{sheet.Parts.Count} деталей";
+
+                            var infoText = new TextBlock
+                            {
+                                Text = sheetInfo,
+                                FontSize = 10,
+                                FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal,
+                                Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.Gray,
+                                HorizontalAlignment = HorizontalAlignment.Center,
+                                Margin = new Thickness(0, 5, 0, 5),
+                                TextAlignment = TextAlignment.Center
+                            };
+                            stack.Children.Add(infoText);
+
+                            imagesList.Items.Add(stack);
+
+                        }
+                        else if (item.imageBytes is not null)
                         {
                             Image _img = new()
                             {
@@ -291,10 +337,9 @@ namespace Metal_Code
                                 Margin = new Thickness(5),
                                 Height = 320
                             };
-                            images.Add(_img);
+                            imagesList.Items.Add(_img);
                         }
                     }
-                    imagesList.ItemsSource = images;
 
                     imagesScroll.Visibility = Visibility.Visible;
                     partsScroll.Visibility = Visibility.Collapsed;
@@ -590,25 +635,116 @@ namespace Metal_Code
             if (cut.TabItem?.Header is TextBlock block)
                 block.Text = $"s{cut.work?.type?.S} {cut.work?.type?.MetalDrop?.Text} ({cut.PartDetails?.Sum(x => x.Count)} шт)";
 
+            // === СОЗДАЁМ РАСКЛАДКУ ПО НЕСКОЛЬКИМ ЛИСТАМ ===
+            var nestingSheets = NestingHelper.CreateNesting(part);
+
+            if (nestingSheets == null || nestingSheets.Count == 0)
+            {
+                MessageBox.Show("Не удалось создать раскладку", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+
+            // === ГРУППИРУЕМ ОДИНАКОВЫЕ ЛИСТЫ ===
+            var groupedSheets = GroupIdenticalSheets(nestingSheets);
+
+            // === РАСЧЁТ ПАРАМЕТРОВ ДЛЯ КАЖДОГО ТИПА ЛИСТА ===
+            int pinholesPerPart = int.TryParse(part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var p) ? p : 0;
+
+            foreach (var group in groupedSheets)
+            {
+                var sheet = group.Key; // Пример листа из группы
+                int count = group.Value; // Количество одинаковых листов
+
+                if (sheet.Parts.Count == 0) continue;
+
+                // Определяем тип листа (полный или обрезанный)
+                bool isFullSheet = (sheet.Width == 3000 && sheet.Height == 1500);
+
+                // Рассчитываем параметры для этой группы листов
+                int partsPerSheet = sheet.Parts.Count;
+                int totalParts = partsPerSheet * count;
+
+                double wayForGroup = part.Way * totalParts;
+                int pinholesForGroup = pinholesPerPart * totalParts;
+
+                // Рассчитываем массу материала для одного листа
+                double sheetMass;
+                string sheetSize;
+
+                if (isFullSheet)
+                {
+                    // Полный лист 3000x1500
+                    sheetMass = 3000 * 1500 * part.Destiny * metal.Density / 1000000;
+                    sheetSize = "3000x1500";
+                }
+                else
+                {
+                    // Обрезанный лист — рассчитываем реальные размеры
+                    double usedWidth = sheet.Parts.Max(p => p.X + (p.Part.PartType == PartType.Round ? p.Part.Width : p.Part.Width));
+                    double usedHeight = sheet.Parts.Max(p => p.Y + (p.Part.PartType == PartType.Round ? p.Part.Width : p.Part.Height));
+
+                    // Округляем до кратного 100 мм
+                    double cutWidth = Math.Ceiling((usedWidth + 20) / 100) * 100; // +20мм отступы
+                    double cutHeight = Math.Ceiling((usedHeight + 20) / 100) * 100;
+
+                    sheetMass = cutWidth * cutHeight * part.Destiny * metal.Density / 1000000;
+                    sheetSize = $"{cutWidth:0}x{cutHeight:0}";
+                }
+
+                // Создаём один LaserItem для всей группы одинаковых листов
+                var laserItem = new LaserItem
+                {
+                    sheets = count,
+                    sheetSize = sheetSize,
+                    way = (float)wayForGroup,
+                    pinholes = pinholesForGroup,
+                    mass = (float)sheetMass,
+                    metal = metal.Name,
+                    destiny = part.Destiny.ToString(),
+                    NestingSheets = new List<NestingSheet> { sheet }
+                };
+
+                cut.Items?.Add(laserItem);
+            }
+
+            // Обновляем итоговые значения
             cut.WayTotal += part.Way * part.Count;
             cut.MassTotal += part.Mass * part.Count;
-
-            // Специфичные для листа операции
-            int pinholes = int.TryParse(part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var p) ? p : 0;
-
-            cut.Items?.Add(new()
-            {
-                sheets = 1,
-                sheetSize = $"{part.Width}x{part.Height}",
-                way = part.Way * part.Count,
-                pinholes = pinholes * part.Count,
-                mass = part.Mass * part.Count,
-            });
 
             if (cut.Items?.Count > 0) cut.SumProperties(cut.Items);
             cut.work?.type?.MassCalculate();
 
             return true;
+        }
+
+        /// <summary>
+        /// Группирует одинаковые листы в словарь (лист -> количество)
+        /// </summary>
+        private Dictionary<NestingSheet, int> GroupIdenticalSheets(List<NestingSheet> sheets)
+        {
+            var groups = new Dictionary<NestingSheet, int>(new NestingSheetComparer());
+
+            foreach (var sheet in sheets)
+            {
+                bool foundMatch = false;
+
+                foreach (var key in groups.Keys.ToList())
+                {
+                    if (NestingHelper.AreSheetsEqual(sheet, key))
+                    {
+                        groups[key]++;
+                        foundMatch = true;
+                        break;
+                    }
+                }
+
+                if (!foundMatch)
+                {
+                    groups[sheet] = 1;
+                }
+            }
+
+            return groups;
         }
 
         private bool AddToPipeControl(PipeControl pipe, Part part, Metal metal)
