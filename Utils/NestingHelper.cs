@@ -6,161 +6,186 @@ namespace Metal_Code.Utils
 {
     public static class NestingHelper
     {
-        private const double SheetWidth = 3000;
-        private const double SheetHeight = 1500;
-        private const double Spacing = 10;
+        // СТАНДАРТНЫЙ ЛИСТ: 1500 мм (ширина) × 3000 мм (длина)
+        private const double SheetWidth = 3000;   // Ширина листа (ось X)
+        private const double SheetHeight = 1500;  // Длина листа (ось Y)
+        private const double Spacing = 10;        // Отступы между деталями и от краёв
 
         /// <summary>
-        /// Раскладывает детали по листам с учётом обрезки последнего листа
+        /// Пакетный нестинг: размещает ВСЕ детали на минимальном количестве листов
+        /// Размещение: снизу вверх в столбце, затем слева направо по столбцам
         /// </summary>
-        public static List<NestingSheet> CreateNesting(Part part)
+        public static List<NestingSheet> CreateNestingForBatch(List<Part> parts)
         {
             var sheets = new List<NestingSheet>();
 
-            if (part == null || part.Count <= 0)
-                return sheets;
+            // Размножаем детали по количеству
+            var allParts = parts
+                .SelectMany(p => Enumerable.Repeat(p, p.Count))
+                .ToList();
 
-            if (part.DisplayGeometry == null)
-                PartPreviewGenerator.EnsureDisplayGeometry(part);
-
-            double partWidth = part.PartType == PartType.Round ? part.Width : part.Width;
-            double partHeight = part.PartType == PartType.Round ? part.Width : part.Height;
-            int remaining = part.Count;
-
-            while (remaining > 0)
+            foreach (var part in allParts)
             {
-                var sheet = new NestingSheet
-                {
-                    Width = SheetWidth,
-                    Height = SheetHeight
-                };
+                bool placed = false;
 
-                int placedOnSheet = PlacePartsOnSheet(sheet, part, partWidth, partHeight, ref remaining);
-
-                if (placedOnSheet > 0)
+                // Пробуем разместить на существующих листах
+                foreach (var sheet in sheets)
                 {
-                    // Если это последний лист и деталей мало — уменьшаем размер листа
-                    if (remaining == 0 && placedOnSheet < CalculatePartsPerFullSheet(partWidth, partHeight))
+                    if (TryPlacePartByColumn(sheet, part))
                     {
-                        OptimizeLastSheet(sheet);
+                        placed = true;
+                        break;
                     }
-                    sheets.Add(sheet);
                 }
-                else
+
+                // Если не разместили - создаём новый лист
+                if (!placed)
                 {
-                    break;
+                    var newSheet = new NestingSheet { Width = SheetWidth, Height = SheetHeight };
+                    TryPlacePartByColumn(newSheet, part);
+                    sheets.Add(newSheet);
                 }
+            }
+
+            // Оптимизируем размеры листов
+            foreach (var sheet in sheets)
+            {
+                OptimizeSheetSize(sheet);
             }
 
             return sheets;
         }
 
-        private static int PlacePartsOnSheet(
-            NestingSheet sheet,
-            Part part,
-            double partWidth,
-            double partHeight,
-            ref int remaining)
+        /// <summary>
+        /// Размещает деталь по столбцам: снизу вверх, затем слева направо
+        /// </summary>
+        private static bool TryPlacePartByColumn(NestingSheet sheet, Part part)
         {
-            int placed = 0;
-            double x = Spacing;
-            double y = Spacing;
+            double partWidth = part.PartType == PartType.Round ? part.Width : part.Width;
+            double partHeight = part.PartType == PartType.Round ? part.Width : part.Height;
 
-            while (remaining > 0)
+            // Находим все существующие столбцы (группируем по X с точностью до 1мм)
+            var columns = sheet.Parts
+                .GroupBy(p => Math.Round(p.X, 0)) // Группируем по округлённому X
+                .Select(g => new
+                {
+                    X = g.Key,
+                    MaxY = g.Max(p => p.Y + (p.Part.PartType == PartType.Round ? p.Part.Width : p.Part.Height))
+                })
+                .OrderBy(c => c.X)
+                .ToList();
+
+            // Пробуем разместить в существующих столбцах
+            foreach (var column in columns)
             {
-                // Проверяем, помещается ли деталь по высоте
-                if (y + partHeight > SheetHeight - Spacing)
-                    break;
+                double candidateX = column.X;
+                double candidateY = column.MaxY + Spacing;
 
-                int partsInRow = CalculatePartsInRow(x, partWidth);
-                if (partsInRow <= 0)
-                {
-                    y += partHeight + Spacing;
-                    x = Spacing;
+                // Проверяем границы листа
+                if (candidateY + partHeight > sheet.Height - Spacing)
                     continue;
-                }
 
-                int toPlace = Math.Min(partsInRow, remaining);
-                for (int i = 0; i < toPlace; i++)
-                {
-                    sheet.Parts.Add(new PartPlacement
-                    {
-                        Part = part,
-                        X = x,
-                        Y = y
-                    });
-                    x += partWidth + Spacing;
-                    placed++;
-                    remaining--;
-                }
+                if (candidateX + partWidth > sheet.Width - Spacing)
+                    continue;
 
-                y += partHeight + Spacing;
-                x = Spacing;
+                // Проверяем пересечения
+                if (IsOverlapping(sheet, candidateX, candidateY, partWidth, partHeight))
+                    continue;
+
+                // Размещаем деталь
+                sheet.Parts.Add(new PartPlacement { Part = part, X = candidateX, Y = candidateY });
+                return true;
             }
 
-            return placed;
-        }
+            // Создаём новый столбец справа
+            double newX = Spacing;
 
-        private static int CalculatePartsInRow(double startX, double partWidth)
-        {
-            double availableWidth = SheetWidth - Spacing - startX;
-            if (availableWidth <= 0)
-                return 0;
+            if (sheet.Parts.Count > 0)
+            {
+                // Находим правую границу самого правого столбца
+                double rightmostRight = sheet.Parts.Max(p =>
+                {
+                    double w = p.Part.PartType == PartType.Round ? p.Part.Width : p.Part.Width;
+                    return p.X + w;
+                });
+                newX = rightmostRight + Spacing;
+            }
 
-            return (int)(availableWidth / (partWidth + Spacing));
-        }
+            // Проверяем, помещается ли новый столбец
+            if (newX + partWidth > sheet.Width - Spacing)
+                return false;
 
-        private static int CalculatePartsPerFullSheet(double partWidth, double partHeight)
-        {
-            int partsPerRow = (int)Math.Floor((SheetWidth - Spacing) / (partWidth + Spacing));
-            int rows = (int)Math.Floor((SheetHeight - Spacing) / (partHeight + Spacing));
-            return partsPerRow * rows;
+            // Размещаем в начале нового столбца
+            double newY = Spacing;
+
+            // Финальная проверка пересечений
+            if (IsOverlapping(sheet, newX, newY, partWidth, partHeight))
+                return false;
+
+            sheet.Parts.Add(new PartPlacement { Part = part, X = newX, Y = newY });
+            return true;
         }
 
         /// <summary>
-        /// Оптимизирует последний лист — уменьшает его размер до минимально необходимого
+        /// Проверяет пересечение с учётом отступов (правильная логика)
         /// </summary>
-        private static void OptimizeLastSheet(NestingSheet sheet)
+        private static bool IsOverlapping(NestingSheet sheet, double x, double y, double width, double height)
+        {
+            foreach (var existing in sheet.Parts)
+            {
+                double ex = existing.X;
+                double ey = existing.Y;
+                double ew = existing.Part.PartType == PartType.Round
+                    ? existing.Part.Width
+                    : existing.Part.Width;
+                double eh = existing.Part.PartType == PartType.Round
+                    ? existing.Part.Width
+                    : existing.Part.Height;
+
+                // Два прямоугольника НЕ пересекаются, если между ними есть зазор >= Spacing:
+                if (x + width + Spacing <= ex) continue; // Новая деталь слева от существующей
+                if (ex + ew + Spacing <= x) continue;    // Существующая деталь слева от новой
+                if (y + height + Spacing <= ey) continue; // Новая деталь ниже существующей
+                if (ey + eh + Spacing <= y) continue;     // Существующая деталь ниже новой
+
+                // Если ни одно условие не выполнилось — есть пересечение
+                return true;
+            }
+            return false;
+        }
+
+        private static void OptimizeSheetSize(NestingSheet sheet)
         {
             if (sheet.Parts.Count == 0) return;
 
-            // Находим максимальные координаты размещённых деталей
             double maxX = sheet.Parts.Max(p =>
             {
-                double width = p.Part.PartType == PartType.Round ? p.Part.Width : p.Part.Width;
-                return p.X + width;
+                double w = p.Part.PartType == PartType.Round ? p.Part.Width : p.Part.Width;
+                return p.X + w;
             });
 
             double maxY = sheet.Parts.Max(p =>
             {
-                double height = p.Part.PartType == PartType.Round ? p.Part.Width : p.Part.Height;
-                return p.Y + height;
+                double h = p.Part.PartType == PartType.Round ? p.Part.Width : p.Part.Height;
+                return p.Y + h;
             });
 
-            // Добавляем отступы и округляем до кратного 100 мм
             double optimizedWidth = Math.Ceiling((maxX + Spacing * 2) / 100) * 100;
             double optimizedHeight = Math.Ceiling((maxY + Spacing * 2) / 100) * 100;
 
-            // Ограничиваем стандартными размерами листа
             sheet.Width = Math.Min(optimizedWidth, SheetWidth);
             sheet.Height = Math.Min(optimizedHeight, SheetHeight);
         }
 
-        /// <summary>
-        /// Проверяет, являются ли два листа одинаковыми (по размерам и количеству деталей)
-        /// </summary>
         public static bool AreSheetsEqual(NestingSheet? sheet1, NestingSheet? sheet2)
         {
             if (sheet1 == null || sheet2 == null)
                 return false;
 
-            // Сравниваем размеры листов
             if (Math.Abs(sheet1.Width - sheet2.Width) > 0.1)
                 return false;
             if (Math.Abs(sheet1.Height - sheet2.Height) > 0.1)
                 return false;
-
-            // Сравниваем количество деталей
             if (sheet1.Parts.Count != sheet2.Parts.Count)
                 return false;
 
@@ -168,9 +193,6 @@ namespace Metal_Code.Utils
         }
     }
 
-    /// <summary>
-    /// Один лист с размещёнными на нём деталями
-    /// </summary>
     public class NestingSheet
     {
         public double Width { get; set; } = 3000;
@@ -178,10 +200,6 @@ namespace Metal_Code.Utils
         public List<PartPlacement> Parts { get; set; } = new();
     }
 
-
-    /// <summary>
-    /// Компаратор для сравнения листов в словаре
-    /// </summary>
     public class NestingSheetComparer : IEqualityComparer<NestingSheet>
     {
         public bool Equals(NestingSheet? x, NestingSheet? y)
@@ -192,18 +210,14 @@ namespace Metal_Code.Utils
         public int GetHashCode(NestingSheet obj)
         {
             if (obj == null) return 0;
-            // Хэш по размерам и количеству деталей
             return obj.Width.GetHashCode() ^ obj.Height.GetHashCode() ^ obj.Parts.Count.GetHashCode();
         }
     }
 
-    /// <summary>
-    /// Размещение одной детали на листе
-    /// </summary>
     public class PartPlacement
     {
         public Part Part { get; set; } = null!;
-        public double X { get; set; }  // От левого края листа
-        public double Y { get; set; }  // От нижнего края листа (в инвертированной системе)
+        public double X { get; set; }
+        public double Y { get; set; }
     }
 }

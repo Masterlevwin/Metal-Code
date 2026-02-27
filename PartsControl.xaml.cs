@@ -405,25 +405,30 @@ namespace Metal_Code
                 var window = new StandartPartWindow(templatePart);
                 if (window.ShowDialog() == true)
                 {
-                    // Получаем все детали из буфера
+                    // Получаем ВСЕ детали из буфера
                     var batchedParts = window.GetBatchedParts();
 
                     if (batchedParts.Count > 0)
                     {
-                        // Обрабатываем каждую деталь из буфера
+                        // Обновляем геометрию и расчёты для каждой детали
                         foreach (var part in batchedParts)
                         {
-                            // Обновляем геометрию и расчёты
                             UpdatePartAfterEdit(part, metal, thickness);
-
-                            // Добавляем в контроллер
-                            AddPartToController(owner, part, metal);
                         }
 
-                        MessageBox.Show(
-                            $"Добавлено {batchedParts.Count} типов деталей\n" +
-                            $"Всего деталей: {batchedParts.Sum(p => p.Count)} шт",
-                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
+                        // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: пакетная обработка ===
+                        if (owner is CutControl cut)
+                        {
+                            AddBatchToCutControl(cut, batchedParts, metal);
+                        }
+                        else if (owner is PipeControl pipe)
+                        {
+                            // Для труб — поштучная обработка (трубы не требуют 2D-нестинга)
+                            foreach (var part in batchedParts)
+                            {
+                                AddToPipeControl(pipe, part, metal);
+                            }
+                        }
                     }
                 }
             }
@@ -596,137 +601,104 @@ namespace Metal_Code
             part.PropsDict[200] = new() { pinholes.ToString() };
         }
 
-        private double SquareToPaint(Part part)
+        /// <summary>
+        /// Добавляет КОЛЛЕКЦИЮ деталей с общим нестингом на минимальное количество листов
+        /// </summary>
+        private void AddBatchToCutControl(CutControl cut, List<Part> parts, Metal metal)
         {
-            if (owner is PipeControl pipe)
-            {
-                return pipe.Tube switch
-                {
-                    TubeType.rect => part.Length * (pipe.work.type.A + pipe.work.type.B) * 2 / 1000000,
-                    TubeType.round => (float)(part.Length * pipe.work.type.A * Math.PI / 1000000),
-                    TubeType.circle => (float)(2 * part.Length * pipe.work.type.A * Math.PI / 1000000),
-                    TubeType.square => part.Length * (pipe.work.type.A + pipe.work.type.B) * 2 / 1000000,
-                    TubeType.rod => 2 * (part.Length * pipe.work.type.A + part.Way * pipe.work.type.B + pipe.work.type.A * pipe.work.type.B) / 1000000,
-                    TubeType.channel => pipe.work.type.ChannelsSquare[pipe.work.type.SortDrop.SelectedIndex] * part.Mass / 1000,
-                    TubeType.corner => part.Length * pipe.work.type.S * (pipe.work.type.A + pipe.work.type.A - pipe.work.type.S) / 1000000,
-                    TubeType.freeform => part.Length * pipe.work.type.S * (pipe.work.type.A + pipe.work.type.B - pipe.work.type.S) / 1000000,
-                    TubeType.hbeam => pipe.work.type.BeamDict[pipe.work.type.TypeDetailDrop.Text][pipe.work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000,
-                    _ => 0,
-                };
-            }
+            if (parts == null || parts.Count == 0)
+                return;
 
-            return 0;
-        }
-
-        private bool AddPartToController(object controller, Part part, Metal metal)
-        {
-            if (controller is CutControl cut)
-            {
-                return AddToCutControl(cut, part, metal);
-            }
-
-            if (controller is PipeControl pipe)
-            {
-                return AddToPipeControl(pipe, part, metal);
-            }
-
-            return false;
-        }
-
-        private bool AddToCutControl(CutControl cut, Part part, Metal metal)
-        {
-            var partControl = new PartControl(owner, cut.work, part);
-            Parts.Add(partControl);
-
-            cut.Parts ??= new();
-            if (!cut.Parts.Contains(partControl)) cut.Parts.Add(partControl);
-
-            cut.PartDetails ??= new();
-            if (!cut.PartDetails.Contains(part)) cut.PartDetails.Add(part);
-
-            if (cut.TabItem?.Header is TextBlock block)
-                block.Text = $"s{cut.work?.type?.S} {cut.work?.type?.MetalDrop?.Text} ({cut.PartDetails?.Sum(x => x.Count)} шт)";
-
-            // === СОЗДАЁМ РАСКЛАДКУ ПО НЕСКОЛЬКИМ ЛИСТАМ ===
-            var nestingSheets = NestingHelper.CreateNesting(part);
+            // === СОЗДАЁМ ЕДИНУЮ РАСКЛАДКУ ДЛЯ ВСЕХ ДЕТАЛЕЙ ===
+            var nestingSheets = NestingHelper.CreateNestingForBatch(parts);
 
             if (nestingSheets == null || nestingSheets.Count == 0)
             {
-                MessageBox.Show("Не удалось создать раскладку", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
+                MessageBox.Show("Не удалось создать раскладку", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
 
             // === ГРУППИРУЕМ ОДИНАКОВЫЕ ЛИСТЫ ===
             var groupedSheets = GroupIdenticalSheets(nestingSheets);
 
-            // === РАСЧЁТ ПАРАМЕТРОВ ДЛЯ КАЖДОГО ТИПА ЛИСТА ===
-            int pinholesPerPart = int.TryParse(part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var p) ? p : 0;
+            double totalWay = 0;
+            double totalMass = 0;
 
             foreach (var group in groupedSheets)
             {
-                var sheet = group.Key; // Пример листа из группы
-                int count = group.Value; // Количество одинаковых листов
+                var sheet = group.Key;
+                int sheetCount = group.Value;
 
                 if (sheet.Parts.Count == 0) continue;
 
-                // Определяем тип листа (полный или обрезанный)
-                bool isFullSheet = (sheet.Width == 3000 && sheet.Height == 1500);
+                // Рассчитываем параметры для группы листов
+                double sheetArea = sheet.Width * sheet.Height;
+                double sheetMass = sheetArea * parts[0].Destiny * metal.Density / 1000000 * sheetCount;
 
-                // Рассчитываем параметры для этой группы листов
-                int partsPerSheet = sheet.Parts.Count;
-                int totalParts = partsPerSheet * count;
+                // Суммируем длину реза всех деталей на листе
+                double sheetWay = 0;
+                int sheetPinholes = 0;
 
-                double wayForGroup = part.Way * totalParts;
-                int pinholesForGroup = pinholesPerPart * totalParts;
-
-                // Рассчитываем массу материала для одного листа
-                double sheetMass;
-                string sheetSize;
-
-                if (isFullSheet)
+                foreach (var placement in sheet.Parts)
                 {
-                    // Полный лист 3000x1500
-                    sheetMass = 3000 * 1500 * part.Destiny * metal.Density / 1000000;
-                    sheetSize = "3000x1500";
-                }
-                else
-                {
-                    // Обрезанный лист — рассчитываем реальные размеры
-                    double usedWidth = sheet.Parts.Max(p => p.X + (p.Part.PartType == PartType.Round ? p.Part.Width : p.Part.Width));
-                    double usedHeight = sheet.Parts.Max(p => p.Y + (p.Part.PartType == PartType.Round ? p.Part.Width : p.Part.Height));
-
-                    // Округляем до кратного 100 мм
-                    double cutWidth = Math.Ceiling((usedWidth + 20) / 100) * 100; // +20мм отступы
-                    double cutHeight = Math.Ceiling((usedHeight + 20) / 100) * 100;
-
-                    sheetMass = cutWidth * cutHeight * part.Destiny * metal.Density / 1000000;
-                    sheetSize = $"{cutWidth:0}x{cutHeight:0}";
+                    sheetWay += placement.Part.Way;
+                    sheetPinholes += int.TryParse(
+                        placement.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(),
+                        out var p) ? p : 0;
                 }
 
-                // Создаём один LaserItem для всей группы одинаковых листов
+                sheetWay *= sheetCount;      // Умножаем на количество одинаковых листов
+                sheetPinholes *= sheetCount;
+
+                // Создаём один LaserItem для группы одинаковых листов
                 var laserItem = new LaserItem
                 {
-                    sheets = count,
-                    sheetSize = sheetSize,
-                    way = (float)wayForGroup,
-                    pinholes = pinholesForGroup,
+                    sheets = sheetCount,
+                    sheetSize = $"{sheet.Width:0}x{sheet.Height:0}",
+                    way = (float)sheetWay,
+                    pinholes = sheetPinholes,
                     mass = (float)sheetMass,
                     metal = metal.Name,
-                    destiny = part.Destiny.ToString(),
+                    destiny = parts[0].Destiny.ToString(),
                     NestingSheets = new List<NestingSheet> { sheet }
                 };
 
                 cut.Items?.Add(laserItem);
+
+                totalWay += sheetWay;
+                totalMass += sheetMass;
+            }
+
+            // === ДОБАВЛЯЕМ КОНТРОЛЫ ТОЛЬКО ДЛЯ УНИКАЛЬНЫХ ТИПОВ ДЕТАЛЕЙ ===
+            var uniqueParts = parts.GroupBy(p => new { p.Title, p.Width, p.Height, p.PartType })
+                                   .Select(g => g.First())
+                                   .ToList();
+
+            foreach (var part in uniqueParts)
+            {
+                var partControl = new PartControl(owner, cut.work, part);
+                Parts.Add(partControl);
+
+                if (cut.Parts != null && !cut.Parts.Contains(partControl))
+                    cut.Parts.Add(partControl);
+
+                if (cut.PartDetails != null && !cut.PartDetails.Contains(part))
+                    cut.PartDetails.Add(part);
             }
 
             // Обновляем итоговые значения
-            cut.WayTotal += part.Way * part.Count;
-            cut.MassTotal += part.Mass * part.Count;
+            cut.WayTotal += (float)totalWay;
+            cut.MassTotal += (float)totalMass;
 
-            if (cut.Items?.Count > 0) cut.SumProperties(cut.Items);
+            if (cut.Items?.Count > 0)
+                cut.SumProperties(cut.Items);
+
             cut.work?.type?.MassCalculate();
 
-            return true;
+            // Обновляем заголовок вкладки
+            if (cut.TabItem?.Header is TextBlock block)
+                block.Text = $"s{cut.work?.type?.S} {cut.work?.type?.MetalDrop?.Text} ({cut.PartDetails?.Sum(x => x.Count)} шт)";
         }
 
         /// <summary>
@@ -799,6 +771,28 @@ namespace Metal_Code
             }
             
             return true;
+        }
+
+        private double SquareToPaint(Part part)
+        {
+            if (owner is PipeControl pipe)
+            {
+                return pipe.Tube switch
+                {
+                    TubeType.rect => part.Length * (pipe.work.type.A + pipe.work.type.B) * 2 / 1000000,
+                    TubeType.round => (float)(part.Length * pipe.work.type.A * Math.PI / 1000000),
+                    TubeType.circle => (float)(2 * part.Length * pipe.work.type.A * Math.PI / 1000000),
+                    TubeType.square => part.Length * (pipe.work.type.A + pipe.work.type.B) * 2 / 1000000,
+                    TubeType.rod => 2 * (part.Length * pipe.work.type.A + part.Way * pipe.work.type.B + pipe.work.type.A * pipe.work.type.B) / 1000000,
+                    TubeType.channel => pipe.work.type.ChannelsSquare[pipe.work.type.SortDrop.SelectedIndex] * part.Mass / 1000,
+                    TubeType.corner => part.Length * pipe.work.type.S * (pipe.work.type.A + pipe.work.type.A - pipe.work.type.S) / 1000000,
+                    TubeType.freeform => part.Length * pipe.work.type.S * (pipe.work.type.A + pipe.work.type.B - pipe.work.type.S) / 1000000,
+                    TubeType.hbeam => pipe.work.type.BeamDict[pipe.work.type.TypeDetailDrop.Text][pipe.work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000,
+                    _ => 0,
+                };
+            }
+
+            return 0;
         }
     }
 }
