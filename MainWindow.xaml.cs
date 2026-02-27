@@ -4999,7 +4999,7 @@ namespace Metal_Code
                 StatusBegin("Не удалось определить заказчика для создания спецификации. Добавьте заказчика в базу.", StatusMessageType.Error);
                 return;
             }
-            else if (ActiveOffer.Act is null)
+            else if (ActiveOffer.Act is null || !File.Exists(ActiveOffer.Act))
             {
                 StatusBegin("Не удалось найти файл КП для создания спецификации. Попробуйте пересохранить расчет заново.", StatusMessageType.Error);
                 return;

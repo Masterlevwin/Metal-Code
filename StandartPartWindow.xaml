@@ -5,57 +5,99 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"      
         xmlns:converters="clr-namespace:Metal_Code.Converters"
         mc:Ignorable="d"
-        Title ="{Binding Title}" Topmost="True" ResizeMode="NoResize" Icon="/app_logo.jpeg" SizeToContent="WidthAndHeight" WindowStartupLocation="CenterScreen">
+        Title="Стандартные детали" Topmost="True" ResizeMode="NoResize" 
+        Icon="/app_logo.jpeg" SizeToContent="WidthAndHeight" WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
         <converters:PartTypeToVisibilityConverter x:Key="PartTypeToVisibilityConverter"/>
     </Window.Resources>
 
     <StackPanel>
+        <!-- Панель буфера добавленных деталей -->
+        <GroupBox Header="Добавленные детали" Margin="10" Padding="5">
+            <StackPanel>
+                <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto" Margin="0,0,0,5">
+                    <ItemsControl x:Name="BatchItemsControl">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="LightGray" BorderThickness="0,0,0,1" Padding="5" Margin="0,2,0,2">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Тип и размеры -->
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Title}" FontWeight="Bold" Margin="0,0,10,0"/>
+                                            <TextBlock Text="{Binding PartType}" FontStyle="Italic" Foreground="Gray" Margin="0,0,5,0"/>
+                                            <TextBlock Text="{Binding Width, StringFormat={}{0:0}×}" 
+               Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Rectangle,RectangularTube'}"/>
+                                            <TextBlock Text="{Binding Height, StringFormat={}{0:0}}" 
+               Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Rectangle,RectangularTube'}"/>
+                                            <TextBlock Text="{Binding Width, StringFormat=Ø{0:0}}" 
+               Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,RoundTube'}"/>
+                                            <TextBlock Text="{Binding Length, StringFormat={}{0:0}мм}" 
+               Margin="5,0,0,0"
+               Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='RoundTube,RectangularTube'}"/>
+                                        </StackPanel>
+                                        <!-- Количество -->
+                                        <TextBlock Grid.Column="1" Text="{Binding Count, StringFormat=× {0} шт}" 
+                                                   HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                   Foreground="DarkGreen" FontWeight="Bold"/>
+
+                                        <!-- Кнопка удаления -->
+                                        <Button Grid.Column="2" Content="Удалить" Padding="8,2" Margin="5,0,0,0"
+                                                Click="RemoveFromBatch_Click" Tag="{Binding}"
+                                                Background="LightCoral" Foreground="White" BorderThickness="0"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </StackPanel>
+        </GroupBox>
+
         <GroupBox Margin="10" HorizontalAlignment="Center">
             <GroupBox.Header>
-                <TextBlock Text="Параметры" FontSize="14" FontWeight="Bold"/>
+                <TextBlock Text="Новая деталь" FontSize="14" FontWeight="Bold"/>
             </GroupBox.Header>
 
             <DockPanel LastChildFill="True" Margin="5">
-
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" MinHeight="30" Margin="10" HorizontalAlignment="Center">
-                    <Button Content="Подтвердить" Click="Accept" IsDefault="True"/>
-                    <Button Content="Отмена" Margin="20,0,0,0" IsCancel="True"/>
+                    <Button Content="Добавить в список" Click="AddToBatch_Click" Padding="10,5" Margin="0,0,10,0"/>
+                    <Button Content="Завершить и рассчитать" Click="FinishBatch_Click" IsDefault="True" 
+            Padding="10,5" Background="LightGreen" Margin="0,0,10,0"/>
+                    <Button Content="Отмена" IsCancel="True" Padding="10,5"/>
                 </StackPanel>
-
+                
                 <!-- Секция отверстий -->
                 <GroupBox Header="Отверстия" DockPanel.Dock="Bottom" Margin="5" Padding="5">
                     <StackPanel>
-                        <TextBlock Text="Добавьте группы отверстий" 
-                                       FontStyle="Italic" 
-                                       Margin="0,0,0,10"
-                                       Visibility="{Binding HoleGroups.Count}"/>
-
-                        <!-- Форма добавления новой группы -->
                         <Border BorderBrush="Gray" BorderThickness="1" Padding="10" Margin="0,0,0,10" 
-                                    CornerRadius="3" Background="#F9F9F9">
+                                CornerRadius="3" Background="#F9F9F9">
                             <StackPanel>
                                 <TextBlock Text="Новая группа отверстий:" FontWeight="Bold" Margin="0,0,0,5"/>
 
                                 <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
                                     <TextBlock Text="Диаметр" MinWidth="80" VerticalAlignment="Center"/>
                                     <TextBox x:Name="DiameterInput" Text="10" MinWidth="50" MaxWidth="50" 
-                                                 VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                             VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                                     <TextBlock Text="мм" Margin="5,0,20,0" VerticalAlignment="Center"/>
 
                                     <TextBlock Text="Количество" MinWidth="80" VerticalAlignment="Center"/>
                                     <TextBox x:Name="CountInput" Text="1" MinWidth="50" MaxWidth="50" 
-                                                 VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                                             VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                                     <TextBlock Text="шт" Margin="5,0,0,0" VerticalAlignment="Center"/>
                                 </StackPanel>
 
                                 <Button Content="+ Добавить группу" Click="AddHoleGroup_Click" 
-                                            HorizontalAlignment="Left" Margin="0,5,0,0" Padding="10,3"/>
+                                        HorizontalAlignment="Left" Margin="0,5,0,0" Padding="10,3"/>
                             </StackPanel>
                         </Border>
 
-                        <!-- Список добавленных групп -->
                         <ItemsControl ItemsSource="{Binding HoleGroups}" Margin="0,5,0,0">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -63,39 +105,29 @@
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="⌀" VerticalAlignment="Center" FontWeight="Bold"/>
                                             <TextBlock Text="{Binding Diameter, StringFormat={}{0:F1}}" 
-                                                           VerticalAlignment="Center" MinWidth="30"/>
+                                                       VerticalAlignment="Center" MinWidth="30"/>
                                             <TextBlock Text="мм ×" VerticalAlignment="Center" Margin="5,0,5,0"/>
                                             <TextBlock Text="{Binding Count}" VerticalAlignment="Center" MinWidth="20" FontWeight="Bold"/>
                                             <TextBlock Text="шт" VerticalAlignment="Center" Margin="5,0,0,0"/>
 
                                             <Button Content="×" Margin="15,0,0,0" Padding="8,2" 
-                                                        Click="RemoveHoleGroup_Click" Tag="{Binding}"
-                                                        ToolTip="Удалить группу"/>
+                                                    Click="RemoveHoleGroup_Click" Tag="{Binding}"
+                                                    ToolTip="Удалить группу"/>
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <!-- Статистика -->
-                        <StackPanel Margin="0,10,0,0" Visibility="{Binding HoleGroups.Count}">
+
+                        <StackPanel Margin="0,10,0,0">
                             <Border BorderBrush="DarkGray" BorderThickness="1" Padding="8" CornerRadius="3" 
-                                        Background="#F0F8FF">
+                                    Background="#F0F8FF">
                                 <StackPanel>
                                     <TextBlock Text="Статистика:" FontWeight="Bold" Margin="0,0,0,5"/>
                                     <TextBlock x:Name="HoleStatsText" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
-
-                        <!-- Предупреждение о ошибках -->
-                        <Border x:Name="ValidationErrorBorder" Visibility="Collapsed" 
-                                    BorderBrush="Red" BorderThickness="1" Padding="8" Margin="0,10,0,0"
-                                    CornerRadius="3" Background="#FFF0F0">
-                            <StackPanel>
-                                <TextBlock Text="⚠ Ошибки размещения:" FontWeight="Bold" Foreground="Red" Margin="0,0,0,3"/>
-                                <TextBlock x:Name="ValidationErrorMessage" Foreground="DarkRed" TextWrapping="Wrap"/>
-                            </StackPanel>
-                        </Border>
                     </StackPanel>
                 </GroupBox>
 
@@ -104,6 +136,11 @@
                 </Viewbox>
 
                 <StackPanel Margin="5">
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <TextBlock Text="Название" MinWidth="80" TextAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBox Text="{Binding Title}" Margin="10,0,0,0" MinWidth="150" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                    </StackPanel>
+                    
                     <StackPanel Orientation="Horizontal" Margin="5" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle'}">
                         <TextBlock Text="Высота" MinWidth="80" TextAlignment="Center" VerticalAlignment="Center"/>
                         <TextBox Text="{Binding Width}" Margin="10,0,0,0" MinWidth="50" MaxWidth="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
@@ -127,12 +164,8 @@
                         <TextBox Text="{Binding Count}" Margin="10,0,0,0" MinWidth="50" MaxWidth="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
                         <TextBlock Text="шт" Margin="10,0,0,0" MinWidth="20" TextAlignment="Center" VerticalAlignment="Center"/>
                     </StackPanel>
-
                 </StackPanel>
-
             </DockPanel>
-
         </GroupBox>
-
     </StackPanel>
 </Window>

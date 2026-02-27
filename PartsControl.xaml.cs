@@ -385,34 +385,46 @@ namespace Metal_Code
                 StandartPartsDrop.SelectedIndex = 0;
         }
 
+
         // добавить стандартную деталь
         private void Add_StandartPart(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is string title && owner != null)
             {
-                // === ШАГ 1: Получаем общие параметры от контроллера ===
                 (Metal? metal, float thickness, string? metalName) = GetMetalAndThickness(owner);
                 if (metal == null || string.IsNullOrEmpty(metalName))
                     return;
 
-                // === ШАГ 2: Создаём и настраиваем деталь (общая логика) ===
-                var part = CreateStandardPart(title, metalName, thickness, Parts.Count);
-                if (part == null) return;
+                // Создаём шаблонную деталь для редактирования
+                var templatePart = CreateStandardPart(title, metalName, thickness, 0);
+                if (templatePart == null) return;
 
-                PartPreviewGenerator.EnsureDisplayGeometry(part);
+                PartPreviewGenerator.EnsureDisplayGeometry(templatePart);
 
-                // === ШАГ 3: Открываем окно редактирования ===
-                var window = new StandartPartWindow(part);
-                if (window.ShowDialog() != true) return;
-
-                // === ШАГ 4: Обновляем геометрию и расчёты ===
-                UpdatePartAfterEdit(part, metal, thickness);
-
-                // === ШАГ 5: Добавляем деталь в соответствующий контроллер ===
-                if (!AddPartToController(owner, part, metal))
+                // Открываем окно
+                var window = new StandartPartWindow(templatePart);
+                if (window.ShowDialog() == true)
                 {
-                    MessageBox.Show("Не удалось добавить деталь: неподдерживаемый тип контроллера",
-                        "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    // Получаем все детали из буфера
+                    var batchedParts = window.GetBatchedParts();
+
+                    if (batchedParts.Count > 0)
+                    {
+                        // Обрабатываем каждую деталь из буфера
+                        foreach (var part in batchedParts)
+                        {
+                            // Обновляем геометрию и расчёты
+                            UpdatePartAfterEdit(part, metal, thickness);
+
+                            // Добавляем в контроллер
+                            AddPartToController(owner, part, metal);
+                        }
+
+                        MessageBox.Show(
+                            $"Добавлено {batchedParts.Count} типов деталей\n" +
+                            $"Всего деталей: {batchedParts.Sum(p => p.Count)} шт",
+                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
                 }
             }
         }

@@ -90,7 +90,7 @@ namespace Metal_Code
                                 columns.RelativeColumn(20);  // №
                                 columns.RelativeColumn(150); // Наименование товара
                                 columns.RelativeColumn(50);  // Количество, шт
-                                columns.RelativeColumn(60);  // Стоимость в руб., в т.ч. НДС 20%
+                                columns.RelativeColumn(60);  // Стоимость в руб., в т.ч. НДС 22%
                             });
 
                             // Заголовок таблицы
@@ -99,7 +99,7 @@ namespace Metal_Code
                                 StyleHeaderCell(header.Cell(), "№");
                                 StyleHeaderCell(header.Cell(), "Наименование товара");
                                 StyleHeaderCell(header.Cell(), "Количество, шт");
-                                StyleHeaderCell(header.Cell(), "Стоимость в руб., в т.ч. НДС 20%");
+                                StyleHeaderCell(header.Cell(), "Стоимость в руб., в т.ч. НДС 22%");
                             });
 
                             // Данные
@@ -154,7 +154,7 @@ namespace Metal_Code
 
                                 if (MainWindow.M.HasDelivery is true)
                                 {
-                                    float deliveryTotal = (float)(MainWindow.M.Delivery  * MainWindow.M.DeliveryRatio * MainWindow.M.Ratio);
+                                    float deliveryTotal = (float)(MainWindow.M.Delivery * MainWindow.M.DeliveryRatio * MainWindow.M.Ratio);
                                     totalSum += deliveryTotal;
 
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
@@ -259,7 +259,7 @@ namespace Metal_Code
                                 });
                             });
                         });
-                    });  
+                    });
                 });
             }).GeneratePdf(outputPath);
 
