@@ -285,9 +285,9 @@ namespace Metal_Code
 
                     foreach (LaserItem item in cut.Items)
                     {
+                        // === ЛИСТЫ ===
                         if (item.NestingSheets != null && item.NestingSheets.Count > 0)
                         {
-
                             var sheet = item.NestingSheets[0]; // Берём первый (единственный) лист из группы
 
                             var preview = new NestingPreviewControl
@@ -327,8 +327,52 @@ namespace Metal_Code
                             stack.Children.Add(infoText);
 
                             imagesList.Items.Add(stack);
-
                         }
+                        // === ТРУБЫ ===
+                        else if (item.PipeStocks != null && item.PipeStocks.Count > 0)
+                        {
+                            var stock = item.PipeStocks[0]; // Берём первый (единственный) хлыст из группы
+
+                            var preview = new PipeStockVisualizationControl
+                            {
+                                Stock = stock,
+                                Width = 820,
+                                Height = 70,
+                                Margin = new Thickness(15, 0, 5, 10)
+                            };
+
+                            // Добавляем подпись с количеством хлыстов
+                            var border = new Border
+                            {
+                                Child = preview,
+                                BorderBrush = item.sheets > 1 ? Brushes.Orange : Brushes.Gray,
+                                BorderThickness = new Thickness(1),
+                                CornerRadius = new CornerRadius(3),
+                                Padding = new Thickness(5)
+                            };
+
+                            var stack = new StackPanel { Orientation = Orientation.Vertical };
+                            stack.Children.Add(border);
+
+                            // Подпись с длиной хлыста, количеством хлыстов и деталей
+                            string stockInfo = $"{stock.StockLength:0} мм ({item.sheets} шт)\n" +
+                                              $"{stock.Placements.Count} деталей";
+
+                            var infoText = new TextBlock
+                            {
+                                Text = stockInfo,
+                                FontSize = 10,
+                                FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal,
+                                Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.Gray,
+                                HorizontalAlignment = HorizontalAlignment.Center,
+                                Margin = new Thickness(0, 5, 0, 5),
+                                TextAlignment = TextAlignment.Center
+                            };
+                            stack.Children.Add(infoText);
+
+                            imagesList.Items.Add(stack);
+                        }
+                        // === ИЗОБРАЖЕНИЯ ===
                         else if (item.imageBytes is not null)
                         {
                             Image _img = new()
@@ -416,24 +460,26 @@ namespace Metal_Code
                             UpdatePartAfterEdit(part, metal, thickness);
                         }
 
-                        // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: пакетная обработка ===
+                        // === ПАКЕТНАЯ ОБРАБОТКА В ЗАВИСИМОСТИ ОТ ТИПА КОНТРОЛЛЕРА ===
                         if (owner is CutControl cut)
                         {
                             AddBatchToCutControl(cut, batchedParts, metal);
                         }
                         else if (owner is PipeControl pipe)
                         {
-                            // Для труб — поштучная обработка (трубы не требуют 2D-нестинга)
-                            foreach (var part in batchedParts)
-                            {
-                                AddToPipeControl(pipe, part, metal);
-                            }
+                            AddBatchToPipeControl(pipe, batchedParts, metal);
                         }
+
+                        MessageBox.Show(
+                            $"Добавлено {batchedParts.Count} типов деталей\n" +
+                            $"Всего деталей: {batchedParts.Sum(p => p.Count)} шт\n" +
+                            $"Использовано {(owner is CutControl ? "листов" : "хлыстов")}: " +
+                            $"{(owner is CutControl cutCtrl ? cutCtrl.Items?.Count ?? 0 : (owner as PipeControl)?.work?.type?.Count ?? 0)}",
+                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
             }
         }
-
         // Вспомогательные методы (вынесены для чистоты кода)
 
         private (Metal?, float, string?) GetMetalAndThickness(object controller)
@@ -511,44 +557,59 @@ namespace Metal_Code
             int pinholes = 0;
             double cuttingLength = 0;
 
-            // === ШАГ 1: Генерация геометрии ДЛЯ ВИЗУАЛИЗАЦИИ ===
+            // === ШАГ 1: Генерация геометрии ===
             if (isSheetPart)
             {
-                // Листы: визуализируем с отверстиями
                 PartPreviewGenerator.EnsureDisplayGeometryWithHoles(part);
             }
             else if (isPipePart)
             {
-                // Трубы: визуализируем ТОЛЬКО сечение (без отверстий!)
-                PartPreviewGenerator.EnsureDisplayGeometry(part);
+                PartPreviewGenerator.EnsureDisplayGeometry(part); // Без отверстий в сечении
             }
 
             // === ШАГ 2: Расчёт длины реза и проколов ===
             if (part.DisplayGeometry != null)
             {
-                // Базовая длина реза из геометрии (периметр сечения)
                 cuttingLength = TechItemCalculator.CalculateCuttingLength(part.DisplayGeometry);
 
-                // Дополнительная длина реза за счёт отверстий
+                // Для труб: периметр сечения × 2 (внешний + внутренний контур)
+                //if (isPipePart)
+                //{
+                //    if (part.PartType == PartType.RoundTube)
+                //    {
+                //        double outerPerimeter = Math.PI * part.Width;
+                //        double innerPerimeter = Math.PI * (part.Width - 2 * thickness);
+                //        cuttingLength = outerPerimeter + innerPerimeter;
+                //    }
+                //    else if (part.PartType == PartType.RectangularTube)
+                //    {
+                //        double outerPerimeter = 2 * (part.Width + part.Height);
+                //        double innerW = Math.Max(0, part.Width - 2 * thickness);
+                //        double innerH = Math.Max(0, part.Height - 2 * thickness);
+                //        double innerPerimeter = 2 * (innerW + innerH);
+                //        cuttingLength = outerPerimeter + innerPerimeter;
+                //    }
+                //}
+
+                // Дополнительная длина реза за счёт отверстий (для труб — сверление вдоль длины)
                 if (part.HoleGroups?.Count > 0)
                 {
                     foreach (var group in part.HoleGroups)
                     {
-                        double holePerimeter = Math.PI * group.Diameter; // Периметр одного отверстия
-                        cuttingLength += holePerimeter * group.Count;   // × количество отверстий в группе
+                        double holePerimeter = Math.PI * group.Diameter;
+                        cuttingLength += holePerimeter * group.Count;
                     }
                 }
 
                 // Расчёт проколов
                 if (isSheetPart)
                 {
-                    // Для листов — проколы = количество замкнутых контуров в геометрии
                     pinholes = TechItemCalculator.CalculatePiercingCount(part.DisplayGeometry);
                 }
                 else if (isPipePart)
                 {
-                    // Для труб — проколы = количество отверстий (каждое отверстие = 1 прокол при сверлении)
-                    if (part.HoleGroups != null) pinholes = part.HoleGroups.Sum(g => g.Count);
+                    // Для труб — проколы = количество отверстий + 2 реза сечения (грубо)
+                    pinholes = part.HoleGroups?.Sum(g => g.Count) + 2 ?? 0;
                 }
             }
 
@@ -566,13 +627,13 @@ namespace Metal_Code
                 };
 
                 part.PropsDict[100] = new()
-                {
-                    $"{part.Width}",
-                    $"{part.Height}",
-                    part.PartType == PartType.Round
-                                    ? $"Ø{part.Width}"
-                                    : $"{part.Width}x{part.Height}"
-                };
+        {
+            $"{part.Width}",
+            $"{part.Height}",
+            part.PartType == PartType.Round
+                ? $"Ø{part.Width}"
+                : $"{part.Width}x{part.Height}"
+        };
             }
             else if (isPipePart)
             {
@@ -587,14 +648,15 @@ namespace Metal_Code
                     _ => 0
                 };
 
+                // Масса = площадь сечения × длина трубы × плотность
                 part.Mass = (float)Math.Round(
                     crossSectionArea * part.Length * metal.Density / 1000000, 3);
 
                 part.PropsDict[100] = new() {
-                    $"{SquareToPaint(part)}",
-                    "",
-                    $"{part.Length}"
-                };
+            $"{SquareToPaint(part)}",
+            "",
+            $"{part.Length}"
+        };
             }
 
             // === ШАГ 4: Сохранение данных об отверстиях ===
@@ -621,9 +683,6 @@ namespace Metal_Code
 
             // === ГРУППИРУЕМ ОДИНАКОВЫЕ ЛИСТЫ ===
             var groupedSheets = GroupIdenticalSheets(nestingSheets);
-
-            double totalWay = 0;
-            double totalMass = 0;
 
             foreach (var group in groupedSheets)
             {
@@ -665,9 +724,6 @@ namespace Metal_Code
                 };
 
                 cut.Items?.Add(laserItem);
-
-                totalWay += sheetWay;
-                totalMass += sheetMass;
             }
 
             // === ДОБАВЛЯЕМ КОНТРОЛЫ ТОЛЬКО ДЛЯ УНИКАЛЬНЫХ ТИПОВ ДЕТАЛЕЙ ===
@@ -680,16 +736,16 @@ namespace Metal_Code
                 var partControl = new PartControl(owner, cut.work, part);
                 Parts.Add(partControl);
 
-                if (cut.Parts != null && !cut.Parts.Contains(partControl))
-                    cut.Parts.Add(partControl);
+                cut.Parts ??= new();
+                if (!cut.Parts.Contains(partControl)) cut.Parts.Add(partControl);
 
-                if (cut.PartDetails != null && !cut.PartDetails.Contains(part))
-                    cut.PartDetails.Add(part);
+                cut.PartDetails ??= new();
+                if (!cut.PartDetails.Contains(part)) cut.PartDetails.Add(part);  
             }
 
             // Обновляем итоговые значения
-            cut.WayTotal += (float)totalWay;
-            cut.MassTotal += (float)totalMass;
+            cut.WayTotal += parts.Sum(p => p.Way * p.Count);
+            cut.MassTotal += parts.Sum(p => p.Mass * p.Count);
 
             if (cut.Items?.Count > 0)
                 cut.SumProperties(cut.Items);
@@ -731,46 +787,155 @@ namespace Metal_Code
             return groups;
         }
 
-        private bool AddToPipeControl(PipeControl pipe, Part part, Metal metal)
+
+        /// <summary>
+        /// Добавляет КОЛЛЕКЦИЮ трубных деталей с оптимальным нестингом по длине
+        /// </summary>
+        /// <summary>
+        /// Добавляет КОЛЛЕКЦИЮ трубных деталей с оптимальным нестингом и группировкой одинаковых хлыстов
+        /// </summary>
+        private void AddBatchToPipeControl(PipeControl pipe, List<Part> parts, Metal metal)
         {
-            var partControl = new PartControl(owner, pipe.work, part);
-            Parts.Add(partControl);
+            if (parts == null || parts.Count == 0 || pipe.work?.type == null)
+                return;
 
-            pipe.Parts ??= new();
-            if (!pipe.Parts.Contains(partControl)) pipe.Parts.Add(partControl);
+            // Создаём раскладку по хлыстам
+            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, pipe.work.type.L, 340);
 
-            pipe.PartDetails ??= new();
-            if (!pipe.PartDetails.Contains(part)) pipe.PartDetails.Add(part);
+            if (pipeStocks == null || pipeStocks.Count == 0)
+            {
+                MessageBox.Show("Не удалось создать раскладку для труб", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
+            // === ГРУППИРУЕМ ОДИНАКОВЫЕ ХЛЫСТЫ ===
+            var groupedStocks = GroupIdenticalStocks(pipeStocks);
+
+            double totalWay = 0;
+            double totalMass = 0;
+            int totalPinholes = 0;
+
+            foreach (var group in groupedStocks)
+            {
+                var stock = group.Key;
+                int stockCount = group.Value;
+
+                if (stock.Placements.Count == 0) continue;
+
+                // Рассчитываем параметры для группы хлыстов
+                double stockMass = CalculatePipeStockMass(stock, metal, parts[0].Destiny) * stockCount;
+                double stockWay = stock.Placements.Sum(p => p.Part.Way) * stockCount;
+                int stockPinholes = stock.Placements.Sum(p =>
+                    int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var pin) ? pin : 0)
+                    * stockCount;
+
+                // Создаём один LaserItem для группы одинаковых хлыстов (полная аналогия с листами!)
+                var laserItem = new LaserItem
+                {
+                    sheets = stockCount, // Количество одинаковых хлыстов
+                    sheetSize = $"{stock.StockLength}", // Длина хлыста
+                    way = (float)stockWay,
+                    pinholes = stockPinholes,
+                    mass = (float)stockMass,
+                    metal = metal.Name,
+                    destiny = parts[0].Destiny.ToString(),
+                    PipeStocks = new List<PipeStock> { stock } // Один представитель группы
+                };
+
+                pipe.Items?.Add(laserItem);
+
+                totalWay += stockWay;
+                totalMass += stockMass;
+                totalPinholes += stockPinholes;
+            }
+
+            // === ДОБАВЛЯЕМ КОНТРОЛЫ ТОЛЬКО ДЛЯ УНИКАЛЬНЫХ ТИПОВ ДЕТАЛЕЙ ===
+            var uniqueParts = parts
+                .GroupBy(p => new { p.Title, p.Width, p.Height, p.Length, p.PartType, p.Destiny })
+                .Select(g => g.First())
+                .ToList();
+
+            foreach (var part in uniqueParts)
+            {
+                var partControl = new PartControl(owner, pipe.work, part);
+                Parts.Add(partControl);
+
+                pipe.Parts ??= new();
+                if (!pipe.Parts.Contains(partControl)) pipe.Parts.Add(partControl);
+
+                pipe.PartDetails ??= new();
+                if (!pipe.PartDetails.Contains(part)) pipe.PartDetails.Add(part);    
+            }
+
+            // Обновляем итоговые значения
+            pipe.Way += (float)totalWay;
+            pipe.Pinhole += totalPinholes;
+
+            // Обновляем количество хлыстов в типе заготовки
+            pipe.work.type.Count += groupedStocks.Sum(g => g.Value);
+            pipe.Mold += (float)Math.Round(pipe.work.type.L * groupedStocks.Sum(g => g.Value) * 0.95f / 1000, 1);
+
+            pipe.SetTotalProperties();
+
+            // Обновляем заголовок вкладки
             if (pipe.TabItem?.Header is TextBlock block)
                 block.Text = $"s{pipe.work?.type?.S} {pipe.work?.type?.MetalDrop?.Text} ({pipe.PartDetails?.Sum(x => x.Count)} шт)";
+        }
 
-            float mold = (float)Math.Round(part.Length * part.Count * 0.95f / 1000, 1);
-            pipe.Mold += mold;
+        /// <summary>
+        /// Группирует одинаковые хлысты в словарь (хлыст -> количество)
+        /// </summary>
+        private Dictionary<PipeStock, int> GroupIdenticalStocks(List<PipeStock> stocks)
+        {
+            var groups = new Dictionary<PipeStock, int>(new PipeStockComparer());
 
-            if (pipe.work != null)
+            foreach (var stock in stocks)
             {
-                int count = (int)Math.Ceiling((double)(mold * 1000 / pipe.work.type.L));
+                bool foundMatch = false;
 
-                int pinholes = int.TryParse(part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var p) ? p : 0;
-                pipe.Pinhole += pinholes * part.Count;
-
-                pipe.Way += (float)Math.Ceiling(part.Way * part.Count);
-
-                pipe.Items?.Add(new()
+                foreach (var key in groups.Keys.ToList())
                 {
-                    sheets = count,
-                    sheetSize = $"{pipe.work?.type.L}",
-                    way = part.Way * part.Count,
-                    pinholes = pinholes * part.Count,
-                    mass = part.Mass * part.Count,
-                });
+                    if (NestingHelper.AreStocksEqual(stock, key))
+                    {
+                        groups[key]++;
+                        foundMatch = true;
+                        break;
+                    }
+                }
 
-                if (pipe.work != null) pipe.work.type.Count += count;
-                pipe?.SetTotalProperties();
+                if (!foundMatch)
+                {
+                    groups[stock] = 1;
+                }
             }
-            
-            return true;
+
+            return groups;
+        }
+
+        /// <summary>
+        /// Рассчитывает массу хлыста трубы
+        /// </summary>
+        private double CalculatePipeStockMass(PipeStock stock, Metal metal, float thickness)
+        {
+            if (stock.Placements.Count == 0) return 0;
+
+            // Берём первую деталь для определения типа сечения
+            var firstPart = stock.Placements[0].Part;
+            double crossSectionArea = firstPart.PartType switch
+            {
+                PartType.RoundTube => Math.PI * (
+                    Math.Pow(firstPart.Width / 2, 2) -
+                    Math.Pow(firstPart.Width / 2 - thickness, 2)),
+                PartType.RectangularTube =>
+                    (firstPart.Width * firstPart.Height) -
+                    Math.Max(0, firstPart.Width - 2 * thickness) *
+                    Math.Max(0, firstPart.Height - 2 * thickness),
+                _ => 0
+            };
+
+            // Масса = площадь сечения × длина хлыста × плотность
+            return crossSectionArea * stock.StockLength * metal.Density / 1000000;
         }
 
         private double SquareToPaint(Part part)

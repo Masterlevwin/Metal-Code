@@ -191,13 +191,133 @@ namespace Metal_Code.Utils
 
             return true;
         }
+
+
+        /// <summary>
+        /// Пакетный нестинг труб: размещает детали на минимальном количестве хлыстов
+        /// Учитывает зону зажима 340 мм в начале каждого хлыста
+        /// </summary>
+        public static List<PipeStock> CreateNestingForPipeBatch(List<Part> parts, double stockLength = 6000, double clampZone = 340)
+        {
+            var stocks = new List<PipeStock>();
+
+            // Размножаем детали по количеству и сортируем по убыванию длины (жадный алгоритм)
+            var allParts = parts
+                .SelectMany(p => Enumerable.Repeat(p, p.Count))
+                .OrderByDescending(p => p.Length)
+                .ToList();
+
+            foreach (var part in allParts)
+            {
+                bool placed = false;
+
+                // Пробуем разместить на существующих хлыстах (от наименее заполненного к наиболее)
+                foreach (var stock in stocks.OrderBy(s => s.UsedLength))
+                {
+                    if (stock.AvailableLength >= part.Length)
+                    {
+                        double startPosition = stock.ClampZone + stock.UsedLength;
+
+                        stock.Placements.Add(new PipePlacement
+                        {
+                            Part = part,
+                            StartPosition = startPosition
+                        });
+
+                        placed = true;
+                        break;
+                    }
+                }
+
+                // Если не разместили — создаём новый хлыст
+                if (!placed)
+                {
+                    var newStock = new PipeStock
+                    {
+                        StockLength = stockLength,
+                        ClampZone = clampZone
+                    };
+
+                    newStock.Placements.Add(new PipePlacement
+                    {
+                        Part = part,
+                        StartPosition = clampZone // Первая деталь начинается сразу после зоны зажима
+                    });
+
+                    stocks.Add(newStock);
+                }
+            }
+
+            return stocks;
+        }
+
+        /// <summary>
+        /// Проверяет, являются ли два хлыста одинаковыми (по составу деталей)
+        /// </summary>
+        public static bool AreStocksEqual(PipeStock? stock1, PipeStock? stock2)
+        {
+            if (stock1 == null || stock2 == null)
+                return false;
+
+            // Сравниваем длину хлыста и зону зажима
+            if (Math.Abs(stock1.StockLength - stock2.StockLength) > 0.1)
+                return false;
+            if (Math.Abs(stock1.ClampZone - stock2.ClampZone) > 0.1)
+                return false;
+
+            // Сравниваем количество деталей
+            if (stock1.Placements.Count != stock2.Placements.Count)
+                return false;
+
+            // Сравниваем состав деталей (игнорируя порядок)
+            var parts1 = stock1.Placements
+                .GroupBy(p => new { p.Part.Width, p.Part.Height, p.Part.Length, p.Part.PartType })
+                .Select(g => new { g.Key, Count = g.Count() })
+                .OrderBy(x => x.Key.Width)
+                .ThenBy(x => x.Key.Height)
+                .ThenBy(x => x.Key.Length)
+                .ToList();
+
+            var parts2 = stock2.Placements
+                .GroupBy(p => new { p.Part.Width, p.Part.Height, p.Part.Length, p.Part.PartType })
+                .Select(g => new { g.Key, Count = g.Count() })
+                .OrderBy(x => x.Key.Width)
+                .ThenBy(x => x.Key.Height)
+                .ThenBy(x => x.Key.Length)
+                .ToList();
+
+            if (parts1.Count != parts2.Count)
+                return false;
+
+            for (int i = 0; i < parts1.Count; i++)
+            {
+                if (Math.Abs(parts1[i].Key.Width - parts2[i].Key.Width) > 0.1 ||
+                    Math.Abs(parts1[i].Key.Height - parts2[i].Key.Height) > 0.1 ||
+                    Math.Abs(parts1[i].Key.Length - parts2[i].Key.Length) > 0.1 ||
+                    parts1[i].Key.PartType != parts2[i].Key.PartType ||
+                    parts1[i].Count != parts2[i].Count)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     }
+
 
     public class NestingSheet
     {
         public double Width { get; set; } = 3000;
         public double Height { get; set; } = 1500;
         public List<PartPlacement> Parts { get; set; } = new();
+    }
+
+    public class PartPlacement
+    {
+        public Part Part { get; set; } = null!;
+        public double X { get; set; }
+        public double Y { get; set; }
     }
 
     public class NestingSheetComparer : IEqualityComparer<NestingSheet>
@@ -214,10 +334,52 @@ namespace Metal_Code.Utils
         }
     }
 
-    public class PartPlacement
+
+    public class PipeStock
+    {
+        public double StockLength { get; set; } = 6000; // Длина хлыста (мм)
+        public double ClampZone { get; set; } = 340;    // Зона зажима (мм)
+        public List<PipePlacement> Placements { get; set; } = new();
+
+        /// <summary>
+        /// Занятая длина (сумма длин всех деталей)
+        /// </summary>
+        public double UsedLength => Placements.Sum(p => p.Part.Length);
+
+        /// <summary>
+        /// Свободная длина для размещения новых деталей
+        /// </summary>
+        public double AvailableLength => StockLength - ClampZone - UsedLength;
+    }
+
+    public class PipePlacement
     {
         public Part Part { get; set; } = null!;
-        public double X { get; set; }
-        public double Y { get; set; }
+        public double StartPosition { get; set; } // От начала хлыста (после зоны зажима)
+    }
+
+    public class PipeStockComparer : IEqualityComparer<PipeStock>
+    {
+        public bool Equals(PipeStock? x, PipeStock? y)
+        {
+            return NestingHelper.AreStocksEqual(x, y);
+        }
+
+        public int GetHashCode(PipeStock obj)
+        {
+            if (obj == null) return 0;
+
+            // Хэш по длине хлыста и количеству деталей
+            int hash = obj.StockLength.GetHashCode() ^ obj.Placements.Count.GetHashCode();
+
+            // Добавляем хэши типов деталей для большей уникальности
+            foreach (var placement in obj.Placements.Take(3)) // Первые 3 детали для скорости
+            {
+                hash ^= placement.Part.PartType.GetHashCode();
+                hash ^= placement.Part.Length.GetHashCode();
+            }
+
+            return hash;
+        }
     }
 }

@@ -5132,10 +5132,6 @@ namespace Metal_Code
                     }
                 }
 
-                // Если "без бонуса" — обнуляем бонус
-                if (isNoBonus)
-                    bonusRatio = 0;
-
                 // Общая сумма для расчёта пропорции (не может быть 0, если есть бонус)
                 decimal totalGross = servicesGross + materialGross;
 
@@ -7409,6 +7405,74 @@ namespace Metal_Code
         //        return calcBusinessDays;
         //    }
         //}
+
+        public static void TracePartDetails(Part part, string prefix = "Part")
+        {
+            if (part == null)
+            {
+                Trace.WriteLine($"{prefix}: NULL");
+                return;
+            }
+
+            Trace.WriteLine($"=== {prefix} Details ===");
+            Trace.WriteLine($"Title: \"{part.Title}\"");
+            Trace.WriteLine($"Count: {part.Count}");
+            Trace.WriteLine($"Metal: \"{part.Metal}\"");
+            Trace.WriteLine($"Destiny (толщина): {part.Destiny} мм");
+            Trace.WriteLine($"Accuracy: \"{part.Accuracy}\"");
+            Trace.WriteLine($"Description: \"{part.Description}\"");
+            Trace.WriteLine($"PartType: {part.PartType}");
+            Trace.WriteLine($"Width: {part.Width} мм");
+            Trace.WriteLine($"Height: {part.Height} мм");
+            Trace.WriteLine($"Length: {part.Length} мм");
+            Trace.WriteLine($"Mass: {part.Mass} кг");
+            Trace.WriteLine($"Way (длина реза): {part.Way} м");
+            Trace.WriteLine($"Price: {part.Price} ₽");
+            Trace.WriteLine($"Total: {part.Total} ₽");
+            Trace.WriteLine($"IsFixed: {part.IsFixed}");
+            Trace.WriteLine($"FixedPrice: {part.FixedPrice} ₽");
+            Trace.WriteLine($"IsHiddenInOffer: {part.IsHiddenInOffer}");
+
+            // PropsDict
+            Trace.WriteLine($"PropsDict.Count: {part.PropsDict.Count}");
+            foreach (var kvp in part.PropsDict)
+            {
+                Trace.WriteLine($"  PropsDict[{kvp.Key}]: [{string.Join(", ", kvp.Value)}]");
+            }
+
+            // HoleGroups
+            Trace.WriteLine($"HoleGroups.Count: {part.HoleGroups.Count}");
+            foreach (var hg in part.HoleGroups)
+            {
+                Trace.WriteLine($"  HoleGroup: Diameter={hg.Diameter}мм, Count={hg.Count}, TotalArea={hg.TotalArea:F1}мм²");
+            }
+
+            // DisplayGeometry
+            if (part.DisplayGeometry != null)
+            {
+                Trace.WriteLine($"DisplayGeometry: Bounds={part.DisplayGeometry.Bounds}, Figures={part.DisplayGeometry.Figures.Count}");
+                foreach (var fig in part.DisplayGeometry.Figures)
+                {
+                    Trace.WriteLine($"  Figure: Start=({fig.StartPoint.X:F1},{fig.StartPoint.Y:F1}), IsClosed={fig.IsClosed}, IsFilled={fig.IsFilled}, Segments={fig.Segments.Count}");
+                }
+            }
+            else
+            {
+                Trace.WriteLine($"DisplayGeometry: NULL");
+            }
+
+            // Geometries
+            Trace.WriteLine($"Geometries.Count: {part.Geometries?.Count ?? 0}");
+
+            // MillingHoles/MillingGrooves
+            Trace.WriteLine($"MillingHoles.Count: {part.MillingHoles.Count}");
+            Trace.WriteLine($"MillingGrooves.Count: {part.MillingGrooves.Count}");
+
+            // WorksDict
+            Trace.WriteLine($"WorksDict.Count: {part.WorksDict.Count}");
+
+            Trace.WriteLine($"=== End {prefix} Details ===\n");
+        }
         #endregion
     }
 }

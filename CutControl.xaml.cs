@@ -827,8 +827,14 @@ namespace Metal_Code
         public string metal = "ст3";
         [OptionalField]
         public string destiny = "1";
+
+        // Для листов:
         [OptionalField]
         public List<NestingSheet>? NestingSheets;
+
+        // Для труб:
+        [OptionalField]
+        public List<PipeStock>? PipeStocks;
     }
 
     public class ExcelDialogService : IDialogService
