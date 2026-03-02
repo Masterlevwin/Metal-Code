@@ -371,6 +371,7 @@ namespace Metal_Code
                     PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
                     AddPartsControl();                  // добавляем вкладку в "Список нарезанных деталей"
                     SetTotalProperties();               // определяем общую массу и общую длину нарезанных труб
+                    if (PartDetails != null) CreatePipeStockForVisualization(PartDetails);
                 }
                 else
                 {   // добавляем типовую деталь
@@ -378,17 +379,17 @@ namespace Metal_Code
 
                     // устанавливаем "Труба профильная"
                     foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба профильная")
-                        {
-                            work.type.det.TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
-                            break;
-                        }
+                    {
+                        work.type.det.TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
+                        break;
+                    }
 
                     // устанавливаем "Труборез"
                     foreach (Work w in MainWindow.M.Works) if (w.Name == "Труборез")
-                        {
-                            work.type.det.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
-                            break;
-                        }
+                    {
+                        work.type.det.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
+                        break;
+                    }
 
                     // заполняем эту резку
                     if (work.type.det.TypeDetailControls[^1].WorkControls[^1].workType is PipeControl _pipe)
@@ -397,6 +398,7 @@ namespace Metal_Code
                         _pipe.PartsControl = new(_pipe, _pipe.Parts);
                         _pipe.AddPartsControl();
                         _pipe.SetTotalProperties();
+                        if (_pipe.PartDetails != null) _pipe.CreatePipeStockForVisualization(_pipe.PartDetails);
                     }
                 }
             }
@@ -725,7 +727,7 @@ namespace Metal_Code
                                 Accuracy = $"H12/h12 +-IT 12/2"
                             };
 
-                            if (float.TryParse($"{tables[0].Rows[j].ItemArray[4]}", out float w)) part.Way = (float)Math.Round(w, 3);
+                            if (float.TryParse($"{tables[0].Rows[j].ItemArray[4]}", out float w)) part.Way = (float)(part.Length = (float)Math.Round(w, 3));
 
                             string? _count = tables[0].Rows[j].ItemArray[3]?.ToString();
                             if (_count != null && _count.Contains('/')) part.Count = (int)MainWindow.Parser(_count.Split('/')[0]);
@@ -1111,6 +1113,74 @@ namespace Metal_Code
             }
 
             work.type.MassCalculate();          // обновляем значение массы заготовки
+        }
+
+        public void CreatePipeStockForVisualization(List<Part> parts)
+        {
+            Items?.Clear();
+
+            // Создаём раскладку по хлыстам
+            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, work.type.L, 340);
+
+            if (pipeStocks == null || pipeStocks.Count == 0)
+            {
+                MessageBox.Show("Не удалось создать раскладку для труб", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // === ГРУППИРУЕМ ОДИНАКОВЫЕ ХЛЫСТЫ ===
+            var groupedStocks = GroupIdenticalStocks(pipeStocks);
+
+            foreach (var group in groupedStocks)
+            {
+                var stock = group.Key;
+                int stockCount = group.Value;
+
+                if (stock.Placements.Count == 0) continue;
+
+                // Создаём один LaserItem для группы одинаковых хлыстов (полная аналогия с листами!)
+                var laserItem = new LaserItem
+                {
+                    sheets = stockCount, // Количество одинаковых хлыстов
+                    sheetSize = $"{stock.StockLength}", // Длина хлыста
+                    metal = parts[0].Metal,
+                    destiny = parts[0].Destiny.ToString(),
+                    PipeStocks = new List<PipeStock> { stock } // Один представитель группы
+                };
+
+                Items?.Add(laserItem);
+            }
+        }
+
+        /// <summary>
+        /// Группирует одинаковые хлысты в словарь (хлыст -> количество)
+        /// </summary>
+        private Dictionary<PipeStock, int> GroupIdenticalStocks(List<PipeStock> stocks)
+        {
+            var groups = new Dictionary<PipeStock, int>(new PipeStockComparer());
+
+            foreach (var stock in stocks)
+            {
+                bool foundMatch = false;
+
+                foreach (var key in groups.Keys.ToList())
+                {
+                    if (NestingHelper.AreStocksEqual(stock, key))
+                    {
+                        groups[key]++;
+                        foundMatch = true;
+                        break;
+                    }
+                }
+
+                if (!foundMatch)
+                {
+                    groups[stock] = 1;
+                }
+            }
+
+            return groups;
         }
 
         private bool _isExpanded = false;

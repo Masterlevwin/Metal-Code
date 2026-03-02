@@ -9,6 +9,9 @@ using Metal_Code.Utils;
 
 namespace Metal_Code
 {
+    /// <summary>
+    /// Контрол визуализации раскладки трубного хлыста с отступами и улучшенной разметкой
+    /// </summary>
     public partial class PipeStockVisualizationControl : UserControl
     {
         public static readonly DependencyProperty StockProperty =
@@ -24,10 +27,11 @@ namespace Metal_Code
             set => SetValue(StockProperty, value);
         }
 
-        // Масштаб: 800 пикселей на 6000 мм (стандартный хлыст)
-        public double ScaleFactor { get; set; } = 800.0 / 6000.0;
+        // Масштаб: 820 пикселей на длину хлыста
+        private double ScaleFactor => 820.0 / (Stock?.StockLength ?? 6000.0);
 
         private Canvas _layoutCanvas = null!;
+        private readonly RandomColorGenerator _colorGen = new();
 
         public PipeStockVisualizationControl()
         {
@@ -38,12 +42,11 @@ namespace Metal_Code
         {
             _layoutCanvas = new Canvas
             {
-                Width = 800,  // Фиксированная ширина для 6000 мм хлыста
-                Height = 40,  // Высота полосы с деталями
+                Width = 820,
+                Height = 70,
                 Background = Brushes.White,
                 Margin = new Thickness(5)
             };
-
             Content = _layoutCanvas;
         }
 
@@ -60,48 +63,64 @@ namespace Metal_Code
             _layoutCanvas.Children.Clear();
             if (Stock == null || Stock.Placements.Count == 0) return;
 
-            var colorGen = new RandomColorGenerator();
-
-            // === ШАГ 1: Отрисовка зоны зажима (первые 340 мм) ===
+            // === ШАГ 1: Зона зажима (первые 340 мм) ===
             double clampWidthPx = Stock.ClampZone * ScaleFactor;
             var clampRect = new Rectangle
             {
                 Width = Math.Max(1, clampWidthPx),
                 Height = 30,
-                Fill = new SolidColorBrush(Color.FromArgb(150, 255, 223, 186)), // Светло-оранжевый (зона зажима)
+                Fill = new SolidColorBrush(Color.FromArgb(180, 255, 230, 200)), // Мягкий оранжевый
                 Stroke = Brushes.OrangeRed,
                 StrokeThickness = 1,
-                ToolTip = $"Зона зажима: {Stock.ClampZone} мм (недоступна для резки)"
+                RadiusX = 3,
+                RadiusY = 3,
+                ToolTip = $"Зона зажима станка: {Stock.ClampZone} мм\n(недоступна для резки)"
             };
             Canvas.SetLeft(clampRect, 0);
             Canvas.SetTop(clampRect, 5);
             _layoutCanvas.Children.Add(clampRect);
 
-            // Подпись зоны зажима
-            var clampText = new TextBlock
+            // Двухстрочная подпись зоны зажима
+            var clampLabel1 = new TextBlock
             {
-                Text = $"Зажим {Stock.ClampZone}мм",
-                FontSize = 10,
+                Text = "ЗАЖИМ",
+                FontSize = 8,
                 FontWeight = FontWeights.Bold,
                 Foreground = Brushes.OrangeRed,
-                IsHitTestVisible = false
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Width = Math.Max(40, clampWidthPx - 4)
             };
-            Canvas.SetLeft(clampText, 2);
-            Canvas.SetTop(clampText, 10);
-            _layoutCanvas.Children.Add(clampText);
+            Canvas.SetLeft(clampLabel1, 2);
+            Canvas.SetTop(clampLabel1, 8);
+            _layoutCanvas.Children.Add(clampLabel1);
 
-            // === ШАГ 2: Агрегация деталей для компактного отображения ===
+            var clampLabel2 = new TextBlock
+            {
+                Text = $"{Stock.ClampZone} мм",
+                FontSize = 8,
+                Foreground = Brushes.OrangeRed,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Width = Math.Max(40, clampWidthPx - 4)
+            };
+            Canvas.SetLeft(clampLabel2, 5);
+            Canvas.SetTop(clampLabel2, 20);
+            _layoutCanvas.Children.Add(clampLabel2);
+
+            // === ШАГ 2: Детали с отступами ===
             var aggregated = AggregatePlacements(Stock.Placements);
-            double currentX = clampWidthPx; // Начинаем после зоны зажима
+            double currentX = clampWidthPx;
+            const double cutLoss = 10;
+            double cutLossPx = cutLoss * ScaleFactor;
 
-            // === ШАГ 3: Отрисовка деталей ===
             foreach (var agg in aggregated)
             {
-                double totalLengthMm = agg.Part.Length * agg.Count; // Без учёта реза между деталями (для визуализации)
+                double totalLengthMm = agg.Part.Length * agg.Count + (agg.Count - 1) * cutLoss;
                 double totalLengthPx = totalLengthMm * ScaleFactor;
-                double height = 25;
+                double height = 30;
 
-                var (fillColor, textColor) = colorGen.GetColorsForPart(agg.Part);
+                var (fillColor, textColor) = _colorGen.GetColorsForPart(agg.Part);
 
                 var rect = new Rectangle
                 {
@@ -109,72 +128,114 @@ namespace Metal_Code
                     Height = height,
                     Fill = new SolidColorBrush(fillColor),
                     Stroke = Brushes.Black,
-                    StrokeThickness = 0.5,
-                    ToolTip = $"{agg.Part.Title}\nСечение: {GetSectionLabel(agg.Part)}\nДлина: {agg.Part.Length} мм\nКоличество: {agg.Count} шт"
+                    StrokeThickness = 1,
+                    RadiusX = 2,
+                    RadiusY = 2,
+                    ToolTip = $"{agg.Part.Title}\nСечение: {GetSectionLabel(agg.Part)}\n" +
+                             $"Длина: {agg.Part.Length:F0} мм × {agg.Count} шт"
                 };
 
                 Canvas.SetLeft(rect, currentX);
-                Canvas.SetTop(rect, (40 - height) / 2 + 5);
+                Canvas.SetTop(rect, 5);
                 _layoutCanvas.Children.Add(rect);
+
+                // Отступы между деталями (визуализация)
+                if (agg.Count > 1 && cutLossPx > 1)
+                {
+                    for (int i = 1; i < agg.Count; i++)
+                    {
+                        double cutX = currentX + (agg.Part.Length * i + (i - 1) * cutLoss) * ScaleFactor;
+                        var cutLine = new Line
+                        {
+                            X1 = cutX,
+                            Y1 = 8,
+                            X2 = cutX,
+                            Y2 = 38,
+                            Stroke = Brushes.White,
+                            StrokeThickness = 2,
+                            StrokeDashArray = new DoubleCollection { 2, 2 }
+                        };
+                        _layoutCanvas.Children.Add(cutLine);
+                    }
+                }
 
                 // Подпись детали
                 string label = agg.Count > 1
                     ? $"{agg.Count}×{agg.Part.Length:F0}мм"
                     : $"{agg.Part.Length:F0}мм";
 
-                if (totalLengthPx > 40)
+                if (totalLengthPx > 50)
                 {
                     var text = new TextBlock
                     {
                         Text = label,
-                        FontSize = 9,
+                        FontSize = 10,
                         FontWeight = FontWeights.Bold,
                         Foreground = new SolidColorBrush(textColor),
-                        IsHitTestVisible = false
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Width = Math.Max(50, totalLengthPx - 4)
                     };
                     Canvas.SetLeft(text, currentX + 2);
-                    Canvas.SetTop(text, (40 - height) / 2 + 7);
+                    Canvas.SetTop(text, 15);
                     _layoutCanvas.Children.Add(text);
                 }
 
                 currentX += totalLengthPx;
             }
 
-            // === ШАГ 4: Отрисовка отхода ===
-            double totalUsedPx = currentX;
-            double wastePx = 800 - totalUsedPx;
-            double wasteMm = Math.Max(0, Stock.StockLength - (Stock.ClampZone + Stock.UsedLength));
+            // === ШАГ 3: Остаток (деловой) ===
+            double wastePx = 820 - currentX;
+            double wasteMm = Stock.AvailableLength;
 
-            if (wastePx > 0.5)
+            if (wastePx > 1.0)
             {
                 var wasteRect = new Rectangle
                 {
                     Width = wastePx,
                     Height = 30,
-                    Fill = new SolidColorBrush(Color.FromArgb(120, 255, 182, 193)), // Светло-красный с прозрачностью
+                    Fill = new SolidColorBrush(Color.FromArgb(150, 255, 200, 200)), // Мягкий красный
                     Stroke = Brushes.Red,
                     StrokeThickness = 1,
-                    ToolTip = $"Деловой остаток: {wasteMm:F0} мм"
+                    RadiusX = 3,
+                    RadiusY = 3,
+                    ToolTip = $"Деловой остаток хлыста: {wasteMm:F0} мм\n" +
+                             $"(может быть использован для мелких деталей)"
                 };
-                Canvas.SetLeft(wasteRect, totalUsedPx);
+                Canvas.SetLeft(wasteRect, currentX);
                 Canvas.SetTop(wasteRect, 5);
                 _layoutCanvas.Children.Add(wasteRect);
 
-                // Подпись отхода
-                var wasteText = new TextBlock
+                // Двухстрочная подпись остатка
+                var wasteLabel1 = new TextBlock
                 {
-                    Text = $"Остаток: {wasteMm:F0}мм",
-                    FontSize = 10,
+                    Text = "ОСТАТОК",
+                    FontSize = 8,
                     FontWeight = FontWeights.Bold,
                     Foreground = Brushes.DarkRed,
-                    IsHitTestVisible = false
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Width = Math.Max(50, wastePx - 4)
                 };
-                Canvas.SetLeft(wasteText, totalUsedPx + 2);
-                Canvas.SetTop(wasteText, 12);
-                _layoutCanvas.Children.Add(wasteText);
+                Canvas.SetLeft(wasteLabel1, currentX + 2);
+                Canvas.SetTop(wasteLabel1, 8);
+                _layoutCanvas.Children.Add(wasteLabel1);
+
+                var wasteLabel2 = new TextBlock
+                {
+                    Text = $"{wasteMm:F0} мм",
+                    FontSize = 8,
+                    Foreground = Brushes.DarkRed,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Width = Math.Max(50, wastePx - 4)
+                };
+                Canvas.SetLeft(wasteLabel2, currentX + 5);
+                Canvas.SetTop(wasteLabel2, 20);
+                _layoutCanvas.Children.Add(wasteLabel2);
             }
 
-            // === ШАГ 5: Шкала длины под полосой ===
+            // === ШАГ 4: Шкала длины ===
             DrawScale();
         }
 
@@ -183,9 +244,7 @@ namespace Metal_Code
             var result = new List<AggregatedPlacement>();
             if (placements.Count == 0) return result;
 
-            // Сортируем по позиции (на случай если порядок нарушен)
             var sorted = placements.OrderBy(p => p.StartPosition).ToList();
-
             var current = sorted[0];
             int count = 1;
 
@@ -199,7 +258,11 @@ namespace Metal_Code
                     current.Part.PartType == next.Part.PartType &&
                     current.Part.Metal == next.Part.Metal;
 
-                if (isSameType && Math.Abs(next.StartPosition - (current.StartPosition + current.Part.Length * count)) < 1.0)
+                // Проверяем, что детали идут подряд с отступом 10 мм
+                double expectedPosition = current.StartPosition + current.Part.Length * count + (count - 1) * 10;
+                bool isConsecutive = Math.Abs(next.StartPosition - expectedPosition) < 1.0;
+
+                if (isSameType && isConsecutive)
                 {
                     count++;
                 }
@@ -217,48 +280,47 @@ namespace Metal_Code
 
         private void DrawScale()
         {
-            // Отрисовка шкалы под полосой (каждые 1000 мм)
-            for (int i = 0; i <= 6000; i += 1000)
+            // Горизонтальная линия шкалы
+            var baseLine = new Line
+            {
+                X1 = 0,
+                Y1 = 45,
+                X2 = 820,
+                Y2 = 45,
+                Stroke = Brushes.Gray,
+                StrokeThickness = 1
+            };
+            _layoutCanvas.Children.Add(baseLine);
+
+            // Отметки каждые 1000 мм
+            for (int i = 0; i <= (Stock?.StockLength ?? 6000); i += 1000)
             {
                 double x = i * ScaleFactor;
 
-                // Линия шкалы
-                var line = new Line
+                // Вертикальная линия отметки
+                var mark = new Line
                 {
                     X1 = x,
-                    Y1 = 35,
+                    Y1 = 45,
                     X2 = x,
-                    Y2 = 42,
+                    Y2 = 50,
                     Stroke = Brushes.Gray,
                     StrokeThickness = 1
                 };
-                _layoutCanvas.Children.Add(line);
+                _layoutCanvas.Children.Add(mark);
 
-                // Подпись
+                // Подпись отметки
                 var text = new TextBlock
                 {
                     Text = $"{i}",
-                    FontSize = 8,
+                    FontSize = 9,
                     Foreground = Brushes.Gray,
-                    IsHitTestVisible = false
+                    FontWeight = FontWeights.Bold
                 };
-                Canvas.SetLeft(text, x - 10);
-                Canvas.SetTop(text, 42);
+                Canvas.SetLeft(text, x - 12);
+                Canvas.SetTop(text, 52);
                 _layoutCanvas.Children.Add(text);
             }
-
-            // Общая подпись "6000 мм"
-            var totalText = new TextBlock
-            {
-                Text = $"Хлыст: {Stock?.StockLength ?? 6000} мм",
-                FontSize = 10,
-                FontWeight = FontWeights.Bold,
-                Foreground = Brushes.DarkBlue,
-                IsHitTestVisible = false
-            };
-            Canvas.SetLeft(totalText, 700);
-            Canvas.SetTop(totalText, 42);
-            _layoutCanvas.Children.Add(totalText);
         }
 
         private string GetSectionLabel(Part part)
@@ -267,12 +329,11 @@ namespace Metal_Code
             {
                 PartType.RoundTube => $"Ø{part.Width}×{part.Destiny}",
                 PartType.RectangularTube => $"{part.Width}×{part.Height}×{part.Destiny}",
-                _ => "неизвестно"
+                _ => $"{part.Width}×{part.Height}"
             };
         }
     }
 
-    // Вспомогательные классы
     internal class AggregatedPlacement
     {
         public Part Part { get; set; } = null!;
@@ -291,16 +352,10 @@ namespace Metal_Code
                 return (fill, GetContrastColor(fill));
             }
 
-            // Генерируем "стабильный" цвет на основе хэша
             int hash = key.GetHashCode();
-            byte r = (byte)((hash & 0xFF0000) >> 16);
-            byte g = (byte)((hash & 0x00FF00) >> 8);
-            byte b = (byte)(hash & 0x0000FF);
-
-            // Увеличиваем яркость, чтобы не было слишком тёмных цветов
-            r = (byte)Math.Max(80, r % 128 + 80);
-            g = (byte)Math.Max(80, g % 128 + 80);
-            b = (byte)Math.Max(80, b % 128 + 80);
+            byte r = (byte)Math.Max(100, (hash & 0xFF) % 100 + 100);
+            byte g = (byte)Math.Max(100, ((hash >> 8) & 0xFF) % 100 + 100);
+            byte b = (byte)Math.Max(100, ((hash >> 16) & 0xFF) % 100 + 100);
 
             fill = Color.FromRgb(r, g, b);
             _colorCache[key] = fill;

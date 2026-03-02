@@ -194,14 +194,13 @@ namespace Metal_Code.Utils
 
 
         /// <summary>
-        /// Пакетный нестинг труб: размещает детали на минимальном количестве хлыстов
-        /// Учитывает зону зажима 340 мм в начале каждого хлыста
+        /// Пакетный нестинг труб с отступами 10 мм между деталями
         /// </summary>
         public static List<PipeStock> CreateNestingForPipeBatch(List<Part> parts, double stockLength = 6000, double clampZone = 340)
         {
             var stocks = new List<PipeStock>();
 
-            // Размножаем детали по количеству и сортируем по убыванию длины (жадный алгоритм)
+            // Размножаем и сортируем по убыванию длины
             var allParts = parts
                 .SelectMany(p => Enumerable.Repeat(p, p.Count))
                 .OrderByDescending(p => p.Length)
@@ -211,12 +210,12 @@ namespace Metal_Code.Utils
             {
                 bool placed = false;
 
-                // Пробуем разместить на существующих хлыстах (от наименее заполненного к наиболее)
-                foreach (var stock in stocks.OrderBy(s => s.UsedLength))
+                // Пробуем разместить на существующих хлыстах
+                foreach (var stock in stocks.OrderBy(s => s.UsedLengthWithCutLoss))
                 {
                     if (stock.AvailableLength >= part.Length)
                     {
-                        double startPosition = stock.ClampZone + stock.UsedLength;
+                        double startPosition = stock.ClampZone + stock.UsedLengthWithCutLoss;
 
                         stock.Placements.Add(new PipePlacement
                         {
@@ -229,7 +228,7 @@ namespace Metal_Code.Utils
                     }
                 }
 
-                // Если не разместили — создаём новый хлыст
+                // Создаём новый хлыст при необходимости
                 if (!placed)
                 {
                     var newStock = new PipeStock
@@ -241,7 +240,7 @@ namespace Metal_Code.Utils
                     newStock.Placements.Add(new PipePlacement
                     {
                         Part = part,
-                        StartPosition = clampZone // Первая деталь начинается сразу после зоны зажима
+                        StartPosition = clampZone
                     });
 
                     stocks.Add(newStock);
@@ -341,6 +340,16 @@ namespace Metal_Code.Utils
         public double ClampZone { get; set; } = 340;    // Зона зажима (мм)
         public List<PipePlacement> Placements { get; set; } = new();
 
+        private const double CutLoss = 10; // Отступ между деталями
+
+        /// <summary>
+        /// Занятая длина с учётом отступов между деталями
+        /// </summary>
+        public double UsedLengthWithCutLoss =>
+            Placements.Count == 0
+                ? 0
+                : UsedLength + (Placements.Count - 1) * CutLoss;
+
         /// <summary>
         /// Занятая длина (сумма длин всех деталей)
         /// </summary>
@@ -349,7 +358,7 @@ namespace Metal_Code.Utils
         /// <summary>
         /// Свободная длина для размещения новых деталей
         /// </summary>
-        public double AvailableLength => StockLength - ClampZone - UsedLength;
+        public double AvailableLength => StockLength - ClampZone - UsedLengthWithCutLoss;
     }
 
     public class PipePlacement

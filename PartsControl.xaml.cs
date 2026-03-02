@@ -311,8 +311,8 @@ namespace Metal_Code
                             var stack = new StackPanel { Orientation = Orientation.Vertical };
                             stack.Children.Add(border);
 
-                            // Подпись с размером, количеством деталей и количеством листов
-                            string sheetInfo = $"{item.sheetSize} ({item.sheets} шт)\n{sheet.Parts.Count} деталей";
+                            // Подпись с количеством листов и их размером
+                            string sheetInfo = $"{item.sheets} шт ({item.sheetSize} мм)";
 
                             var infoText = new TextBlock
                             {
@@ -354,9 +354,8 @@ namespace Metal_Code
                             var stack = new StackPanel { Orientation = Orientation.Vertical };
                             stack.Children.Add(border);
 
-                            // Подпись с длиной хлыста, количеством хлыстов и деталей
-                            string stockInfo = $"{stock.StockLength:0} мм ({item.sheets} шт)\n" +
-                                              $"{stock.Placements.Count} деталей";
+                            // Подпись с количеством хлыстов и их длиной
+                            string stockInfo = $"{item.sheets} шт ({stock.StockLength:0} мм)";
 
                             var infoText = new TextBlock
                             {
@@ -469,13 +468,6 @@ namespace Metal_Code
                         {
                             AddBatchToPipeControl(pipe, batchedParts, metal);
                         }
-
-                        MessageBox.Show(
-                            $"Добавлено {batchedParts.Count} типов деталей\n" +
-                            $"Всего деталей: {batchedParts.Sum(p => p.Count)} шт\n" +
-                            $"Использовано {(owner is CutControl ? "листов" : "хлыстов")}: " +
-                            $"{(owner is CutControl cutCtrl ? cutCtrl.Items?.Count ?? 0 : (owner as PipeControl)?.work?.type?.Count ?? 0)}",
-                            "Успешно", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
             }
@@ -571,25 +563,6 @@ namespace Metal_Code
             if (part.DisplayGeometry != null)
             {
                 cuttingLength = TechItemCalculator.CalculateCuttingLength(part.DisplayGeometry);
-
-                // Для труб: периметр сечения × 2 (внешний + внутренний контур)
-                //if (isPipePart)
-                //{
-                //    if (part.PartType == PartType.RoundTube)
-                //    {
-                //        double outerPerimeter = Math.PI * part.Width;
-                //        double innerPerimeter = Math.PI * (part.Width - 2 * thickness);
-                //        cuttingLength = outerPerimeter + innerPerimeter;
-                //    }
-                //    else if (part.PartType == PartType.RectangularTube)
-                //    {
-                //        double outerPerimeter = 2 * (part.Width + part.Height);
-                //        double innerW = Math.Max(0, part.Width - 2 * thickness);
-                //        double innerH = Math.Max(0, part.Height - 2 * thickness);
-                //        double innerPerimeter = 2 * (innerW + innerH);
-                //        cuttingLength = outerPerimeter + innerPerimeter;
-                //    }
-                //}
 
                 // Дополнительная длина реза за счёт отверстий (для труб — сверление вдоль длины)
                 if (part.HoleGroups?.Count > 0)

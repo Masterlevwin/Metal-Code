@@ -113,7 +113,7 @@ namespace Metal_Code
 
         //----------Свойства и их основные методы---------//
         #region
-        private string version = "2.6.8";
+        private string version = "2.6.9";
         public string Version
         {
             get => version;
@@ -599,10 +599,10 @@ namespace Metal_Code
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.6.8.9",
-                releaseDate: new DateTime(2026, 02, 20),
-                description: "Добавлена поддержка стандартных деталей в КП.",
-                screenshotPath: "/Updates/v2.6.8.9_2026-02-20.png"
+                version: "v2.6.9.0",
+                releaseDate: new DateTime(2026, 03, 02),
+                description: "Добавлена визуализация стандартных деталей.",
+                screenshotPath: "/Updates/v2.6.9.0_2026-03-02.png"
             );
 
             // Получаем новые обновления
