@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
+using System;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -13,7 +13,8 @@ namespace Metal_Code
     public partial class SearchWindow : Window, INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
-        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+        public void OnPropertyChanged([CallerMemberName] string prop = "") =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         private string search = "";
         public string Search
@@ -29,126 +30,185 @@ namespace Metal_Code
             }
         }
 
-        public SearchWindow() { InitializeComponent(); DataContext = this; }
-
-        private void Get_Offers(object sender, RoutedEventArgs e) 
+        public SearchWindow()
         {
-            if (Search == "") MainWindow.M.CreateWorker(GetOffers_WithoutMainBase, MainWindow.ActionState.get);
-            else MainWindow.M.CreateWorker(Get_Offers, MainWindow.ActionState.get);
+            InitializeComponent();
+            DataContext = this;
+        }
+
+        private void Get_Offers(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(Search))
+                MainWindow.M.CreateWorker(GetOffers_WithoutMainBase, MainWindow.ActionState.get);
+            else
+                MainWindow.M.CreateWorker(Get_Offers, MainWindow.ActionState.get);
+
             Close();
         }
 
-        //метод запуска процесса загрузки отфильтрованных расчетов из основной базы в локальную
+        /// <summary>
+        /// Загрузка отфильтрованных расчётов из основной базы в локальную
+        /// </summary>
         private string Get_Offers(string? message = null)
         {
             int count = 0;
+            string searchTerm = Search?.Trim() ?? "";
 
-            using ManagerContext db = new(MainWindow.M.connections[1]);      //подключаемся к основной базе данных
-            bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
-            if (isAvalaible)
+            using var db = new ManagerContext(MainWindow.M.connections[1]);      // Основная база
+            using var dbLocal = new ManagerContext(MainWindow.M.connections[0]);  // Локальная база
+
+            try
             {
-                try
+                // Проверяем подключение
+                if (!db.Database.CanConnect())
+                    return "Ошибка: Не удалось подключиться к основной базе данных.";
+
+                // Получаем имя целевого менеджера
+                var targetManagerName = MainWindow.M.TargetManager?.Name;
+                if (string.IsNullOrEmpty(targetManagerName))
+                    return "Ошибка: Не выбран менеджер.";
+
+                var manLocal = dbLocal.Managers
+                    .Include(m => m.Offers)
+                    .FirstOrDefault(m => m.Name == targetManagerName);
+
+                if (manLocal == null)
+                    return $"Ошибка: Менеджер \"{targetManagerName}\" не найден в локальной базе.";
+
+                var offers = db.Offers
+                    .Include(o => o.Manager)
+                    .Where(o => o.Manager != null
+                             && o.Manager.Name == targetManagerName
+                             && (
+                                 (!string.IsNullOrEmpty(o.N) && o.N.Contains(searchTerm))
+                                 ||
+                                 (!string.IsNullOrEmpty(o.Company) && o.Company.Contains(searchTerm))
+                             ))
+                    .ToList();
+
+                if (offers.Count == 0)
+                    return $"Расчётов по фильтру \"{searchTerm}\" не найдено. Проверьте регистр и правильность ввода.";
+
+                // Копируем расчёты в локальную базу
+                foreach (var offer in offers)
                 {
-                    List<Offer>? offers = db.Offers.Where(o => o.Manager != null && o.Manager.Name == MainWindow.M.TargetManager.Name
-                                                            && o.N != null && o.N.Contains(Search)
-                                                            || (o.Company != null && o.Company.Contains(Search))).ToList();
-                                                            
-                    if (offers.Count == 0) return $"Расчетов по фильтру \"{Search}\" не найдено. Попробуйте изменить запрос с учетом регистра.";
-                    else
+                    // Проверяем дубликаты по ключевым полям
+                    bool exists = manLocal.Offers.Any(o =>
+                        o.N == offer.N &&
+                        o.Company == offer.Company &&
+                        o.Amount == offer.Amount);
+
+                    if (exists)
+                        continue;
+
+                    // Создаём новую сущность для локальной БД (detach от основного контекста)
+                    var newOffer = new Offer(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
                     {
-                        //подключаемся к локальной базе данных
-                        using ManagerContext dbLocal = new(MainWindow.M.connections[0]);
+                        Agent = offer.Agent,
+                        Invoice = offer.Invoice,
+                        Order = offer.Order,
+                        Act = offer.Act,
+                        CreatedDate = offer.CreatedDate,
+                        EndDate = offer.EndDate,
+                        Autor = offer.Autor,
+                        Manager = manLocal,
+                        Data = offer.Data
+                    };
 
-                        //ищем менеджера в локальной базе по имени соответствующего локальному, при этом загружаем его расчеты
-                        Manager? _manLocal = dbLocal.Managers.Where(m => m.Name == MainWindow.M.TargetManager.Name).Include(c => c.Offers).FirstOrDefault();
-
-                        foreach (Offer offer in offers)
-                        {
-                            //проверяем наличие идентичного КП в локальной базе, и если такое уже есть, пропускаем копирование
-                            Offer? tempOffer = _manLocal?.Offers.Where(o => o.N == offer.N
-                                                                && o.Company == offer.Company
-                                                                && o.Amount == offer.Amount).FirstOrDefault();
-                            if (tempOffer != null) continue;
-
-                            //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
-                            Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
-                            {
-                                Agent = offer.Agent,
-                                Invoice = offer.Invoice,
-                                Order = offer.Order,
-                                Act = offer.Act,
-                                CreatedDate = offer.CreatedDate,
-                                EndDate = offer.EndDate,
-                                Autor = offer.Autor,
-                                Manager = _manLocal,        //указываем соответствующего менеджера  
-                                Data = offer.Data
-                            };
-
-                            _manLocal?.Offers.Add(_offer);  //переносим расчет в базу этого менеджера
-                            count++;
-                        }
-                        dbLocal.SaveChanges();                  //сохраняем изменения в локальной базе данных
-                    }
+                    manLocal.Offers.Add(newOffer);
+                    count++;
                 }
-                catch (DbUpdateConcurrencyException ex) { return ex.Message; }
-            }
 
-            return $"Локальная база обновлена. Добавлено {count} расчетов.";
+                dbLocal.SaveChanges();
+                return $"Локальная база обновлена. Добавлено расчётов: {count}.";
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                return $"Ошибка параллельного доступа: {ex.Message}";
+            }
+            catch (Exception ex)
+            {
+                return $"Ошибка при загрузке расчётов: {ex.Message}";
+            }
         }
 
-        //метод запуска процесса загрузки ВСЕХ расчетов из основной базы в локальную
+        /// <summary>
+        /// Загрузка ВСЕХ расчётов из основной базы в локальную
+        /// </summary>
         private string GetOffers_WithoutMainBase(string? message = null)
         {
-            if (!MainWindow.M.IsLocal) return "Загружена основная база расчетов. Обновление не требуется.";
+            if (!MainWindow.M.IsLocal)
+                return "Загружена основная база расчётов. Обновление не требуется.";
 
             int count = 0;
 
-            using ManagerContext db = new(MainWindow.M.connections[1]);      //подключаемся к основной базе данных
-            bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
-            if (isAvalaible)
+            using var db = new ManagerContext(MainWindow.M.connections[1]);      // Основная база
+            using var dbLocal = new ManagerContext(MainWindow.M.connections[0]);  // Локальная база
+
+            try
             {
-                try
+                if (!db.Database.CanConnect())
+                    return "Ошибка: Не удалось подключиться к основной базе данных.";
+
+                var targetManagerName = MainWindow.M.TargetManager?.Name;
+                if (string.IsNullOrEmpty(targetManagerName))
+                    return "Ошибка: Не выбран менеджер.";
+
+                // Получаем менеджера из основной базы
+                var manMain = db.Managers
+                    .Include(m => m.Offers)
+                    .FirstOrDefault(m => m.Name == targetManagerName);
+
+                // Получаем менеджера из локальной базы
+                var manLocal = dbLocal.Managers
+                    .Include(m => m.Offers)
+                    .FirstOrDefault(m => m.Name == targetManagerName);
+
+                if (manLocal == null)
+                    return $"Ошибка: Менеджер \"{targetManagerName}\" не найден в локальной базе.";
+
+                if (manMain?.Offers == null || manMain.Offers.Count == 0)
+                    return $"У менеджера \"{targetManagerName}\" нет расчётов в основной базе.";
+
+                foreach (var offer in manMain.Offers)
                 {
-                    //подключаемся к локальной базе данных
-                    using ManagerContext dbLocal = new(MainWindow.M.connections[0]);
+                    // Проверяем дубликаты
+                    bool exists = manLocal.Offers.Any(o =>
+                        o.N == offer.N &&
+                        o.Company == offer.Company &&
+                        o.Amount == offer.Amount);
 
-                    //ищем менеджера в основной базе по имени соответствующего выбранному, при этом загружаем его расчеты
-                    Manager? _man = db.Managers.Where(m => m.Name == MainWindow.M.TargetManager.Name).Include(c => c.Offers).FirstOrDefault();
+                    if (exists)
+                        continue;
 
-                    //ищем менеджера в локальной базе по имени соответствующего локальному, при этом загружаем его расчеты
-                    Manager? _manLocal = dbLocal.Managers.Where(m => m.Name == MainWindow.M.TargetManager.Name).Include(c => c.Offers).FirstOrDefault();
+                    var newOffer = new Offer(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
+                    {
+                        Agent = offer.Agent,
+                        Invoice = offer.Invoice,
+                        Order = offer.Order,
+                        Act = offer.Act,
+                        CreatedDate = offer.CreatedDate,
+                        EndDate = offer.EndDate,
+                        Autor = offer.Autor,
+                        Manager = manLocal,
+                        Data = offer.Data
+                    };
 
-                    if (_man?.Offers.Count > 0)
-                        foreach (Offer offer in _man.Offers)
-                        {
-                            //проверяем наличие идентичного КП в локальной базе, и если такое уже есть, пропускаем копирование
-                            Offer? tempOffer = _manLocal?.Offers.Where(o => o.N == offer.N
-                                                                && o.Company == offer.Company
-                                                                && o.Amount == offer.Amount).FirstOrDefault();
-                            if (tempOffer != null) continue;
-
-                            //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
-                            Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
-                            {
-                                Agent = offer.Agent,
-                                Invoice = offer.Invoice,
-                                Order = offer.Order,
-                                Act = offer.Act,
-                                CreatedDate = offer.CreatedDate,
-                                EndDate = offer.EndDate,
-                                Autor = offer.Autor,
-                                Manager = _manLocal,        //указываем соответствующего менеджера  
-                                Data = offer.Data
-                            };
-
-                            _manLocal?.Offers.Add(_offer);  //переносим расчет в базу этого менеджера
-                            count++;
-                        }
-                    dbLocal.SaveChanges();                  //сохраняем изменения в локальной базе данных
+                    manLocal.Offers.Add(newOffer);
+                    count++;
                 }
-                catch (DbUpdateConcurrencyException ex) { return ex.Message; }
+
+                dbLocal.SaveChanges();
+                return $"Локальная база обновлена. Добавлено расчётов: {count}.";
             }
-            return $"Локальная база обновлена. Добавлено {count} расчетов.";
+            catch (DbUpdateConcurrencyException ex)
+            {
+                return $"Ошибка параллельного доступа: {ex.Message}";
+            }
+            catch (Exception ex)
+            {
+                return $"Ошибка при загрузке расчётов: {ex.Message}";
+            }
         }
     }
 }

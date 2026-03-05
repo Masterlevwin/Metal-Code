@@ -299,9 +299,9 @@ namespace Metal_Code
             else work.SetResult(Price(Bend * work.type.Count, work, work.type.Mass, work.type.Square));
         }
 
-        private float Difficult(int bends)
+        private float Difficult(int bendControlsCount)      //коэффициент за количество разных гибов
         {
-            return bends switch
+            return bendControlsCount switch
             {
                 <= 4 => 1,
                 5 => 1.2f,

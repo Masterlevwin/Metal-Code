@@ -445,13 +445,13 @@ namespace Metal_Code
                     ? metal.MassPrice
                     : metal.MassPrice * 1.3f;
 
-                float thicknessMultiplier = S switch
-                {
-                    < 14 => 1.0f,
-                    < 18 => 1.05f,
-                    _ => 1.15f
-                };
-
+                //float thicknessMultiplier = S switch
+                //{
+                //    < 14 => 1.0f,
+                //    < 18 => 1.05f,
+                //    _ => 1.15f
+                //};
+                float thicknessMultiplier = 1;
                 Price = basePrice * thicknessMultiplier;
             }
             else if (S == 0) Price = metal.MassPrice * 1.3f;       //для кругов и квадратов
@@ -597,12 +597,13 @@ namespace Metal_Code
                     ? metal.MassPrice
                     : metal.MassPrice * 1.3f;
 
-                float thicknessMultiplier = S switch
-                {
-                    < 14 => 1.0f,
-                    < 18 => 1.05f,
-                    _ => 1.15f
-                };
+                //float thicknessMultiplier = S switch
+                //{
+                //    < 14 => 1.0f,
+                //    < 18 => 1.05f,
+                //    _ => 1.15f
+                //};
+                float thicknessMultiplier = 1;
 
                 box.ToolTip = $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(basePrice * thicknessMultiplier)} руб)";
             }
@@ -610,10 +611,7 @@ namespace Metal_Code
                 box.ToolTip = $"Стоимость материала, руб\n(цена металла - {metal.MassPrice * 1.3f} руб)";
         }
 
-        private void AddWork(object sender, RoutedEventArgs e)
-        {
-            AddWork();
-        }
+        private void AddWork(object sender, RoutedEventArgs e) => AddWork();
 
         private void OnPartsToggleClick(object sender, RoutedEventArgs e)
         {

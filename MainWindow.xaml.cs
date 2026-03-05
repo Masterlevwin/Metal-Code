@@ -641,6 +641,7 @@ namespace Metal_Code
                 {
                     ProductModel.Product = product;
                     LoadProduct();
+                    SaveOrRemoveOffer(true, filePath);
                 }
                 else
                 {
@@ -1129,19 +1130,15 @@ namespace Metal_Code
         }
 
         //-----------Предпросмотр КП-----------------------------//
-        private bool _isPartsDataCurrent = false;
-
         private void LoadPartsData_Click(object sender, RoutedEventArgs e)
         {
             PartsGrid.ItemsSource = PartsViewCollection();
-            _isPartsDataCurrent = true;
             PartsGrid.Visibility = Visibility.Visible;
             PlaceholderPanel.Visibility = Visibility.Collapsed;
         }
 
         private void InvalidatePartsData()
         {
-            _isPartsDataCurrent = false;
             if (PartsGrid.Visibility == Visibility.Visible)
             {
                 PartsGrid.Visibility = Visibility.Hidden;
