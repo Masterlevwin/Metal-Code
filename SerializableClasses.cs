@@ -40,7 +40,7 @@ namespace Metal_Code
         public float BonusRatio;
 
         [OptionalField]
-        public List<Basket> Baskets = new();
+        public List<Part> Baskets = new();
 
         public ObservableCollection<Detail> Details { get; set; } = new();
         public Product() { }
@@ -92,7 +92,7 @@ namespace Metal_Code
         public string? Title { get; set; }
         public int Count { get; set; }
 
-        [field: NonSerialized]
+        [OptionalField]
         private float price;
         public float Price
         {
@@ -514,6 +514,9 @@ namespace Metal_Code
                 }
             }
         }
+
+        [OptionalField]
+        public ObservableCollection<Part> Baskets = new();
 
         public Assembly() { }
     }

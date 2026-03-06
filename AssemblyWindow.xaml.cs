@@ -21,7 +21,8 @@ namespace Metal_Code
         public static AssemblyWindow A = new();
         public ObservableCollection<Part> CurrentParts { get; set; } = new();
         public ObservableCollection<Assembly> Assemblies { get; set; } = new();
-        
+        public ObservableCollection<Part> CurrentBaskets { get; set; } = new();
+
         //сварка
         public string[] Types { get; set; } = { "одн", "дву" };
         public Dictionary<string, Dictionary<float, float>> WeldDict = new()
@@ -214,7 +215,9 @@ namespace Metal_Code
         {
             if (sender is Button btn && btn.DataContext is Assembly assembly)
             {
-                foreach (Part part in CurrentParts)
+                var collect = CurrentParts.Union(CurrentBaskets);
+
+                foreach (Part part in collect)
                 {
                     Particle? _particle = assembly.Particles.FirstOrDefault(p => p.Title == part.Title);
                     if (_particle is null)
@@ -273,10 +276,12 @@ namespace Metal_Code
 
             if (Assemblies.Count > 0)
             {
+                var parts = MainWindow.M.Parts.Union(MainWindow.M.BasketControls.Select(b => b.Basket));
+
                 var particles = Assemblies.SelectMany(a => a.Particles, (a, p) => new { p.Title, CountP = p.Count, CountA = a.Count }).GroupBy(x => x.Title);
                 foreach (var particle in particles)
                 {
-                    Part? part = MainWindow.M.Parts.FirstOrDefault(x => x.Title == particle.Key);
+                    Part? part = parts.FirstOrDefault(x => x.Title == particle.Key);
                     if (part is not null)
                     {
                         int sum = particle.Sum(x => x.CountP * x.CountA);
@@ -356,6 +361,16 @@ namespace Metal_Code
                 "Создайте одну или несколько сборок, назовите каждую,\n" +
                 "укажите их количество, и распределите эти детали.\n" +
                 "Проверьте целостность сборок кнопкой \"Проверить сборки\".";
+        }
+
+        private void ShowPopupBaskets(object sender, MouseEventArgs e)
+        {
+            Popup.IsOpen = true;
+
+            Details.Text = "В данном списке находятся покупные изделия,\n" +
+                "добавленные в главном окне программы.\n" +
+                "Если каких-то изделий не хватает,\n" +
+                "добавьте их в главном окне через кнопку \"ПКИ\".";
         }
 
         public void Set_WorksPrice()
@@ -651,5 +666,6 @@ namespace Metal_Code
             }
             return null;
         }
+
     }
 }

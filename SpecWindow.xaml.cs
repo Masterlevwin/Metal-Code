@@ -139,14 +139,14 @@ namespace Metal_Code
                                 //добавляем покупные издели
                                 if (MainWindow.M.ProductModel.Product.Baskets?.Count > 0)
                                 {
-                                    foreach (Basket basket in MainWindow.M.ProductModel.Product.Baskets)
+                                    foreach (Part basket in MainWindow.M.ProductModel.Product.Baskets)
                                     {
-                                        float basketTotal = basket.Quantity * (float)Math.Ceiling(basket.Price * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
+                                        float basketTotal = basket.Count * (float)Math.Ceiling(basket.Price * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
                                         totalSum += basketTotal;
 
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row + 1}");
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Name);
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Quantity.ToString());
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Title);
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Count.ToString());
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketTotal.ToString("N2"));
                                         row++;
                                     }

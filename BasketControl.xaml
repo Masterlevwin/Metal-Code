@@ -21,14 +21,14 @@
             <!-- Наименование -->
             <StackPanel Orientation="Horizontal" Margin="0,0,4,0">
                 <Image Source="/Images/basket2.png" Width="16"/>
-                <TextBox Grid.Column="0" Text="{Binding Name}"
+                <TextBox Grid.Column="0" Text="{Binding Title}"
                      hc:InfoElement.Placeholder="Покупное изделие" 
                      Style="{StaticResource TextBoxExtend}"
                      ToolTip="Введите наименование изделия" Margin="5,0,0,0" Width="130"/>
             </StackPanel>
 
             <!-- Количество -->
-            <hc:NumericUpDown Grid.Column="1" Value="{Binding Quantity}"
+            <hc:NumericUpDown Grid.Column="1" Value="{Binding Count}"
                               hc:InfoElement.Placeholder="шт"
                               Width="70" Margin="0,0,4,0" Maximum="999999" Minimum="0"
                               ToolTip="Введите количество"/>

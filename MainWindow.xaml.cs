@@ -1041,7 +1041,7 @@ namespace Metal_Code
         //-----------Добавление контрола покупного изделя----------//
         public List<BasketControl> BasketControls = new();
         private void AddBasket(object sender, RoutedEventArgs e) { AddBasket(new()); }
-        private void AddBasket(Basket basket)
+        private void AddBasket(Part basket)
         {
             BasketControl bc = new(basket);
             BasketControls.Add(bc);
@@ -1227,12 +1227,18 @@ namespace Metal_Code
             if (BasketControls.Count > 0)
                 foreach (BasketControl basket in BasketControls)
                 {
+                    var particles = AssemblyWindow.A.Assemblies.SelectMany(p => p.Particles);
+                    var collect = particles.Union(LooseParts);
+
+                    var particle = collect.FirstOrDefault(t => t.Title == basket.Basket.Title);
+                    if (particle != null) continue;
+
                     dynamic item = new ExpandoObject();
 
-                    item.Title = basket.Basket.Name;
-                    item.Count = basket.Basket.Quantity;
+                    item.Title = basket.Basket.Title;
+                    item.Count = basket.Basket.Count;
                     item.Price = (float)Math.Ceiling(basket.Basket.Price * Ratio * ((100 + BonusRatio) / 100));
-                    item.Total = item.Price * basket.Basket.Quantity;
+                    item.Total = item.Price * basket.Basket.Count;
                     item.Metal = item.Destiny = item.Description = item.Accuracy = "";
 
                     items.Add(item);
@@ -1338,12 +1344,12 @@ namespace Metal_Code
                     assembly.Total = assembly.Price * assembly.Count;
                 }
 
-                if (Parts.Count > 0)
-                    foreach (Part part in Parts)
-                    {
-                        Part? _part = AssemblyWindow.A.Assemblies.SelectMany(a => a.Particles).FirstOrDefault(x => x.Title == part.Title);
-                        if (_part is null) LooseParts.Add(part);
-                    }
+                //if (Parts.Count > 0)
+                //    foreach (Part part in Parts)
+                //    {
+                //        Part? _part = AssemblyWindow.A.Assemblies.SelectMany(a => a.Particles).FirstOrDefault(x => x.Title == part.Title);
+                //        if (_part is null) LooseParts.Add(part);
+                //    }
             }
         }
 
@@ -2399,9 +2405,9 @@ namespace Metal_Code
                 }
             }
         }
-        public void LoadBaskets(List<Basket> baskets)
+        public void LoadBaskets(List<Part> baskets)
         {
-            foreach (Basket basket in baskets) AddBasket(basket);
+            foreach (Part basket in baskets) AddBasket(basket);
         }
         #endregion
 
@@ -2427,6 +2433,9 @@ namespace Metal_Code
             {
                 AssemblyWindow.A.CheckAssemblies();
 
+                var baskets = BasketControls.Select(b => b.Basket);
+                var parts = Parts.Union(baskets);
+
                 if (AssemblyWindow.A.Assemblies.Count > 0)
                     foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
                     {
@@ -2441,7 +2450,7 @@ namespace Metal_Code
                                 continue;
                             }
 
-                            Part? part = Parts.FirstOrDefault(p => p.Title == particle.Title);
+                            Part? part = parts.FirstOrDefault(p => p.Title == particle.Title);
                             if (part is not null)
                             {
                                 particle.Price = (float)(part.Price + (assembly.WeldPrice + assembly.PaintPrice) / assembly.Count / assembly.Particles.Sum(p => p.Count));
@@ -2467,6 +2476,13 @@ namespace Metal_Code
 
                 if (Parts.Count > 0)
                     foreach (Part part in Parts)
+                    {
+                        Part? _part = AssemblyWindow.A.Assemblies.SelectMany(a => a.Particles).FirstOrDefault(x => x.Title == part.Title);
+                        if (_part is null) LooseParts.Add(part);
+                    }
+
+                if (baskets.Any())
+                    foreach (Part part in baskets)
                     {
                         Part? _part = AssemblyWindow.A.Assemblies.SelectMany(a => a.Particles).FirstOrDefault(x => x.Title == part.Title);
                         if (_part is null) LooseParts.Add(part);
@@ -2549,18 +2565,18 @@ namespace Metal_Code
             }
 
             //добавляем покупные издели
-            if (ProductModel.Product.Baskets?.Count > 0)
+            if (!isAssemblyOffer && ProductModel.Product.Baskets?.Count > 0)
             {
                 worksheet.Cells[row, 5].Value = "Покупные изделия:";
                 worksheet.Cells[row, 5].Style.Font.Bold = true;
                 row++;
 
-                foreach (Basket basket in ProductModel.Product.Baskets)
+                foreach (Part basket in ProductModel.Product.Baskets)
                 {
-                    worksheet.Cells[row, 5].Value = basket.Name;
-                    worksheet.Cells[row, 6].Value = basket.Quantity;
+                    worksheet.Cells[row, 5].Value = basket.Title;
+                    worksheet.Cells[row, 6].Value = basket.Count;
                     worksheet.Cells[row, 7].Value = (float)Math.Ceiling(basket.Price * Ratio * ((100 + BonusRatio) / 100));
-                    worksheet.Cells[row, 8].Value = basket.Quantity * (float)Math.Ceiling(basket.Price * Ratio * ((100 + BonusRatio) / 100));
+                    worksheet.Cells[row, 8].Value = basket.Count * (float)Math.Ceiling(basket.Price * Ratio * ((100 + BonusRatio) / 100));
                     row++;
                 }
             }
@@ -3506,10 +3522,10 @@ namespace Metal_Code
 
                 //дополняем накладную покупными изделиями
                 if (ProductModel.Product.Baskets?.Count > 0)
-                    foreach (Basket basket in ProductModel.Product.Baskets)
+                    foreach (Part basket in ProductModel.Product.Baskets)
                     {
-                        notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = basket.Name;
-                        notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = basket.Quantity;
+                        notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = basket.Title;
+                        notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = basket.Count;
                         tempNote++;
                     }
 
@@ -3960,12 +3976,27 @@ namespace Metal_Code
                 complectsheet.Cells[temp + 2, 3].Style.Font.Bold = true;
                 complectsheet.Cells[temp + 1, 1, temp + 1, 10].Style.Border.Bottom.Style = ExcelBorderStyle.Medium;
 
-                foreach (Basket basket in ProductModel.Product.Baskets)
+                foreach (Part basket in ProductModel.Product.Baskets)
                 {
-                    complectsheet.Cells[temp + 3, 1].Value = temp;                 //номер по порядку
-                    complectsheet.Cells[temp + 3, 3].Value = basket.Name;          //наименование изделия
+                    complectsheet.Cells[temp + 3, 1].Value = temp;              //номер по порядку
 
-                    complectsheet.Cells[temp + 3, 5].Value = basket.Quantity;      //количество изделий
+                    byte[]? bytes = basket.ImageBytes;  //получаем изображение детали, если оно есть
+                    if (bytes is not null)
+                    {
+                        Stream? stream = new MemoryStream(bytes);
+                        string uniqueName = $"Image_{Guid.NewGuid().ToString("N")[..8]}";   //короткий уникальный ID
+                        ExcelPicture pic = complectsheet.Drawings.AddPicture(uniqueName, stream);
+
+                        //увеличиваем высоту строки, чтобы вмещалось изображение
+                        complectsheet.Row(temp + 3).Height = 32;
+
+                        pic.SetSize(32, 32);
+                        pic.SetPosition(temp + 2, 5, 1, 5);     //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
+                    }
+
+                    complectsheet.Cells[temp + 3, 3].Value = basket.Title;      //наименование изделия
+
+                    complectsheet.Cells[temp + 3, 5].Value = basket.Count;      //количество изделий
                     complectsheet.Cells[temp + 3, 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
                     complectsheet.Cells[temp + 3, 5].Style.Font.Bold = true;
 
@@ -4124,6 +4155,7 @@ namespace Metal_Code
 
                 int number = 1, row = 3;
                 ExcelRange assemblyRange;
+                var collect = Parts.Union(BasketControls.Select(p => p.Basket));
 
                 foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
                 {
@@ -4140,7 +4172,7 @@ namespace Metal_Code
                     for (int p = 0; p < assembly.Particles.Count; p++)
                     {
                         Particle particle = assembly.Particles[p];
-                        Part? part = Parts.FirstOrDefault(p => p.Title == particle.Title);
+                        Part? part = collect.FirstOrDefault(p => p.Title == particle.Title);
 
                         if (part is not null)
                         {
@@ -6523,6 +6555,11 @@ namespace Metal_Code
             }
             AssemblyWindow.A.CurrentParts.Clear();
             foreach (Part part in Parts.OrderBy(p => p.Title)) AssemblyWindow.A.CurrentParts.Add(part);
+
+            AssemblyWindow.A.CurrentBaskets.Clear();
+            var baskets = BasketControls.Select(b => b.Basket);
+            if (baskets.Any()) foreach (var basket in baskets) AssemblyWindow.A.CurrentBaskets.Add(basket);
+
             AssemblyWindow.A.Show();
         }
 

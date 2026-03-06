@@ -68,11 +68,37 @@
                     </StackPanel>
                 </Expander.Header>
 
-                <ListView ItemsSource="{Binding CurrentParts}" Padding="3" MaxHeight="360"
+                <ListView ItemsSource="{Binding CurrentParts}" Padding="3" MaxHeight="200"
                           Style="{StaticResource ListView.Small}"
                           AllowDrop="False" MouseMove="ListView_MouseMove"
                           PreviewMouseLeftButtonDown="ListView_PreviewMouseLeftButtonDown">
                 <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Image Loaded="SetPicture" Width="20"/>
+                                <TextBlock Text="{Binding Title}" Margin="5,0,0,0"/>
+                                <TextBlock Text=" (" Foreground="Blue" Margin="5,0,0,0" />
+                                <TextBlock Text="{Binding Count}" Foreground="Blue"/>
+                                <TextBlock Text=" шт)" Foreground="Blue"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView >
+            </Expander>
+
+            <Expander Margin="10">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="/Images/question.png" MouseEnter="ShowPopupBaskets" Width="16"/>
+                        <TextBlock Text="Покупные изделия" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </Expander.Header>
+
+                <ListView ItemsSource="{Binding CurrentBaskets}" Padding="3" MaxHeight="160"
+                          Style="{StaticResource ListView.Small}"
+                          AllowDrop="False" MouseMove="ListView_MouseMove"
+                          PreviewMouseLeftButtonDown="ListView_PreviewMouseLeftButtonDown">
+                    <ListView.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal">
                                 <Image Loaded="SetPicture" Width="20"/>

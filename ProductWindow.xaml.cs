@@ -169,9 +169,9 @@ namespace Metal_Code
             }
         }
 
-        public void LoadBaskets(List<Basket> baskets)
+        public void LoadBaskets(List<Part> baskets)
         {
-            foreach (Basket basket in baskets) AddBasket(basket);
+            foreach (Part basket in baskets) AddBasket(basket);
         }
 
         //-----------Добавление контрола детали--------------------------//
@@ -190,7 +190,7 @@ namespace Metal_Code
         }
 
         //-----------Добавление контрола покупного изделя----------//
-        private void AddBasket(Basket basket)
+        private void AddBasket(Part basket)
         {
             BasketControl bc = new(basket);
 
