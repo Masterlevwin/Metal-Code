@@ -273,8 +273,6 @@ namespace Metal_Code
 
                 if (PartDetails?.Count > 0)
                 {
-                    int count = PartDetails.Sum(p => p.Count);
-
                     foreach (Part p in PartDetails)
                     {
                         p.Price += work.type.Result * p.Mass / MassTotal;
@@ -764,7 +762,7 @@ namespace Metal_Code
 
                 //устанавливаем материал заготовки
                 foreach (Metal metal in work.type.MetalDrop.Items)
-                    if (path != null && metal.Name != null && path.ToLower().Contains(metal.Name))
+                    if (path != null && metal.Name != null && path.ToLower().Contains(metal.Name.ToLower()))
                         work.type.MetalDrop.SelectedItem = metal;
 
                 //определяем вид заготовки

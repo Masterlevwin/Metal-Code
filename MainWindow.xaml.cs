@@ -1280,6 +1280,7 @@ namespace Metal_Code
                         {
                             if (_cut is CutControl && _cut.HaveCut) part.Part.Description = "Л";
                             else if (_cut is PipeControl && _cut.HaveCut) part.Part.Description = "Т";
+                            else if (_cut is SawControl && _cut.HaveCut) part.Part.Description = "ЛП";
                             else part.Part.Description = "Б";
 
                             if (part.Part.PropsDict.ContainsKey(100) && part.Part.PropsDict[100].Count > 2)
@@ -1343,13 +1344,6 @@ namespace Metal_Code
                     assembly.Price = (float)Math.Ceiling(assembly.Particles.Sum(p => p.Price * p.Count));
                     assembly.Total = assembly.Price * assembly.Count;
                 }
-
-                //if (Parts.Count > 0)
-                //    foreach (Part part in Parts)
-                //    {
-                //        Part? _part = AssemblyWindow.A.Assemblies.SelectMany(a => a.Particles).FirstOrDefault(x => x.Title == part.Title);
-                //        if (_part is null) LooseParts.Add(part);
-                //    }
             }
         }
 
@@ -2193,6 +2187,7 @@ namespace Metal_Code
                                 {
                                     if (_cut is CutControl && _cut.HaveCut) p.Description = "Л";
                                     else if (_cut is PipeControl && _cut.HaveCut) p.Description = "Т";
+                                    else if (_cut is SawControl && _cut.HaveCut) p.Description = "ЛП";
                                     else p.Description = "Б";
                                     
                                     if (p.PropsDict.ContainsKey(100) && p.PropsDict[100].Count > 2)
@@ -2375,6 +2370,13 @@ namespace Metal_Code
                                 pipe.PartsControl = new(pipe, pipe.Parts);
                                 pipe.AddPartsControl();
                                 pipe.SetTotalProperties();
+                            }
+                            else if (_cut is SawControl saw)
+                            {
+                                saw.Parts = saw.PartList();
+                                saw.PartsControl = new(saw, saw.Parts);
+                                saw.AddPartsControl();
+                                saw.SetTotalProperties();
                             }
 
                             if (_cut.Parts?.Count > 0)

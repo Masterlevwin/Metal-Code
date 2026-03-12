@@ -404,6 +404,7 @@ namespace Metal_Code
                 foreach (BendControl item in p.UserControls.OfType<BendControl>()) item.SetGroup("-");
         }
 
+
         // инициализация списка стандартных деталей
         private void InitializeStandartPartsDropdown()
         {
@@ -422,12 +423,18 @@ namespace Metal_Code
                     pipe.Tube == TubeType.round ? "Круглая труба" : "Профильная труба"
                 };
             }
+            else if (owner is SawControl saw)     // Только трубы для трубного контроллера
+            {
+                StandartPartsDrop.ItemsSource = new List<string>
+                {
+                    saw.Tube == TubeType.round ? "Круглая труба" : "Профильная труба"
+                };
+            }
 
             // Устанавливаем первый элемент по умолчанию
             if (StandartPartsDrop.Items.Count > 0)
                 StandartPartsDrop.SelectedIndex = 0;
         }
-
 
         // добавить стандартную деталь
         private void Add_StandartPart(object sender, RoutedEventArgs e)
@@ -468,13 +475,16 @@ namespace Metal_Code
                         {
                             AddBatchToPipeControl(pipe, batchedParts, metal);
                         }
+                        else if (owner is SawControl saw)
+                        {
+                            AddBatchToSawControl(saw, batchedParts, metal);
+                        }
                     }
                 }
             }
         }
-        // Вспомогательные методы (вынесены для чистоты кода)
 
-        private (Metal?, float, string?) GetMetalAndThickness(object controller)
+        private static (Metal?, float, string?) GetMetalAndThickness(object controller)
         {
             if (controller is CutControl cut &&
                 cut.work?.type?.MetalDrop?.SelectedItem is Metal m)
@@ -486,6 +496,12 @@ namespace Metal_Code
                 pipe.work?.type?.MetalDrop?.SelectedItem is Metal p)
             {
                 return (p, pipe.work.type.S, p.Name);
+            }
+
+            if (controller is SawControl saw &&
+                saw.work?.type?.MetalDrop?.SelectedItem is Metal s)
+            {
+                return (s, saw.work.type.S, s.Name);
             }
 
             return (null, 0, null);
@@ -760,10 +776,6 @@ namespace Metal_Code
             return groups;
         }
 
-
-        /// <summary>
-        /// Добавляет КОЛЛЕКЦИЮ трубных деталей с оптимальным нестингом по длине
-        /// </summary>
         /// <summary>
         /// Добавляет КОЛЛЕКЦИЮ трубных деталей с оптимальным нестингом и группировкой одинаковых хлыстов
         /// </summary>
@@ -857,6 +869,96 @@ namespace Metal_Code
         }
 
         /// <summary>
+        /// Добавляет КОЛЛЕКЦИЮ трубных деталей для ЛЕНТОПИЛА
+        /// </summary>
+        private void AddBatchToSawControl(SawControl saw, List<Part> parts, Metal metal)
+        {
+            if (parts == null || parts.Count == 0 || saw.work?.type == null)
+                return;
+
+            // Создаём раскладку по хлыстам
+            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, saw.work.type.L, 340);
+
+            if (pipeStocks == null || pipeStocks.Count == 0)
+            {
+                MessageBox.Show("Не удалось создать раскладку для труб", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // === ГРУППИРУЕМ ОДИНАКОВЫЕ ХЛЫСТЫ ===
+            var groupedStocks = GroupIdenticalStocks(pipeStocks);
+
+            double totalWay = 0;
+            double totalMass = 0;
+            int totalPinholes = 0;
+
+            foreach (var group in groupedStocks)
+            {
+                var stock = group.Key;
+                int stockCount = group.Value;
+
+                if (stock.Placements.Count == 0) continue;
+
+                // Рассчитываем параметры для группы хлыстов
+                double stockMass = CalculatePipeStockMass(stock, metal, parts[0].Destiny) * stockCount;
+                double stockWay = stock.Placements.Sum(p => p.Part.Way) * stockCount;
+                int stockPinholes = stock.Placements.Sum(p =>
+                    int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var pin) ? pin : 0)
+                    * stockCount;
+
+                // Создаём один LaserItem для группы одинаковых хлыстов (полная аналогия с листами!)
+                var laserItem = new LaserItem
+                {
+                    sheets = stockCount, // Количество одинаковых хлыстов
+                    sheetSize = $"{stock.StockLength}", // Длина хлыста
+                    way = (float)stockWay,
+                    pinholes = stockPinholes,
+                    mass = (float)stockMass,
+                    metal = metal.Name,
+                    destiny = parts[0].Destiny.ToString(),
+                    PipeStocks = new List<PipeStock> { stock } // Один представитель группы
+                };
+
+                saw.Items?.Add(laserItem);
+
+                totalWay += stockWay;
+                totalMass += stockMass;
+                totalPinholes += stockPinholes;
+            }
+
+            // === ДОБАВЛЯЕМ КОНТРОЛЫ ТОЛЬКО ДЛЯ УНИКАЛЬНЫХ ТИПОВ ДЕТАЛЕЙ ===
+            var uniqueParts = parts
+                .GroupBy(p => new { p.Title, p.Width, p.Height, p.Length, p.PartType, p.Destiny })
+                .Select(g => g.First())
+                .ToList();
+
+            foreach (var part in uniqueParts)
+            {
+                var partControl = new PartControl(owner, saw.work, part);
+                Parts.Add(partControl);
+
+                saw.Parts ??= new();
+                if (!saw.Parts.Contains(partControl)) saw.Parts.Add(partControl);
+
+                saw.PartDetails ??= new();
+                if (!saw.PartDetails.Contains(part)) saw.PartDetails.Add(part);
+            }
+
+            // Обновляем итоговые значения
+            saw.Way += (float)totalWay;
+            saw.Pinhole += totalPinholes;
+
+            // Обновляем количество хлыстов в типе заготовки
+            saw.work.type.Count += groupedStocks.Sum(g => g.Value);
+            saw.SetTotalProperties();
+
+            // Обновляем заголовок вкладки
+            if (saw.TabItem?.Header is TextBlock block)
+                block.Text = $"s{saw.work?.type?.S} {saw.work?.type?.MetalDrop?.Text} ({saw.PartDetails?.Sum(x => x.Count)} шт)";
+        }
+
+        /// <summary>
         /// Группирует одинаковые хлысты в словарь (хлыст -> количество)
         /// </summary>
         private Dictionary<PipeStock, int> GroupIdenticalStocks(List<PipeStock> stocks)
@@ -889,7 +991,7 @@ namespace Metal_Code
         /// <summary>
         /// Рассчитывает массу хлыста трубы
         /// </summary>
-        private double CalculatePipeStockMass(PipeStock stock, Metal metal, float thickness)
+        private static double CalculatePipeStockMass(PipeStock stock, Metal metal, float thickness)
         {
             if (stock.Placements.Count == 0) return 0;
 

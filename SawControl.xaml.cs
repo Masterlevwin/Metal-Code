@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Windows;
 using System.Windows.Controls;
 
 namespace Metal_Code
@@ -11,7 +11,7 @@ namespace Metal_Code
     /// <summary>
     /// Логика взаимодействия для SawControl.xaml
     /// </summary>
-    public partial class SawControl : UserControl, INotifyPropertyChanged, IPriceChanged
+    public partial class SawControl : UserControl, INotifyPropertyChanged, IPriceChanged, ICut
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
@@ -24,12 +24,23 @@ namespace Metal_Code
             {
                 usedAssistant = value;
                 OnPropertyChanged(nameof(UsedAssistant));
+                OnPriceChanged();
             }
         }
 
+        public bool HaveCut {  get; set; }
+        public float Way { get; set; }
+        public int Pinhole { get; set; }
+        public float Mass { get; set; }
+
         public Guid Id { get; }
+        public TubeType Tube { get; set; }
         public ObservableCollection<PartControl>? Parts { get; set; }
-        
+        public PartsControl? PartsControl { get; set; }
+        public TabItem TabItem { get; set; } = new();
+        public List<Part>? PartDetails { get; set; } = new();
+        public List<LaserItem>? Items { get; set; } = new();
+
         public Dictionary<double, float> DestinyDict = new()
         {
             [.5f] = 1,
@@ -56,15 +67,54 @@ namespace Metal_Code
         {
             InitializeComponent();
             work = _work;
+            DataContext = this;
 
             work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
             work.type.Priced += OnPriceChanged;                 // подписка на изменение типовой детали
+
+            SetTube();
         }
 
-        private void SetAssistant(object sender, RoutedEventArgs e)
+        private void SetTube()
         {
-            if (sender is CheckBox cBox && cBox.IsChecked is not null) UsedAssistant = (bool)cBox.IsChecked;
-            OnPriceChanged();
+            if (work.type.TypeDetailDrop.SelectedItem is TypeDetail type && type.Name != "Лист металла")
+                Tube = type.Name switch
+                {
+                    "Труба профильная" => TubeType.rect,
+                    "Труба круглая" => TubeType.round,
+                    "Труба круглая ВГП" => TubeType.round,
+                    "Уголок неравнополочный" => TubeType.freeform,
+                    "Уголок равнополочный" => TubeType.corner,
+                    "Круг" => TubeType.circle,
+                    "Квадрат" => TubeType.rod,
+                    "Швеллер П" => TubeType.channel,
+                    "Швеллер У" => TubeType.channel,
+                    "Двутавр" => TubeType.rect,
+                    "Двутавр парал" => TubeType.hbeam,
+                    "Двутавр широк" => TubeType.rect,
+                    "Двутавр колон" => TubeType.rect,
+                    _ => TubeType.rect,
+                };
+        }
+
+        public ObservableCollection<PartControl> PartList()
+        {
+            ObservableCollection<PartControl> _parts = new();
+
+            if (PartDetails?.Count > 0) foreach (var part in PartDetails) _parts.Add(new(this, work, part));
+
+            return _parts;
+        }
+
+        public void AddPartsControl() => work.type.PartsStack.Children.Add(PartsControl);
+
+        public void SetTotalProperties()
+        {
+            Mass = 0;
+            
+            if (Items?.Count > 0) Mass = Items.Sum(l => l.mass * l.sheets);
+
+            work.type.MassCalculate();
         }
 
         public void OnPriceChanged()
@@ -73,14 +123,22 @@ namespace Metal_Code
 
             if (work.WorkDrop.SelectedItem is not Work _work
                 || work.type.MetalDrop.SelectedItem is not Metal _metal
-                || !DestinyDict.ContainsKey(destiny)) return;
-      
+                || !DestinyDict.ContainsKey(destiny)
+                || PartDetails is null)
+            {
+                work.SetResult(0, false);
+                MainWindow.M.StatusBegin($"Для толщины {work.type.S} лентопил не доступен!",
+                                            MainWindow.StatusMessageType.Error);
+                return;
+            }
+
             work.SetResult(_work.Price +                    //минимальная стоимость работы +
                 (_work.Time + DestinyDict[destiny]          //(минимальное время работы + коэф за толщину
                 + MainWindow.M.MetalRatioDict[_metal]       //+ коэф за металл
-                + MainWindow.MassRatio(work.type.Mass))     //+ коэф за вес заготовки)
+                + MainWindow.MassRatio(work.type.Mass
+                                    / work.type.Count))     //+ коэф за вес одной заготовки)
             * (UsedAssistant ? 1.5f : 1) * 2000 / 60        //* коэф за помощника
-            * work.type.det.Detail.Count                    //* количество деталей
+            * PartDetails.Sum(p => p.Count)                 //* количество деталей
             , false);
         }
 
@@ -91,10 +149,26 @@ namespace Metal_Code
             {
                 w.propsList.Clear();
                 w.propsList.Add($"{UsedAssistant}");
+                w.propsList.Add($"{Tube}");
+
+                if (PartDetails?.Count > 0)
+                {
+                    var massTotal = PartDetails.Sum(p => p.Mass * p.Count);
+
+                    foreach (Part p in PartDetails)
+                    {
+                        p.Price += work.type.Result * p.Mass / massTotal;
+                        p.Price += work.Result * p.Way / Way;
+
+                        p.PropsDict[50] = new() { $"{work.type.Result * p.Mass / massTotal}" };
+                        p.PropsDict[61] = new() { $"{work.Result * p.Way / Way}" };
+                    }
+                }
             }
-            else if (w.propsList.Count > 0 && bool.TryParse(w.propsList[0], out bool prop))
+            else
             {
-                UsedAssistant = prop;
+                if (w.propsList.Count > 0 && bool.TryParse(w.propsList[0], out bool prop)) UsedAssistant = prop;
+                if (w.propsList.Count > 1 && Enum.TryParse(w.propsList[1], out TubeType tube)) Tube = tube;
             }
         }
     }

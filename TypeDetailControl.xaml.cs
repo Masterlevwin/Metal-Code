@@ -478,7 +478,7 @@ namespace Metal_Code
                             }
 
                             // определяем заголовок списка нарезанных деталей
-                            PartsToggle.Content = $"{(cut is PipeControl ? "(ТР) " : "")}s{S} {metal.Name} ({cut.PartDetails.Sum(x => x.Count)} деталей)";
+                            PartsToggle.Content = $"{(cut is PipeControl or SawControl ? "(ТР) " : "")}s{S} {metal.Name} ({cut.PartDetails.Sum(x => x.Count)} деталей)";
                         }
                         break;
                     }
@@ -643,6 +643,19 @@ namespace Metal_Code
 
                         pipe.PartsControl = new(pipe, new());
                         pipe.AddPartsControl();
+                        det.IsComplectChanged("Комплект труб");
+                    }
+                    else if (w.workType is SawControl saw && saw.PartsControl is null)
+                    {
+                        var detail = MainWindow.M.DetailControls.FirstOrDefault(d => d.Detail.Title == "Комплект труб");
+                        if (detail != null && detail != det)
+                        {
+                            MainWindow.M.StatusBegin($"\"Комплект труб\" уже есть. Добавьте новую заготовку туда!");
+                            return;
+                        }
+
+                        saw.PartsControl = new(saw, new());
+                        saw.AddPartsControl();
                         det.IsComplectChanged("Комплект труб");
                     }
                     break;
