@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Controls;
@@ -111,8 +112,42 @@ namespace Metal_Code
         public void SetTotalProperties()
         {
             Mass = 0;
-            
-            if (Items?.Count > 0) Mass = Items.Sum(l => l.mass * l.sheets);
+
+            if (work.type.MetalDrop.SelectedItem is Metal metal && work.type.S >= 0)
+                switch (Tube)
+                {
+                    case TubeType.rect:
+                        Mass = (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * work.type.L * work.type.Count * metal.Density / 7850, 3);
+                        break;
+                    case TubeType.round:
+                        Mass = (float)Math.Round(Math.PI * work.type.S * (work.type.A - work.type.S) * work.type.L * work.type.Count * metal.Density / 1000000, 3);
+                        break;
+                    case TubeType.circle:
+                        Mass = (float)Math.Round(Math.PI * work.type.A * work.type.A * work.type.L / 4 * work.type.Count * metal.Density / 1000000, 3);
+                        break;
+                    case TubeType.square:
+                        Mass = (float)Math.Round(0.0157f * work.type.S * (work.type.A + work.type.B - 2.86f * work.type.S) * work.type.L * work.type.Count * metal.Density / 7850, 3);
+                        break;
+                    case TubeType.rod:
+                        Mass = (float)Math.Round(work.type.A * work.type.A * work.type.L * work.type.Count * metal.Density / 1000000, 3);
+                        break;
+                    case TubeType.channel:
+                        Mass = (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * work.type.L * work.type.Count / 1000, 3);
+                        break;
+                    case TubeType.corner:
+                        Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.A - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
+                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
+                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * work.type.L * work.type.Count * metal.Density / 1000000, 3);
+                        break;
+                    case TubeType.freeform:
+                        Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.B - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
+                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
+                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * work.type.L * work.type.Count * metal.Density / 1000000, 3);
+                        break;
+                    case TubeType.hbeam:
+                        Mass = (float)Math.Round(work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item1 * work.type.L * work.type.Count / 1000, 3);
+                        break;
+                }
 
             work.type.MassCalculate();
         }
@@ -123,8 +158,7 @@ namespace Metal_Code
 
             if (work.WorkDrop.SelectedItem is not Work _work
                 || work.type.MetalDrop.SelectedItem is not Metal _metal
-                || !DestinyDict.ContainsKey(destiny)
-                || PartDetails is null)
+                || !DestinyDict.ContainsKey(destiny))
             {
                 work.SetResult(0, false);
                 MainWindow.M.StatusBegin($"Для толщины {work.type.S} лентопил не доступен!",
@@ -138,7 +172,8 @@ namespace Metal_Code
                 + MainWindow.MassRatio(work.type.Mass
                                     / work.type.Count))     //+ коэф за вес одной заготовки)
             * (UsedAssistant ? 1.5f : 1) * 2000 / 60        //* коэф за помощника
-            * PartDetails.Sum(p => p.Count)                 //* количество деталей
+            * (PartDetails?.Count > 0 ? PartDetails.Sum(p => p.Count)
+                : work.type.det.Detail.Count)               //* количество деталей
             , false);
         }
 
@@ -150,6 +185,7 @@ namespace Metal_Code
                 w.propsList.Clear();
                 w.propsList.Add($"{UsedAssistant}");
                 w.propsList.Add($"{Tube}");
+                w.propsList.Add($"{Way}");
 
                 if (PartDetails?.Count > 0)
                 {
@@ -169,6 +205,7 @@ namespace Metal_Code
             {
                 if (w.propsList.Count > 0 && bool.TryParse(w.propsList[0], out bool prop)) UsedAssistant = prop;
                 if (w.propsList.Count > 1 && Enum.TryParse(w.propsList[1], out TubeType tube)) Tube = tube;
+                if (w.propsList.Count > 2 && float.TryParse(w.propsList[2], out float way)) Way = way;
             }
         }
     }

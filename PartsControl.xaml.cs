@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -427,7 +428,7 @@ namespace Metal_Code
             {
                 StandartPartsDrop.ItemsSource = new List<string>
                 {
-                    saw.Tube == TubeType.round ? "Круглая труба" : "Профильная труба"
+                    saw.Tube == TubeType.circle ? "Прут" : "Квадрат"
                 };
             }
 
@@ -509,7 +510,10 @@ namespace Metal_Code
 
         private Part? CreateStandardPart(string title, string metalName, float thickness, int countIndex)
         {
-            TypeDetailControl? type = owner is PipeControl pipe ? pipe.work.type : null;
+            TypeDetailControl? type;
+            if (owner is PipeControl pipe) type = pipe.work.type;
+            else if (owner is SawControl saw) type = saw.work.type;
+            else type = null;
 
             var partType = title switch
             {
@@ -798,7 +802,6 @@ namespace Metal_Code
             var groupedStocks = GroupIdenticalStocks(pipeStocks);
 
             double totalWay = 0;
-            double totalMass = 0;
             int totalPinholes = 0;
 
             foreach (var group in groupedStocks)
@@ -809,7 +812,7 @@ namespace Metal_Code
                 if (stock.Placements.Count == 0) continue;
 
                 // Рассчитываем параметры для группы хлыстов
-                double stockMass = CalculatePipeStockMass(stock, metal, parts[0].Destiny) * stockCount;
+                double stockMass = CalculatePipeStockMass(stock, metal, parts[0].Destiny);
                 double stockWay = stock.Placements.Sum(p => p.Part.Way) * stockCount;
                 int stockPinholes = stock.Placements.Sum(p =>
                     int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var pin) ? pin : 0)
@@ -831,7 +834,6 @@ namespace Metal_Code
                 pipe.Items?.Add(laserItem);
 
                 totalWay += stockWay;
-                totalMass += stockMass;
                 totalPinholes += stockPinholes;
             }
 
@@ -890,7 +892,6 @@ namespace Metal_Code
             var groupedStocks = GroupIdenticalStocks(pipeStocks);
 
             double totalWay = 0;
-            double totalMass = 0;
             int totalPinholes = 0;
 
             foreach (var group in groupedStocks)
@@ -901,7 +902,7 @@ namespace Metal_Code
                 if (stock.Placements.Count == 0) continue;
 
                 // Рассчитываем параметры для группы хлыстов
-                double stockMass = CalculatePipeStockMass(stock, metal, parts[0].Destiny) * stockCount;
+                double stockMass = CalculatePipeStockMass(stock, metal, parts[0].Destiny);
                 double stockWay = stock.Placements.Sum(p => p.Part.Way) * stockCount;
                 int stockPinholes = stock.Placements.Sum(p =>
                     int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var pin) ? pin : 0)
@@ -923,7 +924,6 @@ namespace Metal_Code
                 saw.Items?.Add(laserItem);
 
                 totalWay += stockWay;
-                totalMass += stockMass;
                 totalPinholes += stockPinholes;
             }
 

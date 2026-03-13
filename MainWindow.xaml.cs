@@ -1280,7 +1280,7 @@ namespace Metal_Code
                         {
                             if (_cut is CutControl && _cut.HaveCut) part.Part.Description = "Л";
                             else if (_cut is PipeControl && _cut.HaveCut) part.Part.Description = "Т";
-                            else if (_cut is SawControl && _cut.HaveCut) part.Part.Description = "ЛП";
+                            else if (_cut is SawControl) part.Part.Description = "ЛП";
                             else part.Part.Description = "Б";
 
                             if (part.Part.PropsDict.ContainsKey(100) && part.Part.PropsDict[100].Count > 2)
@@ -1344,6 +1344,13 @@ namespace Metal_Code
                     assembly.Price = (float)Math.Ceiling(assembly.Particles.Sum(p => p.Price * p.Count));
                     assembly.Total = assembly.Price * assembly.Count;
                 }
+
+                if (Parts.Count > 0)
+                    foreach (Part part in Parts)
+                    {
+                        Part? _part = AssemblyWindow.A.Assemblies.SelectMany(a => a.Particles).FirstOrDefault(x => x.Title == part.Title);
+                        if (_part is null) LooseParts.Add(part);
+                    }
             }
         }
 
@@ -2187,7 +2194,7 @@ namespace Metal_Code
                                 {
                                     if (_cut is CutControl && _cut.HaveCut) p.Description = "Л";
                                     else if (_cut is PipeControl && _cut.HaveCut) p.Description = "Т";
-                                    else if (_cut is SawControl && _cut.HaveCut) p.Description = "ЛП";
+                                    else if (_cut is SawControl) p.Description = "ЛП";
                                     else p.Description = "Б";
                                     
                                     if (p.PropsDict.ContainsKey(100) && p.PropsDict[100].Count > 2)
@@ -2706,6 +2713,7 @@ namespace Metal_Code
         { "Л", "Л - Лазер " },
         { "Б", "Б - Без лазера " },
         { "Т", "Т - Труборез " },
+                { "ЛП", "ЛП - Лентопил " },
         { "Г ", "Г - Гибка " },
         { "В ", "В - Вальцовка " },
         { "Р ", "Р - Резьба " },
@@ -3728,6 +3736,7 @@ namespace Metal_Code
         { "Л", "Л - Лазер " },
         { "Б", "Б - Без лазера " },
         { "Т", "Т - Труборез " },
+        { "ЛП", "ЛП - Лентопил " },
         { "Г", "Г - Гибка " },
         { "В", "В - Вальцовка " },
         { "Р", "Р - Резьба " },
@@ -3746,7 +3755,7 @@ namespace Metal_Code
             var color1 = System.Drawing.Color.White;
             var color2 = System.Drawing.Color.LightBlue;
 
-            var excludedOps = new HashSet<string> { "Л", "Б", "Т", "Лазерная резка", "Труборез" };
+            var excludedOps = new HashSet<string> { "Л", "Б", "Т", "ЛП", "Лазерная резка", "Труборез", "Лентопил" };
 
             // Словарь: операция → список деталей
             var workGroups = new Dictionary<string, List<(string? Name, object Count, byte[]? Bytes, string Dimensions)>>();
@@ -3907,7 +3916,7 @@ namespace Metal_Code
                                         complectsheet.Cells[temp + 2, 10].Style.Font.Bold = true;
 
                                         //строки с трубами выделяем бледно-розовым цветом
-                                        if (cut is PipeControl) complectsheet.Cells[temp + 2, 1, temp + 2, 10].Style.Fill.SetBackground(System.Drawing.Color.Linen);
+                                        if (cut is PipeControl or SawControl) complectsheet.Cells[temp + 2, 1, temp + 2, 10].Style.Fill.SetBackground(System.Drawing.Color.Linen);
 
                                         temp++;
                                     }
@@ -3964,7 +3973,7 @@ namespace Metal_Code
                     complectsheet.Cells[temp + 2, 10].Style.Font.Bold = true;
 
                     //детали с трубами выделяем бледно-розовым цветом
-                    if (det.Detail.Description != null && det.Detail.Description.Contains("Труборез"))
+                    if (det.Detail.Description != null && (det.Detail.Description.Contains("Труборез") || det.Detail.Description.Contains("Лентопил")))
                         complectsheet.Cells[temp + 2, 1, temp + 2, 10].Style.Fill.SetBackground(System.Drawing.Color.Linen);
 
                     temp++;
@@ -4192,7 +4201,7 @@ namespace Metal_Code
                             assemblysheet.Cells[row, 4].Value = part.Description;
 
                             //строки с трубами выделяем бледно-розовым цветом
-                            if (part.Description != null && part.Description.Contains('Т')) assemblysheet.Cells[row, 1, row, 9].Style.Fill.SetBackground(System.Drawing.Color.Linen);
+                            if (part.Description != null && (part.Description.Contains('Т') || part.Description.Contains("ЛП"))) assemblysheet.Cells[row, 1, row, 9].Style.Fill.SetBackground(System.Drawing.Color.Linen);
 
                             assemblysheet.Cells[row, 5].Value = particle.Count;
                             assemblysheet.Cells[row, 5].Style.Font.Bold = true;
