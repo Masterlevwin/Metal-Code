@@ -1,4 +1,5 @@
 ﻿using Metal_Code.Utils;
+using SQLitePCL;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -27,7 +28,6 @@ namespace Metal_Code
             owner = _owner;
             Parts = _parts;
             partsList.ItemsSource = Parts;
-            InitializeStandartPartsDropdown();
 
             // Заполняем ComboBox работами
             WorksDrop.ItemsSource = works;
@@ -276,7 +276,7 @@ namespace Metal_Code
         }
 
         // показать или скрыть раскладки
-        private void ShowNesting(object sender, RoutedEventArgs e)
+        private void ShowNesting_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn)
             {
@@ -406,80 +406,46 @@ namespace Metal_Code
         }
 
 
-        // инициализация списка стандартных деталей
-        private void InitializeStandartPartsDropdown()
-        {
-            if (owner is CutControl)        // Только листовые детали для листового контроллера
-            {
-                StandartPartsDrop.ItemsSource = new List<string>
-                {
-                    "Прямоугольник",
-                    "Круг",
-                };
-            }
-            else if (owner is PipeControl pipe)     // Только трубы для трубного контроллера
-            {
-                StandartPartsDrop.ItemsSource = new List<string>
-                {
-                    pipe.Tube == TubeType.round ? "Круглая труба" : "Профильная труба"
-                };
-            }
-            else if (owner is SawControl saw)     // Только трубы для трубного контроллера
-            {
-                StandartPartsDrop.ItemsSource = new List<string>
-                {
-                    saw.Tube == TubeType.circle ? "Прут" : "Квадрат"
-                };
-            }
-
-            // Устанавливаем первый элемент по умолчанию
-            if (StandartPartsDrop.Items.Count > 0)
-                StandartPartsDrop.SelectedIndex = 0;
-        }
-
         // добавить стандартную деталь
-        private void Add_StandartPart(object sender, RoutedEventArgs e)
+        private void Add_StandartPart_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button btn && btn.Tag is string title && owner != null)
+            (Metal? metal, float thickness, string? metalName) = GetMetalAndThickness(owner);
+            if (metal == null || string.IsNullOrEmpty(metalName))
+                return;
+
+            // Создаём шаблонную деталь для редактирования
+            var templatePart = CreateStandardPart(metalName, thickness, 0);
+            if (templatePart == null) return;
+
+            PartPreviewGenerator.EnsureDisplayGeometry(templatePart);
+
+            // Открываем окно
+            var window = new StandartPartWindow(templatePart);
+            if (window.ShowDialog() == true)
             {
-                (Metal? metal, float thickness, string? metalName) = GetMetalAndThickness(owner);
-                if (metal == null || string.IsNullOrEmpty(metalName))
-                    return;
+                // Получаем ВСЕ детали из буфера
+                var batchedParts = window.GetBatchedParts();
 
-                // Создаём шаблонную деталь для редактирования
-                var templatePart = CreateStandardPart(title, metalName, thickness, 0);
-                if (templatePart == null) return;
-
-                PartPreviewGenerator.EnsureDisplayGeometry(templatePart);
-
-                // Открываем окно
-                var window = new StandartPartWindow(templatePart);
-                if (window.ShowDialog() == true)
+                if (batchedParts.Count > 0)
                 {
-                    // Получаем ВСЕ детали из буфера
-                    var batchedParts = window.GetBatchedParts();
-
-                    if (batchedParts.Count > 0)
+                    // Обновляем геометрию и расчёты для каждой детали
+                    foreach (var part in batchedParts)
                     {
-                        // Обновляем геометрию и расчёты для каждой детали
-                        foreach (var part in batchedParts)
-                        {
-                            UpdatePartAfterEdit(part, metal, thickness);
-                        }
+                        UpdatePartAfterEdit(part, metal, thickness);
+                    }
 
-                        // === ПАКЕТНАЯ ОБРАБОТКА В ЗАВИСИМОСТИ ОТ ТИПА КОНТРОЛЛЕРА ===
-                        if (owner is CutControl cut)
-                        {
-                            AddBatchToCutControl(cut, batchedParts, metal);
-                        }
-                        else if (owner is PipeControl pipe)
-                        {
-                            AddBatchToPipeControl(pipe, batchedParts, metal);
-                        }
-                        else if (owner is SawControl saw)
-                        {
-                            AddBatchToSawControl(saw, batchedParts, metal);
-                        }
+                    // === ПАКЕТНАЯ ОБРАБОТКА В ЗАВИСИМОСТИ ОТ ТИПА КОНТРОЛЛЕРА ===
+                    if (owner is CutControl cut)
+                    {
+                        AddBatchToCutControl(cut, batchedParts, metal);
+                    }
+                    else if (owner is PipeControl pipe)
+                    {
+                        AddBatchToPipeControl(pipe, batchedParts, metal);
+                    }
+                    else if (owner is SawControl saw)
+                    {
+                        AddBatchToSawControl(saw, batchedParts, metal);
                     }
                 }
             }
@@ -508,17 +474,38 @@ namespace Metal_Code
             return (null, 0, null);
         }
 
-        private Part? CreateStandardPart(string title, string metalName, float thickness, int countIndex)
+        private Part? CreateStandardPart(string metalName, float thickness, int countIndex)
         {
+            string title = "Деталь";
             TypeDetailControl? type;
-            if (owner is PipeControl pipe) type = pipe.work.type;
-            else if (owner is SawControl saw) type = saw.work.type;
+
+            if (owner is PipeControl pipe)
+            {
+                type = pipe.work.type;
+                title = pipe.Tube switch
+                {
+                    TubeType.round => "Круглая труба",
+                    _ => "Профильная труба"
+                };
+            }
+            else if (owner is SawControl saw)
+            {
+                type = saw.work.type;
+                title = saw.Tube switch
+                {
+                    TubeType.circle => "Круг",
+                    TubeType.rod => "Квадрат",
+                    TubeType.round => "Круглая труба",
+                    _ => "Профильная труба"
+                };
+            }
+            else if (owner is CutControl cut) type = cut.work.type;
             else type = null;
 
             var partType = title switch
             {
-                "Круг" => PartType.Round,
-                "Прямоугольник" => PartType.Rectangle,
+                "Круг" => owner is SawControl saw && saw.Tube == TubeType.circle ? PartType.RoundTube : PartType.Round,
+                "Квадрат" => PartType.RectangularTube,
                 "Круглая труба" => PartType.RoundTube,
                 "Профильная труба" => PartType.RectangularTube,
                 _ => PartType.Rectangle
@@ -534,24 +521,11 @@ namespace Metal_Code
             };
 
             // Устанавливаем базовые размеры
-            if (partType == PartType.Round)
+            if (partType == PartType.Round || partType == PartType.Rectangle)
+                part.Width = part.Height = 50;
+            else if (partType == PartType.RoundTube || partType == PartType.RectangularTube)
             {
-                part.Width = part.Height = 30; // диаметр
-            }
-            else if (partType == PartType.Rectangle)
-            {
-                part.Width = 60;
-                part.Height = 40;
-            }
-            else if (partType == PartType.RoundTube)
-            {
-                part.Width = part.Height = type != null ? type.A : 30; // внешний диаметр
-                part.Length = 1000; // базовая длина 1 метр
-            }
-            else if (partType == PartType.RectangularTube)
-            {
-                part.Width = type != null ? type.A : 60;
-                part.Height = type != null ? type.B : 40;
+                part.Width = part.Height = type != null ? type.A : 50;
                 part.Length = 1000; // базовая длина 1 метр
             }
 

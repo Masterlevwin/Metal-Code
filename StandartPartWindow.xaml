@@ -29,7 +29,7 @@
                                         </Grid.ColumnDefinitions>
 
                                         <!-- Тип и размеры -->
-                                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                             <TextBlock Text="{Binding Title}" FontWeight="Bold" Margin="0,0,10,0"/>
                                             <TextBlock Text="{Binding PartType}" FontStyle="Italic" Foreground="Gray" Margin="0,0,5,0"/>
                                             <TextBlock Text="{Binding Width, StringFormat={}{0:0}×}" 
@@ -66,6 +66,18 @@
             </GroupBox.Header>
 
             <DockPanel LastChildFill="True" Margin="5">
+
+                <!-- Секция выбора типа детали (только для листа) -->
+                <GroupBox Header="Тип детали" DockPanel.Dock="Top" Margin="5"
+                          Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle'}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="RectangleRadio" Content="Прямоугольник" Tag="Rectangle"
+                                     Checked="OnShapeTypeChanged" Margin="0,0,15,0"/>
+                        <RadioButton x:Name="RoundRadio" Content="Круг"
+                                     Checked="OnShapeTypeChanged" Tag="Round"/>
+                    </StackPanel>
+                </GroupBox>
+
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" MinHeight="30" Margin="10" HorizontalAlignment="Center">
                     <Button Content="Добавить в список" Click="AddToBatch_Click" Padding="10,5" Margin="0,0,10,0"/>
                     <Button Content="Завершить и рассчитать" Click="FinishBatch_Click" IsDefault="True" 

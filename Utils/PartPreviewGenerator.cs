@@ -110,7 +110,7 @@ namespace Metal_Code.Utils
             {
                 StartPoint = new Point(centerX + radius, centerY),
                 IsClosed = true,
-                IsFilled = isFilled // ← КЛЮЧЕВОЙ ПАРАМЕТР!
+                IsFilled = isFilled
             };
             figure.Segments.Add(new ArcSegment(
                 new Point(centerX - radius, centerY),

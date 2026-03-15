@@ -23,48 +23,12 @@
                                             
                     <StackPanel Orientation="Horizontal" Margin="5" HorizontalAlignment="Center">
                         <Image Source="Images/nesting.png" Width="16"/>
-                        <Button Content="Показать раскладки" Click="ShowNesting" HorizontalAlignment="Center" Width="170" Margin="4,0,0,0"/>
+                        <Button Content="Показать раскладки" Click="ShowNesting_Click" HorizontalAlignment="Center" Width="170" Margin="4,0,0,0"/>
                     </StackPanel>
 
-                    <StackPanel x:Name="StandartStack" Orientation="Horizontal" Margin="5" HorizontalAlignment="Center">
-                        <Image Source="/Images/works.png" Margin="5,0,0,0" Width="16"/>
-                        <ComboBox x:Name="StandartPartsDrop" Width="170" Margin="4,0,5,0">
-                            <ComboBox.ItemContainerStyle>
-                                <Style TargetType="ComboBoxItem">
-                                    <Setter Property="Height" Value="28"/>
-                                    <!-- Обязательно: иначе IsMouseOver не сработает на пустом месте -->
-                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                    <Setter Property="Padding" Value="2,4"/>
-                                    <!-- опционально: отступы -->
-                                </Style>
-                            </ComboBox.ItemContainerStyle>
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <!-- Используем Grid вместо StackPanel для лучшего контроля -->
-                                    <Grid x:Name="ItemContainer" Background="Transparent">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <TextBlock Text="{Binding}" VerticalAlignment="Center" Margin="3,0"/>
-
-                                        <Button Content="+" Grid.Column="1" Width="20" Margin="0,0,5,0" Click="Add_StandartPart" Tag="{Binding}">
-                                            <Button.Style>
-                                                <Style TargetType="Button">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsMouseOver, ElementName=ItemContainer}" Value="True">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                        </Button>
-                                    </Grid>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
+                    <StackPanel Orientation="Horizontal" Margin="5" HorizontalAlignment="Center">
+                        <Image Source="/Images/works.png" Width="16"/>
+                        <Button Content="Стандартные детали" Click="Add_StandartPart_Click" HorizontalAlignment="Center" Width="170" Margin="4,0,0,0"/>
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Margin="5" HorizontalAlignment="Center">

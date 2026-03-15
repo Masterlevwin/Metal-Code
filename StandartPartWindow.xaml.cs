@@ -12,7 +12,6 @@ namespace Metal_Code
     {
         private readonly Part _currentPart;
         private readonly ObservableCollection<Part> _batchBuffer = new();
-        private bool _isUpdatingPreview = false;
 
         public StandartPartWindow(Part templatePart)
         {
@@ -21,13 +20,35 @@ namespace Metal_Code
             DataContext = _currentPart;
             BatchItemsControl.ItemsSource = _batchBuffer;
 
+            if (_currentPart.PartType == PartType.Rectangle) RectangleRadio.IsChecked = true; // По умолчанию прямоугольник
+
             // Подписка на изменения отверстий
             if (_currentPart.HoleGroups is INotifyCollectionChanged incc)
-            {
                 incc.CollectionChanged += (s, e) => UpdatePreview();
-            }
 
             UpdatePreview();
+        }
+
+        // Простой обработчик — только меняем тип и стандартные размеры
+        private void OnShapeTypeChanged(object sender, RoutedEventArgs e)
+        {
+            if (sender is RadioButton rb && rb.Tag is string shapeType)
+            {
+                if (shapeType == "Round")
+                {
+                    _currentPart.PartType = PartType.Round;
+                    _currentPart.Title = "Круг";
+                }
+                else // Rectangle
+                {
+                    _currentPart.PartType = PartType.Rectangle;
+                    _currentPart.Title = "Прямоугольник";
+                }
+
+                _currentPart.OnPropertyChanged(nameof(Part.Title));
+                _currentPart.HoleGroups.Clear();
+                UpdatePreview();
+            }
         }
 
         // Свойство для получения результата после закрытия окна
@@ -136,7 +157,7 @@ namespace Metal_Code
             }
         }
 
-        private Part? ClonePart(Part source)
+        private static Part? ClonePart(Part source)
         {
             if (source.DisplayGeometry is null) return null;
 
@@ -158,17 +179,13 @@ namespace Metal_Code
 
         private void UpdatePreview()
         {
-            if (_isUpdatingPreview) return;
-            _isUpdatingPreview = true;
-            try
-            {
+            _currentPart.DisplayGeometry = null;
+
+            if (_currentPart.HoleGroups.Count > 0)
                 PartPreviewGenerator.EnsureDisplayGeometryWithHoles(_currentPart);
-                UpdateStatistics();
-            }
-            finally
-            {
-                _isUpdatingPreview = false;
-            }
+            else PartPreviewGenerator.EnsureDisplayGeometry(_currentPart);
+
+            UpdateStatistics();
         }
 
         private void UpdateStatistics()
