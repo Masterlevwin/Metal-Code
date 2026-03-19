@@ -3236,13 +3236,7 @@ namespace Metal_Code
 
                         statsheet.Cells[i + temp, 14].Value = $"{_mass}" +
                             $" ({(type.CheckMetal.IsChecked == true ? (type.ExtraResult > 0 ? Math.Ceiling(type.ExtraResult / _mass) :
-                            Math.Ceiling(type.S switch
-                            {
-                                < 14 => met.MassPrice,
-                                < 18 => met.MassPrice * 1.05f,
-                                _ => met.MassPrice * 1.15f,
-                            })
-                            ) : 0)}р)";
+                            Math.Ceiling(type.Price)) : 0)}р)";
 
                         statsheet.Cells[i + rowTask, 10].Value = _mass; //"Количество материала"
                     }
@@ -3316,7 +3310,7 @@ namespace Metal_Code
                             //"Лазер (время работ)"                                 //"Время лазерных работ"
                             statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + rowTask, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
 
-                            if (type.CheckMetal.IsChecked is not null)     //если материал давальческий, добавляем его в накладную
+                            if (type.CheckMetal.IsChecked is not null)
                             {
                                 if (pipe.Items?.Count > 0)
                                 {
@@ -3600,11 +3594,6 @@ namespace Metal_Code
             CreateScore(worksheet, row - 8, path, materials);                   //создаем файл для счета на основе полученного КП
             CreateComplect(path);                                               //создаем файл комплектации    
             OfferPdf offerPdf = new(path[..path.LastIndexOf(".")] + ".pdf", descriptionWorks);
-
-            //if (ManagerDrop.Text != "Гамолина Светлана")
-            //{
-            //    OfferPdf offerPdf = new(path[..path.LastIndexOf(".")] + ".pdf", descriptionWorks);
-            //}
         }
 
         //-СЧЕТ

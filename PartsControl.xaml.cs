@@ -356,7 +356,7 @@ namespace Metal_Code
                             stack.Children.Add(border);
 
                             // Подпись с количеством хлыстов и их длиной
-                            string stockInfo = $"{item.sheets} шт ({stock.StockLength:0} мм)";
+                            string stockInfo = $"{item.sheets} шт ({stock.OptimizedLength:0} мм)";
 
                             var infoText = new TextBlock
                             {
@@ -523,9 +523,15 @@ namespace Metal_Code
             // Устанавливаем базовые размеры
             if (partType == PartType.Round || partType == PartType.Rectangle)
                 part.Width = part.Height = 50;
-            else if (partType == PartType.RoundTube || partType == PartType.RectangularTube)
+            else if (partType == PartType.RoundTube)
             {
                 part.Width = part.Height = type != null ? type.A : 50;
+                part.Length = 1000; // базовая длина 1 метр
+            }
+            else
+            {
+                part.Width = type != null ? type.A : 50;
+                part.Height = type != null ? type.B : 50;
                 part.Length = 1000; // базовая длина 1 метр
             }
 
@@ -639,7 +645,7 @@ namespace Metal_Code
                 return;
 
             // === СОЗДАЁМ ЕДИНУЮ РАСКЛАДКУ ДЛЯ ВСЕХ ДЕТАЛЕЙ ===
-            var nestingSheets = NestingHelper.CreateNestingForBatch(parts);
+            var nestingSheets = NestingHelper.CreateNestingForBatch(parts, cut.work.type.A, cut.work.type.B);
 
             if (nestingSheets == null || nestingSheets.Count == 0)
             {
@@ -659,7 +665,7 @@ namespace Metal_Code
                 if (sheet.Parts.Count == 0) continue;
 
                 // Рассчитываем параметры для группы листов
-                double sheetArea = sheet.Width * sheet.Height;
+                double sheetArea = sheet.OptimizedWidth * sheet.OptimizedHeight;
                 double sheetMass = sheetArea * parts[0].Destiny * metal.Density / 1000000 * sheetCount;
 
                 // Суммируем длину реза всех деталей на листе
@@ -681,7 +687,7 @@ namespace Metal_Code
                 var laserItem = new LaserItem
                 {
                     sheets = sheetCount,
-                    sheetSize = $"{sheet.Width:0}x{sheet.Height:0}",
+                    sheetSize = $"{sheet.OptimizedWidth:0}x{sheet.OptimizedHeight:0}",
                     way = (float)sheetWay,
                     pinholes = sheetPinholes,
                     mass = (float)sheetMass,
@@ -717,11 +723,11 @@ namespace Metal_Code
             if (cut.Items?.Count > 0)
                 cut.SumProperties(cut.Items);
 
-            cut.work?.type?.MassCalculate();
+            cut.work.type.MassCalculate();
 
             // Обновляем заголовок вкладки
             if (cut.TabItem?.Header is TextBlock block)
-                block.Text = $"s{cut.work?.type?.S} {cut.work?.type?.MetalDrop?.Text} ({cut.PartDetails?.Sum(x => x.Count)} шт)";
+                block.Text = $"s{cut.work.type.S} {cut.work.type.MetalDrop.Text} ({cut.PartDetails?.Sum(x => x.Count)} шт)";
         }
 
         /// <summary>
@@ -763,7 +769,7 @@ namespace Metal_Code
                 return;
 
             // Создаём раскладку по хлыстам
-            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, pipe.work.type.L, 340);
+            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, pipe.work.type.L);
 
             if (pipeStocks == null || pipeStocks.Count == 0)
             {
@@ -796,7 +802,7 @@ namespace Metal_Code
                 var laserItem = new LaserItem
                 {
                     sheets = stockCount, // Количество одинаковых хлыстов
-                    sheetSize = $"{stock.StockLength}", // Длина хлыста
+                    sheetSize = $"{stock.OptimizedLength}", // Длина хлыста
                     way = (float)stockWay,
                     pinholes = stockPinholes,
                     mass = (float)stockMass,
@@ -841,7 +847,7 @@ namespace Metal_Code
 
             // Обновляем заголовок вкладки
             if (pipe.TabItem?.Header is TextBlock block)
-                block.Text = $"s{pipe.work?.type?.S} {pipe.work?.type?.MetalDrop?.Text} ({pipe.PartDetails?.Sum(x => x.Count)} шт)";
+                block.Text = $"s{pipe.work?.type.S} {pipe.work?.type.MetalDrop.Text} ({pipe.PartDetails?.Sum(x => x.Count)} шт)";
         }
 
         /// <summary>

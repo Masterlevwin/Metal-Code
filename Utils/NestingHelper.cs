@@ -6,29 +6,24 @@ namespace Metal_Code.Utils
 {
     public static class NestingHelper
     {
-        // СТАНДАРТНЫЙ ЛИСТ: 1500 мм (ширина) × 3000 мм (длина)
-        private const double SheetWidth = 3000;   // Ширина листа (ось X)
-        private const double SheetHeight = 1500;  // Длина листа (ось Y)
-        private const double Spacing = 10;        // Отступы между деталями и от краёв
+        // Отступы между деталями и от краёв вынесены в константу, так как они обычно фиксированы технологически
+        private const double Spacing = 10;
 
         /// <summary>
         /// Пакетный нестинг: размещает ВСЕ детали на минимальном количестве листов
         /// Размещение: снизу вверх в столбце, затем слева направо по столбцам
         /// </summary>
-        public static List<NestingSheet> CreateNestingForBatch(List<Part> parts)
+        /// <param name="parts">Список деталей</param>
+        /// <param name="sheetWidth">Ширина доступного листа металла (мм). По умолчанию 3000.</param>
+        /// <param name="sheetHeight">Высота доступного листа металла (мм). По умолчанию 1500.</param>
+        public static List<NestingSheet> CreateNestingForBatch(List<Part> parts, double sheetWidth = 3000, double sheetHeight = 1500)
         {
             var sheets = new List<NestingSheet>();
-
-            // Размножаем детали по количеству
-            var allParts = parts
-                .SelectMany(p => Enumerable.Repeat(p, p.Count))
-                .ToList();
+            var allParts = parts.SelectMany(p => Enumerable.Repeat(p, p.Count)).ToList();
 
             foreach (var part in allParts)
             {
                 bool placed = false;
-
-                // Пробуем разместить на существующих листах
                 foreach (var sheet in sheets)
                 {
                     if (TryPlacePartByColumn(sheet, part))
@@ -38,10 +33,13 @@ namespace Metal_Code.Utils
                     }
                 }
 
-                // Если не разместили - создаём новый лист
                 if (!placed)
                 {
-                    var newSheet = new NestingSheet { Width = SheetWidth, Height = SheetHeight };
+                    var newSheet = new NestingSheet
+                    {
+                        StockWidth = sheetWidth,
+                        StockHeight = sheetHeight
+                    };
                     TryPlacePartByColumn(newSheet, part);
                     sheets.Add(newSheet);
                 }
@@ -57,6 +55,54 @@ namespace Metal_Code.Utils
         }
 
         /// <summary>
+        /// Рассчитывает оптимальные размеры обрезки, но НЕ меняет габариты заготовки.
+        /// Результат записывается в OptimizedWidth/OptimizedHeight.
+        /// </summary>
+        private static void OptimizeSheetSize(NestingSheet sheet)
+        {
+            if (sheet.Parts.Count == 0)
+            {
+                sheet.OptimizedWidth = 0;
+                sheet.OptimizedHeight = 0;
+                return;
+            }
+
+            double maxX = sheet.Parts.Max(p =>
+            {
+                double w = p.Part.PartType == PartType.Round ? p.Part.Width : p.Part.Width;
+                return p.X + w;
+            });
+
+            double maxY = sheet.Parts.Max(p =>
+            {
+                double h = p.Part.PartType == PartType.Round ? p.Part.Width : p.Part.Height;
+                return p.Y + h;
+            });
+
+            double requiredWidth = maxX + Spacing * 2;
+            double requiredHeight = maxY + Spacing * 2;
+
+            double wasteWidth = sheet.StockWidth - requiredWidth;
+            double wasteHeight = sheet.StockHeight - requiredHeight;
+
+            // Логика выбора стороны обрезки (где отход больше)
+            if (wasteWidth > wasteHeight)
+            {
+                // Обрезаем ширину
+                double optimizedW = Math.Ceiling(requiredWidth / 100) * 100;
+                sheet.OptimizedWidth = Math.Min(optimizedW, sheet.StockWidth);
+                sheet.OptimizedHeight = sheet.StockHeight; // Высота полная
+            }
+            else
+            {
+                // Обрезаем высоту
+                double optimizedH = Math.Ceiling(requiredHeight / 100) * 100;
+                sheet.OptimizedHeight = Math.Min(optimizedH, sheet.StockHeight);
+                sheet.OptimizedWidth = sheet.StockWidth; // Ширина полная
+            }
+        }
+
+        /// <summary>
         /// Размещает деталь по столбцам: снизу вверх, затем слева направо
         /// </summary>
         private static bool TryPlacePartByColumn(NestingSheet sheet, Part part)
@@ -66,7 +112,7 @@ namespace Metal_Code.Utils
 
             // Находим все существующие столбцы (группируем по X с точностью до 1мм)
             var columns = sheet.Parts
-                .GroupBy(p => Math.Round(p.X, 0)) // Группируем по округлённому X
+                .GroupBy(p => Math.Round(p.X, 0))
                 .Select(g => new
                 {
                     X = g.Key,
@@ -81,18 +127,16 @@ namespace Metal_Code.Utils
                 double candidateX = column.X;
                 double candidateY = column.MaxY + Spacing;
 
-                // Проверяем границы листа
+                // Проверяем границы листа (используем актуальные размеры sheet.Width/Height)
                 if (candidateY + partHeight > sheet.Height - Spacing)
                     continue;
 
                 if (candidateX + partWidth > sheet.Width - Spacing)
                     continue;
 
-                // Проверяем пересечения
                 if (IsOverlapping(sheet, candidateX, candidateY, partWidth, partHeight))
                     continue;
 
-                // Размещаем деталь
                 sheet.Parts.Add(new PartPlacement { Part = part, X = candidateX, Y = candidateY });
                 return true;
             }
@@ -102,7 +146,6 @@ namespace Metal_Code.Utils
 
             if (sheet.Parts.Count > 0)
             {
-                // Находим правую границу самого правого столбца
                 double rightmostRight = sheet.Parts.Max(p =>
                 {
                     double w = p.Part.PartType == PartType.Round ? p.Part.Width : p.Part.Width;
@@ -111,14 +154,13 @@ namespace Metal_Code.Utils
                 newX = rightmostRight + Spacing;
             }
 
-            // Проверяем, помещается ли новый столбец
+            // Проверяем, помещается ли новый столбец в ширину листа
             if (newX + partWidth > sheet.Width - Spacing)
                 return false;
 
             // Размещаем в начале нового столбца
             double newY = Spacing;
 
-            // Финальная проверка пересечений
             if (IsOverlapping(sheet, newX, newY, partWidth, partHeight))
                 return false;
 
@@ -127,7 +169,7 @@ namespace Metal_Code.Utils
         }
 
         /// <summary>
-        /// Проверяет пересечение с учётом отступов (правильная логика)
+        /// Проверяет пересечение с учётом отступов
         /// </summary>
         private static bool IsOverlapping(NestingSheet sheet, double x, double y, double width, double height)
         {
@@ -142,65 +184,72 @@ namespace Metal_Code.Utils
                     ? existing.Part.Width
                     : existing.Part.Height;
 
-                // Два прямоугольника НЕ пересекаются, если между ними есть зазор >= Spacing:
-                if (x + width + Spacing <= ex) continue; // Новая деталь слева от существующей
-                if (ex + ew + Spacing <= x) continue;    // Существующая деталь слева от новой
-                if (y + height + Spacing <= ey) continue; // Новая деталь ниже существующей
-                if (ey + eh + Spacing <= y) continue;     // Существующая деталь ниже новой
+                if (x + width + Spacing <= ex) continue;
+                if (ex + ew + Spacing <= x) continue;
+                if (y + height + Spacing <= ey) continue;
+                if (ey + eh + Spacing <= y) continue;
 
-                // Если ни одно условие не выполнилось — есть пересечение
                 return true;
             }
             return false;
         }
 
-        private static void OptimizeSheetSize(NestingSheet sheet)
-        {
-            if (sheet.Parts.Count == 0) return;
-
-            double maxX = sheet.Parts.Max(p =>
-            {
-                double w = p.Part.PartType == PartType.Round ? p.Part.Width : p.Part.Width;
-                return p.X + w;
-            });
-
-            double maxY = sheet.Parts.Max(p =>
-            {
-                double h = p.Part.PartType == PartType.Round ? p.Part.Width : p.Part.Height;
-                return p.Y + h;
-            });
-
-            double optimizedWidth = Math.Ceiling((maxX + Spacing * 2) / 100) * 100;
-            double optimizedHeight = Math.Ceiling((maxY + Spacing * 2) / 100) * 100;
-
-            sheet.Width = Math.Min(optimizedWidth, SheetWidth);
-            sheet.Height = Math.Min(optimizedHeight, SheetHeight);
-        }
-
+        /// <summary>
+        /// Проверяет идентичность листов по размерам и набору наименований деталей (Title).
+        /// Учитывает возможность null значения в Title.
+        /// </summary>
         public static bool AreSheetsEqual(NestingSheet? sheet1, NestingSheet? sheet2)
         {
             if (sheet1 == null || sheet2 == null)
                 return false;
 
+            // 1. Сравниваем габариты листа
             if (Math.Abs(sheet1.Width - sheet2.Width) > 0.1)
                 return false;
             if (Math.Abs(sheet1.Height - sheet2.Height) > 0.1)
                 return false;
+
+            // 2. Сравниваем количество деталей
             if (sheet1.Parts.Count != sheet2.Parts.Count)
                 return false;
+
+            // 3. Сравниваем состав по наименованиям (Title)
+            // Используем оператор null-coalescing (??), чтобы заменить null на пустую строку или специальный маркер.
+            // Это гарантирует, что группировка пройдет без ошибок.
+            var counts1 = sheet1.Parts
+                .GroupBy(p => p.Part.Title ?? string.Empty)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            var counts2 = sheet2.Parts
+                .GroupBy(p => p.Part.Title ?? string.Empty)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            // Если количество уникальных типов деталей разное
+            if (counts1.Count != counts2.Count)
+                return false;
+
+            // Проверяем совпадение количества для каждого наименования
+            foreach (var kvp in counts1)
+            {
+                // Если ключ отсутствует во втором словаре или количество не совпадает
+                if (!counts2.TryGetValue(kvp.Key, out int count2) || kvp.Value != count2)
+                    return false;
+            }
 
             return true;
         }
 
-
         /// <summary>
-        /// Пакетный нестинг труб с отступами 10 мм между деталями
+        /// Пакетный нестинг труб.
         /// </summary>
+        /// <param name="parts">Список деталей</param>
+        /// <param name="stockLength">Длина стандартного хлыста (заготовки) в мм. По умолчанию 6000.</param>
+        /// <param name="clampZone">Зона зажима станка в мм. По умолчанию 340.</param>
         public static List<PipeStock> CreateNestingForPipeBatch(List<Part> parts, double stockLength = 6000, double clampZone = 340)
         {
             var stocks = new List<PipeStock>();
 
-            // Размножаем и сортируем по убыванию длины
+            // Размножаем и сортируем по убыванию длины (First Fit Decreasing)
             var allParts = parts
                 .SelectMany(p => Enumerable.Repeat(p, p.Count))
                 .OrderByDescending(p => p.Length)
@@ -211,9 +260,12 @@ namespace Metal_Code.Utils
                 bool placed = false;
 
                 // Пробуем разместить на существующих хлыстах
-                foreach (var stock in stocks.OrderBy(s => s.UsedLengthWithCutLoss))
+                // Сортируем по использованной длине, чтобы заполнять более занятые хлысты (или менее, в зависимости от стратегии)
+                // Здесь оставляем стратегию "заполнять первый подходящий", но сортировка помогает уплотнению
+                foreach (var stock in stocks.OrderBy(s => s.TotalRequiredLength))
                 {
-                    if (stock.AvailableLength >= part.Length)
+                    // Проверяем, влезает ли деталь в остаток текущего хлыста (с учетом зоны зажима и пропилов)
+                    if (stock.StockLength >= stock.TotalRequiredLength + part.Length + Spacing)
                     {
                         double startPosition = stock.ClampZone + stock.UsedLengthWithCutLoss;
 
@@ -237,6 +289,13 @@ namespace Metal_Code.Utils
                         ClampZone = clampZone
                     };
 
+                    // Проверка: не превышает ли одна деталь доступную длину хлыста (минус зажим)
+                    if (part.Length > stockLength - clampZone)
+                    {
+                        // Тут можно выбросить исключение или обработать ошибку, что деталь слишком длинная
+                        // Для сейчас просто добавляем, но это будет ошибка в логике раскроя
+                    }
+
                     newStock.Placements.Add(new PipePlacement
                     {
                         Part = part,
@@ -247,28 +306,50 @@ namespace Metal_Code.Utils
                 }
             }
 
+            // Оптимизируем длину каждого хлыста
+            foreach (var stock in stocks)
+            {
+                OptimizeStockLength(stock);
+            }
+
             return stocks;
         }
 
         /// <summary>
-        /// Проверяет, являются ли два хлыста одинаковыми (по составу деталей)
+        /// Рассчитывает оптимальную длину отреза хлыста.
+        /// Результат записывается в свойство OptimizedLength.
         /// </summary>
+        private static void OptimizeStockLength(PipeStock stock)
+        {
+            if (stock.Placements.Count == 0)
+            {
+                stock.OptimizedLength = 0;
+                return;
+            }
+
+            // Полная необходимая длина: Зона зажима + Детали + Пропилы
+            double requiredLength = stock.TotalRequiredLength;
+
+            // Округляем вверх до ближайших 500 мм для удобства резки/заказа
+            double optimizedLen = Math.Ceiling(requiredLength / 500) * 500;
+
+            // Не можем обрезать больше, чем есть в заготовке
+            stock.OptimizedLength = Math.Min(optimizedLen, stock.StockLength);
+        }
+
         public static bool AreStocksEqual(PipeStock? stock1, PipeStock? stock2)
         {
             if (stock1 == null || stock2 == null)
                 return false;
 
-            // Сравниваем длину хлыста и зону зажима
             if (Math.Abs(stock1.StockLength - stock2.StockLength) > 0.1)
                 return false;
             if (Math.Abs(stock1.ClampZone - stock2.ClampZone) > 0.1)
                 return false;
 
-            // Сравниваем количество деталей
             if (stock1.Placements.Count != stock2.Placements.Count)
                 return false;
 
-            // Сравниваем состав деталей (игнорируя порядок)
             var parts1 = stock1.Placements
                 .GroupBy(p => new { p.Part.Width, p.Part.Height, p.Part.Length, p.Part.PartType })
                 .Select(g => new { g.Key, Count = g.Count() })
@@ -304,11 +385,22 @@ namespace Metal_Code.Utils
         }
     }
 
-
     public class NestingSheet
     {
-        public double Width { get; set; } = 3000;
-        public double Height { get; set; } = 1500;
+        // Исходный размер заготовки (всегда полный, например 3000х1500)
+        public double StockWidth { get; set; }
+        public double StockHeight { get; set; }
+
+        // Оптимизированный размер (фактически занятая область с отступами, округленная)
+        public double OptimizedWidth { get; set; }
+        public double OptimizedHeight { get; set; }
+
+        // Для обратной совместимости и общей логики Width/Height могут равняться Stock, 
+        // либо Optimized, в зависимости от того, что нужно для других расчетов.
+        // Пусть Width/Height остаются полными (Stock), а для обрезки используем Optimized.
+        public double Width => StockWidth;
+        public double Height => StockHeight;
+
         public List<PartPlacement> Parts { get; set; } = new();
     }
 
@@ -333,17 +425,27 @@ namespace Metal_Code.Utils
         }
     }
 
-
     public class PipeStock
     {
-        public double StockLength { get; set; } = 6000; // Длина хлыста (мм)
-        public double ClampZone { get; set; } = 340;    // Зона зажима (мм)
+        // Исходная длина стандартного хлыста (заготовки), выбранная пользователем
+        public double StockLength { get; set; }
+
+        // Зона зажима (технологический отступ)
+        public double ClampZone { get; set; }
+
+        // Список размещенных деталей
         public List<PipePlacement> Placements { get; set; } = new();
 
-        private const double CutLoss = 10; // Отступ между деталями
+        // --- Новые свойства для оптимизации ---
+
+        // Рассчитанная минимально необходимая длина хлыста с учетом всех деталей, отступов и зоны зажима.
+        // Округлена вверх до удобного значения (например, до 100 мм или до целого метра).
+        public double OptimizedLength { get; set; }
+
+        private const double CutLoss = 10; // Отступ между деталями (пропил)
 
         /// <summary>
-        /// Занятая длина с учётом отступов между деталями
+        /// Занятая длина с учётом отступов между деталями (сумма длин + пропилы)
         /// </summary>
         public double UsedLengthWithCutLoss =>
             Placements.Count == 0
@@ -351,20 +453,26 @@ namespace Metal_Code.Utils
                 : UsedLength + (Placements.Count - 1) * CutLoss;
 
         /// <summary>
-        /// Занятая длина (сумма длин всех деталей)
+        /// Сумма длин всех деталей
         /// </summary>
         public double UsedLength => Placements.Sum(p => p.Part.Length);
 
         /// <summary>
-        /// Свободная длина для размещения новых деталей
+        /// Остаток хлыста
         /// </summary>
         public double AvailableLength => StockLength - ClampZone - UsedLengthWithCutLoss;
+
+        /// <summary>
+        /// Полная требуемая длина хлыста (Зона зажима + Детали + Пропилы)
+        /// Используется для расчета оптимизированной длины.
+        /// </summary>
+        public double TotalRequiredLength => ClampZone + UsedLengthWithCutLoss;
     }
 
     public class PipePlacement
     {
         public Part Part { get; set; } = null!;
-        public double StartPosition { get; set; } // От начала хлыста (после зоны зажима)
+        public double StartPosition { get; set; }
     }
 
     public class PipeStockComparer : IEqualityComparer<PipeStock>
@@ -377,17 +485,12 @@ namespace Metal_Code.Utils
         public int GetHashCode(PipeStock obj)
         {
             if (obj == null) return 0;
-
-            // Хэш по длине хлыста и количеству деталей
             int hash = obj.StockLength.GetHashCode() ^ obj.Placements.Count.GetHashCode();
-
-            // Добавляем хэши типов деталей для большей уникальности
-            foreach (var placement in obj.Placements.Take(3)) // Первые 3 детали для скорости
+            foreach (var placement in obj.Placements.Take(3))
             {
                 hash ^= placement.Part.PartType.GetHashCode();
                 hash ^= placement.Part.Length.GetHashCode();
             }
-
             return hash;
         }
     }

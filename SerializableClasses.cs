@@ -248,7 +248,12 @@ namespace Metal_Code
         }
 
         [OptionalField]
-        public List<HoleGroup> HoleGroups = new();
+        public ObservableCollection<HoleGroup> _holeGroups = new();
+        public ObservableCollection<HoleGroup> HoleGroups
+        {
+            get => _holeGroups;
+            set => _holeGroups = value;
+        }
 
         public Dictionary<int, List<string>> PropsDict = new();
 

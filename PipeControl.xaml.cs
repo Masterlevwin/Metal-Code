@@ -370,7 +370,7 @@ namespace Metal_Code
                     PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
                     AddPartsControl();                  // добавляем вкладку в "Список нарезанных деталей"
                     SetTotalProperties();               // определяем общую массу и общую длину нарезанных труб
-                    if (PartDetails != null) CreatePipeStockForVisualization(PartDetails);
+                    //if (PartDetails != null) CreatePipeStockForVisualization(PartDetails);
                 }
                 else
                 {   // добавляем типовую деталь
@@ -397,7 +397,7 @@ namespace Metal_Code
                         _pipe.PartsControl = new(_pipe, _pipe.Parts);
                         _pipe.AddPartsControl();
                         _pipe.SetTotalProperties();
-                        if (_pipe.PartDetails != null) _pipe.CreatePipeStockForVisualization(_pipe.PartDetails);
+                        //if (_pipe.PartDetails != null) _pipe.CreatePipeStockForVisualization(_pipe.PartDetails);
                     }
                 }
             }
@@ -687,17 +687,18 @@ namespace Metal_Code
                 {
                     if (tables[2].Rows[j] == null) break;
 
-                    LaserItem? item = new();
-                    item.sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[2]}");  //Кол-во
+                    LaserItem? item = new()
+                    {
+                        sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[2]}")  //Кол-во
+                    };
 
-                    string lengthTube = $"{tables[2].Rows[j].ItemArray[4]}";                    //Длина трубы(mm)
+                    float lengthTube = MainWindow.Parser($"{tables[2].Rows[j].ItemArray[4]}");  //Длина трубы (mm)
+                    float wastedTube = MainWindow.Parser($"{tables[2].Rows[j].ItemArray[5]}");  //Остаток трубы
+                    float sizeTube = (float)Math.Ceiling((lengthTube - wastedTube) / 500) * 500;
 
-                    if (lengthTube.Contains(',')) lengthTube = lengthTube.Remove(lengthTube.IndexOf(','));
-                    else if (lengthTube.Contains('.')) lengthTube = lengthTube.Remove(lengthTube.IndexOf('.'));
+                    item.sheetSize = $"{sizeTube}";
 
-                    item.sheetSize = lengthTube;
-
-                    if (MainWindow.Parser(item.sheetSize) > 6000)
+                    if (lengthTube > 6000)
                     {
                         work.type.L_prop.BorderBrush = new SolidColorBrush(Colors.Red);
                         work.type.L_prop.BorderThickness = new Thickness(2);
@@ -1119,7 +1120,7 @@ namespace Metal_Code
             Items?.Clear();
 
             // Создаём раскладку по хлыстам
-            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, work.type.L, 340);
+            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, work.type.L);
 
             if (pipeStocks == null || pipeStocks.Count == 0)
             {
@@ -1142,7 +1143,7 @@ namespace Metal_Code
                 var laserItem = new LaserItem
                 {
                     sheets = stockCount, // Количество одинаковых хлыстов
-                    sheetSize = $"{stock.StockLength}", // Длина хлыста
+                    sheetSize = $"{stock.OptimizedLength}", // Длина хлыста
                     metal = parts[0].Metal,
                     destiny = parts[0].Destiny.ToString(),
                     PipeStocks = new List<PipeStock> { stock } // Один представитель группы

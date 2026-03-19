@@ -98,19 +98,33 @@ namespace Metal_Code
         // Добавление текущей детали в буфер
         private void AddToBatch_Click(object sender, RoutedEventArgs e)
         {
+            // 1. Валидация имени (не пустое ли)
             if (string.IsNullOrWhiteSpace(_currentPart.Title))
             {
                 MessageBox.Show("Укажите название детали", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
+            // 2. Проверка на дубликат имени в буфере
+            if (_batchBuffer.Any(p => p.Title == _currentPart.Title))
+            {
+                MessageBox.Show(
+                    $"Деталь с названием \"{_currentPart.Title}\" уже существует в списке.\n" +
+                    "Удалите существующую деталь или измените название новой.",
+                    "Ошибка добавления",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            // 3. Валидация количества
             if (_currentPart.Count <= 0)
             {
                 MessageBox.Show("Укажите количество деталей", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            // Валидация отверстий
+            // 4. Валидация отверстий
             var (isValid, error) = PartPreviewGenerator.ValidateHolesPlacement(_currentPart);
             if (!isValid)
             {
@@ -122,16 +136,19 @@ namespace Metal_Code
                 {
                     return;
                 }
+                // Если пользователь согласился продолжить, очищаем отверстия у текущей детали перед клонированием
                 _currentPart.HoleGroups.Clear();
             }
 
-            // Клонируем деталь для буфера
+            // 5. Клонируем и добавляем
             var clonedPart = ClonePart(_currentPart);
-            if (clonedPart != null) _batchBuffer.Add(clonedPart);
+            if (clonedPart != null)
+            {
+                _batchBuffer.Add(clonedPart);
 
-            // Сбрасываем текущую деталь для новой
-            _currentPart.HoleGroups.Clear();
-            UpdatePreview();
+                _currentPart.HoleGroups.Clear();
+                UpdatePreview();
+            }
         }
 
         // Завершение и расчёт
@@ -171,7 +188,7 @@ namespace Metal_Code
                 Height = source.Height,
                 Length = source.Length,
                 PartType = source.PartType,
-                HoleGroups = new List<HoleGroup>(source.HoleGroups),
+                HoleGroups = new ObservableCollection<HoleGroup>(source.HoleGroups),
                 DisplayGeometry = PartPreviewGenerator.CloneGeometry(source.DisplayGeometry),
                 PropsDict = new Dictionary<int, List<string>>(source.PropsDict)
             };
@@ -184,19 +201,6 @@ namespace Metal_Code
             if (_currentPart.HoleGroups.Count > 0)
                 PartPreviewGenerator.EnsureDisplayGeometryWithHoles(_currentPart);
             else PartPreviewGenerator.EnsureDisplayGeometry(_currentPart);
-
-            UpdateStatistics();
-        }
-
-        private void UpdateStatistics()
-        {
-            if (HoleStatsText == null) return;
-
-            int totalCount = _currentPart.HoleGroups.Sum(g => g.Count);
-            double totalArea = _currentPart.HoleGroups.Sum(g => g.TotalArea);
-
-            HoleStatsText.Text = $"Всего отверстий: {totalCount} шт\n" +
-                                $"Суммарная площадь: {totalArea:F1} мм²";
         }
     }
 }
