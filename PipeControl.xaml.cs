@@ -370,7 +370,6 @@ namespace Metal_Code
                     PartsControl = new(this, Parts);    // создаем форму списка нарезанных деталей
                     AddPartsControl();                  // добавляем вкладку в "Список нарезанных деталей"
                     SetTotalProperties();               // определяем общую массу и общую длину нарезанных труб
-                    //if (PartDetails != null) CreatePipeStockForVisualization(PartDetails);
                 }
                 else
                 {   // добавляем типовую деталь
@@ -397,7 +396,6 @@ namespace Metal_Code
                         _pipe.PartsControl = new(_pipe, _pipe.Parts);
                         _pipe.AddPartsControl();
                         _pipe.SetTotalProperties();
-                        //if (_pipe.PartDetails != null) _pipe.CreatePipeStockForVisualization(_pipe.PartDetails);
                     }
                 }
             }
@@ -1115,73 +1113,6 @@ namespace Metal_Code
             work.type.MassCalculate();          // обновляем значение массы заготовки
         }
 
-        public void CreatePipeStockForVisualization(List<Part> parts)
-        {
-            Items?.Clear();
-
-            // Создаём раскладку по хлыстам
-            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, work.type.L);
-
-            if (pipeStocks == null || pipeStocks.Count == 0)
-            {
-                MessageBox.Show("Не удалось создать раскладку для труб", "Ошибка",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            // === ГРУППИРУЕМ ОДИНАКОВЫЕ ХЛЫСТЫ ===
-            var groupedStocks = GroupIdenticalStocks(pipeStocks);
-
-            foreach (var group in groupedStocks)
-            {
-                var stock = group.Key;
-                int stockCount = group.Value;
-
-                if (stock.Placements.Count == 0) continue;
-
-                // Создаём один LaserItem для группы одинаковых хлыстов (полная аналогия с листами!)
-                var laserItem = new LaserItem
-                {
-                    sheets = stockCount, // Количество одинаковых хлыстов
-                    sheetSize = $"{stock.OptimizedLength}", // Длина хлыста
-                    metal = parts[0].Metal,
-                    destiny = parts[0].Destiny.ToString(),
-                    PipeStocks = new List<PipeStock> { stock } // Один представитель группы
-                };
-
-                Items?.Add(laserItem);
-            }
-        }
-
-        /// <summary>
-        /// Группирует одинаковые хлысты в словарь (хлыст -> количество)
-        /// </summary>
-        private Dictionary<PipeStock, int> GroupIdenticalStocks(List<PipeStock> stocks)
-        {
-            var groups = new Dictionary<PipeStock, int>(new PipeStockComparer());
-
-            foreach (var stock in stocks)
-            {
-                bool foundMatch = false;
-
-                foreach (var key in groups.Keys.ToList())
-                {
-                    if (NestingHelper.AreStocksEqual(stock, key))
-                    {
-                        groups[key]++;
-                        foundMatch = true;
-                        break;
-                    }
-                }
-
-                if (!foundMatch)
-                {
-                    groups[stock] = 1;
-                }
-            }
-
-            return groups;
-        }
 
         private bool _isExpanded = false;
 

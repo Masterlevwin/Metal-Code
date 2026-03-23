@@ -1,9 +1,7 @@
 ﻿using Metal_Code.Utils;
-using SQLitePCL;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -859,7 +857,7 @@ namespace Metal_Code
                 return;
 
             // Создаём раскладку по хлыстам
-            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, saw.work.type.L, 340);
+            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, saw.work.type.L);
 
             if (pipeStocks == null || pipeStocks.Count == 0)
             {
@@ -892,7 +890,7 @@ namespace Metal_Code
                 var laserItem = new LaserItem
                 {
                     sheets = stockCount, // Количество одинаковых хлыстов
-                    sheetSize = $"{stock.StockLength}", // Длина хлыста
+                    sheetSize = $"{stock.OptimizedLength}", // Длина хлыста
                     way = (float)stockWay,
                     pinholes = stockPinholes,
                     mass = (float)stockMass,
@@ -935,7 +933,7 @@ namespace Metal_Code
 
             // Обновляем заголовок вкладки
             if (saw.TabItem?.Header is TextBlock block)
-                block.Text = $"s{saw.work?.type?.S} {saw.work?.type?.MetalDrop?.Text} ({saw.PartDetails?.Sum(x => x.Count)} шт)";
+                block.Text = $"s{saw.work?.type.S} {saw.work?.type.MetalDrop.Text} ({saw.PartDetails?.Sum(x => x.Count)} шт)";
         }
 
         /// <summary>

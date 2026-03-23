@@ -184,7 +184,7 @@ namespace Metal_Code
             PathsList.ItemsSource = Paths.Select(x => Path.GetFileNameWithoutExtension(x));
 
             //если выбранный файл и есть заявка, загружаем ее данные
-            if (Paths.Count == 1 && Paths[0].Contains("Заявка")) Load_Request(Paths[0]);
+            if (Paths.Count == 1 && (Paths[0].Contains("Заявка") || Paths[0].Contains("Ведомость"))) Load_Request(Paths[0]);
         }
 
 
@@ -224,6 +224,8 @@ namespace Metal_Code
                         $"{table.Rows[i].ItemArray[9]}",        //путь к файлу модели
                         $"{table.Rows[i].ItemArray[10]}",       //сгенерирован ли номер чертежа
                         $"{table.Rows[i].ItemArray[11]}");      //гравировка
+
+                    if (techItem.Profile.Type != ProfileType.Unknown) UpdateInfoTechItem(techItem);
                     TechItems.Add(techItem);
                 }
 
@@ -253,6 +255,19 @@ namespace Metal_Code
                     MainWindow.M.StatusBegin("Заявка загружена", MainWindow.StatusMessageType.Success);
             }
             catch (Exception ex) { MessageBox.Show($"{ex.Message}\nФорма этой заявки не поддерживается функцией загрузки."); }
+        }
+
+        private void UpdateInfoTechItem(TechItem techItem)
+        {
+            if (techItem.Profile.Type == ProfileType.Sheet)
+            {
+                techItem.Sizes = $"{techItem.Sizes}×{techItem.Profile.Width}";
+                techItem.Destiny = $"{techItem.Profile.Thickness}";
+            }
+            else
+            {
+                techItem.Destiny = $"{techItem.Profile.Width}×{techItem.Profile.Height}×{techItem.Profile.Thickness}";
+            }
         }
 
         //-----загрузка новых файлов для обработки-----//

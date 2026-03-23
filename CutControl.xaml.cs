@@ -272,23 +272,18 @@ namespace Metal_Code
 
                 if (PartDetails?.Count > 0)
                 {
-                    var averageMarking = Marking / PartDetails.Sum(c => c.Count);
+                    float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
+
+                    //рассчитываем маркировку, если толщина - до 8 мм
+                    var averageMarking = destiny <= 8 ? Marking / PartDetails.Sum(c => c.Count) : 0;
 
                     foreach (Part p in PartDetails)
                     {
                         p.Price += work.type.Result * p.Mass / MassTotal;
-                        p.Price += work.Result * p.Way / WayTotal;
-
-                        if (averageMarking > 0)
-                        {
-                            float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
-                            if (destiny <= 8 && work.type.MetalDrop.SelectedItem is Metal metal
-                                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
-                                p.Price += averageMarking * MainWindow.M.MetalDict[metal.Name][destiny].Item1 / p.Count;
-                        }
+                        p.Price += work.Result * (p.Way + averageMarking) / WayTotal;
 
                         p.PropsDict[50] = new() { $"{work.type.Result * p.Mass / MassTotal}" };
-                        p.PropsDict[51] = new() { $"{work.Result * p.Way / WayTotal}" };
+                        p.PropsDict[51] = new() { $"{work.Result * (p.Way + averageMarking) / WayTotal}" };
                     }
                 }
             }

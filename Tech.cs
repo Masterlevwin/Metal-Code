@@ -1,4 +1,5 @@
 using ExcelDataReader;
+using Metal_Code.Utils;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -581,6 +582,22 @@ namespace Metal_Code
         [Browsable(false)]
         public int Pinhole { get; set; }
 
+
+        [Browsable(false)]
+        public ProfileInfo Profile { get; private set; } = new();
+
+        /// <summary>
+        /// Парсит наименование из поля NumberName и заполняет профиль
+        /// </summary>
+        public void ParseProfileFromName()
+        {
+            if (!string.IsNullOrWhiteSpace(NumberName))
+            {
+                Profile = ProfileParser.Parse(NumberName);
+                OnPropertyChanged(nameof(Profile));
+            }
+        }
+
         public TechItem() { }
         public TechItem(string numberName, string sizes, string material, string destiny,
             string count, string route, string hasMaterial, string originalName,
@@ -599,6 +616,9 @@ namespace Metal_Code
             PathToModel = pathToModel;
             IsGenerated = isGenerated == "да";
             TextMarking = textMarking;
+
+            // Авто-парсинг профиля после инициализации
+            ParseProfileFromName();
         }
     }
 }
