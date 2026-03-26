@@ -317,10 +317,15 @@ namespace Metal_Code
 
     public enum PartType
     {
+        Unknown,          // Не определено
         Rectangle,        // Прямоугольная листовая деталь
         Round,            // Круглая листовая деталь или круг (пруток)
         RectangularTube,  // Прямоугольная труба
-        RoundTube         // Круглая труба
+        RoundTube,        // Круглая труба
+        SquareBar,        // Квадратный пруток 
+        Angle,            // Уголок
+        Channel,          // Швеллер
+        IBeam,            // Двутавр
     }
 
     [Serializable]

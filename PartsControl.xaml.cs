@@ -449,22 +449,22 @@ namespace Metal_Code
             }
         }
 
-        private static (Metal?, float, string?) GetMetalAndThickness(object controller)
+        public static (Metal?, float, string?) GetMetalAndThickness(object controller)
         {
             if (controller is CutControl cut &&
-                cut.work?.type?.MetalDrop?.SelectedItem is Metal m)
+                cut.work.type.MetalDrop.SelectedItem is Metal m)
             {
                 return (m, cut.work.type.S, m.Name);
             }
 
             if (controller is PipeControl pipe &&
-                pipe.work?.type?.MetalDrop?.SelectedItem is Metal p)
+                pipe.work.type.MetalDrop.SelectedItem is Metal p)
             {
                 return (p, pipe.work.type.S, p.Name);
             }
 
             if (controller is SawControl saw &&
-                saw.work?.type?.MetalDrop?.SelectedItem is Metal s)
+                saw.work.type.MetalDrop.SelectedItem is Metal s)
             {
                 return (s, saw.work.type.S, s.Name);
             }
@@ -536,7 +536,7 @@ namespace Metal_Code
             return part;
         }
 
-        private void UpdatePartAfterEdit(Part part, Metal metal, float thickness)
+        public void UpdatePartAfterEdit(Part part, Metal metal, float thickness)
         {
             // Сбрасываем кэш геометрии
             part.DisplayGeometry = null;
@@ -637,7 +637,7 @@ namespace Metal_Code
         /// <summary>
         /// Добавляет КОЛЛЕКЦИЮ деталей с общим нестингом на минимальное количество листов
         /// </summary>
-        private void AddBatchToCutControl(CutControl cut, List<Part> parts, Metal metal)
+        public void AddBatchToCutControl(CutControl cut, List<Part> parts, Metal metal)
         {
             if (parts == null || parts.Count == 0)
                 return;
@@ -664,7 +664,7 @@ namespace Metal_Code
 
                 // Рассчитываем параметры для группы листов
                 double sheetArea = sheet.OptimizedWidth * sheet.OptimizedHeight;
-                double sheetMass = sheetArea * parts[0].Destiny * metal.Density / 1000000 * sheetCount;
+                double sheetMass = sheetArea * parts[0].Destiny * metal.Density / 1000000;
 
                 // Суммируем длину реза всех деталей на листе
                 double sheetWay = 0;
@@ -677,9 +677,6 @@ namespace Metal_Code
                         placement.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(),
                         out var p) ? p : 0;
                 }
-
-                sheetWay *= sheetCount;      // Умножаем на количество одинаковых листов
-                sheetPinholes *= sheetCount;
 
                 // Создаём один LaserItem для группы одинаковых листов
                 var laserItem = new LaserItem
@@ -761,7 +758,7 @@ namespace Metal_Code
         /// <summary>
         /// Добавляет КОЛЛЕКЦИЮ трубных деталей с оптимальным нестингом и группировкой одинаковых хлыстов
         /// </summary>
-        private void AddBatchToPipeControl(PipeControl pipe, List<Part> parts, Metal metal)
+        public void AddBatchToPipeControl(PipeControl pipe, List<Part> parts, Metal metal)
         {
             if (parts == null || parts.Count == 0 || pipe.work?.type == null)
                 return;
@@ -791,10 +788,9 @@ namespace Metal_Code
 
                 // Рассчитываем параметры для группы хлыстов
                 double stockMass = CalculatePipeStockMass(stock, metal, parts[0].Destiny);
-                double stockWay = stock.Placements.Sum(p => p.Part.Way) * stockCount;
+                double stockWay = stock.Placements.Sum(p => p.Part.Way);
                 int stockPinholes = stock.Placements.Sum(p =>
-                    int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var pin) ? pin : 0)
-                    * stockCount;
+                    int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var pin) ? pin : 0);
 
                 // Создаём один LaserItem для группы одинаковых хлыстов (полная аналогия с листами!)
                 var laserItem = new LaserItem
@@ -811,8 +807,8 @@ namespace Metal_Code
 
                 pipe.Items?.Add(laserItem);
 
-                totalWay += stockWay;
-                totalPinholes += stockPinholes;
+                totalWay += stockWay * stockCount;
+                totalPinholes += stockPinholes * stockCount;
             }
 
             // === ДОБАВЛЯЕМ КОНТРОЛЫ ТОЛЬКО ДЛЯ УНИКАЛЬНЫХ ТИПОВ ДЕТАЛЕЙ ===
@@ -881,10 +877,9 @@ namespace Metal_Code
 
                 // Рассчитываем параметры для группы хлыстов
                 double stockMass = CalculatePipeStockMass(stock, metal, parts[0].Destiny);
-                double stockWay = stock.Placements.Sum(p => p.Part.Way) * stockCount;
+                double stockWay = stock.Placements.Sum(p => p.Part.Way);
                 int stockPinholes = stock.Placements.Sum(p =>
-                    int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var pin) ? pin : 0)
-                    * stockCount;
+                    int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var pin) ? pin : 0);
 
                 // Создаём один LaserItem для группы одинаковых хлыстов (полная аналогия с листами!)
                 var laserItem = new LaserItem
@@ -901,8 +896,8 @@ namespace Metal_Code
 
                 saw.Items?.Add(laserItem);
 
-                totalWay += stockWay;
-                totalPinholes += stockPinholes;
+                totalWay += stockWay * stockCount;
+                totalPinholes += stockPinholes * stockCount;
             }
 
             // === ДОБАВЛЯЕМ КОНТРОЛЫ ТОЛЬКО ДЛЯ УНИКАЛЬНЫХ ТИПОВ ДЕТАЛЕЙ ===

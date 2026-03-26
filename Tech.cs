@@ -1,8 +1,6 @@
 using ExcelDataReader;
-using Metal_Code.Utils;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.IO;
@@ -40,8 +38,10 @@ namespace Metal_Code
                 DataTable table = result.Tables[0];
 
                 int countAssembly = 1;      //количество комплектов
-                if ($"{table.Rows[^1].ItemArray[4]}" == "Кол-во комплектов" && $"{table.Rows[^1].ItemArray[5]}" is not null && ((int)MainWindow.Parser($"{table.Rows[^1].ItemArray[5]}") > 0))
-                    countAssembly = (int)MainWindow.Parser($"{table.Rows[^1].ItemArray[5]}");
+                if ($"{table.Rows[^1].ItemArray[5]}" == "Кол-во комплектов"
+                    && $"{table.Rows[^1].ItemArray[6]}" is not null
+                    && ((int)MainWindow.Parser($"{table.Rows[^1].ItemArray[6]}") > 0))
+                    countAssembly = (int)MainWindow.Parser($"{table.Rows[^1].ItemArray[6]}");
 
                 //перебираем строки таблицы и заполняем список объектами TechItem
                 for (int i = 2; i < table.Rows.Count; i++)
@@ -50,16 +50,17 @@ namespace Metal_Code
 
                     TechItem techItem = new(
                         $"{table.Rows[i].ItemArray[1]}",        //номер чертежа
-                        $"{table.Rows[i].ItemArray[2]}",        //размеры
-                        $"{table.Rows[i].ItemArray[3]}",        //материал
-                        $"{table.Rows[i].ItemArray[4]}",        //толщина
-                        $"{(int)MainWindow.Parser($"{table.Rows[i].ItemArray[5]}") * countAssembly}",  //количество
-                        $"{table.Rows[i].ItemArray[6]}",        //маршрут
-                        $"{table.Rows[i].ItemArray[7]}",        //давальческий материал      
-                        $"{table.Rows[i].ItemArray[8]}",        //оригинальное наименование от заказчика
-                        $"{table.Rows[i].ItemArray[9]}",        //путь к файлу модели
-                        $"{table.Rows[i].ItemArray[10]}",       //сгенерирован ли номер чертежа
-                        $"{table.Rows[i].ItemArray[11]}");      //гравировка
+                        $"{table.Rows[i].ItemArray[2]}",        //профиль
+                        $"{table.Rows[i].ItemArray[3]}",        //размеры
+                        $"{table.Rows[i].ItemArray[4]}",        //материал
+                        $"{table.Rows[i].ItemArray[5]}",        //толщина
+                        $"{(int)MainWindow.Parser($"{table.Rows[i].ItemArray[6]}") * countAssembly}",  //количество
+                        $"{table.Rows[i].ItemArray[7]}",        //маршрут
+                        $"{table.Rows[i].ItemArray[8]}",        //давальческий материал      
+                        $"{table.Rows[i].ItemArray[9]}",        //оригинальное наименование от заказчика
+                        $"{table.Rows[i].ItemArray[10]}",        //путь к файлу модели
+                        $"{table.Rows[i].ItemArray[11]}",       //сгенерирован ли номер чертежа
+                        $"{table.Rows[i].ItemArray[12]}");      //гравировка
                     TechItems.Add(techItem);
                 }
                 CountTechItems = TechItems.Count;
@@ -378,185 +379,85 @@ namespace Metal_Code
     public class TechItem : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
-        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+        public void OnPropertyChanged([CallerMemberName] string prop = "") =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
         private string numberName = null!;
         public string NumberName
         {
             get => numberName;
-            set
-            {
-                if (numberName != value)
-                {
-                    numberName = value;
-                    OnPropertyChanged(nameof(NumberName));
-                }
-            }
+            set { if (numberName != value) { numberName = value; OnPropertyChanged(); } }
+        }
+
+        private string profile = string.Empty;
+        public string Profile
+        {
+            get => profile;
+            set { if (profile != value) { profile = value; OnPropertyChanged(); } }
         }
 
         private string sizes = null!;
         public string Sizes
         {
             get => sizes;
-            set
-            {
-                if (sizes != value)
-                {
-                    sizes = value;
-                    OnPropertyChanged(nameof(Sizes));
-                }
-            }
+            set { if (sizes != value) { sizes = value; OnPropertyChanged(); } }
         }
 
         private string material = "";
         public string Material
         {
             get => material;
-            set
-            {
-                if (material != value)
-                {
-                    material = value;
-                    OnPropertyChanged(nameof(Material));
-                }
-            }
+            set { if (material != value) { material = value; OnPropertyChanged(); } }
         }
 
         private string destiny = null!;
         public string Destiny
         {
             get => destiny;
-            set
-            {
-                if (destiny != value)
-                {
-                    destiny = value;
-                    OnPropertyChanged(nameof(Destiny));
-                }
-            }
+            set { if (destiny != value) { destiny = value; OnPropertyChanged(); } }
         }
 
         private string count = null!;
         public string Count
         {
             get => count;
-            set
-            {
-                if (count != value)
-                {
-                    count = value;
-                    OnPropertyChanged(nameof(Count));
-                }
-            }
+            set { if (count != value) { count = value; OnPropertyChanged(); } }
         }
 
         private string route = null!;
         public string Route
         {
             get => route;
-            set
-            {
-                if (route != value)
-                {
-                    route = value;
-                    OnPropertyChanged(nameof(Route));
-                }
-            }
+            set { if (route != value) { route = value; OnPropertyChanged(); } }
         }
 
         private string hasMaterial = null!;
         public string HasMaterial
         {
             get => hasMaterial;
-            set
-            {
-                if (hasMaterial != value)
-                {
-                    hasMaterial = value;
-                    OnPropertyChanged(nameof(HasMaterial));
-                }
-            }
+            set { if (hasMaterial != value) { hasMaterial = value; OnPropertyChanged(); } }
         }
 
         private string originalName = null!;
         public string OriginalName
         {
             get => originalName;
-            set
-            {
-                if (originalName != value)
-                {
-                    originalName = value;
-                    OnPropertyChanged(nameof(OriginalName));
-                }
-            }
+            set { if (originalName != value) { originalName = value; OnPropertyChanged(); } }
         }
 
         private string textMarking = string.Empty;
         public string TextMarking
         {
             get => textMarking;
-            set
-            {
-                if (textMarking != value)
-                {
-                    textMarking = value;
-                    OnPropertyChanged(nameof(TextMarking));
-                }
-            }
+            set { if (textMarking != value) { textMarking = value; OnPropertyChanged(); } }
         }
 
-        [Browsable(false)]
-        public bool IsGenerated { get; set; } = false;
-
-        [Browsable(false)]
-        public string PathToModel { get; set; } = null!;
-
-        [Browsable(false)]
-        public string PathToScan { get; set; } = null!;
-
-        [Browsable(false)]
-        public ObservableCollection<IGeometryDescriptor> Geometries { get; set; } = new();
-
-        /// <summary>
-        /// Геометрия контура детали в миллиметрах (WPF-координаты: Y инвертирован).
-        /// Может содержать внешние и внутренние контуры (вырезы).
-        /// </summary>
-        public PathGeometry? DisplayGeometry { get; set; }
-
-        /// <summary>
-        /// Геометрия **с замкнутыми контурами** — для расчёта площади, массы, реза.
-        /// </summary>
-        public PathGeometry? CalculationGeometry { get; set; }
-
-        /// <summary>
-        /// StrokeThickness, компенсирующая масштаб Viewbox, чтобы линия всегда выглядела как ~1 пиксель.
-        /// Основано на реальных размерах DisplayGeometry.Bounds.
-        /// </summary>
-        public double VisualStrokeThickness
+        private PartType _partType;
+        public PartType PartType
         {
-            get
-            {
-                if (DisplayGeometry?.Bounds is Rect bounds && !bounds.IsEmpty)
-                {
-                    double sourceSize = Math.Max(bounds.Width, bounds.Height);
-                    if (sourceSize > 0)
-                    {
-                        // Viewbox растягивает до 80x80 (с учётом Uniform — меньшая сторона = 80)
-                        // Но для оценки масштаба используем max, т.к. Stretch="Uniform"
-                        double targetSize = 80.0;
-                        double scale = targetSize / sourceSize;
-                        // Чтобы визуальная толщина была ≈1, задаём:
-                        double stroke = 1.0 / scale;
-                        // Ограничиваем разумные пределы (на случай очень мелких или огромных геометрий)
-                        return Math.Max(1.0, Math.Min(5.0, stroke));
-                    }
-                }
-                // Если геометрия недоступна — используем 1 по умолчанию
-                return 1.0;
-            }
+            get => _partType;
+            set => _partType = value;
         }
-
 
         [Browsable(false)]
         public double Width { get; set; }
@@ -565,13 +466,7 @@ namespace Metal_Code
         public double Height { get; set; }
 
         [Browsable(false)]
-        public double X { get; set; }
-
-        [Browsable(false)]
-        public double Y { get; set; }
-
-        [Browsable(false)]
-        public bool IsRotated { get; set; }
+        public double Thickness { get; set; }
 
         [Browsable(false)]
         public Brush Color { get; set; } = Brushes.LightBlue;
@@ -582,43 +477,58 @@ namespace Metal_Code
         [Browsable(false)]
         public int Pinhole { get; set; }
 
+        [Browsable(false)]
+        public bool IsGenerated { get; set; } = false;
 
         [Browsable(false)]
-        public ProfileInfo Profile { get; private set; } = new();
+        public string PathToModel { get; set; } = null!;
 
-        /// <summary>
-        /// Парсит наименование из поля NumberName и заполняет профиль
-        /// </summary>
-        public void ParseProfileFromName()
+        [Browsable(false)]
+        public string PathToScan { get; set; } = null!;
+
+        public PathGeometry? DisplayGeometry { get; set; }
+
+        public PathGeometry? CalculationGeometry { get; set; }
+
+        public double VisualStrokeThickness
         {
-            if (!string.IsNullOrWhiteSpace(NumberName))
+            get
             {
-                Profile = ProfileParser.Parse(NumberName);
-                OnPropertyChanged(nameof(Profile));
+                if (DisplayGeometry?.Bounds is Rect bounds && !bounds.IsEmpty)
+                {
+                    double sourceSize = Math.Max(bounds.Width, bounds.Height);
+                    if (sourceSize > 0)
+                    {
+                        double targetSize = 80.0;
+                        double scale = targetSize / sourceSize;
+                        double stroke = 1.0 / scale;
+                        return Math.Max(1.0, Math.Min(5.0, stroke));
+                    }
+                }
+                return 1.0;
             }
         }
 
+        // === Конструкторы ===
+
         public TechItem() { }
-        public TechItem(string numberName, string sizes, string material, string destiny,
+
+        public TechItem(string numberName, string profile, string sizes, string material, string destiny,
             string count, string route, string hasMaterial, string originalName,
             string pathToModel, string isGenerated, string textMarking)
         {
             NumberName = numberName;
+            Profile = profile;
             Sizes = sizes;
-            if (material.ToLower().Contains("ст")) Material = "";
-            else Material = material;
+            Material = material.ToLower().Contains("ст") ? "" : material;
             Destiny = destiny;
             Count = count;
             Route = route;
-            if (hasMaterial.ToLower().Contains("дав")) HasMaterial = "Давальч";
-            else HasMaterial = "";
+            HasMaterial = hasMaterial.ToLower().Contains("дав") ? "Давальч" : "";
             OriginalName = originalName;
             PathToModel = pathToModel;
             IsGenerated = isGenerated == "да";
             TextMarking = textMarking;
-
-            // Авто-парсинг профиля после инициализации
-            ParseProfileFromName();
         }
     }
 }
