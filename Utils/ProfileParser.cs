@@ -10,14 +10,11 @@ namespace Metal_Code.Utils
         /// <summary>
         /// Парсит профиль и записывает результаты прямо в свойства TechItem
         /// </summary>
-        public static void ParseToTechItem(TechItem item, string profileName)
+        public static void ParseToTechItem(TechItem item)
         {
-            if (item == null || string.IsNullOrWhiteSpace(profileName)) return;
+            var name = item.Profile.Trim().ToUpperInvariant();
 
-            var name = profileName.Trim().ToUpperInvariant();
-
-            // Сбрасываем старые значения
-            item.Width = item.Height = item.Thickness = 0;
+            if (string.IsNullOrWhiteSpace(name)) return;
 
             // === ТРУБЫ ===
             if (name.Contains("ТРУБА"))
@@ -26,15 +23,16 @@ namespace Metal_Code.Utils
                 if (name.Contains("(КР.)"))
                 {
                     var match = Regex.Match(name,
-                        @"ТРУБА\s*\(КР\.\)\s*(\d+(?:[.,]\d+)?)\s*[xх]\s*(\d+(?:[.,]\d+)?)");
+                        @"ТРУБА.*?\(КР\.\).*?(\d+(?:[.,]\d+)?)\s*[xхXХ]\s*(\d+(?:[.,]\d+)?)",
+                        RegexOptions.IgnoreCase);
 
                     if (match.Success &&
                         double.TryParse(match.Groups[1].Value.Replace(',', '.'), Culture, out double d) &&
                         double.TryParse(match.Groups[2].Value.Replace(',', '.'), Culture, out double thickness))
                     {
-                        item.Width = d;
-                        item.Height = d;  // круглая: диаметр в оба поля
+                        item.Width = item.Height = d;
                         item.Thickness = thickness;
+                        item.Destiny = $"⌀{item.Width}x{item.Thickness}";
                         item.PartType = PartType.RoundTube;
                         return;
                     }
@@ -42,7 +40,8 @@ namespace Metal_Code.Utils
 
                 // Прямоугольная: три размера
                 var matchRect = Regex.Match(name,
-                    @"ТРУБА\s*(?:\(ПР\.\))?\s*(\d+(?:[.,]\d+)?)\s*[xх]\s*(\d+(?:[.,]\d+)?)\s*[xх]\s*(\d+(?:[.,]\d+)?)");
+                    @"ТРУБА.*?(?:\(ПР\.\))?.*?(\d+(?:[.,]\d+)?)\s*[xхXХ]\s*(\d+(?:[.,]\d+)?)\s*[xхXХ]\s*(\d+(?:[.,]\d+)?)",
+                    RegexOptions.IgnoreCase);
 
                 if (matchRect.Success &&
                     double.TryParse(matchRect.Groups[1].Value.Replace(',', '.'), Culture, out double w) &&
@@ -52,44 +51,45 @@ namespace Metal_Code.Utils
                     item.Width = w;
                     item.Height = h;
                     item.Thickness = t;
+                    item.Destiny = $"{item.Width}×{item.Height}×{item.Thickness}";
                     item.PartType = PartType.RectangularTube;
                     return;
                 }
 
                 // Квадратная (эмпирически): два размера → дублируем первый
                 var matchSquare = Regex.Match(name,
-                    @"ТРУБА\s*(?:\(КВ\.\))?\s*(\d+(?:[.,]\d+)?)\s*[xх]\s*(\d+(?:[.,]\d+)?)\s*(?:MM)?$",
+                    @"ТРУБА.*?(?:\(КВ\.\))?.*?(\d+(?:[.,]\d+)?)\s*[xхXХ]\s*(\d+(?:[.,]\d+)?)\s*(?:MM)?",
                     RegexOptions.IgnoreCase);
 
                 if (matchSquare.Success &&
                     double.TryParse(matchSquare.Groups[1].Value.Replace(',', '.'), Culture, out double side) &&
                     double.TryParse(matchSquare.Groups[2].Value.Replace(',', '.'), Culture, out double wall))
                 {
-                    item.Width = side;
-                    item.Height = side;  // квадратная: одинаковые стороны
+                    item.Width = item.Height = side;
                     item.Thickness = wall;
+                    item.Destiny = $"{item.Width}×{item.Height}×{item.Thickness}";
                     item.PartType = PartType.RectangularTube;
                     return;
                 }
             }
 
             // === ЛИСТ / ПОЛОСА ===
-            if (name.StartsWith("-") ||
-                (!name.Contains("ТРУБА") && !name.Contains("ДВУТАВР") && !name.Contains("УГОЛОК") &&
-                 !name.Contains("ШВЕЛЛЕР") && !name.Contains("КВАДРАТ")))
+            // Проверяем, что это не профиль с ключевыми словами
+            if (!name.Contains("ТРУБА") && !name.Contains("ДВУТАВР") && !name.Contains("УГОЛОК") &&
+                !name.Contains("ШВЕЛЛЕР") && !name.Contains("КВАДРАТ"))
             {
                 var clean = name.TrimStart('-', ' ');
                 var match = Regex.Match(clean,
-                    @"^(\d+(?:[.,]\d+)?)\s*[xх]\s*(\d+(?:[.,]\d+)?)\s*(?:MM)?$",
+                    @"^(\d+(?:[.,]\d+)?)\s*[xхXХ]\s*(\d+(?:[.,]\d+)?)\s*(?:MM)?",
                     RegexOptions.IgnoreCase);
 
                 if (match.Success &&
                     double.TryParse(match.Groups[1].Value.Replace(',', '.'), Culture, out double thick) &&
                     double.TryParse(match.Groups[2].Value.Replace(',', '.'), Culture, out double width))
                 {
-                    item.Thickness = thick;  // для листа толщина — первое число
-                    item.Width = width;      // ширина листа
-                    item.Height = width;     // для единообразия
+                    item.Width = width;
+                    item.Thickness = thick;
+                    item.Destiny = match.Groups[1].Value;
                     item.PartType = PartType.Rectangle;
                     return;
                 }
@@ -98,15 +98,16 @@ namespace Metal_Code.Utils
             // === ДВУТАВР ===
             if (name.Contains("ДВУТАВР"))
             {
-                // Марка: извлекаем высоту в мм
-                var matchMark = Regex.Match(name, @"ДВУТАВР\s+([А-Я0-9]+)");
+                // Марка
+                var matchMark = Regex.Match(name, @"ДВУТАВР.*?([А-Я0-9]+)",
+                    RegexOptions.IgnoreCase);
                 if (matchMark.Success)
                 {
                     var numMatch = Regex.Match(matchMark.Groups[1].Value, @"^(\d+)");
-                    if (numMatch.Success && int.TryParse(numMatch.Groups[1].Value, out int hCm))
+                    if (numMatch.Success && int.TryParse(numMatch.Groups[1].Value, out int mark))
                     {
-                        item.Width = hCm * 10;
-                        item.Height = item.Width;
+                        item.Width = item.Height = mark * 10; // см → мм
+                        item.Destiny = $"I{matchMark.Groups[1].Value}";
                         item.PartType = PartType.IBeam;
                     }
                     return;
@@ -114,7 +115,8 @@ namespace Metal_Code.Utils
 
                 // Размеры как у труб
                 var matchDims = Regex.Match(name,
-                    @"ДВУТАВР\s*(\d+(?:[.,]\d+)?)\s*[xх]\s*(\d+(?:[.,]\d+)?)\s*[xх]\s*(\d+(?:[.,]\d+)?)");
+                    @"ДВУТАВР.*?(\d+(?:[.,]\d+)?)\s*[xхXХ]\s*(\d+(?:[.,]\d+)?)\s*[xхXХ]\s*(\d+(?:[.,]\d+)?)",
+                    RegexOptions.IgnoreCase);
                 if (matchDims.Success &&
                     double.TryParse(matchDims.Groups[1].Value.Replace(',', '.'), Culture, out double h) &&
                     double.TryParse(matchDims.Groups[2].Value.Replace(',', '.'), Culture, out double b) &&
@@ -123,6 +125,7 @@ namespace Metal_Code.Utils
                     item.Width = h;
                     item.Height = b;
                     item.Thickness = t;
+                    item.Destiny = $"I{item.Width}×{item.Height}×{item.Thickness}";
                     item.PartType = PartType.IBeam;
                     return;
                 }
@@ -133,7 +136,9 @@ namespace Metal_Code.Utils
             {
                 // Неравнополочный: три размера
                 var matchThree = Regex.Match(name,
-                    @"УГОЛОК\s*(\d+(?:[.,]\d+)?)\s*[xх]\s*(\d+(?:[.,]\d+)?)\s*[xх]\s*(\d+(?:[.,]\d+)?)");
+                    @"УГОЛОК.*?(\d+(?:[.,]\d+)?)\s*[xхXХ]\s*(\d+(?:[.,]\d+)?)\s*[xхXХ]\s*(\d+(?:[.,]\d+)?)",
+                    RegexOptions.IgnoreCase);
+
                 if (matchThree.Success &&
                     double.TryParse(matchThree.Groups[1].Value.Replace(',', '.'), Culture, out double l1) &&
                     double.TryParse(matchThree.Groups[2].Value.Replace(',', '.'), Culture, out double l2) &&
@@ -142,21 +147,23 @@ namespace Metal_Code.Utils
                     item.Width = l1;
                     item.Height = l2;
                     item.Thickness = t;
+                    item.Destiny = $"L{item.Width}×{item.Height}×{item.Thickness}";
                     item.PartType = PartType.Angle;
                     return;
                 }
 
-                // Равнополочный: два размера → дублируем полку
+                // Равнополочный: два размера
                 var matchTwo = Regex.Match(name,
-                    @"УГОЛОК\s*(\d+(?:[.,]\d+)?)\s*[xх]\s*(\d+(?:[.,]\d+)?)\s*(?:MM)?$",
+                    @"УГОЛОК.*?(\d+(?:[.,]\d+)?)\s*[xхXХ]\s*(\d+(?:[.,]\d+)?)",
                     RegexOptions.IgnoreCase);
+
                 if (matchTwo.Success &&
                     double.TryParse(matchTwo.Groups[1].Value.Replace(',', '.'), Culture, out double leg) &&
                     double.TryParse(matchTwo.Groups[2].Value.Replace(',', '.'), Culture, out double wall))
                 {
-                    item.Width = leg;
-                    item.Height = leg;  // равнополочный
+                    item.Width = item.Height = leg;
                     item.Thickness = wall;
+                    item.Destiny = $"L{item.Width}×{item.Thickness}";
                     item.PartType = PartType.Angle;
                     return;
                 }
@@ -165,21 +172,23 @@ namespace Metal_Code.Utils
             // === ШВЕЛЛЕР ===
             if (name.Contains("ШВЕЛЛЕР"))
             {
-                var matchMark = Regex.Match(name, @"ШВЕЛЛЕР\s+([А-Я0-9]+)");
+                var matchMark = Regex.Match(name, @"ШВЕЛЛЕР.*?([А-Я0-9]+)",
+                    RegexOptions.IgnoreCase);
                 if (matchMark.Success)
                 {
                     var numMatch = Regex.Match(matchMark.Groups[1].Value, @"^(\d+)");
-                    if (numMatch.Success && int.TryParse(numMatch.Groups[1].Value, out int hCm))
+                    if (numMatch.Success && int.TryParse(numMatch.Groups[1].Value, out int mark))
                     {
-                        item.Width = hCm * 10;
-                        item.Height = item.Width;
+                        item.Width = item.Height = mark * 10; // см → мм
+                        item.Destiny = $"U{matchMark.Groups[1].Value}";
                         item.PartType = PartType.Channel;
                     }
                     return;
                 }
 
                 var matchDims = Regex.Match(name,
-                    @"ШВЕЛЛЕР\s*(\d+(?:[.,]\d+)?)\s*[xх]\s*(\d+(?:[.,]\d+)?)\s*[xх]\s*(\d+(?:[.,]\d+)?)");
+                    @"ШВЕЛЛЕР.*?(\d+(?:[.,]\d+)?)\s*[xхXХ]\s*(\d+(?:[.,]\d+)?)\s*[xхXХ]\s*(\d+(?:[.,]\d+)?)",
+                    RegexOptions.IgnoreCase);
                 if (matchDims.Success &&
                     double.TryParse(matchDims.Groups[1].Value.Replace(',', '.'), Culture, out double h) &&
                     double.TryParse(matchDims.Groups[2].Value.Replace(',', '.'), Culture, out double b) &&
@@ -188,6 +197,7 @@ namespace Metal_Code.Utils
                     item.Width = h;
                     item.Height = b;
                     item.Thickness = t;
+                    item.Destiny = $"U{item.Width}×{item.Height}×{item.Thickness}";
                     item.PartType = PartType.Channel;
                     return;
                 }
@@ -196,13 +206,14 @@ namespace Metal_Code.Utils
             // === КВАДРАТНЫЙ ПРУТОК ===
             if (name.Contains("КВАДРАТ") && !name.Contains("ТРУБА"))
             {
-                var match = Regex.Match(name, @"КВАДРАТ\s*(\d+(?:[.,]\d+)?)");
+                var match = Regex.Match(name, @"КВАДРАТ.*?(\d+(?:[.,]\d+)?)",
+                    RegexOptions.IgnoreCase);
                 if (match.Success &&
                     double.TryParse(match.Groups[1].Value.Replace(',', '.'), Culture, out double size))
                 {
-                    item.Width = size;
-                    item.Height = size;
-                    // Thickness не задаём — у прутка нет стенки
+                    item.Width = item.Height = size;
+                    item.Thickness = 0;
+                    item.Destiny = $"□{match.Groups[1].Value}";
                     item.PartType = PartType.SquareBar;
                     return;
                 }
@@ -219,11 +230,11 @@ namespace Metal_Code.Utils
             PartType.RoundTube => "Труба круглая",
             PartType.Angle when item.Width == item.Height => "Уголок равнополочный",
             PartType.Angle => "Уголок неравнополочный",
-            PartType.Channel when item.Profile.Contains('П') => "Швеллер П",
-            PartType.Channel when item.Profile.Contains('У') => "Швеллер У",
-            PartType.IBeam when item.Profile.Contains('Б') => "Двутавр парал",
-            PartType.IBeam when item.Profile.Contains('Ш') => "Двутавр широк",
-            PartType.IBeam when item.Profile.Contains('К') => "Двутавр колон",
+            PartType.Channel when item.Destiny.Contains('П') => "Швеллер П",
+            PartType.Channel when item.Destiny.Contains('У') => "Швеллер У",
+            PartType.IBeam when item.Destiny.Contains('Б') => "Двутавр парал",
+            PartType.IBeam when item.Destiny.Contains('Ш') => "Двутавр широк",
+            PartType.IBeam when item.Destiny.Contains('К') => "Двутавр колон",
             PartType.IBeam => "Двутавр",
             PartType.SquareBar => "Квадрат",
             _ => "Лист металла"

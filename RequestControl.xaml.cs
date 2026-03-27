@@ -230,6 +230,8 @@ namespace Metal_Code
                         $"{table.Rows[i].ItemArray[10]}",       // путь к файлу модели
                         $"{table.Rows[i].ItemArray[11]}",       // сгенерирован ли номер чертежа
                         $"{table.Rows[i].ItemArray[12]}");      // гравировка
+
+                    if (!string.IsNullOrWhiteSpace(techItem.Profile)) ProfileParser.ParseToTechItem(techItem);
                     TechItems.Add(techItem);
                 }
 
@@ -794,14 +796,14 @@ namespace Metal_Code
                 float density = 7.85f;           // плотность материала по умолчанию
 
                 // группируем детали по материалу и толщине
-                var groups = TechItems.GroupBy(m => new { m.PartType, m.Profile, m.Material, m.Destiny });
+                var groups = TechItems.GroupBy(m => new { m.Material, m.Destiny });
 
                 foreach (var group in groups)
                 {
                     var item = group.FirstOrDefault();
                     if (item is null) continue;
 
-                    string profileType = ProfileParser.GetLocalizedTypeName(item);
+                    string profileType = ProfileParser.GetLocalizedTypeName(item);  //проверить
                     string metalName = group.Key.Material.ToLower() switch
                     {
                         "br" => "латунь",
@@ -810,7 +812,7 @@ namespace Metal_Code
                         "" => "ст3",
                         _ => group.Key.Material.ToLower()       //здесь нужна нормализация без пробелов
                     };
-                    float destiny = (float)item.Thickness;
+                    float destiny = item.Thickness > 0 ? (float)item.Thickness : MainWindow.Parser(group.Key.Destiny);
 
                     // Заготовка
                     TypeDetailControl typeControl;
@@ -863,6 +865,20 @@ namespace Metal_Code
                                     List<Part> parts = new();
                                     foreach (var techItem in group)
                                     {
+                                        // Нормализуем разделитель: русская 'х' (U+0445) → английская 'x' (U+0078)
+                                        var normalized = techItem.Sizes.Replace('х', 'x').Trim();
+
+                                        if (normalized.Contains('x'))
+                                        {
+                                            string[] sizes = normalized.Split('x', StringSplitOptions.RemoveEmptyEntries);
+                                            if (sizes.Length >= 2)
+                                            {
+                                                techItem.Width = MainWindow.Parser(sizes[0].Trim());
+                                                techItem.Height = MainWindow.Parser(sizes[1].Trim());
+                                            }
+                                        }
+                                        else techItem.Height = MainWindow.Parser(techItem.Sizes);
+
                                         Part part = new(techItem.NumberName)
                                         {
                                             Count = (int)MainWindow.Parser(techItem.Count),
@@ -870,10 +886,10 @@ namespace Metal_Code
                                             Destiny = destiny,
                                             Width = techItem.Width,
                                             Height = techItem.Height,
-                                            PartType = techItem.PartType
+                                            PartType = PartType.Rectangle
                                         };
 
-                                        cut.PartsControl?.UpdatePartAfterEdit(part, m, density);
+                                        cut.PartsControl?.UpdatePartAfterEdit(part, m, destiny);
                                         parts.Add(part);
                                     }
 
@@ -911,7 +927,7 @@ namespace Metal_Code
                                 {
                                     bool isFounded = false;
                                     foreach (string s in typeControl.SortDrop.Items)
-                                        if (s == item.Profile)
+                                        if (item.Destiny.Contains(s))
                                         {
                                             typeControl.SortDrop.SelectedItem = s;
                                             isFounded = true;
@@ -968,14 +984,14 @@ namespace Metal_Code
                                         {
                                             Count = (int)MainWindow.Parser(techItem.Count),
                                             Metal = m.Name,
-                                            Destiny = destiny,
+                                            Destiny = typeControl.S,
                                             Width = techItem.Width,
                                             Height = techItem.Height,
                                             Length = MainWindow.Parser(techItem.Sizes),
                                             PartType = techItem.PartType
                                         };
 
-                                        pipe.PartsControl?.UpdatePartAfterEdit(part, m, density);
+                                        pipe.PartsControl?.UpdatePartAfterEdit(part, m, typeControl.S);
                                         parts.Add(part);
                                     }
 

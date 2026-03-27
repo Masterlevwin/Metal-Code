@@ -483,6 +483,7 @@ namespace Metal_Code
                 title = pipe.Tube switch
                 {
                     TubeType.round => "Круглая труба",
+                    TubeType.corner => "Уголок",
                     _ => "Профильная труба"
                 };
             }
@@ -494,6 +495,7 @@ namespace Metal_Code
                     TubeType.circle => "Круг",
                     TubeType.rod => "Квадрат",
                     TubeType.round => "Круглая труба",
+                    TubeType.corner => "Уголок",
                     _ => "Профильная труба"
                 };
             }
@@ -506,6 +508,7 @@ namespace Metal_Code
                 "Квадрат" => PartType.RectangularTube,
                 "Круглая труба" => PartType.RoundTube,
                 "Профильная труба" => PartType.RectangularTube,
+                "Уголок" => PartType.Angle,
                 _ => PartType.Rectangle
             };
 
@@ -542,7 +545,6 @@ namespace Metal_Code
             part.DisplayGeometry = null;
 
             bool isSheetPart = part.PartType == PartType.Round || part.PartType == PartType.Rectangle;
-            bool isPipePart = part.PartType == PartType.RoundTube || part.PartType == PartType.RectangularTube;
 
             int pinholes = 0;
             double cuttingLength = 0;
@@ -552,7 +554,7 @@ namespace Metal_Code
             {
                 PartPreviewGenerator.EnsureDisplayGeometryWithHoles(part);
             }
-            else if (isPipePart)
+            else
             {
                 PartPreviewGenerator.EnsureDisplayGeometry(part); // Без отверстий в сечении
             }
@@ -577,7 +579,7 @@ namespace Metal_Code
                 {
                     pinholes = TechItemCalculator.CalculatePiercingCount(part.DisplayGeometry);
                 }
-                else if (isPipePart)
+                else
                 {
                     // Для труб — проколы = количество отверстий + 2 реза сечения (грубо)
                     pinholes = part.HoleGroups?.Sum(g => g.Count) + 2 ?? 0;
@@ -598,15 +600,13 @@ namespace Metal_Code
                 };
 
                 part.PropsDict[100] = new()
-        {
-            $"{part.Width}",
-            $"{part.Height}",
-            part.PartType == PartType.Round
-                ? $"Ø{part.Width}"
-                : $"{part.Width}x{part.Height}"
-        };
+                {
+                    $"{part.Width}",
+                    $"{part.Height}",
+                    part.PartType == PartType.Round ? $"Ø{part.Width}" : $"{part.Width}x{part.Height}"
+                };
             }
-            else if (isPipePart)
+            else
             {
                 double crossSectionArea = part.PartType switch
                 {
@@ -624,10 +624,7 @@ namespace Metal_Code
                     crossSectionArea * part.Length * metal.Density / 1000000, 3);
 
                 part.PropsDict[100] = new() {
-            $"{SquareToPaint(part)}",
-            "",
-            $"{part.Length}"
-        };
+                    $"{SquareToPaint(part)}", "", $"{part.Length}" };
             }
 
             // === ШАГ 4: Сохранение данных об отверстиях ===

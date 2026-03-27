@@ -452,7 +452,7 @@ namespace Metal_Code
             set { if (textMarking != value) { textMarking = value; OnPropertyChanged(); } }
         }
 
-        private PartType _partType;
+        private PartType _partType = PartType.Unknown;
         public PartType PartType
         {
             get => _partType;
@@ -467,9 +467,6 @@ namespace Metal_Code
 
         [Browsable(false)]
         public double Thickness { get; set; }
-
-        [Browsable(false)]
-        public Brush Color { get; set; } = Brushes.LightBlue;
 
         [Browsable(false)]
         public float Way { get; set; }

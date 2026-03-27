@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Markup;
@@ -21,6 +20,18 @@ namespace Metal_Code.Utils
                 PartType.Round => CreateRoundSection(part.Width),
                 PartType.RectangularTube => CreateRectangularTubeSection(part.Width, part.Height, part.Destiny),
                 PartType.RoundTube => CreateRoundTubeSection(part.Width, part.Destiny),
+
+                // Прутки переиспользуют геометрию профильной трубы
+                PartType.SquareBar => CreateRectangularTubeSection(part.Width, part.Width, part.Destiny),
+
+                // Уголки: Width/Height — это полки, Destiny — толщина
+                // Равнополочный: Width == Height, неравнополочный: Width != Height
+                PartType.Angle => CreateAngleSection(part.Width, part.Height, part.Destiny),
+
+                // Швеллер и двутавр: единая толщина для всех элементов
+                PartType.Channel => CreateChannelSection(part.Width, part.Height, part.Destiny),
+                PartType.IBeam => CreateIBeamSection(part.Width, part.Height, part.Destiny),
+
                 _ => null
             };
         }
@@ -98,6 +109,134 @@ namespace Metal_Code.Utils
             if (innerR > 0)
                 geometry.Figures.Add(CreateCircleFigure(0, 0, innerR, false)); // Внутренний - НЕзаполненный!
 
+            return geometry;
+        }
+
+        /// <summary>
+        /// Создаёт сечение уголка (равно- или неравнополочного)
+        /// Параметры: leg1 — длина первой полки (Width), leg2 — длина второй полки (Height), thickness — толщина полок (Destiny)
+        /// Если leg1 == leg2 — создаётся равнополочный уголок
+        /// </summary>
+        public static PathGeometry CreateAngleSection(double leg1, double leg2, double thickness)
+        {
+            var geometry = new PathGeometry();
+
+            // Валидация: толщина не должна превышать половину меньшей полки
+            double minLeg = Math.Min(leg1, leg2);
+            if (thickness >= minLeg / 2 - 1)
+                thickness = Math.Max(1, minLeg / 2 - 1);
+
+            // Центрируем уголок: внутренний угол смещён для симметричного отображения
+            // Координаты рассчитываются относительно центра масс для наглядности
+            double centerX = (leg1 - thickness) / 2 - leg1 / 2;
+            double centerY = (leg2 - thickness) / 2 - leg2 / 2;
+
+            var figure = new PathFigure
+            {
+                StartPoint = new Point(-leg1 / 2, -leg2 / 2),
+                IsClosed = true,
+                IsFilled = true
+            };
+
+            // Обход внешнего периметра по часовой стрелке, начиная с левого нижнего угла
+            // Горизонтальная полка (leg1)
+            figure.Segments.Add(new LineSegment(new Point(leg1 / 2, -leg2 / 2), true));                    // → вправо
+            figure.Segments.Add(new LineSegment(new Point(leg1 / 2, -leg2 / 2 + thickness), true));        // ↑ на толщину
+            figure.Segments.Add(new LineSegment(new Point(-leg1 / 2 + thickness, -leg2 / 2 + thickness), true)); // ← к внутреннему углу
+                                                                                                                 // Вертикальная полка (leg2)
+            figure.Segments.Add(new LineSegment(new Point(-leg1 / 2 + thickness, leg2 / 2), true));        // ↑ вверх
+            figure.Segments.Add(new LineSegment(new Point(-leg1 / 2, leg2 / 2), true));                    // ← влево
+                                                                                                           // Замыкается автоматически к начальной точке
+
+            geometry.Figures.Add(figure);
+            return geometry;
+        }
+
+        /// <summary>
+        /// Создаёт сечение швеллера (U-образный профиль, открытие вверх)
+        /// Параметры: width — общая ширина, height — общая высота, thickness — единая толщина всех элементов
+        /// </summary>
+        public static PathGeometry CreateChannelSection(double width, double height, double thickness)
+        {
+            var geometry = new PathGeometry();
+            double halfW = width / 2;
+            double halfH = height / 2;
+
+            // Валидация: толщина не должна превышать 1/3 от меньшего размера
+            if (thickness >= Math.Min(width, height) / 3)
+                thickness = Math.Max(1, Math.Min(width, height) / 3 - 1);
+
+            var figure = new PathFigure
+            {
+                StartPoint = new Point(-halfW, -halfH),  // Левый верхний угол (внешний)
+                IsClosed = true,
+                IsFilled = true
+            };
+
+            // Обход контура по часовой стрелке (U-образный, открытие вверх)
+            // === ЛЕВАЯ СТЕНКА (вверх-вниз) ===
+            // 1. По верху левой стенки → вправо (внешняя грань)
+            figure.Segments.Add(new LineSegment(new Point(-halfW + thickness, -halfH), true));
+            // 2. Внутренняя грань левой стенки ↓ вниз
+            figure.Segments.Add(new LineSegment(new Point(-halfW + thickness, halfH - thickness), true));
+
+            // === ОСНОВАНИЕ (горизонтальное, внизу) ===
+            // 3. По внутренней грани основания → вправо
+            figure.Segments.Add(new LineSegment(new Point(halfW - thickness, halfH - thickness), true));
+
+            // === ПРАВАЯ СТЕНКА (вниз-вверх) ===
+            // 4. Внутренняя грань правой стенки ↑ вверх
+            figure.Segments.Add(new LineSegment(new Point(halfW - thickness, -halfH), true));
+            // 5. По верху правой стенки → вправо (внутренняя грань)
+            figure.Segments.Add(new LineSegment(new Point(halfW, -halfH), true));
+            // 6. Внешняя правая грань ↓ вниз до основания
+            figure.Segments.Add(new LineSegment(new Point(halfW, halfH), true));
+
+            // === НИЗ ОСНОВАНИЯ ===
+            // 7. По низу основания ← влево
+            figure.Segments.Add(new LineSegment(new Point(-halfW, halfH), true));
+            // 8. Внешняя левая грань ↑ вверх к началу (замыкается автоматически)
+
+            geometry.Figures.Add(figure);
+            return geometry;
+        }
+
+        /// <summary>
+        /// Создаёт сечение двутавра (I-образный профиль)
+        /// Параметры: width — ширина полки, height — высота профиля, thickness — единая толщина всех элементов
+        /// </summary>
+        public static PathGeometry CreateIBeamSection(double width, double height, double thickness)
+        {
+            var geometry = new PathGeometry();
+            double halfW = width / 2;
+            double halfH = height / 2;
+            double halfT = thickness / 2;
+
+            // Валидация: толщина не должна превышать 1/3 от меньшего размера
+            if (thickness >= Math.Min(width, height) / 3)
+                thickness = Math.Max(1, Math.Min(width, height) / 3 - 1);
+            halfT = thickness / 2;
+
+            var figure = new PathFigure
+            {
+                StartPoint = new Point(-halfW, -halfH),  // Левый верхний угол (внешний)
+                IsClosed = true,
+                IsFilled = true
+            };
+
+            figure.Segments.Add(new LineSegment(new Point(halfW, -halfH), true));
+            figure.Segments.Add(new LineSegment(new Point(halfW, -halfH + thickness), true));
+            figure.Segments.Add(new LineSegment(new Point(halfT, -halfH + thickness), true));
+            figure.Segments.Add(new LineSegment(new Point(halfT, halfH - thickness), true));
+            figure.Segments.Add(new LineSegment(new Point(halfW, halfH - thickness), true));
+            figure.Segments.Add(new LineSegment(new Point(halfW, halfH), true));
+            figure.Segments.Add(new LineSegment(new Point(-halfW, halfH), true));
+            figure.Segments.Add(new LineSegment(new Point(-halfW, halfH - thickness), true));
+            figure.Segments.Add(new LineSegment(new Point(-halfT, halfH - thickness), true));
+            figure.Segments.Add(new LineSegment(new Point(-halfT, -halfH + thickness), true));
+            figure.Segments.Add(new LineSegment(new Point(-halfW, -halfH + thickness), true));
+
+            geometry.Figures.Add(figure);
             return geometry;
         }
 
