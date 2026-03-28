@@ -186,7 +186,7 @@
                     </Style>
                 </DataGrid.Resources>
                 <DataGrid.Columns>
-                    <DataGridTemplateColumn Header="№ чертежа" SortMemberPath="NumberName">
+                    <DataGridTemplateColumn Header="№ чертежа" SortMemberPath="NumberName" Width="200">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding NumberName}" Foreground="{Binding NumberName, Converter={StaticResource TitleLengthToForegroundConverter}, ConverterParameter=30}"/>
@@ -194,12 +194,12 @@
                         </DataGridTemplateColumn.CellTemplate>
                         <DataGridTemplateColumn.CellEditingTemplate>
                             <DataTemplate>
-                                <TextBox Text="{Binding NumberName, UpdateSourceTrigger=PropertyChanged}" Foreground="{Binding NumberName, Converter={StaticResource TitleLengthToForegroundConverter}, ConverterParameter=30}"/>
+                                <TextBox Text="{Binding NumberName}" Foreground="{Binding NumberName, Converter={StaticResource TitleLengthToForegroundConverter}, ConverterParameter=30}"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn Header="Профиль" Binding="{Binding Profile}"/>
+                    <DataGridTextColumn Header="Профиль" Binding="{Binding Profile}" Width="100"/>
                     <DataGridTextColumn Header="Размеры" Binding="{Binding Sizes}"/>
                     <DataGridTextColumn Header="Металл" Binding="{Binding Material}"/>
                     <DataGridTextColumn Header="Толщина" Binding="{Binding Destiny}"/>

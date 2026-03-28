@@ -90,10 +90,10 @@ namespace Metal_Code
                     "Квадрат" => TubeType.rod,
                     "Швеллер П" => TubeType.channel,
                     "Швеллер У" => TubeType.channel,
-                    "Двутавр" => TubeType.rect,
-                    "Двутавр парал" => TubeType.hbeam,
-                    "Двутавр широк" => TubeType.rect,
-                    "Двутавр колон" => TubeType.rect,
+                    "Двутавр" => TubeType.ibeam,
+                    "Двутавр парал" => TubeType.ibeam,
+                    "Двутавр широк" => TubeType.ibeam,
+                    "Двутавр колон" => TubeType.ibeam,
                     _ => TubeType.rect,
                 };
         }
@@ -144,7 +144,7 @@ namespace Metal_Code
                             * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
                             * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * work.type.L * work.type.Count * metal.Density / 1000000, 3);
                         break;
-                    case TubeType.hbeam:
+                    case TubeType.ibeam:
                         Mass = (float)Math.Round(work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item1 * work.type.L * work.type.Count / 1000, 3);
                         break;
                 }

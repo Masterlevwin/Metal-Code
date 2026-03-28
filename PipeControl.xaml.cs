@@ -189,10 +189,10 @@ namespace Metal_Code
                     "Квадрат" => TubeType.rod,
                     "Швеллер П" => TubeType.channel,
                     "Швеллер У" => TubeType.channel,
-                    "Двутавр" => TubeType.rect,
-                    "Двутавр парал" => TubeType.hbeam,
-                    "Двутавр широк" => TubeType.rect,
-                    "Двутавр колон" => TubeType.rect,
+                    "Двутавр" => TubeType.ibeam,
+                    "Двутавр парал" => TubeType.ibeam,
+                    "Двутавр широк" => TubeType.ibeam,
+                    "Двутавр колон" => TubeType.ibeam,
                     _ => TubeType.rect,
                 };
         }
@@ -517,7 +517,7 @@ namespace Metal_Code
                                 }
                                 break;
                             }
-                        Tube = TubeType.hbeam;
+                        Tube = TubeType.ibeam;
                     }
                     else
                     {
@@ -618,25 +618,28 @@ namespace Metal_Code
                                 case TubeType.channel:
                                     part.Mass = (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * part.Way / 1000, 3);
                                     part.PropsDict[100] = new() { $"{work.type.ChannelsSquare[work.type.SortDrop.SelectedIndex] * part.Mass / 1000}", "", $"{part.Way}" };     //площадь окрашиваемой поверхности
+                                    part.PartType = PartType.Channel;
                                     break;
                                 case TubeType.corner:
                                     part.Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.A - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
                                         * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
                                         * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
                                     part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.A - work.type.S) / 1000000}", "", $"{part.Way}" };
+                                    part.PartType = PartType.Angle;
                                     break;
                                 case TubeType.freeform:
                                     part.Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.B - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
                                         * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
                                         * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
                                     part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.B - work.type.S) / 1000000}", "", $"{part.Way}" };
-                                    part.PartType = PartType.RectangularTube;
+                                    part.PartType = PartType.Angle;
                                     part.Height = work.type.A;
                                     part.Width = work.type.B;
                                     break;
-                                case TubeType.hbeam:
+                                case TubeType.ibeam:
                                     part.Mass = (float)Math.Round(work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item1 * part.Way / 1000, 3);
                                     part.PropsDict[100] = new() { $"{work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000}", "", $"{part.Way}" };     //площадь окрашиваемой поверхности
+                                    part.PartType = PartType.IBeam;
                                     break;
 
                             }
@@ -920,7 +923,7 @@ namespace Metal_Code
                                 }
                                 break;
                             }
-                        Tube = TubeType.hbeam;
+                        Tube = TubeType.ibeam;
                     }
 
                     SizesValidate();        //проверяем размеры проката
@@ -960,7 +963,7 @@ namespace Metal_Code
                                 case TubeType.circle:
                                     part.Mass = (float)Math.Round(Math.PI * work.type.A * work.type.A * part.Way / 4 * metal.Density / 1000000, 3);
                                     part.PropsDict[100] = new() { $"{2 * part.Way * work.type.A * Math.PI / 1000000}", "", $"{part.Way}" };
-                                    part.PartType = PartType.Round;
+                                    part.PartType = PartType.RoundTube;
                                     part.Height = work.type.A;
                                     part.Width = work.type.B;
                                     break;
@@ -974,32 +977,35 @@ namespace Metal_Code
                                 case TubeType.rod:
                                     part.Mass = (float)Math.Round(work.type.A * work.type.A * part.Way * metal.Density / 1000000, 3);
                                     part.PropsDict[100] = new() { $"{2 * (part.Way * work.type.A + part.Way * work.type.B + work.type.A * work.type.B) / 1000000}", "", $"{part.Way}" };
-                                    part.PartType = PartType.Rectangle;
+                                    part.PartType = PartType.RectangularTube;
                                     part.Height = work.type.A;
                                     part.Width = work.type.B;
                                     break;
                                 case TubeType.channel:
                                     part.Mass = (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * part.Way / 1000, 3);
                                     part.PropsDict[100] = new() { $"{work.type.ChannelsSquare[work.type.SortDrop.SelectedIndex] * part.Mass / 1000}", "", $"{part.Way}" };     //площадь окрашиваемой поверхности
+                                    part.PartType = PartType.Channel;
                                     break;
                                 case TubeType.corner:
                                     part.Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.A - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
                                         * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
                                         * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
                                     part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.A - work.type.S) / 1000000}", "", $"{part.Way}" };
+                                    part.PartType = PartType.Angle;
                                     break;
                                 case TubeType.freeform:
                                     part.Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.B - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
                                         * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
                                         * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
                                     part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.B - work.type.S) / 1000000}", "", $"{part.Way}" };
-                                    part.PartType = PartType.RectangularTube;
+                                    part.PartType = PartType.Angle;
                                     part.Height = work.type.A;
                                     part.Width = work.type.B;
                                     break;
-                                case TubeType.hbeam:
+                                case TubeType.ibeam:
                                     part.Mass = (float)Math.Round(work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item1 * part.Way / 1000, 3);
                                     part.PropsDict[100] = new() { $"{work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000}", "", $"{part.Way}" };     //площадь окрашиваемой поверхности
+                                    part.PartType = PartType.IBeam;
                                     break;
                             }
                             PartPreviewGenerator.EnsureDisplayGeometry(part);
@@ -1090,7 +1096,7 @@ namespace Metal_Code
                             * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
                             * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * work.type.L * work.type.Count * metal.Density / 1000000, 3);
                         break;
-                    case TubeType.hbeam:
+                    case TubeType.ibeam:
                         Mass = (float)Math.Round(work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item1 * work.type.L * work.type.Count / 1000, 3);
                         break;
 
@@ -1139,7 +1145,7 @@ namespace Metal_Code
         rod,
         channel,
         corner,
-        hbeam,
+        ibeam,
         freeform
     }
 }

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -482,9 +483,13 @@ namespace Metal_Code
                 type = pipe.work.type;
                 title = pipe.Tube switch
                 {
+                    TubeType.rect => "Профильная труба",
                     TubeType.round => "Круглая труба",
                     TubeType.corner => "Уголок",
-                    _ => "Профильная труба"
+                    TubeType.freeform => "Уголок",
+                    TubeType.channel => "Швеллер",
+                    TubeType.ibeam => "Двутавр",
+                    _ => "Не определено"
                 };
             }
             else if (owner is SawControl saw)
@@ -494,22 +499,33 @@ namespace Metal_Code
                 {
                     TubeType.circle => "Круг",
                     TubeType.rod => "Квадрат",
+                    TubeType.rect => "Профильная труба",
                     TubeType.round => "Круглая труба",
                     TubeType.corner => "Уголок",
-                    _ => "Профильная труба"
+                    TubeType.freeform => "Уголок",
+                    TubeType.channel => "Швеллер",
+                    TubeType.ibeam => "Двутавр",
+                    _ => "Не определено"
                 };
             }
-            else if (owner is CutControl cut) type = cut.work.type;
+            else if (owner is CutControl cut)
+            {
+                type = cut.work.type;
+                title = "Прямоугольник";
+            }
             else type = null;
 
             var partType = title switch
             {
+                "Прямоугольник" => PartType.Rectangle,
                 "Круг" => owner is SawControl saw && saw.Tube == TubeType.circle ? PartType.RoundTube : PartType.Round,
                 "Квадрат" => PartType.RectangularTube,
-                "Круглая труба" => PartType.RoundTube,
                 "Профильная труба" => PartType.RectangularTube,
+                "Круглая труба" => PartType.RoundTube,
                 "Уголок" => PartType.Angle,
-                _ => PartType.Rectangle
+                "Швеллер" => PartType.Channel,
+                "Двутавр" => PartType.IBeam,
+                _ => PartType.Unknown
             };
 
             var part = new Part
@@ -591,13 +607,9 @@ namespace Metal_Code
             // === ШАГ 3: Расчёт массы ===
             if (isSheetPart)
             {
-                part.Mass = part.PartType switch
-                {
-                    PartType.Round => (float)Math.Round(
-                        Math.PI * Math.Pow(part.Width / 2, 2) * thickness * metal.Density / 1000000, 3),
-                    _ => (float)Math.Round(
-                        part.Width * part.Height * thickness * metal.Density / 1000000, 3)
-                };
+                // Листовые: масса = площадь × толщина × плотность
+                double area = CalculateCrossSectionArea(part.PartType, part.Width, part.Height, 1); // толщина = 1 для "плоскости"
+                part.Mass = (float)Math.Round(area * thickness * metal.Density / 1_000_000, 3);
 
                 part.PropsDict[100] = new()
                 {
@@ -608,20 +620,9 @@ namespace Metal_Code
             }
             else
             {
-                double crossSectionArea = part.PartType switch
-                {
-                    PartType.RoundTube => Math.PI * (
-                        Math.Pow(part.Width / 2, 2) -
-                        Math.Pow(part.Width / 2 - thickness, 2)),
-                    PartType.RectangularTube =>
-                        (part.Width * part.Height) -
-                        Math.Max(0, part.Width - 2 * thickness) * Math.Max(0, part.Height - 2 * thickness),
-                    _ => 0
-                };
-
-                // Масса = площадь сечения × длина трубы × плотность
-                part.Mass = (float)Math.Round(
-                    crossSectionArea * part.Length * metal.Density / 1000000, 3);
+                // Профильные: масса = площадь сечения × длина × плотность
+                double area = CalculateCrossSectionArea(part, thickness);
+                part.Mass = (float)Math.Round(area * part.Length * metal.Density / 1_000_000, 3);
 
                 part.PropsDict[100] = new() {
                     $"{SquareToPaint(part)}", "", $"{part.Length}" };
@@ -958,31 +959,7 @@ namespace Metal_Code
             return groups;
         }
 
-        /// <summary>
-        /// Рассчитывает массу хлыста трубы
-        /// </summary>
-        private static double CalculatePipeStockMass(PipeStock stock, Metal metal, float thickness)
-        {
-            if (stock.Placements.Count == 0) return 0;
-
-            // Берём первую деталь для определения типа сечения
-            var firstPart = stock.Placements[0].Part;
-            double crossSectionArea = firstPart.PartType switch
-            {
-                PartType.RoundTube => Math.PI * (
-                    Math.Pow(firstPart.Width / 2, 2) -
-                    Math.Pow(firstPart.Width / 2 - thickness, 2)),
-                PartType.RectangularTube =>
-                    (firstPart.Width * firstPart.Height) -
-                    Math.Max(0, firstPart.Width - 2 * thickness) *
-                    Math.Max(0, firstPart.Height - 2 * thickness),
-                _ => 0
-            };
-
-            // Масса = площадь сечения × длина хлыста × плотность
-            return crossSectionArea * stock.StockLength * metal.Density / 1000000;
-        }
-
+        // Расчет площади окрашивания детали
         private double SquareToPaint(Part part)
         {
             if (owner is PipeControl pipe)
@@ -997,12 +974,113 @@ namespace Metal_Code
                     TubeType.channel => pipe.work.type.ChannelsSquare[pipe.work.type.SortDrop.SelectedIndex] * part.Mass / 1000,
                     TubeType.corner => part.Length * pipe.work.type.S * (pipe.work.type.A + pipe.work.type.A - pipe.work.type.S) / 1000000,
                     TubeType.freeform => part.Length * pipe.work.type.S * (pipe.work.type.A + pipe.work.type.B - pipe.work.type.S) / 1000000,
-                    TubeType.hbeam => pipe.work.type.BeamDict[pipe.work.type.TypeDetailDrop.Text][pipe.work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000,
+                    TubeType.ibeam => pipe.work.type.BeamDict[pipe.work.type.TypeDetailDrop.Text][pipe.work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000,
+                    _ => 0,
+                };
+            }
+            else if (owner is SawControl saw)
+            {
+                return saw.Tube switch
+                {
+                    TubeType.rect => part.Length * (saw.work.type.A + saw.work.type.B) * 2 / 1000000,
+                    TubeType.round => (float)(part.Length * saw.work.type.A * Math.PI / 1000000),
+                    TubeType.circle => (float)(2 * part.Length * saw.work.type.A * Math.PI / 1000000),
+                    TubeType.square => part.Length * (saw.work.type.A + saw.work.type.B) * 2 / 1000000,
+                    TubeType.rod => 2 * (part.Length * saw.work.type.A + part.Way * saw.work.type.B + saw.work.type.A * saw.work.type.B) / 1000000,
+                    TubeType.channel => saw.work.type.ChannelsSquare[saw.work.type.SortDrop.SelectedIndex] * part.Mass / 1000,
+                    TubeType.corner => part.Length * saw.work.type.S * (saw.work.type.A + saw.work.type.A - saw.work.type.S) / 1000000,
+                    TubeType.freeform => part.Length * saw.work.type.S * (saw.work.type.A + saw.work.type.B - saw.work.type.S) / 1000000,
+                    TubeType.ibeam => saw.work.type.BeamDict[saw.work.type.TypeDetailDrop.Text][saw.work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000,
                     _ => 0,
                 };
             }
 
             return 0;
+        }
+
+        /// <summary>
+        /// Рассчитывает площадь поперечного сечения профиля в мм²
+        /// </summary>
+        /// <param name="partType">Тип профиля</param>
+        /// <param name="width">Ширина/диаметр/полка (мм)</param>
+        /// <param name="height">Высота/вторая полка (мм), для круглых — не используется</param>
+        /// <param name="thickness">Толщина стенки/полки (мм)</param>
+        /// <returns>Площадь сечения в мм²</returns>
+        public static double CalculateCrossSectionArea(
+            PartType partType,
+            double width,
+            double height,
+            double thickness)
+        {
+            // Валидация: толщина не должна превышать 1/3 от меньшего линейного размера
+            double minDim = Math.Min(width, height > 0 ? height : width);
+            double t = thickness >= minDim / 3 ? Math.Max(0.1, minDim / 3 - 0.1) : thickness;
+
+            return partType switch
+            {
+                // === ЛИСТОВЫЕ И ПРОСТЫЕ СЕЧЕНИЯ ===
+                PartType.Round => Math.PI * Math.Pow(width / 2, 2),
+                PartType.Rectangle or PartType.SquareBar => width * height,
+
+                // === ТРУБЫ ===
+                PartType.RoundTube => Math.PI * (
+                    Math.Pow(width / 2, 2) -
+                    Math.Pow(Math.Max(0, width / 2 - t), 2)),
+
+                PartType.RectangularTube =>
+                    width * height -
+                    Math.Max(0, width - 2 * t) * Math.Max(0, height - 2 * t),
+
+                // === ПРОКАТ ===
+                // Уголок: A = t × (b₁ + b₂ − t) — учитываем перекрытие в углу
+                PartType.Angle => t * (width + height - t),
+
+                // Швеллер: A = t × (W + 2H − 2t) = основание + две стенки
+                PartType.Channel => t * (width + 2 * height - 2 * t),
+
+                // Двутавр: A = t × (2W + H − 2t) = две полки + стенка
+                PartType.IBeam => t * (2 * width + height - 2 * t),
+
+                _ => 0
+            };
+        }
+
+        /// <summary>
+        /// Рассчитывает площадь сечения детали
+        /// </summary>
+        public static double CalculateCrossSectionArea(Part part, double thickness)
+        {
+            return CalculateCrossSectionArea(
+                part.PartType,
+                part.Width,
+                part.Height,
+                thickness);
+        }
+
+        /// <summary>
+        /// Рассчитывает массу хлыста трубы/профиля
+        /// </summary>
+        /// <param name="stock">Хлыст с размещёнными деталями</param>
+        /// <param name="metal">Материал с плотностью</param>
+        /// <param name="thickness">Толщина стенки (берётся из первой детали, если не задана)</param>
+        /// <returns>Масса хлыста в кг</returns>
+        public static double CalculatePipeStockMass(PipeStock stock, Metal metal, double? thickness = null)
+        {
+            if (stock?.Placements == null || stock.Placements.Count == 0)
+                return 0;
+
+            // Берём первую деталь для определения параметров сечения
+            var firstPart = stock.Placements[0].Part;
+            double t = thickness ?? firstPart.Destiny; // если толщина не передана — берём из детали
+
+            double crossSectionArea = CalculateCrossSectionArea(
+                firstPart.PartType,
+                firstPart.Width,
+                firstPart.Height,
+                t);
+
+            // Масса = площадь сечения × длина хлыста × плотность / 1_000_000 (мм³ → см³)
+            return crossSectionArea * stock.StockLength * metal.Density / 1_000_000;
         }
     }
 }

@@ -67,10 +67,12 @@
                                  Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle'}"/>
 
                         <TextBlock Text="Длина (мм):" VerticalAlignment="Center" Margin="0,0,10,5"
-                                   Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='RoundTube,RectangularTube'}"/>
+                                   Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter},
+                                    ConverterParameter='RoundTube,RectangularTube,Angle,Channel,IBeam'}"/>
                         <TextBox Text="{Binding Length}" hc:InfoElement.Placeholder="1000" 
                                  Style="{StaticResource TextBoxExtend}" Margin="0,0,0,5"
-                                 Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='RoundTube,RectangularTube'}"/>
+                                 Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter},
+                                    ConverterParameter='RoundTube,RectangularTube,Angle,Channel,IBeam'}"/>
 
                         <TextBlock Text="Количество (шт):" VerticalAlignment="Center" Margin="0,0,10,5" Grid.ColumnSpan="2"/>
                         <TextBox Text="{Binding Count}" hc:InfoElement.Placeholder="1" 

@@ -470,6 +470,12 @@ namespace Metal_Code
                     }
                 }
 
+                if (string.IsNullOrWhiteSpace(techItem.Sizes))
+                {
+                    techItem.Profile = techItem.NumberName;
+                    ProfileParser.ParseToTechItem(techItem);
+                }
+
                 TechItems.Add(techItem);
             }
 
@@ -666,11 +672,11 @@ namespace Metal_Code
                 if (baseDir != null && !baseDir.Name.Contains("ТЗ", StringComparison.OrdinalIgnoreCase))
                 {
                     MessageBoxResult response = MessageBox.Show(
-                        "Папка с моделями, в которой будет создана заявка, должна называться \"ТЗ\"!",
+                        "Папка с моделями, в которой будет создана заявка, должна называться \"ТЗ\"!\n" +
+                        "Пути к моделям будут потеряны, и папки в работу не создадутся!",
                         "Создание заявки", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
-                    if (response == MessageBoxResult.Yes) return true;
-                    else return false;
+                    if (response == MessageBoxResult.No) return false;
                 }
             }
 
@@ -795,6 +801,9 @@ namespace Metal_Code
 
                 float density = 7.85f;           // плотность материала по умолчанию
 
+                int count = (int)MainWindow.Parser(CountText.Text);     // кол-во комплектов
+                count = count > 0 ? count : 1;
+
                 // группируем детали по материалу и толщине
                 var groups = TechItems.GroupBy(m => new { m.Material, m.Destiny });
 
@@ -881,7 +890,7 @@ namespace Metal_Code
 
                                         Part part = new(techItem.NumberName)
                                         {
-                                            Count = (int)MainWindow.Parser(techItem.Count),
+                                            Count = (int)MainWindow.Parser(techItem.Count) * count,
                                             Metal = m.Name,
                                             Destiny = destiny,
                                             Width = techItem.Width,
@@ -982,7 +991,7 @@ namespace Metal_Code
                                     {
                                         Part part = new(techItem.NumberName)
                                         {
-                                            Count = (int)MainWindow.Parser(techItem.Count),
+                                            Count = (int)MainWindow.Parser(techItem.Count) * count,
                                             Metal = m.Name,
                                             Destiny = typeControl.S,
                                             Width = techItem.Width,

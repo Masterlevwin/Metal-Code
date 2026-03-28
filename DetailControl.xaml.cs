@@ -125,30 +125,5 @@ namespace Metal_Code
                 foreach (TypeDetailControl t in TypeDetailControls) t.MetalDrop.SelectedIndex = cBox.SelectedIndex;
             MainWindow.M.UpdateResult();
         }
-
-        private void ShowDetailData(object sender, RoutedEventArgs e)
-        {
-            if (Detail.IsComplect)
-            {
-                MainWindow.M.StatusBegin("Редактирование комплекта не поддерживается!");
-                return;
-            }
-
-            if (Detail.Title is null || Detail.Title == "")
-            {
-                MainWindow.M.StatusBegin("Редактирование недоступно, так как наименование детали не установлено!");
-                return;
-            }
-
-            if (TypeDetailControls.Count > 1)
-            {
-                MainWindow.M.StatusBegin("Редактирование недоступно, так как количество заготовок больше одной!");
-                return;
-            }
-
-            DetailDataWindow detailData = new(Detail, TypeDetailControls[0]);
-            detailData.Show();
-            MainWindow.M.IsEnabled = false;
-        }
     }
 }

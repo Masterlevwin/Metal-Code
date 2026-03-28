@@ -179,7 +179,7 @@ namespace Metal_Code
         {
             if (!Part.PropsDict.ContainsKey(100)) return;
 
-            if (owner is PipeControl && float.TryParse(Part.PropsDict[100][0], out float l)) Square = (float)Math.Round(l, 3);
+            if (owner is PipeControl or SawControl && float.TryParse(Part.PropsDict[100][0], out float l)) Square = (float)Math.Round(l, 3);
             else if (float.TryParse(Part.PropsDict[100][0], out float h) && float.TryParse(Part.PropsDict[100][1], out float w))
                 Square = (float)Math.Round(h * w / 500000, 3);
 
