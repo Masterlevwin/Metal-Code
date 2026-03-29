@@ -1,4 +1,7 @@
-﻿using Metal_Code.Utils;
+﻿using HandyControl.Controls;
+using HandyControl.Data;
+using Metal_Code.Utils;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -16,6 +19,8 @@ namespace Metal_Code
             Basket = basket;
             Basket.ImageBytes = DefaultResources.DefaultPartImage;
             DataContext = Basket;
+
+            MetalDrop.ItemsSource = MainWindow.M.Metals.OrderBy(x => x.Id);
         }
 
         private void Remove(object sender, RoutedEventArgs e) { Remove(); }
@@ -23,6 +28,14 @@ namespace Metal_Code
         {
             MainWindow.M.BasketControls.Remove(this);
             MainWindow.M.DetailsStack.Children.Remove(this);
+        }
+
+        private void NumericUpDown_Count_ValueChanged(object sender, FunctionEventArgs<double> e)
+        {
+            if (sender is NumericUpDown nud && nud.DataContext is Part part)
+            {
+                part.NotifyTotalChanged();
+            }
         }
     }
 }

@@ -1237,12 +1237,28 @@ namespace Metal_Code
 
                     item.Title = basket.Basket.Title;
                     item.Count = basket.Basket.Count;
-                    item.Price = (float)Math.Ceiling(basket.Basket.Price * Ratio * ((100 + BonusRatio) / 100));
+                    item.Price = basket.Basket.Price;
                     item.Total = item.Price * basket.Basket.Count;
-                    item.Metal = item.Destiny = item.Description = item.Accuracy = "";
+                    item.Metal = basket.Basket.Metal;
+                    item.Destiny = basket.Basket.Destiny;
+                    item.Description = basket.Basket.Description;
+                    item.Accuracy = "";
 
                     items.Add(item);
                 }
+
+            if (CheckConstruct.IsChecked == null)
+            {
+                dynamic item = new ExpandoObject();
+
+                item.Title = "Конструкторские работы";
+                item.Count = Parser(ConstructRatio.Text) > 1 ? (int)Parser(ConstructRatio.Text) : 1;
+                item.Price = (float)Math.Ceiling(Construct * Ratio * ((100 + BonusRatio) / 100) / item.Count);
+                item.Total = item.Price * item.Count;
+                item.Metal = item.Destiny = item.Description = item.Accuracy = "";
+
+                items.Add(item);
+            }
 
             if (HasDelivery is true)
             {
@@ -1265,6 +1281,8 @@ namespace Metal_Code
 
         public void UpdatePricePart()   //формирование предварительной цены детали
         {
+            var parts = Parts.Union(BasketControls.Select(b => b.Basket));
+
             var works = DetailControls.Where(d => d.Detail.IsComplect)
                 .SelectMany(d => d.TypeDetailControls)
                 .SelectMany(t => t.WorkControls)
@@ -1298,7 +1316,7 @@ namespace Metal_Code
                             part.Part.WorksDict.Clear();
 
                             //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
-                            if (CheckConstruct.IsChecked == true) part.Part.Price += (float)Math.Round((double)Construct / Parts.Count / part.Part.Count, 2);
+                            if (CheckConstruct.IsChecked == true) part.Part.Price += (float)Math.Round(Construct / Parts.Count / part.Part.Count, 2);
 
                             //добавляем доставку в цену детали, если ее необходимо "размазать"
                             if (HasDelivery is null) part.Part.Price += (float)Math.Round((double)Delivery * DeliveryRatio / Parts.Count / part.Part.Count, 2);
@@ -1312,7 +1330,7 @@ namespace Metal_Code
                     }
                 }
 
-                foreach (Part p in Parts)
+                foreach (Part p in parts)
                 {
                     p.Price *= (float)(Ratio * ((100 + BonusRatio) / 100));
                     p.Price = p.Price < p.FixedPrice ? p.FixedPrice : p.Price;
@@ -1334,7 +1352,7 @@ namespace Metal_Code
 
                     foreach (Particle particle in assembly.Particles)
                     {
-                        Part? part = Parts.FirstOrDefault(p => p.Title == particle.Title);
+                        Part? part = parts.FirstOrDefault(p => p.Title == particle.Title);
                         if (part is not null)
                             particle.Price = (float)(part.Price +
                                 (assembly.WeldPrice + assembly.PaintPrice)
@@ -1345,8 +1363,8 @@ namespace Metal_Code
                     assembly.Total = assembly.Price * assembly.Count;
                 }
 
-                if (Parts.Count > 0)
-                    foreach (Part part in Parts)
+                if (parts.Any())
+                    foreach (Part part in parts)
                     {
                         Part? _part = AssemblyWindow.A.Assemblies.SelectMany(a => a.Particles).FirstOrDefault(x => x.Title == part.Title);
                         if (_part is null) LooseParts.Add(part);
@@ -2214,7 +2232,7 @@ namespace Metal_Code
                                     //добавляем конструкторские работы в цену детали, если их необходимо "размазать"
                                     if (CheckConstruct.IsChecked == true)
                                     {
-                                        float _send = (float)Math.Round((double)Construct / DetailControls.Count / det.TypeDetailControls.Count / _cut.PartDetails.Sum(p => p.Count), 2);
+                                        float _send = (float)Math.Round(Construct / DetailControls.Count / det.TypeDetailControls.Count / _cut.PartDetails.Sum(p => p.Count), 2);
                                         p.Price += _send;
                                         p.PropsDict[62] = new() { $"{_send}" };
                                     }
@@ -2282,8 +2300,12 @@ namespace Metal_Code
             CustomerDrop.Text = ProductModel.Product.Company;
             Adress.Text = ProductModel.Product.Manager;
             Comment.Text = ProductModel.Product.Comment;
+            
             CheckConstruct.IsChecked = ProductModel.Product.HasConstruct;
-            ConstructRatio.Text = ProductModel.Product.ConstructRatio;
+            ConstructRatio.Text = ProductModel.Product.ConstructRatio != null
+                        && Parser(ProductModel.Product.ConstructRatio) > 1
+                        ? ProductModel.Product.ConstructRatio : "1";
+            
             SetRatio(ProductModel.Product.Ratio);
             MaterialFactor = ProductModel.Product.MaterialFactor;
             SetCount(ProductModel.Product.Count);
@@ -2464,7 +2486,7 @@ namespace Metal_Code
                             {
                                 particle.Price = (float)(part.Price + (assembly.WeldPrice + assembly.PaintPrice) / assembly.Count / assembly.Particles.Sum(p => p.Count));
                                 worksheet.Cells[row, 1].Value = part.Metal;
-                                worksheet.Cells[row, 2].Value = part.Destiny;
+                                worksheet.Cells[row, 2].Value = part.Destiny > 0 ? part.Destiny : "";
                                 worksheet.Cells[row, 3].Value = part.Accuracy;
                                 worksheet.Cells[row, 4].Value = part.Description;
                                 worksheet.Cells[row, 5].Value = particle.Title;
@@ -2483,15 +2505,8 @@ namespace Metal_Code
                         worksheet.Row(rowAssembly).Style.Font.Bold = true;
                     }
 
-                if (Parts.Count > 0)
-                    foreach (Part part in Parts)
-                    {
-                        Part? _part = AssemblyWindow.A.Assemblies.SelectMany(a => a.Particles).FirstOrDefault(x => x.Title == part.Title);
-                        if (_part is null) LooseParts.Add(part);
-                    }
-
-                if (baskets.Any())
-                    foreach (Part part in baskets)
+                if (parts.Any())
+                    foreach (Part part in parts)
                     {
                         Part? _part = AssemblyWindow.A.Assemblies.SelectMany(a => a.Particles).FirstOrDefault(x => x.Title == part.Title);
                         if (_part is null) LooseParts.Add(part);
@@ -2543,12 +2558,47 @@ namespace Metal_Code
             worksheet.Cells[row, 1].LoadFromDataTable(detailTable, false);
             row += detailTable.Rows.Count;
 
+            //добавляем покупные издели
+            if (!isAssemblyOffer && ProductModel.Product.Baskets?.Count > 0)
+            {
+                var basketsWithWork = ProductModel.Product.Baskets.Where(b => !string.IsNullOrEmpty(b.Description));
+                if (basketsWithWork != null)
+                    foreach (Part basketWithWork in basketsWithWork)
+                    {
+                        worksheet.Cells[row, 1].Value = basketWithWork.Metal;
+                        worksheet.Cells[row, 2].Value = basketWithWork.Destiny > 0 ? basketWithWork.Destiny : "";
+                        worksheet.Cells[row, 4].Value = basketWithWork.Description;
+                        worksheet.Cells[row, 5].Value = basketWithWork.Title;
+                        worksheet.Cells[row, 6].Value = basketWithWork.Count;
+                        worksheet.Cells[row, 7].Value = (float)Math.Ceiling(basketWithWork.Price * Ratio * ((100 + BonusRatio) / 100));
+                        worksheet.Cells[row, 8].Value = basketWithWork.Count * (float)Math.Ceiling(basketWithWork.Price * Ratio * ((100 + BonusRatio) / 100));
+                        row++;
+                    }
+
+                var basketsExtra = basketsWithWork?.Count() > 0 ? ProductModel.Product.Baskets.Except(basketsWithWork) : ProductModel.Product.Baskets;
+                
+                worksheet.Cells[row, 5].Value = "Покупные изделия:";
+                worksheet.Cells[row, 5].Style.Font.Bold = true;
+                row++;
+
+                foreach (Part basket in basketsExtra)
+                {
+                    worksheet.Cells[row, 5].Value = basket.Title;
+                    worksheet.Cells[row, 6].Value = basket.Count;
+                    worksheet.Cells[row, 7].Value = (float)Math.Ceiling(basket.Price * Ratio * ((100 + BonusRatio) / 100));
+                    worksheet.Cells[row, 8].Value = basket.Count * (float)Math.Ceiling(basket.Price * Ratio * ((100 + BonusRatio) / 100));
+                    row++;
+                }
+            }
+
             // Префикс в зависимости от типа контрагента
             string prefix = IsAgent ? "Изготовление детали " : "Деталь ";
 
             foreach (var cell in worksheet.Cells[8, 5, row + 8, 5])
             {
+
                 if (cell.Value == null || $"{cell.Value}" == "Дополнительные детали:") continue;
+                else if ($"{cell.Value}" == "Покупные изделия:") break;
 
                 string? value = cell.Value.ToString();
 
@@ -2571,23 +2621,6 @@ namespace Metal_Code
 
                 // 4. Убираем лишние пробелы
                 cell.Value = value.Trim();
-            }
-
-            //добавляем покупные издели
-            if (!isAssemblyOffer && ProductModel.Product.Baskets?.Count > 0)
-            {
-                worksheet.Cells[row, 5].Value = "Покупные изделия:";
-                worksheet.Cells[row, 5].Style.Font.Bold = true;
-                row++;
-
-                foreach (Part basket in ProductModel.Product.Baskets)
-                {
-                    worksheet.Cells[row, 5].Value = basket.Title;
-                    worksheet.Cells[row, 6].Value = basket.Count;
-                    worksheet.Cells[row, 7].Value = (float)Math.Ceiling(basket.Price * Ratio * ((100 + BonusRatio) / 100));
-                    worksheet.Cells[row, 8].Value = basket.Count * (float)Math.Ceiling(basket.Price * Ratio * ((100 + BonusRatio) / 100));
-                    row++;
-                }
             }
 
             //оформляем заголовки таблицы

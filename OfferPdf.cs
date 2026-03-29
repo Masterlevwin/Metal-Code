@@ -5,7 +5,9 @@ using QuestPDF.Infrastructure;
 using System;
 using System.Collections.ObjectModel;
 using System.Data;
+using System.Diagnostics.Contracts;
 using System.Linq;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 namespace Metal_Code
 {
@@ -106,6 +108,8 @@ namespace Metal_Code
                             // Если выбран формат сборочного КП
                             if (MainWindow.M.isAssemblyOffer)
                             {
+                                var parts = MainWindow.M.Parts.Union(MainWindow.M.BasketControls.Select(b => b.Basket));
+
                                 if (AssemblyWindow.A.Assemblies.Count > 0)
                                     foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
                                     {
@@ -123,14 +127,14 @@ namespace Metal_Code
                                         for (int p = 0; p < assembly.Particles.Count; p++)
                                         {
                                             Particle particle = assembly.Particles[p];
-                                            Part? part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == particle.Title);
+                                            Part? part = parts.FirstOrDefault(p => p.Title == particle.Title);
 
-                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part is not null ? part.Metal : "");
-                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part is not null ? part.Destiny.ToString() : "");
-                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part is not null ? part.Accuracy : "");
-                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part is not null ? part.Description : "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part?.Metal ?? "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part?.Destiny > 0 ? part?.Destiny.ToString() ?? "" : "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part?.Accuracy ?? "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part?.Description ?? "");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
-                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(particle.Title ?? ""));
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(particle.Title ?? "");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{particle.Count}");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
@@ -147,7 +151,7 @@ namespace Metal_Code
                                         totalSum += loosePart.Total;
 
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Metal);
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Destiny.ToString());
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Destiny > 0 ? loosePart.Destiny.ToString() : "");
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Accuracy ?? "");
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Description ?? "");
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}");
@@ -189,7 +193,7 @@ namespace Metal_Code
                                     totalSum += detail.Total;
 
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Metal);
-                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Destiny.ToString());
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(MainWindow.Parser(detail.Destiny) > 0 ? detail.Destiny.ToString() : "");
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Accuracy ?? "");
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Description ?? "");
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}");
@@ -203,9 +207,32 @@ namespace Metal_Code
                             //добавляем покупные издели
                             if (!MainWindow.M.isAssemblyOffer && MainWindow.M.ProductModel.Product.Baskets?.Count > 0)
                             {
+                                var basketsWithWork = MainWindow.M.ProductModel.Product.Baskets
+                                                                .Where(b => !string.IsNullOrEmpty(b.Description));
+                                if (basketsWithWork != null)
+                                    foreach (Part basketWithWork in basketsWithWork)
+                                    {
+                                        float price = (float)Math.Ceiling(basketWithWork.Price * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
+                                        float total = basketWithWork.Count * price;
+                                        totalSum += total;
+
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Metal);
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Destiny > 0 ? basketWithWork.Destiny.ToString() : "");
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Accuracy ?? "");
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Description ?? "");
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}");
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(Prefix(basketWithWork.Title ?? ""));
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Count.ToString());
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(price.ToString("N2"));
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(total.ToString("N2"));
+                                        row++;
+                                    }
+
+                                var basketsExtra = basketsWithWork?.Count() > 0 ? MainWindow.M.ProductModel.Product.Baskets.Except(basketsWithWork) : MainWindow.M.ProductModel.Product.Baskets;
+
                                 table.Cell().ColumnSpan(9).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("Покупные изделия:").Bold();
 
-                                foreach (Part basket in MainWindow.M.ProductModel.Product.Baskets)
+                                foreach (Part basket in basketsExtra)
                                 {
                                     float price = (float)Math.Ceiling(basket.Price * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
                                     float total = basket.Count * price;
@@ -219,6 +246,23 @@ namespace Metal_Code
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(total.ToString("N2"));
                                     row++;
                                 }
+                            }
+
+                            if (MainWindow.M.CheckConstruct.IsChecked == null)
+                            {
+                                float constructRatio = MainWindow.Parser(MainWindow.M.ConstructRatio.Text);
+                                constructRatio = constructRatio > 1 ? constructRatio : 1;
+
+                                float constructTotal = (float)(MainWindow.M.Construct * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
+                                totalSum += constructTotal;
+
+                                float constructPrice = (float)Math.Ceiling(constructTotal / constructRatio);
+
+                                table.Cell().ColumnSpan(5).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
+                                table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("Конструкторские работы").Bold();
+                                table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(constructRatio.ToString());
+                                table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(constructPrice.ToString("N2"));
+                                table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(constructTotal.ToString("N2"));
                             }
 
                             if (MainWindow.M.HasDelivery is true)

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Metal_Code.Utils;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -83,7 +84,9 @@ namespace Metal_Code
             InitializeComponent();
             type = t;
             DataContext = this;
-            WorkDrop.ItemsSource = MainWindow.M.Works.OrderBy(x => x.Id);
+
+            WorkDrop.ItemsSource = MainWindow.M.Works
+                .OrderByPriority(w => w.Name, "Лазерная резка", "Труборез", "Лентопил");
         }
 
         private void AddWork(object sender, RoutedEventArgs e)

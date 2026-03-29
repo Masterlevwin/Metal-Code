@@ -8,45 +8,72 @@
         <local:CostConverter x:Key="CostConverter"/>
     </UserControl.Resources>
 
-    <Border x:Name="RootElement" Padding="5" Margin="456,2,30,2" BorderBrush="Gray" BorderThickness="1" CornerRadius="4" HorizontalAlignment="Left">
+    <Border x:Name="RootElement" Padding="5" Margin="155,2,30,2"
+            BorderBrush="Gray" BorderThickness="1" CornerRadius="4" HorizontalAlignment="Left">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="160"/>
+                <ColumnDefinition Width="130"/>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="100"/>
                 <ColumnDefinition Width="80"/>
                 <ColumnDefinition Width="80"/>
-                <ColumnDefinition Width="90"/>
+                <ColumnDefinition Width="100"/>
             </Grid.ColumnDefinitions>
 
-            
             <!-- Наименование -->
-            <StackPanel Orientation="Horizontal" Margin="0,0,4,0">
+            <StackPanel Orientation="Horizontal" Margin="4,0">
                 <Image Source="/Images/basket2.png" Width="16"/>
-                <TextBox Grid.Column="0" Text="{Binding Title}"
+                <TextBox Text="{Binding Title}"
                      hc:InfoElement.Placeholder="Покупное изделие" 
                      Style="{StaticResource TextBoxExtend}"
                      ToolTip="Введите наименование изделия" Margin="5,0,0,0" Width="130"/>
             </StackPanel>
 
+            <!-- Материал -->
+            <hc:ComboBox x:Name="MetalDrop" Grid.Column="1"
+                         ItemsSource="{Binding}" SelectedValue="{Binding Metal, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         SelectedValuePath="Name" DisplayMemberPath="Name"
+                         hc:InfoElement.Placeholder="Материал" ToolTip="Выберите материал"
+                         Width="120" Margin="4,0"/>
+            
+                <!-- Толщина -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="4,0">
+                <TextBlock Text="S" VerticalAlignment="Top" FontSize="12" MinWidth="8"/>
+                <TextBox Text="{Binding Destiny}" ToolTip="Толщина, мм"
+                         MaxLines="1" MaxLength="3" FontWeight="Bold" Foreground="Blue"
+                         Width="40" Margin="3,0,0,0" TextAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Работа -->
+            <TextBox Grid.Column="3" Text="{Binding Description}"
+                     hc:InfoElement.Placeholder="Работа"
+                     Style="{StaticResource TextBoxExtend}" ToolTip="Введите наименование работы"
+                     Width="90" Margin="5,0"/>
+
             <!-- Количество -->
-            <hc:NumericUpDown Grid.Column="1" Value="{Binding Count}"
-                              hc:InfoElement.Placeholder="шт"
-                              Width="70" Margin="0,0,4,0" Maximum="999999" Minimum="0"
-                              ToolTip="Введите количество"/>
+            <hc:NumericUpDown Grid.Column="4" 
+                  Value="{Binding Count, UpdateSourceTrigger=PropertyChanged}"
+                  ValueChanged="NumericUpDown_Count_ValueChanged"
+                  hc:InfoElement.Placeholder="шт"
+                  Width="70" Margin="4,0" 
+                  Maximum="999999" Minimum="0"
+                  ToolTip="Введите количество"/>
 
             <!-- Цена за единицу -->
-            <TextBox Grid.Column="2" Text="{Binding Price, Converter={StaticResource CostConverter}}"
-                     Style="{StaticResource TextBoxExtend}" Width="70" Margin="0,0,4,0"
+            <TextBox Grid.Column="5" Text="{Binding Price, Converter={StaticResource CostConverter}}"
+                     Style="{StaticResource TextBoxExtend}" Width="70" Margin="4,0"
                      ToolTip="Введите цену за 1 шт"/>
 
             <!-- Итого -->
-            <StackPanel Grid.Column="3" Orientation="Horizontal">
+            <StackPanel Grid.Column="6" Orientation="Horizontal" Margin="4,0,0,0">
                 <TextBox Text="{Binding Total, Converter={StaticResource CostConverter}, Mode=OneWay}"
                      Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}"
                      Width="70" Foreground="#C25A00" IsReadOnly="True" HorizontalContentAlignment="Right"/>
                 <Button Click="Remove" local:DeleteHighlight.TargetElement="{Binding ElementName=RootElement}"
                         ToolTip="Удалить изделие" Content="Х" FontWeight="Bold" Padding="0" FontSize="8"
-                        BorderThickness="0" VerticalAlignment="Top" Width="10" Height="10"
-                        HorizontalAlignment="Right" Margin="5,0,0,0"/>
+                        BorderThickness="0" Width="12" Height="12"
+                        HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5,0,0,0"/>
             </StackPanel>
 
         </Grid>
