@@ -599,10 +599,10 @@ namespace Metal_Code
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.6.9.3",
-                releaseDate: new DateTime(2026, 03, 19),
-                description: "Переработано окно стандартных деталей.",
-                screenshotPath: "/Updates/v2.6.9.3_2026-03-19.png"
+                version: "v2.6.9.6",
+                releaseDate: new DateTime(2026, 03, 30),
+                description: "Изменилась форма ПКИ.\nДобавлен столбец \"Профиль\" в шаблон заявки.",
+                screenshotPath: "/Updates/v2.6.9.6_2026-03-30.png"
             );
 
             // Получаем новые обновления
@@ -1281,7 +1281,9 @@ namespace Metal_Code
 
         public void UpdatePricePart()   //формирование предварительной цены детали
         {
-            var parts = Parts.Union(BasketControls.Select(b => b.Basket));
+            var baskets = BasketControls.Select(b => b.Basket);
+
+            var parts = Parts.Union(baskets);
 
             var works = DetailControls.Where(d => d.Detail.IsComplect)
                 .SelectMany(d => d.TypeDetailControls)
@@ -1332,6 +1334,17 @@ namespace Metal_Code
 
                 foreach (Part p in parts)
                 {
+                    if (baskets.Contains(p))
+                    {
+                        if (!p.IsFixed)
+                        {
+                            p.FixedPrice = p.Price;
+                            p.IsFixed = true;
+                        }
+                        p.Price = (float)Math.Ceiling(p.FixedPrice * Ratio * ((100 + BonusRatio) / 100));
+                        continue;
+                    }
+
                     p.Price *= (float)(Ratio * ((100 + BonusRatio) / 100));
                     p.Price = p.Price < p.FixedPrice ? p.FixedPrice : p.Price;
                     p.Price = (float)Math.Ceiling(p.Price);
@@ -2642,6 +2655,7 @@ namespace Metal_Code
             worksheet.Column(15).Hidden = true;
             worksheet.Column(16).Hidden = true;
             worksheet.Column(17).Hidden = true;
+            worksheet.Column(18).Hidden = true;
 
             if (CheckConstruct.IsChecked == null)       //если требуется указать конструкторские работы отдельной строкой
             {
@@ -7169,6 +7183,8 @@ namespace Metal_Code
                 "Серых Михаил" => "мс",
                 "Мешеронова Мария" => "м",
                 "Барабанов Дмитрий" => "дб",
+                "Абрамова Анна" => "ан",
+                "Андросова Светлана" => "са",
                 _ => ""
             };
         }
@@ -7235,8 +7251,8 @@ namespace Metal_Code
             if (data.Contains(',') && data.Contains('.')) data = data.Replace(",", "");
 
             //если есть запятая в строке, заменяем ее на точку, и парсим строку в число
-            if (float.TryParse(data.Replace(',', '.'), System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands,
-                System.Globalization.CultureInfo.InvariantCulture, out float f)) return f;
+            if (float.TryParse(data.Replace(',', '.'), NumberStyles.Float | NumberStyles.AllowThousands,
+                CultureInfo.InvariantCulture, out float f)) return f;
             else return 0;
         }
 

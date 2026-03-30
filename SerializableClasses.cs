@@ -110,11 +110,6 @@ namespace Metal_Code
 
         public float Total => Price * Count;
 
-        /// <summary>
-        /// Вызывать после изменения Count для обновления привязанного Total в UI
-        /// </summary>
-        public void NotifyTotalChanged() => OnPropertyChanged(nameof(Total));
-
         [Browsable(false)]
         public float Mass { get; set; }
         [Browsable(false)]
@@ -271,6 +266,12 @@ namespace Metal_Code
             Count = _count;
             Accuracy = _accuracy;
         }
+
+
+        /// <summary>
+        /// Вызывать после изменения Count для обновления привязанного Total в UI
+        /// </summary>
+        public void NotifyTotalChanged() => OnPropertyChanged(nameof(Total));
     }
 
 
