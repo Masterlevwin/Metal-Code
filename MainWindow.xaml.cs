@@ -7403,42 +7403,7 @@ namespace Metal_Code
 
 
         //-------------Экспериметы и тесты-----------------------//
-        #region        
-        //метод анализа срока изготовления на основе старого реестра
-        private void AnalyseDateProduction(string path = "Y:\\Производство\\Laser rezka\\В работу")
-        {
-            if (!File.Exists(path + "\\!Реестр ЗАКРЫВАЙТЕ.xlsx"))
-            {
-                StatusBegin($"Реестра не существует в папке, или он переименован.");
-                return;
-            }
-
-            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
-
-            using var workbook = new ExcelPackage(path + "\\!Реестр ЗАКРЫВАЙТЕ.xlsx");
-            ExcelWorksheet notesheet = workbook.Workbook.Worksheets[0];
-
-            int endRow = notesheet.Cells.Where(c => c.Start.Column == 2 && !string.IsNullOrEmpty(c.Text)).Last().Start.Row;     //номер последней строки реестра
-            int timeLaser = 0; int timeBend = 0;                //счетчики времени работ лазера и гибки
-
-            string[] dirs = Directory.GetDirectories(path);     //получаем все подкаталоги с невырезанными заказами
-            foreach (string s in dirs)
-            {
-                for (int i = endRow; i > 0; i--)
-                {
-                    if (notesheet.Cells[i, 2].Value != null && s.Contains($"{notesheet.Cells[i, 2].Value}"))
-                    {
-                        if (notesheet.Cells[i, 13].Value != null && int.TryParse($"{notesheet.Cells[i, 13].Value}", out int l) && notesheet.Cells[i, 19].Value != null && int.TryParse($"{notesheet.Cells[i, 19].Value}", out int rl)) timeLaser += l / rl;
-                        else if (notesheet.Cells[i, 13].Value != null && int.TryParse($"{notesheet.Cells[i, 13].Value}", out int vl)) timeLaser += vl;
-                        if (notesheet.Cells[i, 14].Value != null && int.TryParse($"{notesheet.Cells[i, 14].Value}", out int b) && notesheet.Cells[i, 19].Value != null && int.TryParse($"{notesheet.Cells[i, 19].Value}", out int rb)) timeBend += b / rb;
-                        else if (notesheet.Cells[i, 14].Value != null && int.TryParse($"{notesheet.Cells[i, 14].Value}", out int vb)) timeBend += vb;
-                    }
-                }
-            }
-
-            StatusBegin($"Лазер: {Math.Round((decimal)timeLaser / 60 / 12)} дней; Гибка: {Math.Round((decimal)timeBend / 60 / 12)} дней; Кол-во папок в работе - {dirs.Length}");
-        }
-        
+        #region               
         private void SortFilesByMonth(object sender, RoutedEventArgs e)
         {
             // Создаём диалог выбора папки
@@ -7469,92 +7434,6 @@ namespace Metal_Code
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
-        }
-
-        //метод расчета количества рабочих дней
-        //private void SetDate(object sender, SelectionChangedEventArgs e)
-        //{
-        //    //if (datePicker.SelectedDate is not null) DateProduction.Text = $"{GetBusinessDays(DateTime.Now, (DateTime)datePicker.SelectedDate)}";
-
-        //    static int GetBusinessDays(DateTime startD, DateTime endD)
-        //    {
-        //        int calcBusinessDays =
-        //            (int)(1 + ((endD - startD).TotalDays * 5 -
-        //            (startD.DayOfWeek - endD.DayOfWeek) * 2) / 7);
-
-        //        if (endD.DayOfWeek == DayOfWeek.Saturday) calcBusinessDays--;
-        //        if (startD.DayOfWeek == DayOfWeek.Sunday) calcBusinessDays--;
-
-        //        return calcBusinessDays;
-        //    }
-        //}
-
-        public static void TracePartDetails(Part part, string prefix = "Part")
-        {
-            if (part == null)
-            {
-                Trace.WriteLine($"{prefix}: NULL");
-                return;
-            }
-
-            Trace.WriteLine($"=== {prefix} Details ===");
-            Trace.WriteLine($"Title: \"{part.Title}\"");
-            Trace.WriteLine($"Count: {part.Count}");
-            Trace.WriteLine($"Metal: \"{part.Metal}\"");
-            Trace.WriteLine($"Destiny (толщина): {part.Destiny} мм");
-            Trace.WriteLine($"Accuracy: \"{part.Accuracy}\"");
-            Trace.WriteLine($"Description: \"{part.Description}\"");
-            Trace.WriteLine($"PartType: {part.PartType}");
-            Trace.WriteLine($"Width: {part.Width} мм");
-            Trace.WriteLine($"Height: {part.Height} мм");
-            Trace.WriteLine($"Length: {part.Length} мм");
-            Trace.WriteLine($"Mass: {part.Mass} кг");
-            Trace.WriteLine($"Way (длина реза): {part.Way} м");
-            Trace.WriteLine($"Price: {part.Price} ₽");
-            Trace.WriteLine($"Total: {part.Total} ₽");
-            Trace.WriteLine($"IsFixed: {part.IsFixed}");
-            Trace.WriteLine($"FixedPrice: {part.FixedPrice} ₽");
-            Trace.WriteLine($"IsHiddenInOffer: {part.IsHiddenInOffer}");
-
-            // PropsDict
-            Trace.WriteLine($"PropsDict.Count: {part.PropsDict.Count}");
-            foreach (var kvp in part.PropsDict)
-            {
-                Trace.WriteLine($"  PropsDict[{kvp.Key}]: [{string.Join(", ", kvp.Value)}]");
-            }
-
-            // HoleGroups
-            Trace.WriteLine($"HoleGroups.Count: {part.HoleGroups.Count}");
-            foreach (var hg in part.HoleGroups)
-            {
-                Trace.WriteLine($"  HoleGroup: Diameter={hg.Diameter}мм, Count={hg.Count}, TotalArea={hg.TotalArea:F1}мм²");
-            }
-
-            // DisplayGeometry
-            if (part.DisplayGeometry != null)
-            {
-                Trace.WriteLine($"DisplayGeometry: Bounds={part.DisplayGeometry.Bounds}, Figures={part.DisplayGeometry.Figures.Count}");
-                foreach (var fig in part.DisplayGeometry.Figures)
-                {
-                    Trace.WriteLine($"  Figure: Start=({fig.StartPoint.X:F1},{fig.StartPoint.Y:F1}), IsClosed={fig.IsClosed}, IsFilled={fig.IsFilled}, Segments={fig.Segments.Count}");
-                }
-            }
-            else
-            {
-                Trace.WriteLine($"DisplayGeometry: NULL");
-            }
-
-            // Geometries
-            Trace.WriteLine($"Geometries.Count: {part.Geometries?.Count ?? 0}");
-
-            // MillingHoles/MillingGrooves
-            Trace.WriteLine($"MillingHoles.Count: {part.MillingHoles.Count}");
-            Trace.WriteLine($"MillingGrooves.Count: {part.MillingGrooves.Count}");
-
-            // WorksDict
-            Trace.WriteLine($"WorksDict.Count: {part.WorksDict.Count}");
-
-            Trace.WriteLine($"=== End {prefix} Details ===\n");
         }
         #endregion
     }

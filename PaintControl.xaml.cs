@@ -70,27 +70,44 @@ namespace Metal_Code
         {
             if (sender is TextBox tBox && tBox.Text != "") SetRal(tBox.Text);
         }
-        public void SetRal(string _ral)
+        public void SetRal(string _ral, bool createMainWork = true)
         {
             Ral = _ral;
 
             if (owner is PartControl part)
             {
-                MainWindow.M.IsLoadData = true;
+                // === При загрузке или если явно запрещено — не создаём основную работу ===
+                if (!createMainWork || MainWindow.M.IsLoadData)
+                {
+                    // Просто обновляем локальное значение, основная работа будет создана в LoadDetails
+                    OnPriceChanged();
+                    return;
+                }
 
+                // === Проверка на дубликат основной работы ===
                 foreach (var item in part.work.type.WorkControls)
-                    if (item.workType is PaintControl paint && paint.Ral == Ral) return;
+                {
+                    if (item.workType is PaintControl paint && paint.Ral == Ral)
+                        return;
+                }
 
+                // === Создаём основную работу "Окраска" ===
                 part.work.type.AddWork();
+                var newWorkControl = part.work.type.WorkControls[^1];
 
-                // добавляем "Окраску" в список общих работ "Комплекта деталей"
-                foreach (Work w in MainWindow.M.Works) if (w.Name == "Окраска")
+                var workItem = MainWindow.M.Works.FirstOrDefault(w => w.Name == "Окраска");
+                if (workItem != null && newWorkControl.WorkDrop != null)
+                {
+                    // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: ставим локальный флаг ===
+                    newWorkControl.IsProgrammaticChange = true;
+                    newWorkControl.WorkDrop.SelectedItem = workItem;
+
+                    // === ВАЖНО: присваиваем свойство напрямую, а не через рекурсивный вызов ===
+                    if (newWorkControl.workType is PaintControl paintControl)
                     {
-                        part.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
-                        if (part.work.type.WorkControls[^1].workType is PaintControl _paint) _paint.SetRal(Ral);
-                        break;
+                        paintControl.Ral = Ral; // ← Прямое присваивание, без вызова SetRal!
                     }
-                MainWindow.M.IsLoadData = false;
+                }
             }
             OnPriceChanged();
         }
@@ -221,19 +238,19 @@ namespace Metal_Code
             {
                 if (uc is WorkControl w)
                 {
-                    SetRal(w.propsList[0]);
+                    SetRal(w.propsList[0], false);
                     SetType((int)MainWindow.Parser(w.propsList[1]));
                 }
                 else if (uc is PartControl p && owner is PartControl _owner)
                 {
                     if (p.Part.WorksDict != null && p.Part.WorksDict.TryGetValue(Id, out List<string>? value))
                     {
-                        SetRal(value[1]);
+                        SetRal(value[1], false);
                         SetType((int)MainWindow.Parser(value[2]));
                     }
                     else if (p.Part.PropsDict.ContainsKey(_owner.UserControls.IndexOf(this)))
                     {
-                        SetRal(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
+                        SetRal(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1], false);
                         SetType((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));
                     }
                 }

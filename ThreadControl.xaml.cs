@@ -112,41 +112,55 @@ namespace Metal_Code
         {
             if (sender is TextBox tBox && tBox.Text != "") SetWide(tBox.Text);
         }
-        public void SetWide(string _wide)
+        public void SetWide(string _wide, bool createMainWork = true)
         {
             if (float.TryParse(_wide, out float d)) Wide = d;
+
             if (owner is PartControl part)
             {
-                MainWindow.M.IsLoadData = true;
+                // При загрузке не создаём основную работу — она будет создана в LoadDetails
+                if (!createMainWork || MainWindow.M.IsLoadData)
+                {
+                    OnPriceChanged();
+                    return;
+                }
 
+                // Проверка на дубликат в основных работах
                 foreach (var item in part.work.type.WorkControls)
-                    if (item.workType is ThreadControl thread && thread.CharName == CharName && thread.Wide == Wide) return;
+                {
+                    if (item.workType is ThreadControl thread &&
+                        thread.CharName == CharName &&
+                        Math.Abs(thread.Wide - Wide) < 0.001f)
+                    {
+                        return;
+                    }
+                }
 
                 part.work.type.AddWork();
+                var newWorkControl = part.work.type.WorkControls[^1];
 
-                // добавляем работу в список общих работ "Комплекта деталей"
-                foreach (Work w in MainWindow.M.Works)
-                    switch (CharName)
+                string? targetWorkName = CharName switch
+                {
+                    "Р" => "Резьба",
+                    "З" => "Зенковка",
+                    "С" => "Сверловка",
+                    "Зк" => "Заклепки",
+                    _ => null
+                };
+
+                if (!string.IsNullOrEmpty(targetWorkName))
+                {
+                    var workItem = MainWindow.M.Works.FirstOrDefault(w => w.Name == targetWorkName);
+                    if (workItem != null && newWorkControl.WorkDrop != null)
                     {
-                        case "Р":
-                            part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Резьба");
-                            if (part.work.type.WorkControls[^1].workType is ThreadControl _threadR) _threadR.Wide = Wide;
-                            break;
-                        case "З":
-                            part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Зенковка");
-                            if (part.work.type.WorkControls[^1].workType is ThreadControl _threadZ) _threadZ.Wide = Wide;
-                            break;
-                        case "С":
-                            part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Сверловка");
-                            if (part.work.type.WorkControls[^1].workType is ThreadControl _threadS) _threadS.Wide = Wide;
-                            break;
-                        case "Зк":
-                            part.work.type.WorkControls[^1].WorkDrop.SelectedItem = MainWindow.M.Works.SingleOrDefault(w => w.Name == "Заклепки");
-                            if (part.work.type.WorkControls[^1].workType is ThreadControl _threadRz) _threadRz.Wide = Wide;
-                            break;
+                        // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: ставим локальный флаг ===
+                        newWorkControl.IsProgrammaticChange = true;
+                        newWorkControl.WorkDrop.SelectedItem = workItem;
 
+                        if (newWorkControl.workType is ThreadControl targetThread)
+                            targetThread.Wide = Wide;
                     }
-                MainWindow.M.IsLoadData = false;
+                }
             }
             OnPriceChanged();
         }
@@ -290,7 +304,7 @@ namespace Metal_Code
             {
                 if (uc is WorkControl w)
                 {
-                    SetWide(w.propsList[0]);
+                    SetWide(w.propsList[0], false);
                     SetHoles(w.propsList[1]);
                     if (w.propsList.Count > 2) SetRatio(MainWindow.Parser(w.propsList[2]));
                 }
@@ -298,12 +312,12 @@ namespace Metal_Code
                 {
                     if (p.Part.WorksDict != null && p.Part.WorksDict.TryGetValue(Id, out List<string>? value))
                     {
-                        SetWide(value[1]);
+                        SetWide(value[1], false);
                         SetHoles(value[2]);
                     }
                     else if (p.Part.PropsDict.ContainsKey(_owner.UserControls.IndexOf(this)))
                     {
-                        SetWide(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
+                        SetWide(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1], false);
                         SetHoles(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]);
                     }
                 }

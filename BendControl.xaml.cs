@@ -228,38 +228,61 @@ namespace Metal_Code
         {
             if (sender is TextBox tBox && tBox.Text != "") SetGroup(tBox.Text);
         }
-        public void SetGroup(string group)
+        public void SetGroup(string group, bool createMainWork = true)
         {
             Group = group;
 
             if (owner is PartControl part)
             {
-                MainWindow.M.IsLoadData = true;
+                // === При загрузке или если явно запрещено — не создаём основную работу ===
+                if (!createMainWork || MainWindow.M.IsLoadData)
+                {
+                    // Просто обновляем локальное значение, основная работа будет создана в LoadDetails
+                    OnPriceChanged();
+                    return;
+                }
 
+                // === Логика валидации группы (только для ручного ввода) ===
                 if (Group != "-")
+                {
                     if (part.owner is ICut _cut && _cut.PartsControl != null)
+                    {
                         foreach (PartControl _p in _cut.PartsControl.Parts)
+                        {
                             foreach (BendControl item in _p.UserControls.OfType<BendControl>())
+                            {
                                 if (item.Bend > 0 && item.Group == Group
                                     && item.ShelfDrop.SelectedIndex != ShelfDrop.SelectedIndex)
                                 {
                                     MainWindow.M.StatusBegin("Проверьте длину гиба у всех деталей группы");
                                     break;
                                 }
-
-                foreach (WorkControl w in part.work.type.WorkControls)
-                    if (w.workType is BendControl bend && bend.Group == Group) return;
-
-                part.work.type.AddWork();
-
-                // добавляем "Гибку" в список общих работ "Комплекта деталей"
-                foreach (Work w in MainWindow.M.Works) if (w.Name == "Гибка")
-                    {
-                        part.work.type.WorkControls[^1].WorkDrop.SelectedItem = w;
-                        if (part.work.type.WorkControls[^1].workType is BendControl bend) bend.Group = Group;
-                        break;
+                            }
+                        }
                     }
-                MainWindow.M.IsLoadData = false;
+                }
+
+                // === Проверка на дубликат основной работы ===
+                foreach (WorkControl w in part.work.type.WorkControls)
+                {
+                    if (w.workType is BendControl bend && bend.Group == Group)
+                        return;
+                }
+
+                // === Создаём основную работу "Гибка" ===
+                part.work.type.AddWork();
+                var newWorkControl = part.work.type.WorkControls[^1];
+
+                var workItem = MainWindow.M.Works.FirstOrDefault(w => w.Name == "Гибка");
+                if (workItem != null && newWorkControl.WorkDrop != null)
+                {
+                    // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: ставим локальный флаг ===
+                    newWorkControl.IsProgrammaticChange = true;
+                    newWorkControl.WorkDrop.SelectedItem = workItem;
+
+                    if (newWorkControl.workType is BendControl bend)
+                        bend.Group = Group;
+                }
             }
             OnPriceChanged();
         }
@@ -407,7 +430,7 @@ namespace Metal_Code
                 {
                     SetBend(w.propsList[0]);
                     SetShelf((int)MainWindow.Parser(w.propsList[1]));
-                    if (w.propsList.Count > 2) SetGroup(w.propsList[2]);
+                    if (w.propsList.Count > 2) SetGroup(w.propsList[2], false);
                 }
                 else if (uc is PartControl p && owner is PartControl _owner)
                 {
@@ -415,14 +438,14 @@ namespace Metal_Code
                     {
                         SetBend(value[1]);
                         SetShelf((int)MainWindow.Parser(value[2]));
-                        SetGroup(value[3]);
+                        SetGroup(value[3], false);
                     }
                     else if (p.Part.PropsDict.ContainsKey(_owner.UserControls.IndexOf(this)))
                     {
                         SetBend(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
                         SetShelf((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));
                         if (p.Part.PropsDict[_owner.UserControls.IndexOf(this)].Count > 3)
-                            SetGroup(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][3]);
+                            SetGroup(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][3], false);
                     }
                 }
             }
