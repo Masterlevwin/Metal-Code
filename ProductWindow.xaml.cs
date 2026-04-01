@@ -176,6 +176,7 @@ namespace Metal_Code
                                             part.AddControl((int)MainWindow.Parser(part.Part.PropsDict[key][0]));
 
                                     part.PropertiesChanged?.Invoke(part, false);
+                                    Parts.Add(part);
                                 }
                         }
 
@@ -315,6 +316,7 @@ namespace Metal_Code
 
             title = title.Trim();
 
+            // Получаем актуальный список материалов
             var materials = MainWindow.M.Metals
                 .Select(m => m.Name?.Trim())
                 .Where(m => !string.IsNullOrWhiteSpace(m))
@@ -345,7 +347,7 @@ namespace Metal_Code
             }
 
             // Возвращаем часть до первого маркера
-            string baseName = title.Substring(0, firstMaterialIndex).Trim();
+            string baseName = title[..firstMaterialIndex].Trim();
 
             // Удаляем лишние пробелы в конце
             return baseName.TrimEnd();

@@ -6016,19 +6016,108 @@ namespace Metal_Code
         //------------Загрузка расчета в режиме чтения-----------//
         private void OpenOffer(object sender, RoutedEventArgs e)
         {
-            if (OffersGrid.SelectedItem is not Offer offer) return;
-            if (offer.Data != null)
+            Offer? offer = null;
+            try
             {
-                Product? product = OpenOfferData(offer.Data);
-                if (product is null)
+                // 1. Проверка входных данных
+                if (OffersGrid.SelectedItem is not Offer selectedOffer) return;
+                offer = selectedOffer;  // ← Сохраняем для использования в catch
+
+                if (offer.Data == null)
                 {
-                    StatusBegin("Не удалось открыть расчет для чтения", StatusMessageType.Error);
+                    StatusBegin("Данные расчета отсутствуют", StatusMessageType.Warning);
                     return;
                 }
 
-                ProductWindow clon = new(product) { Title = $"{offer.N}  {offer.Company}", Amount = offer.Amount };
+                // 2. Десериализация данных
+                Product? product = OpenOfferData(offer.Data);
+                if (product is null)
+                {
+                    StatusBegin("Не удалось открыть расчет для чтения: данные повреждены", StatusMessageType.Error);
+                    return;
+                }
+
+                // 3. Создание и показ окна
+                ProductWindow clon = new(product)
+                {
+                    Title = $"{offer.N}  {offer.Company}",
+                    Amount = offer.Amount
+                };
+
                 clon.Show();
+
                 StatusBegin($"Расчет {offer.N} открыт для чтения", StatusMessageType.Success);
+            }
+            catch (System.Runtime.Serialization.SerializationException ex)
+            {
+                // Ошибка формата данных — offer теперь виден!
+                string offerId = offer?.N ?? "неизвестно";
+                StatusBegin($"Ошибка формата данных расчета #{offerId}", StatusMessageType.Error);
+                LogException(ex, $"OpenOffer.Serialization: Offer #{offerId}");
+            }
+            catch (IOException ex)
+            {
+                string offerId = offer?.N ?? "неизвестно";
+                StatusBegin($"Не удалось прочитать данные расчета #{offerId}", StatusMessageType.Error);
+                LogException(ex, $"OpenOffer.IO: Offer #{offerId}");
+            }
+            catch (InvalidOperationException ex)
+            {
+                string offerId = offer?.N ?? "неизвестно";
+                StatusBegin($"Ошибка интерфейса при открытии расчета #{offerId}", StatusMessageType.Error);
+                LogException(ex, $"OpenOffer.InvalidOp: Offer #{offerId}");
+            }
+            catch (NullReferenceException ex)
+            {
+                string offerId = offer?.N ?? "неизвестно";
+                StatusBegin("Внутренняя ошибка приложения. Обратитесь к разработчику.", StatusMessageType.Error);
+                LogException(ex, $"OpenOffer.NullRef: Offer #{offerId}", true);
+            }
+            catch (Exception ex)
+            {
+                string offerId = offer?.N ?? "неизвестно";
+                StatusBegin($"Непредвиденная ошибка при открытии расчета #{offerId}", StatusMessageType.Error);
+                LogException(ex, $"OpenOffer.General: Offer #{offerId}");
+            }
+        }
+
+        /// <summary>
+        /// Возвращает безопасное сообщение для пользователя (без путей, стека вызовов и технических деталей)
+        /// </summary>
+        private string GetUserFriendlyMessage(Exception ex)
+        {
+            // Скрываем технические детали, но показываем суть
+            return ex.Message switch
+            {
+                var m when m.Contains("access to the path") => "Нет доступа к файлу",
+                var m when m.Contains("is not a valid") => "Неверный формат данных",
+                var m when m.Contains("cannot be found") => "Файл не найден",
+                var m when m.Contains("sequence contains no elements") => "Данные пусты",
+                _ => "Произошла ошибка при загрузке"
+            };
+        }
+
+        /// <summary>
+        /// Логирует исключение (в файл, EventLog, или консоль отладки)
+        /// </summary>
+        private void LogException(Exception ex, string context, bool isCritical = false)
+        {
+            // Вариант 1: Простой вывод в Debug (для разработки)
+            Trace.WriteLine($"[{DateTime.Now:HH:mm:ss}] {context}\n{ex}");
+
+            // Вариант 2: Запись в файл (для продакшена)
+            // try 
+            // {
+            //     File.AppendAllText("error.log", $"{DateTime.Now}: {context}\n{ex}\n\n");
+            // }
+            // catch { /* Игнорируем ошибки логирования, чтобы не зациклить */ }
+
+            // Если ошибка критическая — можно показать диалог или завершить работу
+            if (isCritical)
+            {
+                // MessageBox.Show("Критическая ошибка. Приложение будет закрыто.", "Ошибка", 
+                //     MessageBoxButton.OK, MessageBoxImage.Error);
+                // Application.Current.Shutdown(1);
             }
         }
 
