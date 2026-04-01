@@ -112,20 +112,13 @@ namespace Metal_Code
         {
             if (sender is TextBox tBox && tBox.Text != "") SetWide(tBox.Text);
         }
-        public void SetWide(string _wide, bool createMainWork = true)
+        public void SetWide(string _wide)
         {
             if (float.TryParse(_wide, out float d)) Wide = d;
 
             if (owner is PartControl part)
             {
-                // При загрузке не создаём основную работу — она будет создана в LoadDetails
-                if (!createMainWork || MainWindow.M.IsLoadData)
-                {
-                    OnPriceChanged();
-                    return;
-                }
-
-                // Проверка на дубликат в основных работах
+                // Проверка на дубликат (работает всегда)
                 foreach (var item in part.work.type.WorkControls)
                 {
                     if (item.workType is ThreadControl thread &&
@@ -153,9 +146,16 @@ namespace Metal_Code
                     var workItem = MainWindow.M.Works.FirstOrDefault(w => w.Name == targetWorkName);
                     if (workItem != null && newWorkControl.WorkDrop != null)
                     {
-                        // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: ставим локальный флаг ===
-                        newWorkControl.IsProgrammaticChange = true;
-                        newWorkControl.WorkDrop.SelectedItem = workItem;
+                        bool originalState = MainWindow.M.IsLoadData;
+                        try
+                        {
+                            MainWindow.M.IsLoadData = true;
+                            newWorkControl.WorkDrop.SelectedItem = workItem;
+                        }
+                        finally
+                        {
+                            MainWindow.M.IsLoadData = originalState;
+                        }
 
                         if (newWorkControl.workType is ThreadControl targetThread)
                             targetThread.Wide = Wide;
@@ -304,7 +304,7 @@ namespace Metal_Code
             {
                 if (uc is WorkControl w)
                 {
-                    SetWide(w.propsList[0], false);
+                    SetWide(w.propsList[0]);
                     SetHoles(w.propsList[1]);
                     if (w.propsList.Count > 2) SetRatio(MainWindow.Parser(w.propsList[2]));
                 }
@@ -312,12 +312,12 @@ namespace Metal_Code
                 {
                     if (p.Part.WorksDict != null && p.Part.WorksDict.TryGetValue(Id, out List<string>? value))
                     {
-                        SetWide(value[1], false);
+                        SetWide(value[1]);
                         SetHoles(value[2]);
                     }
                     else if (p.Part.PropsDict.ContainsKey(_owner.UserControls.IndexOf(this)))
                     {
-                        SetWide(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1], false);
+                        SetWide(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
                         SetHoles(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]);
                     }
                 }

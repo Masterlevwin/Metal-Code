@@ -70,25 +70,18 @@ namespace Metal_Code
         {
             if (sender is TextBox tBox && tBox.Text != "") SetRal(tBox.Text);
         }
-        public void SetRal(string _ral, bool createMainWork = true)
+        public void SetRal(string _ral)
         {
             Ral = _ral;
 
             if (owner is PartControl part)
             {
-                // === При загрузке или если явно запрещено — не создаём основную работу ===
-                if (!createMainWork || MainWindow.M.IsLoadData)
-                {
-                    // Просто обновляем локальное значение, основная работа будет создана в LoadDetails
-                    OnPriceChanged();
-                    return;
-                }
-
-                // === Проверка на дубликат основной работы ===
+                // === Проверка на дубликат основной работы (работает всегда) ===
+                // Ищем работу "Окраска" с таким же значением Ral
                 foreach (var item in part.work.type.WorkControls)
                 {
                     if (item.workType is PaintControl paint && paint.Ral == Ral)
-                        return;
+                        return; // ← Дубликат найден, не создаём новую работу
                 }
 
                 // === Создаём основную работу "Окраска" ===
@@ -98,9 +91,17 @@ namespace Metal_Code
                 var workItem = MainWindow.M.Works.FirstOrDefault(w => w.Name == "Окраска");
                 if (workItem != null && newWorkControl.WorkDrop != null)
                 {
-                    // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: ставим локальный флаг ===
-                    newWorkControl.IsProgrammaticChange = true;
-                    newWorkControl.WorkDrop.SelectedItem = workItem;
+                    // === ХИРУРГИЧЕСКОЕ переключение флага (для подавления валидации в CreateWork) ===
+                    bool originalState = MainWindow.M.IsLoadData;
+                    try
+                    {
+                        MainWindow.M.IsLoadData = true;  // Включаем "тихий режим" для CreateWork
+                        newWorkControl.WorkDrop.SelectedItem = workItem;
+                    }
+                    finally
+                    {
+                        MainWindow.M.IsLoadData = originalState;  // Гарантированно восстанавливаем
+                    }
 
                     // === ВАЖНО: присваиваем свойство напрямую, а не через рекурсивный вызов ===
                     if (newWorkControl.workType is PaintControl paintControl)
@@ -238,19 +239,19 @@ namespace Metal_Code
             {
                 if (uc is WorkControl w)
                 {
-                    SetRal(w.propsList[0], false);
+                    SetRal(w.propsList[0]);
                     SetType((int)MainWindow.Parser(w.propsList[1]));
                 }
                 else if (uc is PartControl p && owner is PartControl _owner)
                 {
                     if (p.Part.WorksDict != null && p.Part.WorksDict.TryGetValue(Id, out List<string>? value))
                     {
-                        SetRal(value[1], false);
+                        SetRal(value[1]);
                         SetType((int)MainWindow.Parser(value[2]));
                     }
                     else if (p.Part.PropsDict.ContainsKey(_owner.UserControls.IndexOf(this)))
                     {
-                        SetRal(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1], false);
+                        SetRal(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][1]);
                         SetType((int)MainWindow.Parser(p.Part.PropsDict[_owner.UserControls.IndexOf(this)][2]));
                     }
                 }

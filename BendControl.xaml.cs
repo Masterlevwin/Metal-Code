@@ -234,15 +234,7 @@ namespace Metal_Code
 
             if (owner is PartControl part)
             {
-                // === При загрузке или если явно запрещено — не создаём основную работу ===
-                if (!createMainWork || MainWindow.M.IsLoadData)
-                {
-                    // Просто обновляем локальное значение, основная работа будет создана в LoadDetails
-                    OnPriceChanged();
-                    return;
-                }
-
-                // === Логика валидации группы (только для ручного ввода) ===
+                // Валидация длины гиба в группе
                 if (Group != "-")
                 {
                     if (part.owner is ICut _cut && _cut.PartsControl != null)
@@ -262,24 +254,33 @@ namespace Metal_Code
                     }
                 }
 
-                // === Проверка на дубликат основной работы ===
+                // Проверка на дубликат: уже есть основная работа с такой же группой?
                 foreach (WorkControl w in part.work.type.WorkControls)
                 {
                     if (w.workType is BendControl bend && bend.Group == Group)
-                        return;
+                        return; // Дубликат найден, не создаём новую
                 }
 
-                // === Создаём основную работу "Гибка" ===
+                // Создаём основную работу
                 part.work.type.AddWork();
                 var newWorkControl = part.work.type.WorkControls[^1];
 
                 var workItem = MainWindow.M.Works.FirstOrDefault(w => w.Name == "Гибка");
                 if (workItem != null && newWorkControl.WorkDrop != null)
                 {
-                    // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: ставим локальный флаг ===
-                    newWorkControl.IsProgrammaticChange = true;
-                    newWorkControl.WorkDrop.SelectedItem = workItem;
+                    // === ХИРУРГИЧЕСКОЕ переключение флага ===
+                    bool originalState = MainWindow.M.IsLoadData;
+                    try
+                    {
+                        MainWindow.M.IsLoadData = true;  // Включаем "тихий режим"
+                        newWorkControl.WorkDrop.SelectedItem = workItem;  // Триггерим CreateWork
+                    }
+                    finally
+                    {
+                        MainWindow.M.IsLoadData = originalState;  // Гарантированно восстанавливаем!
+                    }
 
+                    // Устанавливаем параметр на созданную основную работу
                     if (newWorkControl.workType is BendControl bend)
                         bend.Group = Group;
                 }

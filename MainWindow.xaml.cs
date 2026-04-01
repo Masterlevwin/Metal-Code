@@ -2377,7 +2377,12 @@ namespace Metal_Code
                         WorkControl _work = DetailControls[i].TypeDetailControls[j].WorkControls[^1];
 
                         //получаем работу, совпадающую по имени с сохраненной, на случай, если она уже добавлена
-                        WorkControl? work = _type.WorkControls.FirstOrDefault(w => w.WorkDrop.Text == item.NameWork && !item.NameWork.Contains("Доп"));
+                        WorkControl? work = _type.WorkControls.FirstOrDefault(w =>
+                            item.NameWork != null && !item.NameWork.Contains("Доп") &&
+                            (
+                                (w.WorkDrop?.SelectedItem is Work selectedWork && selectedWork.Name == item.NameWork) ||  // ← Основной поиск по объекту
+                                w.WorkDrop?.Text == item.NameWork  // ← Фолбэк на случай, если binding уже обновился
+                            ));
 
                         if (work is not null)
                         {

@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 using System.Windows;
 
 namespace Metal_Code
@@ -67,8 +66,10 @@ namespace Metal_Code
             BonusRatio = product.BonusRatio;
             Production = product.Production;
 
+            MainWindow.M.IsLoadData = true;
             if (Product.Details.Count > 0) LoadDetails(product.Details);
             if (Product.Baskets?.Count > 0) LoadBaskets(product.Baskets);
+            MainWindow.M.IsLoadData = false;
         }
 
         //-----------Загрузка окна---------------------------------------//
@@ -90,6 +91,8 @@ namespace Metal_Code
                 if (_det.Detail.Title != null && _det.Detail.Title.Contains("Комплект")) _det.IsComplectChanged();
 
                 _det.Detail.Count = details[i].Count;
+                _det.Detail.MillingHoles = details[i].MillingHoles;
+                _det.Detail.MillingGrooves = details[i].MillingGrooves;
 
                 for (int j = 0; j < details[i].TypeDetails.Count; j++)
                 {
@@ -106,64 +109,85 @@ namespace Metal_Code
                     _type.ExtraResult = details[i].TypeDetails[j].ExtraResult;
                     _type.SetComment(details[i].TypeDetails[j].Comment);
 
-                    for (int k = 0; k < details[i].TypeDetails[j].Works.Count; k++)
+                    foreach (SaveWork item in details[i].TypeDetails[j].Works)  //проверяем каждую сохраненную работу
                     {
-                        WorkControl _work = DetailControls[i].TypeDetailControls[j].WorkControls[k];
+                        //получаем последний созданный контрол
+                        WorkControl _work = DetailControls[i].TypeDetailControls[j].WorkControls[^1];
 
-                        foreach (Work w in _work.WorkDrop.Items)        // чтобы не подвязываться на сохраненный индекс работы, ориентируемся на ее имя
-                                                                        // таким образом избегаем ошибки, когда админ изменит порядок работ в базе данных
-                            if (w.Name == details[i].TypeDetails[j].Works[k].NameWork)
-                            {
-                                _work.WorkDrop.SelectedIndex = _work.WorkDrop.Items.IndexOf(w);
-                                break;
-                            }
+                        //получаем работу, совпадающую по имени с сохраненной, на случай, если она уже добавлена
+                        WorkControl? work = _type.WorkControls.FirstOrDefault(w =>
+                            item.NameWork != null && !item.NameWork.Contains("Доп") &&
+                            (
+                                (w.WorkDrop?.SelectedItem is Work selectedWork && selectedWork.Name == item.NameWork) ||  // ← Основной поиск по объекту
+                                w.WorkDrop?.Text == item.NameWork  // ← Фолбэк на случай, если binding уже обновился
+                            ));
 
-                        if (_work.workType is ICut _cut && details[i].TypeDetails[j].Works[k].Items?.Count > 0)
+                        if (work is not null)
                         {
-                            _cut.Items = details[i].TypeDetails[j].Works[k].Items;
-                            _cut.PartDetails = details[i].TypeDetails[j].Works[k].Parts;
+                            work.Ratio = item.Ratio;
+                            work.TechRatio = item.TechRatio;
+                            work.ExtraResult = item.ExtraResult;
+                            continue;
+                        }
+                        else
+                            foreach (Work w in _work.WorkDrop.Items)        // чтобы не подвязываться на сохраненный индекс работы, ориентируемся на ее имя                                          
+                                if (w.Name == item.NameWork)                // таким образом избегаем ошибки, когда админ изменит порядок работ в базе данных
+                                {
+                                    _work.WorkDrop.SelectedIndex = _work.WorkDrop.Items.IndexOf(w);
+                                    break;
+                                }
+
+                        if (_work.workType is ICut _cut)
+                        {
+                            if (item.Items?.Count > 0) _cut.Items = item.Items;
+                            if (item.Parts.Count > 0) _cut.PartDetails = item.Parts;
 
                             if (_cut is CutControl cut)
                             {
                                 if (_cut.Items?.Count > 0) cut.SumProperties(_cut.Items);
                                 cut.Parts = cut.PartList();
                                 cut.PartsControl = new(cut, cut.Parts);
-                                cut.AddPartsControl(this);
+                                cut.AddPartsControl();
                             }
                             else if (_cut is PipeControl pipe)
                             {
                                 pipe.Parts = pipe.PartList();
                                 pipe.PartsControl = new(pipe, pipe.Parts);
-                                pipe.AddPartsControl(this);
+                                pipe.AddPartsControl();
                                 pipe.SetTotalProperties();
                             }
-
-                            if (_cut.PartsControl?.Parts.Count > 0)
+                            else if (_cut is SawControl saw)
                             {
-                                foreach (PartControl part in _cut.PartsControl.Parts)
+                                saw.Parts = saw.PartList();
+                                saw.PartsControl = new(saw, saw.Parts);
+                                saw.AddPartsControl();
+                                saw.SetTotalProperties();
+                            }
+
+                            if (_cut.Parts?.Count > 0)
+                                foreach (PartControl part in _cut.Parts)
                                 {
                                     if (part.Part.WorksDict?.Count > 0)
                                         foreach (var guid in part.Part.WorksDict.Keys)
                                             part.AddControl((int)MainWindow.Parser(part.Part.WorksDict[guid][0]), guid);
 
-                                    if (part.Part.PropsDict.Count > 0)
+                                    else if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
                                         foreach (int key in part.Part.PropsDict.Keys) if (key < 50)
-                                                part.AddControl((int)MainWindow.Parser(part.Part.PropsDict[key][0]));
+                                            part.AddControl((int)MainWindow.Parser(part.Part.PropsDict[key][0]));
+
                                     part.PropertiesChanged?.Invoke(part, false);
                                 }
-
-                                Parts.AddRange(_cut.PartsControl.Parts);
-                            }
                         }
 
-                        _work.propsList = details[i].TypeDetails[j].Works[k].PropsList;
+                        _work.propsList = item.PropsList;
                         _work.PropertiesChanged?.Invoke(_work, false);
-                        _work.Ratio = details[i].TypeDetails[j].Works[k].Ratio;
-                        _work.TechRatio = details[i].TypeDetails[j].Works[k].TechRatio;
-                        _work.ExtraResult = details[i].TypeDetails[j].Works[k].ExtraResult;
+                        _work.Ratio = item.Ratio;
+                        _work.TechRatio = item.TechRatio;
+                        _work.ExtraResult = item.ExtraResult;
 
                         if (_type.WorkControls.Count < details[i].TypeDetails[j].Works.Count) _type.AddWork();
                     }
+
                     if (_det.TypeDetailControls.Count < details[i].TypeDetails.Count) _det.AddTypeDetail();
                 }
             }
@@ -291,13 +315,12 @@ namespace Metal_Code
 
             title = title.Trim();
 
-            // Получаем актуальный список материалов
             var materials = MainWindow.M.Metals
                 .Select(m => m.Name?.Trim())
                 .Where(m => !string.IsNullOrWhiteSpace(m))
                 .Concat(new[] { "al", "br", "cu" })
-                .Select(m => m.ToLower())
-                .ToList() ?? new List<string>();
+                .Select(m => m!.ToLower())
+                .ToList();
 
             // Ищем первый материал в строке
             int firstMaterialIndex = title.Length;
