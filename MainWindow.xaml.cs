@@ -4,6 +4,7 @@ using ACadSharp.IO;
 using ACadSharp.Tables;
 using CSMath;
 using HandyControl.Data;
+using Metal_Code.Converters;
 using Metal_Code.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
@@ -29,6 +30,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -101,6 +103,13 @@ namespace Metal_Code
         public ObservableCollection<TypeDetail> TypeDetails { get; set; } = new();
         public ObservableCollection<Work> Works { get; set; } = new();
         public ObservableCollection<Metal> Metals { get; set; } = new();
+
+        // Представление для группировки/сортировки
+        private ICollectionView OffersView { get; set; } = null!;
+
+        // Состояние режимов
+        private string _searchQuery = string.Empty;
+        private bool _isProductionMode = false;
 
         //временный словарь расчетов для синхронизации с основной базой (0 - новые, 1 - удаленные, 2 - измененные)
         private readonly Dictionary<byte, List<Offer>> TempOffersDict = new() { [0] = new(), [1] = new(), [2] = new() };
@@ -566,6 +575,7 @@ namespace Metal_Code
 
             db.Offers.Load();
             Offers = db.Offers.Local.ToObservableCollection();
+            InitializeOffersView();
 
             if (Managers.Count == 0) ShowWindow(new RegistrationWindow());  //если пользователей в базе нет, запускаем процесс регистрации
             //else if (!CheckMachine())                                       //проверяем защитный файл
@@ -879,8 +889,14 @@ namespace Metal_Code
             CurrentCustomers = Customers.Where(m => m.ManagerId == TargetManager.Id).OrderBy(s => s.Name).ToList();
             CustomerDrop.ItemsSource = CurrentCustomers;
 
-            CurrentOffers = Offers.Where(m => m.ManagerId == TargetManager.Id).TakeLast(23).ToList();
-            OffersGrid.ItemsSource = CurrentOffers;
+            // Сбрасываем режимы
+            _searchQuery = string.Empty;
+            _isProductionMode = false;
+            if (InProductionFilterToggle.IsChecked == true)
+                InProductionFilterToggle.IsChecked = false;
+
+            // Перестраиваем отображение
+            ApplyCurrentMode();
 
             SummaryInfoTextBlock.Text = $"Всего расчётов: {Offers.Count} шт.";
             if (InProductionFilterToggle.IsChecked == true) InProductionFilterToggle.IsChecked = false;
@@ -894,18 +910,70 @@ namespace Metal_Code
             else ReportOffers.Clear();
         }
 
+        private void InitializeOffersView()
+        {
+            // Привязываемся к CurrentOffers, а не к Offers
+            OffersView = CollectionViewSource.GetDefaultView(CurrentOffers);
+
+            // Группировка и сортировка настраиваются ТОЛЬКО ЗДЕСЬ
+            OffersView.GroupDescriptions.Clear();
+            OffersView.SortDescriptions.Clear();
+
+            OffersView.SortDescriptions.Add(
+                new SortDescription(nameof(Offer.CreatedDate), ListSortDirection.Ascending));
+            OffersView.GroupDescriptions.Add(
+                new PropertyGroupDescription(nameof(Offer.ParentQuoteNumber)));
+
+            OffersGrid.ItemsSource = OffersView;
+        }
+
+        private void ApplyCurrentMode()
+        {
+            IEnumerable<Offer> dataToDisplay;
+
+            if (_isProductionMode)
+            {
+                // Режим "В производстве"
+                dataToDisplay = Offers.Where(o => !string.IsNullOrEmpty(o.Order) && o.EndDate == null);
+                var totalAmount = Math.Ceiling(dataToDisplay.Sum(o => o.Amount));
+                SummaryInfoTextBlock.Text = $"В производстве: {dataToDisplay.Count()} шт на сумму {totalAmount:N0} руб.";
+            }
+            else if (!string.IsNullOrWhiteSpace(_searchQuery))
+            {
+                // Режим поиска (по ВСЕЙ коллекции Offers)
+                string q = _searchQuery.Trim();
+                dataToDisplay = Offers.Where(o =>
+                    o.N?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    o.Company?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    o.Invoice?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    o.Order?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0);
+                SummaryInfoTextBlock.Text = $"Найдено: {dataToDisplay.Count()} из {Offers.Count} шт.";
+            }
+            else
+            {
+                // Режим по умолчанию: 30 последних расчётов текущего менеджера
+                dataToDisplay = Offers
+                    .Where(o => TargetManager != null && o.ManagerId == TargetManager.Id)
+                    .OrderByDescending(o => o.CreatedDate)
+                    .Take(30);
+                SummaryInfoTextBlock.Text = $"Показано: {dataToDisplay.Count()} последних";
+            }
+            
+            // Безопасно заменяем содержимое CurrentOffers
+            CurrentOffers.Clear();
+            foreach (var item in dataToDisplay.ToList()) CurrentOffers.Add(item);
+
+            // Очищаем кэш конвертера и перерисовываем группы
+            if (TryFindResource("CompanyNamesConverter") is GroupCompanyNamesConverter conv)
+                conv.ClearCache();
+            OffersView.Refresh();
+        }
+
         private void InProductionFilterToggle_Click(object sender, RoutedEventArgs e)
         {
-            if (InProductionFilterToggle.IsChecked == true)
-            {
-                // Фильтр: в производстве (Order задан, EndDate — нет)
-                CurrentOffers = Offers.Where(o => !string.IsNullOrEmpty(o.Order) && o.EndDate == null).ToList();
-                OffersGrid.ItemsSource = CurrentOffers;
-
-                var totalAmount = Math.Ceiling(CurrentOffers.Sum(o => o.Amount));
-                SummaryInfoTextBlock.Text = $"В производстве расчётов: {CurrentOffers.Count} шт на сумму {totalAmount:N0} руб.";
-            }
-            else ManagerChanged();
+            _isProductionMode = InProductionFilterToggle.IsChecked == true;
+            if (_isProductionMode) _searchQuery = string.Empty;
+            ApplyCurrentMode();
         }
 
         //-------------Настройка блока отчетов-----------//
@@ -5852,20 +5920,11 @@ namespace Metal_Code
         //-----------Поиск расчетов по номеру КП, компании, номеру счета или заказа-----------//
         private void Search_Offers(object sender, FunctionEventArgs<string> e)
         {
-            //сначала получаем все расчеты менеджера
-            List<Offer>? offers = Offers.Where(m => m.ManagerId == TargetManager.Id).ToList();
-
-            //затем ищем все КП согласно введенному номеру расчета или названию компании
-            if (SearchOffers != "") offers = offers?.Where(o => (o.N is not null && o.N.ToLower().Contains(SearchOffers.ToLower()))
-                                            || (o.Company is not null && o.Company.ToLower().Contains(SearchOffers.ToLower()))
-                                            || (o.Invoice is not null && o.Invoice.ToLower().Contains(SearchOffers.ToLower()))
-                                            || (o.Order is not null && o.Order.ToLower().Contains(SearchOffers.ToLower()))).ToList();
-
-            if (offers?.Count == 0) StatusBegin("Расчетов по выбранным параметрам не найдено", StatusMessageType.Warning);
-            else CurrentOffers = offers;
-            OffersGrid.ItemsSource = CurrentOffers;
-
-            StatusBegin($"Найдено {offers?.Count} расчетов", StatusMessageType.Warning);
+            _searchQuery = e.Info ?? string.Empty;
+            _isProductionMode = false;
+            if (InProductionFilterToggle.IsChecked == true)
+                InProductionFilterToggle.IsChecked = false;
+            ApplyCurrentMode();
         }
 
         //-------------Даты-----------//

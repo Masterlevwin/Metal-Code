@@ -8,6 +8,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Media;
 
@@ -660,6 +661,17 @@ namespace Metal_Code
         public int ManagerId { get; set; }
         [Browsable(false)]
         public string? Data { get; set; }
+        [Browsable(false)]
+        public string ParentQuoteNumber
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(N)) return "Без номера";
+
+                var match = Regex.Match(N.Trim(), @"^(\d+)");
+                return match.Success ? match.Groups[1].Value : N.Trim();
+            }
+        }
 
         public Offer(string? n = null, string? company = null, float amount = 0, float material = 0, float services = 0)
         {
