@@ -4,13 +4,13 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization.Json;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace Metal_Code
 {
@@ -179,26 +179,37 @@ namespace Metal_Code
             get
             {
                 return openOfferCommand ??= new RelayCommand(obj =>
-                  {
-                      try
-                      {
-                          if (MainWindow.M.OffersGrid.SelectedItem is not Offer offer) return;
-                          if (offer.Data != null)
-                          {
-                              MainWindow.M.ActiveOffer = offer;
-                              Product = MainWindow.OpenOfferData(offer.Data);
-                              MainWindow.M.LoadProduct();
-                              MainWindow.M.StatusBegin($"Расчет {MainWindow.M.ActiveOffer.N} загружен.", MainWindow.StatusMessageType.Success);
-                          }
-                  }
-                      catch (Exception ex)
-                      {
-                          dialogService.ShowMessage(ex.Message);
-                      }
-                  });
+                {
+                    try
+                    {
+                        if (MainWindow.M.OffersGrid.SelectedItem is not Offer offer) return;
+
+                        if (offer.Data != null)
+                        {
+                            MainWindow.M.ActiveOffer = offer;
+                            Product = MainWindow.OpenOfferData(offer.Data);
+                            MainWindow.M.LoadProduct();
+                            MainWindow.M.StatusBegin($"Расчет {MainWindow.M.ActiveOffer.N} загружен.", MainWindow.StatusMessageType.Success);
+
+                            // ⬇️ ПОДСВЕТКА ГРУППЫ ЗАГРУЖЕННОГО РАСЧЕТА ⬇️
+                            // Вызываем с небольшим приоритетом, чтобы UI успел обработать выбор
+                            MainWindow.M.Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                if (!string.IsNullOrEmpty(offer.ParentQuoteNumber))
+                                {
+                                    MainWindow.M.ScrollToGroupAndHighlight(offer.ParentQuoteNumber);
+                                }
+                            }), DispatcherPriority.ApplicationIdle);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        dialogService.ShowMessage(ex.Message);
+                    }
+                });
             }
         }
-                
+
         // команда объединения расчетов в одно КП
         private RelayCommand? mergeOffersCommand;
         public RelayCommand? MergeOffersCommand

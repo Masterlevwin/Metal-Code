@@ -36,6 +36,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using Border = System.Windows.Controls.Border;
 using Color = System.Windows.Media.Color;
 using Path = System.IO.Path;
 using Point = System.Windows.Point;
@@ -1510,6 +1511,69 @@ namespace Metal_Code
             return $"Список расчетов обновлен. Расчетов в базе - {Offers.Count}.";
         }
 
+
+        private Border? _highlightedHeaderBorder;
+
+        public void ScrollToGroupAndHighlight(string parentQuoteNumber)
+        {
+            if (string.IsNullOrEmpty(parentQuoteNumber) || OffersGrid.ItemsSource is not ICollectionView view)
+                return;
+
+            var targetGroup = view.Groups.Cast<CollectionViewGroup>()
+                .FirstOrDefault(g => g.Name?.ToString() == parentQuoteNumber);
+
+            if (targetGroup == null) return;
+
+            if (OffersGrid.ItemContainerGenerator.ContainerFromItem(targetGroup) is not GroupItem groupItem)
+            {
+                Dispatcher.BeginInvoke(new Action(() => ScrollToGroupAndHighlight(parentQuoteNumber)),
+                    DispatcherPriority.Background);
+                return;
+            }
+
+            // Раскрываем группу
+            var expander = FindVisualChild<Expander>(groupItem);
+            if (expander != null && !expander.IsExpanded)
+                expander.IsExpanded = true;
+
+            // Прокручиваем к заголовку
+            groupItem.BringIntoView();
+
+            // ⬇️ Находим Border в заголовке для подсветки ⬇️
+            if (expander != null)
+            {
+                var headerBorder = FindVisualChild<Border>(expander);
+                if (headerBorder == null) return;
+
+                ClearGroupHighlight();
+                _highlightedHeaderBorder = headerBorder;
+                headerBorder.Background = new SolidColorBrush(Colors.LightGreen); // Зелёный
+            }
+        }
+        private T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            if (parent == null) return null;
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T found) return found;
+                var result = FindVisualChild<T>(child);
+                if (result != null) return result;
+            }
+            return null;
+        }
+
+        private void OffersGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.AddedItems.Count > 0) ClearGroupHighlight();
+        }
+        private void ClearGroupHighlight()
+        {
+            _highlightedHeaderBorder?.ClearValue(Border.BackgroundProperty);
+            _highlightedHeaderBorder = null;
+        }
+
+
         //метод запуска процесса обновления заказчиков
         private void UpdateCustomersCollection(object sender, RoutedEventArgs e) { CreateWorker(UpdateCustomersCollection, ActionState.update); }
         private string UpdateCustomersCollection(string? message = null)
@@ -2136,9 +2200,12 @@ namespace Metal_Code
                     UpdateBtn.IsEnabled = true;
                     InsertProgressBar.Visibility = Visibility.Collapsed;
 
-                    var lastItem = OffersGrid.Items.Cast<object>().LastOrDefault();
-                    if (lastItem != null) OffersGrid.ScrollIntoView(lastItem);
-
+                    if (!string.IsNullOrEmpty(ActiveOffer?.ParentQuoteNumber))
+                    {
+                        Dispatcher.BeginInvoke(new Action(() =>
+                            ScrollToGroupAndHighlight(ActiveOffer.ParentQuoteNumber)),
+                            DispatcherPriority.ApplicationIdle);
+                    }
                     break;
                 case ActionState.restartBases:
                     System.Windows.Forms.Application.Restart();

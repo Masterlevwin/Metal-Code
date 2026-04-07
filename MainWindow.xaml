@@ -560,7 +560,7 @@
           AutoGenerateColumns="False" 
           RowDetailsVisibilityMode="Collapsed" 
           FrozenColumnCount="3" 
-          BorderBrush="Red">
+          BorderBrush="Red" SelectionChanged="OffersGrid_SelectionChanged">
 
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="№" Binding="{Binding N}" IsReadOnly="True"/>
