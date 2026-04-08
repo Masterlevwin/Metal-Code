@@ -1531,25 +1531,35 @@ namespace Metal_Code
                 return;
             }
 
-            // Раскрываем группу
+            // Раскрываем только если есть Expander (группа с 2+ элементами)
             var expander = FindVisualChild<Expander>(groupItem);
             if (expander != null && !expander.IsExpanded)
                 expander.IsExpanded = true;
 
-            // Прокручиваем к заголовку
+            // Прокручиваем
             groupItem.BringIntoView();
 
-            // ⬇️ Находим Border в заголовке для подсветки ⬇️
+            // ⬇️ Поиск Border: либо внутри Expander, либо напрямую в GroupItem ⬇️
+            Border? headerBorder = null;
             if (expander != null)
-            {
-                var headerBorder = FindVisualChild<Border>(expander);
-                if (headerBorder == null) return;
+                headerBorder = FindVisualChild<Border>(expander);
 
-                ClearGroupHighlight();
-                _highlightedHeaderBorder = headerBorder;
-                headerBorder.Background = new SolidColorBrush(Colors.LightGreen); // Зелёный
-            }
+            headerBorder ??= FindVisualChild<Border>(groupItem);
+
+            if (headerBorder == null) return;
+
+            ClearGroupHighlight();
+            _highlightedHeaderBorder = headerBorder;
+            headerBorder.Background = new SolidColorBrush(Colors.LightGreen);
         }
+
+        // Сброс подсветки (универсальный)
+        private void ClearGroupHighlight()
+        {
+            _highlightedHeaderBorder?.ClearValue(Border.BackgroundProperty);
+            _highlightedHeaderBorder = null;
+        }
+
         private T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
         {
             if (parent == null) return null;
@@ -1567,12 +1577,6 @@ namespace Metal_Code
         {
             if (e.AddedItems.Count > 0) ClearGroupHighlight();
         }
-        private void ClearGroupHighlight()
-        {
-            _highlightedHeaderBorder?.ClearValue(Border.BackgroundProperty);
-            _highlightedHeaderBorder = null;
-        }
-
 
         //метод запуска процесса обновления заказчиков
         private void UpdateCustomersCollection(object sender, RoutedEventArgs e) { CreateWorker(UpdateCustomersCollection, ActionState.update); }

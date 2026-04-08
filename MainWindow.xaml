@@ -153,6 +153,61 @@
             <Setter Property="ItemContainerStyle" Value="{StaticResource TabItemInLine}"/>
         </Style>
 
+        <!-- ⬇️ СТИЛЬ ДЛЯ ГРУППЫ С ОДНИМ ЭЛЕМЕНТОМ (плоская строка) ⬇️ -->
+        <Style x:Key="SingleItemGroupStyle" TargetType="GroupItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GroupItem">
+                        <!-- Без Expander, без отступа → элементы рендерятся как обычные строки -->
+                        <ItemsPresenter Margin="0"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ⬇️ СТИЛЬ ДЛЯ ГРУППЫ С НЕСКОЛЬКИМИ ЭЛЕМЕНТАМИ (Expander) ⬇️ -->
+        <Style x:Key="MultiItemGroupStyle" TargetType="GroupItem">
+            <Setter Property="Margin" Value="0,0,0,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GroupItem">
+                        <Expander IsExpanded="False" BorderThickness="0" Background="Transparent">
+                            <Expander.Header>
+                                <Border Background="{DynamicResource RegionBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="{DynamicResource DefaultCornerRadius}"
+                                    Padding="10,6" Margin="0,0,0,2">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" 
+                                               FontWeight="SemiBold" 
+                                               Foreground="{DynamicResource PrimaryTextBrush}" 
+                                               VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding Converter={StaticResource CompanyNamesConverter}}" 
+                                               Foreground="{DynamicResource SecondaryTextBrush}" 
+                                               FontSize="11" 
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"
+                                               MaxWidth="350"/>
+                                        <TextBlock Text="{Binding ItemCount, StringFormat='  ({0})'}" 
+                                               Foreground="{DynamicResource SecondaryTextBrush}" 
+                                               FontSize="11" 
+                                               VerticalAlignment="Center" 
+                                               Margin="6,0,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </Expander.Header>
+                            <ItemsPresenter Margin="12,0,0,0"/>
+                        </Expander>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ⬇️ Селектор стилей (исправленный) ⬇️ -->
+        <local:SingleItemGroupStyleSelector x:Key="GroupStyleSelector"
+                                            SingleItemStyle="{StaticResource SingleItemGroupStyle}"
+                                            MultiItemStyle="{StaticResource MultiItemGroupStyle}"/>
     </Window.Resources>
 
     <Window.InputBindings>
@@ -619,48 +674,9 @@
                                         <!-- ⬇️ ГРУППИРОВКА: Expander-заголовок в стиле HandyControl ⬇️ -->
                                         <DataGrid.GroupStyle>
                                             <GroupStyle>
-                                                <GroupStyle.ContainerStyle>
-                                                    <Style TargetType="GroupItem">
-                                                        <Setter Property="Margin" Value="0,0,0,4"/>
-                                                        <Setter Property="Template">
-                                                            <Setter.Value>
-                                                                <ControlTemplate TargetType="GroupItem">
-                                                                    <Expander IsExpanded="False" BorderThickness="0" Background="Transparent">
-                                                                        <Expander.Header>
-                                                                            <Border Background="{DynamicResource RegionBrush}"
-                                            BorderBrush="{DynamicResource BorderBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="{DynamicResource DefaultCornerRadius}"
-                                            Padding="10,6" Margin="0,0,0,2">
-                                                                                <StackPanel Orientation="Horizontal">
-                                                                                    <!-- Номер КП -->
-                                                                                    <TextBlock Text="{Binding Name}" 
-                                                       FontWeight="SemiBold" 
-                                                       Foreground="{DynamicResource PrimaryTextBrush}" 
-                                                       VerticalAlignment="Center"/>
-
-                                                                                    <!-- Компании (агрегируются с кэшированием) -->
-                                                                                    <TextBlock Text="{Binding Converter={StaticResource CompanyNamesConverter}}" 
-           Foreground="{DynamicResource PrimaryTextBrush}" 
-           VerticalAlignment="Center"
-           TextTrimming="CharacterEllipsis"
-           MaxWidth="350"/>
-
-                                                                                    <!-- Счётчик версий -->
-                                                                                    <TextBlock Text="{Binding ItemCount, StringFormat='  ({0})'}" 
-                                                       Foreground="{DynamicResource SecondaryTextBrush}" 
-                                                       VerticalAlignment="Center" 
-                                                       Margin="5,0"/>
-                                                                                </StackPanel>
-                                                                            </Border>
-                                                                        </Expander.Header>
-                                                                        <ItemsPresenter Margin="12,0,0,0"/>
-                                                                    </Expander>
-                                                                </ControlTemplate>
-                                                            </Setter.Value>
-                                                        </Setter>
-                                                    </Style>
-                                                </GroupStyle.ContainerStyle>
+                                                <GroupStyle.ContainerStyleSelector>
+                                                    <StaticResource ResourceKey="GroupStyleSelector"/>
+                                                </GroupStyle.ContainerStyleSelector>
                                             </GroupStyle>
                                         </DataGrid.GroupStyle>
                                         
