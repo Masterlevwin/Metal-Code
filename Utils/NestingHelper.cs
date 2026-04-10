@@ -240,6 +240,44 @@ namespace Metal_Code.Utils
         }
 
         /// <summary>
+        /// Пытается разместить максимально возможное количество копий детали на существующем листе.
+        /// Возвращает количество успешно размещённых деталей.
+        /// </summary>
+        public static int TryFillSheetWithPart(NestingSheet sheet, Part part)
+        {
+            int placedCount = 0;
+
+            // Пытаемся размещать, пока есть место и деталь помещается
+            while (true)
+            {
+                // Быстрая проверка: влезает ли деталь в свободную область
+                double partWidth = part.PartType == PartType.Round ? part.Width : part.Width;
+                double partHeight = part.PartType == PartType.Round ? part.Width : part.Height;
+
+                if (partWidth > sheet.FreeWidth + 1 && partHeight > sheet.FreeHeight + 1)
+                    break; // Деталь явно не поместится ни в одну из свободных зон
+
+                // Пробуем разместить через существующий алгоритм
+                if (TryPlacePartByColumn(sheet, part))
+                {
+                    placedCount++;
+                }
+                else
+                {
+                    break; // Алгоритм не смог разместить — выходим
+                }
+            }
+
+            // Если разместили хотя бы одну — пересчитываем оптимизированные размеры
+            if (placedCount > 0)
+            {
+                OptimizeSheetSize(sheet);
+            }
+
+            return placedCount;
+        }
+
+        /// <summary>
         /// Пакетный нестинг труб.
         /// </summary>
         /// <param name="parts">Список деталей</param>
@@ -387,6 +425,8 @@ namespace Metal_Code.Utils
 
     public class NestingSheet
     {
+        public Guid Id { get; set; } = Guid.NewGuid();
+
         // Исходный размер заготовки (всегда полный, например 3000х1500)
         public double StockWidth { get; set; }
         public double StockHeight { get; set; }
@@ -400,6 +440,16 @@ namespace Metal_Code.Utils
         // Пусть Width/Height остаются полными (Stock), а для обрезки используем Optimized.
         public double Width => StockWidth;
         public double Height => StockHeight;
+
+        /// <summary>
+        /// Свободная ширина листа (разница между полной и оптимизированной)
+        /// </summary>
+        public double FreeWidth => Math.Max(0, StockWidth - OptimizedWidth);
+
+        /// <summary>
+        /// Свободная высота листа (разница между полной и оптимизированной)
+        /// </summary>
+        public double FreeHeight => Math.Max(0, StockHeight - OptimizedHeight);
 
         public List<PartPlacement> Parts { get; set; } = new();
     }

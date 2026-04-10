@@ -268,7 +268,6 @@ namespace Metal_Code
             Accuracy = _accuracy;
         }
 
-
         /// <summary>
         /// Вызывать после изменения Count для обновления привязанного Total в UI
         /// </summary>

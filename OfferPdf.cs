@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.Data;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Text.RegularExpressions;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 namespace Metal_Code
@@ -351,16 +352,20 @@ namespace Metal_Code
             // 2. Удаляем название металла (первое совпадение)
             foreach (Metal metal in MainWindow.M.Metals)
             {
-                if (metal.Name != null && value.Contains(metal.Name, StringComparison.OrdinalIgnoreCase))
+                if (string.IsNullOrEmpty(metal.Name)) continue;
+
+                int index = value.IndexOf(metal.Name, StringComparison.OrdinalIgnoreCase);
+                if (index >= 0)
                 {
-                    value = value.Replace(metal.Name, "");
+                    value = value.Remove(index, metal.Name.Length);
                     break;
                 }
             }
 
-            // 3. Обрезаем по последнему 's' (если есть)
-            int lastSIndex = value.ToLowerInvariant().LastIndexOf('s');
-            if (lastSIndex > 0) value = value[..lastSIndex];
+            // 3. Обрезаем
+            value = Regex.Replace(value, @"\.[a-z]{2,5}$", "", RegexOptions.IgnoreCase);
+            value = Regex.Replace(value, @"\s*\([^)]+\)\s*$", "", RegexOptions.IgnoreCase);
+            value = Regex.Replace(value, @"\s+[sn]\d+(?:\.\d+)?\b", "", RegexOptions.IgnoreCase);
 
             // 4. Убираем лишние пробелы
             return value.Trim();

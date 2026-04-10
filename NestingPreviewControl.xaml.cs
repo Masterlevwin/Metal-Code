@@ -1,7 +1,10 @@
 ﻿using Metal_Code.Utils;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
@@ -27,11 +30,12 @@ namespace Metal_Code
         private double _currentSheetWidth;
         private double _currentSheetHeight;
 
-        public NestingPreviewControl()
-        {
-            InitializeUI();
-        }
+        private NestingSheet _currentSheet = null!;
+        public NestingPreviewControl() => InitializeUI();
 
+
+        //-------------Базовая отрисовка листа с деталями----------//
+        #region
         private void InitializeUI()
         {
             _rootViewbox = new Viewbox
@@ -95,6 +99,8 @@ namespace Metal_Code
         /// </summary>
         private void RebuildLayout(NestingSheet sheet)
         {
+            _currentSheet = sheet;
+
             // Используем ИСХОДНЫЕ размеры заготовки для построения холста
             double width = sheet.StockWidth;
             double height = sheet.StockHeight;
@@ -371,8 +377,6 @@ namespace Metal_Code
             var geometry = PartPreviewGenerator.CloneGeometry(part.DisplayGeometry);
             if (geometry == null) return;
 
-            // Центрирование геометрии внутри её bounding box не требуется, если она уже нормализована,
-            // но смещение нужно, чтобы координаты X,Y соответствовали левому нижнему углу детали.
             var bounds = geometry.Bounds;
             double offsetX = -bounds.Left;
             double offsetY = -bounds.Top;
@@ -388,8 +392,13 @@ namespace Metal_Code
                     : Brushes.DarkBlue,
                 StrokeThickness = 1.5,
                 ToolTip = $"{part.Title}\n{GetPartDimensions(part)}",
-                RenderTransform = new TranslateTransform(offsetX, offsetY)
+                RenderTransform = new TranslateTransform(offsetX, offsetY),
+                // === НОВОЕ: включаем обработку правого клика ===
+                IsHitTestVisible = true
             };
+
+            // === НОВОЕ: обработчик правого клика для контекстного меню ===
+            path.PreviewMouseRightButtonUp += (s, e) => OnPartRightClick(part, e);
 
             Canvas.SetLeft(path, x);
             Canvas.SetTop(path, y);
@@ -402,5 +411,204 @@ namespace Metal_Code
                 return $"Ø{part.Width:0}мм";
             return $"{part.Width:0}×{part.Height:0}мм";
         }
+        #endregion
+
+        //-------------Заполнение листа----------//
+        #region
+        private readonly List<Path> _previewPaths = new();  // Поле для хранения путей предпросмотра
+
+        /// <summary>
+        /// Обработчик правого клика по детали — показывает контекстное меню
+        /// </summary>
+        private void OnPartRightClick(Part part, MouseButtonEventArgs e)
+        {
+            e.Handled = true;
+
+            var menu = new ContextMenu();
+
+            var fillItem = new MenuItem { Header = "Дополнить лист" };
+            fillItem.Click += (s, args) => FillSheetWithPart(part);
+
+            menu.Items.Add(fillItem);
+            menu.IsOpen = true;
+        }
+
+        /// <summary>
+        /// Пытается заполнить текущий лист копиями указанной детали
+        /// </summary>
+        private void FillSheetWithPart(Part part)
+        {
+            // 1. Создаём полный клон листа для тестов
+            var testSheet = new NestingSheet
+            {
+                Id = _currentSheet.Id,
+                StockWidth = _currentSheet.StockWidth,
+                StockHeight = _currentSheet.StockHeight,
+                OptimizedWidth = _currentSheet.OptimizedWidth,
+                OptimizedHeight = _currentSheet.OptimizedHeight,
+                Parts = _currentSheet.Parts.Select(p => new PartPlacement
+                {
+                    Part = p.Part,
+                    X = p.X,
+                    Y = p.Y
+                }).ToList()
+            };
+
+            // 2. Запускаем нестинг на клоне
+            int placedCount = NestingHelper.TryFillSheetWithPart(testSheet, part);
+            if (placedCount == 0)
+            {
+                MessageBox.Show("Нет свободного места для размещения детали.", "Предпросмотр", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // 3. Выделяем только НОВЫЕ размещения
+            var newPlacements = testSheet.Parts.Skip(_currentSheet.Parts.Count).ToList();
+
+            // 4. Рисуем предпросмотр (жирные зелёные детали)
+            DrawPreviewParts(newPlacements);
+
+            // 5. Запрашиваем подтверждение
+            var result = MessageBox.Show(
+                $"На листе будет размещено ещё {placedCount} шт. \"{part.Title}\".\nПрименить изменения?",
+                "Подтверждение заполнения",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            // 6. Убираем предпросмотр
+            ClearPreview();
+
+            if (result == MessageBoxResult.Yes)
+            {
+                // ✅ ЗАМЕНЯЕМ текущий лист на тестовый (со всеми новыми деталями)
+                _currentSheet = testSheet;
+
+                // Полная перерисовка (ShowSheet сам очистит _partsCanvas и нарисует всё заново)
+                ShowSheet(_currentSheet);
+
+                // Пересчитываем стоимость и количество
+                RecalculateFromSheet(_currentSheet, part, placedCount);
+
+                MainWindow.M.StatusBegin($"Успешно добавлено {placedCount} шт.", MainWindow.StatusMessageType.Success);
+            }
+        }
+
+        /// <summary>
+        /// Пересчитывает параметры LaserItem на основе обновлённого NestingSheet
+        /// </summary>
+        public static void RecalculateFromSheet(NestingSheet sheet, Part part, int placed)
+        {
+            bool updated = false;
+
+            foreach (var detail in MainWindow.M.DetailControls)
+            {
+                if (updated) break;
+                foreach (var typeDetail in detail.TypeDetailControls)
+                {
+                    if (updated) break;
+                    foreach (var work in typeDetail.WorkControls)
+                    {
+                        if (updated) break;
+                        if (work.workType is CutControl cut && cut.Items?.Count > 0 && cut.PartDetails is not null)
+                        {
+                            var item = cut.Items.FirstOrDefault(i => i.NestingSheet?.Id == sheet.Id);
+                            if (item is not null)
+                            {
+                                Part? _part = cut.PartDetails.FirstOrDefault(p => p.Title == part.Title);
+                                if (_part is not null) _part.Count += placed;
+
+                                // Пересчитываем параметры
+                                var metal = MainWindow.M.Metals?.FirstOrDefault(m => m.Name == item.metal);
+                                if (metal != null)
+                                {
+                                    // Площадь и масса
+                                    double sheetArea = sheet.OptimizedWidth * sheet.OptimizedHeight;
+                                    double sheetMass = sheetArea * sheet.Parts[0].Part.Destiny * metal.Density / 1_000_000;
+
+                                    // Длина реза и проколы
+                                    double sheetWay = sheet.Parts.Sum(p => p.Part.Way);
+                                    int sheetPinholes = sheet.Parts.Sum(p =>
+                                        int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var val) ? val : 0);
+
+                                    // Обновляем свойства LaserItem
+                                    item.way = (float)sheetWay;
+                                    item.pinholes = sheetPinholes;
+                                    item.mass = (float)sheetMass;
+
+                                    // Обновляем размер, если оптимизация изменилась
+                                    item.sheetSize = $"{sheet.OptimizedWidth:0}x{sheet.OptimizedHeight:0}";
+
+                                    // Обновляем ссылку на визуализацию листа
+                                    item.NestingSheet = sheet;
+                                }
+
+                                // Обновляем итоговые значения
+                                cut.WayTotal = cut.PartDetails.Sum(p => p.Way * p.Count);
+                                cut.MassTotal = cut.PartDetails.Sum(p => p.Mass * p.Count);
+                                cut.SumProperties(cut.Items);
+                                cut.work.type.MassCalculate();
+
+                                updated = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Рисует новые детали жирным зелёным контуром поверх существующих
+        /// </summary>
+        private void DrawPreviewParts(List<PartPlacement> placements)
+        {
+            ClearPreview(); // На всякий случай очищаем старое
+
+            foreach (var placement in placements)
+            {
+                var path = CreatePreviewPath(placement.Part, placement.X, placement.Y);
+                if (path != null)
+                {
+                    _partsCanvas.Children.Add(path);
+                    _previewPaths.Add(path);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Создаёт Path для предпросмотра: жирный, без пунктира, полупрозрачный
+        /// </summary>
+        private Path? CreatePreviewPath(Part part, double x, double y)
+        {
+            if (part.DisplayGeometry is null) return null;
+                
+            var geometry = PartPreviewGenerator.CloneGeometry(part.DisplayGeometry);
+            if (geometry == null) return null;
+
+            var bounds = geometry.Bounds;
+            var transform = new TranslateTransform(-bounds.Left + x, -bounds.Top + y);
+
+            return new Path
+            {
+                Data = geometry,
+                Fill = new SolidColorBrush(Color.FromArgb(70, 0, 180, 60)),  // Полупрозрачный зелёный
+                Stroke = Brushes.LimeGreen,                                  // Яркий контур
+                StrokeThickness = 2.5,                                       // Жирнее обычных деталей (обычно 1.5)
+                StrokeLineJoin = PenLineJoin.Round,
+                RenderTransform = transform,
+                IsHitTestVisible = false,                                    // Не мешает кликам
+                Opacity = 0.85
+            };
+        }
+
+        /// <summary>
+        /// Удаляет детали предпросмотра с холста
+        /// </summary>
+        private void ClearPreview()
+        {
+            foreach (var path in _previewPaths)
+                _partsCanvas.Children.Remove(path);
+            _previewPaths.Clear();
+        }
+        #endregion
     }
 }

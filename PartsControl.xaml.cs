@@ -286,16 +286,14 @@ namespace Metal_Code
                     foreach (LaserItem item in cut.Items)
                     {
                         // === ЛИСТЫ ===
-                        if (item.NestingSheets != null && item.NestingSheets.Count > 0)
+                        if (item.NestingSheet is not null)
                         {
-                            var sheet = item.NestingSheets[0]; // Берём первый (единственный) лист из группы
-
                             var preview = new NestingPreviewControl
                             {
                                 Height = 320,
                                 Margin = new Thickness(15, 0, 5, 0)
                             };
-                            preview.ShowSheet(sheet);
+                            preview.ShowSheet(item.NestingSheet);
 
                             // Добавляем подпись с типом листа
                             var border = new Border
@@ -686,7 +684,7 @@ namespace Metal_Code
                     mass = (float)sheetMass,
                     metal = metal.Name,
                     destiny = parts[0].Destiny.ToString(),
-                    NestingSheets = new List<NestingSheet> { sheet }
+                    NestingSheet = sheet
                 };
 
                 cut.Items?.Add(laserItem);
@@ -717,10 +715,6 @@ namespace Metal_Code
                 cut.SumProperties(cut.Items);
 
             cut.work.type.MassCalculate();
-
-            // Обновляем заголовок вкладки
-            if (cut.TabItem?.Header is TextBlock block)
-                block.Text = $"s{cut.work.type.S} {cut.work.type.MetalDrop.Text} ({cut.PartDetails?.Sum(x => x.Count)} шт)";
         }
 
         /// <summary>
@@ -836,10 +830,6 @@ namespace Metal_Code
             pipe.Mold += (float)Math.Round(pipe.work.type.L * groupedStocks.Sum(g => g.Value) * 0.95f / 1000, 1);
 
             pipe.SetTotalProperties();
-
-            // Обновляем заголовок вкладки
-            if (pipe.TabItem?.Header is TextBlock block)
-                block.Text = $"s{pipe.work?.type.S} {pipe.work?.type.MetalDrop.Text} ({pipe.PartDetails?.Sum(x => x.Count)} шт)";
         }
 
         /// <summary>
@@ -923,10 +913,6 @@ namespace Metal_Code
             // Обновляем количество хлыстов в типе заготовки
             saw.work.type.Count += groupedStocks.Sum(g => g.Value);
             saw.SetTotalProperties();
-
-            // Обновляем заголовок вкладки
-            if (saw.TabItem?.Header is TextBlock block)
-                block.Text = $"s{saw.work?.type.S} {saw.work?.type.MetalDrop.Text} ({saw.PartDetails?.Sum(x => x.Count)} шт)";
         }
 
         /// <summary>

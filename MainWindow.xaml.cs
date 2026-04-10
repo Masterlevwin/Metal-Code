@@ -383,10 +383,10 @@ namespace Metal_Code
             if (CheckConstruct.IsChecked != false)
                 // проверяем наличие работы и добавляем её минималку к расчету
                 foreach (Work w in Works) if (w.Name == "Конструкторские работы")
-                    {
-                        result += w.Price;
-                        break;
-                    }
+                {
+                    result += w.Price;
+                    break;
+                }
             if (float.TryParse(ConstructRatio.Text, out float c)) result *= c;
             return result;
         }
@@ -959,7 +959,7 @@ namespace Metal_Code
                     .Take(30);
                 SummaryInfoTextBlock.Text = $"Показано: {dataToDisplay.Count()} последних";
             }
-            
+
             // Безопасно заменяем содержимое CurrentOffers
             CurrentOffers.Clear();
             foreach (var item in dataToDisplay.ToList()) CurrentOffers.Add(item);
@@ -979,7 +979,7 @@ namespace Metal_Code
 
         //-------------Настройка блока отчетов-----------//
         readonly string[] Months = { "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь" };
-        
+
         // Норма рабочих часов по месяцам
         private readonly int[] WorkingHours = { 136, 152, 168, 168, 144, 152, 168, 168, 168, 168, 160, 168 };
 
@@ -1488,8 +1488,8 @@ namespace Metal_Code
             {
                 db.Offers.Load();                                           //загружаем все расчеты
 
-                //получаем коллекцию расчетов, которые созданы более 60 дней назад
-                var offers = db.Offers.Where(o => o.CreatedDate < DateTime.UtcNow.AddDays(-60));
+                //получаем коллекцию отгруженных расчетов, которые созданы более 60 дней назад
+                var offers = db.Offers.Where(o => o.EndDate != null && o.CreatedDate < DateTime.UtcNow.AddDays(-60));
 
                 db.Offers.RemoveRange(offers);                              //удаляем полученную коллекцию старых расчетов
                 db.SaveChanges();
@@ -1550,7 +1550,7 @@ namespace Metal_Code
 
             ClearGroupHighlight();
             _highlightedHeaderBorder = headerBorder;
-            headerBorder.Background = new SolidColorBrush(Colors.LightGreen);
+            headerBorder.Background = new SolidColorBrush(Color.FromArgb(90, 70, 155, 80));
         }
 
         // Сброс подсветки (универсальный)
@@ -2366,7 +2366,7 @@ namespace Metal_Code
                                     else if (_cut is PipeControl && _cut.HaveCut) p.Description = "Т";
                                     else if (_cut is SawControl) p.Description = "ЛП";
                                     else p.Description = "Б";
-                                    
+
                                     if (p.PropsDict.ContainsKey(100) && p.PropsDict[100].Count > 2)
                                         p.Accuracy = _cut is CutControl ?
                                             $"{p.PropsDict[100][0].Trim()}x{p.PropsDict[100][1].Trim()}"
@@ -2452,12 +2452,12 @@ namespace Metal_Code
             CustomerDrop.Text = ProductModel.Product.Company;
             Adress.Text = ProductModel.Product.Manager;
             Comment.Text = ProductModel.Product.Comment;
-            
+
             CheckConstruct.IsChecked = ProductModel.Product.HasConstruct;
             ConstructRatio.Text = ProductModel.Product.ConstructRatio != null
                         && Parser(ProductModel.Product.ConstructRatio) > 1
                         ? ProductModel.Product.ConstructRatio : "1";
-            
+
             SetRatio(ProductModel.Product.Ratio);
             MaterialFactor = ProductModel.Product.MaterialFactor;
             SetCount(ProductModel.Product.Count);
@@ -2574,7 +2574,7 @@ namespace Metal_Code
 
                                     else if (part.Part.PropsDict.Count > 0)      //ключи от "[50]" зарезервированы под кусочки цены за работы, габариты детали и прочее
                                         foreach (int key in part.Part.PropsDict.Keys) if (key < 50)
-                                                part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
+                                            part.AddControl((int)Parser(part.Part.PropsDict[key][0]));
 
                                     part.PropertiesChanged?.Invoke(part, false);
                                 }
@@ -2733,7 +2733,7 @@ namespace Metal_Code
                     }
 
                 var basketsExtra = basketsWithWork?.Count() > 0 ? ProductModel.Product.Baskets.Except(basketsWithWork) : ProductModel.Product.Baskets;
-                
+
                 worksheet.Cells[row, 5].Value = "Покупные изделия:";
                 worksheet.Cells[row, 5].Style.Font.Bold = true;
                 row++;
@@ -2765,16 +2765,20 @@ namespace Metal_Code
                 // 2. Удаляем название металла (первое совпадение)
                 foreach (Metal metal in Metals)
                 {
-                    if (metal.Name != null && value.Contains(metal.Name, StringComparison.OrdinalIgnoreCase))
+                    if (string.IsNullOrEmpty(metal.Name)) continue;
+
+                    int index = value.IndexOf(metal.Name, StringComparison.OrdinalIgnoreCase);
+                    if (index >= 0)
                     {
-                        value = value.Replace(metal.Name, "");
+                        value = value.Remove(index, metal.Name.Length);
                         break;
                     }
                 }
 
-                // 3. Обрезаем по последнему 's' (если есть), только если он не в начале
-                int lastSIndex = value.ToLowerInvariant().LastIndexOf('s');
-                if (lastSIndex > 0) value = value[..lastSIndex];
+                // 3. Обрезаем
+                value = Regex.Replace(value, @"\.[a-z]{2,5}$", "", RegexOptions.IgnoreCase);
+                value = Regex.Replace(value, @"\s*\([^)]+\)\s*$", "", RegexOptions.IgnoreCase);
+                value = Regex.Replace(value, @"\s+[sn]\d+(?:\.\d+)?\b", "", RegexOptions.IgnoreCase);
 
                 // 4. Убираем лишние пробелы
                 cell.Value = value.Trim();
@@ -3942,7 +3946,8 @@ namespace Metal_Code
 
             // Общая коллекция деталей, приведенная к анонимному типу для группировки по работам
             var combined = DetailControls.Where(d => !d.Detail.IsComplect)
-                .Select(d => new {
+                .Select(d => new
+                {
                     d.Detail.Title,
                     d.Detail.Description,
                     d.Detail.Count,
@@ -3950,7 +3955,8 @@ namespace Metal_Code
                     Dimensions = "" // Detail не имеет размеров
                 })
                 .Concat(
-                    Parts.Select(p => new {
+                    Parts.Select(p => new
+                    {
                         p.Title,
                         p.Description,
                         p.Count,
@@ -5116,86 +5122,86 @@ namespace Metal_Code
         {
             RouteWindow routeWindow = new();
             if (Parts.Count > 0) foreach (Part part in Parts)
+            {
+                TextBox _part = new()
                 {
-                    TextBox _part = new()
+                    Width = 125,
+                    Height = 70,
+                    Margin = new Thickness(5),
+                    Text = part.Title,
+                    TextWrapping = TextWrapping.Wrap,
+                    HorizontalContentAlignment = HorizontalAlignment.Center,
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                };
+                routeWindow.DetailStack.Children.Add(_part);
+                int ndx = routeWindow.DetailStack.Children.IndexOf(_part);
+
+                if (part.PropsDict.Count > 0) foreach (var key in part.PropsDict.Keys)
+                {
+                    switch (key)
                     {
-                        Width = 125,
-                        Height = 70,
-                        Margin = new Thickness(5),
-                        Text = part.Title,
-                        TextWrapping = TextWrapping.Wrap,
-                        HorizontalContentAlignment = HorizontalAlignment.Center,
-                        VerticalContentAlignment = VerticalAlignment.Center,
-                    };
-                    routeWindow.DetailStack.Children.Add(_part);
-                    int ndx = routeWindow.DetailStack.Children.IndexOf(_part);
+                        case 51:
+                            while (ndx > routeWindow.CutStack.Children.Count) routeWindow.CutStack.Children.Add(new PlugControl());
+                            routeWindow.CutStack.Children.Insert(ndx, new PartViewControl(part) { Margin = new Thickness(5) });
+                            break;
+                        case 52:
+                            while (ndx > routeWindow.BendStack.Children.Count) routeWindow.BendStack.Children.Add(new PlugControl());
+                            routeWindow.BendStack.Children.Insert(ndx, new PartViewControl(part) { Margin = new Thickness(5) });
+                            break;
+                        case 53:
+                            while (ndx > routeWindow.WeldStack.Children.Count) routeWindow.WeldStack.Children.Add(new PlugControl());
+                            routeWindow.WeldStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                            break;
+                        case 54:
+                            while (ndx > routeWindow.PaintStack.Children.Count) routeWindow.PaintStack.Children.Add(new PlugControl());
+                            routeWindow.PaintStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                            break;
+                        case 55:
+                            while (ndx > routeWindow.ThreadStack.Children.Count) routeWindow.ThreadStack.Children.Add(new PlugControl());
+                            routeWindow.ThreadStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                            break;
+                        case 56:
+                            while (ndx > routeWindow.CountersinkStack.Children.Count) routeWindow.CountersinkStack.Children.Add(new PlugControl());
+                            routeWindow.CountersinkStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                            break;
+                        case 57:
+                            while (ndx > routeWindow.DrillingStack.Children.Count) routeWindow.DrillingStack.Children.Add(new PlugControl());
+                            routeWindow.DrillingStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                            break;
+                        case 58:
+                            while (ndx > routeWindow.RollStack.Children.Count) routeWindow.RollStack.Children.Add(new PlugControl());
+                            routeWindow.RollStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                            break;
+                        case 59:
+                            while (ndx > routeWindow.ExtraPStack.Children.Count) routeWindow.ExtraPStack.Children.Add(new PlugControl());
+                            routeWindow.ExtraPStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                            break;
+                        case 60:
+                            while (ndx > routeWindow.ExtraLStack.Children.Count) routeWindow.ExtraLStack.Children.Add(new PlugControl());
+                            routeWindow.ExtraLStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                            break;
+                        case 61:
+                            while (ndx > routeWindow.PipeStack.Children.Count) routeWindow.PipeStack.Children.Add(new PlugControl());
+                            routeWindow.PipeStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
+                            break;
+                        default:
+                            break;
 
-                    if (part.PropsDict.Count > 0) foreach (var key in part.PropsDict.Keys)
-                        {
-                            switch (key)
-                            {
-                                case 51:
-                                    while (ndx > routeWindow.CutStack.Children.Count) routeWindow.CutStack.Children.Add(new PlugControl());
-                                    routeWindow.CutStack.Children.Insert(ndx, new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 52:
-                                    while (ndx > routeWindow.BendStack.Children.Count) routeWindow.BendStack.Children.Add(new PlugControl());
-                                    routeWindow.BendStack.Children.Insert(ndx, new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 53:
-                                    while (ndx > routeWindow.WeldStack.Children.Count) routeWindow.WeldStack.Children.Add(new PlugControl());
-                                    routeWindow.WeldStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 54:
-                                    while (ndx > routeWindow.PaintStack.Children.Count) routeWindow.PaintStack.Children.Add(new PlugControl());
-                                    routeWindow.PaintStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 55:
-                                    while (ndx > routeWindow.ThreadStack.Children.Count) routeWindow.ThreadStack.Children.Add(new PlugControl());
-                                    routeWindow.ThreadStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 56:
-                                    while (ndx > routeWindow.CountersinkStack.Children.Count) routeWindow.CountersinkStack.Children.Add(new PlugControl());
-                                    routeWindow.CountersinkStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 57:
-                                    while (ndx > routeWindow.DrillingStack.Children.Count) routeWindow.DrillingStack.Children.Add(new PlugControl());
-                                    routeWindow.DrillingStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 58:
-                                    while (ndx > routeWindow.RollStack.Children.Count) routeWindow.RollStack.Children.Add(new PlugControl());
-                                    routeWindow.RollStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 59:
-                                    while (ndx > routeWindow.ExtraPStack.Children.Count) routeWindow.ExtraPStack.Children.Add(new PlugControl());
-                                    routeWindow.ExtraPStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 60:
-                                    while (ndx > routeWindow.ExtraLStack.Children.Count) routeWindow.ExtraLStack.Children.Add(new PlugControl());
-                                    routeWindow.ExtraLStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                case 61:
-                                    while (ndx > routeWindow.PipeStack.Children.Count) routeWindow.PipeStack.Children.Add(new PlugControl());
-                                    routeWindow.PipeStack.Children.Add(new PartViewControl(part) { Margin = new Thickness(5) });
-                                    break;
-                                default:
-                                    break;
-
-                            }
-                        }
-
-                    TextBox _comment = new()
-                    {
-                        Width = 100,
-                        Height = 70,
-                        Margin = new Thickness(5),
-                        Text = $"s{part.Destiny} {part.Metal}\n{part.Mass} кг",
-                        TextWrapping = TextWrapping.Wrap,
-                        HorizontalContentAlignment = HorizontalAlignment.Center,
-                        VerticalContentAlignment = VerticalAlignment.Center,
-                    };
-                    routeWindow.CommentStack.Children.Add(_comment);
+                    }
                 }
+
+                TextBox _comment = new()
+                {
+                    Width = 100,
+                    Height = 70,
+                    Margin = new Thickness(5),
+                    Text = $"s{part.Destiny} {part.Metal}\n{part.Mass} кг",
+                    TextWrapping = TextWrapping.Wrap,
+                    HorizontalContentAlignment = HorizontalAlignment.Center,
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                };
+                routeWindow.CommentStack.Children.Add(_comment);
+            }
 
             foreach (var item in routeWindow.WorkStack.Children)
                 if (item is StackPanel stack)
@@ -5934,7 +5940,7 @@ namespace Metal_Code
 
                 //и фокусируем пользователя на первой найденной детали
                 var types = DetailControls.Where(d => d.Detail.IsComplect).SelectMany(t => t.TypeDetailControls);
-                            
+
                 foreach (var type in types)
                 {
                     if (IsVisualChild(type.PartsStack, foundDetails[0]))
@@ -6133,7 +6139,7 @@ namespace Metal_Code
 
                         using DwgReader reader = new(_name);
                         doc = reader.Read();
-                        
+
                         using DxfWriter writer = new(Path.GetDirectoryName(_name) + "\\" + Path.GetFileNameWithoutExtension(_name) + ".dxf", doc, false);
                         writer.Write();
                     }
@@ -6248,6 +6254,57 @@ namespace Metal_Code
                 // MessageBox.Show("Критическая ошибка. Приложение будет закрыто.", "Ошибка", 
                 //     MessageBoxButton.OK, MessageBoxImage.Error);
                 // Application.Current.Shutdown(1);
+            }
+        }
+
+        //------------Создание папки проекта-----------------//
+        private void CreateProjectFolder(object sender, RoutedEventArgs e)
+        {
+            // 1. Создаём диалог выбора папки
+            var dialog = new OpenFileDialog
+            {
+                Title = "Укажите расположение для проекта",
+                CheckFileExists = false,       // Разрешает выбор несуществующих файлов/папок
+                ValidateNames = false,         // Отключает проверку имени файла
+                FileName = $"{Order.Text} {CustomerDrop.Text}", // Подсказка в поле ввода
+                InitialDirectory = ProductModel.dialogService.LastUsedDirectory
+            };
+
+            // 2. Проверяем результат выбора
+            if (dialog.ShowDialog() == true)
+            {
+                string? projectPath = ProductModel.dialogService.LastUsedDirectory = dialog.FileName;
+
+                // Если пользователь случайно выбрал файл, берём его родительскую директорию
+                if (Path.HasExtension(projectPath) && File.Exists(projectPath))
+                    projectPath = Path.GetDirectoryName(projectPath);
+
+                if (projectPath is null) return;
+
+                try
+                {
+                    // 3. Создаём вложенную структуру
+                    Directory.CreateDirectory(Path.Combine(projectPath, "ТЗ", "Исходник"));
+                    Directory.CreateDirectory(Path.Combine(projectPath, "ТЗ", "Редакция"));
+
+                    // 4. Уведомляем об успехе
+                    MessageBox.Show(
+                        $"Структура проекта успешно создана:\n{projectPath}",
+                        "Готово",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+
+                    Process.Start("explorer.exe", projectPath);
+                }
+                catch (Exception ex)
+                {
+                    // 5. Обработка ошибок (нет прав, занятый файл, недопустимые символы и т.д.)
+                    MessageBox.Show(
+                        $"Не удалось создать папки:\n{ex.Message}",
+                        "Ошибка",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
             }
         }
 
@@ -6584,7 +6641,7 @@ namespace Metal_Code
             var points = new List<Point>();
             foreach (var vertex in lwPolyline.Vertices)
             {
-                var pt = Transform(new(vertex.Location.X,vertex.Location.Y, 0), scale, offsetX, offsetY, drawingBounds);
+                var pt = Transform(new(vertex.Location.X, vertex.Location.Y, 0), scale, offsetX, offsetY, drawingBounds);
                 points.Add(pt);
             }
 
@@ -7143,7 +7200,7 @@ namespace Metal_Code
                 }
             }
         }
-        
+
         //-----Получение DataTable-коллекции из ObservableCollection-----//
         public static DataTable ToDataTable<T>(ObservableCollection<T> items)
         {

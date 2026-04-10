@@ -825,7 +825,7 @@ namespace Metal_Code
 
         // Для листов:
         [OptionalField]
-        public List<NestingSheet>? NestingSheets;
+        public NestingSheet? NestingSheet;
 
         // Для труб:
         [OptionalField]

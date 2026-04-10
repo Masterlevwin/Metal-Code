@@ -376,8 +376,13 @@
                             <Image Source="Images/open4.png"/>
                         </Button>
 
+                        <Button ToolTip="Создать папку проекта" Click="CreateProjectFolder"
+                                Padding="0" Margin="70,0,0,0" VerticalAlignment="Top">
+                            <Image Source="Images/save3.png"/>
+                        </Button>
+
                         <Button ToolTip="Создать заявку за клиента" Click="CreateRequest"
-                                Padding="0" Margin="100,0,0,0" VerticalAlignment="Top">
+                                Padding="0" Margin="15,0,0,0" VerticalAlignment="Top">
                             <Image Source="Images/comment.png"/>
                         </Button>
 
