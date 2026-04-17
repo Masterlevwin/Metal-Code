@@ -1,0 +1,92 @@
+﻿<Window x:Class="Metal_Code.PriceMetalWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:Metal_Code.Converters"
+        Title="Прайс-лист металла" 
+        Height="800" Width="1200"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <!-- Конвертер для расчёта средней цены в группировке (если понадобится) -->
+        <converters:AveragePriceConverter x:Key="AvgPriceConverter"/>
+    </Window.Resources>
+
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <!-- 1. Совпадающие позиции (30%) -->
+                <RowDefinition Height="2.5*"/>
+                <RowDefinition Height="8"/>
+                <!-- 2. Агрегированные средние (25%) -->
+                <RowDefinition Height="2*"/>
+                <RowDefinition Height="8"/>
+                <!-- 3. Полный прайс (45%) -->
+                <RowDefinition Height="4*"/>
+            </Grid.RowDefinitions>
+
+            <!-- 🔥 ТАБЛИЦА 1: Совпадающие с БД позиции -->
+            <GroupBox Grid.Row="0" Header="✅ Найдено в базе металлов" 
+                  FontWeight="Bold" Foreground="#2E7D32" Background="#E8F5E9">
+                <DataGrid x:Name="MatchedDataGrid"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      CanUserAddRows="False"
+                      GridLinesVisibility="Horizontal"
+                      AlternatingRowBackground="#C8E6C9"
+                      RowHeight="32">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Категория" Binding="{Binding CategoryName}" Width="1.5*" FontWeight="SemiBold"/>
+                        <DataGridTextColumn Header="Марка" Binding="{Binding Grade}" Width="1*" Foreground="#1565C0"/>
+                        <DataGridTextColumn Header="Средняя цена за кг" Binding="{Binding AveragePricePerKg, StringFormat=N2}" Width="1.2*" TextBlock.TextAlignment="Right" Foreground="#D32F2F" FontWeight="Bold"/>
+                        <DataGridTextColumn Header="Позиций" Binding="{Binding ItemsCount}" Width="Auto" TextBlock.TextAlignment="Center"/>
+                    <DataGridTextColumn Header="Мин" Binding="{Binding MinPrice, StringFormat=N2}" Width="Auto" TextBlock.TextAlignment="Right" Foreground="Gray" FontSize="11"/>
+                    <DataGridTextColumn Header="Макс" Binding="{Binding MaxPrice, StringFormat=N2}" Width="Auto" TextBlock.TextAlignment="Right" Foreground="Gray" FontSize="11"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </GroupBox>
+
+            <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" Background="#A5D6A7" ShowsPreview="True"/>
+
+            <!-- 🔥 ТАБЛИЦА 2: Агрегированные средние (без изменений) -->
+            <GroupBox Grid.Row="2" Header="📊 Все средние цены по категориям" 
+                  FontWeight="Bold" Foreground="#1565C0">
+                <DataGrid x:Name="AggregatedDataGrid"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      CanUserAddRows="False"
+                      GridLinesVisibility="Horizontal"
+                      AlternatingRowBackground="#E3F2FD">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Категория" Binding="{Binding CategoryName}" Width="1.5*" FontWeight="SemiBold"/>
+                        <DataGridTextColumn Header="Марка" Binding="{Binding Grade}" Width="1*" Foreground="#1565C0"/>
+                        <DataGridTextColumn Header="Средняя цена за кг" Binding="{Binding AveragePricePerKg, StringFormat=N2}" Width="1.2*" TextBlock.TextAlignment="Right" Foreground="#D32F2F" FontWeight="Bold"/>
+                        <DataGridTextColumn Header="Позиций" Binding="{Binding ItemsCount}" Width="Auto" TextBlock.TextAlignment="Center"/>
+                        <DataGridTextColumn Header="Мин" Binding="{Binding MinPrice, StringFormat=N2}" Width="Auto" TextBlock.TextAlignment="Right" Foreground="Gray" FontSize="11"/>
+                        <DataGridTextColumn Header="Макс" Binding="{Binding MaxPrice, StringFormat=N2}" Width="Auto" TextBlock.TextAlignment="Right" Foreground="Gray" FontSize="11"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </GroupBox>
+
+            <GridSplitter Grid.Row="3" Height="5" HorizontalAlignment="Stretch" Background="#BBDEFB" ShowsPreview="True"/>
+
+            <!-- 🔥 ТАБЛИЦА 3: Полный прайс (без изменений) -->
+            <GroupBox Grid.Row="4" Header="📋 Полный прайс-лист" FontWeight="Bold" Foreground="#1565C0">
+                <DataGrid x:Name="FullPriceDataGrid"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      CanUserAddRows="False"
+                      GridLinesVisibility="Horizontal"
+                      AlternatingRowBackground="#F5F5F5"
+                      EnableRowVirtualization="True"
+                      VirtualizingPanel.IsVirtualizing="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Категория" Binding="{Binding Category}" Width="1.5*"/>
+                        <DataGridTextColumn Header="Наименование" Binding="{Binding ProductName}" Width="2.5*"/>
+                        <DataGridTextColumn Header="Размер" Binding="{Binding Dimensions}" Width="1.2*"/>
+                        <DataGridTextColumn Header="Ед.изм" Binding="{Binding Unit}" Width="Auto" TextBlock.TextAlignment="Center"/>
+                        <DataGridTextColumn Header="Цена за ед." Binding="{Binding Price, StringFormat=N0}" Width="Auto" TextBlock.TextAlignment="Right"/>
+                        <DataGridTextColumn Header="Цена за кг" Binding="{Binding PricePerKg, StringFormat=N2}" Width="Auto" TextBlock.TextAlignment="Right" FontWeight="SemiBold"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </GroupBox>
+        </Grid>
+</Window>
