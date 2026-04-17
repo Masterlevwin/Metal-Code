@@ -1920,109 +1920,40 @@ namespace Metal_Code
 
         private void UpdateDatabases(object sender, RoutedEventArgs e)      //метод обновления локальных баз
         {
-            UpdateDatabases();
-            //if (!IsLocal) return;               //если запущена основная база, выходим из метода
+            if (!IsLocal) return;               //если запущена основная база, выходим из метода
 
-            //MessageBoxResult response = MessageBox.Show(
-            //    "Для обновления локальных баз, потребуется перезагрузка.\nНажмите \"Нет\", если требуется сохранить текущий расчет",
-            //    "Обновление локальных баз", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+            MessageBoxResult response = MessageBox.Show(
+                "Для обновления локальных баз, потребуется перезагрузка.\nНажмите \"Нет\", если требуется сохранить текущий расчет",
+                "Обновление локальных баз", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
 
-            //if (response == MessageBoxResult.No) return;
+            if (response == MessageBoxResult.No) return;
 
-            //CreateWorker(InsertDatabase, ActionState.restartBases);         //запускаем фоновый процесс с перезапуском программы
+            CreateWorker(InsertDatabase, ActionState.restartBases);         //запускаем фоновый процесс с перезапуском программы
         }
+
         private async void UpdateDatabases()                              //обновление баз заготовок, работ и материалов посредством замены файлов
         {
-            try
+            if (!IsLocal || !Directory.Exists(connections[9])) return;     //если запущена основная база или нет директории, выходим из метода
+
+            string path = connections[9];    //путь к основным базам данных
+
+            if (File.Exists(path + "\\typedetails.db"))
             {
-                // 1. Парсим весь прайс
-                var rawItems = await LoadPriceListFromDialogAsync();
-
-                // 2. Агрегируем в средние цены
-                var averages = PriceAggregator.AggregateToAverages(rawItems);
-
-                // 3. Создаём окно и загружаем данные
-                var priceMetalWindow = new PriceMetalWindow();
-                priceMetalWindow.LoadData(rawItems, averages);
-
-                // 4. Показываем окно
-                priceMetalWindow.Show();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Ошибка импорта", MessageBoxButton.OK, MessageBoxImage.Error);
+                FileInfo dbTypeFile = new(path + "\\typedetails.db");
+                dbTypeFile.CopyTo(Directory.GetCurrentDirectory() + "\\typedetails.db", true);
             }
 
-            // items готова для биндинга, фильтрации или сохранения в БД
-            //if (!IsLocal || !Directory.Exists(connections[9])) return;     //если запущена основная база или нет директории, выходим из метода
-
-            //string path = connections[9];    //путь к основным базам данных
-
-            //if (File.Exists(path + "\\typedetails.db"))
-            //{
-            //    FileInfo dbTypeFile = new(path + "\\typedetails.db");
-            //    dbTypeFile.CopyTo(Directory.GetCurrentDirectory() + "\\typedetails.db", true);
-            //}
-
-            //if (File.Exists(path + "\\works.db"))
-            //{
-            //    FileInfo dbWorkFile = new(path + "\\works.db");
-            //    dbWorkFile.CopyTo(Directory.GetCurrentDirectory() + "\\works.db", true);
-            //}
-
-            //if (File.Exists(path + "\\metals.db"))
-            //{
-            //    FileInfo dbMetalFile = new(path + "\\metals.db");
-            //    dbMetalFile.CopyTo(Directory.GetCurrentDirectory() + "\\metals.db", true);
-            //}
-        }
-
-        public async Task<List<PriceListItem>> LoadPriceListFromDialogAsync()
-        {
-            var dialog = new OpenFileDialog
+            if (File.Exists(path + "\\works.db"))
             {
-                Title = "Выберите прайс-лист(ы) металла",
-                Filter = "Excel файлы|*.xls;*.xlsx|Все файлы|*.*",
-                DefaultExt = ".xlsx",
-                Multiselect = true, // 🔥 Ключевое изменение: разрешаем выбор нескольких файлов
-                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-            };
-
-            bool? result = dialog.ShowDialog();
-            if (result == true && dialog.FileNames.Length > 0)
-            {
-                var allItems = new List<PriceListItem>();
-                var errors = new List<string>();
-
-                // Парсим каждый выбранный файл
-                foreach (var filePath in dialog.FileNames)
-                {
-                    try
-                    {
-                        var parser = new PriceListParserService();
-                        var items = await parser.ParseAsync(filePath);
-
-                        allItems.AddRange(items);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Логируем ошибку, но продолжаем обработку остальных файлов
-                        errors.Add($"{Path.GetFileName(filePath)}: {ex.Message}");
-                    }
-                }
-
-                // Если все файлы не распарсились — выбрасываем исключение
-                if (allItems.Count == 0 && errors.Count > 0)
-                {
-                    throw new InvalidOperationException(
-                        $"Не удалось обработать ни один файл.\nОшибки:\n{string.Join("\n", errors)}");
-                }
-
-                return allItems;
+                FileInfo dbWorkFile = new(path + "\\works.db");
+                dbWorkFile.CopyTo(Directory.GetCurrentDirectory() + "\\works.db", true);
             }
 
-            // Пользователь нажал "Отмена"
-            return new List<PriceListItem>();
+            if (File.Exists(path + "\\metals.db"))
+            {
+                FileInfo dbMetalFile = new(path + "\\metals.db");
+                dbMetalFile.CopyTo(Directory.GetCurrentDirectory() + "\\metals.db", true);
+            }
         }
 
         //метод загрузки строк в таблицу ВСЕХ расчетов
@@ -7786,6 +7717,78 @@ namespace Metal_Code
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+        }
+
+
+        private async void LoadPrices(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 1. Парсим весь прайс
+                var rawItems = await LoadPriceListFromDialogAsync();
+
+                // 2. Агрегируем в средние цены
+                var averages = PriceAggregator.AggregateToAverages(rawItems);
+
+                // 3. Создаём окно и загружаем данные
+                var priceMetalWindow = new PriceMetalWindow();
+                priceMetalWindow.LoadData(rawItems, averages);
+
+                // 4. Показываем окно
+                priceMetalWindow.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка импорта", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        public async Task<List<PriceListItem>> LoadPriceListFromDialogAsync()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Выберите прайс-лист(ы) металла",
+                Filter = "Excel файлы|*.xls;*.xlsx|Все файлы|*.*",
+                DefaultExt = ".xlsx",
+                Multiselect = true, // 🔥 Ключевое изменение: разрешаем выбор нескольких файлов
+                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+            };
+
+            bool? result = dialog.ShowDialog();
+            if (result == true && dialog.FileNames.Length > 0)
+            {
+                var allItems = new List<PriceListItem>();
+                var errors = new List<string>();
+
+                // Парсим каждый выбранный файл
+                foreach (var filePath in dialog.FileNames)
+                {
+                    try
+                    {
+                        var parser = new PriceListParserService();
+                        var items = await parser.ParseAsync(filePath);
+
+                        allItems.AddRange(items);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Логируем ошибку, но продолжаем обработку остальных файлов
+                        errors.Add($"{Path.GetFileName(filePath)}: {ex.Message}");
+                    }
+                }
+
+                // Если все файлы не распарсились — выбрасываем исключение
+                if (allItems.Count == 0 && errors.Count > 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Не удалось обработать ни один файл.\nОшибки:\n{string.Join("\n", errors)}");
+                }
+
+                return allItems;
+            }
+
+            // Пользователь нажал "Отмена"
+            return new List<PriceListItem>();
         }
         #endregion
     }
