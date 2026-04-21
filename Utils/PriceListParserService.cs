@@ -10,6 +10,15 @@ namespace Metal_Code.Utils
 {
     public class PriceListParserService
     {
+        // Ключевые слова для определения секций категорий (используются ТОЛЬКО для поиска в сырых данных)
+        private static readonly HashSet<string> CategoryKeywords = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "АРМАТУРА", "УГОЛОК", "КРУГ", "КВАДРАТ", "ПОЛОСА", "ШВЕЛЛЕР",
+            "ЛИСТ", "ТРУБЫ", "БАЛКИ", "ПРОФИЛЬ", "СЕТКА", "ЭЛЕКТРОДЫ", "ПЕРЕХОДЫ",
+            "СТАЛЬ ЛИСТОВАЯ", "СТАЛЬ СОРТ", "ПРОВОЛОКА", "КАЛИБРОВКА", "ФАСОН",
+            "ЦВЕТНОЙ ПРОКАТ", "АЛЮМИНИЕВЫЙ", "МЕДНЫЙ", "ЛАТУННЫЙ", "БРОНЗОВЫЙ", "ДЮРАЛЕВЫЙ"
+        };
+
         // Подзаголовки таблиц, которые нужно пропускать
         private static readonly HashSet<string> SubHeaderKeywords = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -41,7 +50,7 @@ namespace Metal_Code.Utils
                 {
                     while (reader.Read())
                     {
-                        // Извлекаем значения двух горизонтальных блоков (колонки 0-3 и 5-8)
+                        // Извлекаем значения двух горизонтальных блоков
                         string c0 = reader.GetValue(0)?.ToString()?.Trim() ?? "";
                         string c1 = reader.GetValue(1)?.ToString()?.Trim() ?? "";
                         string c2 = reader.GetValue(2)?.ToString()?.Trim() ?? "";
@@ -52,21 +61,22 @@ namespace Metal_Code.Utils
                         string c7 = reader.GetValue(7)?.ToString()?.Trim() ?? "";
                         string c8 = reader.GetValue(8)?.ToString()?.Trim() ?? "";
 
-                        // 🔥 1. Определяем категорию: ищем вхождение любого ключевого слова
-                        if (!string.IsNullOrEmpty(c0))
+                        // 🔥 1. Проверяем, является ли строка ЗАГОЛОВКОМ СЕКЦИИ (левый блок)
+                        if (IsCategoryHeader(c0, c1, c2, c3))
                         {
-                            var matched = PriceAggregator.CategoryMap.FirstOrDefault(kvp =>
-                                c0.Contains(kvp.Key, StringComparison.OrdinalIgnoreCase));
-
-                            if (matched.Key != null)
-                            {
-                                // Сохраняем НОРМАЛИЗОВАННОЕ название категории
-                                currentCategory = matched.Value;
-                                continue;
-                            }
+                            // Нормализуем категорию через словарь (если есть) или оставляем как есть
+                            currentCategory = NormalizeCategory(c0);
+                            continue;
                         }
 
-                        // 🔥 2. Парсим оба горизонтальных блока данных
+                        // 🔥 2. Проверяем заголовок секции в правом блоке (колонка 5)
+                        if (IsCategoryHeader(c5, c6, c7, c8))
+                        {
+                            currentCategory = NormalizeCategory(c5);
+                            continue;
+                        }
+
+                        // 3. Парсим данные из обоих блоков
                         ProcessBlock(currentCategory, c0, c1, c2, c3, items);
                         ProcessBlock(currentCategory, c5, c6, c7, c8, items);
                     }
@@ -74,6 +84,51 @@ namespace Metal_Code.Utils
 
                 return items;
             });
+        }
+
+        /// <summary>
+        /// Определяет, является ли строка заголовком категории.
+        /// Признаки: колонка 0 содержит текст, а 1-3 пустые или содержат служебные слова.
+        /// </summary>
+        private static bool IsCategoryHeader(string c0, string c1, string c2, string c3)
+        {
+            if (string.IsNullOrWhiteSpace(c0))
+                return false;
+
+            // Если следующие колонки пустые или содержат только служебные слова → это заголовок
+            bool nextColumnsEmpty = string.IsNullOrWhiteSpace(c1) &&
+                                   string.IsNullOrWhiteSpace(c2) &&
+                                   string.IsNullOrWhiteSpace(c3);
+
+            // Или если содержат только подзаголовки (Марка, диаметр и т.д.)
+            bool nextColumnsAreSubHeaders = SubHeaderKeywords.Any(kw =>
+                (c1?.Contains(kw, StringComparison.OrdinalIgnoreCase) == true) ||
+                (c2?.Contains(kw, StringComparison.OrdinalIgnoreCase) == true) ||
+                (c3?.Contains(kw, StringComparison.OrdinalIgnoreCase) == true));
+
+            // Заголовок должен содержать хотя бы одно ключевое слово категории
+            bool containsCategoryKeyword = CategoryKeywords.Any(kw =>
+                c0.Contains(kw, StringComparison.OrdinalIgnoreCase));
+
+            return (nextColumnsEmpty || nextColumnsAreSubHeaders) && containsCategoryKeyword;
+        }
+
+        /// <summary>
+        /// Нормализует название категории через словарь.
+        /// Если не найдено → возвращает исходное название.
+        /// </summary>
+        private static string NormalizeCategory(string rawCategory)
+        {
+            if (string.IsNullOrWhiteSpace(rawCategory))
+                return "Не определено";
+
+            // Ищем первое совпадение по ключевому слову
+            var matched = PriceAggregator.CategoryMap.FirstOrDefault(kvp =>
+                rawCategory.Contains(kvp.Key, StringComparison.OrdinalIgnoreCase));
+
+            // Если нашли в словаре → возвращаем нормализованное значение
+            // Иначе → возвращаем очищенное исходное название
+            return matched.Value ?? rawCategory.Trim();
         }
 
         private void ProcessBlock(string category, string name, string dim, string unit, string priceStr, List<PriceListItem> list)
@@ -139,80 +194,23 @@ namespace Metal_Code.Utils
 
     public static class PriceAggregator
     {
-        // 🔥 Маппинг: "фрагмент заголовка из прайса" → "нормализованная категория"
-        // Используется для: 1) определения категории при парсинге, 2) фильтрации при агрегации
         public static readonly Dictionary<string, string> CategoryMap = new(StringComparer.OrdinalIgnoreCase)
         {
-            // === ЧЁРНЫЕ МЕТАЛЛЫ: ЛИСТОВОЙ ПРОКАТ ===
-            { "СТАЛЬ ЛИСТ Г/К", "Лист" },
-            { "СТАЛЬ ЛИСТОВАЯ Г/К", "Лист" },
-            { "СТАЛЬ ЛИСТОВАЯ Х/К", "Лист" },
-            { "СТАЛЬ ЛИСТОВАЯ ОЦИНКОВАННАЯ", "Лист" },
+            // Основные категории для нормализации (не обязательно все)
             { "ЛИСТ", "Лист" },
-            { "ЛИСТ РИФЛЕНЫЙ", "Лист" },
-            { "ПРОСЕЧНО-ВЫТЯЖНОЙ ЛИСТ", "Лист" },
-            
-            // === ЧЁРНЫЕ МЕТАЛЛЫ: ТРУБЫ ПРОФИЛЬНЫЕ ===
             { "ТРУБЫ ЭЛЕКТРОСВАРНЫЕ КВАДРАТ", "Труба профильная" },
-            { "ТРУБЫ КВАДРАТНЫЕ", "Труба профильная" },
             { "ТРУБЫ ЭЛЕКТРОСВАРНЫЕ ПРЯМОУГ", "Труба профильная" },
-            { "ТРУБЫ ПРЯМОУГОЛЬНЫЕ", "Труба профильная" },
-            
-            // === ЧЁРНЫЕ МЕТАЛЛЫ: ТРУБЫ КРУГЛЫЕ ===
-            { "ТРУБЫ ВОДОГАЗОПРОВ", "Труба круглая" },
-            { "ТРУБЫ Г/Д", "Труба круглая" },
-            { "ТРУБЫ Х/Д", "Труба круглая" },
-            { "ТРУБЫ ЭЛЕКТРОСВАРНЫЕ", "Труба круглая" },
-            { "ТРУБЫ КРУГЛЫЕ", "Труба круглая" },
-            
-            // === ЧЁРНЫЕ МЕТАЛЛЫ: СОРТОВОЙ ПРОКАТ ===
+            { "ТРУБЫ", "Труба круглая" },
             { "УГОЛОК", "Уголок" },
-            { "УГОЛОК НИЗКОЛЕГИР", "Уголок" },
             { "ШВЕЛЛЕР", "Швеллер" },
-            { "ШВЕЛЛЕР ГНУТЫЙ", "Швеллер" },
-            { "ШВЕЛЛЕР НИЗКОЛЕГИР", "Швеллер" },
             { "БАЛКИ ДВУТАВРОВЫЕ", "Двутавр" },
-            { "БАЛКИ ДВУТАВРОВЫЕ НИЗКОЛЕГ", "Двутавр" },
-            { "ДВУТАВР", "Двутавр" },
             { "КРУГ", "Круг" },
-            { "КРУГ Г/К", "Круг" },
-            { "КВАДРАТ", "Квадрат" },
-            { "КВАДРАТ Г/К", "Квадрат" },
-            { "ПОЛОСА", "Полоса" },
-            { "ПОЛОСА Г/К", "Полоса" },
-            { "СТАЛЬ СОРТ КОНСТР КРУГ", "Круг" },
-            { "СТАЛЬ СОРТ КОНСТР ШЕСТИГРАННИК", "Шестигранник" },
-            { "СТАЛЬ СОРТ Х/Т КАЛИБРОВКА", "Калибровка" },
-            { "АРМАТУРА", "Арматура" },
-            
-            // === ЦВЕТНЫЕ МЕТАЛЛЫ: АЛЮМИНИЙ ===
-            { "АЛЮМИНИЕВЫЙ ЛИСТ", "Алюминиевый лист" },
-            { "АЛЮМИНИЕВАЯ ПЛИТА", "Алюминиевый лист" },
-            { "АЛЮМИНИЕВЫЙ КРУГ", "Алюминиевый профиль" },
-            { "АЛЮМИНИЕВАЯ ТРУБА", "Алюминиевый профиль" },
-            { "АЛЮМИНИЕВЫЙ УГОЛОК", "Алюминиевый профиль" },
-            
-            // === ЦВЕТНЫЕ МЕТАЛЛЫ: МЕДЬ ===
-            { "МЕДНЫЙ ЛИСТ", "Медный лист" },
-            { "МЕДНАЯ ЛЕНТА", "Медный лист" },
-            { "МЕДНЫЙ КРУГ", "Медный профиль" },
-            { "МЕДНАЯ ШИНА", "Медный профиль" },
-            { "МЕДНАЯ ТРУБКА", "Медный профиль" },
-            
-            // === ЦВЕТНЫЕ МЕТАЛЛЫ: ЛАТУНЬ ===
             { "ЛАТУННЫЙ ЛИСТ", "Латунный лист" },
-            { "ЛАТУННАЯ ЛЕНТА", "Латунный лист" },
-            { "ЛАТУННЫЙ КРУГ", "Латунный профиль" },
-            { "ЛАТУННЫЙ ШЕСТИГРАННИК", "Латунный профиль" },
-            
-            // === ЦВЕТНЫЕ МЕТАЛЛЫ: БРОНЗА ===
-            { "БРОНЗОВЫЙ КРУГ", "Бронзовый профиль" },
-            
-            // === ЦВЕТНЫЕ МЕТАЛЛЫ: ДЮРАЛЬ ===
-            { "ДЮРАЛЕВЫЙ ЛИСТ", "Дюралевый лист" },
-            { "ДЮРАЛЕВАЯ ПЛИТА", "Дюралевый лист" },
-            { "ДЮРАЛЕВЫЙ КРУГ", "Дюралевый профиль" },
-            { "ДЮРАЛЕВЫЙ ШЕСТИГРАННИК", "Дюралевый профиль" }
+            { "ЛАТУННАЯ ЛЕНТА", "Латунная лента" },
+            { "МЕДНЫЙ ЛИСТ", "Медный лист" },
+            { "АЛЮМИНИЕВЫЙ ЛИСТ", "Алюминиевый лист" },
+            { "ДЮРАЛЕВЫЙ ЛИСТ", "Дюралевый лист" }
+            // Можно добавить ещё, но не обязательно — парсер будет работать и без них
         };
 
         /// <summary>
@@ -235,8 +233,9 @@ namespace Metal_Code.Utils
                 // 4. Группируем по категории + марке сплава
                 .GroupBy(i => new
                 {
-                    Category = i.Category,
-                    Grade = ExtractGrade(i.ProductName)
+                    i.Category,
+                    // 🔥 Сначала извлекаем марку, затем нормализуем её под вашу БД
+                    Grade = NormalizeGrade(ExtractGrade(i.ProductName))
                 })
                 // 5. Считаем статистику
                 .Select(g => new CategoryAveragePrice
@@ -300,6 +299,22 @@ namespace Metal_Code.Utils
                 }
             }
             return "Не указана";
+        }
+
+        // Маппинг марок из прайса → названия в вашей БД
+        private static readonly Dictionary<string, string> GradeNormalizationMap = new(StringComparer.OrdinalIgnoreCase)
+            {
+                // Латунь
+                { "Л63", "латунь" }, { "Л63М", "латунь" }, { "ЛС59-1", "латунь" }, { "ЛС59-1М", "латунь" },
+                // Медь
+                { "М1", "медь" }, { "М1Р", "медь" }, { "М2", "медь" }, { "М3", "медь" },
+            };
+
+        private static string NormalizeGrade(string rawGrade)
+        {
+            if (string.IsNullOrWhiteSpace(rawGrade)) return rawGrade;
+            // Если марка есть в словаре → возвращаем нормализованное имя из БД
+            return GradeNormalizationMap.TryGetValue(rawGrade, out var normalized) ? normalized : rawGrade;
         }
     }
 }

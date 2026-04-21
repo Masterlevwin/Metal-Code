@@ -315,6 +315,13 @@
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
+            <MenuItem Header="Отчеты" x:Name="ReportsMenuItem">
+                <MenuItem Header="По текущим заказам" Click="Report_On_Current_Orders">
+                    <MenuItem.Icon>
+                        <Image Source="/Images/report.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
             <MenuItem Header="О программе">
                 <MenuItem Header="Руководство" Click="OpenExample">
                     <MenuItem.Icon>

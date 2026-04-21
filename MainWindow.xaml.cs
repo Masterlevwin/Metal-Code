@@ -26,6 +26,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
@@ -58,7 +59,8 @@ namespace Metal_Code
         {   //дом
             "Data Source=managers.db",
             //$"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
-            $"Data Source = C:\\Users\\Михаил\\Desktop\\Тест\\Базы\\managers.db",
+            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
+            //$"Data Source = C:\\Users\\Михаил\\Desktop\\Тест\\Базы\\managers.db",
             "Data Source=typedetails.db",
             $"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
             "Data Source=works.db",
@@ -592,12 +594,18 @@ namespace Metal_Code
 
             // Проверяем, нужно ли открыть файл
             var filePath = App.StartupFileToOpen;
-            if (!string.IsNullOrEmpty(filePath))
-            {
-                OpenFileOnStartup(filePath);
-            }
+            if (!string.IsNullOrEmpty(filePath)) OpenFileOnStartup(filePath);
 
+            UpdateMenuVisibility();
             ShowUpdateWindow();
+        }
+
+        private void UpdateMenuVisibility()
+        {
+            // 🔹 Скрываем меню "Отчеты", если менеджер не админ
+            ReportsMenuItem.Visibility = (CurrentManager?.IsAdmin == true)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         }
 
         public void ShowUpdateWindow()          // метод добавления и загрузки обновлений
@@ -1847,24 +1855,16 @@ namespace Metal_Code
                             _offer.Invoice = offer.Invoice;
                             db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
                         }
-                        if (_offer.CreatedDate != offer.CreatedDate)
-                        {
-                            _offer.CreatedDate = offer.CreatedDate;
-                            db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
-                        }
                         if (_offer.Order != offer.Order)
                         {
                             _offer.Order = offer.Order;
                             db.Entry(_offer).Property(o => o.Order).IsModified = true;
-                            _offer.CreatedDate = DateTime.UtcNow;
-                            db.Entry(_offer).Property(o => o.CreatedDate).IsModified = true;
                         }
                         if (_offer.Act != offer.Act)
                         {
                             _offer.Act = offer.Act;
                             db.Entry(_offer).Property(a => a.Act).IsModified = true;
                         }
-
                         //дата отгрузки меняется программно по кнопке добавления в отчет
                         if (_offer.EndDate != offer.EndDate)
                         {
@@ -1883,6 +1883,8 @@ namespace Metal_Code
                                     off.Agent = offer.Agent;
                                     off.Invoice = offer.Invoice;
                                     off.Order = offer.Order;
+                                    off.Act = offer.Act;
+                                    off.EndDate = offer.EndDate;
                                 }
                             }
                             TempOffersDict[2].Add(_offer);
@@ -1916,6 +1918,31 @@ namespace Metal_Code
             DataContractJsonSerializer serializer = new(typeof(Product));
 
             return (Product?)serializer.ReadObject(stream);         //возвращаем десериализованный объект
+        }
+
+        public static Product? OpenOfferDataSafe(string json, out string? error)
+        {
+            error = null;
+            try
+            {
+                if (string.IsNullOrWhiteSpace(json)) return null;
+                return OpenOfferData(json);
+            }
+            catch (System.Runtime.Serialization.SerializationException ex)
+            {
+                error = $"Serialization: {ex.Message}";
+                return null;
+            }
+            catch (JsonException ex)
+            {
+                error = $"JSON: {ex.Message}";
+                return null;
+            }
+            catch (Exception ex)
+            {
+                error = $"Unexpected: {ex.GetBaseException().Message}";
+                return null;
+            }
         }
 
         private void UpdateDatabases(object sender, RoutedEventArgs e)      //метод обновления локальных баз
@@ -3086,7 +3113,7 @@ namespace Metal_Code
 
             // ----- таблица разбивки цены детали по работам (Лист3 - "Статистика") -----
 
-            //      50      51      52      53      54      55        56      57        58      59      60          61          62         63         64       65      66      67         68           69     70
+            //                                  50      51      52      53      54      55        56      57        58      59      60          61          62         63         64       65      66      67         68           69     70
             List<string> _heads = new() { "Материал", "Лазер", "Гиб", "Свар", "Окр", "Резьба", "Зенк", "Сверл", "Вальц", "Допы П", "Допы Л", "Труборез", "Констр", "Доставка", "Фрезер", "Закл", "Аква", "Цинк", "S покр / вес", "цвет", "П" };
 
             int rowStat = 0;        //счетчик строк всех деталей
@@ -5771,6 +5798,24 @@ namespace Metal_Code
         #endregion
 
 
+        //-------------Отчеты по заказам-----------------//
+        #region
+        private async void Report_On_Current_Orders(object sender, RoutedEventArgs e)
+        {
+            // 🔹 Защита: только админы могут формировать отчеты
+            if (CurrentManager?.IsAdmin != true)
+            {
+                MessageBox.Show(this, "Доступ запрещён. Только для администраторов.",
+                    "Нет прав", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var previewWindow = new ReportPreviewWindow(connections[1]) { Owner = this };
+            previewWindow.ShowDialog();
+        }
+        #endregion
+
+
         //-------------Заказчики----------------//
         #region
         private void CustomerChanged(object sender, SelectionChangedEventArgs e)        //метод смены заказчика
@@ -7718,7 +7763,6 @@ namespace Metal_Code
                 }
             }
         }
-
 
         private async void LoadPrices(object sender, RoutedEventArgs e)
         {

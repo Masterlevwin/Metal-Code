@@ -1,14 +1,10 @@
 ﻿using ExcelDataReader;
 using Metal_Code.Utils;
-using OfficeOpenXml;
-using OfficeOpenXml.Drawing;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
-using System.Diagnostics;
-using System.Drawing.Printing;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;

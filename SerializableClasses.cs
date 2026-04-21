@@ -274,7 +274,6 @@ namespace Metal_Code
         public void NotifyTotalChanged() => OnPropertyChanged(nameof(Total));
     }
 
-
     public class Hole
     {
         public double Diameter { get; set; }
