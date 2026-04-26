@@ -53,6 +53,7 @@
     <None Remove="Images\express.png" />
     <None Remove="Images\fixed.png" />
     <None Remove="Images\greenplus.png" />
+    <None Remove="Images\hazard.png" />
     <None Remove="Images\lamp.png" />
     <None Remove="Images\list.png" />
     <None Remove="Images\load.png" />
@@ -215,6 +216,7 @@
     <Resource Include="Images\express.png" />
     <Resource Include="Images\fixed.png" />
     <Resource Include="Images\greenplus.png" />
+    <Resource Include="Images\hazard.png" />
     <Resource Include="Images\lamp.png" />
     <Resource Include="Images\list.png" />
     <Resource Include="Images\load.png" />

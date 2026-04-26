@@ -739,6 +739,12 @@ namespace Metal_Code
         {
             return Comment != null && Comment.Contains(textToCheck);
         }
+
+        // Уточнить стоимость материала путем загрузки прайсов
+        private void LoadPrices(object sender, RoutedEventArgs e)
+        {
+            MainWindow.M.LoadPrices(sender, e);
+        }
     }
 
     public static class StockTypeColors

@@ -7764,7 +7764,7 @@ namespace Metal_Code
             }
         }
 
-        private async void LoadPrices(object sender, RoutedEventArgs e)
+        public async void LoadPrices(object sender, RoutedEventArgs e)
         {
             try
             {
