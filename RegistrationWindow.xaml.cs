@@ -48,7 +48,7 @@ namespace Metal_Code
                 Name = login,
                 Password = password,
                 Contact = Environment.MachineName,
-                IsAdmin = true
+                IsAdmin = false
             };
 
             if (IsEngineer.IsChecked == true) manager.IsEngineer = true;

@@ -596,16 +596,7 @@ namespace Metal_Code
             var filePath = App.StartupFileToOpen;
             if (!string.IsNullOrEmpty(filePath)) OpenFileOnStartup(filePath);
 
-            UpdateMenuVisibility();
             ShowUpdateWindow();
-        }
-
-        private void UpdateMenuVisibility()
-        {
-            // 🔹 Скрываем меню "Отчеты", если менеджер не админ
-            ReportsMenuItem.Visibility = (CurrentManager?.IsAdmin == true)
-                ? Visibility.Visible
-                : Visibility.Collapsed;
         }
 
         public void ShowUpdateWindow()          // метод добавления и загрузки обновлений
@@ -2391,7 +2382,12 @@ namespace Metal_Code
                             {
                                 foreach (Part p in _cut.PartDetails)
                                 {
-                                    if (_cut is CutControl && _cut.HaveCut) p.Description = "Л";
+                                    if (_cut is CutControl cut && cut.HaveCut)
+                                    {
+                                        p.Description = "Л";
+                                        if (cut.HaveNitro && (Log is null || !Log.Contains("Проверьте общую стоимость резки АЗОТОМ!")))
+                                            Log += "\nПроверьте общую стоимость резки АЗОТОМ!\nМинимальная стоимость - 25 000 руб.\n";
+                                    }
                                     else if (_cut is PipeControl && _cut.HaveCut) p.Description = "Т";
                                     else if (_cut is SawControl) p.Description = "ЛП";
                                     else p.Description = "Б";
@@ -5802,14 +5798,6 @@ namespace Metal_Code
         #region
         private async void Report_On_Current_Orders(object sender, RoutedEventArgs e)
         {
-            // 🔹 Защита: только админы могут формировать отчеты
-            if (CurrentManager?.IsAdmin != true)
-            {
-                MessageBox.Show(this, "Доступ запрещён. Только для администраторов.",
-                    "Нет прав", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
             var previewWindow = new ReportPreviewWindow(connections[1]) { Owner = this };
             previewWindow.ShowDialog();
         }
@@ -7776,7 +7764,7 @@ namespace Metal_Code
 
                 // 3. Создаём окно и загружаем данные
                 var priceMetalWindow = new PriceMetalWindow();
-                priceMetalWindow.LoadData(rawItems, averages);
+                priceMetalWindow.LoadData(averages);
 
                 // 4. Показываем окно
                 priceMetalWindow.Show();

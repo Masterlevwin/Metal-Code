@@ -60,6 +60,44 @@
           VerticalGridLinesBrush="{DynamicResource BorderBrush}">
 
             <DataGrid.Columns>
+                <!-- 🔹 Колонка удаления -->
+                <DataGridTemplateColumn Header="✕" Width="40" CanUserResize="False" CanUserReorder="False">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="✕" 
+                        Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                        CommandParameter="{Binding}"
+                        ToolTip="Исключить из отчета"
+                        Padding="2" Width="24" Height="24" 
+                        Background="Transparent" BorderThickness="0"
+                        Foreground="{DynamicResource DangerBrush}"
+                        HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="Transparent" 
+                                                BorderBrush="Transparent" 
+                                                CornerRadius="4">
+                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#FFE0E0"/>
+                                                            <Setter Property="Foreground" Value="#CC0000"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
                 <DataGridTextColumn Header="№" Binding="{Binding Number}" Width="80"/>
                 <DataGridTextColumn Header="Компания" Binding="{Binding Company}" Width="150"/>
                 <DataGridCheckBoxColumn Header="Нал" Binding="{Binding IsCash}" Width="50"/>
@@ -68,32 +106,32 @@
                 <DataGridTextColumn Header="Дата" Binding="{Binding CreatedDate, StringFormat=dd.MM.yyyy}" Width="80"/>
                 
                 <!-- 🔹 Стоимости -->
-                <DataGridTextColumn Header="Сумма" Binding="{Binding TotalAmount, Converter={StaticResource CostConverter}}" Width="100">
+                <DataGridTextColumn Header="Сумма" Binding="{Binding TotalAmount, Converter={StaticResource CostConverter}}" Width="90">
                     <DataGridTextColumn.ElementStyle>
                         <StaticResource ResourceKey="RightAlignedCell"/>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="Материал" Binding="{Binding MaterialAmount, Converter={StaticResource CostConverter}}" Width="100">
+                <DataGridTextColumn Header="Материал" Binding="{Binding MaterialAmount, Converter={StaticResource CostConverter}}" Width="90">
                     <DataGridTextColumn.ElementStyle>
                         <StaticResource ResourceKey="RightAlignedCell"/>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="Лазер" Binding="{Binding LaserCost, Converter={StaticResource CostConverter}}" Width="100">
+                <DataGridTextColumn Header="Лазер" Binding="{Binding LaserCost, Converter={StaticResource CostConverter}}" Width="90">
                     <DataGridTextColumn.ElementStyle>
                         <StaticResource ResourceKey="RightAlignedCell"/>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="Гибка" Binding="{Binding BendingCost, Converter={StaticResource CostConverter}}" Width="100">
+                <DataGridTextColumn Header="Гибка" Binding="{Binding BendingCost, Converter={StaticResource CostConverter}}" Width="90">
                     <DataGridTextColumn.ElementStyle>
                         <StaticResource ResourceKey="RightAlignedCell"/>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="Труборез" Binding="{Binding PipeCost, Converter={StaticResource CostConverter}}" Width="100">
+                <DataGridTextColumn Header="Труборез" Binding="{Binding PipeCost, Converter={StaticResource CostConverter}}" Width="90">
                     <DataGridTextColumn.ElementStyle>
                         <StaticResource ResourceKey="RightAlignedCell"/>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                <DataGridTextColumn Header="Производство" Binding="{Binding ProductionCost, Converter={StaticResource CostConverter}}" Width="100">
+                <DataGridTextColumn Header="Производство" Binding="{Binding ProductionCost, Converter={StaticResource CostConverter}}" Width="90">
                     <DataGridTextColumn.ElementStyle>
                         <StaticResource ResourceKey="RightAlignedCell"/>
                     </DataGridTextColumn.ElementStyle>

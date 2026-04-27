@@ -315,7 +315,7 @@
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
-            <MenuItem Header="Отчеты" x:Name="ReportsMenuItem">
+            <MenuItem Header="Отчеты">
                 <MenuItem Header="По текущим заказам" Click="Report_On_Current_Orders">
                     <MenuItem.Icon>
                         <Image Source="/Images/report.png"/>

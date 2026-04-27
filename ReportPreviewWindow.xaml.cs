@@ -15,7 +15,12 @@ namespace Metal_Code
 {
     public partial class ReportPreviewWindow : Window, INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged(string name)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
         private readonly string _connectionString;
+
         private ObservableCollection<OfferReportPreviewItem> _items = new();
         // 🔹 Данные
         public ObservableCollection<OfferReportPreviewItem> Items
@@ -28,6 +33,7 @@ namespace Metal_Code
         public RelayCommand RefreshCommand { get; }
         public RelayCommand ExportCommand { get; }
         public RelayCommand CloseCommand { get; }
+        public RelayCommand DeleteCommand { get; }
 
         // 🔹 События
         public event Action<IEnumerable<OfferReportPreviewItem>>? ExportRequested;
@@ -76,6 +82,9 @@ namespace Metal_Code
                 execute: _ => ExportToExcelWithDialog(),
                 canExecute: _ => Items?.Count > 0);
             CloseCommand = new RelayCommand(_ => Close());
+            DeleteCommand = new RelayCommand(
+                execute: obj => RemoveItemFromReport(obj as OfferReportPreviewItem),
+                canExecute: obj => obj is OfferReportPreviewItem);
 
             LoadDataAsync();
         }
@@ -87,12 +96,29 @@ namespace Metal_Code
                 using var db = new ManagerContext(_connectionString);
                 var startOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
 
-                // 1️. Загружаем только нужные поля с расширенным фильтром
-                var rawData = await db.Offers
+                // 🔹 Базовый запрос
+                var query = db.Offers
                     .AsNoTracking()
                     .Where(o => !string.IsNullOrWhiteSpace(o.Order) &&
                                 o.EndDate == null &&
-                                o.CreatedDate >= startOfMonth)
+                                o.CreatedDate >= startOfMonth);
+
+                // 🔹 🔥 КЛЮЧЕВОЕ: фильтр по текущему менеджеру, если он не админ
+                if (MainWindow.M.CurrentManager.IsAdmin &&
+                    (MainWindow.M.CurrentManager.Name == "Серых Михаил"
+                    || MainWindow.M.CurrentManager.Name == "Сергеев Юрий"))
+                {
+                    MainWindow.M.StatusBegin("Отчет по всем менеджерам (режим администратора)", MainWindow.StatusMessageType.Info);
+                }
+                else
+                {
+                    query = query.Where(o => o.ManagerId == MainWindow.M.CurrentManager.Id);
+                    MainWindow.M.StatusBegin($"Отчет по заказам менеджера: {MainWindow.M.CurrentManager.Name}", MainWindow.StatusMessageType.Info);
+                }
+
+
+                // 1️. Загружаем только нужные поля с расширенным фильтром
+                var rawData = await query
                     .Select(o => new
                     {
                         o.Id,
@@ -274,10 +300,33 @@ namespace Metal_Code
             return total;
         }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected void OnPropertyChanged(string name)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
+        /// <summary>
+        /// Удаляет расчет из текущей выборки отчета (не затрагивает БД)
+        /// </summary>
+        private void RemoveItemFromReport(OfferReportPreviewItem? item)
+        {
+            if (item == null) return;
+
+            var result = MessageBox.Show(
+                this,
+                $"Удалить расчет №{item.Number} из отчета?\n\nДанные в базе данных не изменятся.",
+                "Подтверждение",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                // 🔹 Удаляем из коллекции (UI обновится автоматически)
+                Items.Remove(item);
+
+                // 🔹 Пересчитываем итоги
+                RecalculateTotals();
+
+                // 🔹 Обновляем представление (на случай, если группа стала пустой)
+                if (Items.Count == 0) CollectionViewSource.GetDefaultView(Items).Refresh();
+            }
+        }
 
         /// <summary>
         /// Показывает диалог сохранения и запускает экспорт

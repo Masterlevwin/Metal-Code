@@ -21,18 +21,11 @@ namespace Metal_Code
         // Коллекция для агрегированных данных
         public List<CategoryAveragePrice> AggregatedPrices { get; set; } = new();
 
-        // Коллекция для полного прайса
-        public List<PriceListItem> FullPriceList { get; set; } = new();
-
         // Метод для удобной загрузки данных извне
-        public void LoadData(List<PriceListItem> fullList, List<CategoryAveragePrice> aggregatedList)
+        public void LoadData(List<CategoryAveragePrice> aggregatedList)
         {
-            FullPriceList = fullList;
             AggregatedPrices = aggregatedList;
-
-            // Привязываем к DataGrid
             AggregatedDataGrid.ItemsSource = AggregatedPrices;
-            FullPriceDataGrid.ItemsSource = FullPriceList;
 
             // Совпадающие позиции (верхняя таблица)
             if (MainWindow.M.Metals != null && MainWindow.M.Metals.Any())
@@ -47,20 +40,19 @@ namespace Metal_Code
                         ItemsCount = a.ItemsCount,
                         MinPrice = a.MinPrice,
                         MaxPrice = a.MaxPrice,
+                        PriceWithMarkup = a.PriceWithMarkup
                     })
                     .OrderByDescending(x => x.CategoryName)
                     .ThenBy(x => x.Grade)
                     .ToList();
 
                 MatchedDataGrid.ItemsSource = matched;
-
-                // Обновляем заголовок окна
-                Title = $"Прайс: {matched.Count} совпадений | {aggregatedList.Count} категорий | {fullList.Count} позиций";
+                Title = $"Прайс: {matched.Count} совпадений | {aggregatedList.Count} категорий";
             }
             else
             {
                 MatchedDataGrid.ItemsSource = new List<MatchedPriceItem>();
-                Title = $"Прайс: {aggregatedList.Count} категорий | {fullList.Count} позиций";
+                Title = $"Прайс: {aggregatedList.Count} категорий";
             }
 
             // 🔥 Подсветка строк через код
