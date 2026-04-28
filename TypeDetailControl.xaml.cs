@@ -1,15 +1,18 @@
-﻿using System.Collections.Generic;
-using System.Windows.Controls;
-using System.Windows;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+﻿using Metal_Code.Utils;
+using Microsoft.Win32;
 using System;
-using System.Runtime.Serialization;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
 using System.Linq;
-using System.Windows.Media;
+using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Diagnostics;
 
 namespace Metal_Code
 {
@@ -603,10 +606,10 @@ namespace Metal_Code
                 //};
                 float thicknessMultiplier = 1;
 
-                box.ToolTip = $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(basePrice * thicknessMultiplier)} руб)";
+                box.ToolTip = $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(ExtraResult > 0 ? ExtraResult / Mass : basePrice * thicknessMultiplier)} руб)";
             }
             else if (S == 0)       //для кругов и квадратов
-                box.ToolTip = $"Стоимость материала, руб\n(цена металла - {metal.MassPrice * 1.3f} руб)";
+                box.ToolTip = $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(ExtraResult > 0 ? ExtraResult / Mass : metal.MassPrice * 1.3f)} руб)";
         }
 
         private void AddWork(object sender, RoutedEventArgs e) => AddWork();
@@ -740,10 +743,77 @@ namespace Metal_Code
             return Comment != null && Comment.Contains(textToCheck);
         }
 
+
         // Уточнить стоимость материала путем загрузки прайсов
-        private void LoadPrices(object sender, RoutedEventArgs e)
+        public async void LoadPrices(object sender, RoutedEventArgs e)
         {
-            MainWindow.M.LoadPrices(sender, e);
+            try
+            {
+                // 1. Парсим весь прайс
+                var rawItems = await LoadPriceListFromDialogAsync();
+
+                // 2. Агрегируем в средние цены
+                var averages = PriceAggregator.AggregateToAverages(rawItems);
+
+                // 3. Создаём окно и загружаем данные
+                var priceMetalWindow = new PriceMetalWindow(this);
+                priceMetalWindow.LoadData(averages);
+
+                // 4. Показываем окно
+                priceMetalWindow.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка импорта", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        public async Task<List<PriceListItem>> LoadPriceListFromDialogAsync()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Выберите прайс-лист(ы) металла",
+                Filter = "Excel файлы|*.xls;*.xlsx|Все файлы|*.*",
+                DefaultExt = ".xlsx",
+                Multiselect = true, // 🔥 Ключевое изменение: разрешаем выбор нескольких файлов
+                InitialDirectory = MainWindow.M.connections[9]
+            };
+
+            bool? result = dialog.ShowDialog();
+            if (result == true && dialog.FileNames.Length > 0)
+            {
+                var allItems = new List<PriceListItem>();
+                var errors = new List<string>();
+
+                // Парсим каждый выбранный файл
+                foreach (var filePath in dialog.FileNames)
+                {
+                    try
+                    {
+                        var parser = new PriceListParserService();
+                        var items = await parser.ParseAsync(filePath);
+
+                        allItems.AddRange(items);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Логируем ошибку, но продолжаем обработку остальных файлов
+                        errors.Add($"{Path.GetFileName(filePath)}: {ex.Message}");
+                    }
+                }
+
+                // Если все файлы не распарсились — выбрасываем исключение
+                if (allItems.Count == 0 && errors.Count > 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Не удалось обработать ни один файл.\nОшибки:\n{string.Join("\n", errors)}");
+                }
+
+                return allItems;
+            }
+
+            // Пользователь нажал "Отмена"
+            return new List<PriceListItem>();
         }
     }
 

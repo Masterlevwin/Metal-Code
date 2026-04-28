@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -400,19 +399,21 @@ public static class PriceAggregator
         {
             if (string.IsNullOrWhiteSpace(text)) return false;
 
-            // Проверяем наличие разделителей размеров: "х", "x", "×" (кириллическая, латинская, знак умножения)
-            var separators = new[] { "х", "x", "×" };
-            foreach (var sep in separators)
-            {
-                if (text.Contains(sep, StringComparison.OrdinalIgnoreCase))
-                {
-                    var parts = text.Split(new[] { sep }, StringSplitOptions.RemoveEmptyEntries);
-                    // Если все части — числа, это размер
-                    return parts.All(p => decimal.TryParse(p.Trim().Replace(".", ","), out _));
-                }
-            }
+            // 🔥 Все возможные варианты разделителей размеров:
+            // - Кириллические: Х (заглавная), х (строчная)
+            // - Латинские: X (заглавная), x (строчная)  
+            // - Знак умножения: ×
+            var separators = new[] { 'Х', 'х', 'X', 'x', '×' };
 
-            return false;
+            // Проверяем, содержит ли текст любой из разделителей
+            if (!separators.Any(sep => text.Contains(sep)))
+                return false;
+
+            // Разбиваем по всем разделителям сразу
+            var parts = text.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+
+            // Если все части — числа, это размер (например, "100х100", "60x40", "180Х50")
+            return parts.Length >= 2 && parts.All(p => decimal.TryParse(p.Trim().Replace(".", ","), out _));
         }
 
         /// <summary>

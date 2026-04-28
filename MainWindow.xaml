@@ -260,7 +260,6 @@
                 <MenuItem Header="База материалов" Click="OpenSettings"/>
                 <Separator/>
                 <MenuItem Header="Обновить базы" Click="UpdateDatabases"/>
-                <MenuItem Header="Загрузить прайсы" Click="LoadPrices"/>
                 <Separator/>
                 <MenuItem Header="Получить новые расчеты" x:Name="GetBtn" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Click="Show_SearchWindow">
                     <MenuItem.Icon>

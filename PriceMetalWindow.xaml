@@ -1,89 +1,90 @@
 ﻿<Window x:Class="Metal_Code.PriceMetalWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Прайс-лист металла" 
-        Height="600" Width="1400"
-        WindowStartupLocation="CenterScreen">
+        xmlns:hc="https://handyorg.github.io/handycontrol"
+        Title="Прайс-лист металла"
+        WindowStartupLocation="CenterScreen" SizeToContent="Width">
 
-    <Grid Margin="10">
-        <Grid.ColumnDefinitions>
-            <!-- Левая колонка: Агрегированные средние (55%) -->
-            <ColumnDefinition Width="5.5*"/>
-            <ColumnDefinition Width="8"/>
-            <!-- Правая колонка: Совпадающие позиции (45%) -->
-            <ColumnDefinition Width="4.5*"/>
-        </Grid.ColumnDefinitions>
+    <!-- Отступы окна -->
+    <Grid Margin="20">
 
-        <!-- 🔥 ЛЕВАЯ ТАБЛИЦА: Агрегированные средние (все категории) -->
-        <GroupBox Grid.Column="0" Header="📊 Все средние цены по категориям" 
-                  FontWeight="Bold" Foreground="#1565C0">
-            <DataGrid x:Name="AggregatedDataGrid"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      CanUserAddRows="False"
-                      GridLinesVisibility="Horizontal"
-                      AlternatingRowBackground="#E3F2FD"
-                      EnableRowVirtualization="True"
-                      VirtualizingPanel.IsVirtualizing="True">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Категория" Binding="{Binding CategoryName}" Width="1.5*" FontWeight="SemiBold"/>
-                    <DataGridTextColumn Header="Марка" Binding="{Binding Grade}" Width="1*" Foreground="#1565C0"/>
+        <!-- 🔥 TABCONTROL: Стандартный WPF для гарантированного отображения заголовков -->
+        <hc:TabControl Style="{StaticResource TabControlCapsule}" 
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    Background="{DynamicResource RegionBrush}" HorizontalAlignment="Center">
 
-                    <!-- Цена с наценкой -->
-                    <DataGridTextColumn Header="Цена с наценкой" 
-                                        Binding="{Binding PriceWithMarkup, StringFormat=N2}" 
-                                        Width="1.3*" 
-                                        TextBlock.TextAlignment="Right" 
-                                        Foreground="#D32F2F" 
-                                        FontWeight="Bold"
-                                        FontSize="12"/>
+            <!-- ВКЛАДКА 1: Итоговая таблица (Основная) -->
+            <hc:TabItem Header="✅ Найдено в базе металлов" FontSize="14" FontWeight="SemiBold">
+                <DataGrid x:Name="MatchedDataGrid" IsReadOnly="True" CanUserAddRows="False"
+                          GridLinesVisibility="Horizontal" FrozenColumnCount="3"
+                          EnableRowVirtualization="True" AutoGenerateColumns="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Категория" Binding="{Binding CategoryName}" FontWeight="SemiBold"/>
+                        <DataGridTextColumn Header="Марка" Binding="{Binding Grade}" Foreground="Blue"/>
+                        <DataGridTextColumn Header="Цена с наценкой" Binding="{Binding PriceWithMarkup, StringFormat=N2}" 
+                                            TextBlock.TextAlignment="Right" Foreground="#D32F2F" FontWeight="Bold"/>
+                        <!-- Кнопка Применить -->
+                        <DataGridTemplateColumn Header="Действие" Width="Auto">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Width="32" Height="32" Padding="0" Cursor="Hand"
+                    Background="#4CAF50" Foreground="White"
+                    ToolTip="Применить цену" ToolTipService.Placement="Left"
+                    Tag="{Binding}" Click="BtnApplyPrice_Click">
+                                        <Button.Content>
+                                            <Path Data="M 8,16 L 3,11 L 4.4,9.6 L 8,13.2 L 19.6,1.6 L 21,3 Z" 
+                          Fill="White" Stretch="Uniform" Width="14" Height="14"/>
+                                        </Button.Content>
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="4">
+                                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#43A047"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter Property="Background" Value="#388E3C"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </hc:TabItem>
 
-                    <DataGridTextColumn Header="Средняя цена" Binding="{Binding AveragePricePerKg, StringFormat=N2}" Width="1*" TextBlock.TextAlignment="Right" Foreground="Gray" FontSize="11"/>
-                    <DataGridTextColumn Header="Позиций" Binding="{Binding ItemsCount}" Width="Auto" TextBlock.TextAlignment="Center"/>
-                    <DataGridTextColumn Header="Мин" Binding="{Binding MinPrice, StringFormat=N2}" Width="Auto" TextBlock.TextAlignment="Right" Foreground="Gray" FontSize="10"/>
-                    <DataGridTextColumn Header="Макс" Binding="{Binding MaxPrice, StringFormat=N2}" Width="Auto" TextBlock.TextAlignment="Right" Foreground="Gray" FontSize="10"/>
-                </DataGrid.Columns>
-            </DataGrid>
-        </GroupBox>
+            <!-- ВКЛАДКА 2: Агрегированная таблица (Справочник) -->
+            <hc:TabItem Header="📊 Все средние цены по категориям" FontSize="14" FontWeight="SemiBold">
+                <DataGrid x:Name="AggregatedDataGrid"
+                          AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                          GridLinesVisibility="Horizontal" FrozenColumnCount="3"
+                          EnableRowVirtualization="True" Style="{StaticResource DataGrid.Small}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Категория" Binding="{Binding CategoryName}" FontWeight="SemiBold"/>
+                        <DataGridTextColumn Header="Марка" Binding="{Binding Grade}"/>
+                        <DataGridTextColumn Header="Цена с наценкой" Binding="{Binding PriceWithMarkup, StringFormat=N2}" 
+                                            TextBlock.TextAlignment="Right" Foreground="#D32F2F" FontWeight="Bold"/>
+                        <DataGridTextColumn Header="Средняя цена" Binding="{Binding AveragePricePerKg, StringFormat=N2}" 
+                                            TextBlock.TextAlignment="Right" Foreground="Gray"/>
+                        <DataGridTextColumn Header="Позиций" Binding="{Binding ItemsCount}" TextBlock.TextAlignment="Center"/>
+                        <DataGridTextColumn Header="Мин" Binding="{Binding MinPrice, StringFormat=N2}" TextBlock.TextAlignment="Right" Foreground="Gray"/>
+                        <DataGridTextColumn Header="Макс" Binding="{Binding MaxPrice, StringFormat=N2}" TextBlock.TextAlignment="Right" Foreground="Gray"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </hc:TabItem>
 
-        <!-- Вертикальный разделитель -->
-        <GridSplitter Grid.Column="1" 
-                      Width="5" 
-                      VerticalAlignment="Stretch" 
-                      Background="#BBDEFB"
-                      ShowsPreview="True"/>
-
-        <!-- 🔥 ПРАВАЯ ТАБЛИЦА: Совпадающие с БД позиции -->
-        <GroupBox Grid.Column="2" Header="✅ Найдено в базе металлов" 
-                  FontWeight="Bold" Foreground="#2E7D32" Background="#E8F5E9">
-            <DataGrid x:Name="MatchedDataGrid"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      CanUserAddRows="False"
-                      GridLinesVisibility="Horizontal"
-                      AlternatingRowBackground="#C8E6C9"
-                      RowHeight="32"
-                      EnableRowVirtualization="True"
-                      VirtualizingPanel.IsVirtualizing="True">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Категория" Binding="{Binding CategoryName}" Width="1.5*" FontWeight="SemiBold"/>
-                    <DataGridTextColumn Header="Марка" Binding="{Binding Grade}" Width="1*" Foreground="#1565C0"/>
-
-                    <!-- Цена с наценкой -->
-                    <DataGridTextColumn Header="Цена с наценкой" 
-                                        Binding="{Binding PriceWithMarkup, StringFormat=N2}" 
-                                        Width="1.3*" 
-                                        TextBlock.TextAlignment="Right" 
-                                        Foreground="#D32F2F" 
-                                        FontWeight="Bold"
-                                        FontSize="12"/>
-
-                    <DataGridTextColumn Header="Средняя цена" Binding="{Binding AveragePricePerKg, StringFormat=N2}" Width="1*" TextBlock.TextAlignment="Right" Foreground="Gray" FontSize="11"/>
-                    <DataGridTextColumn Header="Позиций" Binding="{Binding ItemsCount}" Width="Auto" TextBlock.TextAlignment="Center"/>
-                    <DataGridTextColumn Header="Мин" Binding="{Binding MinPrice, StringFormat=N2}" Width="Auto" TextBlock.TextAlignment="Right" Foreground="Gray" FontSize="10"/>
-                    <DataGridTextColumn Header="Макс" Binding="{Binding MaxPrice, StringFormat=N2}" Width="Auto" TextBlock.TextAlignment="Right" Foreground="Gray" FontSize="10"/>
-                </DataGrid.Columns>
-            </DataGrid>
-        </GroupBox>
+        </hc:TabControl>
     </Grid>
 </Window>

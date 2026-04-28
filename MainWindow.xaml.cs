@@ -610,10 +610,10 @@ namespace Metal_Code
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.6.9.6",
+                version: "v2.7.0.2",
                 releaseDate: new DateTime(2026, 03, 30),
-                description: "Изменилась форма ПКИ.\nДобавлен столбец \"Профиль\" в шаблон заявки.",
-                screenshotPath: "/Updates/v2.6.9.6_2026-03-30.png"
+                description: "Добавлена функция уточнения стоимости материала.",
+                screenshotPath: "/Updates/v2.7.0.2_2026-04-28.png"
             );
 
             // Получаем новые обновления
@@ -7750,77 +7750,6 @@ namespace Metal_Code
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
-        }
-
-        public async void LoadPrices(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                // 1. Парсим весь прайс
-                var rawItems = await LoadPriceListFromDialogAsync();
-
-                // 2. Агрегируем в средние цены
-                var averages = PriceAggregator.AggregateToAverages(rawItems);
-
-                // 3. Создаём окно и загружаем данные
-                var priceMetalWindow = new PriceMetalWindow();
-                priceMetalWindow.LoadData(averages);
-
-                // 4. Показываем окно
-                priceMetalWindow.Show();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Ошибка импорта", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        public async Task<List<PriceListItem>> LoadPriceListFromDialogAsync()
-        {
-            var dialog = new OpenFileDialog
-            {
-                Title = "Выберите прайс-лист(ы) металла",
-                Filter = "Excel файлы|*.xls;*.xlsx|Все файлы|*.*",
-                DefaultExt = ".xlsx",
-                Multiselect = true, // 🔥 Ключевое изменение: разрешаем выбор нескольких файлов
-                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-            };
-
-            bool? result = dialog.ShowDialog();
-            if (result == true && dialog.FileNames.Length > 0)
-            {
-                var allItems = new List<PriceListItem>();
-                var errors = new List<string>();
-
-                // Парсим каждый выбранный файл
-                foreach (var filePath in dialog.FileNames)
-                {
-                    try
-                    {
-                        var parser = new PriceListParserService();
-                        var items = await parser.ParseAsync(filePath);
-
-                        allItems.AddRange(items);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Логируем ошибку, но продолжаем обработку остальных файлов
-                        errors.Add($"{Path.GetFileName(filePath)}: {ex.Message}");
-                    }
-                }
-
-                // Если все файлы не распарсились — выбрасываем исключение
-                if (allItems.Count == 0 && errors.Count > 0)
-                {
-                    throw new InvalidOperationException(
-                        $"Не удалось обработать ни один файл.\nОшибки:\n{string.Join("\n", errors)}");
-                }
-
-                return allItems;
-            }
-
-            // Пользователь нажал "Отмена"
-            return new List<PriceListItem>();
         }
         #endregion
     }

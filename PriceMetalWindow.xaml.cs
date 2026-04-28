@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace Metal_Code
@@ -11,11 +12,14 @@ namespace Metal_Code
     /// Логика взаимодействия для PriceMetalWindow.xaml
     /// </summary>
     public partial class PriceMetalWindow : Window
-    {        
-        public PriceMetalWindow()
+    {
+        public TypeDetailControl TypeDetailControl {  get; set; }
+
+        public PriceMetalWindow(TypeDetailControl typeDetailControl)
         {
             InitializeComponent();
             DataContext = this;
+            TypeDetailControl = typeDetailControl;
         }
 
         // Коллекция для агрегированных данных
@@ -75,6 +79,47 @@ namespace Metal_Code
                         }
                     }
                 };
+            }
+        }
+
+        private void BtnApplyPrice_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Проверяем источник события
+            if (sender is not Button button) return;
+
+            // 2. Получаем данные из строки (только MatchedPriceItem)
+            var item = button.Tag as MatchedPriceItem ?? button.DataContext as MatchedPriceItem;
+            if (item == null)
+            {
+                MessageBox.Show("Не удалось определить данные для применения цены", "Ошибка",
+                               MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // 3. Подтверждение применения
+            var result = MessageBox.Show(
+                $"Применить цену {item.PriceWithMarkup:N2} ₽/кг для марки «{item.Grade}»?\n" +
+                $"Категория: {item.CategoryName}",
+                "Подтверждение применения",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes) return;
+
+            // 4. Расчёт и применение цены
+            try
+            {
+                // Работаем с decimal для точности, затем округляем вверх
+                decimal mass = (decimal)TypeDetailControl.Mass;
+                decimal extraResult = Math.Ceiling(item.PriceWithMarkup * mass);
+
+                // Обновляем заготовку через публичный метод (единая точка обновления)
+                TypeDetailControl.SetExtraResult((float)extraResult);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при расчёте: {ex.Message}", "Ошибка",
+                               MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }
