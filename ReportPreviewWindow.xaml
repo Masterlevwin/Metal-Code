@@ -4,7 +4,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Metal_Code"
         xmlns:converters="clr-namespace:Metal_Code.Converters"
-        Title="Предпросмотр отчета" 
+        Title="Отчет по отгруженным заказам за месяц"
         Width="1100" Height="600"
         WindowStartupLocation="CenterOwner">
 
@@ -103,7 +103,7 @@
                 <DataGridCheckBoxColumn Header="Нал" Binding="{Binding IsCash}" Width="50"/>
                 <DataGridTextColumn Header="Счёт" Binding="{Binding Invoice}" Width="60"/>
                 <DataGridTextColumn Header="Заказ" Binding="{Binding Order}" Width="60"/>
-                <DataGridTextColumn Header="Дата" Binding="{Binding CreatedDate, StringFormat=dd.MM.yyyy}" Width="80"/>
+                <DataGridTextColumn Header="Отгружен" Binding="{Binding EndDate, StringFormat=dd.MM.yyyy}" Width="80"/>
                 
                 <!-- 🔹 Стоимости -->
                 <DataGridTextColumn Header="Сумма" Binding="{Binding TotalAmount, Converter={StaticResource CostConverter}}" Width="90">

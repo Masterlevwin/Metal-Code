@@ -776,7 +776,7 @@ namespace Metal_Code
                 Filter = "Excel файлы|*.xls;*.xlsx|Все файлы|*.*",
                 DefaultExt = ".xlsx",
                 Multiselect = true, // 🔥 Ключевое изменение: разрешаем выбор нескольких файлов
-                InitialDirectory = MainWindow.M.connections[9]
+                InitialDirectory = MainWindow.M.connections[10]
             };
 
             bool? result = dialog.ShowDialog();

@@ -315,7 +315,7 @@
                 </MenuItem>
             </MenuItem>
             <MenuItem Header="Отчеты">
-                <MenuItem Header="По текущим заказам" Click="Report_On_Current_Orders">
+                <MenuItem Header="По отгруженным заказам за месяц" Click="Report_On_Shipped_Orders">
                     <MenuItem.Icon>
                         <Image Source="/Images/report.png"/>
                     </MenuItem.Icon>
@@ -727,13 +727,65 @@
                                             </ContextMenu>
                                         </DataGrid.ContextMenu>
                                     </DataGrid>
-                                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5" VerticalAlignment="Bottom">
-                                        <!-- Фильтр: ToggleButton -->
-                                        <ToggleButton x:Name="InProductionFilterToggle" Style="{StaticResource ToggleButtonSwitch.Small}"
-                                                      HorizontalAlignment="Left" Click="InProductionFilterToggle_Click"/>
 
-                                        <!-- Информация: количество и сумма -->
-                                        <TextBlock x:Name="SummaryInfoTextBlock" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                                    <StackPanel Grid.Row="1" Margin="5" VerticalAlignment="Bottom">
+
+                                        <!-- 🔹 СТРОКА 1: Управление + Сводка -->
+                                        <Grid>
+                                            <!-- Слева: Фильтр "В производстве" -->
+                                            <StackPanel Orientation="Horizontal">
+
+                                                <ToggleButton x:Name="InProductionFilterToggle"
+                      Style="{StaticResource ToggleButtonSwitch.Small}"
+                      HorizontalAlignment="Left"
+                      Checked="ProductionToggle_StateChanged"
+                      Unchecked="ProductionToggle_StateChanged"
+                      ToolTip="Показать заказы в производстве"/>
+
+                                                <TextBlock x:Name="SummaryInfoTextBlock" 
+                       VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                            </StackPanel>
+                                            
+                                            <!-- Справа: Сводка + Переключатель режима прогноза -->
+                                            <ToggleButton x:Name="ForecastModeToggle"
+                          Style="{StaticResource ToggleButtonSwitch.Small}"
+                          HorizontalAlignment="Right" Click="ForecastModeToggle_Click"
+                          Visibility="{Binding IsChecked, ElementName=InProductionFilterToggle, Converter={StaticResource BoolToVisibilityConverter}}"
+                          ToolTip="Режим расчета: только текущие / смешанный (отгруженные + производство)">
+                                                    <ToggleButton.Content>
+                                                        <TextBlock x:Name="ForecastModeText" Text="📦 Текущие"/>
+                                                    </ToggleButton.Content>
+                                                </ToggleButton>
+                                        </Grid>
+
+                                        <!-- 🔹 СТРОКА 2: Панель прогноза (появляется только при включении верхнего тоггла) -->
+                                        <StackPanel x:Name="ForecastPanel"
+                Orientation="Horizontal" 
+                VerticalAlignment="Center" 
+                Margin="0,4,0,0" 
+                Visibility="Collapsed">
+
+                                            <!-- Прибыль -->
+                                            <TextBlock Text="Прибыль:" VerticalAlignment="Center"/>
+                                            <TextBox x:Name="ForecastPlan" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
+                 VerticalContentAlignment="Center" IsReadOnly="True"/>
+
+                                            <!-- Бонус ООО -->
+                                            <TextBlock Text="Бонус ООО:" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                            <TextBox x:Name="ForecastBonusOoo" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
+                 VerticalContentAlignment="Center" IsReadOnly="True"/>
+
+                                            <!-- Бонус ИП и ПК -->
+                                            <TextBlock Text="Бонус ИП и ПК:" Margin="8,0,0,0" VerticalAlignment="Center" Width="90"/>
+                                            <TextBox x:Name="ForecastBonusIp" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
+                 VerticalContentAlignment="Center" IsReadOnly="True"/>
+
+                                            <!-- Итого -->
+                                            <TextBlock Text="Итого:" Margin="8,0,0,0" VerticalAlignment="Center" Width="40"/>
+                                            <TextBox x:Name="ForecastSalary" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
+                 VerticalContentAlignment="Center" IsReadOnly="True"/>
+                                        </StackPanel>
+
                                     </StackPanel>
                                 </Grid>
                             </Border>

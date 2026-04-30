@@ -35,9 +35,6 @@ namespace Metal_Code
         public RelayCommand CloseCommand { get; }
         public RelayCommand DeleteCommand { get; }
 
-        // 🔹 События
-        public event Action<IEnumerable<OfferReportPreviewItem>>? ExportRequested;
-
         // 🔹 Свойства для итогов (с уведомлением)
         public float TotalMaterial {  get; private set; }
         public float TotalLaser { get; private set; }
@@ -94,25 +91,28 @@ namespace Metal_Code
             try
             {
                 using var db = new ManagerContext(_connectionString);
-                var startOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+
+                // 🎯 Логика: если после 14-го — текущий месяц, иначе — прошлый
+                bool isAfter15th = DateTime.Today.Day > 14;
+                var referenceMonth = isAfter15th ? DateTime.Today : DateTime.Today.AddMonths(-1);
+                var startOfPeriod = new DateTime(referenceMonth.Year, referenceMonth.Month, 1);
 
                 // 🔹 Базовый запрос
                 var query = db.Offers
                     .AsNoTracking()
-                    .Where(o => !string.IsNullOrWhiteSpace(o.Order) &&
-                                o.EndDate == null &&
-                                o.CreatedDate >= startOfMonth);
+                    .Where(o => !string.IsNullOrWhiteSpace(o.Order) && o.EndDate >= startOfPeriod);
 
                 // 🔹 🔥 КЛЮЧЕВОЕ: фильтр по текущему менеджеру, если он не админ
                 if (MainWindow.M.CurrentManager.IsAdmin &&
                     (MainWindow.M.CurrentManager.Name == "Серых Михаил"
-                    || MainWindow.M.CurrentManager.Name == "Сергеев Юрий"))
+                    || MainWindow.M.CurrentManager.Name == "Сергеев Юрий"
+                    || MainWindow.M.CurrentManager.Name == "Еремин Андрей"))
                 {
                     MainWindow.M.StatusBegin("Отчет по всем менеджерам (режим администратора)", MainWindow.StatusMessageType.Info);
                 }
                 else
                 {
-                    query = query.Where(o => o.ManagerId == MainWindow.M.CurrentManager.Id);
+                    query = query.Where(o => o.Manager != null && o.Manager.Name == MainWindow.M.CurrentManager.Name);
                     MainWindow.M.StatusBegin($"Отчет по заказам менеджера: {MainWindow.M.CurrentManager.Name}", MainWindow.StatusMessageType.Info);
                 }
 
@@ -129,7 +129,7 @@ namespace Metal_Code
                         o.Agent,
                         o.Invoice,
                         o.Order,
-                        o.CreatedDate,
+                        o.EndDate,
                         o.Autor,
                         o.Data,
                         ManagerName = o.Manager != null ? o.Manager.Name : null
@@ -137,10 +137,10 @@ namespace Metal_Code
                     .ToListAsync();
 
                 // 2️. Убираем дубликаты по ключу: Номер + Компания + Сумма + Заказ
-                // Если дубли есть, берём самый свежий (по CreatedDate)
+                // Если дубли есть, берём самый свежий (по EndDate)
                 var distinctData = rawData
                     .GroupBy(x => new { x.N, x.Company, x.Amount, x.Order })
-                    .Select(g => g.OrderByDescending(x => x.CreatedDate).First())
+                    .Select(g => g.OrderByDescending(x => x.EndDate).First())
                     .ToList();
 
                 // 3️. Преобразуем в DTO для UI
@@ -161,7 +161,7 @@ namespace Metal_Code
                             IsCash = r.Agent,
                             Invoice = r.Invoice,
                             Order = r.Order,
-                            CreatedDate = r.CreatedDate?.ToLocalTime(),
+                            EndDate = r.EndDate?.ToLocalTime(),
                             Author = r.Autor,
                             ManagerName = r.ManagerName
                         };
@@ -216,7 +216,7 @@ namespace Metal_Code
                 view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(OfferReportPreviewItem.GroupKey)));
                 view.SortDescriptions.Clear();
                 view.SortDescriptions.Add(new SortDescription(nameof(OfferReportPreviewItem.GroupKey), ListSortDirection.Ascending));
-                view.SortDescriptions.Add(new SortDescription(nameof(OfferReportPreviewItem.CreatedDate), ListSortDirection.Descending));
+                view.SortDescriptions.Add(new SortDescription(nameof(OfferReportPreviewItem.EndDate), ListSortDirection.Descending));
             }
             catch (Exception ex)
             {
@@ -384,7 +384,7 @@ namespace Metal_Code
             // 🔹 1. Заголовки колонок (в том же порядке, что в DataGrid)
             var headers = new[]
             {
-        "№", "Компания", "Сумма", "Нал", "Счёт", "Заказ", "Дата", "Автор", "Материал",
+        "№", "Компания", "Сумма", "Нал", "Счёт", "Заказ", "Отгружен", "Автор", "Материал",
         "Лазер", "Гибка", "Труборез", "Производство", "Всего работ"
     };
 
@@ -404,7 +404,7 @@ namespace Metal_Code
             var groupedItems = Items
                 .GroupBy(i => i.GroupKey)
                 .OrderBy(g => g.Key)
-                .ThenByDescending(g => g.Max(i => i.CreatedDate));
+                .ThenByDescending(g => g.Max(i => i.EndDate));
 
             int row = 2; // Начинаем со второй строки
 
@@ -425,7 +425,7 @@ namespace Metal_Code
                 row++;
 
                 // 🔹 Строки данных внутри группы
-                foreach (var item in groupList.OrderBy(i => i.CreatedDate).ThenBy(i => i.Number))
+                foreach (var item in groupList.OrderBy(i => i.EndDate).ThenBy(i => i.Number))
                 {
                     ws.Cells[row, 1].Value = item.Number;
                     ws.Cells[row, 2].Value = item.Company;
@@ -433,7 +433,7 @@ namespace Metal_Code
                     ws.Cells[row, 4].Value = item.IsCash ? "ИП/ПК" : "ООО";
                     ws.Cells[row, 5].Value = item.Invoice;
                     ws.Cells[row, 6].Value = item.Order;
-                    ws.Cells[row, 7].Value = item.CreatedDate?.ToString("dd.MM.yyyy");
+                    ws.Cells[row, 7].Value = item.EndDate?.ToString("dd.MM.yyyy");
                     ws.Cells[row, 8].Value = item.Author;
                     ws.Cells[row, 9].Value = item.MaterialAmount;
                     ws.Cells[row, 10].Value = item.LaserCost;
@@ -525,7 +525,7 @@ namespace Metal_Code
         public bool IsCash { get; set; }
         public string Invoice { get; set; } = null!;
         public string Order { get; set; } = null!;
-        public DateTime? CreatedDate { get; set; }
+        public DateTime? EndDate { get; set; }
         public string Author { get; set; } = null!;
         public string ManagerName { get; set; } = null!;
 

@@ -647,6 +647,8 @@ namespace Metal_Code
         public string? Order { get; set; }
 
         public string? Autor { get; set; }
+
+        [ConcurrencyCheck]
         public DateTime? EndDate { get; set; }
 
         [Browsable(false)]

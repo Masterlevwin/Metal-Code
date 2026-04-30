@@ -28,7 +28,6 @@ using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -928,16 +927,33 @@ namespace Metal_Code
             OffersGrid.ItemsSource = OffersView;
         }
 
+
+        // 🔹 Поле для режима расчета (по умолчанию: false = "Только текущие")
+        private bool _forecastMixedMode = false;
+
+        /// <summary>
+        /// Срабатывает при включении/выключении тоггла "В производстве"
+        /// </summary>
+        private void ProductionToggle_StateChanged(object sender, RoutedEventArgs e)
+        {
+            _isProductionMode = InProductionFilterToggle.IsChecked == true;
+
+            // 🔹 Показываем/скрываем панель прогноза
+            ForecastPanel.Visibility = _isProductionMode ? Visibility.Visible : Visibility.Collapsed;
+
+            if (_isProductionMode) _searchQuery = string.Empty;
+            ApplyCurrentMode();
+        }
+
         private void ApplyCurrentMode()
         {
-            IEnumerable<Offer> dataToDisplay;
+            IEnumerable<Offer>? dataToDisplay;
 
             if (_isProductionMode)
             {
                 // Режим "В производстве"
-                dataToDisplay = Offers.Where(o => !string.IsNullOrEmpty(o.Order) && o.EndDate == null);
-                var totalAmount = Math.Ceiling(dataToDisplay.Sum(o => o.Amount));
-                SummaryInfoTextBlock.Text = $"В производстве: {dataToDisplay.Count()} шт на сумму {totalAmount:N0} руб.";
+                dataToDisplay = UpdateProductionSummary();
+                UpdateForecastPanel();
             }
             else if (!string.IsNullOrWhiteSpace(_searchQuery))
             {
@@ -962,7 +978,7 @@ namespace Metal_Code
 
             // Безопасно заменяем содержимое CurrentOffers
             CurrentOffers.Clear();
-            foreach (var item in dataToDisplay.ToList()) CurrentOffers.Add(item);
+            if (dataToDisplay != null) foreach (var item in dataToDisplay.ToList()) CurrentOffers.Add(item);
 
             // Очищаем кэш конвертера и перерисовываем группы
             if (TryFindResource("CompanyNamesConverter") is GroupCompanyNamesConverter conv)
@@ -970,12 +986,86 @@ namespace Metal_Code
             OffersView.Refresh();
         }
 
-        private void InProductionFilterToggle_Click(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// Срабатывает при клике на правый тоггл "Текущие / Смешанный"
+        /// </summary>
+        private void ForecastModeToggle_Click(object sender, RoutedEventArgs e)
         {
-            _isProductionMode = InProductionFilterToggle.IsChecked == true;
-            if (_isProductionMode) _searchQuery = string.Empty;
-            ApplyCurrentMode();
+            _forecastMixedMode = ForecastModeToggle.IsChecked == true;
+            ForecastModeText.Text = _forecastMixedMode ? "🔄 Текущие + Отгруженные" : "📦 Текущие";
+
+            // 🔹 Если панель видна — сразу пересчитываем
+            if (InProductionFilterToggle.IsChecked == true)
+                UpdateForecastPanel();
         }
+
+        /// <summary>
+        /// Обновляет текст сводки (количество и сумма)
+        /// </summary>
+        private IEnumerable<Offer>? UpdateProductionSummary()
+        {
+            IEnumerable<Offer>? dataToDisplay = null;
+            try
+            {
+                dataToDisplay = Offers
+                    .Where(o => !string.IsNullOrWhiteSpace(o.Order) && o.EndDate == null)
+                    .ToList();
+
+                int count = dataToDisplay.Count();
+                decimal totalAmount = (decimal)Math.Ceiling(dataToDisplay.Sum(o => o.Amount));
+
+                SummaryInfoTextBlock.Text = count > 0
+                    ? $"В производстве {count} шт на сумму {totalAmount:N0} ₽"
+                    : "Нет заказов";
+
+                SummaryInfoTextBlock.Foreground = count > 0 ? Brushes.Black : Brushes.Gray;
+            }
+            catch
+            {
+                SummaryInfoTextBlock.Text = "Ошибка расчета";
+                SummaryInfoTextBlock.Foreground = Brushes.Gray;
+            }
+            return dataToDisplay;
+        }
+
+        /// <summary>
+        /// Пересчитывает и выводит 4 показателя в TextBox
+        /// </summary>
+        private void UpdateForecastPanel()
+        {
+            if (ForecastPanel.Visibility != Visibility.Visible) return;
+
+            try
+            {
+                var productionOffers = Offers
+                    .Where(o => !string.IsNullOrWhiteSpace(o.Order) && o.EndDate == null)
+                    .ToList();
+
+                if (!productionOffers.Any())
+                {
+                    ForecastPlan.Text = ForecastBonusOoo.Text = ForecastBonusIp.Text = ForecastSalary.Text = "0";
+                    return;
+                }
+
+                // 🔹 Выбираем данные в зависимости от режима
+                List<Offer> offersForCalc = _forecastMixedMode
+                    ? Offers.Where(o => o.EndDate != null).Concat(productionOffers).ToList()
+                    : productionOffers;
+
+                var result = BuildReport(offersForCalc);
+
+                // 🔹 Выводим значения
+                ForecastPlan.Text = result.Plan.ToString("N0");
+                ForecastBonusOoo.Text = result.BonusOoo.ToString("N0");
+                ForecastBonusIp.Text = result.BonusIp.ToString("N0");
+                ForecastSalary.Text = result.TotalSalary.ToString("N0");
+            }
+            catch
+            {
+                ForecastPlan.Text = ForecastBonusOoo.Text = ForecastBonusIp.Text = ForecastSalary.Text = "—";
+            }
+        }
+
 
         //-------------Настройка блока отчетов-----------//
         readonly string[] Months = { "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь" };
@@ -1676,8 +1766,8 @@ namespace Metal_Code
                                                                 && o.Amount == offer.Amount).FirstOrDefault();
                             if (tempOffer != null)
                             {
-                                tempOffer.CreatedDate = offer.CreatedDate;
-                                db.Entry(tempOffer).Property(o => o.CreatedDate).IsModified = true;
+                                tempOffer.EndDate = offer.EndDate;
+                                db.Entry(tempOffer).Property(o => o.EndDate).IsModified = true;
                                 tempOffer.Agent = offer.Agent;
                                 db.Entry(tempOffer).Property(o => o.Agent).IsModified = true;
                                 tempOffer.Invoice = offer.Invoice;
@@ -5796,7 +5886,7 @@ namespace Metal_Code
 
         //-------------Отчеты по заказам-----------------//
         #region
-        private async void Report_On_Current_Orders(object sender, RoutedEventArgs e)
+        private async void Report_On_Shipped_Orders(object sender, RoutedEventArgs e)
         {
             var previewWindow = new ReportPreviewWindow(connections[1]) { Owner = this };
             previewWindow.ShowDialog();
