@@ -147,17 +147,56 @@
         <StackPanel>
             <!-- Комментарий и кнопки -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0">
-                <Expander x:Name="CommentExpander" ExpandDirection="Left">
+                <Expander x:Name="CommentExpander" ExpandDirection="Left" IsExpanded="True">
                     <StackPanel>
-                        <TextBox Text="{Binding Comment}" TextChanged="SetComment" MinLines="2" Margin="0,0,5,0" TextWrapping="Wrap" Width="200"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,5,0">
-                            <Button Content="азот" Margin="2" Padding="2" FontSize="10" Click="AddInfoToComment"/>
-                            <Button Content="кром" Margin="2" Padding="2" FontSize="10" Click="AddInfoToComment"/>
-                            <Button Content="шлиф" Margin="2" Padding="2" FontSize="10" Click="AddInfoToComment"/>
-                            <Button Content="плен" Margin="2" Padding="2" FontSize="10" Click="AddInfoToComment"/>
-                            <Button Content="чист" Margin="2" Padding="2" FontSize="10" Click="AddInfoToComment"/>
+                        <hc:TextBox Text="{Binding Comment}" hc:InfoElement.Placeholder="Комментарий для производства" TextChanged="SetComment" MinLines="2" Margin="0,0,5,0" TextWrapping="Wrap" Width="260"/>
+                            <!-- Динамические тэги (без цвета) -->
+                            <ItemsControl x:Name="TagsPanel" 
+                  ItemsSource="{Binding CommentTags}" 
+                  Margin="0,5,5,0" Width="260">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding Name}" 
+                        Margin="2" 
+                        Padding="6,3" 
+                        FontSize="10"
+                        Tag="{Binding}"
+                        Click="TagButton_Click"
+                        Background="#F5F5F5"
+                        BorderBrush="#D1D9E0"
+                        BorderThickness="1">
+                                            <Button.ToolTip>
+                                                <TextBlock Text="{Binding Text, StringFormat='Добавит: {0}'}"/>
+                                            </Button.ToolTip>
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                    <Setter Property="Foreground" Value="#333"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#E3F2FD"/>
+                                                            <Setter Property="BorderBrush" Value="#4A90E2"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- Кнопка управления тэгами -->
+                            <Button Content="⚙ Настроить тэги" 
+            FontSize="9" 
+            Padding="6,2" 
+            HorizontalAlignment="Right" 
+            Margin="0,8,5,0"
+            Click="OpenTagSettings"/>
                         </StackPanel>
-                    </StackPanel>
                 </Expander>
 
                 <StackPanel hc:PanelElement.FluidMoveBehavior="{StaticResource BehaviorXY200}" x:Name="WorksStack" Margin="10,0,0,0">

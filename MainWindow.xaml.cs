@@ -5,6 +5,7 @@ using ACadSharp.Tables;
 using CSMath;
 using HandyControl.Data;
 using Metal_Code.Converters;
+using Metal_Code.Models;
 using Metal_Code.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
@@ -609,10 +610,18 @@ namespace Metal_Code
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.7.0.2",
-                releaseDate: new DateTime(2026, 03, 30),
-                description: "Добавлена функция уточнения стоимости материала.",
-                screenshotPath: "/Updates/v2.7.0.2_2026-04-28.png"
+                version: "v2.7.0.3",
+                releaseDate: new DateTime(2026, 05, 08),
+                description: "Добавлен сервис настройки тэгов.",
+                screenshotPath: "/Updates/v2.7.0.3_2026-05-08.png"
+            );
+
+            // Добавить новое обновление (если его ещё нет)
+            ctx.AddNewUpdateIfNotExists(
+                version: "v2.7.0.4",
+                releaseDate: new DateTime(2026, 05, 08),
+                description: "Добавлен сервис настройки папок-комментариев для менеджера.",
+                screenshotPath: "/Updates/v2.7.0.4_2026-05-08.png"
             );
 
             // Получаем новые обновления
@@ -1161,7 +1170,7 @@ namespace Metal_Code
             isAssemblyOffer = false;
             Parts.Clear();
             InvalidatePartsData();
-
+            InitializeFolderPresets();
             OffersTab.Focus();
         }
         public void ClearCalculate()    //сброс расчета к значениям по умолчанию
@@ -2474,6 +2483,7 @@ namespace Metal_Code
                                 {
                                     if (_cut is CutControl cut && cut.HaveCut)
                                     {
+                                        _saveWork.IsGrooved = cut.IsGrooved;
                                         p.Description = "Л";
                                         if (cut.HaveNitro && (Log is null || !Log.Contains("Проверьте общую стоимость резки АЗОТОМ!")))
                                             Log += "\nПроверьте общую стоимость резки АЗОТОМ!\nМинимальная стоимость - 25 000 руб.\n";
@@ -2554,6 +2564,50 @@ namespace Metal_Code
                 details.Add(_detail);
             }
             return details;
+        }
+        public void CreateFolderTagsForCalculation(string calculationFolderPath)
+        {
+            try
+            {
+                // Собираем все комментарии из всех заготовок
+                var allComments = new List<string>();
+
+                foreach (var detail in DetailControls)
+                {
+                    foreach (var typeDetail in detail.TypeDetailControls)
+                    {
+                        if (!string.IsNullOrWhiteSpace(typeDetail.Comment))
+                            allComments.Add(typeDetail.Comment);
+                    }
+                }
+
+                if (!allComments.Any())
+                    return;
+
+                // Объединяем все комментарии
+                string fullComment = string.Join(" ", allComments);
+
+                // Получаем все тэги
+                var allTags = TagManager.LoadTags();
+
+                // Извлекаем тэги-папки
+                var folderTagNames = FolderTagService.GetFolderTagsFromComment(fullComment, allTags);
+
+                if (folderTagNames.Any())
+                {
+                    // Создаем папки
+                    var created = FolderTagService.CreateFolderTags(calculationFolderPath, folderTagNames);
+
+                    if (created.Any())
+                    {
+                        StatusBegin($"Созданы папки: {string.Join(", ", created)}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusBegin($"Ошибка при создании папок тэгов: {ex.Message}");
+            }
         }
 
         public void LoadProduct()
@@ -2660,6 +2714,7 @@ namespace Metal_Code
 
                             if (_cut is CutControl cut)
                             {
+                                cut.IsGrooved = item.IsGrooved;
                                 if (_cut.Items?.Count > 0) cut.SumProperties(_cut.Items);
                                 cut.Parts = cut.PartList();
                                 cut.PartsControl = new(cut, cut.Parts);
@@ -3565,6 +3620,9 @@ namespace Metal_Code
                             else if (type.MetalDrop.Text.Contains("латунь")) description = $"br{type.S}";
                             else if (type.MetalDrop.Text.Contains("медь")) description = $"cu{type.S}";
                             else description = $"s{type.S} {type.MetalDrop.Text}";
+
+                            //добавляем тэг рифленки при необходимости
+                            if (cut.IsGrooved) description += " рифл";
 
                             //"Лазер (время работ)"                                 //"Время лазерных работ"
                             statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + rowTask, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
@@ -4694,6 +4752,9 @@ namespace Metal_Code
                             else if (type.MetalDrop.Text.Contains("медь")) description = $"cu{type.S}";
                             else description = $"s{type.S} {type.MetalDrop.Text}";
 
+                            //добавляем тэг рифленки при необходимости
+                            if (cut.IsGrooved) description += " рифл";
+
                             //добавляем тег срочности и коментария
                             if (HasAssembly) description += " (ЭКСПРЕСС)";
                             if (type.Comment != null && type.Comment != "") description += " (комментарий)";
@@ -4843,7 +4904,10 @@ namespace Metal_Code
                             else if (type.MetalDrop.Text.Contains("медь")) description = $"cu{type.S}";
                             else description = $"s{type.S} {type.MetalDrop.Text}";
 
-                            //добавляем тег срочности и коментария
+                            //добавляем тэг рифленки при необходимости
+                            if (cut.IsGrooved) description += " рифл";
+
+                            //добавляем тэг срочности и коментария
                             if (HasAssembly) description += " (ЭКСПРЕСС)";
                             if (type.Comment != null && type.Comment != "") description += " (комментарий)";
 
@@ -7385,9 +7449,12 @@ namespace Metal_Code
             registryWindow.Show();
         }
 
-        public float CorrectDestiny(float _destiny)     //метод определения расчетной толщины
+        public float CorrectDestiny(float _destiny, bool isGrooved = false) //метод определения расчетной толщины
         {
             if (_destiny < 0.5f || _destiny > 30) return 0;
+
+            //если заготовкой является рифленый лист, увеличиваем толщину на 1
+            if (isGrooved) _destiny++;
 
             //если введенная толщина заготовки соответствует возможной толщине, возвращаем толщину как есть
             if (Destinies.Contains(_destiny)) return _destiny;
@@ -7839,6 +7906,81 @@ namespace Metal_Code
                     MessageBox.Show($"Произошла ошибка при сортировке файлов:\n{ex.Message}", "Ошибка",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
+            }
+        }
+
+        // Глобальные шаблоны (загружаются один раз)
+        private readonly ObservableCollection<FolderPreset> _globalPresets = FolderPresetManager.LoadPresets();
+
+        // Локальные шаблоны для ТЕКУЩЕГО расчета (клонирование изолирует выбор)
+        public ObservableCollection<FolderPreset> CurrentCalculationFolders { get; } = new();
+
+        // Вызывать при создании нового расчета или загрузке существующего
+        public void InitializeFolderPresets()
+        {
+            CurrentCalculationFolders.Clear();
+            foreach (var preset in _globalPresets)
+            {
+                // Сбрасываем IsEnabled при новом расчете (или сохраняем, если нужно)
+                var clone = preset.Clone();
+                clone.IsEnabled = false;
+                CurrentCalculationFolders.Add(clone);
+            }
+        }
+
+        // Открытие окна настроек
+        private void OpenFolderPresetSettings(object sender, RoutedEventArgs e)
+        {
+            var settingsWindow = new FolderPresetSettingsWindow(_globalPresets);
+            if (settingsWindow.ShowDialog() == true)
+            {
+                // Пересоздаем локальный список с учетом изменений в глобальном
+                InitializeFolderPresets();
+            }
+        }
+
+        public void CreateSelectedFolders(string rootPath)
+        {
+            if (string.IsNullOrWhiteSpace(rootPath)) return;
+
+            foreach (var folder in CurrentCalculationFolders.Where(f => f.IsEnabled))
+            {
+                try
+                {
+                    string safeName = SanitizeFolderName(folder.Name);
+                    if (string.IsNullOrWhiteSpace(safeName)) continue;
+
+                    string fullPath = Path.Combine(rootPath, safeName);
+                    if (!Directory.Exists(fullPath))
+                        Directory.CreateDirectory(fullPath);
+                }
+                catch (Exception ex)
+                {
+                    // Логируем, но не прерываем сохранение
+                    StatusBegin($"⚠️ Не удалось создать папку '{folder.Name}': {ex.Message}");
+                }
+            }
+        }
+
+        private string SanitizeFolderName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return "Без названия";
+
+            // Убираем только реально недопустимые символы Windows
+            char[] invalid = Path.GetInvalidFileNameChars();
+            string cleaned = new string(name.Where(c => !invalid.Contains(c)).ToArray());
+
+            // Windows сама обрезает конечные пробелы и точки, но для чистоты можно сделать Trim()
+            return cleaned.Trim();
+        }
+
+        private void ShowFolderPresetsDialog(object sender, RoutedEventArgs e)
+        {
+            var dialog = new FolderPresetsDialog(CurrentCalculationFolders);
+
+            if (dialog.ShowDialog() == true)
+            {
+                StatusBegin($"Выбрано папок: {CurrentCalculationFolders.Count(p => p.IsEnabled)}");
             }
         }
         #endregion

@@ -114,10 +114,14 @@ namespace Metal_Code
                               string selectedFilePath = dialogService.FilePaths[0];
                               string fileName = Path.GetFileName(selectedFilePath);
                               string folderToRename = Path.GetDirectoryName(selectedFilePath)!; // папка с расчётом
-                              string parentDir = Path.GetDirectoryName(folderToRename)!;       // родитель (где будет новая папка)
+                              string parentDir = Path.GetDirectoryName(folderToRename)!;        // родитель (где будет новая папка)
 
                               string newFolderName = $"КП (от {DateTime.Now:dd.MM.yyyy HH-mm})";
                               string destinationPath = Path.Combine(parentDir, newFolderName);
+
+                              //создание папок для менеджера
+                              MainWindow.M.CreateFolderTagsForCalculation(parentDir);
+                              MainWindow.M.CreateSelectedFolders(parentDir);
 
                               try
                               {

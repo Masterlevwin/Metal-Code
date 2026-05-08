@@ -539,7 +539,7 @@
 
                     </StackPanel>
 
-                    <StackPanel Grid.Row="1" x:Name="PartsStack" Margin="5" Height="0" ClipToBounds="True">
+                    <StackPanel Grid.Row="1" x:Name="PartsStack" Margin="5" Height="0">
                         <StackPanel Orientation="Horizontal" Margin="5">
                             <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет с НДС" VerticalAlignment="Center" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;" Margin="5,0,0,0"/>
                             <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет без НДС" VerticalAlignment="Center" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;" Margin="10,0,0,0"/>
@@ -562,13 +562,24 @@
                                     <TextBlock Text="{Binding Bonus, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="5">
-                                    <TextBox x:Name="Comment" ToolTip="Введите комментарий" TextWrapping="Wrap" Width="250" HorizontalContentAlignment="Center" Height="45"/>
+                                    <hc:TextBox x:Name="Comment" hc:InfoElement.Placeholder="Комментарий для клиента" ToolTip="Введите комментарий" TextWrapping="Wrap" Width="250" HorizontalContentAlignment="Center" Height="45"/>
                                     <Image Source="/Images/comment2.png" Margin="-10,-2,0,0" Width="20" VerticalAlignment="Top"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="5">
+                                    <!-- Основная кнопка выбора папок -->
+                                    <Button Content="📁 Папки" Margin="0,0,5,0"
+                                            Click="ShowFolderPresetsDialog"
+                                            ToolTip="Выбрать папки для создания при сохранении"
+                                            Style="{StaticResource ButtonPrimary.Small}"/>
+                                    <!-- Кнопка настройки шаблонов -->
+                                    <Button Content="⚙ Настроить"
+                                            Click="OpenFolderPresetSettings"
+                                            ToolTip="Добавить, переименовать или удалить шаблоны папок"
+                                            Style="{StaticResource ButtonDashed.Small}"/>
                                 </StackPanel>
                             </StackPanel>
 
                             <StackPanel>
-
                                 <StackPanel Orientation="Horizontal" Margin="5">
                                     <Button Click="CreateOfferDelivery" IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать расчет на доставку" HorizontalAlignment="Left" VerticalAlignment="Center" Padding="0" BorderThickness="0" Margin="5,0,0,0">
                                         <Image Source="/Images/address.png" Width="20"/>
@@ -582,7 +593,7 @@
                                     <TextBlock Text="шт" VerticalAlignment="Center" Margin="5,0,0,0" Width="20"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="5">
-                                    <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="Adress" ToolTip="Введите адрес доставки" TextWrapping="Wrap" Margin="5,0,0,0" Width="250" HorizontalContentAlignment="Center" Height="80"/>
+                                    <hc:TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="Adress" hc:InfoElement.Placeholder="Адрес и контакты клиента" ToolTip="Введите адрес доставки" TextWrapping="Wrap" Margin="5,0,0,0" Width="250" Height="80" HorizontalContentAlignment="Center"/>
                                     <Button Click="CreateDelivery" IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать запрос в логистику" Padding="0" BorderThickness="0" VerticalAlignment="Top" Background="{x:Null}">
                                         <Image Source="/Images/new.png" VerticalAlignment="Top" Margin="-10,-5,0,0" Width="20"/>
                                     </Button>

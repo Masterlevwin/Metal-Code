@@ -574,6 +574,9 @@ namespace Metal_Code
         [OptionalField]
         public float ExtraResult = 0;
 
+        [OptionalField]
+        public bool IsGrooved = false;
+
         public List<string>? PropsList = new();
 
         public List<LaserItem>? Items = new();

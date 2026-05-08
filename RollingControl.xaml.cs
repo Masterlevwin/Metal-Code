@@ -152,8 +152,14 @@ namespace Metal_Code
         {
             if (work.WorkDrop.SelectedItem is not Work _work || work.type.MetalDrop.SelectedItem is not Metal metal) return 0;
 
-            return DestinyDict.ContainsKey(work.type.S) ?
-                _work.Time * (DestinyDict[work.type.S] + (work.type.S > 3 ? 1.5f : 1) + SideRatio(_side) + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass) - 4) : 0;
+            float destiny = work.type.S;
+
+            var cutWork = work.type.WorkControls.FirstOrDefault(w => w.workType is CutControl);
+            if (cutWork != null && cutWork.workType is CutControl cut)
+                destiny = MainWindow.M.CorrectDestiny(destiny, cut.IsGrooved);    //получаем расчетную толщину
+
+            return DestinyDict.ContainsKey(destiny) ?
+                _work.Time * (DestinyDict[destiny] + (destiny > 3 ? 1.5f : 1) + SideRatio(_side) + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass) - 4) : 0;
         }
 
         private float SideRatio(float side)         //метод определения коэффициента взависимости от длины вальцуемой стороны

@@ -230,8 +230,14 @@ namespace Metal_Code
             if (CharName == "Зк") return MainWindow.M.WideDict.ContainsKey(Math.Ceiling(_wide)) ?
                 _work.Time * (MainWindow.M.WideDict[Math.Ceiling(_wide)] + MainWindow.MassRatio(_mass) - 1) : 0;
 
-            return MainWindow.M.WideDict.ContainsKey(work.type.S) && MainWindow.M.WideDict.ContainsKey(Math.Ceiling(_wide)) ?
-                _work.Time * (MainWindow.M.WideDict[work.type.S] + MainWindow.M.WideDict[Math.Ceiling(_wide)] + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass) - 3) : 0;
+            float destiny = work.type.S;
+
+            var cutWork = work.type.WorkControls.FirstOrDefault(w => w.workType is CutControl);
+            if (cutWork != null && cutWork.workType is CutControl cut)
+                destiny = MainWindow.M.CorrectDestiny(work.type.S, cut.IsGrooved);    //получаем расчетную толщину
+
+            return MainWindow.M.WideDict.ContainsKey(destiny) && MainWindow.M.WideDict.ContainsKey(Math.Ceiling(_wide)) ?
+                _work.Time * (MainWindow.M.WideDict[destiny] + MainWindow.M.WideDict[Math.Ceiling(_wide)] + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass) - 3) : 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)

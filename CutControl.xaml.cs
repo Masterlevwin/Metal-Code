@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -155,6 +156,13 @@ namespace Metal_Code
             set => haveNitro = value;
         }
 
+        private bool isGrooved = false;
+        public bool IsGrooved
+        {
+            get => isGrooved;
+            set => isGrooved = value;
+        }
+
         public Guid Id { get; } = Guid.NewGuid();
         public ObservableCollection<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
@@ -212,13 +220,13 @@ namespace Metal_Code
 
             if (work.type.MetalDrop.SelectedItem is not Metal metal) return;
 
-            float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
+            float destiny = MainWindow.M.CorrectDestiny(work.type.S, IsGrooved);    //получаем расчетную толщину
 
             if (Items?.Count > 0)
             {
-                foreach (LaserItem item in Items) price += ItemPrice(item);
+                foreach (LaserItem item in Items) price += ItemPrice(item, destiny);
 
-                if (destiny <= 8 && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
+                if ((destiny <= 8 || (IsGrooved && destiny <= 10)) && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
                     price += Marking * MainWindow.M.MetalDict[metal.Name][destiny].Item1;
 
                 // проверяем стоимость материала
@@ -272,7 +280,7 @@ namespace Metal_Code
 
                 if (PartDetails?.Count > 0)
                 {
-                    float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
+                    float destiny = MainWindow.M.CorrectDestiny(work.type.S, IsGrooved);    //получаем расчетную толщину
 
                     //рассчитываем маркировку, если толщина - до 8 мм
                     var averageMarking = destiny <= 8 ? Marking / PartDetails.Sum(c => c.Count) : 0;
@@ -729,13 +737,11 @@ namespace Metal_Code
             OnPriceChanged();
         }
 
-        public float ItemPrice(LaserItem _item)
+        public float ItemPrice(LaserItem _item, float destiny)
         {
             if (work.type.MetalDrop.SelectedItem is not Metal metal) return 0;
 
             _item.price = 0;
-
-            float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
 
             if (metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
             {
@@ -770,16 +776,25 @@ namespace Metal_Code
 
         private void SetToolTipForWay(object sender, ToolTipEventArgs e)
         {
-            float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
+            float destiny = MainWindow.M.CorrectDestiny(work.type.S, IsGrooved);    //получаем расчетную толщину
 
             if (sender is TextBox box && work.type.MetalDrop.SelectedItem is Metal metal
                 && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
                 box.ToolTip = $"Длина пути резки, м\n(цена метра - {MainWindow.M.MetalDict[metal.Name][destiny].Item1} руб)";
         }
 
+        private void SetToolTipForMarking(object sender, ToolTipEventArgs e)
+        {
+            float destiny = MainWindow.M.CorrectDestiny(work.type.S, IsGrooved);    //получаем расчетную толщину
+
+            if (sender is TextBox box && work.type.MetalDrop.SelectedItem is Metal metal
+                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
+                box.ToolTip = $"Длина маркировки, м\n(цена метра - {MainWindow.M.MetalDict[metal.Name][destiny].Item1} руб)";
+        }
+
         private void SetToolTipForPinhole(object sender, ToolTipEventArgs e)
         {
-            float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
+            float destiny = MainWindow.M.CorrectDestiny(work.type.S, IsGrooved);    //получаем расчетную толщину
 
             if (sender is TextBox box && work.type.MetalDrop.SelectedItem is Metal metal
                 && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
@@ -798,15 +813,6 @@ namespace Metal_Code
             string storyboardKey = _isExpanded ? "ExpandAnimation" : "CollapseAnimation";
             var storyboard = FindResource(storyboardKey) as Storyboard;
             storyboard?.Begin();
-        }
-
-        private void SetToolTipForMarking(object sender, ToolTipEventArgs e)
-        {
-            float destiny = MainWindow.M.CorrectDestiny(work.type.S);    //получаем расчетную толщину
-
-            if (sender is TextBox box && work.type.MetalDrop.SelectedItem is Metal metal
-                && metal.Name != null && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
-                box.ToolTip = $"Длина маркировки, м\n(цена метра - {MainWindow.M.MetalDict[metal.Name][destiny].Item1} руб)";
         }
     }
 

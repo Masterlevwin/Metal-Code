@@ -354,8 +354,14 @@ namespace Metal_Code
                 _ => 0.8f,
             };
 
-            return BendDict.ContainsKey(work.type.S) ?
-                _bendRatio * (Group == "-" ? _count : 1) * BendDict[work.type.S][$"{ShelfDrop.SelectedItem}"] * MainWindow.MassRatio(_mass) * _squareRatio : 0;
+            float destiny = work.type.S;
+
+            var _work = work.type.WorkControls.FirstOrDefault(w => w.workType is CutControl);
+            if (_work != null && _work.workType is CutControl cut)
+                destiny = MainWindow.M.CorrectDestiny(work.type.S, cut.IsGrooved);    //получаем расчетную толщину
+
+            return BendDict.ContainsKey(destiny) ?
+                _bendRatio * (Group == "-" ? _count : 1) * BendDict[destiny][$"{ShelfDrop.SelectedItem}"] * MainWindow.MassRatio(_mass) * _squareRatio : 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)

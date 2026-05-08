@@ -174,8 +174,14 @@ namespace Metal_Code
                 <= 150 => 2,
                 _ => 3,
             };
-            
-            float _destinyRatio = work.type.S switch    //рассчитываем наценку за прогрев толщин
+
+            float destiny = work.type.S;
+
+            var _work = work.type.WorkControls.FirstOrDefault(w => w.workType is CutControl);
+            if (_work != null && _work.workType is CutControl cut)
+                destiny = MainWindow.M.CorrectDestiny(work.type.S, cut.IsGrooved);    //получаем расчетную толщину
+
+            float _destinyRatio = destiny switch    //рассчитываем наценку за прогрев толщин
             {
                 >= 10 => 1.5f,
                 >= 8 => 1.4f,

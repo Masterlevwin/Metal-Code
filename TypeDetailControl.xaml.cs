@@ -1,7 +1,9 @@
-﻿using Metal_Code.Utils;
+﻿using Metal_Code.Models;
+using Metal_Code.Utils;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -670,59 +672,135 @@ namespace Metal_Code
         }
 
 
-        //-----------Формирование комментария из тэгов-----------//
-        private void AddInfoToComment(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button btn && btn.Content != null)
-            {
-                string tag = $"{btn.Content}";
+        //-----------ТЭГИ-----------//
+        public ObservableCollection<CommentTag> CommentTags { get; } = TagManager.LoadTags();
 
-                switch (tag)
+        private void TagButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is CommentTag tag)
+            {
+                // СПЕЦИАЛЬНАЯ ЛОГИКА ДЛЯ "АЗОТ"
+                if (tag.Name.Equals("азот", StringComparison.OrdinalIgnoreCase))
                 {
-                    case "азот":
-                        HandleNitrogen(btn);
-                        break;
-                    case "кром":
-                        HandleCommentToggle(btn, " Или зачистка кромки!");
-                        break;
-                    case "шлиф":
-                        HandleCommentToggle(btn, " Внимание на направление шлифовки!");
-                        break;
-                    case "плен":
-                        HandleCommentToggle(btn, " Пленку не снимать!");
-                        break;
-                    case "чист":
-                        HandleCommentToggle(btn, " Чистый материал! Без царапин!");
-                        break;
+                    HandleNitrogen(btn);
+                    return;
                 }
+
+                // СПЕЦИАЛЬНАЯ ЛОГИКА ДЛЯ "РИФЛ"
+                if (tag.Name.Equals("рифл", StringComparison.OrdinalIgnoreCase))
+                {
+                    HandleGrooved(btn);
+                    return;
+                }
+
+                // Переключаемое поведение (как у "кром", "шлиф" и т.д.)
+                if (IsCommentPresent(tag.Text))
+                {
+                    HandleCommentRemoval(tag.Text);
+                    btn.Background = new SolidColorBrush(Color.FromRgb(245, 245, 245));
+                }
+                else
+                {
+                    HandleCommentAddition(tag.Text);
+                    btn.Background = Brushes.PaleGreen;
+                }
+
+                // Авто-раскрытие экспандера при добавлении
+                if (!string.IsNullOrEmpty(Comment) && !CommentExpander.IsExpanded)
+                    CommentExpander.IsExpanded = true;
             }
         }
 
         private void HandleNitrogen(Button btn)
         {
+            // Ищем работу резки (CutControl) среди добавленных работ
             var work = WorkControls.FirstOrDefault(w => w.workType is CutControl);
+
             if (work != null && work.workType is CutControl cut)
             {
+                // Переключаем состояние
                 cut.HaveNitro = !cut.HaveNitro;
+
+                // Меняем коэффициент (1.5 для азота, 1 для воздуха/кислорода)
                 work.Ratio = cut.HaveNitro ? 1.5f : 1;
-                btn.Background = cut.HaveNitro ? Brushes.PaleGreen : Brushes.White;
 
-                if (cut.HaveNitro) HandleCommentAddition(" Азот!");
-                else HandleCommentRemoval(" Азот!");
-            }
-        }
+                // Визуальная индикация на кнопке
+                // Если включено - зеленый (PaleGreen), если выключено - возвращаем дефолтный серый
+                btn.Background = cut.HaveNitro
+                    ? Brushes.PaleGreen
+                    : new SolidColorBrush(Color.FromRgb(245, 245, 245));
 
-        private void HandleCommentToggle(Button btn, string commentText)
-        {
-            if (IsCommentPresent(commentText))
-            {
-                HandleCommentRemoval(commentText);
-                btn.Background = Brushes.White;
+                // Управление текстом в комментарии
+                // (Важно: используем текст, который был в старом коде, чтобы не ломать совместимость)
+                if (cut.HaveNitro)
+                    HandleCommentAddition(" Азот!");
+                else
+                    HandleCommentRemoval(" Азот!");
             }
             else
             {
-                HandleCommentAddition(commentText);
-                btn.Background = Brushes.PaleGreen;
+                // Если резки нет, просто добавляем текст (как обычная кнопка), 
+                // но без изменения коэффициента
+                if (IsCommentPresent(" Азот!"))
+                {
+                    HandleCommentRemoval(" Азот!");
+                    btn.Background = new SolidColorBrush(Color.FromRgb(245, 245, 245));
+                }
+                else
+                {
+                    HandleCommentAddition(" Азот!");
+                    btn.Background = Brushes.PaleGreen;
+                }
+            }
+        }
+
+        private void HandleGrooved(Button btn)
+        {
+            var work = WorkControls.FirstOrDefault(w => w.workType is CutControl);
+
+            if (work != null && work.workType is CutControl cut)
+            {
+                // Переключаем свойство
+                cut.IsGrooved = !cut.IsGrooved;
+
+                // Визуальная индикация кнопки
+                btn.Background = cut.IsGrooved
+                    ? Brushes.PaleGreen
+                    : new SolidColorBrush(Color.FromRgb(245, 245, 245));
+
+                // Управление текстом в комментарии
+                if (cut.IsGrooved)
+                    HandleCommentAddition(" Рифленка!");
+                else
+                    HandleCommentRemoval(" Рифленка!");
+
+                PriceChanged();
+            }
+            else
+            {
+                // ️ Фоллбэк: если в детали нет операции резки, 
+                // просто переключаем текст комментария без привязки к cut.IsGrooved
+                if (IsCommentPresent(" Рифленка!"))
+                {
+                    HandleCommentRemoval(" Рифленка!");
+                    btn.Background = new SolidColorBrush(Color.FromRgb(245, 245, 245));
+                }
+                else
+                {
+                    HandleCommentAddition(" Рифленка!");
+                    btn.Background = Brushes.PaleGreen;
+                }
+            }
+        }
+
+        private void OpenTagSettings(object sender, RoutedEventArgs e)
+        {
+            var settingsWindow = new TagSettingsWindow(CommentTags);
+            if (settingsWindow.ShowDialog() == true)
+            {
+                // Обновляем UI после изменения коллекции
+                TagsPanel.Items.Refresh();
+                TagManager.SaveTags(CommentTags);
             }
         }
 
@@ -814,34 +892,6 @@ namespace Metal_Code
 
             // Пользователь нажал "Отмена"
             return new List<PriceListItem>();
-        }
-    }
-
-    public static class StockTypeColors
-    {
-        // Типы заготовок — основа фона
-        public static readonly Color SheetMetal = Color.FromRgb(220, 240, 255);     // Голубоватый (ледяной)
-        public static readonly Color OtherStock = Color.FromRgb(255, 235, 235);     // Розовато-бежевый (тёплый)
-    }
-
-    public static class MaterialColors
-    {
-        // Материалы — вторичный акцент (сделаем их заметно отличающимися)
-        public static readonly Color BlackSteel = Color.FromRgb(200, 200, 200);     // Нейтральный серый
-        public static readonly Color StainlessSteel = Color.FromRgb(200, 220, 255); // Ярко-голубой
-        public static readonly Color Aluminum = Color.FromRgb(255, 230, 200);       // Персиковый
-        public static readonly Color Other = Color.FromRgb(240, 255, 240);          // Салатовый (очень светлый зелёный)
-    }
-
-    public static class ColorHelper
-    {
-        public static Color Mix(Color color1, Color color2, double ratio = 0.5)
-        {
-            // ratio: 0 → color1, 1 → color2
-            byte r = (byte)(color1.R * (1 - ratio) + color2.R * ratio);
-            byte g = (byte)(color1.G * (1 - ratio) + color2.G * ratio);
-            byte b = (byte)(color1.B * (1 - ratio) + color2.B * ratio);
-            return Color.FromRgb(r, g, b);
         }
     }
 }
