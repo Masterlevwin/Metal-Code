@@ -90,7 +90,7 @@ namespace Metal_Code
                 if (placement.Part.DisplayGeometry == null)
                     PartPreviewGenerator.EnsureDisplayGeometry(placement.Part);
 
-                AddPartToCanvas(placement.Part, placement.X, placement.Y);
+                AddPartToCanvas(placement.Part, placement.X, placement.Y, placement.Rotation);
             }
         }
 
@@ -370,7 +370,7 @@ namespace Metal_Code
             _labelsCanvas.Children.Add(text);
         }
 
-        private void AddPartToCanvas(Part part, double x, double y)
+        private void AddPartToCanvas(Part part, double x, double y, double rotation = 0)
         {
             if (part.DisplayGeometry is null) return;
 
@@ -378,8 +378,17 @@ namespace Metal_Code
             if (geometry == null) return;
 
             var bounds = geometry.Bounds;
+
+            // Получаем размеры с учётом поворота
+            var (partWidth, partHeight) = NestingHelper.GetPartDimensions(part, rotation);
+
+            // Сдвигаем геометрию к (0,0)
             double offsetX = -bounds.Left;
             double offsetY = -bounds.Top;
+
+            // Центр геометрии для поворота
+            double centerX = bounds.Width / 2;
+            double centerY = bounds.Height / 2;
 
             var path = new Path
             {
@@ -391,25 +400,43 @@ namespace Metal_Code
                     ? Brushes.DarkRed
                     : Brushes.DarkBlue,
                 StrokeThickness = 1.5,
-                ToolTip = $"{part.Title}\n{GetPartDimensions(part)}",
-                RenderTransform = new TranslateTransform(offsetX, offsetY),
-                // === НОВОЕ: включаем обработку правого клика ===
+                ToolTip = $"{part.Title}\n{partWidth:0}×{partHeight:0}мм{(rotation != 0 ? " (↻)" : "")}",
                 IsHitTestVisible = true
             };
 
-            // === НОВОЕ: обработчик правого клика для контекстного меню ===
+            var transformGroup = new TransformGroup();
+
+            // 1️. Сдвиг геометрии к началу координат
+            transformGroup.Children.Add(new TranslateTransform(offsetX, offsetY));
+
+            // 2️. Поворот вокруг ЦЕНТРА детали
+            // Знак "-" компенсирует инверсию Y у родительского _invertedLayer
+            if (Math.Abs(rotation) > 0.1)
+            {
+                transformGroup.Children.Add(new RotateTransform(-rotation, centerX, centerY));
+            }
+
+            path.RenderTransform = transformGroup;
+
+            // 3️. Корректировка позиции для компенсации изменения габаритов
+            // При повороте на 90° ширина и высота меняются местами
+            // Нужно сместить так, чтобы нижний левый угол детали остался в (x, y)
+            double adjustedX = x;
+            double adjustedY = y;
+
+            if (Math.Abs(rotation - 90) < 0.1)
+            {
+                // Компенсация смещения при повороте на 90°
+                // Деталь 1400×50 → 50×1400, центр смещается
+                adjustedX = x + (bounds.Height - bounds.Width) / 2;
+                adjustedY = y + (bounds.Width - bounds.Height) / 2;
+            }
+
+            Canvas.SetLeft(path, adjustedX);
+            Canvas.SetTop(path, adjustedY);
+
             path.PreviewMouseRightButtonUp += (s, e) => OnPartRightClick(part, e);
-
-            Canvas.SetLeft(path, x);
-            Canvas.SetTop(path, y);
             _partsCanvas.Children.Add(path);
-        }
-
-        private string GetPartDimensions(Part part)
-        {
-            if (part.PartType == PartType.Round)
-                return $"Ø{part.Width:0}мм";
-            return $"{part.Width:0}×{part.Height:0}мм";
         }
         #endregion
 
@@ -450,7 +477,8 @@ namespace Metal_Code
                 {
                     Part = p.Part,
                     X = p.X,
-                    Y = p.Y
+                    Y = p.Y,
+                    Rotation = p.Rotation  // ← КРИТИЧНО ВАЖНО!
                 }).ToList()
             };
 
@@ -565,7 +593,7 @@ namespace Metal_Code
 
             foreach (var placement in placements)
             {
-                var path = CreatePreviewPath(placement.Part, placement.X, placement.Y);
+                var path = CreatePreviewPath(placement.Part, placement.X, placement.Y, placement.Rotation);
                 if (path != null)
                 {
                     _partsCanvas.Children.Add(path);
@@ -577,27 +605,54 @@ namespace Metal_Code
         /// <summary>
         /// Создаёт Path для предпросмотра: жирный, без пунктира, полупрозрачный
         /// </summary>
-        private Path? CreatePreviewPath(Part part, double x, double y)
+        private Path? CreatePreviewPath(Part part, double x, double y, double rotation = 0)
         {
             if (part.DisplayGeometry is null) return null;
-                
+
             var geometry = PartPreviewGenerator.CloneGeometry(part.DisplayGeometry);
             if (geometry == null) return null;
 
             var bounds = geometry.Bounds;
-            var transform = new TranslateTransform(-bounds.Left + x, -bounds.Top + y);
+            var (partWidth, partHeight) = NestingHelper.GetPartDimensions(part, rotation);
 
-            return new Path
+            double offsetX = -bounds.Left;
+            double offsetY = -bounds.Top;
+            double centerX = bounds.Width / 2;
+            double centerY = bounds.Height / 2;
+
+            var transformGroup = new TransformGroup();
+            transformGroup.Children.Add(new TranslateTransform(offsetX, offsetY));
+
+            if (Math.Abs(rotation) > 0.1)
+            {
+                transformGroup.Children.Add(new RotateTransform(-rotation, centerX, centerY));
+            }
+
+            double adjustedX = x;
+            double adjustedY = y;
+
+            if (Math.Abs(rotation - 90) < 0.1)
+            {
+                adjustedX = x + (bounds.Height - bounds.Width) / 2;
+                adjustedY = y + (bounds.Width - bounds.Height) / 2;
+            }
+
+            var path = new Path
             {
                 Data = geometry,
-                Fill = new SolidColorBrush(Color.FromArgb(70, 0, 180, 60)),  // Полупрозрачный зелёный
-                Stroke = Brushes.LimeGreen,                                  // Яркий контур
-                StrokeThickness = 2.5,                                       // Жирнее обычных деталей (обычно 1.5)
+                Fill = new SolidColorBrush(Color.FromArgb(70, 0, 180, 60)),
+                Stroke = Brushes.LimeGreen,
+                StrokeThickness = 2.5,
                 StrokeLineJoin = PenLineJoin.Round,
-                RenderTransform = transform,
-                IsHitTestVisible = false,                                    // Не мешает кликам
+                RenderTransform = transformGroup,
+                IsHitTestVisible = false,
                 Opacity = 0.85
             };
+
+            Canvas.SetLeft(path, adjustedX);
+            Canvas.SetTop(path, adjustedY);
+
+            return path;
         }
 
         /// <summary>

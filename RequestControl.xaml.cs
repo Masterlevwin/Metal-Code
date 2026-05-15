@@ -788,8 +788,6 @@ namespace Metal_Code
         {
             if (TechItems.Count == 0) return;
             Show_ExpressOffer();
-            //запускаем алгоритм автоматического раскроя деталей в фоновом режиме
-            //MainWindow.M.CreateWorker(Nesting, MainWindow.ActionState.express);
         }
 
         public void Show_ExpressOffer()
