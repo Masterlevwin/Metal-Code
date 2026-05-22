@@ -13,6 +13,9 @@ namespace Metal_Code
         private readonly Part _currentPart;
         private readonly ObservableCollection<Part> _batchBuffer = new();
 
+        // ✅ НОВОЕ СВОЙСТВО: Определяет режим нестинга
+        public bool UseAutoNesting { get; private set; } = true; // По умолчанию включено
+
         public StandartPartWindow(Part templatePart)
         {
             InitializeComponent();
@@ -160,6 +163,9 @@ namespace Metal_Code
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
+
+            // ✅ СОХРАНЯЕМ ЗНАЧЕНИЕ ЧЕКБОКСА ПЕРЕД ЗАКРЫТИЕМ
+            UseAutoNesting = AutoNestingCheck.IsChecked ?? true;
 
             DialogResult = true;
             Close();

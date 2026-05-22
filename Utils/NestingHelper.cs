@@ -19,7 +19,12 @@ namespace Metal_Code.Utils
             var sheets = new List<NestingSheet>();
 
             // Размножаем детали согласно количеству
-            var allParts = parts.SelectMany(p => Enumerable.Repeat(p, p.Count)).ToList();
+            var allParts = parts
+                .SelectMany(p => Enumerable.Repeat(p, p.Count))
+                .OrderByDescending(p => Math.Max(p.Width, p.Height)) // Сначала самые "высокие"
+                .ThenByDescending(p => p.Width * p.Height)           // Затем по площади
+                .ThenBy(p => Math.Abs(p.Width - p.Height))           // Затем более квадратные
+                .ToList();
 
             foreach (var part in allParts)
             {
@@ -62,15 +67,20 @@ namespace Metal_Code.Utils
 
         /// <summary>
         /// Рассчитывает оптимальные размеры обрезки листа.
+        /// Учитывает минимальный допустимый остаток (MinRemnant = 300 мм).
+        /// Если обрезка оставляет полосу уже 300 мм, лист не обрезается по этой стороне.
         /// </summary>
-        private static void OptimizeSheetSize(NestingSheet sheet)
+        public static void OptimizeSheetSize(NestingSheet sheet)
         {
-            if (sheet.Parts.Count == 0)
+            if (!sheet.Parts.Any())
             {
                 sheet.OptimizedWidth = 0;
                 sheet.OptimizedHeight = 0;
                 return;
             }
+
+            // Минимальная ширина полезной полосы отрезанного остатка (мм)
+            const double MinRemnant = 300;
 
             double maxX = sheet.Parts.Max(p =>
             {
@@ -84,23 +94,56 @@ namespace Metal_Code.Utils
                 return p.Y + dims.Height;
             });
 
-            double requiredWidth = maxX + Spacing * 2;
-            double requiredHeight = maxY + Spacing * 2;
+            // Рассчитываем потенциальные остатки при обрезке
+            double potentialWasteWidth = sheet.StockWidth - maxX;
+            double potentialWasteHeight = sheet.StockHeight - maxY;
 
-            double wasteWidth = sheet.StockWidth - requiredWidth;
-            double wasteHeight = sheet.StockHeight - requiredHeight;
+            // Определяем, по какой оси выгоднее обрезать (где больше мусора)
+            bool cutByWidth = potentialWasteWidth > potentialWasteHeight;
 
-            // Логика выбора стороны обрезки: обрезаем там, где остается больше металла
-            if (wasteWidth > wasteHeight)
+            if (cutByWidth)
             {
-                double optimizedW = Math.Ceiling(requiredWidth / 100) * 100;
-                sheet.OptimizedWidth = Math.Min(optimizedW, sheet.StockWidth);
+                // --- Попытка обрезки по ШИРИНЕ ---
+
+                // Округляем требуемую ширину вверх до кратных 100 мм
+                double optimizedW = Math.Ceiling(maxX / 100) * 100;
+                optimizedW = Math.Min(optimizedW, sheet.StockWidth);
+
+                // Проверяем размер остатка
+                double remnant = sheet.StockWidth - optimizedW;
+
+                // Если остаток меньше минимального (но больше 0), то обрезка бессмысленна — оставляем полный лист
+                if (remnant > 0 && remnant < MinRemnant)
+                {
+                    sheet.OptimizedWidth = sheet.StockWidth; // Не обрезаем
+                }
+                else
+                {
+                    sheet.OptimizedWidth = optimizedW;
+                }
+
                 sheet.OptimizedHeight = sheet.StockHeight;
             }
             else
             {
-                double optimizedH = Math.Ceiling(requiredHeight / 100) * 100;
-                sheet.OptimizedHeight = Math.Min(optimizedH, sheet.StockHeight);
+                // --- Попытка обрезки по ВЫСОТЕ ---
+
+                double optimizedH = Math.Ceiling(maxY / 100) * 100;
+                optimizedH = Math.Min(optimizedH, sheet.StockHeight);
+
+                // Проверяем размер остатка
+                double remnant = sheet.StockHeight - optimizedH;
+
+                // Если остаток меньше минимального, оставляем полную высоту
+                if (remnant > 0 && remnant < MinRemnant)
+                {
+                    sheet.OptimizedHeight = sheet.StockHeight; // Не обрезаем
+                }
+                else
+                {
+                    sheet.OptimizedHeight = optimizedH;
+                }
+
                 sheet.OptimizedWidth = sheet.StockWidth;
             }
         }
@@ -249,6 +292,53 @@ namespace Metal_Code.Utils
                 return true;
             }
 
+            // Внутри TryPlaceWithRotation, после перебора столбцов:
+            // 2.5. Пробуем разместить в "карманах" между существующими деталями
+            foreach (var existing in sheet.Parts.OrderByDescending(p => p.Y))
+            {
+                var (ew, eh) = GetPartDimensions(existing.Part, existing.Rotation);
+
+                // Позиция справа от существующей детали, на той же высоте
+                double candidateX = existing.X + ew + Spacing;
+                double candidateY = existing.Y;
+
+                if (CanPlaceAt(sheet, candidateX, candidateY, partWidth, partHeight))
+                {
+                    // Проверка пересечений (страховка)
+                    if (IsOverlapping(sheet, candidateX, candidateY, partWidth, partHeight)) continue;
+
+                    // Успех: добавляем деталь
+                    sheet.Parts.Add(new PartPlacement
+                    {
+                        Part = part,
+                        X = candidateX,
+                        Y = candidateY,
+                        Rotation = rotation
+                    });
+                    return true;
+                }
+
+                // Позиция над существующей, но сдвинутая влево (поиск "полки")
+                candidateX = Math.Max(Spacing, existing.X - partWidth - Spacing);
+                candidateY = existing.Y + eh + Spacing;
+
+                if (CanPlaceAt(sheet, candidateX, candidateY, partWidth, partHeight))
+                {
+                    // Проверка пересечений (страховка)
+                    if (IsOverlapping(sheet, candidateX, candidateY, partWidth, partHeight)) continue;
+
+                    // Успех: добавляем деталь
+                    sheet.Parts.Add(new PartPlacement
+                    {
+                        Part = part,
+                        X = candidateX,
+                        Y = candidateY,
+                        Rotation = rotation
+                    });
+                    return true;
+                }
+            }
+
             // 3. Если ни в один столбец не влезло — создаем новый столбец справа
             double newX = Spacing;
             if (sheet.Parts.Count > 0)
@@ -317,7 +407,15 @@ namespace Metal_Code.Utils
                 return (part.Width, part.Height); // Исходная ориентация
         }
 
-        // --- Вспомогательные методы для сравнения и труб (без изменений логики) ---
+
+        // Вспомогательный метод для чистой проверки (без добавления)
+        private static bool CanPlaceAt(NestingSheet sheet, double x, double y, double width, double height)
+        {
+            if (x < Spacing || y < Spacing) return false;
+            if (x + width > sheet.Width - Spacing) return false;
+            if (y + height > sheet.Height - Spacing) return false;
+            return !IsOverlapping(sheet, x, y, width, height);
+        }
 
         public static bool AreSheetsEqual(NestingSheet? sheet1, NestingSheet? sheet2)
         {
@@ -541,5 +639,4 @@ namespace Metal_Code.Utils
             return hash;
         }
     }
-
 }

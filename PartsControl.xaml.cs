@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -434,7 +433,7 @@ namespace Metal_Code
                     // === ПАКЕТНАЯ ОБРАБОТКА В ЗАВИСИМОСТИ ОТ ТИПА КОНТРОЛЛЕРА ===
                     if (owner is CutControl cut)
                     {
-                        AddBatchToCutControl(cut, batchedParts, metal);
+                        AddBatchToCutControl(cut, batchedParts, metal, window.UseAutoNesting);
                     }
                     else if (owner is PipeControl pipe)
                     {
@@ -553,24 +552,25 @@ namespace Metal_Code
             return part;
         }
 
-        public void UpdatePartAfterEdit(Part part, Metal metal, float thickness)
+        public void UpdatePartAfterEdit(Part part, Metal metal, float thickness, bool isOriginal = false)
         {
-            // Сбрасываем кэш геометрии
-            part.DisplayGeometry = null;
-
             bool isSheetPart = part.PartType == PartType.Round || part.PartType == PartType.Rectangle;
 
             int pinholes = 0;
             double cuttingLength = 0;
 
-            // === ШАГ 1: Генерация геометрии ===
-            if (isSheetPart)
+            // === ШАГ 1: Генерация геометрии, если ее нет ===
+            if (!isOriginal)
             {
-                PartPreviewGenerator.EnsureDisplayGeometryWithHoles(part);
-            }
-            else
-            {
-                PartPreviewGenerator.EnsureDisplayGeometry(part); // Без отверстий в сечении
+                part.DisplayGeometry = null;        // Сбрасываем кэш геометрии
+                if (isSheetPart)
+                {
+                    PartPreviewGenerator.EnsureDisplayGeometryWithHoles(part);
+                }
+                else
+                {
+                    PartPreviewGenerator.EnsureDisplayGeometry(part); // Без отверстий в сечении
+                }
             }
 
             // === ШАГ 2: Расчёт длины реза и проколов ===
@@ -633,13 +633,15 @@ namespace Metal_Code
         /// <summary>
         /// Добавляет КОЛЛЕКЦИЮ деталей с общим нестингом на минимальное количество листов
         /// </summary>
-        public void AddBatchToCutControl(CutControl cut, List<Part> parts, Metal metal)
+        public void AddBatchToCutControl(CutControl cut, List<Part> parts, Metal metal, bool isAutoSheet = true)
         {
             if (parts == null || parts.Count == 0)
                 return;
 
             // === СОЗДАЁМ ЕДИНУЮ РАСКЛАДКУ ДЛЯ ВСЕХ ДЕТАЛЕЙ ===
-            var nestingSheets = NestingHelper.CreateNestingForBatch(parts, cut.work.type.A, cut.work.type.B);
+            var nestingSheets = isAutoSheet ?
+                SkylineNestingHelper.CreateNestingSkylineAutoSheet(parts, cut.work.type.MetalDrop.Text, cut.work.type.S)
+                : SkylineNestingHelper.CreateNestingSkyline(parts, cut.work.type.A, cut.work.type.B);
 
             if (nestingSheets == null || nestingSheets.Count == 0)
             {
@@ -712,9 +714,10 @@ namespace Metal_Code
             cut.MassTotal += parts.Sum(p => p.Mass * p.Count);
 
             if (cut.Items?.Count > 0)
+            {
                 cut.SumProperties(cut.Items);
-
-            cut.work.type.MassCalculate();
+                cut.work.type.CreateSort();
+            }
         }
 
         /// <summary>

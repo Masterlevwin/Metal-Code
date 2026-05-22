@@ -849,7 +849,7 @@ namespace Metal_Code
 
                                 // определяем материал заготовки
                                 foreach (Metal met in typeControl.MetalDrop.Items)
-                                    if (met.Name == metalName)
+                                    if (met.Name?.ToLower() == metalName)
                                     {
                                         typeControl.MetalDrop.SelectedItem = met;
                                         density = met.Density;
@@ -893,10 +893,11 @@ namespace Metal_Code
                                             Destiny = destiny,
                                             Width = techItem.Width,
                                             Height = techItem.Height,
-                                            PartType = PartType.Rectangle
+                                            PartType = PartType.Rectangle,
+                                            DisplayGeometry = techItem.DisplayGeometry,
                                         };
 
-                                        cut.PartsControl?.UpdatePartAfterEdit(part, m, destiny);
+                                        cut.PartsControl?.UpdatePartAfterEdit(part, m, destiny, true);
                                         parts.Add(part);
                                     }
 

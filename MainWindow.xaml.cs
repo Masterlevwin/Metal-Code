@@ -610,18 +610,18 @@ namespace Metal_Code
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.7.0.3",
-                releaseDate: new DateTime(2026, 05, 08),
-                description: "Добавлен сервис настройки тэгов.",
-                screenshotPath: "/Updates/v2.7.0.3_2026-05-08.png"
+                version: "v2.7.0.6",
+                releaseDate: new DateTime(2026, 05, 22),
+                description: "Усовершенствован нестинг предварительного расчета.",
+                screenshotPath: "/Updates/v2.7.0.6_2026-05-22.png"
             );
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.7.0.4",
-                releaseDate: new DateTime(2026, 05, 08),
-                description: "Добавлен сервис настройки папок-комментариев для менеджера.",
-                screenshotPath: "/Updates/v2.7.0.4_2026-05-08.png"
+                version: "v2.7.0.5",
+                releaseDate: new DateTime(2026, 05, 22),
+                description: "Результат нестинга.",
+                screenshotPath: "/Updates/v2.7.0.5_2026-05-22.png"
             );
 
             // Получаем новые обновления
@@ -1050,15 +1050,17 @@ namespace Metal_Code
                     .Where(o => !string.IsNullOrWhiteSpace(o.Order) && o.EndDate == null)
                     .ToList();
 
-                if (!productionOffers.Any())
+                if (!productionOffers.Any() && !_forecastMixedMode)
                 {
                     ForecastPlan.Text = ForecastBonusOoo.Text = ForecastBonusIp.Text = ForecastSalary.Text = "0";
                     return;
                 }
 
+                var startOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+
                 // 🔹 Выбираем данные в зависимости от режима
                 List<Offer> offersForCalc = _forecastMixedMode
-                    ? Offers.Where(o => o.EndDate != null).Concat(productionOffers).ToList()
+                    ? Offers.Where(o => o.EndDate != null && o.EndDate >= startOfMonth).Concat(productionOffers).ToList()
                     : productionOffers;
 
                 var result = BuildReport(offersForCalc);
@@ -1293,7 +1295,11 @@ namespace Metal_Code
                         if (DetailControls[i].TypeDetailControls[j].WorkControls[k].workType is ICut _cut)
                             if (_cut.PartsControl != null && _cut.PartsControl.Parts.Count > 0)
                                 foreach (PartControl p in _cut.PartsControl.Parts)
+                                {
+                                    // Записываем геометрию детали в свойство Part.ImageBytes
+                                    WpfImageHelper.GetOrCreatePartImage(p.Part);
                                     parts.Add(p.Part);
+                                }
             return parts;
         }
 
@@ -4234,7 +4240,7 @@ namespace Metal_Code
                                         byte[]? bytes = cut.PartDetails[i].ImageBytes;  //получаем изображение детали, если оно есть
                                         if (bytes is not null)
                                         {
-                                            Stream? stream = new MemoryStream(bytes);
+                                            using var stream = new MemoryStream(bytes);
                                             string uniqueName = $"Image_{Guid.NewGuid().ToString("N")[..8]}";   //короткий уникальный ID
                                             ExcelPicture pic = complectsheet.Drawings.AddPicture(uniqueName, stream);
 
@@ -4280,29 +4286,74 @@ namespace Metal_Code
                                         temp++;
                                     }
 
-                                //раскладки
+                                // Раскладки
                                 if (cut.Items?.Count > 0)
                                 {
                                     foreach (LaserItem item in cut.Items)
                                     {
-                                        byte[]? bytes = item.imageBytes;                //получаем изображение раскладки, если оно есть
-                                        if (bytes is not null)
+                                        if (item.NestingSheet != null)
                                         {
-                                            Stream? stream = new MemoryStream(bytes);
-                                            string uniqueName = $"Image_{Guid.NewGuid().ToString("N")[..8]}"; // короткий уникальный ID
+                                            // 1. Создаём контрол
+                                            var preview = new NestingPreviewControl { Margin = new Thickness(0) };
+
+                                            // 2. Показываем лист (контрол сам пересчитает внутренние размеры Canvas)
+                                            preview.ShowSheet(item.NestingSheet);
+
+                                            // 3. ВАЖНО: Получаем реальные размеры всего контрола вместе с подписями
+                                            double totalWidth = item.NestingSheet.StockWidth + 50;  // LabelMarginLeft = 50
+                                            double totalHeight = item.NestingSheet.StockHeight + 40; // LabelMarginBottom = 40
+
+                                            // 4. Принудительно измеряем и располагаем контрол в этих полных размерах
+                                            preview.Measure(new Size(totalWidth, totalHeight));
+                                            preview.Arrange(new Rect(0, 0, totalWidth, totalHeight));
+                                            preview.UpdateLayout();
+
+                                            // 5. Задаём целевой размер картинки в пикселях (масштабируем под Excel)
+                                            int targetPixelWidth = 800;
+                                            // Сохраняем пропорции полного размера (с подписями)
+                                            int targetPixelHeight = (int)(totalHeight * targetPixelWidth / totalWidth);
+
+                                            // 6. Рендерим в PNG
+                                            byte[] pngBytes = WpfImageHelper.RenderVisualToPng(preview, targetPixelWidth, targetPixelHeight);
+
+                                            // 7. Вставляем в Excel
+                                            string uniqueName = $"Nesting_{item.NestingSheet.Id.ToString("N")[..8]}";
+                                            using var stream = new MemoryStream(pngBytes);
                                             ExcelPicture pic = itemsheet.Drawings.AddPicture(uniqueName, stream);
+
+                                            // Позиционирование
+                                            pic.SetPosition(namePic, 10, 1, 10);
+
+                                            // Подпись
                                             itemsheet.Cells[namePic + 1, 1].Value = $"s{type.S} {type.MetalDrop.Text}";
                                             itemsheet.Cells[namePic + 1, 1].Style.TextRotation = 90;
                                             itemsheet.Cells[namePic + 1, 1].Style.Font.Bold = true;
                                             itemsheet.Cells[namePic + 1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                                             itemsheet.Cells[namePic + 1, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
-                                            itemsheet.Row(namePic + 1).Height = 400;    //увеличиваем высоту строки, чтобы вмещалось изображение
-                                            pic.SetPosition(namePic, 10, 1, 10);        //для изображений индекс начинается от нуля (0), для ячеек - от единицы (1)
+
+                                            // Высота строки под картинку
+                                            itemsheet.Row(namePic + 1).Height = targetPixelHeight / 1.33 + 10;
+
+                                            namePic ++;
+                                        }
+                                        else if (item.imageBytes is not null)
+                                        {
+                                            // Старая логика для byte[] изображений
+                                            using var stream = new MemoryStream(item.imageBytes);
+                                            string uniqueName = $"Image_{Guid.NewGuid().ToString("N")[..8]}";
+                                            ExcelPicture pic = itemsheet.Drawings.AddPicture(uniqueName, stream);
+
+                                            itemsheet.Cells[namePic + 1, 1].Value = $"s{type.S} {type.MetalDrop.Text}";
+                                            itemsheet.Cells[namePic + 1, 1].Style.TextRotation = 90;
+                                            itemsheet.Cells[namePic + 1, 1].Style.Font.Bold = true;
+                                            itemsheet.Cells[namePic + 1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                                            itemsheet.Cells[namePic + 1, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                                            itemsheet.Row(namePic + 1).Height = 400;
+                                            pic.SetPosition(namePic, 10, 1, 10);
                                             namePic++;
                                         }
                                     }
                                 }
-
                                 break;
                             }
                 }
@@ -7675,8 +7726,8 @@ namespace Metal_Code
             sb.Append($", примерно {GetTotalMass()} кг;");          //добавляем массу всех деталей
             sb.Append($" {Adress.Text}");                           //и, наконец, адрес доставки и контакт
 
-            Clipboard.SetText($"{sb} - запрос скопирован в буфер");
-            return $"{sb} - запрос скопирован в буфер";
+            Clipboard.SetText($"{sb}");
+            return $"{sb}";
         }
 
         private float GetTotalMass()        //метод расчета общей массы ВСЕХ деталей
@@ -7813,6 +7864,85 @@ namespace Metal_Code
         #endregion
 
 
+        //-------------Шаблоны и настройки-----------------//
+        #region
+        // Глобальные шаблоны (загружаются один раз)
+        private readonly ObservableCollection<FolderPreset> _globalPresets = FolderPresetManager.LoadPresets();
+
+        // Локальные шаблоны для ТЕКУЩЕГО расчета (клонирование изолирует выбор)
+        public ObservableCollection<FolderPreset> CurrentCalculationFolders { get; } = new();
+
+        // Вызывать при создании нового расчета или загрузке существующего
+        public void InitializeFolderPresets()
+        {
+            CurrentCalculationFolders.Clear();
+            foreach (var preset in _globalPresets)
+            {
+                // Сбрасываем IsEnabled при новом расчете (или сохраняем, если нужно)
+                var clone = preset.Clone();
+                clone.IsEnabled = false;
+                CurrentCalculationFolders.Add(clone);
+            }
+        }
+
+        // Открытие окна настроек
+        private void OpenFolderPresetSettings(object sender, RoutedEventArgs e)
+        {
+            var settingsWindow = new FolderPresetSettingsWindow(_globalPresets);
+            if (settingsWindow.ShowDialog() == true)
+            {
+                // Пересоздаем локальный список с учетом изменений в глобальном
+                InitializeFolderPresets();
+            }
+        }
+
+        public void CreateSelectedFolders(string rootPath)
+        {
+            if (string.IsNullOrWhiteSpace(rootPath)) return;
+
+            foreach (var folder in CurrentCalculationFolders.Where(f => f.IsEnabled))
+            {
+                try
+                {
+                    string safeName = SanitizeFolderName(folder.Name);
+                    if (string.IsNullOrWhiteSpace(safeName)) continue;
+
+                    string fullPath = Path.Combine(rootPath, safeName);
+                    if (!Directory.Exists(fullPath))
+                        Directory.CreateDirectory(fullPath);
+                }
+                catch (Exception ex)
+                {
+                    // Логируем, но не прерываем сохранение
+                    StatusBegin($"⚠️ Не удалось создать папку '{folder.Name}': {ex.Message}");
+                }
+            }
+        }
+
+        private string SanitizeFolderName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return "Без названия";
+
+            // Убираем только реально недопустимые символы Windows
+            char[] invalid = Path.GetInvalidFileNameChars();
+            string cleaned = new string(name.Where(c => !invalid.Contains(c)).ToArray());
+
+            // Windows сама обрезает конечные пробелы и точки, но для чистоты можно сделать Trim()
+            return cleaned.Trim();
+        }
+
+        private void ShowFolderPresetsDialog(object sender, RoutedEventArgs e)
+        {
+            var dialog = new FolderPresetsDialog(CurrentCalculationFolders);
+
+            if (dialog.ShowDialog() == true)
+            {
+                StatusBegin($"Выбрано папок: {CurrentCalculationFolders.Count(p => p.IsEnabled)}");
+            }
+        }
+        #endregion
+
+
         //-------------Выход и перезагрузка----------------------//
         #region
         public void Exit(object sender, RoutedEventArgs e)
@@ -7906,81 +8036,6 @@ namespace Metal_Code
                     MessageBox.Show($"Произошла ошибка при сортировке файлов:\n{ex.Message}", "Ошибка",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }
-            }
-        }
-
-        // Глобальные шаблоны (загружаются один раз)
-        private readonly ObservableCollection<FolderPreset> _globalPresets = FolderPresetManager.LoadPresets();
-
-        // Локальные шаблоны для ТЕКУЩЕГО расчета (клонирование изолирует выбор)
-        public ObservableCollection<FolderPreset> CurrentCalculationFolders { get; } = new();
-
-        // Вызывать при создании нового расчета или загрузке существующего
-        public void InitializeFolderPresets()
-        {
-            CurrentCalculationFolders.Clear();
-            foreach (var preset in _globalPresets)
-            {
-                // Сбрасываем IsEnabled при новом расчете (или сохраняем, если нужно)
-                var clone = preset.Clone();
-                clone.IsEnabled = false;
-                CurrentCalculationFolders.Add(clone);
-            }
-        }
-
-        // Открытие окна настроек
-        private void OpenFolderPresetSettings(object sender, RoutedEventArgs e)
-        {
-            var settingsWindow = new FolderPresetSettingsWindow(_globalPresets);
-            if (settingsWindow.ShowDialog() == true)
-            {
-                // Пересоздаем локальный список с учетом изменений в глобальном
-                InitializeFolderPresets();
-            }
-        }
-
-        public void CreateSelectedFolders(string rootPath)
-        {
-            if (string.IsNullOrWhiteSpace(rootPath)) return;
-
-            foreach (var folder in CurrentCalculationFolders.Where(f => f.IsEnabled))
-            {
-                try
-                {
-                    string safeName = SanitizeFolderName(folder.Name);
-                    if (string.IsNullOrWhiteSpace(safeName)) continue;
-
-                    string fullPath = Path.Combine(rootPath, safeName);
-                    if (!Directory.Exists(fullPath))
-                        Directory.CreateDirectory(fullPath);
-                }
-                catch (Exception ex)
-                {
-                    // Логируем, но не прерываем сохранение
-                    StatusBegin($"⚠️ Не удалось создать папку '{folder.Name}': {ex.Message}");
-                }
-            }
-        }
-
-        private string SanitizeFolderName(string name)
-        {
-            if (string.IsNullOrWhiteSpace(name)) return "Без названия";
-
-            // Убираем только реально недопустимые символы Windows
-            char[] invalid = Path.GetInvalidFileNameChars();
-            string cleaned = new string(name.Where(c => !invalid.Contains(c)).ToArray());
-
-            // Windows сама обрезает конечные пробелы и точки, но для чистоты можно сделать Trim()
-            return cleaned.Trim();
-        }
-
-        private void ShowFolderPresetsDialog(object sender, RoutedEventArgs e)
-        {
-            var dialog = new FolderPresetsDialog(CurrentCalculationFolders);
-
-            if (dialog.ShowDialog() == true)
-            {
-                StatusBegin($"Выбрано папок: {CurrentCalculationFolders.Count(p => p.IsEnabled)}");
             }
         }
         #endregion

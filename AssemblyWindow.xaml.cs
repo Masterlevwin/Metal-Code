@@ -165,6 +165,7 @@ namespace Metal_Code
         //окраска
         public string[] Structures { get; set; } = { "глян", "мат", "шагр", "муар" };
         public int priceMeter = 500;    //стоимость обработки 1 квадратного метра
+        public int priceCount = 150;    //минималка за 1 деталь
 
         public AssemblyWindow()
         {
@@ -472,7 +473,9 @@ namespace Metal_Code
                     if (assembly.Square > 0 && assembly.Square < 1)
                         assembly.Square = 1;
 
-                    assembly.PaintPrice = (float)Math.Ceiling(priceMeter * assembly.Square);
+                    // Определяем цену окраски с учетом минималки за деталь
+                    int minCountPrice = assembly.Particles.Sum(p => p.Count) * assembly.Count * priceCount;
+                    assembly.PaintPrice = (float)Math.Max(Math.Ceiling(priceMeter * assembly.Square), minCountPrice);
 
                     // Минимальная цена окраски
                     var minPaintPrice = MainWindow.M.Works.FirstOrDefault(w => w.Name == "Окраска")?.Price ?? 0;
