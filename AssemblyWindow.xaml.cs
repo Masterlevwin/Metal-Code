@@ -164,8 +164,6 @@ namespace Metal_Code
         
         //окраска
         public string[] Structures { get; set; } = { "глян", "мат", "шагр", "муар" };
-        public int priceMeter = 500;    //стоимость обработки 1 квадратного метра
-        public int priceCount = 150;    //минималка за 1 деталь
 
         public AssemblyWindow()
         {
@@ -218,6 +216,9 @@ namespace Metal_Code
             {
                 var collect = CurrentParts.Union(CurrentBaskets);
 
+                // Запоминаем, была ли сборка пустой ДО добавления
+                bool wasEmpty = assembly.Particles.Count == 0;
+
                 foreach (Part part in collect)
                 {
                     Particle? _particle = assembly.Particles.FirstOrDefault(p => p.Title == part.Title);
@@ -231,6 +232,12 @@ namespace Metal_Code
                         };
                         assembly.Particles.Add(_particle);
                     }
+                }
+
+                // Если сборка была пустой и теперь содержит детали — раскрываем её
+                if (wasEmpty && assembly.Particles.Count > 0)
+                {
+                    ExpandAssemblyItem(assembly);
                 }
             }
         }
@@ -378,49 +385,49 @@ namespace Metal_Code
         {
             if (Assemblies.Count == 0) return;
 
+            // Константы
+            const float ChamberCapacitySqM = 10.0f;
+            const decimal MinLoadPrice = 5000m;
+            const decimal MinPiecePrice = 100m;
+            const decimal PricePerSqM = 500m;
+
+            // 0. Сброс значений
+            foreach (var assembly in Assemblies)
+            {
+                assembly.Description = string.Empty;
+                assembly.WeldPrice = 0;
+                assembly.PaintPrice = 0;
+                assembly.Square = 0;
+                assembly.Mass = 0;
+            }
+
+            // ==========================================
+            // ЧАСТЬ 1: РАСЧЕТ МАССЫ И ПЛОЩАДИ (Базовые данные для каждой сборки)
+            // ==========================================
             foreach (Assembly assembly in Assemblies)
             {
-                // Сброс накопленных значений
-                assembly.Description = string.Empty;
-                assembly.WeldPrice = assembly.PaintPrice = assembly.Square = assembly.Mass = 0;
-
-                // ===== 1. Расчёт массы и площади — ВСЕГДА =====
                 foreach (Particle particle in assembly.Particles)
                 {
-                    Part? _part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == particle.Title);
-                    if (_part == null) continue;
+                    Part? part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == particle.Title);
+                    if (part == null) continue;
 
-                    // Масса считается всегда
-                    assembly.Mass += _part.Mass * particle.Count;
+                    // Масса
+                    assembly.Mass += part.Mass * particle.Count;
 
-                    // Площадь считается всегда
-                    if (_part.PropsDict.ContainsKey(100) && _part.PropsDict[100].Count > 2)
-                    {
-                        var width = MainWindow.Parser(_part.PropsDict[100][0]);
-                        var height = MainWindow.Parser(_part.PropsDict[100][1]);
-                        if (height == 0) height = 1;
+                    // Площадь сборки (сумма площадей всех её деталей)
+                    // Используем двустороннюю площадь для расчета стоимости окраски
+                    float partSquare = CalculatePartSquare(part, isDoubleSided: true);
 
-                        float areaFactor =
-                            _part.Mass switch
-                            {
-                                <= 50 => 1,
-                                <= 100 => 1.5f,
-                                <= 150 => 2,
-                                _ => 3,
-                            }
-                            * _part.Destiny switch
-                            {
-                                >= 10 => 1.5f,
-                                >= 8 => 1.4f,
-                                >= 5 => 1.3f,
-                                _ => 1,
-                            };
-
-                        assembly.Square += areaFactor * width * height * particle.Count * assembly.Count / (height != 1 ? 500_000 : 1);
-                    }
+                    // Умножаем на кол-во таких деталей и на кол-во самих сборок
+                    assembly.Square += partSquare * particle.Count * assembly.Count;
                 }
+            }
 
-                // ===== 2. Стоимость сварки — ТОЛЬКО если указан шов =====
+            // ==========================================
+            // ЧАСТЬ 2: РАСЧЕТ СВАРКИ (Индивидуально для каждой сборки)
+            // ==========================================
+            foreach (Assembly assembly in Assemblies)
+            {
                 float weld = ParserWeld(assembly.Weld) * assembly.Count;
                 if (weld > 0)
                 {
@@ -432,7 +439,6 @@ namespace Metal_Code
                         _ => 100,
                     };
 
-                    // Находим металл с МАКСИМАЛЬНОЙ ценой сварки среди всех деталей сборки
                     string? mostExpensiveMetal = null;
                     float maxPrice = -1;
 
@@ -441,23 +447,23 @@ namespace Metal_Code
                         var part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == particle.Title);
                         if (part?.Metal == null) continue;
 
-                        string metal = part.Metal;
-                        if (!WeldDict.TryGetValue(metal, out var priceMap)) continue;
-                        if (!priceMap.TryGetValue(sideRatio, out float pricePerUnit)) continue;
-
-                        if (pricePerUnit > maxPrice)
+                        if (WeldDict.TryGetValue(part.Metal, out var priceMap))
                         {
-                            maxPrice = pricePerUnit;
-                            mostExpensiveMetal = metal;
+                            if (priceMap.TryGetValue(sideRatio, out float pricePerUnit))
+                            {
+                                if (pricePerUnit > maxPrice)
+                                {
+                                    maxPrice = pricePerUnit;
+                                    mostExpensiveMetal = part.Metal;
+                                }
+                            }
                         }
                     }
 
-                    // Если нашли подходящий металл — считаем стоимость
                     if (mostExpensiveMetal != null && maxPrice > 0)
                     {
                         assembly.WeldPrice = maxPrice * 1.5f * weld * (assembly.Type == "одн" ? 1 : 1.7f);
 
-                        // Минимальная цена сварки
                         var minWeldPrice = MainWindow.M.Works.FirstOrDefault(w => w.Name == "Сварка")?.Price ?? 0;
                         if (assembly.WeldPrice > 0 && assembly.WeldPrice < minWeldPrice)
                             assembly.WeldPrice = minWeldPrice;
@@ -466,30 +472,139 @@ namespace Metal_Code
                             assembly.Description = "Св";
                     }
                 }
+            }
 
-                // ===== 3. Стоимость окраски — ТОЛЬКО если указан цвет =====
-                if (!string.IsNullOrEmpty(assembly.Ral))
+            // ==========================================
+            // ЧАСТЬ 3: РАСЧЕТ ОКРАСКИ (Группировка по СБОРКАМ)
+            // ==========================================
+
+            var paintedAssemblies = Assemblies
+                .Where(a => !string.IsNullOrEmpty(a.Ral))
+                .ToList();
+
+            if (paintedAssemblies.Count > 0)
+            {
+                var paintGroups = paintedAssemblies.GroupBy(a => new
                 {
-                    if (assembly.Square > 0 && assembly.Square < 1)
-                        assembly.Square = 1;
+                    Ral = a.Ral,
+                    Structure = string.IsNullOrEmpty(a.Structure) ? "глян" : a.Structure
+                });
 
-                    // Определяем цену окраски с учетом минималки за деталь
-                    int minCountPrice = assembly.Particles.Sum(p => p.Count) * assembly.Count * priceCount;
-                    assembly.PaintPrice = (float)Math.Max(Math.Ceiling(priceMeter * assembly.Square), minCountPrice);
+                foreach (var group in paintGroups)
+                {
+                    decimal totalArea = 0;
+                    float totalChamberArea = 0;
+                    int totalCountPieces = 0;
 
-                    // Минимальная цена окраски
-                    var minPaintPrice = MainWindow.M.Works.FirstOrDefault(w => w.Name == "Окраска")?.Price ?? 0;
-                    if (assembly.PaintPrice > 0 && assembly.PaintPrice < minPaintPrice)
-                        assembly.PaintPrice = minPaintPrice;
+                    var assemblyContributions = new Dictionary<Assembly, decimal>();
 
-                    var paintDesc = $"О ({assembly.Ral} {assembly.Structure})";
-                    assembly.Description = assembly.Description.Contains("Св")
-                        ? assembly.Description + " + " + paintDesc
-                        : paintDesc;
+                    foreach (var assembly in group)
+                    {
+                        decimal area = (decimal)assembly.Square;
+                        totalArea += area;
+                        totalChamberArea += assembly.Square / 2f; // Площадь для камеры (1 сторона)
+
+                        int piecesInAssembly = assembly.Particles.Sum(p => p.Count) * assembly.Count;
+                        totalCountPieces += piecesInAssembly;
+
+                        assemblyContributions[assembly] = area;
+                    }
+
+                    if (totalArea <= 0) continue;
+
+                    // --- РАСЧЕТ СТОИМОСТИ ГРУППЫ ---
+
+                    int loadCount = (int)Math.Ceiling(totalChamberArea / ChamberCapacitySqM);
+                    if (loadCount < 1) loadCount = 1;
+
+                    decimal costByArea = PricePerSqM * totalArea;
+                    decimal costByLoad = loadCount * MinLoadPrice;
+                    decimal costByPiece = totalCountPieces * MinPiecePrice;
+
+                    // Итоговая цена группы
+                    decimal finalGroupPrice = Math.Max(costByArea, Math.Max(costByLoad, costByPiece));
+
+                    // === ИСПРАВЛЕНИЕ: Применяем минималку из справочника к ВСЕЙ группе, а не к частям ===
+                    decimal minPaintWork = (decimal)(MainWindow.M.Works.FirstOrDefault(w => w.Name == "Окраска")?.Price ?? 0);
+                    if (minPaintWork > 0 && finalGroupPrice < minPaintWork)
+                    {
+                        // Если стоимость всей группы окраски этого цвета меньше минималки за работу,
+                        // то поднимаем стоимость всей группы до минималки.
+                        finalGroupPrice = minPaintWork;
+                    }
+
+                    System.Diagnostics.Trace.WriteLine(
+                        $"\n[Окраска] Группа: {group.Key.Ral} {group.Key.Structure}\n" +
+                        $"  Сборок: {group.Count()}, Площадь: {totalArea:0.00} кв.м., Деталей: {totalCountPieces}\n" +
+                        $"  Загрузок: {loadCount}, Мин.загр: {costByLoad:0}₽, Мин.шт: {costByPiece:0}₽, По пл: {costByArea:0}₽\n" +
+                        $"  → ИТОГ ГРУППЫ: {finalGroupPrice:0}₽");
+
+                    // Распределение цены по сборкам пропорционально площади
+                    foreach (var kvp in assemblyContributions)
+                    {
+                        Assembly assembly = kvp.Key;
+                        decimal ratio = totalArea > 0 ? kvp.Value / totalArea : 0;
+
+                        // Присваиваем долю от УЖЕ проверенной на минималки итоговой суммы группы
+                        assembly.PaintPrice = (float)(finalGroupPrice * ratio);
+                    }
+
+                    // Описание
+                    string paintDesc = $"О ({group.Key.Ral} {group.Key.Structure})";
+                    foreach (var assembly in group)
+                    {
+                        if (!string.IsNullOrEmpty(assembly.Description) && !assembly.Description.Contains("О ("))
+                            assembly.Description += " + " + paintDesc;
+                        else if (string.IsNullOrEmpty(assembly.Description))
+                            assembly.Description = paintDesc;
+                    }
                 }
             }
         }
 
+        // Рассчитывает площадь одной детали в кв.м.
+        private float CalculatePartSquare(Part part, bool isDoubleSided = true)
+        {
+            if (!part.PropsDict.ContainsKey(100) || part.PropsDict[100].Count < 2)
+                return 0;
+
+            var width = MainWindow.Parser(part.PropsDict[100][0]);
+            var height = MainWindow.Parser(part.PropsDict[100][1]);
+            if (height == 0)
+            {
+                height = 1;
+                width *= 1000000;
+            }
+
+            // Коэффициенты массы и толщины (как в вашем оригинальном коде)
+            float massFactor = part.Mass switch
+            {
+                <= 50 => 1,
+                <= 100 => 1.5f,
+                <= 150 => 2,
+                _ => 3,
+            };
+
+            float destinyFactor = part.Destiny switch
+            {
+                >= 10 => 1.5f,
+                >= 8 => 1.4f,
+                >= 5 => 1.3f,
+                _ => 1,
+            };
+
+            // Базовая площадь в мм² с коэффициентами
+            float baseAreaMm2 = massFactor * destinyFactor * width * height;
+
+            // Перевод в м²
+            // Если двусторонняя окраска: делим на 500 000 (это равносильно *2 / 1 000 000)
+            // Если односторонняя (для камеры): делим на 1 000 000
+            float divisor = isDoubleSided ? 500_000f : 1_000_000f;
+
+            return baseAreaMm2 / divisor;
+        }
+
+        // Переводит математическое выражение в число мм сварки
         private static float ParserWeld(string _weld)
         {
             try
@@ -529,6 +644,22 @@ namespace Metal_Code
             Set_WorksPrice();
         }
 
+        /// <summary>
+        /// Асинхронно раскрывает TreeViewItem для сборки, если он ещё не раскрыт.
+        /// Используется Dispatcher.Yield, чтобы дождаться генерации контейнера после изменения коллекции.
+        /// </summary>
+        private async void ExpandAssemblyItem(Assembly assembly)
+        {
+            // Даём UI время обновиться после добавления элемента в коллекцию
+            await Dispatcher.Yield(DispatcherPriority.Background);
+
+            // Пытаемся получить TreeViewItem через ItemContainerGenerator
+            var tvi = ParticleStack.ItemContainerGenerator.ContainerFromItem(assembly) as TreeViewItem;
+
+            // Если контейнер найден и ещё не раскрыт — раскрываем
+            if (tvi != null && !tvi.IsExpanded)
+                tvi.IsExpanded = true;
+        }
 
         //----------Перетаскивание детали в сборки----------//
         private Point _dragStartPoint;
@@ -609,6 +740,9 @@ namespace Metal_Code
             {
                 if (targetItem.DataContext is Assembly assembly && _draggedPart is Part part)
                 {
+                    // Запоминаем, была ли сборка пустой ДО добавления
+                    bool wasEmpty = assembly.Particles.Count == 0;
+
                     Particle? _particle = assembly.Particles.FirstOrDefault(p => p.Title == part.Title);
                     if (_particle is null)
                     {
@@ -622,6 +756,12 @@ namespace Metal_Code
 
                         // Подсвечиваем добавленную деталь!
                         HighlightNewItem(assembly, _particle);
+                    }
+
+                    // Раскрываем сборку, если она была пустой и теперь содержит детали
+                    if (wasEmpty && assembly.Particles.Count > 0)
+                    {
+                        ExpandAssemblyItem(assembly);
                     }
 
                     e.Handled = true;
@@ -669,6 +809,5 @@ namespace Metal_Code
             }
             return null;
         }
-
     }
 }

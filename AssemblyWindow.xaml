@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:self="clr-namespace:Metal_Code"
         mc:Ignorable="d"
-        Title="Управление сборками" Closing="HideWindow" WindowStartupLocation="CenterScreen" Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}">
+        Title="Управление сборками" Closing="HideWindow" WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}">
     <Window.Resources>
         <self:CostConverter x:Key="CostConverter"/>
         
@@ -169,11 +170,14 @@
                   BorderThickness="0" AllowDrop="True" DragOver="TreeView_DragOver" Drop="TreeView_Drop">
             <TreeView.Resources>
                 <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                    <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                    <Setter Property="HorizontalAlignment" Value="Left"/>
                     <Setter Property="AllowDrop" Value="True"/>
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="TreeViewItem">
                                 <StackPanel Background="{TemplateBinding Background}">
+                                    
                                     <!-- Заголовок с раскрывающейся стрелкой -->
                                     <Grid x:Name="HeaderGrid" Background="Transparent">
                                         <Grid.ColumnDefinitions>
@@ -181,28 +185,25 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- Стрелка раскрытия -->
                                         <ToggleButton x:Name="Expander" ClickMode="Press"
-                                                      IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
-                                                      Background="Transparent" BorderThickness="0"
-                                                      Width="24" Height="24" Cursor="Hand"
-                                                      HorizontalAlignment="Left"
-                                                      VerticalAlignment="Center">
+              IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+              Width="24" Height="24" Cursor="Hand"
+              HorizontalAlignment="Left" VerticalAlignment="Center">
                                             <ToggleButton.Template>
                                                 <ControlTemplate TargetType="ToggleButton">
                                                     <Grid Background="Transparent">
-                                                        <!-- Увеличенная стрелка -->
-                                                        <Path x:Name="Arrow" Fill="Gray"
-                                                              Data="M 0 0 L 0 10 L 6 5 Z"
-                                                              HorizontalAlignment="Center"
-                                                              VerticalAlignment="Center"
-                                                              RenderTransformOrigin="0.5,0.5">
+                                                        
+                                                        <!-- Стрелка-шеврон -->
+                                                        <Path x:Name="Arrow" Fill="#555555" Data="M 3 1 L 9 7 L 3 13 Z"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                      RenderTransformOrigin="0.5,0.5">
                                                             <Path.RenderTransform>
                                                                 <RotateTransform Angle="0"/>
                                                             </Path.RenderTransform>
                                                         </Path>
                                                     </Grid>
                                                     <ControlTemplate.Triggers>
+                                                        <!-- Раскрытие -->
                                                         <Trigger Property="IsChecked" Value="True">
                                                             <Setter TargetName="Arrow" Property="RenderTransform">
                                                                 <Setter.Value>
@@ -210,8 +211,9 @@
                                                                 </Setter.Value>
                                                             </Setter>
                                                         </Trigger>
+                                                        <!-- Наведение -->
                                                         <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="Arrow" Property="Fill" Value="#FF0066CC"/>
+                                                            <Setter TargetName="Arrow" Property="Fill" Value="#1A73E8"/>
                                                         </Trigger>
                                                     </ControlTemplate.Triggers>
                                                 </ControlTemplate>
@@ -291,14 +293,30 @@
                         </StackPanel>
                     </Border>
                 </HierarchicalDataTemplate>
-
+                
                 <DataTemplate DataType="{x:Type self:Particle}">
-                    <StackPanel Orientation="Horizontal" Margin="3">
-                        <Image Loaded="SetPicture" Width="20"/>
-                        <TextBlock Text="{Binding Title}" Width="300" Margin="5,0,0,0" VerticalAlignment="Center" Tag="ParticleTitle"/>
-                        <TextBox Text="{Binding Count}" Foreground="Blue" Width="40" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                        <Button Content="Х" Click="Remove" ToolTip="Убрать деталь из сборки" Margin="20,0,0,0"/>
-                    </StackPanel>
+                    <!-- Оборачиваем все в Border, чтобы иметь возможность менять его свойства -->
+                    <Border x:Name="ParticleBorder" CornerRadius="6">
+                        <StackPanel Orientation="Horizontal" Margin="3">
+                            <Image Loaded="SetPicture" Width="20"/>
+                            <TextBlock Text="{Binding Title}" Width="300" Margin="5,0,0,0" VerticalAlignment="Center" Tag="ParticleTitle"/>
+                            <TextBox Text="{Binding Count}" Foreground="Blue" Width="40" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                            <Button x:Name="BtnRemove" Content="Х" Click="Remove"
+                                    ToolTip="Убрать деталь из сборки" Margin="20,0,0,0"/>
+                        </StackPanel>
+
+                        <!-- Стиль для изменения вида Border при наведении на кнопку -->
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <!-- Триггер: когда мышь над кнопкой BtnRemove -->
+                                    <DataTrigger Binding="{Binding IsMouseOver, ElementName=BtnRemove}" Value="True">
+                                        <Setter Property="Background" Value="#FFFFE0E0"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
                 </DataTemplate>
 
             </TreeView.Resources>
