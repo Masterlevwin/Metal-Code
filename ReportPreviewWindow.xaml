@@ -1,179 +1,85 @@
 ﻿<Window x:Class="Metal_Code.ReportPreviewWindow"
-        xmlns:hc="https://handyorg.github.io/handycontrol"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:hc="https://handyorg.github.io/handycontrol"
         xmlns:local="clr-namespace:Metal_Code"
         xmlns:converters="clr-namespace:Metal_Code.Converters"
-        Title="Отчет по отгруженным заказам за месяц"
-        Width="1100" Height="600"
-        WindowStartupLocation="CenterOwner">
+        Title="Отчет по продажам" 
+        Height="700" Width="1200"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource RegionBrush}">
 
     <Window.Resources>
-        <local:CostConverter x:Key="CostConverter"/>
-        <converters:GroupSummaryConverter x:Key="GroupSummaryConverter"/>
-
-        <!-- 🔹 Стиль для заголовков колонок: центрирование + жирный шрифт + фон -->
-        <Style TargetType="DataGridColumnHeader">
-            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Background" Value="{DynamicResource RegionBrush}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="0,0,1,1"/>
-            <!-- Чтобы заголовок не исчезал при прокрутке -->
-            <Setter Property="IsTabStop" Value="False"/>
-        </Style>
-
-        <!-- 🔹 Опционально: стиль для ячеек с суммами (правое выравнивание) -->
-        <Style x:Key="RightAlignedCell" TargetType="TextBlock">
-            <Setter Property="HorizontalAlignment" Value="Right"/>
-            <Setter Property="TextAlignment" Value="Right"/>
-            <Setter Property="Padding" Value="0,0,5,0"/>
-        </Style>
+        <!-- ⭐ Конвертеры регистрируем в ресурсах окна -->
+        <converters:GroupSumConverter x:Key="GroupSumConverter"/>
+        <converters:BoolToTaxConverter x:Key="BoolToTaxConverter"/>
     </Window.Resources>
-    
+
     <Grid Margin="10">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <!-- Таблица -->
             <RowDefinition Height="Auto"/>
-            <!-- Итоги -->
-            <RowDefinition Height="Auto"/>
-            <!-- Кнопки -->
         </Grid.RowDefinitions>
 
-        <!-- 🔹 Таблица -->
-        <DataGrid x:Name="PreviewGrid"
-          ItemsSource="{Binding Items}"
-          Style="{StaticResource DataGrid.Small}"
-          AutoGenerateColumns="False"
-          CanUserAddRows="False"
-          CanUserDeleteRows="False"
-          CanUserReorderColumns="False"
-          CanUserResizeRows="False"
-          EnableColumnVirtualization="True"
-          EnableRowVirtualization="True"
-          IsReadOnly="True"
-          FrozenColumnCount="3"
-          HeadersVisibility="All"
-          HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
-          VerticalGridLinesBrush="{DynamicResource BorderBrush}">
+        <!-- 🔹 ПАНЕЛЬ ИНФОРМАЦИИ О ПЕРИОДЕ -->
+        <Border Grid.Row="0" Background="{DynamicResource SecondaryRegionBrush}" 
+                CornerRadius="4" Padding="10" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-            <DataGrid.Columns>
-                <!-- 🔹 Колонка удаления -->
-                <DataGridTemplateColumn Header="✕" Width="40" CanUserResize="False" CanUserReorder="False">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Button Content="✕" 
-                        Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                        CommandParameter="{Binding}"
-                        ToolTip="Исключить из отчета"
-                        Padding="2" Width="24" Height="24" 
-                        Background="Transparent" BorderThickness="0"
-                        Foreground="{DynamicResource DangerBrush}"
-                        HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <Button.Style>
-                                    <Style TargetType="Button">
-                                        <Setter Property="Template">
-                                            <Setter.Value>
-                                                <ControlTemplate TargetType="Button">
-                                                    <Border Background="Transparent" 
-                                                BorderBrush="Transparent" 
-                                                CornerRadius="4">
-                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                    </Border>
-                                                    <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Background" Value="#FFE0E0"/>
-                                                            <Setter Property="Foreground" Value="#CC0000"/>
-                                                        </Trigger>
-                                                    </ControlTemplate.Triggers>
-                                                </ControlTemplate>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="📅 Период:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock Text="{Binding PeriodText}" VerticalAlignment="Center" FontSize="13"/>
+                    <TextBlock Text="{Binding ModeText}" VerticalAlignment="Center" 
+                               Margin="20,0,0,0" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/>
+                </StackPanel>
 
-                <DataGridTextColumn Header="№" Binding="{Binding Number}" Width="80"/>
-                <DataGridTextColumn Header="Компания" Binding="{Binding Company}" Width="150"/>
-                <DataGridCheckBoxColumn Header="Нал" Binding="{Binding IsCash}" Width="50"/>
-                <DataGridTextColumn Header="Счёт" Binding="{Binding Invoice}" Width="60"/>
-                <DataGridTextColumn Header="Заказ" Binding="{Binding Order}" Width="60"/>
-                <DataGridTextColumn Header="Отгружен" Binding="{Binding EndDate, StringFormat=dd.MM.yyyy}" Width="80"/>
-                
-                <!-- 🔹 Стоимости -->
-                <DataGridTextColumn Header="Сумма" Binding="{Binding TotalAmount, Converter={StaticResource CostConverter}}" Width="90">
-                    <DataGridTextColumn.ElementStyle>
-                        <StaticResource ResourceKey="RightAlignedCell"/>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Материал" Binding="{Binding MaterialAmount, Converter={StaticResource CostConverter}}" Width="90">
-                    <DataGridTextColumn.ElementStyle>
-                        <StaticResource ResourceKey="RightAlignedCell"/>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Лазер" Binding="{Binding LaserCost, Converter={StaticResource CostConverter}}" Width="90">
-                    <DataGridTextColumn.ElementStyle>
-                        <StaticResource ResourceKey="RightAlignedCell"/>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Гибка" Binding="{Binding BendingCost, Converter={StaticResource CostConverter}}" Width="90">
-                    <DataGridTextColumn.ElementStyle>
-                        <StaticResource ResourceKey="RightAlignedCell"/>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Труборез" Binding="{Binding PipeCost, Converter={StaticResource CostConverter}}" Width="90">
-                    <DataGridTextColumn.ElementStyle>
-                        <StaticResource ResourceKey="RightAlignedCell"/>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Производство" Binding="{Binding ProductionCost, Converter={StaticResource CostConverter}}" Width="90">
-                    <DataGridTextColumn.ElementStyle>
-                        <StaticResource ResourceKey="RightAlignedCell"/>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-            </DataGrid.Columns>
+                <Button Grid.Column="1" Content="💾 Экспорт в Excel" 
+                        Command="{Binding ExportCommand}"
+                        Style="{StaticResource ButtonSuccess}" Padding="12,6" Margin="0,0,5,0"/>
 
-            <!-- ✅ 3. Группировка с рабочим Expander (аналог GroupStyleSelector) -->
+                <Button Grid.Column="2" Content="✖ Закрыть" 
+                        Command="{Binding CloseCommand}"
+                        Style="{StaticResource ButtonDefault}" Padding="12,6"/>
+            </Grid>
+        </Border>
+
+        <!-- 🔹 ТАБЛИЦА ДАННЫХ -->
+        <DataGrid Grid.Row="1" x:Name="ReportGrid" 
+                  ItemsSource="{Binding Items}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  SelectionMode="Single"
+                  HeadersVisibility="Column"
+                  GridLinesVisibility="Horizontal"
+                  BorderBrush="{DynamicResource BorderBrush}"
+                  BorderThickness="1">
+
             <DataGrid.GroupStyle>
                 <GroupStyle>
                     <GroupStyle.ContainerStyle>
-                        <Style TargetType="GroupItem">
+                        <Style TargetType="{x:Type GroupItem}">
                             <Setter Property="Template">
                                 <Setter.Value>
-                                    <ControlTemplate TargetType="GroupItem">
-                                        <Expander IsExpanded="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                                          Margin="0,2,0,4"
-                                          BorderThickness="0"
-                                          Background="Transparent"
-                                          HorizontalContentAlignment="Stretch">
+                                    <ControlTemplate TargetType="{x:Type GroupItem}">
+                                        <Expander IsExpanded="True">
                                             <Expander.Header>
-                                                <Border Background="{DynamicResource RegionBrush}" 
-                                                BorderBrush="{DynamicResource BorderBrush}" 
-                                                BorderThickness="1" 
-                                                CornerRadius="4" 
-                                                Padding="8,6"
-                                                Margin="0,0,0,0">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="👤" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                                        <TextBlock Text="{Binding Name}" FontWeight="Bold" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextBrush}"/>
-                                                        <TextBlock Text=" → " VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                                                        <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}">
-                                                            <TextBlock.Text>
-                                                                <MultiBinding Converter="{StaticResource GroupSummaryConverter}">
-                                                                    <Binding Path="Items"/>
-                                                                </MultiBinding>
-                                                            </TextBlock.Text>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                </Border>
+                                                <StackPanel Orientation="Horizontal" Margin="0,3">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="13"/>
+                                                    <TextBlock Text="{Binding ItemCount, StringFormat=' ({0} расчётов)'}" 
+                                                               Margin="10,0,0,0" Foreground="Gray"/>
+                                                    <TextBlock Text="{Binding Converter={StaticResource GroupSumConverter}}" 
+                                                               Margin="20,0,0,0" FontWeight="Bold" Foreground="Green"/>
+                                                </StackPanel>
                                             </Expander.Header>
-                                            <!-- Сами строки группы -->
-                                            <ItemsPresenter Margin="15,5,0,0"/>
+                                            <ItemsPresenter />
                                         </Expander>
                                     </ControlTemplate>
                                 </Setter.Value>
@@ -182,85 +88,99 @@
                     </GroupStyle.ContainerStyle>
                 </GroupStyle>
             </DataGrid.GroupStyle>
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="№" Binding="{Binding Number}" Width="100"/>
+                <DataGridTextColumn Header="Компания" Binding="{Binding Company}" Width="200"/>
+                <DataGridTextColumn Header="Сумма" Binding="{Binding TotalAmount, StringFormat={}{0:N2} ₽}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Нал" Binding="{Binding IsCash, Converter={StaticResource BoolToTaxConverter}}" Width="60">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Счёт" Binding="{Binding Invoice}" Width="100"/>
+                <DataGridTextColumn Header="Заказ" Binding="{Binding Order}" Width="100"/>
+                <DataGridTextColumn Header="Отгружен" Binding="{Binding EndDate, StringFormat=dd.MM.yyyy}" Width="90"/>
+                <DataGridTextColumn Header="Автор" Binding="{Binding Author}" Width="120"/>
+                <DataGridTextColumn Header="Материал" Binding="{Binding MaterialAmount, StringFormat={}{0:N2} ₽}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Лазер" Binding="{Binding LaserCost, StringFormat={}{0:N2} ₽}" Width="90">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Гибка" Binding="{Binding BendingCost, StringFormat={}{0:N2} ₽}" Width="90">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Труборез" Binding="{Binding PipeCost, StringFormat={}{0:N2} ₽}" Width="90">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Производство" Binding="{Binding ProductionCost, StringFormat={}{0:N2} ₽}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Всего работ" Binding="{Binding TotalWorks, StringFormat={}{0:N2} ₽}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTemplateColumn Header="" Width="40">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="✖" ToolTip="Удалить из отчета"
+                                    Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                    CommandParameter="{Binding}"
+                                    Background="Transparent" BorderThickness="0" Foreground="Red"
+                                    Cursor="Hand"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
         </DataGrid>
 
-        <!-- 🔹 ✅ НОВАЯ ПАНЕЛЬ ИТОГОВ -->
-        <Border Grid.Row="1" Margin="0,8,0,8"
-            Background="{DynamicResource PrimaryBrush}"
-            BorderBrush="{DynamicResource BorderBrush}"
-            BorderThickness="1"
-            CornerRadius="6"
-            Padding="12,8">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+        <!-- 🔹 ИТОГОВАЯ ПАНЕЛЬ -->
+        <Border Grid.Row="2" Background="{DynamicResource SecondaryRegionBrush}" 
+                CornerRadius="4" Padding="10" Margin="0,10,0,0">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Всего расчётов:" FontWeight="Bold" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Items.Count, StringFormat=' {0}'}" Margin="5,0,20,0" VerticalAlignment="Center"/>
 
-                <!-- Заголовок -->
-                <TextBlock Text="📈 ИТОГО ПО ПРОИЗВОДСТВУ:" 
-                       FontWeight="Bold" 
-                       Foreground="{DynamicResource TextIconBrush}"
-                       VerticalAlignment="Center"
-                       Margin="0,0,20,0"/>
+                <TextBlock Text="Материал:" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding TotalMaterial, StringFormat={}{0:N2} ₽}" Margin="5,0,15,0" VerticalAlignment="Center"/>
 
-                <!-- Лазерная резка -->
-                <StackPanel Orientation="Horizontal" Margin="10,0">
-                    <TextBlock Text="Лазер:" Foreground="{DynamicResource TextIconBrush}" Opacity="0.9" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding TotalLaser, Converter={StaticResource CostConverter}}" 
-                           Foreground="{DynamicResource TextIconBrush}" FontWeight="Bold" FontSize="14"
-                           VerticalAlignment="Center" Margin="5,0,0,0"/>
-                </StackPanel>
-
-                <!-- Гибка -->
-                <StackPanel Orientation="Horizontal" Margin="10,0">
-                    <TextBlock Text="Гибка:" Foreground="{DynamicResource TextIconBrush}" Opacity="0.9" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding TotalBending, Converter={StaticResource CostConverter}}" 
-                           Foreground="{DynamicResource TextIconBrush}" FontWeight="Bold" FontSize="14"
-                           VerticalAlignment="Center" Margin="5,0,0,0"/>
-                </StackPanel>
-
-                <!-- Труборез -->
-                <StackPanel Orientation="Horizontal" Margin="10,0">
-                    <TextBlock Text="Труборез:" Foreground="{DynamicResource TextIconBrush}" Opacity="0.9" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding TotalPipe, Converter={StaticResource CostConverter}}" 
-                           Foreground="{DynamicResource TextIconBrush}" FontWeight="Bold" FontSize="14"
-                           VerticalAlignment="Center" Margin="5,0,0,0"/>
-                </StackPanel>
-
-                <!-- Производство (Сварка+Окраска) -->
-                <StackPanel Orientation="Horizontal" Margin="10,0">
-                    <TextBlock Text="Производство:" Foreground="{DynamicResource TextIconBrush}" Opacity="0.9" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding TotalProduction, Converter={StaticResource CostConverter}}" 
-                           Foreground="{DynamicResource TextIconBrush}" FontWeight="Bold" FontSize="14"
-                           VerticalAlignment="Center" Margin="5,0,0,0"/>
-                </StackPanel>
-
-                <!-- Разделитель -->
-                <Rectangle Width="1" Height="24" Fill="White" Opacity="0.3" Margin="15,0"/>
-
-                <!-- ОБЩАЯ СУММА -->
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="ВСЕГО работ:" Foreground="{DynamicResource TextIconBrush}" FontWeight="Bold" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding TotalWorks, Converter={StaticResource CostConverter}}" 
-                           Foreground="#FFD700" FontWeight="Bold" FontSize="16"
-                           VerticalAlignment="Center" Margin="8,0,0,0"/>
-                </StackPanel>
-
+                <TextBlock Text="Работы:" FontWeight="Bold" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding TotalWorks, StringFormat={}{0:N2} ₽}" Margin="5,0,0,0" 
+                           FontWeight="Bold" Foreground="Green" VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
-        
-        <!-- 🔹 Кнопки -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-
-            <!-- Материал -->
-            <StackPanel Orientation="Horizontal" Margin="10,0">
-                <TextBlock Text="Материал:" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding TotalMaterial, Converter={StaticResource CostConverter}}" 
-                           FontWeight="Bold" FontSize="14" VerticalAlignment="Center" Margin="5,0,0,0"/>
-            </StackPanel>
-
-            <Button Content="Обновить" Command="{Binding RefreshCommand}" Width="100"/>
-            <Button Content="Экспорт в Excel" Command="{Binding ExportCommand}" 
-                    Style="{StaticResource ButtonSuccess}" Width="140" Margin="10,0,0,0"/>
-            <Button Content="Закрыть" Command="{Binding CloseCommand}" 
-                    Width="100" Margin="10,0,0,0" IsCancel="True"/>
-        </StackPanel>
     </Grid>
 </Window>

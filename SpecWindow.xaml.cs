@@ -1,4 +1,5 @@
-﻿using Metal_Code.Utils;
+﻿using Metal_Code.Models;
+using Metal_Code.Utils;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -263,7 +264,7 @@ namespace Metal_Code
                 });
             }).GeneratePdf(outputPath);
 
-            using ManagerContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[0] : MainWindow.M.connections[1]);
+            using ManagerContext db = new(MainWindow.M.connections[0]);
             Customer? _customer = db.Customers.FirstOrDefault(x => x.Id == TargetCustomer.Id);
             if (_customer is not null)
             {
@@ -549,83 +550,5 @@ namespace Metal_Code
             n %= 10;
             return n == 1 ? "копейка" : (n >= 2 && n <= 4) ? "копейки" : "копеек";
         }
-    }
-
-    public class SpecTemplate : INotifyPropertyChanged
-    {
-        public event PropertyChangedEventHandler? PropertyChanged;
-        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
-
-        private string header = "Приложение № 1 к договору поставки №";
-        public string Header
-        {
-            get => header;
-            set
-            {
-                if (header != value)
-                {
-                    header = value;
-                    OnPropertyChanged(nameof(Header));
-                }
-            }
-        }
-
-        private int number = 1;
-        public int Number
-        {
-            get => number;
-            set
-            {
-                if (number != value)
-                {
-                    number = value;
-                    OnPropertyChanged(nameof(Number));
-                }
-            }
-        }
-
-        private string terms = "100% предоплата.";
-        public string Terms
-        {
-            get => terms;
-            set
-            {
-                if (terms != value)
-                {
-                    terms = value;
-                    OnPropertyChanged(nameof(Terms));
-                }
-            }
-        }
-
-        private string provider = "ООО ЛАЗЕРФЛЕКС";
-        public string Provider
-        {
-            get => provider;
-            set
-            {
-                if (provider != value)
-                {
-                    provider = value;
-                    OnPropertyChanged(nameof(Provider));
-                }
-            }
-        }
-
-        private string buyer = string.Empty;
-        public string Buyer
-        {
-            get => buyer;
-            set
-            {
-                if (buyer != value)
-                {
-                    buyer = value;
-                    OnPropertyChanged(nameof(Buyer));
-                }
-            }
-        }
-
-        public SpecTemplate() { }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Metal_Code.Utils;
+﻿using Metal_Code.Models;
+using Metal_Code.Utils;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;

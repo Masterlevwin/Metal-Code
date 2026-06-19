@@ -1,4 +1,4 @@
-﻿<Window x:Class="Metal_Code.MainWindow"
+﻿<Window x:Class="Metal_Code.MainWindow" x:Name="MainWindowRoot"
         xmlns:hc="https://handyorg.github.io/handycontrol" 
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -6,7 +6,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Metal_Code"
         xmlns:converters="clr-namespace:Metal_Code.Converters"
-        mc:Ignorable="d" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" Closing="Exit" WindowState="Maximized" Icon="/app_logo.jpeg" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveCaptionTextBrushKey}}" FontFamily="Century" MinWidth="1280" MinHeight="720">
+        mc:Ignorable="d" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" Closing="Exit" WindowState="Maximized" Icon="/app_logo.jpeg" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveCaptionTextBrushKey}}" FontFamily="Century" MinWidth="1280" MinHeight="720" Activated="MainWindow_Activated">
 
     <Window.Resources>
         <local:CostConverter x:Key="CostConverter"/>
@@ -14,8 +14,9 @@
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <local:DateToBoolConverter x:Key="DateToBoolConverter"/>
         <local:OrderToBoolConverter x:Key="OrderToBoolConverter"/>
-        <converters:GroupCompanyNamesConverter x:Key="CompanyNamesConverter"/>
-
+        <converters:GroupCompanyNamesConverter x:Key="GroupCompanyNamesConverter"/>
+        <converters:ShipmentButtonTextConverter x:Key="ShipmentButtonTextConverter"/>
+        
         <!-- Плавные функции для анимации -->
         <PowerEase x:Key="EaseOut" EasingMode="EaseOut"/>
         <PowerEase x:Key="EaseIn" EasingMode="EaseIn"/>
@@ -152,62 +153,6 @@
         <Style x:Key="OffersTabControl" BasedOn="{StaticResource TabControlSliding}" TargetType="TabControl">
             <Setter Property="ItemContainerStyle" Value="{StaticResource TabItemInLine}"/>
         </Style>
-
-        <!-- ⬇️ СТИЛЬ ДЛЯ ГРУППЫ С ОДНИМ ЭЛЕМЕНТОМ (плоская строка) ⬇️ -->
-        <Style x:Key="SingleItemGroupStyle" TargetType="GroupItem">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="GroupItem">
-                        <!-- Без Expander, без отступа → элементы рендерятся как обычные строки -->
-                        <ItemsPresenter Margin="0"/>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- ⬇️ СТИЛЬ ДЛЯ ГРУППЫ С НЕСКОЛЬКИМИ ЭЛЕМЕНТАМИ (Expander) ⬇️ -->
-        <Style x:Key="MultiItemGroupStyle" TargetType="GroupItem">
-            <Setter Property="Margin" Value="0,0,0,4"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="GroupItem">
-                        <Expander IsExpanded="False" BorderThickness="0" Background="Transparent">
-                            <Expander.Header>
-                                <Border Background="{DynamicResource RegionBrush}"
-                                    BorderBrush="{DynamicResource BorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="{DynamicResource DefaultCornerRadius}"
-                                    Padding="10,6" Margin="0,0,0,2">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding Name}" 
-                                               FontWeight="SemiBold" 
-                                               Foreground="{DynamicResource PrimaryTextBrush}" 
-                                               VerticalAlignment="Center"/>
-                                        <TextBlock Text="{Binding Converter={StaticResource CompanyNamesConverter}}" 
-                                               Foreground="{DynamicResource SecondaryTextBrush}" 
-                                               FontSize="11" 
-                                               VerticalAlignment="Center"
-                                               TextTrimming="CharacterEllipsis"
-                                               MaxWidth="350"/>
-                                        <TextBlock Text="{Binding ItemCount, StringFormat='  ({0})'}" 
-                                               Foreground="{DynamicResource SecondaryTextBrush}" 
-                                               FontSize="11" 
-                                               VerticalAlignment="Center" 
-                                               Margin="6,0,0,0"/>
-                                    </StackPanel>
-                                </Border>
-                            </Expander.Header>
-                            <ItemsPresenter Margin="12,0,0,0"/>
-                        </Expander>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- ⬇️ Селектор стилей (исправленный) ⬇️ -->
-        <local:SingleItemGroupStyleSelector x:Key="GroupStyleSelector"
-                                            SingleItemStyle="{StaticResource SingleItemGroupStyle}"
-                                            MultiItemStyle="{StaticResource MultiItemGroupStyle}"/>
     </Window.Resources>
 
     <Window.InputBindings>
@@ -258,19 +203,6 @@
                 <MenuItem Header="База работ" Click="OpenSettings"/>
                 <MenuItem Header="База менеджеров" Click="OpenSettings"/>
                 <MenuItem Header="База материалов" Click="OpenSettings"/>
-                <Separator/>
-                <MenuItem Header="Обновить базы" Click="UpdateDatabases"/>
-                <Separator/>
-                <MenuItem Header="Получить новые расчеты" x:Name="GetBtn" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" Click="Show_SearchWindow">
-                    <MenuItem.Icon>
-                        <Image Source="/Images/new2.png"/>
-                    </MenuItem.Icon>
-                </MenuItem>
-                <MenuItem Header="Отправить расчеты" x:Name="InsertBtn" Click="InsertDatabase" IsEnabled="{Binding IsLocal, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
-                    <MenuItem.Icon>
-                        <Image Source="/Images/save2.png"/>
-                    </MenuItem.Icon>
-                </MenuItem>
             </MenuItem>
             <MenuItem Header="Инструменты">
                 <MenuItem Header="Таблица гибов" Click="ShowTableOfBends">
@@ -315,10 +247,21 @@
                 </MenuItem>
             </MenuItem>
             <MenuItem Header="Отчеты">
-                <MenuItem Header="По отгруженным заказам за месяц" Click="Report_On_Shipped_Orders">
+                <MenuItem Header="По отгруженным заказам за выбранный период" Click="Report_On_Shipped_Orders">
                     <MenuItem.Icon>
                         <Image Source="/Images/report.png"/>
                     </MenuItem.Icon>
+                    <MenuItem.Style>
+                        <Style TargetType="MenuItem" BasedOn="{StaticResource MenuItemBaseStyle}">
+                            <Style.Triggers>
+                                <!-- Скрываем для инженеров -->
+                                <DataTrigger Binding="{Binding CurrentManager.IsEngineer,
+                                    RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </MenuItem.Style>
                 </MenuItem>
             </MenuItem>
             <MenuItem Header="О программе">
@@ -331,7 +274,12 @@
                 <Separator/>
                 <MenuItem Header="Обновить программу" Click="Restart"/>
             </MenuItem>
-            <MenuItem x:Name="Login" ToolTip="Сменить пользователя" Click="ShowLoginWindow"/>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- Индикатор статуса -->
+                <Border x:Name="OnlineIndicator" Width="12" Height="12" CornerRadius="6"
+                        Background="Gray" Margin="0,0,5,0" ToolTip="Статус подключения"/>
+                <Button x:Name="Login" Content="Пользователь" ToolTip="Сменить пользователя" Click="ShowLoginWindow"/>
+            </StackPanel>
         </Menu>
 
         <StatusBar x:Name="Status" DockPanel.Dock="Bottom" Margin="10">
@@ -611,11 +559,11 @@
                             <hc:TabItem.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="Расчеты" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                                    <hc:SearchBar hc:InfoElement.Placeholder="Поиск расчета" Style="{StaticResource SearchBarExtend}" Text="{Binding SearchOffers, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" Width="125" SearchStarted="Search_Offers"/>
-                                    <Button x:Name="UpdateBtn" Click="UpdateOffersCollection" ToolTip="Обновить список расчетов"
-                                            BorderThickness="0" Padding="1" Margin="5,0,0,0">
-                                        <Image Source="/Images/update.png" Width="16"/>
-                                    </Button>
+                                    <hc:SearchBar hc:InfoElement.Placeholder="Поиск расчета"
+                                                  Style="{StaticResource SearchBarExtend}"
+                                                  Text="{Binding SearchOffers, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"
+                                                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                                  Margin="5,0,0,0" Width="150" SearchStarted="Search_Offers"/>
                                 </StackPanel>
                             </hc:TabItem.Header>
 
@@ -626,44 +574,123 @@
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <DataGrid x:Name="OffersGrid" 
-          ItemsSource="{Binding OffersView}"
-          Style="{StaticResource DataGrid.Small}" 
-          CanUserReorderColumns="False" 
-          CanUserDeleteRows="False" 
-          CanUserAddRows="False" 
-          LoadingRow="OffersGrid_LoadingRow" 
-          EnableColumnVirtualization="True" 
-          CanUserResizeRows="False" 
-          AutoGenerateColumns="False" 
-          RowDetailsVisibilityMode="Collapsed" 
-          FrozenColumnCount="3" 
-          BorderBrush="Red" SelectionChanged="OffersGrid_SelectionChanged">
+                                    <DataGrid x:Name="OffersGrid" ItemsSource="{Binding OffersView}"
+                                              Style="{StaticResource DataGrid.Small}" CanUserReorderColumns="False"
+                                              CanUserDeleteRows="False" CanUserAddRows="False" CanUserResizeRows="False"
+                                              LoadingRow="OffersGrid_LoadingRow" EnableColumnVirtualization="True"
+                                              AutoGenerateColumns="False" RowDetailsVisibilityMode="Collapsed"
+                                              BorderBrush="Red" CellEditEnding="OffersGrid_CellEditEnding"
+                                              IsReadOnly="{Binding IsOffersGridReadOnly, ElementName=MainWindowRoot}">
 
+                                        <DataGrid.GroupStyle>
+                                            <GroupStyle>
+                                                <GroupStyle.ContainerStyle>
+                                                    <Style TargetType="{x:Type GroupItem}">
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                                    <!-- ⭐ Слегка серый фон для всей области заголовка, чтобы отделить её от белых строк -->
+                                                                    <Expander x:Name="GroupExpander"
+                                                                              BorderBrush="{DynamicResource BorderBrush}"
+                                                                              BorderThickness="0,0,0,1">
+
+                                                                        <Expander.Header>
+                                                                            <!-- ⭐ Рамка, ограничивающая текст заголовка (стиль "плашка" или "бейдж") -->
+                                                                            <Border Background="#FFFFFF"
+                                            BorderBrush="#D1D5DB"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            Padding="10,6,10,6"
+                                            Margin="8,6,0,6"
+                                            SnapsToDevicePixels="True">
+
+                                                                                <StackPanel Orientation="Horizontal">
+                                                                                    <TextBlock Text="{Binding Name}" 
+                                                       FontWeight="Bold"
+                                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                                       VerticalAlignment="Center"/>
+                                                                                    <TextBlock Text="{Binding Converter={StaticResource GroupCompanyNamesConverter}}" 
+                                                       Margin="8,0,0,0"
+                                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                                       VerticalAlignment="Center"/>
+                                                                                    <TextBlock Text="{Binding ItemCount, StringFormat=' ({0} шт.)'}" 
+                                                       Margin="8,0,0,0"
+                                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                                       VerticalAlignment="Center"/>
+                                                                                </StackPanel>
+                                                                            </Border>
+                                                                        </Expander.Header>
+
+                                                                        <!-- Содержимое группы строго внутри Expander -->
+                                                                        <ItemsPresenter Margin="0,2,0,0"/>
+                                                                    </Expander>
+
+                                                                    <!-- ⭐ ТРИГГЕР: для одиночных расчётов полностью убираем "обёртку" Expander -->
+                                                                    <ControlTemplate.Triggers>
+                                                                        <DataTrigger Binding="{Binding ItemCount}" Value="1">
+                                                                            <Setter TargetName="GroupExpander" Property="Template">
+                                                                                <Setter.Value>
+                                                                                    <ControlTemplate TargetType="{x:Type Expander}">
+                                                                                        <ContentPresenter Content="{TemplateBinding Content}" Margin="0"/>
+                                                                                    </ControlTemplate>
+                                                                                </Setter.Value>
+                                                                            </Setter>
+                                                                            <Setter TargetName="GroupExpander" Property="Background" Value="Transparent"/>
+                                                                            <Setter TargetName="GroupExpander" Property="BorderThickness" Value="0"/>
+                                                                            <Setter TargetName="GroupExpander" Property="Padding" Value="0"/>
+                                                                            <Setter TargetName="GroupExpander" Property="Margin" Value="0"/>
+                                                                        </DataTrigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </GroupStyle.ContainerStyle>
+                                            </GroupStyle>
+                                        </DataGrid.GroupStyle>
+                                        
                                         <DataGrid.Columns>
-                                            <DataGridTextColumn Header="№" Binding="{Binding N}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="№" Binding="{Binding N}" IsReadOnly="True" FontWeight="Bold"/>
                                             <DataGridTextColumn Header="Компания" Binding="{Binding Company}" IsReadOnly="True"/>
-                                            <DataGridTextColumn Header="Итого" Binding="{Binding Amount, Converter={StaticResource CostConverter}}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Итого" Binding="{Binding Amount, Converter={StaticResource CostConverter}}" IsReadOnly="True" Foreground="Blue"/>
                                             <DataGridCheckBoxColumn Header="Нал" Binding="{Binding Agent}"/>
                                             <DataGridTextColumn Header="Счёт" Binding="{Binding Invoice}"/>
-                                            <DataGridTextColumn Header="Заказ" Binding="{Binding Order}"/>
+                                            <DataGridTextColumn Header="Заказ" Binding="{Binding Order}" Foreground="OrangeRed"/>
 
                                             <DataGridTemplateColumn Header="Дата отгрузки" CanUserResize="False">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <StackPanel Orientation="Horizontal">
-                                                            <ToggleButton Style="{StaticResource ToggleButtonSwitch.Small}"
-                            hc:VisualElement.HighlightBrush="{DynamicResource SuccessBrush}"
-                            IsChecked="{Binding EndDate, Converter={StaticResource DateToBoolConverter}}"
-                            IsEnabled="{Binding Order, Converter={StaticResource OrderToBoolConverter}}"
-                            Click="OnShipmentToggleClick"/>
-                                                            <TextBlock Text="{Binding EndDate, StringFormat=d.MM.y}"
-                            VerticalAlignment="Center" Margin="5,0,0,0" Padding="1"/>
+                                                            <ToggleButton Click="OnShipmentToggleClick"
+              hc:VisualElement.HighlightBrush="{DynamicResource SuccessBrush}"
+              IsChecked="{Binding EndDate, Converter={StaticResource DateToBoolConverter}}"
+              IsEnabled="{Binding Order, Converter={StaticResource OrderToBoolConverter}}"
+              Content="{Binding EndDate, Converter={StaticResource ShipmentButtonTextConverter}}">
+
+                                                                <ToggleButton.Style>
+                                                                    <Style TargetType="ToggleButton" BasedOn="{StaticResource ToggleButtonDefault.Small}">
+                                                                        <Style.Triggers>
+                                                                            <!-- ⭐ Если отгружен — зелёный фон -->
+                                                                            <DataTrigger Binding="{Binding EndDate, Converter={StaticResource DateToBoolConverter}}" Value="True">
+                                                                                <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+                                                                                <Setter Property="Foreground" Value="White"/>
+                                                                            </DataTrigger>
+
+                                                                            <!-- ⭐ Если редактирование запрещено — скрываем кнопку -->
+                                                                            <DataTrigger Binding="{Binding IsOffersGridReadOnly,
+                                                                                RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}"
+                                                                                         Value="True">
+                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </ToggleButton.Style>
+                                                            </ToggleButton>
                                                         </StackPanel>
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
-
+                                            
                                             <DataGridTemplateColumn Header="Ещё" CanUserResize="False">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
@@ -693,16 +720,7 @@
                                                 </Border>
                                             </DataTemplate>
                                         </DataGrid.RowDetailsTemplate>
-
-                                        <!-- ⬇️ ГРУППИРОВКА: Expander-заголовок в стиле HandyControl ⬇️ -->
-                                        <DataGrid.GroupStyle>
-                                            <GroupStyle>
-                                                <GroupStyle.ContainerStyleSelector>
-                                                    <StaticResource ResourceKey="GroupStyleSelector"/>
-                                                </GroupStyle.ContainerStyleSelector>
-                                            </GroupStyle>
-                                        </DataGrid.GroupStyle>
-                                        
+                                       
                                         <DataGrid.ContextMenu>
                                             <ContextMenu>
                                                 <MenuItem Header="Загрузить" Command="{Binding OpenOfferCommand}">
@@ -713,11 +731,6 @@
                                                 <MenuItem Header="Удалить" Command="{Binding RemoveOfferCommand}">
                                                     <MenuItem.Icon>
                                                         <Image Source="/Images/del_offer.png"/>
-                                                    </MenuItem.Icon>
-                                                </MenuItem>
-                                                <MenuItem Header="Сохранить изменения" Click="UpdateOffer">
-                                                    <MenuItem.Icon>
-                                                        <Image Source="/Images/edit_offer.png"/>
                                                     </MenuItem.Icon>
                                                 </MenuItem>
                                                 <MenuItem Header="Запустить в производство" Click="LaunchToWork">
@@ -743,55 +756,61 @@
 
                                         <!-- 🔹 СТРОКА 1: Управление + Сводка -->
                                         <Grid>
-                                            <!-- Слева: Фильтр "В производстве" -->
+                                            <!-- Слева: Кнопка обновления + Фильтр "В производстве" -->
                                             <StackPanel Orientation="Horizontal">
 
-                                                <ToggleButton x:Name="InProductionFilterToggle"
-                      Style="{StaticResource ToggleButtonSwitch.Small}"
-                      HorizontalAlignment="Left"
-                      Checked="ProductionToggle_StateChanged"
-                      Unchecked="ProductionToggle_StateChanged"
-                      ToolTip="Показать заказы в производстве"/>
+                                                <!-- ⭐ КНОПКА ОБНОВЛЕНИЯ - теперь с текстом и иконкой -->
+                                                <Button x:Name="UpdateBtn" Click="UpdateOffersCollection"
+                                                        ToolTip="Обновить список расчетов" Margin="0,0,8,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Image Source="/Images/update.png" Margin="0,0,4,0"/>
+                                                        <TextBlock Text="Обновить" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
 
-                                                <TextBlock x:Name="SummaryInfoTextBlock" 
-                       VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                                <ToggleButton x:Name="InProductionFilterToggle"
+                          Style="{StaticResource InputElementBaseStyle}"
+                          HorizontalAlignment="Left"
+                          Checked="ProductionToggle_StateChanged"
+                          Unchecked="ProductionToggle_StateChanged"
+                          ToolTip="Показать заказы в производстве" 
+                          Content="В производстве"/>
+
+                                                <TextBlock x:Name="SummaryInfoTextBlock" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                             </StackPanel>
-                                            
+
                                             <!-- Справа: Сводка + Переключатель режима прогноза -->
                                             <ToggleButton x:Name="ForecastModeToggle"
-                          Style="{StaticResource ToggleButtonSwitch.Small}"
-                          HorizontalAlignment="Right" Click="ForecastModeToggle_Click"
-                          Visibility="{Binding IsChecked, ElementName=InProductionFilterToggle, Converter={StaticResource BoolToVisibilityConverter}}"
-                          ToolTip="Режим расчета: только текущие / смешанный (отгруженные + производство)">
-                                                    <ToggleButton.Content>
-                                                        <TextBlock x:Name="ForecastModeText" Text="📦 Текущие"/>
-                                                    </ToggleButton.Content>
-                                                </ToggleButton>
+                      Style="{StaticResource ToggleButtonSwitch.Small}"
+                      HorizontalAlignment="Right" 
+                      Click="ForecastModeToggle_Click"
+                      Visibility="{Binding IsChecked, ElementName=InProductionFilterToggle, Converter={StaticResource BoolToVisibilityConverter}}"
+                      ToolTip="Режим расчета: только текущие / смешанный (отгруженные + производство)">
+                                                <ToggleButton.Content>
+                                                    <TextBlock x:Name="ForecastModeText" Text="📦 Текущие"/>
+                                                </ToggleButton.Content>
+                                            </ToggleButton>
                                         </Grid>
 
-                                        <!-- 🔹 СТРОКА 2: Панель прогноза (появляется только при включении верхнего тоггла) -->
+                                        <!-- 🔹 СТРОКА 2: Панель прогноза -->
                                         <StackPanel x:Name="ForecastPanel"
                 Orientation="Horizontal" 
                 VerticalAlignment="Center" 
                 Margin="0,4,0,0" 
                 Visibility="Collapsed">
 
-                                            <!-- Прибыль -->
                                             <TextBlock Text="Прибыль:" VerticalAlignment="Center"/>
                                             <TextBox x:Name="ForecastPlan" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
                  VerticalContentAlignment="Center" IsReadOnly="True"/>
 
-                                            <!-- Бонус ООО -->
                                             <TextBlock Text="Бонус ООО:" Margin="8,0,0,0" VerticalAlignment="Center"/>
                                             <TextBox x:Name="ForecastBonusOoo" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
                  VerticalContentAlignment="Center" IsReadOnly="True"/>
 
-                                            <!-- Бонус ИП и ПК -->
                                             <TextBlock Text="Бонус ИП и ПК:" Margin="8,0,0,0" VerticalAlignment="Center" Width="90"/>
                                             <TextBox x:Name="ForecastBonusIp" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
                  VerticalContentAlignment="Center" IsReadOnly="True"/>
 
-                                            <!-- Итого -->
                                             <TextBlock Text="Итого:" Margin="8,0,0,0" VerticalAlignment="Center" Width="40"/>
                                             <TextBox x:Name="ForecastSalary" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
                  VerticalContentAlignment="Center" IsReadOnly="True"/>
@@ -802,17 +821,7 @@
                             </Border>
                         </hc:TabItem>
 
-                        <hc:TabItem x:Name="PreviewTab">
-                            <hc:TabItem.Header>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="Предпросмотр КП" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                                    <Button Margin="5,0,0,0" Click="PartsView" ToolTip="Обновить цены деталей" Width="18"
-                                            BorderThickness="0" Padding="1" Visibility="{Binding ElementName=PartsGrid, Path=Visibility}">
-                                        <Image Source="/Images/preview3.png" Width="16"/>
-                                    </Button>
-                                </StackPanel>
-                            </hc:TabItem.Header>
-
+                        <hc:TabItem x:Name="PreviewTab" Header="Предпросмотр КП">
                             <Border Style="{StaticResource BorderRegion}">
                                 <Grid>
                                     <Grid.RowDefinitions>
@@ -875,17 +884,32 @@
                                         </StackPanel>
                                     </Grid>
 
-                                    <StackPanel Orientation="Horizontal" Margin="5" VerticalAlignment="Bottom" Grid.Row="1" HorizontalAlignment="Right">
-                                        <TextBlock Text="Общее кол-во деталей:" TextAlignment="Center" VerticalAlignment="Center"/>
-                                        <TextBox x:Name="TotalCount" MinWidth="60" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" Margin="5,0,0,0" MaxWidth="60"/>
-                                        <TextBlock Text="Итого:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="40" MaxWidth="40"/>
-                                        <TextBox x:Name="TotalPrice" MinWidth="60" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" MaxWidth="60"/>
-                                    </StackPanel>
+                                    <Grid Grid.Row="1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <Button Click="PartsView" ToolTip="Обновить цены деталей"
+                                            Margin="0,0,8,0" Visibility="{Binding ElementName=PartsGrid, Path=Visibility}" HorizontalAlignment="Left">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="/Images/preview3.png" Margin="0,0,4,0"/>
+                                                <TextBlock Text="Обновить КП" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="5" VerticalAlignment="Bottom" HorizontalAlignment="Right">
+                                            <TextBlock Text="Общее кол-во деталей:" TextAlignment="Center" VerticalAlignment="Center"/>
+                                            <TextBox x:Name="TotalCount" MinWidth="60" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" Margin="5,0,0,0" MaxWidth="60"/>
+                                            <TextBlock Text="Итого:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="40" MaxWidth="40"/>
+                                            <TextBox x:Name="TotalPrice" MinWidth="60" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" MaxWidth="60"/>
+                                        </StackPanel>
+
+                                    </Grid>
                                 </Grid>
                             </Border>
                         </hc:TabItem>
 
-                        <hc:TabItem x:Name="ReportTab" GotFocus="ReportView">
+                        <hc:TabItem x:Name="ReportTab" GotFocus="ReportChanged">
                             <hc:TabItem.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="Отчет за" Margin="5,0,0,0" VerticalAlignment="Center"/>
@@ -906,45 +930,14 @@
 
                                     <DataGrid x:Name="ReportGrid" Style="{StaticResource DataGrid.Small}" CanUserReorderColumns="False" CanUserAddRows="False" BorderBrush="Blue" LoadingRow="ReportGrid_LoadingRow" EnableColumnVirtualization="True" CanUserResizeRows="False" AutoGenerateColumns="False" RowDetailsVisibilityMode="Collapsed" FrozenColumnCount="2">
                                         <DataGrid.Columns>
-                                            <DataGridTextColumn Header="№" Binding="{Binding N}" IsReadOnly="True"/>
-                                            <DataGridTextColumn Header="Компания" Binding="{Binding Company}" IsReadOnly="True"/>
-                                            <DataGridTextColumn Header="Итого" Binding="{Binding Amount, Converter={StaticResource CostConverter}}" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="№" Binding="{Binding N}" FontWeight="Bold"/>
+                                            <DataGridTextColumn Header="Компания" Binding="{Binding Company}"/>
+                                            <DataGridTextColumn Header="Итого" Binding="{Binding Amount, Converter={StaticResource CostConverter}}" Foreground="Blue"/>
                                             <DataGridCheckBoxColumn Header="Нал" Binding="{Binding Agent}"/>
                                             <DataGridTextColumn Header="Счёт" Binding="{Binding Invoice}"/>
-                                            <DataGridTextColumn Header="Заказ" Binding="{Binding Order}"/>
+                                            <DataGridTextColumn Header="Заказ" Binding="{Binding Order}" Foreground="OrangeRed"/>
                                             <DataGridTextColumn Header="Дата отгрузки" Binding="{Binding EndDate, StringFormat=d.MM.y}"/>
-                                            <DataGridTemplateColumn Header="Ещё" CanUserResize="False">
-                                                <DataGridTemplateColumn.CellTemplate>
-                                                    <DataTemplate>
-                                                        <Button x:Name="DetailsButton" Click="ToggleRowDetails_Click"
-                                                        Padding="2" Width="20" Height="20"
-                                                        Background="Transparent" BorderThickness="0"
-                                                        ToolTip="Показать/скрыть подробности">
-                                                            <Image Source="/Images/tot.png" Width="16" Height="16"/>
-                                                        </Button>
-                                                    </DataTemplate>
-                                                </DataGridTemplateColumn.CellTemplate>
-                                            </DataGridTemplateColumn>
                                         </DataGrid.Columns>
-                                        <DataGrid.RowDetailsTemplate>
-                                            <DataTemplate>
-                                                <Border Margin="4" Padding="4"
-                                                Background="{DynamicResource RegionBrush}"
-                                                CornerRadius="{DynamicResource DefaultCornerRadius}">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Margin="10,0,0,0" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"
-                                                           >Материал -</TextBlock>
-                                                        <TextBlock Margin="5,0,0,0" Text="{Binding Material, Converter={StaticResource CostConverter}}" Foreground="{DynamicResource PrimaryTextBrush}"/>
-                                                        <TextBlock Margin="10,0,0,0" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"
-                                                           >Создан -</TextBlock>
-                                                        <TextBlock Margin="5,0,0,0" Text="{Binding CreatedDate, StringFormat=d.MM.y}" Foreground="{DynamicResource PrimaryTextBrush}"/>
-                                                        <TextBlock Margin="10,0,0,0" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}"
-                                                           >Автор -</TextBlock>
-                                                        <TextBlock Margin="5,0,0,0" Text="{Binding Autor}" Foreground="{DynamicResource PrimaryTextBrush}"/>
-                                                    </StackPanel>
-                                                </Border>
-                                            </DataTemplate>
-                                        </DataGrid.RowDetailsTemplate>
                                     </DataGrid>
 
                                     <StackPanel Orientation="Horizontal" Margin="5" VerticalAlignment="Bottom" Grid.Row="1">

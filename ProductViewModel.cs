@@ -1,9 +1,13 @@
 ﻿using ExcelDataReader;
+using Metal_Code.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -16,6 +20,10 @@ namespace Metal_Code
 {
     public class ProductViewModel : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        public Product Product;
         public readonly IFileService fileService;
         public readonly IDialogService dialogService;
 
@@ -26,20 +34,6 @@ namespace Metal_Code
             Product = product;
         }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
-        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
-
-        public Product Product;
-        Detail? selectedDetail;      //временно не используется
-        public Detail? SelectedDetail
-        {
-            get { return selectedDetail; }
-            set
-            {
-                selectedDetail = value;
-                OnPropertyChanged(nameof(SelectedDetail));
-            }
-        }
 
         // команда обновления общей стоимости
         private RelayCommand? updateCommand;
@@ -79,73 +73,144 @@ namespace Metal_Code
         {
             get
             {
-                return saveCommand ??= new RelayCommand(obj =>
-                  {
-                      try
-                      {
-                          string dateProduction = MainWindow.M.DateProduction.Text;
-                          MainWindow.M.UpdateResult();
-                          MainWindow.M.DateProduction.Text = dateProduction;
+                return saveCommand ??= new RelayCommand(async obj =>
+                {
+                    try
+                    {
+                        string dateProduction = MainWindow.M.DateProduction.Text;
+                        MainWindow.M.UpdateResult();
+                        MainWindow.M.DateProduction.Text = dateProduction;
 
-                          if (!MainWindow.M.WarningSave()) return;
+                        if (!MainWindow.M.WarningSave()) return;
 
-                          if (dialogService.SaveFileDialog() == true && dialogService.FilePaths != null)
-                          {
-                              string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
-                              + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
+                        if (dialogService.SaveFileDialog() == true && dialogService.FilePaths != null)
+                        {
+                            string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
+                            + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
 
-                              _path += $" с материалом {MainWindow.M.GetMaterial()}";
+                            _path += $" с материалом {MainWindow.M.GetMaterial()}";
 
-                              fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());     //сохраняем расчет в папке
+                            fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());
 
-                              if (AssemblyWindow.A.Assemblies.Count > 0)
-                              {
-                                  MessageBoxResult response = MessageBox.Show(
-                                      "Сформировать сборочное КП?\nЕсли \"Да\", в КП будут отражены СБОРКИ.\nЕсли \"Нет\", в КП будут отражены ДЕТАЛИ!",
-                                      "Выбор формата КП", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                            if (AssemblyWindow.A.Assemblies.Count > 0)
+                            {
+                                MessageBoxResult response = MessageBox.Show(
+                                    "Сформировать сборочное КП?\nЕсли \"Да\", в КП будут отражены СБОРКИ.\nЕсли \"Нет\", в КП будут отражены ДЕТАЛИ!",
+                                    "Выбор формата КП", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
-                                  if (response == MessageBoxResult.Yes) MainWindow.M.isAssemblyOffer = true;
-                                  else MainWindow.M.isAssemblyOffer = false;
-                              }
+                                MainWindow.M.isAssemblyOffer = response == MessageBoxResult.Yes;
+                            }
 
-                              //формируем КП в формате excel и сохраняем расчет в базе данных
-                              MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);
+                            MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);
 
-                              string selectedFilePath = dialogService.FilePaths[0];
-                              string fileName = Path.GetFileName(selectedFilePath);
-                              string folderToRename = Path.GetDirectoryName(selectedFilePath)!; // папка с расчётом
-                              string parentDir = Path.GetDirectoryName(folderToRename)!;        // родитель (где будет новая папка)
+                            string selectedFilePath = dialogService.FilePaths[0];
+                            string fileName = Path.GetFileName(selectedFilePath);
+                            string folderToRename = Path.GetDirectoryName(selectedFilePath)!;
+                            string parentDir = Path.GetDirectoryName(folderToRename)!;
 
-                              string newFolderName = $"КП (от {DateTime.Now:dd.MM.yyyy HH-mm})";
-                              string destinationPath = Path.Combine(parentDir, newFolderName);
+                            string newFolderName = $"КП (от {DateTime.Now:dd.MM.yyyy HH-mm})";
+                            string destinationPath = Path.Combine(parentDir, newFolderName);
 
-                              //создание папок для менеджера
-                              MainWindow.M.CreateFolderTagsForCalculation(parentDir);
-                              MainWindow.M.CreateSelectedFolders(parentDir);
+                            MainWindow.M.CreateFolderTagsForCalculation(parentDir);
+                            MainWindow.M.CreateSelectedFolders(parentDir);
 
-                              try
-                              {
-                                  Directory.Move(folderToRename, destinationPath);
-                                  MainWindow.M.SaveOrRemoveOffer(true, Path.Combine(destinationPath, fileName));
+                            try
+                            {
+                                Directory.Move(folderToRename, destinationPath);
+                                string fullPath = Path.Combine(destinationPath, fileName);
 
-                                  // 🔑 Сохраняем последний каталог
-                                  dialogService.LastUsedDirectory = destinationPath;
-                              }
-                              catch (Exception ex)
-                              {
-                                  MessageBox.Show($"Не удалось переименовать папку:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                              }
-                          }
-                      }
-                      catch (Exception ex)
-                      {
-                          if (dialogService.FilePaths != null && File.Exists(dialogService.FilePaths[0]))
-                          {
-                              dialogService.ShowMessage("Ошибка: Файл используется другим процессом.");
-                          }
-                          else dialogService.ShowMessage(ex.Message);
-                      }
-                  });
+                                // ⭐ СОХРАНЕНИЕ В БАЗУ ЧЕРЕЗ СЕРВИС
+                                MainWindow.M.StatusBegin("Сохранение расчета в базу...", MainWindow.StatusMessageType.Info);
+
+                                // Определяем автора
+                                string? autor;
+                                if (MainWindow.M.ActiveOffer?.Autor == MainWindow.M.CurrentManager.Name || MainWindow.M.ActiveOffer is null)
+                                {
+                                    autor = MainWindow.M.CurrentManager.Name;
+                                }
+                                else
+                                {
+                                    autor = $"{MainWindow.M.ActiveOffer?.Autor}\n{MainWindow.M.CurrentManager.Name} ({DateTime.Now:dd.MM.yyyy})";
+                                }
+
+                                // Сериализуем данные расчета
+                                string? dataJson = MainWindow.M.SaveOfferData();
+
+                                // Сохраняем через сервис
+                                var savedOffer = await MainWindow.M.DataService.SaveOfferAsync(
+                                    orderNumber: MainWindow.M.Order.Text,
+                                    companyName: MainWindow.M.CustomerDrop.Text,
+                                    amount: MainWindow.M.Result,
+                                    material: MainWindow.M.GetMaterial(),
+                                    services: MainWindow.M.GetServices(),
+                                    isAgent: MainWindow.M.IsAgent,
+                                    autor: autor,
+                                    actPath: fullPath,
+                                    dataJson: dataJson,
+                                    endDate: MainWindow.M.ActiveOffer?.EndDate,
+                                    managerId: MainWindow.M.TargetManager.Id
+                                );
+
+                                // Обновляем ActiveOffer
+                                MainWindow.M.ActiveOffer = savedOffer;
+                                MainWindow.M.LimitCheck.IsChecked = false;
+
+                                // Обновляем список расчетов в UI
+                                await MainWindow.M.LoadManagerDataAsync(MainWindow.M.TargetManager);
+
+                                // ⭐ ПРОКРУТКА К НОВОМУ РАСЧЁТУ С ПОДСВЕТКОЙ
+                                MainWindow.M.ScrollToOfferAndHighlight(savedOffer);
+
+                                string statusMessage = MainWindow.M.DataService.IsOnline
+                                    ? $"Расчет {savedOffer.N} {savedOffer.Company} сохранен на сервере."
+                                    : $"Расчет {savedOffer.N} {savedOffer.Company} сохранен локально (ожидает синхронизации).";
+
+                                MainWindow.M.StatusBegin(statusMessage, MainWindow.StatusMessageType.Success);
+                                Trace.WriteLine($"💾 {statusMessage}");
+
+                                // 🔑 Сохраняем последний каталог
+                                dialogService.LastUsedDirectory = destinationPath;
+
+                                // Проверка заказчика
+                                using var checkCtx = new ManagerContext(MainWindow.M.connections[0]);
+                                var customer = await checkCtx.Customers.FirstOrDefaultAsync(x => x.Name == MainWindow.M.CustomerDrop.Text);
+                                if (customer is null)
+                                {
+                                    MainWindow.M.Log += $"\nЗаказчик {MainWindow.M.CustomerDrop.Text} не сохранен в базе. Добавьте его данные в базу, чтобы использовать их повторно.\n";
+                                }
+
+                                // Проверка версии
+                                if (!MainWindow.M.CheckVersion(out string _version) &&
+                                    (MainWindow.M.Log is null || !MainWindow.M.Log.Contains("Текущая версия не актуальна. Рекомендуется обновить программу.")))
+                                {
+                                    MainWindow.M.Log += $"\nТекущая версия не актуальна. Рекомендуется обновить программу.\n";
+                                }
+
+                                // ⭐ ЖДЁМ, ПОКА UI ПОЛНОСТЬЮ ОТРИСУЕТСЯ (прокрутка, подсветка, группы)
+                                await System.Threading.Tasks.Task.Delay(500);
+
+                                // Вывод лога
+                                if (!string.IsNullOrEmpty(MainWindow.M.Log))
+                                {
+                                    MessageBox.Show(MainWindow.M.Log, "Обратите внимание!", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    MainWindow.M.Log = null;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"Не удалось переименовать папку:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        if (dialogService.FilePaths != null && File.Exists(dialogService.FilePaths[0]))
+                        {
+                            dialogService.ShowMessage("Ошибка: Файл используется другим процессом.");
+                        }
+                        else dialogService.ShowMessage(ex.Message);
+                    }
+                });
             }
         }
 
@@ -182,32 +247,53 @@ namespace Metal_Code
         {
             get
             {
-                return openOfferCommand ??= new RelayCommand(obj =>
+                return openOfferCommand ??= new RelayCommand(async obj =>
                 {
                     try
                     {
                         if (MainWindow.M.OffersGrid.SelectedItem is not Offer offer) return;
+                        if (MainWindow.M.DataService == null)
+                        {
+                            dialogService.ShowMessage("Сервис данных не инициализирован.");
+                            return;
+                        }
 
-                        if (offer.Data != null)
+                        Trace.WriteLine($"📂 Открытие расчета Id={offer.Id}, N={offer.N}");
+
+                        // Проверяем, загружены ли полные данные
+                        if (string.IsNullOrEmpty(offer.Data))
+                        {
+                            MainWindow.M.StatusBegin($"Загрузка данных расчета {offer.N}...", MainWindow.StatusMessageType.Info);
+
+                            // ⭐ Вызываем сервис напрямую
+                            var fullOffer = await MainWindow.M.DataService.LoadOfferDataAsync(offer.Id);
+
+                            if (fullOffer != null)
+                            {
+                                offer.Data = fullOffer.Data;
+                                Trace.WriteLine($"✅ Данные расчета {offer.N} загружены (размер: {offer.Data?.Length ?? 0} байт)");
+                            }
+                            else
+                            {
+                                dialogService.ShowMessage($"Не удалось загрузить данные расчета {offer.N}");
+                                return;
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(offer.Data))
                         {
                             MainWindow.M.ActiveOffer = offer;
                             Product = MainWindow.OpenOfferData(offer.Data);
                             MainWindow.M.LoadProduct();
                             MainWindow.M.StatusBegin($"Расчет {MainWindow.M.ActiveOffer.N} загружен.", MainWindow.StatusMessageType.Success);
-
-                            // ⬇️ ПОДСВЕТКА ГРУППЫ ЗАГРУЖЕННОГО РАСЧЕТА ⬇️
-                            // Вызываем с небольшим приоритетом, чтобы UI успел обработать выбор
-                            MainWindow.M.Dispatcher.BeginInvoke(new Action(() =>
-                            {
-                                if (!string.IsNullOrEmpty(offer.ParentQuoteNumber))
-                                {
-                                    MainWindow.M.ScrollToGroupAndHighlight(offer.ParentQuoteNumber);
-                                }
-                            }), DispatcherPriority.ApplicationIdle);
+                            
+                            MainWindow.M.HighlightOfferRow(offer);
+                            MainWindow.M.CheckAndPromptForUnknownCustomer(MainWindow.M.ActiveOffer);
                         }
                     }
                     catch (Exception ex)
                     {
+                        Trace.WriteLine($"❌ Ошибка открытия расчета: {ex.Message}");
                         dialogService.ShowMessage(ex.Message);
                     }
                 });
@@ -220,22 +306,25 @@ namespace Metal_Code
         {
             get
             {
-                return mergeOffersCommand ??= new RelayCommand(obj =>
-                  {
-                      try
-                      {
-                          if (MainWindow.M.OffersGrid.SelectedItems.Count < 2)
-                          {
-                              dialogService.ShowMessage("Выбрано меньше двух расчетов для объединения.");
-                              return;
-                          }
+                return mergeOffersCommand ??= new RelayCommand(async obj =>
+                {
+                    try
+                    {
+                        if (MainWindow.M.OffersGrid.SelectedItems.Count < 2)
+                        {
+                            dialogService.ShowMessage("Выбрано меньше двух расчетов для объединения.");
+                            return;
+                        }
 
-                          MainWindow.M.ClearDetails();      //очищаем текущий расчет
-                          MergeOffer merge = new();
-                          merge.Run();
-                      }
-                      catch (Exception ex) { dialogService.ShowMessage(ex.Message); }
-                  });
+                        MainWindow.M.ClearDetails();      // очищаем текущий расчет
+                        MergeOffer merger = new();         // ⭐ исправлено: было "merge", стало "merger"
+                        await merger.RunAsync();           // ⭐ асинхронный вызов
+                    }
+                    catch (Exception ex)
+                    {
+                        dialogService.ShowMessage(ex.Message);
+                    }
+                });
             }
         }
 
@@ -498,7 +587,6 @@ namespace Metal_Code
                   {
                       Detail detail = new();
                       Product.Details.Insert(0, detail);
-                      SelectedDetail = detail;
                   });
             }
         }
@@ -523,22 +611,58 @@ namespace Metal_Code
         {
             get
             {
-                return removeOfferCommand ??= new RelayCommand(obj =>
-                  {
-                      if (MainWindow.M.ManagerDrop.SelectedItem is Manager man && MainWindow.M.CurrentManager == man)
-                      {
-                          MessageBoxResult response = MessageBox.Show("Уверены? Расчет будет удален как из локальной базы, так и из основной!", "Удаление расчета",
-                              MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-                          if (response == MessageBoxResult.No) return;
-                      }
-                      else
-                      {
-                          MessageBoxResult response = MessageBox.Show("Уверены? Расчет будет удален из локальной базы!", "Удаление расчета",
-                              MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-                          if (response == MessageBoxResult.No) return;
-                      }
-                      MainWindow.M.SaveOrRemoveOffer(false);
-                  });
+                return removeOfferCommand ??= new RelayCommand(async obj =>
+                {
+                    try
+                    {
+                        if (MainWindow.M.OffersGrid.SelectedItem is not Offer offer) return;
+
+                        bool isOnline = MainWindow.M.DataService.IsOnline;
+                        bool isOwnManager = MainWindow.M.CurrentManager?.Id == offer.ManagerId;
+
+                        string message;
+                        if (isOnline && isOwnManager)
+                        {
+                            message = "Уверены? Расчет будет удален из основной базы (сервер)!";
+                        }
+                        else if (isOnline && !isOwnManager)
+                        {
+                            message = "Уверены? Расчет другого менеджера будет удален из основной базы (сервер)!";
+                        }
+                        else
+                        {
+                            message = "Уверены? Расчет будет удален из локальной базы!";
+                        }
+
+                        var response = MessageBox.Show(message, "Удаление расчета",
+                            MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+
+                        if (response != MessageBoxResult.Yes) return;
+
+                        MainWindow.M.StatusBegin($"Удаление расчета {offer.N}...", MainWindow.StatusMessageType.Info);
+
+                        bool removed = await MainWindow.M.DataService.RemoveOfferAsync(offer.Id);
+
+                        if (removed)
+                        {
+                            MainWindow.M.CurrentOffers.Remove(offer);
+                            MainWindow.M.InitializeOffersView();
+                            MainWindow.M.SummaryInfoTextBlock.Text = $"Всего расчётов: {MainWindow.M.CurrentOffers.Count} шт.";
+
+                            MainWindow.M.StatusBegin($"Расчет {offer.N} удален.", MainWindow.StatusMessageType.Success);
+                            Trace.WriteLine($"✅ Расчет {offer.N} (Id={offer.Id}) успешно удален");
+                        }
+                        else
+                        {
+                            dialogService.ShowMessage($"Не удалось удалить расчет {offer.N}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine($"❌ Ошибка удаления расчета: {ex.Message}");
+                        dialogService.ShowMessage(ex.Message);
+                    }
+                });
             }
         }
 

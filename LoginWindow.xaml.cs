@@ -1,6 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Metal_Code.Models;
+using Metal_Code.Services;
+using Microsoft.EntityFrameworkCore;
 using System;
-using System.Linq;
 using System.Windows;
 
 namespace Metal_Code
@@ -10,60 +11,89 @@ namespace Metal_Code
     /// </summary>
     public partial class LoginWindow : Window
     {
-        public LoginWindow()
-        {
-            InitializeComponent();
-        }
+        /// <summary>
+        /// Менеджер, успешно прошедший авторизацию (для передачи в MainWindow).
+        /// </summary>
+        public Manager? AuthenticatedManager { get; private set; }
 
-        private void Accept_Click(object sender, RoutedEventArgs e)
+        public LoginWindow() => InitializeComponent();
+
+        private async void Accept_Click(object sender, RoutedEventArgs e)
         {
-            string login = LoginText.Text;
+            string login = LoginText.Text.Trim();
             string password = PasswordText.Password;
 
-            using ManagerContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[0] : MainWindow.M.connections[1]);
-            db.Managers.Load();
-            MainWindow.M.Managers = db.Managers.Local.ToObservableCollection();
-
-            MainWindow.M.ManagerDrop.ItemsSource = MainWindow.M.Managers.Where(m => !m.IsEngineer);     //список ТОЛЬКО менеджеров (для выставления КП)
-
-            db.Customers.Load();
-            MainWindow.M.Customers = db.Customers.Local.ToObservableCollection();
-
-            //авторизация с нового устройства
-            Manager? manager = MainWindow.M.Managers.FirstOrDefault(x => x.Name == login);
-            if (manager != null)
+            if (string.IsNullOrEmpty(login) || string.IsNullOrEmpty(password))
             {
-                if (manager.Password == password)
-                {
-                    //определяем текущего менеджера
-                    MainWindow.M.CurrentManager = manager;
-                    MainWindow.M.Login.Header = MainWindow.M.CurrentManager.Name;
-
-                    //устанавливаем менеджера по умолчанию
-                    if (MainWindow.M.ManagerDrop.Items.Contains(manager)) MainWindow.M.ManagerDrop.SelectedItem = manager;
-
-                    //если установлен флажок "Запомнить меня"
-                    if (IsRemember.IsChecked == true)
-                    {
-                        Manager? _manager = db.Managers.FirstOrDefault(x => x.Name == login);
-                        if (_manager is not null)
-                        {
-                            _manager.Contact = Environment.MachineName;
-                            db.Entry(_manager).Property(o => o.Contact).IsModified = true;
-                            db.SaveChanges();
-                        }
-                    }
-
-                    DialogResult = true;
-                }
-                else MessageBox.Show("Неправильный пароль. Попробуйте еще раз.");
+                MessageBox.Show("Введите логин и пароль.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
             }
-            else MessageBox.Show("Пользователь с таким именем не найден.");
+
+            var dataService = MainWindow.M.DataService;
+            if (dataService == null)
+            {
+                MessageBox.Show("Сервис данных не инициализирован.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            try
+            {
+                // Ищем менеджера по имени (с приоритетом PG)
+                Manager? manager = await FindManagerByNameAsync(dataService, login);
+
+                if (manager == null)
+                {
+                    MessageBox.Show("Пользователь с таким именем не найден.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Проверяем пароль
+                if (manager.Password != password)
+                {
+                    MessageBox.Show("Неправильный пароль. Попробуйте еще раз.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // ⭐ НЕ обновляем Contact/MachineName — это временная сессия!
+                // Просто сохраняем найденного менеджера для передачи в MainWindow
+                AuthenticatedManager = manager;
+                DialogResult = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка авторизации: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private void Exit(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// Ищет менеджера по имени с приоритетом PG -> SQLite.
+        /// </summary>
+        private async System.Threading.Tasks.Task<Manager?> FindManagerByNameAsync(HybridDataService dataService, string name)
         {
-            Environment.Exit(0);
+            // Сначала ищем в PG (если онлайн)
+            if (dataService.IsOnline)
+            {
+                try
+                {
+                    using var pgContext = new AppDbContext(App.PostgresOptions);
+                    pgContext.Database.SetCommandTimeout(10);
+                    var pgManager = await pgContext.Managers.AsNoTracking()
+                        .FirstOrDefaultAsync(m => m.Name == name);
+                    if (pgManager != null) return pgManager;
+                }
+                catch
+                {
+                    // Ошибка сети — переходим к локальной базе
+                }
+            }
+
+            // Фоллбек на локальную базу
+            using var localCtx = new ManagerContext(MainWindow.M.connections[0]);
+            localCtx.Database.SetCommandTimeout(10);
+            return await localCtx.Managers.AsNoTracking()
+                .FirstOrDefaultAsync(m => m.Name == name);
         }
+
+        private void Exit(object sender, RoutedEventArgs e) => Environment.Exit(0);
     }
 }

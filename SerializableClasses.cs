@@ -1,14 +1,13 @@
-﻿using Metal_Code.Utils;
+﻿using Metal_Code.Models;
+using Metal_Code.Utils;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Media;
 
@@ -589,142 +588,7 @@ namespace Metal_Code
         }
     }
 
-    public class TypeDetail
-    {
-        public int Id { get; set; }
-        public string? Name { get; set; }
-        public float Price { get; set; }
-        public string? Sort { get; set; }
-        public TypeDetail()
-        {
-
-        }
-    }
-
-    public class Work
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = null!;
-        public float Price { get; set; }
-        public float Time { get; set; }
-        public Work()
-        {
-
-        }
-    }
-
-    public class Manager
-    {
-        public int Id { get; set; }
-        public string? Name { get; set; }
-        public string? Contact {  get; set; }
-        public string? Password {  get; set; }
-        public bool IsAdmin {  get; set; }
-        public bool IsEngineer {  get; set; }
-        public bool IsLaser{  get; set; }
-        public ObservableCollection<Offer> Offers { get; set; } = new();
-        public ObservableCollection<Customer> Customers { get; set; } = new();
-        public Manager()
-        {
-
-        }
-    }
-
-    public class Offer
-    {
-        [Browsable(false)]
-        public int Id { get; set; }
-
-        public string? N { get; set; }
-        public string? Company { get; set; }
-        public float Amount { get; set; }
-        public float Material { get; set; }
-
-        [ConcurrencyCheck]
-        public bool Agent { get; set; }
-        [ConcurrencyCheck]
-        public string? Invoice { get; set; }
-        [ConcurrencyCheck]
-        public DateTime? CreatedDate { get; set; }
-        [ConcurrencyCheck]
-        public string? Order { get; set; }
-
-        public string? Autor { get; set; }
-
-        [ConcurrencyCheck]
-        public DateTime? EndDate { get; set; }
-
-        [Browsable(false)]
-        public float Services { get; set; }
-        [Browsable(false)]
-        public string? Act { get; set; }        //путь к сохраненному КП
-        [Browsable(false)]
-        public Manager? Manager { get; set; }
-        [Browsable(false)]
-        public int ManagerId { get; set; }
-        [Browsable(false)]
-        public string? Data { get; set; }
-        [Browsable(false)]
-        public string ParentQuoteNumber
-        {
-            get
-            {
-                if (string.IsNullOrWhiteSpace(N)) return "Без номера";
-
-                var match = Regex.Match(N.Trim(), @"^(\d+)");
-                return match.Success ? match.Groups[1].Value : N.Trim();
-            }
-        }
-
-        public Offer(string? n = null, string? company = null, float amount = 0, float material = 0, float services = 0)
-        {
-            N = n;
-            Company = company;
-            Amount = amount;
-            Material = material;
-            Services = services;
-            CreatedDate = DateTime.UtcNow;
-        }
-    }
-
-    public class Customer
-    {
-        public int Id { get; set; }
-
-        public string? Name { get; set; }
-        public string? Address { get; set; }
-        public bool Agent { get; set; }
-        public int DeliveryPrice { get; set; }
-        public Manager? Manager { get; set; }
-        public int ManagerId { get; set; }
-
-        public SpecTemplate SpecTemplate { get; set; } = new();
-
-        public Customer()
-        {
-
-        }
-    }
-
-    public class Metal
-    {
-        public int Id { get; set; }
-        public string? Name { get; set; }
-        public float Density {  get; set; }
-        public float MassPrice {  get; set; }
-        [Browsable(false)]
-        public string? WayPrice { get; set; }
-        [Browsable(false)]
-        public string? PinholePrice { get; set; }
-        [Browsable(false)]
-        public string? MoldPrice { get; set; }
-
-        public Metal()
-        {
-
-        }
-    }
-
+    // ==================== SQLiteContext ====================
     public class TypeDetailContext : DbContext
     {
         public DbSet<TypeDetail> TypeDetails { get; set; } = null!;
@@ -773,6 +637,9 @@ namespace Metal_Code
         {
             ConnectionString = connectionString;
             Database.EnsureCreated();                   // гарантируем, что база данных создана
+            EnsureMachineNameColumnExists();
+            EnsurePendingSyncColumnExists();
+
             Database.SetCommandTimeout(9000);
         }
 
@@ -788,6 +655,21 @@ namespace Metal_Code
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<Manager>(entity =>
+            {
+                entity.Property(m => m.MachineName)
+                      .HasColumnName("machine_name")
+                      .HasColumnType("TEXT")
+                      .IsRequired(false); // Разрешаем NULL для старых пользователей
+            });
+
+            modelBuilder.Entity<Offer>()
+                .Property(o => o.IsPendingSync)
+                .HasColumnName("IsPendingSync")
+                .HasDefaultValue(true);
+
+            modelBuilder.Entity<Customer>().Ignore(c => c.SpecTemplateJson);
+
             modelBuilder.Entity<Customer>()
                 .OwnsOne(c => c.SpecTemplate, builder =>
                 {
@@ -797,6 +679,45 @@ namespace Metal_Code
                     builder.Property(st => st.Provider).HasColumnName("SpecTemplate_Provider").HasMaxLength(200);
                     builder.Property(st => st.Buyer).HasColumnName("SpecTemplate_Buyer").HasMaxLength(200);
                 });
+        }
+
+        private void EnsureMachineNameColumnExists()
+        {
+            try
+            {
+                // Просто пытаемся добавить колонку. Если она уже есть, SQLite выдаст ошибку, 
+                // которую мы перехватим и проигнорируем.
+                Database.ExecuteSqlRaw(@"ALTER TABLE Managers ADD COLUMN machine_name TEXT;");
+            }
+            catch (Microsoft.Data.Sqlite.SqliteException ex)
+            {
+                // Код ошибки 1 обычно означает "SQL logic error", что бывает при попытке добавить существующую колонку.
+                // Игнорируем, так как наша цель достигнута.
+                if (ex.SqliteErrorCode != 1)
+                    System.Diagnostics.Trace.WriteLine($"Unexpected SQLite error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                // Игнорируем любые другие ошибки при миграции схемы, чтобы не ломать старт приложения
+                System.Diagnostics.Trace.WriteLine($"Warning: Could not add machine_name column: {ex.Message}");
+            }
+        }
+
+        private void EnsurePendingSyncColumnExists()
+        {
+            try
+            {
+                Database.ExecuteSqlRaw(@"ALTER TABLE Offers ADD COLUMN IsPendingSync INTEGER NOT NULL DEFAULT 1;");
+            }
+            catch (Microsoft.Data.Sqlite.SqliteException ex)
+            {
+                if (ex.SqliteErrorCode != 1)
+                    System.Diagnostics.Trace.WriteLine($"Unexpected SQLite error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.WriteLine($"Warning: Could not add IsPendingSync column: {ex.Message}");
+            }
         }
     }
 
@@ -919,25 +840,197 @@ namespace Metal_Code
         }
     }
 
-    public class BaseContext : DbContext
+
+    // Вспомогательный класс для чтения PRAGMA
+    public class ColumnInfo
     {
-        public DbSet<Manager> Managers { get; set; } = null!;
+        public int cid { get; set; }
+        public string name { get; set; } = string.Empty;
+        public string type { get; set; } = string.Empty;
+        public int notnull { get; set; }
+        public string dflt_value { get; set; } = string.Empty;
+        public int pk { get; set; }
+    }
+
+    // ==================== AppDbContext ====================
+    public class AppDbContext : DbContext
+    {
         public DbSet<Offer> Offers { get; set; } = null!;
+        public DbSet<Manager> Managers { get; set; } = null!;
         public DbSet<Customer> Customers { get; set; } = null!;
+        public DbSet<Metal> Metals { get; set; } = null!;
         public DbSet<TypeDetail> TypeDetails { get; set; } = null!;
         public DbSet<Work> Works { get; set; } = null!;
-        public DbSet<Metal> Metals { get; set; } = null!;
+        public DbSet<RequestTemplate> RequestTemplates { get; set; } = null!;
+        public DbSet<UpdateItem> UpdateItems { get; set; } = null!;
 
-        public string connectionString;
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        public BaseContext(string connectionString)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            this.connectionString = connectionString;   // получаем извне строку подключения
-            Database.EnsureCreated();
-        }
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseNpgsql(connectionString);
+            base.OnModelCreating(modelBuilder);
+
+            // ==========================================
+            // 1. TYPE DETAILS (Типы деталей)
+            // ==========================================
+            modelBuilder.Entity<TypeDetail>(entity =>
+            {
+                entity.ToTable("type_details");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
+                entity.Property(e => e.Name).HasColumnName("name");
+                entity.Property(e => e.Price).HasColumnName("price").HasColumnType("real");
+                entity.Property(e => e.Sort).HasColumnName("sort");
+            });
+
+            // ==========================================
+            // 2. WORKS (Работы)
+            // ==========================================
+            modelBuilder.Entity<Work>(entity =>
+            {
+                entity.ToTable("works");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
+                entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+                entity.Property(e => e.Price).HasColumnName("price").HasColumnType("real");
+                entity.Property(e => e.Time).HasColumnName("time").HasColumnType("real");
+            });
+
+            // ==========================================
+            // 3. METALS (Материалы)
+            // ==========================================
+            modelBuilder.Entity<Metal>(entity =>
+            {
+                entity.ToTable("metals");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
+                entity.Property(e => e.Name).HasColumnName("name");
+                entity.Property(e => e.Density).HasColumnName("density").HasColumnType("real");
+                entity.Property(e => e.MassPrice).HasColumnName("mass_price").HasColumnType("real");
+                entity.Property(e => e.WayPrice).HasColumnName("way_price");
+                entity.Property(e => e.PinholePrice).HasColumnName("pinhole_price");
+                entity.Property(e => e.MoldPrice).HasColumnName("mold_price");
+
+                // Уникальный индекс на имя металла
+                entity.HasIndex(e => e.Name).IsUnique().HasDatabaseName("ix_metals_name_unique");
+            });
+
+            // ==========================================
+            // 4. MANAGERS (Менеджеры)
+            // ==========================================
+            modelBuilder.Entity<Manager>(entity =>
+            {
+                entity.ToTable("managers");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
+                entity.Property(e => e.Name).HasColumnName("name").IsRequired();
+                entity.Property(e => e.MachineName).HasColumnName("machine_name");
+                entity.Property(e => e.Contact).HasColumnName("contact");
+                entity.Property(e => e.Password).HasColumnName("password");
+                entity.Property(e => e.IsAdmin).HasColumnName("is_admin");
+                entity.Property(e => e.IsEngineer).HasColumnName("is_engineer");
+                entity.Property(e => e.IsLaser).HasColumnName("is_laser");
+
+                // ❌ УДАЛЕНО: entity.HasMany(m => m.Offers)...
+                // ❌ УДАЛЕНО: entity.HasMany(m => m.Customers)...
+                // Так как эти свойства помечены [NotMapped] в классе Manager, 
+                // настраивать связь нужно только с дочерней стороны (Offer/Customer).
+            });
+
+            // === CUSTOMERS ===
+            modelBuilder.Entity<Customer>(entity =>
+            {
+                entity.ToTable("customers");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
+                entity.Property(e => e.Name).HasColumnName("name");
+                entity.Property(e => e.Address).HasColumnName("address");
+                entity.Property(e => e.Agent).HasColumnName("agent");
+                entity.Property(e => e.DeliveryPrice).HasColumnName("delivery_price");
+
+                // Явно указываем имя колонки для внешнего ключа
+                entity.Property(e => e.ManagerId).HasColumnName("manager_id");
+
+                entity.Property(e => e.SpecTemplateJson).HasColumnName("spec_template").HasColumnType("jsonb");
+                entity.Ignore(e => e.SpecTemplate);
+
+                // ✅ ИСПРАВЛЕНО: WithOne -> WithMany() (без параметров)
+                entity.HasOne(c => c.Manager)
+                      .WithMany() // Пусто! Это означает, что у Manager нет навигационного свойства Customers
+                      .HasForeignKey(c => c.ManagerId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => e.Name).HasDatabaseName("ix_customers_name");
+            });
+
+            // === OFFERS ===
+            modelBuilder.Entity<Offer>(entity =>
+            {
+                entity.ToTable("offers");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
+
+                entity.Property(e => e.N).HasColumnName("n");
+                entity.Property(e => e.Company).HasColumnName("company");
+                entity.Property(e => e.Amount).HasColumnName("amount").HasColumnType("real");
+                entity.Property(e => e.Material).HasColumnName("material").HasColumnType("real");
+                entity.Property(e => e.Services).HasColumnName("services").HasColumnType("real");
+                entity.Property(e => e.Act).HasColumnName("act");
+                entity.Property(e => e.Autor).HasColumnName("autor");
+                entity.Property(e => e.Data).HasColumnName("data").HasColumnType("jsonb");
+                entity.Property(e => e.CreatedDate).HasColumnName("created_date").HasColumnType("timestamp with time zone");
+                entity.Property(e => e.EndDate).HasColumnName("end_date").HasColumnType("timestamp with time zone");
+                entity.Property(e => e.Agent).HasColumnName("agent");
+                entity.Property(e => e.Invoice).HasColumnName("invoice");
+                entity.Property(e => e.Order).HasColumnName("order");
+
+                // Явно указываем имя колонки для внешнего ключа
+                entity.Property(e => e.ManagerId).HasColumnName("manager_id");
+
+                entity.Ignore(e => e.IsPendingSync);
+                entity.Ignore(e => e.ParentQuoteNumber);
+
+                // ✅ ИСПРАВЛЕНО: WithOne -> WithMany() (без параметров)
+                entity.HasOne(o => o.Manager)
+                      .WithMany() // Пусто! Это означает, что у Manager нет навигационного свойства Offers
+                      .HasForeignKey(o => o.ManagerId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => e.N).HasDatabaseName("ix_offers_n");
+                entity.HasIndex(e => e.CreatedDate).HasDatabaseName("ix_offers_created_date");
+            });
+
+            // ==========================================
+            // 7. REQUEST TEMPLATES (Шаблоны заявок)
+            // ==========================================
+            modelBuilder.Entity<RequestTemplate>(entity =>
+            {
+                entity.ToTable("request_templates");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
+                entity.Property(e => e.Name).HasColumnName("name");
+                entity.Property(e => e.DestinyPattern).HasColumnName("destiny_pattern");
+                entity.Property(e => e.CountPattern).HasColumnName("count_pattern");
+                entity.Property(e => e.PosDestiny).HasColumnName("pos_destiny");
+                entity.Property(e => e.PosCount).HasColumnName("pos_count");
+
+                entity.HasIndex(e => e.Name).HasDatabaseName("ix_request_templates_name");
+            });
+
+            // ==========================================
+            // 8. UPDATE ITEMS (Обновления)
+            // ==========================================
+            modelBuilder.Entity<UpdateItem>(entity =>
+            {
+                entity.ToTable("update_items");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
+                entity.Property(e => e.VersionTitle).HasColumnName("version_title");
+                entity.Property(e => e.Description).HasColumnName("description");
+                entity.Property(e => e.ScreenshotPath).HasColumnName("screenshot_path");
+                entity.Property(e => e.ReleaseDate).HasColumnName("release_date").HasColumnType("timestamp with time zone");
+                entity.Property(e => e.IsShownAtStartup).HasColumnName("is_shown_at_startup");
+            });
         }
     }
 }

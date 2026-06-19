@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Metal_Code.Models;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Windows;
@@ -12,7 +13,7 @@ namespace Metal_Code
     /// </summary>
     public partial class ManagerWindow : Window
     {
-        ManagerContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[0] : MainWindow.M.connections[1]);
+        ManagerContext db = new(MainWindow.M.connections[0]);
         public ManagerWindow()
         {
             InitializeComponent();
@@ -29,9 +30,6 @@ namespace Metal_Code
 
             LaserList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => x.IsLaser);
             AppList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => !x.IsLaser);
-
-            //if (MainWindow.M.Managers.Count > 0 && !MainWindow.M.CurrentManager.IsAdmin) foreach (UIElement element in ButtonsStack.Children)
-            //        if (element is Button) element.IsEnabled = false;
         }
 
         // добавление
@@ -93,44 +91,83 @@ namespace Metal_Code
         // удаление
         private void DeleteLaser_Click(object sender, RoutedEventArgs e)
         {
-            // если ни одного объекта не выделено, выходим
             if (LaserList.SelectedItem is not Manager manager || manager.IsAdmin) return;
 
-            // предупреждаем о том, что будут потеряны данные
-            MessageBoxResult response = MessageBox.Show("Уверены? Пользователь и все его заказчики с расчетами будут удалены из базы!",
-                "Удаление пользователя", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-            if (response == MessageBoxResult.No) return;
-
-            // получаем выделенный объект
-            Manager? _manager = db.Managers.Where(x => x.Id == manager.Id).Include(o => o.Customers).Include(o => o.Offers).FirstOrDefault();
-            if (_manager != null)
+            // ⭐ Защита от удаления текущего пользователя
+            if (manager.Id == MainWindow.M.CurrentManager?.Id)
             {
-                db.Managers.Remove(_manager);
-                db.SaveChanges();
+                MessageBox.Show("Нельзя удалить текущего пользователя!\nСначала войдите под другим пользователем.",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var response = MessageBox.Show(
+                $"Уверены?\nПользователь \"{manager.Name}\" и все его заказчики с расчётами будут удалены из локальной базы!",
+                "Удаление пользователя", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+            if (response != MessageBoxResult.Yes) return;
+
+            try
+            {
+                DeleteManagerCompletely(manager.Id);
                 LaserList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => x.IsLaser);
                 HaveChanged = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка удаления: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void DeleteApp_Click(object sender, RoutedEventArgs e)
         {
-            // если ни одного объекта не выделено, выходим
             if (AppList.SelectedItem is not Manager manager || manager.IsAdmin) return;
 
-            // предупреждаем о том, что будут потеряны данные
-            MessageBoxResult response = MessageBox.Show("Уверены? Пользователь и все его заказчики с расчетами будут удалены из базы!",
-                "Удаление пользователя", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-            if (response == MessageBoxResult.No) return;
-
-            // получаем выделенный объект
-            Manager? _manager = db.Managers.Where(x => x.Id == manager.Id).Include(o => o.Customers).Include(o => o.Offers).FirstOrDefault();
-            if (_manager != null)
+            // ⭐ Защита от удаления текущего пользователя
+            if (manager.Id == MainWindow.M.CurrentManager?.Id)
             {
-                db.Managers.Remove(_manager);
-                db.SaveChanges();
+                MessageBox.Show("Нельзя удалить текущего пользователя!\nСначала войдите под другим пользователем.",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var response = MessageBox.Show(
+                $"Уверены?\nПользователь \"{manager.Name}\" и все его заказчики с расчётами будут удалены из локальной базы!",
+                "Удаление пользователя", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+            if (response != MessageBoxResult.Yes) return;
+
+            try
+            {
+                DeleteManagerCompletely(manager.Id);
                 AppList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => !x.IsLaser);
                 HaveChanged = true;
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка удаления: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// Полностью удаляет менеджера и все связанные данные (заказчики, расчёты) через прямой SQL.
+        /// Обходит проблему с [NotMapped] навигационными свойствами.
+        /// </summary>
+        private void DeleteManagerCompletely(int managerId)
+        {
+            // 1. Удаляем все расчёты менеджера
+            db.Database.ExecuteSqlRaw(
+                "DELETE FROM Offers WHERE ManagerId = {0}", managerId);
+
+            // 2. Удаляем всех заказчиков менеджера
+            db.Database.ExecuteSqlRaw(
+                "DELETE FROM Customers WHERE ManagerId = {0}", managerId);
+
+            // 3. Удаляем самого менеджера
+            db.Database.ExecuteSqlRaw(
+                "DELETE FROM Managers WHERE Id = {0}", managerId);
+
+            // 4. Перечитываем коллекцию, чтобы UI обновился
+            db.Entry(db.Managers.Local).State = EntityState.Detached;
+            db.Managers.Load();
         }
 
         private bool HaveChanged = false;           //было ли удаление менеджера

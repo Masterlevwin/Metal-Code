@@ -1,8 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.Linq;
+﻿using Metal_Code.Models;
 using System;
+using System.Linq;
 using System.Windows;
-using System.IO;
 
 namespace Metal_Code
 {
@@ -11,116 +10,70 @@ namespace Metal_Code
     /// </summary>
     public partial class RegistrationWindow : Window
     {
-        public RegistrationWindow()
-        {
-            InitializeComponent();
-        }
+        public RegistrationWindow() => InitializeComponent();
 
         private void Accept_Click(object sender, RoutedEventArgs e)
         {
-            string login = LoginText.Text;
+            string login = LoginText.Text.Trim();
             string password = PasswordText.Password;
 
-            if (login == "" || password == "")
+            if (string.IsNullOrEmpty(login) || string.IsNullOrEmpty(password))
             {
-                MessageBox.Show("Введены не все данные. Проверьте логин и пароль.");
+                MessageBox.Show("Введены не все данные. Проверьте логин и пароль.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            using ManagerContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[0] : MainWindow.M.connections[1]);
+            // ⭐ Всегда используем локальную базу (PG контролируется администратором)
+            using ManagerContext db = new(MainWindow.M.connections[0]);
 
-            //добавляем менеджера по умолчанию
-            Manager admin = new()
+            string currentMachine = Environment.MachineName;
+
+            // Проверяем, нет ли уже такого пользователя локально
+            bool existsByName = db.Managers.Any(m => m.Name == login);
+            bool existsByMachine = db.Managers.Any(m => m.MachineName == currentMachine);
+
+            if (existsByName)
             {
-                Name = "Сергеев Юрий",
-                Password = "uri",
-                IsAdmin = true,
-                IsLaser = false,
-                IsEngineer = false
-            };
+                MessageBox.Show("Пользователь с таким именем уже существует.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
-            //добавляем заказчика по умолчанию
-            Customer customer = new() { Name = "Частное лицо", Agent = true };
+            if (existsByMachine)
+            {
+                MessageBox.Show("Этот компьютер уже зарегистрирован под другим пользователем.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
-            //создаем зарегистрированного пользователя
+            // Создаем зарегистрированного пользователя
             Manager manager = new()
             {
                 Name = login,
                 Password = password,
-                Contact = Environment.MachineName,
-                IsAdmin = false
+                Contact = ContactText.Text.Trim(), // ⭐ НОВОЕ: сохраняем контактные данные
+                MachineName = currentMachine,
+                IsAdmin = false,
+                IsEngineer = IsEngineer.IsChecked == true,
+                IsLaser = IsLaser.IsChecked == true
             };
 
-            if (IsEngineer.IsChecked == true) manager.IsEngineer = true;
-            else manager.IsEngineer = false;
-
-            if (IsLaser.IsChecked == true) manager.IsLaser = true;
-            else manager.IsLaser = false;
-
-            if (manager.IsEngineer == true) admin.Customers.Add(customer);
-            else manager.Customers.Add(customer);
-            
-            db.Managers.Add(admin);
             db.Managers.Add(manager);
-
             db.SaveChanges();
 
-            db.Managers.Load();
-            MainWindow.M.Managers = db.Managers.Local.ToObservableCollection();
-
-            MainWindow.M.ManagerDrop.ItemsSource = MainWindow.M.Managers.Where(m => !m.IsEngineer);     //список ТОЛЬКО менеджеров (для выставления КП)
-
-            db.Customers.Load();
-            MainWindow.M.Customers = db.Customers.Local.ToObservableCollection();
-
-            //определяем текущего менеджера
-            MainWindow.M.CurrentManager = manager;
-            MainWindow.M.Login.Header = MainWindow.M.CurrentManager.Name;
-
-            //создаем защитный файл
-            MainWindow.EncryptFile();
-
-            //проверяем защитный файл
-            if (!MainWindow.CheckMachine())
-            {
-                MessageBox.Show($"Данная копия программы защищена. Ее невозможно запустить на этом компьютере!");
-                Environment.Exit(0);
-            }
+            // ⭐ НЕ обновляем коллекции в главном окне — это сделает InitializeManagersAsync после закрытия окна
+            // ⭐ НЕ добавляем в PG — список менеджеров контролируется администратором вручную
 
             DialogResult = true;
 
-            AddManagerToMainDatabase(manager);    //добавляем нового зарегистрированного менеджера в основную базу
-
-            MessageBox.Show($"Обязательно запомните или запишите свой пароль \"{password}\"\nФункция восстановления пароля не предусмотрена!");
+            MessageBox.Show(
+                $"Добро пожаловать, {login}!\n\n" +
+                $"Обязательно запомните свой пароль.\n" +
+                $"Функция восстановления пароля не предусмотрена!\n\n" +
+                $"⚠️ Ваш аккаунт создан локально. Для работы с сервером обратитесь к администратору.",
+                "Успешная регистрация",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         }
 
-        private void AddManagerToMainDatabase(Manager man)
-        {
-            if (!MainWindow.M.IsLocal || !File.Exists(MainWindow.M.connections[1])) return;
-
-            using ManagerContext db = new(MainWindow.M.connections[1]);
-
-            //проверяем наличие менеджера в основной базе по имени
-            Manager? manager = db.Managers.FirstOrDefault(x => x.Name == man.Name);
-
-            if (manager is null)
-            {
-                Manager _man = new()
-                {
-                    Name = man.Name,
-                    Contact = man.Contact,
-                    Password = man.Password,
-                    IsAdmin = man.IsAdmin,
-                    IsEngineer = man.IsEngineer,
-                    IsLaser = man.IsLaser,
-                };
-                db.Managers.Add(_man);
-            }
-        }
-
-        private void Exit(object sender, RoutedEventArgs e)
-        {
-            Environment.Exit(0);
-        }
+        private void Exit(object sender, RoutedEventArgs e) => Environment.Exit(0);
     }
 }

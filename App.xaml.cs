@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Win32;
 using System;
 using System.Diagnostics;
 using System.Globalization;
@@ -19,8 +20,14 @@ namespace Metal_Code
 
         public static string? StartupFileToOpen { get; private set; }
 
+        // Публичное свойство для доступа из любого места
+        public static DbContextOptions<AppDbContext> PostgresOptions { get; private set; } = null!;
+
         protected override void OnStartup(StartupEventArgs e)
         {
+            // Подавляем предупреждения WPF Binding (не критичные)
+            PresentationTraceSources.DataBindingSource.Switch.Level = SourceLevels.Critical;
+
             // Заставляем WPF использовать текущую культуру ОС для форматирования
             FrameworkElement.LanguageProperty.OverrideMetadata(
                 typeof(FrameworkElement),
@@ -37,6 +44,15 @@ namespace Metal_Code
             RegisterMcmFileAssociation();
 
             base.OnStartup(e);
+
+            string connStr = "Host=srv-fs-laser;Port=5432;Database=metal-codedb;Username=postgres;Password=lazerpro;";
+
+            // Создаём опции один раз
+            var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
+            optionsBuilder.UseNpgsql(connStr, npgsql =>
+                npgsql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null));
+
+            PostgresOptions = optionsBuilder.Options;
 
             try
             {

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Metal_Code.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -9,7 +10,7 @@ namespace Metal_Code
     /// </summary>
     public partial class TypeDetailWindow : Window
     {
-        TypeDetailContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[2] : MainWindow.M.connections[3]);
+        TypeDetailContext db = new(MainWindow.M.connections[2]);
         public TypeDetailWindow()
         {
             InitializeComponent();

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Metal_Code.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows;
@@ -11,7 +12,7 @@ namespace Metal_Code
     /// </summary>
     public partial class MetalWindow : Window
     {
-        MetalContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[6] : MainWindow.M.connections[7]);
+        MetalContext db = new(MainWindow.M.connections[6]);
         public MetalWindow()
         {
             InitializeComponent();

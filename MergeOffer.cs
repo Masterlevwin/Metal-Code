@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Metal_Code.Models;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -14,7 +15,11 @@ namespace Metal_Code
             "Фрезеровка", "Сверловка", "Вальцовка", "Цинкование", "Лентопил", "Аквабластинг"
         };
 
-        public void Run()
+        /// <summary>
+        /// Асинхронно объединяет выбранные расчёты в одно КП.
+        /// Загружает данные каждого расчёта из базы, если они не в памяти.
+        /// </summary>
+        public async System.Threading.Tasks.Task RunAsync()
         {
             var selectedOffers = MainWindow.M.OffersGrid.SelectedItems.Cast<Offer>().ToList();
 
@@ -22,11 +27,20 @@ namespace Metal_Code
             string? company = selectedOffers[^1].Company;
             if (company is null) return;
 
+            MainWindow.M.StatusBegin($"Загрузка данных {selectedOffers.Count} расчётов...", MainWindow.StatusMessageType.Info);
+
             // --- Генерируем путь к новой папке ---
             string combinedKpPath;
-            combinedKpPath = GenerateCombinedKpFolderPath(selectedOffers, company);
+            try
+            {
+                combinedKpPath = GenerateCombinedKpFolderPath(selectedOffers, company);
+            }
+            catch (Exception ex)
+            {
+                MainWindow.M.StatusBegin($"Ошибка создания папки: {ex.Message}", MainWindow.StatusMessageType.Error);
+                return;
+            }
 
-            // Извлекаем имя папки
             string folderName = Path.GetFileName(combinedKpPath);
 
             // --- Очищаем интерфейс ---
@@ -34,19 +48,69 @@ namespace Metal_Code
 
             List<Detail> details = new();
             string comment = $"Объединённое КП из:";
+            int loadedCount = 0;
+            int failedCount = 0;
 
-            // --- Собираем детали ---
+            // --- Собираем детали (с загрузкой данных из базы) ---
             foreach (var offer in selectedOffers)
             {
-                if (offer.Data != null)
+                string? dataJson = offer.Data;
+
+                // ⭐ Если Data нет в памяти — загружаем из базы
+                if (string.IsNullOrEmpty(dataJson))
                 {
-                    var product = MainWindow.OpenOfferData(offer.Data);
+                    try
+                    {
+                        dataJson = await MainWindow.M.DataService.GetOfferDataAsync(offer.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine($"⚠️ Не удалось загрузить данные расчёта {offer.N}: {ex.Message}");
+                        failedCount++;
+                        continue;
+                    }
+                }
+
+                if (string.IsNullOrEmpty(dataJson))
+                {
+                    Trace.WriteLine($"⚠️ Данные расчёта {offer.N} отсутствуют в базе");
+                    failedCount++;
+                    continue;
+                }
+
+                try
+                {
+                    var product = MainWindow.OpenOfferData(dataJson);
                     if (product != null)
                     {
                         details.AddRange(product.Details);
                         comment += $" {offer.N};";
+                        loadedCount++;
+                    }
+                    else
+                    {
+                        Trace.WriteLine($"⚠️ Не удалось десериализовать данные расчёта {offer.N}");
+                        failedCount++;
                     }
                 }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine($"⚠️ Ошибка обработки расчёта {offer.N}: {ex.Message}");
+                    failedCount++;
+                }
+            }
+
+            if (loadedCount == 0)
+            {
+                MainWindow.M.StatusBegin("Не удалось загрузить данные ни одного расчёта.", MainWindow.StatusMessageType.Error);
+                return;
+            }
+
+            if (failedCount > 0)
+            {
+                MainWindow.M.StatusBegin(
+                    $"Загружено {loadedCount} из {selectedOffers.Count} расчётов. {failedCount} расчётов пропущено.",
+                    MainWindow.StatusMessageType.Warning);
             }
 
             // --- Копируем папки работ с суффиксами номеров ---
@@ -64,10 +128,19 @@ namespace Metal_Code
             if (!Directory.Exists(kpFolder)) Directory.CreateDirectory(kpFolder);
 
             // --- Открываем папку в проводнике ---
-            Process.Start("explorer.exe", combinedKpPath);
+            try
+            {
+                Process.Start("explorer.exe", combinedKpPath);
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"Не удалось открыть проводник: {ex.Message}");
+            }
 
-            // --- Выводим путь к объединенному КП ---
-            MainWindow.M.StatusBegin($"Расчеты успешно объединены в папке «{folderName}».");
+            // --- Выводим итоговый статус ---
+            MainWindow.M.StatusBegin(
+                $"Расчеты успешно объединены в папке «{folderName}» (загружено {loadedCount} из {selectedOffers.Count}).",
+                MainWindow.StatusMessageType.Success);
         }
 
         /// <summary>
@@ -219,7 +292,7 @@ namespace Metal_Code
         {
             return !string.IsNullOrWhiteSpace(folderName) && WorkFolderNames.Contains(folderName.Trim());
         }
-        
+
         /// <summary>
         /// Копирует каталог и, при необходимости, все вложенные подкаталоги и файлы.
         /// </summary>

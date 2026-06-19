@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Windows.Media;
 using System.Collections.ObjectModel;
 using System;
+using Metal_Code.Models;
 
 namespace Metal_Code
 {

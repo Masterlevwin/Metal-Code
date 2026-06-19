@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Metal_Code.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -9,7 +10,7 @@ namespace Metal_Code
     /// </summary>
     public partial class WorkWindow : Window
     {
-        WorkContext db = new(MainWindow.M.IsLocal ? MainWindow.M.connections[4] : MainWindow.M.connections[5]);
+        WorkContext db = new(MainWindow.M.connections[4]);
         public WorkWindow()
         {
             InitializeComponent();

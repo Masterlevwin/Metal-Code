@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using Metal_Code.Models;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace Metal_Code

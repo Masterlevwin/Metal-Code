@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Metal_Code.Models;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Data;
@@ -8,39 +8,24 @@ namespace Metal_Code.Converters
 {
     public class GroupCompanyNamesConverter : IValueConverter
     {
-        // Кэш по экземпляру группы. CollectionViewGroup уникален на время жизни DataGrid.
-        private readonly Dictionary<object, string> _cache = new();
-
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value == null) return string.Empty;
+            if (value is not CollectionViewGroup group) return string.Empty;
 
-            // Возвращаем кэшированный результат, если уже вычисляли
-            if (_cache.TryGetValue(value, out string? cached)) return cached;
+            var companies = group.Items
+                .OfType<Offer>()
+                .Select(o => o.Company?.Trim())
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Distinct()
+                .ToList();
 
-            string result = string.Empty;
+            if (companies.Count == 0) return string.Empty;
+            if (companies.Count <= 2) return $" • {string.Join(", ", companies)}";
 
-            if (value is CollectionViewGroup group)
-            {
-                var companies = group.Items.OfType<Offer>()
-                    .Select(o => o.Company?.Trim())
-                    .Where(c => !string.IsNullOrWhiteSpace(c))
-                    .Distinct()
-                    .ToList();
-
-                if (companies.Count > 2)
-                    result = $" • {string.Join(", ", companies.Take(2))} и ещё {companies.Count - 2}";
-                else if (companies.Count > 0)
-                    result = $" • {string.Join(", ", companies)}";
-            }
-
-            _cache[value] = result;
-            return result;
+            return $" • {string.Join(", ", companies.Take(2))} и ещё {companies.Count - 2}";
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
             throw new NotImplementedException();
-
-        public void ClearCache() => _cache.Clear();
     }
 }

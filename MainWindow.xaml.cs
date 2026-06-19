@@ -4,8 +4,8 @@ using ACadSharp.IO;
 using ACadSharp.Tables;
 using CSMath;
 using HandyControl.Data;
-using Metal_Code.Converters;
 using Metal_Code.Models;
+using Metal_Code.Services;
 using Metal_Code.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
@@ -22,7 +22,6 @@ using System.Dynamic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Management;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization.Json;
@@ -38,7 +37,6 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using Border = System.Windows.Controls.Border;
 using Color = System.Windows.Media.Color;
 using Path = System.IO.Path;
 using Point = System.Windows.Point;
@@ -71,7 +69,7 @@ namespace Metal_Code
             $"Y:\\Производство\\Laser rezka\\В работу",
             $"M:\\Metal-Code",
             $"C:\\ProgramData",
-            $"Host=srv-fs-laser;Port=5432;Database=metalcodedb;Username=postgres;Password=lazerpro",
+            $"Host=srv-fs-laser;Port=5432;Database=metal-codedb;Username=postgres;Password=lazerpro",
             "Data Source=templates.db",
 
             //прод
@@ -86,22 +84,33 @@ namespace Metal_Code
             //$"Y:\\Производство\\Laser rezka\\В работу",
             //$"M:\\Metal-Code",
             //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code",
-            //$"Host=srv-fs-laser;Port=5432;Database=metalcodedb;Username=postgres;Password=lazerpro",
+            //$"Host=srv-fs-laser;Port=5432;Database=metal-codedb;Username=postgres;Password=lazerpro",
             //"Data Source=templates.db",
         };
 
+        public HybridDataService DataService { get; set; } = null!;
         public ProductViewModel ProductModel { get; set; } = new(new DefaultDialogService(), new JsonFileService(), new Product());
         public RequestControl? RequestControl;
 
-        public Manager CurrentManager = new();      //текущий авторизованный менеджер
+        private Manager _currentManager = new();    //текущий авторизованный менеджер
+        public Manager CurrentManager
+        {
+            get => _currentManager;
+            set
+            {
+                if (_currentManager == value) return;
+                _currentManager = value;
+                OnPropertyChanged(nameof(CurrentManager));
+            }
+        }
+
         public Manager TargetManager = new();       //выбранный менеджер из списка
         public Customer TargetCustomer = new();     //выбранный заказчик из списка
 
         public List<TechItem> TechItems = new();    //список полученных объектов из строк заявки
         public ObservableCollection<Manager> Managers { get; set; } = new();
-        public ObservableCollection<Offer> Offers { get; set; } = new();
         public List<Offer> CurrentOffers { get; set; } = new();
-        public List<Offer> ReportOffers { get; set; } = new();
+        public ObservableCollection<Offer> ReportOffers { get; set; } = new();
         public ObservableCollection<Customer> Customers { get; set; } = new();
         public List<Customer> CurrentCustomers { get; set; } = new();
         public ObservableCollection<TypeDetail> TypeDetails { get; set; } = new();
@@ -131,18 +140,6 @@ namespace Metal_Code
         {
             get => version;
             set => version = value;
-        }
-
-        private bool isLocal = true;    //запуск локальной версии
-        //private bool isLocal = false;   //запуск основной версии
-        public bool IsLocal
-        {
-            get => isLocal;
-            set
-            {
-                isLocal = value;
-                OnPropertyChanged(nameof(IsLocal));
-            }
         }
 
         private bool isRequest = false;
@@ -266,7 +263,6 @@ namespace Metal_Code
                 }
             }
         }
-
         public void SetServiceFactor(double ratio)
         {
             if (ratio <= 0) return;
@@ -405,7 +401,6 @@ namespace Metal_Code
                 SetExpressOffer();
             }
         }
-
         public void SetExpressOffer()
         {
             if (IsExpressOffer)
@@ -444,17 +439,6 @@ namespace Metal_Code
             }
         }
 
-        private string searchOffers = "";
-        public string SearchOffers
-        {
-            get => searchOffers;
-            set
-            {
-                searchOffers = value;
-                OnPropertyChanged(nameof(SearchOffers));
-            }
-        }
-
         private string searchDetails = "";
         public string SearchDetails
         {
@@ -464,28 +448,6 @@ namespace Metal_Code
                 if (searchDetails == value) return;
                 searchDetails = value;
                 OnPropertyChanged(nameof(SearchDetails));
-            }
-        }
-
-        private DateTime startDay = new(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
-        public DateTime StartDay
-        {
-            get => startDay;
-            set
-            {
-                startDay = value;
-                OnPropertyChanged(nameof(StartDay));
-            }
-        }
-
-        private DateTime endDay = DateTime.UtcNow;
-        public DateTime EndDay
-        {
-            get => endDay;
-            set
-            {
-                endDay = value;
-                OnPropertyChanged(nameof(EndDay));
             }
         }
 
@@ -536,6 +498,46 @@ namespace Metal_Code
             BonusRatio = _ratio;
             TotalResult();
         }
+
+        private bool _isOffersGridReadOnly = true;
+        public bool IsOffersGridReadOnly
+        {
+            get => _isOffersGridReadOnly;
+            private set
+            {
+                if (_isOffersGridReadOnly == value) return;
+                _isOffersGridReadOnly = value;
+                OnPropertyChanged(nameof(IsOffersGridReadOnly));
+            }
+        }
+        private void UpdateOffersGridReadOnlyState()
+        {
+            if (CurrentManager == null)
+            {
+                IsOffersGridReadOnly = true;
+                return;
+            }
+
+            if (CurrentManager.IsEngineer)
+            {
+                // Инженер не редактирует существующие расчёты
+                IsOffersGridReadOnly = true;
+            }
+            else if (CurrentManager.IsAdmin)
+            {
+                // Админ может редактировать всё
+                IsOffersGridReadOnly = false;
+            }
+            else
+            {
+                // Обычный менеджер — только свои расчёты
+                IsOffersGridReadOnly = TargetManager?.Id != CurrentManager.Id;
+            }
+
+            Trace.WriteLine($"🔒 IsOffersGridReadOnly = {IsOffersGridReadOnly} " +
+                            $"(роль: {(CurrentManager.IsEngineer ? "инженер" : CurrentManager.IsAdmin ? "админ" : "менеджер")}, " +
+                            $"TargetManager: {TargetManager?.Name})");
+        }
         #endregion
 
         public MainWindow()
@@ -544,9 +546,12 @@ namespace Metal_Code
             M = this;
             Title = $"Metal-Code {Version}";
 
+            ReportDrop.ItemsSource = Months;
+            ReportDrop.SelectedItem = Months[DateTime.Now.Month - 1];
+            ReportGrid.ItemsSource = ReportOffers;
+
             //if (!CheckVersion(out string _version)) Restart();
             //else UpdateDatabases();
-            //AutoRemoveOffers();
 
             DataContext = ProductModel;
             Loaded += LoadDataBases;
@@ -554,49 +559,156 @@ namespace Metal_Code
 
         //-------------Основные методы-----------//
         #region
-        private void LoadDataBases(object sender, RoutedEventArgs e)    // при загрузке окна
+        private async void LoadDataBases(object sender, RoutedEventArgs e)
         {
-            using TypeDetailContext dbT = new(IsLocal ? connections[2] : connections[3]);
-            dbT.TypeDetails.Load();
-            TypeDetails = dbT.TypeDetails.Local.ToObservableCollection();
+            IsEnabled = false;
+            StatusBegin("Инициализация приложения...", StatusMessageType.Info);
 
-            using WorkContext dbW = new(IsLocal ? connections[4] : connections[5]);
-            dbW.Works.Load();
-            Works = dbW.Works.Local.ToObservableCollection();
+            try
+            {
+                DataService = new HybridDataService(App.PostgresOptions, connections);
 
-            using MetalContext dbM = new(IsLocal ? connections[6] : connections[7]);
-            dbM.Metals.Load();
-            Metals = dbM.Metals.Local.ToObservableCollection();
+                bool isOnline = await DataService.InitializeAsync();
+                UpdateOnlineStatus();
 
-            InitializeDict();
+                // Очищаем локальную базу от старых расчетов
+                await DataService.CleanupLocalOffersAsync();
 
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
+                if (!isOnline)
+                {
+                    StatusBegin("Работа в локальном режиме.", StatusMessageType.Warning);
+                }
 
-            AddSpecTemplateColumnsIfMissing(db);
+                // Миграция данных (если есть сеть)
+                if (isOnline)
+                {
+                    StatusBegin("Проверка и синхронизация данных с сервером. Пожалуйста, подождите...", StatusMessageType.Info);
+                    try
+                    {
+                        // 1. СНАЧАЛА миграция
+                        await DataService.MigrateUserDataToPgAsync();
 
-            db.Managers.Load();
-            Managers = db.Managers.Local.ToObservableCollection();
+                        // 2. ПОТОМ синхронизация отложенных расчетов
+                        await DataService.SyncPendingOffersAsync();
 
-            db.Offers.Load();
-            Offers = db.Offers.Local.ToObservableCollection();
-            InitializeOffersView();
+                        StatusBegin("Синхронизация с сервером успешно завершена.", StatusMessageType.Success);
+                    }
+                    catch (Exception ex)
+                    {
+                        string fullError = ex.InnerException != null ? $"{ex.Message} | Inner: {ex.InnerException.Message}" : ex.Message;
+                        Trace.WriteLine($"Ошибка миграции: {fullError}");
+                        StatusBegin("Работа в локальном режиме (ошибка синхронизации).", StatusMessageType.Warning);
+                        isOnline = false;
+                    }
+                }
 
-            if (Managers.Count == 0) ShowWindow(new RegistrationWindow());  //если пользователей в базе нет, запускаем процесс регистрации
-            //else if (!CheckMachine())                                       //проверяем защитный файл
-            //{
-            //    MessageBox.Show($"Данная копия программы защищена. Ее невозможно запустить на этом компьютере!");
-            //    Environment.Exit(0);
-            //}
-            else if (!CheckMachineName()) ShowWindow(new LoginWindow());    //проверяем пользователя
-            else NewProject();                                              //если все проверки пройдены, создаем новый проект
+                // Поиск текущего пользователя в локальной базе
+                Manager? currentManager = null;
+                using (var tempCtx = new ManagerContext(connections[0]))
+                {
+                    currentManager = await tempCtx.Managers
+                        .FirstOrDefaultAsync(m => m.MachineName == Environment.MachineName || m.Contact == Environment.MachineName);
+                }
 
-            OfferToggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                // Если пользователя нет — открываем регистрацию
+                if (currentManager == null)
+                {
+                    IsEnabled = true;
+                    ShowWindow(new RegistrationWindow());
+                    return;
+                }
 
-            // Проверяем, нужно ли открыть файл
-            var filePath = App.StartupFileToOpen;
-            if (!string.IsNullOrEmpty(filePath)) OpenFileOnStartup(filePath);
+                // Синхронизация менеджеров (если есть сеть)
+                if (isOnline)
+                {
+                    try
+                    {
+                        bool isEngineerOrAdmin = currentManager.IsEngineer || currentManager.IsAdmin;
+                        await DataService.SyncManagersAsync(isEngineerOrAdmin);
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine($"Ошибка синхронизации менеджеров: {ex.Message}");
+                    }
+                }
 
-            ShowUpdateWindow();
+                // ⭐ ЕДИНЫЙ ВЫЗОВ инициализации менеджеров
+                if (!await InitializeManagersAsync())
+                {
+                    IsEnabled = true;
+                    ShowWindow(new RegistrationWindow());
+                    return;
+                }
+
+                // Загрузка справочников
+                Metals = new ObservableCollection<Metal>(await DataService.GetLocalMetalsAsync());
+                TypeDetails = new ObservableCollection<TypeDetail>(await DataService.GetLocalTypeDetailsAsync());
+                Works = new ObservableCollection<Work>(await DataService.GetLocalWorksAsync());
+                InitializeDict();
+
+                // Финальная инициализация
+                NewProject();
+                OfferToggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+
+                var filePath = App.StartupFileToOpen;
+                if (!string.IsNullOrEmpty(filePath)) await OpenFileOnStartupAsync(filePath);
+
+                ShowUpdateWindow();
+            }
+            catch (Exception ex)
+            {
+                string fullError = ex.InnerException != null ? $"{ex.Message} | Inner: {ex.InnerException.Message}" : ex.Message;
+                Trace.WriteLine($"Критическая ошибка запуска: {fullError}");
+                MessageBox.Show($"Ошибка инициализации:\n{fullError}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            finally
+            {
+                IsEnabled = true;
+            }
+        }
+
+        private async void MainWindow_Activated(object sender, EventArgs e)
+        {
+            if (CurrentManager == null || CurrentManager.IsEngineer) return;
+            if (DataService == null || !DataService.IsOnline) return;
+            if (TargetManager == null || TargetManager.Name is null) return;
+            if (_lastKnownCreatedDate == DateTime.MinValue) return;
+
+            // Ограничение частоты запросов (по времени клиента)
+            if ((DateTime.UtcNow - _lastOffersCheck).TotalSeconds < OFFERS_CHECK_INTERVAL_SECONDS)
+                return;
+
+            _lastOffersCheck = DateTime.UtcNow;
+
+            try
+            {
+                // ⭐ Используем время СЕРВЕРА (из последнего загруженного расчёта), а не клиента
+                int newCount = await DataService.GetNewOffersCountAsync(
+                    TargetManager.Id, TargetManager.Name, _lastKnownCreatedDate);
+
+                if (newCount > 0)
+                {
+                    ShowNewOffersNotification(newCount);
+                }
+            }
+            catch
+            {
+                // Игнорируем ошибки
+            }
+        }
+
+        private void ShowNewOffersNotification(int count)
+        {
+            string message = count == 1
+                ? "Появился 1 новый расчёт."
+                : $"Появилось {count} новых расчётов.";
+
+            StatusBegin($"{message} Нажмите «Обновить» для просмотра.", StatusMessageType.Info);
+
+            if (UpdateBtn != null)
+            {
+                UpdateBtn.Background = new SolidColorBrush(Color.FromRgb(255, 200, 100));
+            }
         }
 
         public void ShowUpdateWindow()          // метод добавления и загрузки обновлений
@@ -651,20 +763,96 @@ namespace Metal_Code
             updateWindow.ShowDialog();
         }
 
-        public void OpenFileOnStartup(string filePath)
+        /// <summary>
+        /// Открывает файл расчёта по ассоциации.
+        /// Если расчёт уже есть в БД — загружает его, иначе создаёт новый.
+        /// </summary>
+        public async System.Threading.Tasks.Task OpenFileOnStartupAsync(string filePath)
         {
             try
             {
                 var product = ProductModel.fileService.Open(filePath);
-                if (product != null)
+                if (product == null)
                 {
-                    ProductModel.Product = product;
-                    LoadProduct();
-                    SaveOrRemoveOffer(true, filePath);
+                    MessageBox.Show("Не удалось загрузить файл расчёта.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                ProductModel.Product = product;
+                LoadProduct();
+
+                if (DataService == null || TargetManager == null || TargetManager.Name is null)
+                {
+                    MessageBox.Show("Сервис данных не инициализирован.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // ⭐ Ищем расчёт в БД по пути к файлу (чтобы не создавать дубликаты)
+                int? existingOfferId = await DataService.FindOfferIdByActAsync(filePath, TargetManager.Id, TargetManager.Name);
+
+                if (existingOfferId.HasValue)
+                {
+                    // Расчёт уже есть в БД — загружаем его полные данные
+                    StatusBegin("Загрузка расчёта из базы...", StatusMessageType.Info);
+
+                    var fullOffer = await DataService.LoadOfferDataAsync(existingOfferId.Value);
+                    if (fullOffer != null)
+                    {
+                        ActiveOffer = fullOffer;
+                        StatusBegin($"Расчёт {fullOffer.N} загружен.", StatusMessageType.Success);
+                    }
                 }
                 else
                 {
-                    MessageBox.Show("Не удалось загрузить файл расчёта.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    // Расчёта нет в БД — создаём новый
+                    StatusBegin("Сохранение расчёта в базу...", StatusMessageType.Info);
+
+                    // Определяем автора
+                    string autor;
+                    if (ActiveOffer?.Autor == CurrentManager?.Name || ActiveOffer == null)
+                        autor = CurrentManager?.Name ?? "";
+                    else
+                        autor = $"{ActiveOffer?.Autor}\n{CurrentManager?.Name} ({DateTime.Now:dd.MM.yyyy})";
+
+                    // Сериализуем данные расчёта
+                    string? dataJson = SaveOfferData();
+
+                    // Сохраняем через сервис
+                    var savedOffer = await DataService.SaveOfferAsync(
+                        orderNumber: Order.Text,
+                        companyName: CustomerDrop.Text,
+                        amount: Result,
+                        material: GetMaterial(),
+                        services: GetServices(),
+                        isAgent: IsAgent,
+                        autor: autor,
+                        actPath: filePath,
+                        dataJson: dataJson,
+                        endDate: ActiveOffer?.EndDate,
+                        managerId: TargetManager.Id
+                    );
+
+                    ActiveOffer = savedOffer;
+                    LimitCheck.IsChecked = false;
+
+                    // ⭐ Обновляем представление таблицы расчётов
+                    await LoadManagerDataAsync(TargetManager);
+
+                    StatusBegin($"Расчёт {savedOffer.N} сохранён.", StatusMessageType.Success);
+
+                    // Проверка заказчика в базе
+                    using var checkCtx = new ManagerContext(connections[0]);
+                    var customer = await checkCtx.Customers.FirstOrDefaultAsync(x => x.Name == CustomerDrop.Text);
+                    if (customer is null)
+                    {
+                        Log += $"\nЗаказчик {CustomerDrop.Text} не сохранён в базе. Добавьте его данные, чтобы использовать повторно.\n";
+                    }
+
+                    if (!string.IsNullOrEmpty(Log))
+                    {
+                        MessageBox.Show(Log, "Обратите внимание!", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        Log = null;
+                    }
                 }
             }
             catch (Exception ex)
@@ -782,160 +970,304 @@ namespace Metal_Code
             }
         }
 
-        public static bool CheckMachine()   // проверка серийного номера жесткого диска
+        /// <summary>
+        /// Инициализирует CurrentManager и TargetManager.
+        /// Если передан forcedManager — использует его (для временной сессии через LoginWindow).
+        /// Иначе ищет пользователя по MachineName.
+        /// </summary>
+        private async System.Threading.Tasks.Task<bool> InitializeManagersAsync(Manager? forcedManager = null)
         {
-            ManagementObjectSearcher searcher = new("SELECT * FROM Win32_PhysicalMedia");
+            // 1. Определяем текущего пользователя
+            Manager? currentManager = forcedManager;
 
-            foreach (ManagementObject hdd in searcher.Get().Cast<ManagementObject>())
-                if (DecryptFile(out string s) && s == $"{hdd["SerialNumber"]}") return true;
-
-            return false;
-        }
-
-        public static void EncryptFile()    // создание защитного файла
-        {
-            if (File.Exists(Directory.GetCurrentDirectory() + "\\encrypt.dat")) return;
-
-            ManagementObjectSearcher searcher = new("SELECT * FROM Win32_PhysicalMedia");
-
-            foreach (ManagementObject hdd in searcher.Get().Cast<ManagementObject>())
+            if (currentManager == null)
             {
-                using FileStream fs = File.Create(Directory.GetCurrentDirectory() + "\\encrypt.dat");
-                byte[] info = new UTF8Encoding(true).GetBytes($"{hdd["SerialNumber"]}");
-                fs.Write(info, 0, info.Length);
-                break;
+                // Стандартный поиск по MachineName
+                using var tempCtx = new ManagerContext(connections[0]);
+                currentManager = await tempCtx.Managers
+                    .FirstOrDefaultAsync(m => m.MachineName == Environment.MachineName || m.Contact == Environment.MachineName);
             }
-        }
 
-        public static bool DecryptFile(out string s)    // проверка защитного файла
-        {
-            s = "";
-            if (!File.Exists(Directory.GetCurrentDirectory() + "\\encrypt.dat")) return false;
+            if (currentManager == null) return false;
 
-            using StreamReader sr = File.OpenText(Directory.GetCurrentDirectory() + "\\encrypt.dat");
-            s = sr.ReadLine();
+            CurrentManager = currentManager;
+            Login.Content = CurrentManager.Name;
+
+            // 2. Загружаем список менеджеров
+            if (DataService != null)
+            {
+                var managersList = await DataService.GetLocalManagersAsync();
+                Managers = new ObservableCollection<Manager>(managersList);
+            }
+
+            // ⭐ ФИЛЬТРАЦИЯ ПО РОЛИ
+            List<Manager> managersForDrop;
+            if (CurrentManager.IsEngineer || CurrentManager.IsAdmin)
+            {
+                // Инженер и админ видят всех менеджеров (не инженеров)
+                managersForDrop = Managers.Where(m => !m.IsEngineer).ToList();
+            }
+            else
+            {
+                // ⭐ Простой менеджер видит ТОЛЬКО СЕБЯ
+                managersForDrop = new List<Manager> { CurrentManager };
+            }
+
+            ManagerDrop.ItemsSource = managersForDrop;
+
+            // ⭐ Если список из одного элемента — блокируем дроп
+            ManagerDrop.IsEnabled = managersForDrop.Count > 1;
+
+            // 3. Логика выбора TargetManager
+            if (CurrentManager.IsEngineer)
+            {
+                // Инженер выбирает менеджера через диалог для просмотра его расчетов
+                SetManagerWindow setManagerWindow = new();
+                if (setManagerWindow.ShowDialog() == true && setManagerWindow.SelectManager != null)
+                {
+                    var selectedManager = managersForDrop.FirstOrDefault(m => m.Id == setManagerWindow.SelectManager.Id);
+                    TargetManager = selectedManager ?? managersForDrop.FirstOrDefault() ?? CurrentManager;
+                }
+                else
+                {
+                    TargetManager = managersForDrop.FirstOrDefault() ?? CurrentManager;
+                }
+            }
+            else
+            {
+                // Обычный менеджер И админ — TargetManager = CurrentManager
+                var managerInDrop = managersForDrop.FirstOrDefault(m => m.Id == CurrentManager.Id);
+                TargetManager = managerInDrop ?? CurrentManager;
+            }
+
+            // 4. Устанавливаем SelectedItem (с отпиской от события)
+            ManagerDrop.SelectionChanged -= ManagerChanged;
+            ManagerDrop.SelectedItem = TargetManager;
+            ManagerDrop.SelectionChanged += ManagerChanged;
+
+            // 5. Настройка UI под роль
+            ReportTab.Visibility = BonusStack.Visibility = CurrentManager.IsEngineer ? Visibility.Collapsed : Visibility.Visible;
+            LimitCheck.Content = CurrentManager.IsEngineer ? "Минималка" : "Снять ограничения";
+
+            // 6. Загрузка данных выбранного менеджера
+            await LoadManagerDataAsync(TargetManager);
+
+            // 7. Обновляем состояние доступа таблицы расчетов
+            UpdateOffersGridReadOnlyState();
+
             return true;
         }
 
-        private bool CheckMachineName()     // авторизация на основе имени компьютера
+        private async void ShowLoginWindow(object sender, RoutedEventArgs e)
         {
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
+            var response = MessageBox.Show(
+                "Сменить текущего пользователя?\n" +
+                "Если \"Да\", потребуется авторизация, и текущий расчет будет очищен!\n\n" +
+                "⚠️ Это временная сессия. При следующем запуске приложения будет выполнен вход под владельцем этого ПК.",
+                "Сменить пользователя",
+                MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
 
-            db.Managers.Load();
-            Managers = db.Managers.Local.ToObservableCollection();
+            if (response != MessageBoxResult.Yes) return;
 
-            Manager? manager = Managers.FirstOrDefault(c => c.Contact == Environment.MachineName);
+            IsEnabled = false;
 
-            if (manager != null)
+            var loginWindow = new LoginWindow();
+            if (loginWindow.ShowDialog() == true && loginWindow.AuthenticatedManager != null)
             {
-                ManagerDrop.ItemsSource = Managers.Where(m => !m.IsEngineer);     //список ТОЛЬКО менеджеров (для выставления КП)
+                // ⭐ Инициализируем сессию с принудительным менеджером (без обновления MachineName)
+                await InitializeManagersAsync(loginWindow.AuthenticatedManager);
 
-                db.Customers.Load();
-                Customers = db.Customers.Local.ToObservableCollection();
-
-                CurrentManager = manager;                                                       //определяем текущего менеджера
-                Login.Header = CurrentManager.Name;
-                if (ManagerDrop.Items.Contains(manager)) ManagerDrop.SelectedItem = manager;    //устанавливаем менеджера по умолчанию
-
-                if (CurrentManager.IsEngineer)
-                {
-                    IsEnabled = false;
-
-                    SetManagerWindow setManagerWindow = new();
-                    if (setManagerWindow.ShowDialog() == true) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
-
-                    IsEnabled = true;
-                }
-
-                ReportTab.Visibility = BonusStack.Visibility = CurrentManager.IsEngineer ? Visibility.Collapsed : Visibility.Visible;
-                LimitCheck.Content = CurrentManager.IsEngineer ? "Минималка" : "Снять ограничения";
-
-                return true;
+                IsEnabled = true;
+                NewProject();
             }
-            return false;
+            else
+            {
+                IsEnabled = true;
+            }
         }
 
-        private void ShowLoginWindow(object sender, RoutedEventArgs e)  // обработчик пункта меню "Сменить пользователя"
-        {
-            MessageBoxResult response = MessageBox.Show("Сменить текущего пользователя?\nЕсли \"Да\", потребуется авторизация, и текущий расчет будет очищен!", "Сменить пользователя",
-                               MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-            if (response == MessageBoxResult.No) return;
-            else ShowWindow(new LoginWindow());
-        }
-
-        private void ShowWindow(Window window)          // установка текущего и выбранного менеджеров
+        private async void ShowWindow(Window window)
         {
             IsEnabled = false;
 
             if (window.ShowDialog() == true)
             {
-                if (CurrentManager.IsEngineer)
-                {
-                    SetManagerWindow setManagerWindow = new();
-                    if (setManagerWindow.ShowDialog() == true) ManagerDrop.SelectedItem = setManagerWindow.SelectManager;
-                }
-                else ManagerDrop.SelectedItem = CurrentManager;
-
-                ReportTab.Visibility = BonusStack.Visibility = CurrentManager.IsEngineer ? Visibility.Collapsed : Visibility.Visible;
-                LimitCheck.Content = CurrentManager.IsEngineer ? "Минималка" : "Снять ограничения";
+                // ⭐ ЕДИНЫЙ ВЫЗОВ инициализации менеджеров
+                await InitializeManagersAsync();
 
                 IsEnabled = true;
                 NewProject();
             }
+            else
+            {
+                IsEnabled = true;
+            }
         }
 
-        private void ManagerChanged(object sender, SelectionChangedEventArgs e)     //при смене менеджера
+        /// <summary>
+        /// Обновляет визуальный индикатор статуса подключения.
+        /// </summary>
+        private void UpdateOnlineStatus()
         {
-            if (ManagerDrop.SelectedItem is Manager man)
+            bool isOnline = DataService.IsOnline == true;
+
+            if (OnlineIndicator != null)
+            {
+                // Зеленый для онлайн, серый для офлайн
+                OnlineIndicator.Background = isOnline
+                    ? new SolidColorBrush(Colors.LimeGreen)
+                    : new SolidColorBrush(Colors.Gray);
+
+                OnlineIndicator.ToolTip = isOnline
+                    ? "Подключено к серверу"
+                    : "Работа в локальном режиме";
+            }
+
+            // Дополнительно: можно изменить цвет текста Login
+            if (Login != null)
+            {
+                Login.Foreground = isOnline
+                    ? new SolidColorBrush(Colors.Black)
+                    : new SolidColorBrush(Colors.Gray);
+            }
+        }
+
+        /// <summary>
+        /// Обработчик выбора менеджера из выпадающего списка.
+        /// </summary>
+        private async void ManagerChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ManagerDrop.SelectedItem is Manager man && man.Name != null)
             {
                 TargetManager = man;
-                IsLaser = TargetManager.IsLaser;
+
+                StatusBegin($"Загрузка расчётов для {man.Name}...", StatusMessageType.Info);
+
+                if (_isLoadingManagerData) return;
+
+                // Для инженера: синхронизируем заказчиков выбранного менеджера
+                if (CurrentManager?.IsEngineer == true)
+                {
+                    await DataService.SyncCustomersForEngineerAsync(man.Name);
+                }
+
+                await LoadManagerDataAsync(man);
+
+                // Обновляем состояние доступа таблицы расчетов
+                UpdateOffersGridReadOnlyState();
+
                 ManagerChanged();
             }
         }
+
+        /// <summary>
+        /// Асинхронно загружает заказчиков и расчеты указанного менеджера из сервиса.
+        /// </summary>
+        public async System.Threading.Tasks.Task LoadManagerDataAsync(Manager man)
+        {
+            if (_isLoadingManagerData || man.Name is null) return;
+            _isLoadingManagerData = true;
+
+            try
+            {
+                IsLaser = man.IsLaser;
+
+                // 1. Заказчики (без изменений)
+                var customers = await DataService.GetCustomersAsync(man.Id, man.Name);
+                var selectedCustomerName = (CustomerDrop.SelectedItem as Customer)?.Name;
+                Customers.Clear();
+                foreach (var c in customers) Customers.Add(c);
+                CurrentCustomers = Customers.ToList();
+                CustomerDrop.ItemsSource = CurrentCustomers;
+                if (!string.IsNullOrEmpty(selectedCustomerName))
+                {
+                    var restored = Customers.FirstOrDefault(c => c.Name == selectedCustomerName);
+                    if (restored != null) CustomerDrop.SelectedItem = restored;
+                }
+
+                // 2. ⭐ Загружаем только ПОСЛЕДНИЕ 50 расчётов
+                var offers = await DataService.GetRecentOffersAsync(man.Id, man.Name, 50);
+
+                CurrentOffers.Clear();
+                foreach (var offer in offers) CurrentOffers.Add(offer);
+
+                // 3. Получаем общее количество для статистики
+                int totalCount = await DataService.GetTotalOffersCountAsync(man.Id, man.Name);
+
+                // 4. Перестраиваем представление
+                InitializeOffersView();
+
+                // 5. Синхронизация для инженера
+                if (CurrentManager?.IsEngineer == true)
+                {
+                    await DataService.SyncCustomersForEngineerAsync(man.Name);
+                    var refreshedCustomers = await DataService.GetCustomersAsync(man.Id, man.Name);
+                    selectedCustomerName = (CustomerDrop.SelectedItem as Customer)?.Name;
+                    Customers.Clear();
+                    foreach (var c in refreshedCustomers) Customers.Add(c);
+                    CurrentCustomers = Customers.ToList();
+                    CustomerDrop.ItemsSource = CurrentCustomers;
+                    if (!string.IsNullOrEmpty(selectedCustomerName))
+                    {
+                        var restored = Customers.FirstOrDefault(c => c.Name == selectedCustomerName);
+                        if (restored != null) CustomerDrop.SelectedItem = restored;
+                    }
+                }
+
+                _lastKnownCreatedDate = offers.Any()
+                    ? offers.Max(o => o.CreatedDate ?? DateTime.MinValue)
+                    : DateTime.UtcNow;
+                _lastOffersCheck = DateTime.UtcNow;
+
+                SummaryInfoTextBlock.Text = $"Показано: {CurrentOffers.Count} из {totalCount} расчётов";
+                StatusBegin($"📅 Загружено {CurrentOffers.Count} из {totalCount} расчётов для '{man.Name}'");
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"Ошибка загрузки данных для {man.Name}: {ex.Message}");
+            }
+            finally
+            {
+                _isLoadingManagerData = false;
+            }
+        }
+
+        /// <summary>
+        /// Обновляет UI после смены менеджера.
+        /// </summary>
         private void ManagerChanged()
         {
-            CurrentCustomers = Customers.Where(m => m.ManagerId == TargetManager.Id).OrderBy(s => s.Name).ToList();
-            CustomerDrop.ItemsSource = CurrentCustomers;
+            if (TargetManager == null || CurrentManager == null) return;
 
-            // Сбрасываем режимы
             _searchQuery = string.Empty;
             _isProductionMode = false;
-            if (InProductionFilterToggle.IsChecked == true)
+            if (InProductionFilterToggle?.IsChecked == true)
                 InProductionFilterToggle.IsChecked = false;
 
-            // Перестраиваем отображение
             ApplyCurrentMode();
 
-            SummaryInfoTextBlock.Text = $"Всего расчётов: {Offers.Count} шт.";
-            if (InProductionFilterToggle.IsChecked == true) InProductionFilterToggle.IsChecked = false;
+            if (SummaryInfoTextBlock != null)
+                SummaryInfoTextBlock.Text = $"Всего расчётов: {CurrentOffers?.Count ?? 0} шт.";
 
-            if (TargetManager == CurrentManager)
+            // ⭐ ItemsSource уже установлен в конструкторе, только выбираем месяц
+            if (TargetManager.Name == CurrentManager.Name)
             {
-                ReportDrop.ItemsSource = Months;
-                ReportDrop.SelectedItem = Months[DateTime.Now.Month - 1];
-                ReportChanged(Months[DateTime.Now.Month - 1]);
+                var currentMonth = Months[DateTime.Now.Month - 1];
+
+                // ⭐ Временно отключаем обработчик, чтобы избежать рекурсии
+                ReportDrop.SelectionChanged -= ReportChanged;
+                ReportDrop.SelectedItem = currentMonth;
+                ReportDrop.SelectionChanged += ReportChanged;
+
+                // Вызываем ReportChanged вручную
+                ReportChanged(currentMonth);
             }
-            else ReportOffers.Clear();
+            else
+            {
+                ReportOffers?.Clear();
+                ReportGrid.ItemsSource = null;
+            }
         }
-
-        private void InitializeOffersView()
-        {
-            // Привязываемся к CurrentOffers, а не к Offers
-            OffersView = CollectionViewSource.GetDefaultView(CurrentOffers);
-
-            // Группировка и сортировка настраиваются ТОЛЬКО ЗДЕСЬ
-            OffersView.GroupDescriptions.Clear();
-            OffersView.SortDescriptions.Clear();
-
-            OffersView.SortDescriptions.Add(
-                new SortDescription(nameof(Offer.CreatedDate), ListSortDirection.Ascending));
-            OffersView.GroupDescriptions.Add(
-                new PropertyGroupDescription(nameof(Offer.ParentQuoteNumber)));
-
-            OffersGrid.ItemsSource = OffersView;
-        }
-
 
         // 🔹 Поле для режима расчета (по умолчанию: false = "Только текущие")
         private bool _forecastMixedMode = false;
@@ -948,52 +1280,78 @@ namespace Metal_Code
             _isProductionMode = InProductionFilterToggle.IsChecked == true;
 
             // 🔹 Показываем/скрываем панель прогноза
-            ForecastPanel.Visibility = _isProductionMode ? Visibility.Visible : Visibility.Collapsed;
+            // ⭐ Инженер не видит панель прогноза — только менеджер/админ
+            bool showForecastPanel = _isProductionMode && CurrentManager != null && !CurrentManager.IsEngineer;
+            ForecastPanel.Visibility = showForecastPanel ? Visibility.Visible : Visibility.Collapsed;
 
             if (_isProductionMode) _searchQuery = string.Empty;
             ApplyCurrentMode();
         }
 
-        private void ApplyCurrentMode()
+        private async void ApplyCurrentMode()
         {
-            IEnumerable<Offer>? dataToDisplay;
-
-            if (_isProductionMode)
+            try
             {
-                // Режим "В производстве"
-                dataToDisplay = UpdateProductionSummary();
-                UpdateForecastPanel();
-            }
-            else if (!string.IsNullOrWhiteSpace(_searchQuery))
-            {
-                // Режим поиска (по ВСЕЙ коллекции Offers)
-                string q = _searchQuery.Trim();
-                dataToDisplay = Offers.Where(o =>
-                    o.N?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    o.Company?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    o.Invoice?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    o.Order?.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0);
-                SummaryInfoTextBlock.Text = $"Найдено: {dataToDisplay.Count()} из {Offers.Count} шт.";
-            }
-            else
-            {
-                // Режим по умолчанию: 30 последних расчётов текущего менеджера
-                dataToDisplay = Offers
-                    .Where(o => TargetManager != null && o.ManagerId == TargetManager.Id)
-                    .OrderByDescending(o => o.CreatedDate)
-                    .Take(30);
-                SummaryInfoTextBlock.Text = $"Показано: {dataToDisplay.Count()} последних";
-            }
+                List<Offer>? dataToDisplay = null;
 
-            // Безопасно заменяем содержимое CurrentOffers
-            CurrentOffers.Clear();
-            if (dataToDisplay != null) foreach (var item in dataToDisplay.ToList()) CurrentOffers.Add(item);
+                if (_isProductionMode && TargetManager.Name != null)
+                {
+                    // ⭐ Режим "В производстве" — загружаем через сервис
+                    StatusBegin("Загрузка расчётов в производстве...", StatusMessageType.Info);
+                    var productionOffers = await DataService.GetOffersInProductionAsync(
+                        TargetManager.Id, TargetManager.Name);
 
-            // Очищаем кэш конвертера и перерисовываем группы
-            if (TryFindResource("CompanyNamesConverter") is GroupCompanyNamesConverter conv)
-                conv.ClearCache();
-            OffersView.Refresh();
+                    // ⭐ Для смешанного режима нужны ещё отгруженные за текущий месяц
+                    List<Offer>? shippedThisMonth = null;
+                    if (_forecastMixedMode)
+                    {
+                        var now = DateTime.Now;
+                        shippedThisMonth = await DataService.GetShippedOffersAsync(
+                            TargetManager.Id, TargetManager.Name, now.Month, now.Year);
+                    }
+
+                    dataToDisplay = productionOffers;
+                    UpdateProductionSummary(productionOffers);
+                    UpdateForecastPanel(productionOffers, shippedThisMonth);
+
+                    StatusBegin($"В производстве: {productionOffers.Count} расчётов", StatusMessageType.Success);
+                }
+                else if (!string.IsNullOrWhiteSpace(_searchQuery))
+                {
+                    // Режим поиска — данные уже загружены в Search_Offers
+                    dataToDisplay = CurrentOffers.ToList();
+                    //SummaryInfoTextBlock.Text = $"Найдено: {CurrentOffers.Count} расчётов";
+                }
+                else if (TargetManager.Name != null)
+                {
+                    // 2. ⭐ Загружаем только ПОСЛЕДНИЕ 50 расчётов
+                    var offers = await DataService.GetRecentOffersAsync(TargetManager.Id, TargetManager.Name, 50);
+
+                    CurrentOffers.Clear();
+                    foreach (var offer in offers) CurrentOffers.Add(offer);
+
+                    //int totalCount = await DataService.GetTotalOffersCountAsync(TargetManager.Id, TargetManager.Name);
+                    //SummaryInfoTextBlock.Text = $"Показано: {CurrentOffers.Count} из {totalCount} расчётов";
+                }
+
+                // Обновляем CurrentOffers (если режим "в производстве")
+                if (_isProductionMode && dataToDisplay != null)
+                {
+                    CurrentOffers.Clear();
+                    foreach (var item in dataToDisplay) CurrentOffers.Add(item);
+                }
+
+                Trace.WriteLine($"🔍 ApplyCurrentMode: CurrentOffers содержит {CurrentOffers.Count} элементов");
+                OffersView.Refresh();
+            }
+            catch (Exception ex)
+            {
+                StatusBegin($"Ошибка фильтрации: {ex.Message}", StatusMessageType.Error);
+                Trace.WriteLine($"❌ Ошибка ApplyCurrentMode: {ex.Message}");
+            }
         }
+
+        private bool _isLoadingManagerData = false;
 
         /// <summary>
         /// Срабатывает при клике на правый тоггл "Текущие / Смешанный"
@@ -1005,65 +1363,72 @@ namespace Metal_Code
 
             // 🔹 Если панель видна — сразу пересчитываем
             if (InProductionFilterToggle.IsChecked == true)
-                UpdateForecastPanel();
+                ApplyCurrentMode();
         }
 
         /// <summary>
-        /// Обновляет текст сводки (количество и сумма)
+        /// Обновляет текст сводки (количество и сумма) на основе переданных данных.
+        /// Данные должны быть загружены через DataService.GetOffersInProductionAsync.
         /// </summary>
-        private IEnumerable<Offer>? UpdateProductionSummary()
+        private IEnumerable<Offer>? UpdateProductionSummary(List<Offer> productionOffers)
         {
-            IEnumerable<Offer>? dataToDisplay = null;
             try
             {
-                dataToDisplay = Offers
-                    .Where(o => !string.IsNullOrWhiteSpace(o.Order) && o.EndDate == null)
-                    .ToList();
-
-                int count = dataToDisplay.Count();
-                decimal totalAmount = (decimal)Math.Ceiling(dataToDisplay.Sum(o => o.Amount));
+                int count = productionOffers.Count;
+                decimal totalAmount = (decimal)Math.Ceiling(productionOffers.Sum(o => o.Amount));
 
                 SummaryInfoTextBlock.Text = count > 0
-                    ? $"В производстве {count} шт на сумму {totalAmount:N0} ₽"
+                    ? $"{count} шт на сумму {totalAmount:N0} ₽"
                     : "Нет заказов";
 
                 SummaryInfoTextBlock.Foreground = count > 0 ? Brushes.Black : Brushes.Gray;
+
+                return productionOffers;
             }
-            catch
+            catch (Exception ex)
             {
+                Trace.WriteLine($"Ошибка UpdateProductionSummary: {ex.Message}");
                 SummaryInfoTextBlock.Text = "Ошибка расчета";
                 SummaryInfoTextBlock.Foreground = Brushes.Gray;
+                return null;
             }
-            return dataToDisplay;
         }
 
         /// <summary>
-        /// Пересчитывает и выводит 4 показателя в TextBox
+        /// Пересчитывает и выводит 4 показателя в TextBox на основе переданных данных.
         /// </summary>
-        private void UpdateForecastPanel()
+        /// <param name="productionOffers">Расчёты "в производстве" (без EndDate, с Order)</param>
+        /// <param name="shippedThisMonth">Отгруженные расчёты за текущий месяц (нужны для смешанного режима)</param>
+        private void UpdateForecastPanel(List<Offer> productionOffers, List<Offer>? shippedThisMonth = null)
         {
             if (ForecastPanel.Visibility != Visibility.Visible) return;
 
             try
             {
-                var productionOffers = Offers
-                    .Where(o => !string.IsNullOrWhiteSpace(o.Order) && o.EndDate == null)
-                    .ToList();
-
-                if (!productionOffers.Any() && !_forecastMixedMode)
+                if (!productionOffers.Any() && (shippedThisMonth == null || !shippedThisMonth.Any()) && !_forecastMixedMode)
                 {
                     ForecastPlan.Text = ForecastBonusOoo.Text = ForecastBonusIp.Text = ForecastSalary.Text = "0";
                     return;
                 }
 
-                var startOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-
                 // 🔹 Выбираем данные в зависимости от режима
-                List<Offer> offersForCalc = _forecastMixedMode
-                    ? Offers.Where(o => o.EndDate != null && o.EndDate >= startOfMonth).Concat(productionOffers).ToList()
-                    : productionOffers;
+                List<Offer> offersForCalc;
+                if (_forecastMixedMode)
+                {
+                    // Смешанный режим: "в производстве" + отгруженные за текущий месяц
+                    var shipped = shippedThisMonth ?? new List<Offer>();
+                    offersForCalc = productionOffers.Concat(shipped).ToList();
+                }
+                else
+                {
+                    // Обычный режим: только "в производстве"
+                    offersForCalc = productionOffers;
+                }
 
-                var result = BuildReport(offersForCalc);
+                ReportOffers.Clear();
+                foreach (var item in offersForCalc) ReportOffers.Add(item);
+
+                var result = BuildReport(ReportOffers);
 
                 // 🔹 Выводим значения
                 ForecastPlan.Text = result.Plan.ToString("N0");
@@ -1071,12 +1436,12 @@ namespace Metal_Code
                 ForecastBonusIp.Text = result.BonusIp.ToString("N0");
                 ForecastSalary.Text = result.TotalSalary.ToString("N0");
             }
-            catch
+            catch (Exception ex)
             {
+                Trace.WriteLine($"Ошибка UpdateForecastPanel: {ex.Message}");
                 ForecastPlan.Text = ForecastBonusOoo.Text = ForecastBonusIp.Text = ForecastSalary.Text = "—";
             }
         }
-
 
         //-------------Настройка блока отчетов-----------//
         readonly string[] Months = { "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь" };
@@ -1117,45 +1482,60 @@ namespace Metal_Code
             }
         }
 
-        private void ReportChanged(object sender, SelectionChangedEventArgs e)
+        private void ReportChanged(object sender, RoutedEventArgs e) => RefreshReportIfNeeded();
+        private void ReportChanged(object sender, SelectionChangedEventArgs e) => RefreshReportIfNeeded();
+        
+        /// <summary>
+        /// Пересчитывает отчёт на основе выбранного месяца.
+        /// Вызывается из обработчиков событий GotFocus и SelectionChanged.
+        /// </summary>
+        private void RefreshReportIfNeeded()
         {
-            if (TargetManager != CurrentManager) return;
-            if (ReportDrop.SelectedItem is string name) ReportChanged(name);
+            if (TargetManager?.Name != CurrentManager?.Name) return;
+            if (ReportDrop?.SelectedItem is not string name) return;
+
+            ReportChanged(name);
         }
         private void ReportChanged(string name)
         {
-            foreach (string month in Months)
-                if (month == name)
-                {
-                    DateTime now = DateTime.Now;
-                    if (now.Month >= Array.IndexOf(Months, month) + 1)
-                        ReportChanged(new DateTime(now.Year, Array.IndexOf(Months, month) + 1, 1));
-                    else ReportChanged(new DateTime(now.Year - 1, Array.IndexOf(Months, month) + 1, 1));
-                }
+            int monthIndex = Array.IndexOf(Months, name) + 1;
+            if (monthIndex == 0) return; // Месяц не найден
+
+            DateTime now = DateTime.Now;
+            int year = now.Month >= monthIndex ? now.Year : now.Year - 1;
+
+            ReportChanged(new DateTime(year, monthIndex, 1));
         }
-        private void ReportChanged(DateTime target)
+        private async void ReportChanged(DateTime target)
         {
-            DateTime start = new(target.Year, target.Month, 1);
-            DateTime end = start.AddMonths(1);
+            try
+            {
+                if (TargetManager.Name != null)
+                {
+                    StatusBegin($"Загрузка отчёта за {target:MMMM yyyy}...", StatusMessageType.Info);
 
-            ReportOffers = Offers.Where(o =>
-                !string.IsNullOrEmpty(o.Order) && // есть номер заказа
-                (
-                    (IsReportByCreated &&
-                     o.CreatedDate.HasValue &&
-                     o.CreatedDate.Value >= start &&
-                     o.CreatedDate.Value < end)
-                    ||
-                    (!IsReportByCreated &&
-                     o.EndDate.HasValue &&
-                     o.EndDate.Value >= start &&
-                     o.EndDate.Value < end)
-                )
-            ).ToList();
+                    var shippedOffers = await DataService.GetShippedOffersAsync(
+                        TargetManager.Id, TargetManager.Name, target.Month, target.Year);
 
-            ReportGrid.ItemsSource = ReportOffers;
-            ReportView();
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        ReportOffers.Clear();
+                        foreach (var offer in shippedOffers)
+                        {
+                            ReportOffers.Add(offer);
+                        }
+                    });
+                    ReportView();
+
+                    StatusBegin($"Отгружено за {target:MMMM yyyy}: {ReportOffers.Count} расчётов", StatusMessageType.Success);
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusBegin($"Ошибка загрузки отчёта: {ex.Message}", StatusMessageType.Error);
+            }
         }
+
 
         //-------------Создание нового проекта-----------//
         public void NewProject()
@@ -1584,87 +1964,388 @@ namespace Metal_Code
 
         //-------------Подключения к базе расчетов-----------------//
         #region
-        private void AutoRemoveOffers()             //метод удаления старых расчетов из локальной базы
-        {
-            if (!IsLocal || DateTime.UtcNow.DayOfWeek is not DayOfWeek.Friday) return;  //удаление старых расчетов выполняем только по пятницам
+        private DateTime _lastKnownCreatedDate = DateTime.MinValue;
+        private DateTime _lastOffersCheck = DateTime.MinValue; // для ограничения частоты запросов
+        private const int OFFERS_CHECK_INTERVAL_SECONDS = 30;
 
-            using ManagerContext db = new(connections[0]);                  //подключаемся к локальной базе данных
+        /// <summary>
+        /// Сбрасывает все фильтры: "В производстве", поиск и т.д.
+        /// </summary>
+        private void ResetFilters()
+        {
+            // ⭐ Сбрасываем тоггл "В производстве"
+            if (InProductionFilterToggle.IsChecked == true)
+            {
+                // ⭐ Временно отписываемся от события, чтобы избежать двойного вызова ApplyCurrentMode
+                InProductionFilterToggle.Checked -= ProductionToggle_StateChanged;
+                InProductionFilterToggle.Unchecked -= ProductionToggle_StateChanged;
+
+                InProductionFilterToggle.IsChecked = false;
+                _isProductionMode = false;
+
+                // ⭐ Скрываем панель прогноза
+                ForecastPanel.Visibility = Visibility.Collapsed;
+
+                // ⭐ Подписываемся обратно
+                InProductionFilterToggle.Checked += ProductionToggle_StateChanged;
+                InProductionFilterToggle.Unchecked += ProductionToggle_StateChanged;
+            }
+
+            // ⭐ Сбрасываем поисковый запрос
+            if (!string.IsNullOrEmpty(_searchQuery))
+            {
+                _searchQuery = string.Empty;
+                // Если у вас есть поле поиска в UI, очистите его:
+                // SearchBox.Text = string.Empty;
+            }
+        }
+
+        //метод обновления коллекции расчетов
+        private async void UpdateOffersCollection(object sender, RoutedEventArgs e)
+        {
+            if (TargetManager == null) return;
+
             try
             {
-                db.Offers.Load();                                           //загружаем все расчеты
+                UpdateBtn.IsEnabled = false;
+                StatusBegin("Обновление списка расчётов...", StatusMessageType.Info);
 
-                //получаем коллекцию отгруженных расчетов, которые созданы более 60 дней назад
-                var offers = db.Offers.Where(o => o.EndDate != null && o.CreatedDate < DateTime.UtcNow.AddDays(-60));
+                // ⭐ Сбрасываем фильтры ПЕРЕД загрузкой
+                ResetFilters();
 
-                db.Offers.RemoveRange(offers);                              //удаляем полученную коллекцию старых расчетов
-                db.SaveChanges();
+                // ⭐ Запоминаем Id последнего расчёта ДО обновления
+                int lastOfferIdBefore = CurrentOffers?.Max(o => o.Id) ?? 0;
 
-                StatusBegin($"Общее количество расчетов в базе - {db.Offers.ToList().Count}.");
+                await LoadManagerDataAsync(TargetManager);
+
+                // ⭐ Находим ВСЕ новые расчёты
+                var newOffers = CurrentOffers?
+                    .Where(o => o.Id > lastOfferIdBefore)
+                    .OrderByDescending(o => o.Id)
+                    .ToList() ?? new List<Offer>();
+
+                int newCount = newOffers.Count;
+
+                // ⭐ Формируем статус в зависимости от количества новых
+                if (newCount == 0)
+                {
+                    StatusBegin("Список расчётов обновлён (новых нет)", StatusMessageType.Success);
+                }
+                else if (newCount == 1)
+                {
+                    // Один новый — прокручиваем и подсвечиваем
+                    ScrollToOfferAndHighlight(newOffers[0]);
+                    StatusBegin($"Обновлено: добавлен расчёт {newOffers[0].N}", StatusMessageType.Success);
+                }
+                else
+                {
+                    // Несколько новых — прокручиваем к самому новому, но не подсвечиваем
+                    ScrollToOfferAndHighlight(newOffers[0]);
+                    StatusBegin($"Обновлено: добавлено {newCount} расчётов", StatusMessageType.Success);
+                }
+
+                // Сбрасываем подсветку кнопки
+                UpdateBtn?.ClearValue(BackgroundProperty);
             }
-            catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message, StatusMessageType.Error); }
-        }
-
-        //метод запуска процесса обновления расчетов
-        private void UpdateOffersCollection(object sender, RoutedEventArgs e) { CreateWorker(UpdateOffersCollection, ActionState.update); }
-        private string UpdateOffersCollection(string? message = null)
-        {
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
-            db.Offers.Load();
-            Offers = db.Offers.Local.ToObservableCollection();
-
-            if (message != null && message != "") return message;
-            return $"Список расчетов обновлен. Расчетов в базе - {Offers.Count}.";
-        }
-
-
-        private Border? _highlightedHeaderBorder;
-
-        public void ScrollToGroupAndHighlight(string parentQuoteNumber)
-        {
-            if (string.IsNullOrEmpty(parentQuoteNumber) || OffersGrid.ItemsSource is not ICollectionView view)
-                return;
-
-            var targetGroup = view.Groups.Cast<CollectionViewGroup>()
-                .FirstOrDefault(g => g.Name?.ToString() == parentQuoteNumber);
-
-            if (targetGroup == null) return;
-
-            if (OffersGrid.ItemContainerGenerator.ContainerFromItem(targetGroup) is not GroupItem groupItem)
+            catch (Exception ex)
             {
-                Dispatcher.BeginInvoke(new Action(() => ScrollToGroupAndHighlight(parentQuoteNumber)),
-                    DispatcherPriority.Background);
-                return;
+                StatusBegin($"Ошибка обновления: {ex.Message}", StatusMessageType.Error);
             }
-
-            // Раскрываем только если есть Expander (группа с 2+ элементами)
-            var expander = FindVisualChild<Expander>(groupItem);
-            if (expander != null && !expander.IsExpanded)
-                expander.IsExpanded = true;
-
-            // Прокручиваем
-            groupItem.BringIntoView();
-
-            // ⬇️ Поиск Border: либо внутри Expander, либо напрямую в GroupItem ⬇️
-            Border? headerBorder = null;
-            if (expander != null)
-                headerBorder = FindVisualChild<Border>(expander);
-
-            headerBorder ??= FindVisualChild<Border>(groupItem);
-
-            if (headerBorder == null) return;
-
-            ClearGroupHighlight();
-            _highlightedHeaderBorder = headerBorder;
-            headerBorder.Background = new SolidColorBrush(Color.FromArgb(90, 70, 155, 80));
+            finally
+            {
+                UpdateBtn.IsEnabled = true;
+            }
         }
 
-        // Сброс подсветки (универсальный)
-        private void ClearGroupHighlight()
+        private async void OffersGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
-            _highlightedHeaderBorder?.ClearValue(Border.BackgroundProperty);
-            _highlightedHeaderBorder = null;
+            if (e.EditAction != DataGridEditAction.Commit) return;
+            if (e.Row.Item is not Offer offer) return;
+            if (DataService == null) return;
+
+            if (e.EditingElement is FrameworkElement element)
+            {
+                string propertyName = GetBindingPropertyName(element);
+
+                if (propertyName is nameof(Offer.Agent) or nameof(Offer.Invoice)
+                                     or nameof(Offer.Order) or nameof(Offer.Act)
+                                     or nameof(Offer.EndDate))
+                {
+                    await UpdateOfferAsync(offer);
+                }
+            }
+        }
+        private string GetBindingPropertyName(FrameworkElement element)
+        {
+            var binding = element switch
+            {
+                TextBox textBox => textBox.GetBindingExpression(TextBox.TextProperty)?.ParentBinding,
+                CheckBox checkBox => checkBox.GetBindingExpression(CheckBox.IsCheckedProperty)?.ParentBinding,
+                _ => null
+            };
+
+            return binding?.Path.Path ?? string.Empty;
         }
 
+        /// <summary>
+        /// Сохраняет изменения расчёта в БД и обновляет представление.
+        /// </summary>
+        private async System.Threading.Tasks.Task UpdateOfferAsync(Offer offer)
+        {
+            if (offer == null) return;
+
+            try
+            {
+                StatusBegin($"Сохранение изменений расчёта {offer.N}...", StatusMessageType.Info);
+                bool success = await DataService.UpdateOfferAsync(offer);
+
+                if (success)
+                {
+                    StatusBegin($"Данные расчёта {offer.N} изменены.", StatusMessageType.Success);
+
+                    // ⭐ Обновляем объект в CurrentOffers (если он там есть)
+                    var existingOffer = CurrentOffers.FirstOrDefault(o => o.Id == offer.Id);
+                    if (existingOffer != null)
+                    {
+                        // Копируем изменённые поля
+                        existingOffer.Agent = offer.Agent;
+                        existingOffer.Invoice = offer.Invoice;
+                        existingOffer.Order = offer.Order;
+                        existingOffer.Act = offer.Act;
+                        existingOffer.EndDate = offer.EndDate;
+                    }
+
+                    var expandedGroups = GetExpandedGroupNames();
+                    OffersView?.Refresh();
+                    await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background);
+                    RestoreExpandedGroups(expandedGroups);
+                    HighlightOfferRow(offer);
+
+                    if (ActiveOffer?.Id == offer.Id)
+                    {
+                        CreateComplect(connections[8], offer);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusBegin($"Ошибка обновления: {ex.Message}", StatusMessageType.Error);
+            }
+        }
+
+        /// <summary>
+        /// Прокручивает OffersGrid к указанному расчёту, разворачивает его группу и подсвечивает строку.
+        /// Используется после добавления нового расчёта.
+        /// </summary>
+        public void ScrollToOfferAndHighlight(Offer offer)
+        {
+            if (offer == null || OffersGrid == null) return;
+
+            Dispatcher.BeginInvoke(new Action(async () =>
+            {
+                try
+                {
+                    // ⭐ ГЛАВНОЕ: Находим актуальный объект в коллекции по Id
+                    var actualOffer = CurrentOffers.FirstOrDefault(o => o.Id == offer.Id);
+                    if (actualOffer == null)
+                    {
+                        Trace.WriteLine($"⚠️ Расчёт Id={offer.Id} не найден в коллекции CurrentOffers");
+                        return;
+                    }
+
+                    Trace.WriteLine($"🔍 Прокрутка к расчёту: Id={actualOffer.Id}, N={actualOffer.N}, ParentQuoteNumber={actualOffer.ParentQuoteNumber}");
+
+                    // Ждём, пока WPF построит группы
+                    await System.Threading.Tasks.Task.Delay(300);
+
+                    // 1. Разворачиваем группу
+                    ExpandGroupByParentQuoteNumber(actualOffer.ParentQuoteNumber);
+
+                    // Ещё раз ждём, пока группа раскроется
+                    await System.Threading.Tasks.Task.Delay(400);
+
+                    // 2. Прокручиваем к строке (используем actualOffer, а не offer!)
+                    OffersGrid.ScrollIntoView(actualOffer);
+                    OffersGrid.UpdateLayout();
+
+                    // 3. Подсвечиваем строку
+                    HighlightOfferRow(actualOffer);
+
+                    Trace.WriteLine($"✅ Прокрутка и подсветка выполнены для Id={actualOffer.Id}");
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine($"Ошибка прокрутки к расчёту: {ex.Message}");
+                }
+            }), DispatcherPriority.Loaded); // ⭐ Используем Loaded вместо Background
+        }
+
+        /// <summary>
+        /// Собирает имена всех развёрнутых групп.
+        /// </summary>
+        private HashSet<string> GetExpandedGroupNames()
+        {
+            var expanded = new HashSet<string>();
+            if (OffersGrid?.Items.Groups == null) return expanded;
+
+            foreach (var group in OffersGrid.Items.Groups)
+            {
+                if (group is CollectionViewGroup cvg && cvg.Name != null)
+                {
+                    var groupItem = OffersGrid.ItemContainerGenerator.ContainerFromItem(group) as GroupItem;
+                    if (groupItem != null)
+                    {
+                        var expander = FindVisualChild<Expander>(groupItem);
+                        if (expander?.IsExpanded == true)
+                        {
+                            expanded.Add(cvg.Name.ToString()!);
+                        }
+                    }
+                }
+            }
+            return expanded;
+        }
+
+        /// <summary>
+        /// Восстанавливает состояние развёрнутости групп.
+        /// </summary>
+        private void RestoreExpandedGroups(HashSet<string> expandedGroups)
+        {
+            if (OffersGrid?.Items.Groups == null) return;
+
+            foreach (var group in OffersGrid.Items.Groups)
+            {
+                if (group is CollectionViewGroup cvg && cvg.Name != null)
+                {
+                    if (expandedGroups.Contains(cvg.Name.ToString()!))
+                    {
+                        var groupItem = OffersGrid.ItemContainerGenerator.ContainerFromItem(group) as GroupItem;
+                        if (groupItem != null)
+                        {
+                            var expander = FindVisualChild<Expander>(groupItem);
+                            if (expander != null && !expander.IsExpanded)
+                            {
+                                expander.IsExpanded = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Разворачивает группу по ParentQuoteNumber.
+        /// </summary>
+        private void ExpandGroupByParentQuoteNumber(string parentQuoteNumber)
+        {
+            if (string.IsNullOrEmpty(parentQuoteNumber) || OffersGrid?.Items.Groups == null) return;
+
+            foreach (var group in OffersGrid.Items.Groups)
+            {
+                if (group is CollectionViewGroup cvg && cvg.Name?.ToString() == parentQuoteNumber)
+                {
+                    var groupItem = OffersGrid.ItemContainerGenerator.ContainerFromItem(group) as GroupItem;
+                    if (groupItem != null)
+                    {
+                        var expander = FindVisualChild<Expander>(groupItem);
+                        if (expander != null && !expander.IsExpanded)
+                        {
+                            expander.IsExpanded = true;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Подсвечивает строку расчёта в OffersGrid с плавным затуханием.
+        /// </summary>
+        public void HighlightOfferRow(Offer offer)
+        {
+            if (offer == null || OffersGrid == null) return;
+
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try
+                {
+                    // ⭐ Находим актуальный объект в коллекции
+                    var actualOffer = CurrentOffers.FirstOrDefault(o => o.Id == offer.Id);
+                    if (actualOffer == null) return;
+
+                    // Прокручиваем к строке
+                    OffersGrid.ScrollIntoView(actualOffer);
+                    OffersGrid.UpdateLayout();
+
+                    var row = OffersGrid.ItemContainerGenerator.ContainerFromItem(actualOffer) as DataGridRow;
+
+                    // Если строка не найдена (виртуализация), пробуем ещё раз
+                    if (row == null)
+                    {
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            var retryRow = OffersGrid.ItemContainerGenerator.ContainerFromItem(actualOffer) as DataGridRow;
+                            if (retryRow != null) ApplyHighlight(retryRow);
+                        }), DispatcherPriority.Background);
+                        return;
+                    }
+
+                    ApplyHighlight(row);
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine($"Ошибка подсветки строки: {ex.Message}");
+                }
+            }), DispatcherPriority.Loaded);
+        }
+
+        private void ApplyHighlight(DataGridRow row)
+        {
+            var originalBrush = row.Background;
+            var originalForeground = row.Foreground;
+
+            // ⭐ Используем SetValue с приоритетом Local, чтобы переопределить стили
+            row.SetValue(BackgroundProperty, new SolidColorBrush(Color.FromRgb(255, 230, 150)));
+            row.SetValue(ForegroundProperty, new SolidColorBrush(Colors.Black));
+
+            var fadeAnimation = new ColorAnimation
+            {
+                From = Color.FromRgb(255, 230, 150),
+                To = originalBrush is SolidColorBrush solid ? solid.Color : Colors.Transparent,
+                Duration = TimeSpan.FromMilliseconds(2000),
+                FillBehavior = FillBehavior.Stop
+            };
+
+            fadeAnimation.Completed += (s, e) =>
+            {
+                row.SetValue(BackgroundProperty, originalBrush);
+                row.SetValue(ForegroundProperty, originalForeground);
+            };
+
+            var highlightBrush = (SolidColorBrush)row.Background;
+            highlightBrush.BeginAnimation(SolidColorBrush.ColorProperty, fadeAnimation);
+        }
+
+        /// <summary>
+        /// Инициализация представления таблицы расчетов с группировкой.
+        /// </summary>
+        public void InitializeOffersView()
+        {
+            var expandedGroups = GetExpandedGroupNames();
+            var viewSource = new CollectionViewSource { Source = CurrentOffers };
+
+            // Группировка по ParentQuoteNumber
+            viewSource.GroupDescriptions.Add(new PropertyGroupDescription(nameof(Offer.ParentQuoteNumber)));
+
+            OffersView = viewSource.View;
+            OffersGrid.ItemsSource = OffersView;
+
+            Dispatcher.BeginInvoke(new Action(() => RestoreExpandedGroups(expandedGroups)), DispatcherPriority.Background);
+        }
+
+        /// <summary>
+        /// Рекурсивный поиск визуального дочернего элемента заданного типа.
+        /// </summary>
         private T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
         {
             if (parent == null) return null;
@@ -1678,322 +2359,39 @@ namespace Metal_Code
             return null;
         }
 
-        private void OffersGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        //-----------Поиск расчетов по номеру КП, компании, номеру счета или заказа-----------//
+        private async void Search_Offers(object sender, FunctionEventArgs<string> e)
         {
-            if (e.AddedItems.Count > 0) ClearGroupHighlight();
-        }
+            _searchQuery = e.Info ?? string.Empty;
+            _isProductionMode = false;
+            if (InProductionFilterToggle.IsChecked == true)
+                InProductionFilterToggle.IsChecked = false;
 
-        //метод запуска процесса обновления заказчиков
-        private void UpdateCustomersCollection(object sender, RoutedEventArgs e) { CreateWorker(UpdateCustomersCollection, ActionState.update); }
-        private string UpdateCustomersCollection(string? message = null)
-        {
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
-            db.Customers.Load();
-            Customers = db.Customers.Local.ToObservableCollection();
-
-            if (message != null && message != "") return message;
-            return $"Список заказчиков обновлен. Заказчиков в базе - {Customers.Count}.";
-        }
-
-        private void Show_SearchWindow(object sender, RoutedEventArgs e)
-        {
-            SearchWindow window = new SearchWindow();
-            window.Show();
-        }
-
-        //метод запуска процесса загрузки расчетов из основной базы в локальную
-        private void GetOffers_WithoutMainBase(object sender, RoutedEventArgs e) { CreateWorker(GetOffers_WithoutMainBase, ActionState.get); }
-        private string GetOffers_WithoutMainBase(string? message = null)
-        {
-            if (!IsLocal) return "Загружена основная база расчетов. Обновление не требуется.";
-
-            int count = 0;
-
-            using ManagerContext db = new(connections[1]);      //подключаемся к основной базе данных
-            bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
-            if (isAvalaible)
+            if (string.IsNullOrWhiteSpace(_searchQuery) || TargetManager.Name is null)
             {
-                try
-                {
-                    //подключаемся к локальной базе данных
-                    using ManagerContext dbLocal = new(connections[0]);
-
-                    //ищем менеджера в основной базе по имени соответствующего выбранному, при этом загружаем его расчеты
-                    Manager? _man = db.Managers.Where(m => m.Name == TargetManager.Name).Include(c => c.Offers).FirstOrDefault();
-
-                    //ищем менеджера в локальной базе по имени соответствующего локальному, при этом загружаем его расчеты
-                    Manager? _manLocal = dbLocal.Managers.Where(m => m.Name == TargetManager.Name).Include(c => c.Offers).FirstOrDefault();
-
-                    if (_man?.Offers.Count > 0)
-                        foreach (Offer offer in _man.Offers)
-                        {
-                            //проверяем наличие идентичного КП в локальной базе, и если такое уже есть, пропускаем копирование
-                            Offer? tempOffer = _manLocal?.Offers.Where(o => o.N == offer.N
-                                                                && o.Company == offer.Company
-                                                                && o.Amount == offer.Amount).FirstOrDefault();
-                            if (tempOffer != null) continue;
-
-                            //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
-                            Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
-                            {
-                                Agent = offer.Agent,
-                                Invoice = offer.Invoice,
-                                Order = offer.Order,
-                                Act = offer.Act,
-                                CreatedDate = offer.CreatedDate,
-                                EndDate = offer.EndDate,
-                                Autor = offer.Autor,
-                                Manager = _manLocal,        //указываем соответствующего менеджера  
-                                Data = offer.Data
-                            };
-
-                            _manLocal?.Offers.Add(_offer);  //переносим расчет в базу этого менеджера
-                            count++;
-                        }
-                    dbLocal.SaveChanges();                  //сохраняем изменения в локальной базе данных
-                }
-                catch (DbUpdateConcurrencyException ex) { return ex.Message; }
+                // Пустой поиск — возвращаем последние 50
+                await LoadManagerDataAsync(TargetManager);
+                return;
             }
-            return $"Локальная база обновлена. Добавлено {count} расчетов.";
-        }
 
-        //метод запуска процесса синхронизации расчетов с основной базой
-        private void InsertDatabase(object sender, RoutedEventArgs e) { CreateWorker(InsertDatabase, ActionState.insert); }
-        private string InsertDatabase(string? message = null)
-        {
-            if (!IsLocal || (TempOffersDict[0].Count == 0 && TempOffersDict[1].Count == 0 && TempOffersDict[2].Count == 0))
-                return "Нет изменений для отправки в основную базу";
-
-            int countChange = 0; int countRemove = 0; int countAdd = 0;
-
-            using ManagerContext db = new(connections[1]);      //подключаемся к основной базе данных
-            bool isAvalaible = db.Database.CanConnect();        //проверяем, свободна ли база для подключения
-            if (isAvalaible)
+            try
             {
-                try
-                {
-                    //перебираем список расчетов на синхронизацию изменений
-                    if (TempOffersDict.TryGetValue(2, out List<Offer>? changeList) && changeList.Count > 0)
-                        foreach (Offer offer in changeList)
-                        {
-                            Offer? tempOffer = db.Offers.Where(o => o.N == offer.N
-                                                                && o.Company == offer.Company
-                                                                && o.Amount == offer.Amount).FirstOrDefault();
-                            if (tempOffer != null)
-                            {
-                                tempOffer.EndDate = offer.EndDate;
-                                db.Entry(tempOffer).Property(o => o.EndDate).IsModified = true;
-                                tempOffer.Agent = offer.Agent;
-                                db.Entry(tempOffer).Property(o => o.Agent).IsModified = true;
-                                tempOffer.Invoice = offer.Invoice;
-                                db.Entry(tempOffer).Property(o => o.Invoice).IsModified = true;
-                                tempOffer.Order = offer.Order;
-                                db.Entry(tempOffer).Property(o => o.Order).IsModified = true;
-                                countChange++;
-                            }
-                        }
+                StatusBegin($"Поиск '{_searchQuery}' в базе...", StatusMessageType.Info);
 
-                    //перебираем список расчетов на удаление
-                    if (TempOffersDict.TryGetValue(1, out List<Offer>? removeList) && removeList.Count > 0)
-                        foreach (Offer offer in removeList)
-                        {
-                            Offer? tempOffer = db.Offers.Where(o => o.N == offer.N
-                                                                && o.Company == offer.Company
-                                                                && o.Amount == offer.Amount).FirstOrDefault();
-                            if (tempOffer != null)
-                            {
-                                db.Offers.Remove(tempOffer);
-                                countRemove++;
-                            }
-                        }
+                var results = await DataService.SearchOffersAsync(
+                    TargetManager.Id, TargetManager.Name, _searchQuery.Trim());
 
-                    //перебираем список расчетов на добавление
-                    if (TempOffersDict.TryGetValue(0, out List<Offer>? addList) && addList.Count > 0)
-                        foreach (Offer offer in addList)
-                            if (offer.Manager is not null)
-                            {
-                                //ищем менеджера по имени соответствующего менеджера расчета
-                                Manager? _man = db.Managers.FirstOrDefault(m => m.Name == offer.Manager.Name);
+                CurrentOffers.Clear();
+                foreach (var offer in results) CurrentOffers.Add(offer);
 
-                                //копируем итеративное КП в новое с целью автоматического присваивания Id при вставке в базу
-                                Offer _offer = new(offer.N, offer.Company, offer.Amount, offer.Material, offer.Services)
-                                {
-                                    Agent = offer.Agent,
-                                    Invoice = offer.Invoice,
-                                    Order = offer.Order,
-                                    Act = offer.Act,
-                                    CreatedDate = offer.CreatedDate,
-                                    EndDate = offer.EndDate,
-                                    Autor = offer.Autor,
-                                    Manager = _man,             //указываем соответствующего менеджера
-                                    Data = offer.Data
-                                };
+                InitializeOffersView();
 
-                                _man?.Offers.Add(_offer);       //переносим расчет в базу этого менеджера
-                                countAdd++;
-                            }
-                    db.SaveChanges();                       //сохраняем изменения в основной базе данных
-
-                    //очищаем списки во временном словаре
-                    TempOffersDict[0].Clear();
-                    TempOffersDict[1].Clear();
-                    TempOffersDict[2].Clear();
-                }
-                catch (DbUpdateConcurrencyException ex) { return ex.Message; }
+                // ⭐ Показываем РЕЗУЛЬТАТ, а не процесс
+                StatusBegin($"Найдено расчётов: {results.Count}", StatusMessageType.Success);
             }
-            return $"Основная база обновлена. Добавлено {countAdd} расчетов. Удалено {countRemove} расчетов. Изменено {countChange} расчетов.";
-        }
-
-        public void SaveOrRemoveOffer(bool isSave, string? path = null)     //метод сохранения и удаления расчета
-        {
-            //подключаемся к базе данных
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
-            bool isAvalaible = db.Database.CanConnect();                    //проверяем, свободна ли база для подключения
-            if (isAvalaible)                                                //если база свободна, получаем выбранного менеджера
+            catch (Exception ex)
             {
-                try
-                {
-                    //ищем менеджера в базе по имени соответствующего выбранному
-                    Manager? _man = db.Managers.FirstOrDefault(m => m.Id == TargetManager.Id);
-
-                    if (isSave)     //если метод запущен с параметром true, то есть в режиме сохранения
-                    {
-                        //сначала создаем новое КП
-                        Offer _offer = new(Order.Text, CustomerDrop.Text, Result, GetMaterial(), GetServices())
-                        {
-                            Agent = IsAgent,
-                            Manager = _man,
-                            Data = SaveOfferData(),     //сериализуем расчет в виде строки json
-                            Act = path                  //запоминаем путь к расчету
-                        };
-
-                        //при необходимости перезаписываем имя автора расчета
-                        if (ActiveOffer?.Autor == CurrentManager.Name || ActiveOffer is null) _offer.Autor = CurrentManager.Name;
-                        else _offer.Autor = $"{ActiveOffer?.Autor}\n{CurrentManager.Name} ({_offer.CreatedDate})";
-
-                        if (IsLocal) TempOffersDict[0].Add(_offer);     //добавляем расчет во временный список для отправки в основную базу
-
-                        _man?.Offers.Add(_offer);       //добавляем созданный расчет в базу этого менеджера
-                        ActiveOffer = _offer;
-                        LimitCheck.IsChecked = false;
-                        message = $"Расчет {_offer.N} {_offer.Company} сохранен.";
-                    }
-                    else            //если метод запущен с параметром false, то есть в режиме удаления
-                    {
-                        if (OffersGrid.SelectedItem is Offer offer)                             //получаем выбранный расчет
-                        {
-                            Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);    //ищем этот расчет по Id
-                            if (_offer != null)
-                            {
-                                //добавляем расчет во временный список для удаления из основной базы, если текущий менеджер - владелец расчета
-                                if (IsLocal && CurrentManager == TargetManager)
-                                {
-                                    if (TempOffersDict.TryGetValue(0, out List<Offer>? addList))
-                                    {
-                                        Offer? off = addList.FirstOrDefault(o => o.Data == offer.Data);
-                                        if (off != null) addList.Remove(off);
-                                    }
-                                    TempOffersDict[1].Add(_offer);
-                                }
-
-                                _man?.Offers.Remove(_offer);            //если находим, то удаляем его из базы
-                                StatusBegin($"Расчет {_offer.N} {_offer.Company} удален.");
-
-                                DataGridRow row = (DataGridRow)OffersGrid.ItemContainerGenerator.ContainerFromIndex(OffersGrid.SelectedIndex);
-                                SolidColorBrush _deleteBrush = new(Colors.Gray);
-                                row.Background = _deleteBrush;
-
-                                if (ReportOffers.Contains(offer)) ReportOffers.Remove(offer);
-                            }
-                        }
-                    }
-
-                    db.SaveChanges();               //сохраняем изменения в базе данных
-
-                    if (isSave)
-                    {
-                        CreateWorker(UpdateOffersCollection, ActionState.update);   //и обновляем списки, если появился новый расчет
-
-                        Customer? _customer = db.Customers.FirstOrDefault(x => x.Name == CustomerDrop.Text);
-                        if (_customer is null) Log += $"\nЗаказчик {CustomerDrop.Text} не сохранен в базе. Добавьте его данные в базу, чтобы использовать их повторно.\n";
-
-                        if (!CheckVersion(out string _version) && (Log is null || !Log.Contains("Текущая версия не актуальна. Рекомендуется обновить программу.")))
-                            Log += $"\nТекущая версия не актуальна. Рекомендуется обновить программу.\n";
-
-                        if (Log is not null && Log != "") MessageBox.Show(Log, "Обратите внимание!", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        Log = null;
-                    }
-                }
-                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message, StatusMessageType.Error); }
-            }
-        }
-
-        private void UpdateOffer(object sender, RoutedEventArgs e) { UpdateOffer(OffersGrid); }
-        private void UpdateOffer(DataGrid dataGrid)          //метод сохранения изменений в расчете
-        {
-            //подключаемся к базе данных
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);
-            bool isAvalaible = db.Database.CanConnect();                  //проверяем, свободна ли база для подключения
-            if (isAvalaible && dataGrid.SelectedItem is Offer offer)      //если база свободна, получаем выбранный расчет
-            {
-                try
-                {
-                    Offer? _offer = db.Offers.FirstOrDefault(o => o.Id == offer.Id);      //ищем этот расчет по N
-                    if (_offer != null)
-                    {                   //менять можно только агента, номер счета, дату создания и номер заказа
-                        if (_offer.Agent != offer.Agent)
-                        {
-                            _offer.Agent = offer.Agent;
-                            db.Entry(_offer).Property(o => o.Agent).IsModified = true;
-                        }
-                        if (_offer.Invoice != offer.Invoice)
-                        {
-                            _offer.Invoice = offer.Invoice;
-                            db.Entry(_offer).Property(o => o.Invoice).IsModified = true;
-                        }
-                        if (_offer.Order != offer.Order)
-                        {
-                            _offer.Order = offer.Order;
-                            db.Entry(_offer).Property(o => o.Order).IsModified = true;
-                        }
-                        if (_offer.Act != offer.Act)
-                        {
-                            _offer.Act = offer.Act;
-                            db.Entry(_offer).Property(a => a.Act).IsModified = true;
-                        }
-                        //дата отгрузки меняется программно по кнопке добавления в отчет
-                        if (_offer.EndDate != offer.EndDate)
-                        {
-                            _offer.EndDate = offer.EndDate;
-                            db.Entry(_offer).Property(o => o.EndDate).IsModified = true;
-                        }
-
-                        //добавляем расчет во временный список для синхронизации с основной базой
-                        if (IsLocal && ManagerDrop.SelectedItem is Manager man && CurrentManager == man)
-                        {
-                            if (TempOffersDict.TryGetValue(0, out List<Offer>? addList))
-                            {
-                                Offer? off = addList.FirstOrDefault(o => o.CreatedDate == offer.CreatedDate);
-                                if (off != null)
-                                {
-                                    off.Agent = offer.Agent;
-                                    off.Invoice = offer.Invoice;
-                                    off.Order = offer.Order;
-                                    off.Act = offer.Act;
-                                    off.EndDate = offer.EndDate;
-                                }
-                            }
-                            TempOffersDict[2].Add(_offer);
-                        }
-
-                        db.SaveChanges();
-                        StatusBegin($"Данные расчета {offer.N} изменены", StatusMessageType.Success);
-
-                        //создаем файлы комплектации и списка задач
-                        if (ActiveOffer?.Data == _offer.Data) CreateComplect(connections[8], _offer);
-                    }
-                }
-                catch (DbUpdateConcurrencyException ex) { StatusBegin(ex.Message, StatusMessageType.Error); }
+                StatusBegin($"Ошибка поиска: {ex.Message}", StatusMessageType.Error);
             }
         }
 
@@ -2041,43 +2439,6 @@ namespace Metal_Code
             }
         }
 
-        private void UpdateDatabases(object sender, RoutedEventArgs e)      //метод обновления локальных баз
-        {
-            if (!IsLocal) return;               //если запущена основная база, выходим из метода
-
-            MessageBoxResult response = MessageBox.Show(
-                "Для обновления локальных баз, потребуется перезагрузка.\nНажмите \"Нет\", если требуется сохранить текущий расчет",
-                "Обновление локальных баз", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-
-            if (response == MessageBoxResult.No) return;
-
-            CreateWorker(InsertDatabase, ActionState.restartBases);         //запускаем фоновый процесс с перезапуском программы
-        }
-
-        private async void UpdateDatabases()                              //обновление баз заготовок, работ и материалов посредством замены файлов
-        {
-            if (!IsLocal || !Directory.Exists(connections[9])) return;     //если запущена основная база или нет директории, выходим из метода
-
-            string path = connections[9];    //путь к основным базам данных
-
-            if (File.Exists(path + "\\typedetails.db"))
-            {
-                FileInfo dbTypeFile = new(path + "\\typedetails.db");
-                dbTypeFile.CopyTo(Directory.GetCurrentDirectory() + "\\typedetails.db", true);
-            }
-
-            if (File.Exists(path + "\\works.db"))
-            {
-                FileInfo dbWorkFile = new(path + "\\works.db");
-                dbWorkFile.CopyTo(Directory.GetCurrentDirectory() + "\\works.db", true);
-            }
-
-            if (File.Exists(path + "\\metals.db"))
-            {
-                FileInfo dbMetalFile = new(path + "\\metals.db");
-                dbMetalFile.CopyTo(Directory.GetCurrentDirectory() + "\\metals.db", true);
-            }
-        }
 
         //метод загрузки строк в таблицу ВСЕХ расчетов
         private void OffersGrid_LoadingRow(object sender, DataGridRowEventArgs e)
@@ -2104,27 +2465,25 @@ namespace Metal_Code
             e.Row.Header = btn;
         }
 
-        private void OnShipmentToggleClick(object sender, RoutedEventArgs e)
+        private async void OnShipmentToggleClick(object sender, RoutedEventArgs e)
         {
             if (sender is ToggleButton btn &&
                 btn.DataContext is Offer offer &&
                 !string.IsNullOrEmpty(offer.Order))
             {
-                offer.EndDate = btn.IsChecked == true ? DateTime.UtcNow : null;
-                UpdateOffer(OffersGrid);
-
-                btn.ToolTip = offer.EndDate.HasValue
-                    ? "Удалить из отчета"
-                    : "Добавить в отчет";
+                offer.EndDate = btn.IsChecked == true
+                    ? DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc)
+                    : null;
+                await UpdateOfferAsync(offer);
             }
         }
 
-        private void AddOfferToReport(object sender, RoutedEventArgs e)
+        private async void AddOfferToReport(object sender, RoutedEventArgs e)
         {
             if (OffersGrid.SelectedItem is Offer offer)
             {
                 offer.Order = offer.N;
-                UpdateOffer(OffersGrid);
+                await UpdateOfferAsync(offer);
 
                 if (sender is Button btn)
                 {
@@ -2136,12 +2495,12 @@ namespace Metal_Code
             }
         }
 
-        private void RemoveOfferFromReport(object sender, RoutedEventArgs e)
+        private async void RemoveOfferFromReport(object sender, RoutedEventArgs e)
         {
             if (OffersGrid.SelectedItem is Offer offer)
             {
                 offer.Order = "";
-                UpdateOffer(OffersGrid);
+                await UpdateOfferAsync(offer);
 
                 if (sender is Button btn)
                 {
@@ -2179,12 +2538,12 @@ namespace Metal_Code
             e.Row.Header = btn;
         }
 
-        private void AddOfferToBonus(object sender, RoutedEventArgs e)
+        private async void AddOfferToBonus(object sender, RoutedEventArgs e)
         {
             if (ReportGrid.SelectedItem is Offer offer)
             {
-                offer.Invoice += " (без бонуса)";
-                UpdateOffer(ReportGrid);
+                offer.Invoice = (offer.Invoice ?? "") + " (без бонуса)";
+                await UpdateOfferAsync(offer);
 
                 if (sender is Button btn)
                 {
@@ -2196,12 +2555,12 @@ namespace Metal_Code
             }
         }
 
-        private void RemoveOfferFromBonus(object sender, RoutedEventArgs e)
+        private async void RemoveOfferFromBonus(object sender, RoutedEventArgs e)
         {
-            if (ReportGrid.SelectedItem is Offer offer && offer.Invoice is not null && offer.Invoice.Contains(" (без бонуса)"))
+            if (ReportGrid.SelectedItem is Offer offer && offer.Invoice != null && offer.Invoice.Contains(" (без бонуса)"))
             {
                 offer.Invoice = offer.Invoice.Replace(" (без бонуса)", "");
-                UpdateOffer(ReportGrid);
+                await UpdateOfferAsync(offer);
 
                 if (sender is Button btn)
                 {
@@ -2210,151 +2569,6 @@ namespace Metal_Code
                     btn.Click -= RemoveOfferFromBonus;
                     btn.Click += AddOfferToBonus;
                 }
-            }
-        }
-        #endregion
-
-
-        //-------------Фоновые процессы----------//
-        #region
-        public enum ActionState         //условия окончания работы фонового процесса
-        {
-            none,                       //по умолчанию
-            convert,                    //конвертация файлов dwg в dxf
-            get,                        //получение расчетов из основной базы
-            insert,                     //отправка расчетов в основную базу
-            search,                     //поиск расчетов
-            update,                     //обновление списков расчетов и заказчиков
-            restartBases,               //перезапуск программы при обновлении баз
-            restartApp,                 //перезапуск программы при обновлении программы
-            exit,                       //выход из программы
-            express                     //предварительный расчет
-        }
-
-        public ActionState State = ActionState.none;
-        private string? message;
-
-        public void CreateWorker(Func<string, string> func, ActionState state)        //метод создания фонового процесса
-        {
-            State = state;
-            InsertProgressBar.Visibility = Visibility.Visible;
-
-            switch (State)
-            {
-                case ActionState.convert:
-                    StatusBegin($"Подождите, идет конвертация файлов dwg в dxf...", StatusMessageType.Warning);
-                    break;
-                case ActionState.get:
-                    StatusBegin($"Подождите, идет получение расчетов из основной базы...", StatusMessageType.Warning);
-                    GetBtn.IsEnabled = false;
-                    InsertBtn.IsEnabled = false;
-                    UpdateBtn.IsEnabled = false;
-                    break;
-                case ActionState.insert:
-                    StatusBegin($"Подождите, идет отправка расчетов в основную базу...", StatusMessageType.Warning);
-                    InsertBtn.IsEnabled = false;
-                    UpdateBtn.IsEnabled = false;
-                    break;
-                case ActionState.update:
-                    StatusBegin($"Подождите, идет обновление базы...", StatusMessageType.Warning);
-                    IsEnabled = false;
-                    break;
-                case ActionState.restartBases:
-                    StatusBegin($"Подождите, идет обновление локальных баз с последующей перезагрузкой...", StatusMessageType.Warning);
-                    IsEnabled = false;
-                    break;
-                case ActionState.restartApp:
-                    StatusBegin($"Подождите, идет обновление программы с последующей перезагрузкой...", StatusMessageType.Warning);
-                    IsEnabled = false;
-                    break;
-                case ActionState.exit:
-                    StatusBegin($"Подождите, идет отправка расчетов в основную базу с последующим выходом из программы...", StatusMessageType.Warning);
-                    IsEnabled = false;
-                    break;
-                case ActionState.express:
-                    StatusBegin($"Подождите, идет автоматическая раскладка и создание предварительного расчета...", StatusMessageType.Warning);
-                    IsEnabled = false;
-                    break;
-                default:
-                    break;
-            }
-
-            BackgroundWorker worker = new()
-            {
-                WorkerReportsProgress = true,
-                WorkerSupportsCancellation = true
-            };
-            worker.DoWork += Worker_DoWork;
-            worker.ProgressChanged += Worker_ProgressChanged;
-            worker.RunWorkerCompleted += Worker_RunWorkerCompleted;
-            worker.RunWorkerAsync(func);
-        }
-
-        void Worker_DoWork(object? sender, DoWorkEventArgs e)                            //обработчик события запуска фонового процесса
-        {
-            if (e.Argument is Func<string, string> func) e.Result = func($"{message}");
-        }
-
-        void Worker_ProgressChanged(object? sender, ProgressChangedEventArgs e)          //обработчик промежуточных результатов фонового процесса
-        {
-
-        }
-
-        void Worker_RunWorkerCompleted(object? sender, RunWorkerCompletedEventArgs e)    //обработчик события завершения фонового процесса
-        {
-            switch (State)
-            {
-                case ActionState.convert:
-                    StatusBegin($"{e.Result}", StatusMessageType.Success);
-                    InsertProgressBar.Visibility = Visibility.Collapsed;
-                    break;
-                case ActionState.get:
-                    GetBtn.IsEnabled = true;
-                    InsertBtn.IsEnabled = true;
-                    InsertProgressBar.Visibility = Visibility.Collapsed;
-                    message = $"{e.Result}";
-                    CreateWorker(UpdateOffersCollection, ActionState.update);
-                    break;
-                case ActionState.insert:
-                    InsertBtn.IsEnabled = true;
-                    InsertProgressBar.Visibility = Visibility.Collapsed;
-                    message = $"{e.Result}";
-                    CreateWorker(UpdateOffersCollection, ActionState.update);
-                    break;
-                case ActionState.update:
-                    ManagerChanged();
-                    StatusBegin($"{e.Result}", StatusMessageType.Success);
-                    message = null;
-                    IsEnabled = true;
-                    UpdateBtn.IsEnabled = true;
-                    InsertProgressBar.Visibility = Visibility.Collapsed;
-
-                    if (!string.IsNullOrEmpty(ActiveOffer?.ParentQuoteNumber))
-                    {
-                        Dispatcher.BeginInvoke(new Action(() =>
-                            ScrollToGroupAndHighlight(ActiveOffer.ParentQuoteNumber)),
-                            DispatcherPriority.ApplicationIdle);
-                    }
-                    break;
-                case ActionState.restartBases:
-                    System.Windows.Forms.Application.Restart();
-                    Environment.Exit(0);
-                    break;
-                case ActionState.restartApp:
-                    Restart();
-                    break;
-                case ActionState.exit:
-                    Environment.Exit(0);
-                    break;
-                case ActionState.express:
-                    RequestControl?.Show_ExpressOffer();
-                    StatusBegin($"{e.Result}", StatusMessageType.Success);
-                    message = null;
-                    IsEnabled = true;
-                    InsertProgressBar.Visibility = Visibility.Collapsed;
-                    break;
-                default:
-                    break;
             }
         }
         #endregion
@@ -4038,11 +4252,34 @@ namespace Metal_Code
             workbook.SaveAs(Path.GetDirectoryName(_path) + template + $"{Result}" + ".xlsx");
         }
 
-        private void CreateOfferDelivery(object sender, RoutedEventArgs e)
+        private async void CreateOfferDelivery(object sender, RoutedEventArgs e)
         {
             if (!WarningSave()) return;
             SaveProduct();
-            SaveOrRemoveOffer(true);
+
+            // Сохраняем через сервис
+            var savedOffer = await DataService.SaveOfferAsync(
+                orderNumber: Order.Text,
+                companyName: CustomerDrop.Text,
+                amount: Result,
+                material: GetMaterial(),
+                services: GetServices(),
+                isAgent: IsAgent,
+                autor: CurrentManager.Name,
+                null,
+                null,
+                null,
+                managerId: TargetManager.Id
+            );
+
+            // Обновляем список расчетов в UI
+            await LoadManagerDataAsync(TargetManager);
+
+            string statusMessage = DataService.IsOnline
+                ? $"Расчет {savedOffer.N} {savedOffer.Company} сохранен на сервере."
+                : $"Расчет {savedOffer.N} {savedOffer.Company} сохранен локально (ожидает синхронизации).";
+
+            StatusBegin(statusMessage, StatusMessageType.Success);
         }
 
         //-КОМПЛЕКТАЦИЯ
@@ -5528,11 +5765,13 @@ namespace Metal_Code
         public decimal NormWorkingHours { get; set; } = 180m;
         public decimal ActualWorkingHours { get; set; } = 180m;
 
-
-        private void ReportView(object sender, RoutedEventArgs e) { ReportView(); }
         private void ReportView()
         {
-            if (ReportOffers == null || ReportOffers.Count == 0) return;
+            if (ReportOffers == null || ReportOffers.Count == 0)
+            {
+                Plan.Text = BonusOOO.Text = BonusIP.Text = Salary.Text = "—";
+                return;
+            }
 
             _currentReport = BuildReport(ReportOffers);
             UpdateReportUi((_currentReport.Plan, _currentReport.BonusOoo, _currentReport.BonusIp, _currentReport.TotalSalary));
@@ -5551,7 +5790,7 @@ namespace Metal_Code
             StatusBegin($"Отчет перестроен {(IsReportByCreated ? "по дате создания" : "по дате отгрузки")}");
         }
 
-        private ReportResult BuildReport(List<Offer> offers)
+        private ReportResult BuildReport(ObservableCollection<Offer> offers)
         {
             var result = new ReportResult();
             var regex = new Regex(BonusRatioPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -6001,9 +6240,26 @@ namespace Metal_Code
 
         //-------------Отчеты по заказам-----------------//
         #region
-        private async void Report_On_Shipped_Orders(object sender, RoutedEventArgs e)
+        private void Report_On_Shipped_Orders(object sender, RoutedEventArgs e)
         {
-            var previewWindow = new ReportPreviewWindow(connections[1]) { Owner = this };
+            if (CurrentManager.Name is null) return;
+
+            // ⭐ 1. Сначала показываем маленькое окно выбора периода
+            var periodDialog = new ReportPeriodDialog(CurrentManager.IsAdmin, CurrentManager.Name)
+            {
+                Owner = this
+            };
+
+            if (periodDialog.ShowDialog() != true)
+                return; // Пользователь нажал "Отмена"
+
+            // ⭐ 2. Только после подтверждения открываем окно отчета
+            var previewWindow = new ReportPreviewWindow(
+                periodDialog.SelectedFrom,
+                periodDialog.SelectedTo)
+            {
+                Owner = this
+            };
             previewWindow.ShowDialog();
         }
         #endregion
@@ -6011,7 +6267,7 @@ namespace Metal_Code
 
         //-------------Заказчики----------------//
         #region
-        private void CustomerChanged(object sender, SelectionChangedEventArgs e)        //метод смены заказчика
+        private void CustomerChanged(object sender, SelectionChangedEventArgs e)
         {
             if (CustomerDrop.SelectedItem is Customer customer)
             {
@@ -6021,125 +6277,300 @@ namespace Metal_Code
             }
         }
 
-        private void AddCustomer(object sender, RoutedEventArgs e)                      //метод добавления нового заказчика в базу
+        private async void AddCustomer(object sender, RoutedEventArgs e)
         {
-            if (CustomerDrop.Text is null || CustomerDrop.Text == "") return;
+            if (string.IsNullOrWhiteSpace(CustomerDrop.Text)) return;
 
-            if (!IsLocal && !CurrentManager.IsAdmin)
+            try
             {
-                StatusBegin($"Для добавления нового заказчика в базу обратитесь к администратору.", StatusMessageType.Warning);
+                StatusBegin($"Проверка и добавление заказчика '{CustomerDrop.Text}'...", StatusMessageType.Info);
+
+                int.TryParse(DeliveryPrice.Text, out int delivery);
+                bool isEngineer = CurrentManager?.IsEngineer == true;
+
+                var newCustomer = await DataService.AddCustomerAsync(
+                    CustomerDrop.Text.Trim(),
+                    Adress.Text,
+                    IsAgent,
+                    delivery,
+                    TargetManager.Id,
+                    isEngineer);
+
+                if (newCustomer != null)
+                {
+                    string scope = isEngineer ? "в вашу локальную базу" : "в общую базу";
+                    StatusBegin($"Заказчик {newCustomer.Name} успешно добавлен {scope}.", StatusMessageType.Success);
+                    await LoadManagerDataAsync(TargetManager);
+                }
+                else
+                {
+                    // ⭐ СПЕЦИАЛЬНОЕ СООБЩЕНИЕ О ГЛОБАЛЬНОМ ДУБЛИКАТЕ
+                    StatusBegin($"Заказчик '{CustomerDrop.Text}' уже существует в общей базе у другого менеджера. Пожалуйста, переименуйте его (например, добавьте город или ИНН) и попробуйте снова.", StatusMessageType.Warning);
+
+                    // Возвращаем фокус в поле ввода, чтобы пользователь мог сразу исправить имя
+                    CustomerDrop.Focus();
+                    CustomerDrop.IsDropDownOpen = false; // Закрыть дроп, чтобы можно было редактировать текст
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusBegin($"Ошибка добавления заказчика: {ex.Message}", StatusMessageType.Error);
+            }
+        }
+
+        private async void EditCustomer(object sender, RoutedEventArgs e)
+        {
+            if (CustomerDrop.SelectedItem is not Customer customer)
+            {
+                StatusBegin("Такого заказчика нет в базе.", StatusMessageType.Warning);
                 return;
             }
 
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);   //подключаемся к базе данных
-            bool isAvalaible = db.Database.CanConnect();                                //проверяем, свободна ли база для подключения
-            if (isAvalaible)
-            {               //если база свободна, проверяем введенное имя заказчика на совпадение с именами в базе
-                Customer? _customer = db.Customers.FirstOrDefault(x => x.Name == CustomerDrop.Text);
+            // ⭐ Определяем, является ли текущий пользователь владельцем заказчика
+            bool isOwner = CurrentManager.Name == TargetManager.Name;
 
-                if (_customer is null)
-                {           //если заказчика с таким именем еще нет в базе, ищем менеджера согласно выбранному
-                    Manager? _man = db.Managers.FirstOrDefault(m => m.Id == TargetManager.Id);
+            // ⭐ Если не владелец и не админ — разрешаем только локальное редактирование
+            if (!isOwner && !CurrentManager.IsAdmin)
+            {
+                var response = MessageBox.Show(
+                    $"У вас нет прав на изменение этого заказчика в общей базе.\n" +
+                    $"Изменения будут сохранены только в вашей локальной базе.\n\nПродолжить?",
+                    "Ограничение прав",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information);
 
-                    if (_man is not null)                                               //и добавляем нового заказчика ему в базу
+                if (response != MessageBoxResult.Yes) return;
+            }
+            else
+            {
+                var response = MessageBox.Show(
+                    "Уверены? Данные заказчика будут изменены!",
+                    "Редактирование данных заказчика",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Exclamation);
+
+                if (response != MessageBoxResult.Yes) return;
+            }
+
+            try
+            {
+                StatusBegin($"Обновление данных заказчика {customer.Name}...", StatusMessageType.Info);
+
+                var updatedCustomer = new Customer
+                {
+                    Id = customer.Id,
+                    Name = customer.Name,
+                    Address = Adress.Text,
+                    Agent = IsAgent,
+                    DeliveryPrice = int.TryParse(DeliveryPrice.Text, out int delivery) ? delivery : customer.DeliveryPrice,
+                    ManagerId = customer.ManagerId
+                };
+
+                // ⭐ Передаём isOwner — если не владелец, обновит только локально
+                bool success = await DataService.UpdateCustomerAsync(updatedCustomer, isOwner);
+
+                if (success)
+                {
+                    string scope = isOwner ? "в базе" : "локально";
+                    StatusBegin($"Данные заказчика {customer.Name} изменены {scope}.", StatusMessageType.Success);
+                    await LoadManagerDataAsync(TargetManager);
+                }
+                else
+                {
+                    StatusBegin($"Не удалось изменить данные заказчика {customer.Name}.", StatusMessageType.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusBegin($"Ошибка обновления заказчика: {ex.Message}", StatusMessageType.Error);
+            }
+        }
+
+        private async void DeleteCustomer(object sender, RoutedEventArgs e)
+        {
+            if (CustomerDrop.SelectedItem is not Customer customer)
+            {
+                StatusBegin("Такого заказчика нет в базе.", StatusMessageType.Warning);
+                return;
+            }
+
+            // ⭐ Определяем, является ли текущий пользователь владельцем
+            bool isOwner = CurrentManager.Name == TargetManager.Name;
+
+            if (!isOwner && !CurrentManager.IsAdmin)
+            {
+                var response = MessageBox.Show(
+                    $"У вас нет прав на удаление этого заказчика из общей базы.\n" +
+                    $"Заказчик будет удалён только из вашей локальной базы.\n\nПродолжить?",
+                    "Ограничение прав",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information);
+
+                if (response != MessageBoxResult.Yes) return;
+            }
+            else
+            {
+                var response = MessageBox.Show(
+                    $"Уверены? Заказчик \"{customer.Name}\" будет безвозвратно удален!",
+                    "Удаление заказчика",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Exclamation);
+
+                if (response != MessageBoxResult.Yes) return;
+            }
+
+            try
+            {
+                StatusBegin($"Удаление заказчика {customer.Name}...", StatusMessageType.Info);
+
+                // ⭐ Передаём isOwner — если не владелец, удалит только локально
+                bool success = await DataService.RemoveCustomerAsync(customer, isOwner);
+
+                if (success)
+                {
+                    string scope = isOwner ? "из базы" : "локально";
+                    StatusBegin($"Заказчик {customer.Name} удалён {scope}.", StatusMessageType.Success);
+
+                    await LoadManagerDataAsync(TargetManager);
+                    CustomerDrop.SelectedItem = null;
+                }
+                else
+                {
+                    StatusBegin($"Не удалось удалить заказчика {customer.Name}.", StatusMessageType.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusBegin($"Ошибка удаления заказчика: {ex.Message}", StatusMessageType.Error);
+            }
+        }
+
+        /// <summary>
+        /// Проверяет компанию загруженного расчёта напрямую в БД. 
+        /// Если её нет, подсвечивает дроп и предлагает добавить.
+        /// </summary>
+        public async void CheckAndPromptForUnknownCustomer(Offer offer)
+        {
+            if (offer == null || string.IsNullOrWhiteSpace(offer.Company)) return;
+            if (TargetManager == null || TargetManager.Name is null) return;
+
+            string normalizedCompany = HybridDataService.NormalizeCustomerName(offer.Company);
+
+            // ⭐ ПРЯМАЯ ПРОВЕРКА В БАЗЕ ДАННЫХ, а не в кэше UI. Это гарантирует отсутствие дубликатов.
+            bool exists = await DataService.CustomerExistsAsync(TargetManager.Name, normalizedCompany);
+
+            if (!exists)
+            {
+                HighlightCustomerDropTemporarily();
+
+                var result = MessageBox.Show(
+                    $"Заказчик \"{offer.Company}\" не найден в вашей базе данных.\n\n" +
+                    $"Добавить его в базу сейчас?",
+                    "Новый заказчик в расчёте",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    await AddUnknownCustomerAsync(offer.Company);
+                }
+            }
+            else
+            {
+                // Если заказчик уже есть в БД, гарантированно снимаем подсветку
+                CustomerDrop?.ClearValue(BackgroundProperty);
+            }
+        }
+
+        /// <summary>
+        /// Добавляет неизвестного заказчика и гарантированно обновляет UI.
+        /// </summary>
+        private async System.Threading.Tasks.Task AddUnknownCustomerAsync(string companyName)
+        {
+            if (string.IsNullOrWhiteSpace(companyName) || TargetManager == null || CurrentManager == null) return;
+
+            try
+            {
+                string normalizedName = HybridDataService.NormalizeCustomerName(companyName);
+                var existingData = await DataService.FindCustomerByNameAsync(normalizedName);
+
+                string address = existingData?.Address ?? "";
+                bool isAgent = existingData?.Agent ?? false;
+                int deliveryPrice = existingData?.DeliveryPrice ?? 0;
+
+                StatusBegin($"Добавление заказчика '{companyName}'...", StatusMessageType.Info);
+
+                var newCustomer = await DataService.AddCustomerAsync(
+                    name: companyName.Trim(),
+                    address: address,
+                    isAgent: isAgent,
+                    deliveryPrice: deliveryPrice,
+                    localManagerId: TargetManager.Id,
+                    isEngineer: CurrentManager.IsEngineer
+                );
+
+                if (newCustomer != null && TargetManager.Name != null)
+                {
+                    string scope = CurrentManager.IsEngineer ? "в вашу локальную базу" : "в общую базу";
+                    StatusBegin($"Заказчик '{newCustomer.Name}' успешно добавлен {scope}.", StatusMessageType.Success);
+
+                    var updatedCustomers = await DataService.GetCustomersAsync(TargetManager.Id, TargetManager.Name);
+                    Customers.Clear();
+                    foreach (var c in updatedCustomers) Customers.Add(c);
+
+                    var addedCustomer = Customers.FirstOrDefault(c =>
+                        HybridDataService.NormalizeCustomerName(c.Name) == normalizedName);
+
+                    if (addedCustomer != null)
                     {
-                        _customer = new()
-                        {
-                            Name = CustomerDrop.Text,
-                            Address = Adress.Text,
-                            Agent = IsAgent,
-                            DeliveryPrice = Delivery
-                        };
-
-                        _man.Customers.Add(_customer);
-                        db.SaveChanges();
-                        message = $"Заказчик {_customer.Name} добавлен в базу {_man.Name}.";
-
-                        CreateWorker(UpdateCustomersCollection, ActionState.update);
+                        CustomerDrop.SelectedItem = addedCustomer;
                     }
                 }
-                else StatusBegin($"Заказчик {_customer.Name} уже существует.", StatusMessageType.Error);
+                else
+                {
+                    // ⭐ СПЕЦИАЛЬНОЕ СООБЩЕНИЕ ДЛЯ ЗАГРУЖЕННОГО РАСЧЕТА
+                    StatusBegin($"Не удалось добавить: заказчик '{companyName}' уже существует в общей базе под другим именем/менеджером. Пожалуйста, измените имя заказчика в самом расчете или добавьте его вручную с уточнением.", StatusMessageType.Warning);
+
+                    // Снимаем подсветку, так как автоматическое добавление не удалось
+                    CustomerDrop?.ClearValue(BackgroundProperty);
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusBegin($"Ошибка добавления заказчика: {ex.Message}", StatusMessageType.Error);
             }
         }
 
-        private void EditCustomer(object sender, RoutedEventArgs e)                     //метод редактирования свойств заказчика
+        /// <summary>
+        /// Подсвечивает дроп заказчиков оранжевым цветом на 5 секунд.
+        /// </summary>
+        private void HighlightCustomerDropTemporarily()
         {
-            if (CustomerDrop.SelectedItem is not Customer customer)
-            {
-                StatusBegin($"Такого заказчика нет в базе.", StatusMessageType.Warning);
-                return;
-            }
+            if (CustomerDrop == null) return;
 
-            if ((!IsLocal && !CurrentManager.IsAdmin) || customer.Name == "Частное лицо")
+            Dispatcher.BeginInvoke(new Action(() =>
             {
-                StatusBegin($"Для изменения данных заказчика в базе обратитесь к администратору.", StatusMessageType.Warning);
-                return;
-            }
-            else
-            {
-                MessageBoxResult response = MessageBox.Show("Уверены? Данные заказчика будут изменены!", "Редактирование данных заказчика",
-                    MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-                if (response == MessageBoxResult.No) return;
-            }
-
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);   //подключаемся к базе данных
-            bool isAvalaible = db.Database.CanConnect();                                //проверяем, свободна ли база для подключения
-            if (isAvalaible)
-            {               //если база свободна, находим выбранного заказчика в базе
-                Customer? _customer = db.Customers.FirstOrDefault(x => x.Id == customer.Id);
-                if (_customer is not null)                                              //и изменяем его свойства
+                try
                 {
-                    _customer.Name = CustomerDrop.Text;
-                    db.Entry(_customer).Property(o => o.Name).IsModified = true;
-                    _customer.Address = Adress.Text;
-                    db.Entry(_customer).Property(o => o.Address).IsModified = true;
-                    _customer.Agent = IsAgent;
-                    db.Entry(_customer).Property(o => o.Agent).IsModified = true;
-                    if (int.TryParse(DeliveryPrice.Text, out int delivery)) _customer.DeliveryPrice = delivery;
-                    db.Entry(_customer).Property(o => o.DeliveryPrice).IsModified = true;
+                    var highlightBrush = new SolidColorBrush(
+                        Color.FromRgb(255, 200, 100)); // Мягкий оранжевый
 
-                    db.SaveChanges();
-                    message = $"Данные заказчика {customer.Name} изменены.";
+                    CustomerDrop.Background = highlightBrush;
 
-                    CreateWorker(UpdateCustomersCollection, ActionState.update);
+                    // Через 5 секунд возвращаем стандартный фон
+                    System.Threading.Tasks.Task.Delay(5000).ContinueWith(_ =>
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            CustomerDrop.ClearValue(BackgroundProperty);
+                        });
+                    });
                 }
-            }
-        }
-
-        private void DeleteCustomer(object sender, RoutedEventArgs e)                   //метод удаления заказчика из базы
-        {
-            if (CustomerDrop.SelectedItem is not Customer customer)
-            {
-                StatusBegin($"Такого заказчика нет в базе.", StatusMessageType.Warning);
-                return;
-            }
-
-            if ((!IsLocal && !CurrentManager.IsAdmin) || customer.Name == "Частное лицо")
-            {
-                StatusBegin($"Для удаления заказчика из базы обратитесь к администратору.", StatusMessageType.Warning);
-                return;
-            }
-            else
-            {
-                MessageBoxResult response = MessageBox.Show("Уверены? Заказчик будет удален из базы!", "Удаление заказчика",
-                    MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-                if (response == MessageBoxResult.No) return;
-            }
-
-            using ManagerContext db = new(IsLocal ? connections[0] : connections[1]);   //подключаемся к базе данных
-            bool isAvalaible = db.Database.CanConnect();                                //проверяем, свободна ли база для подключения
-            if (isAvalaible)
-            {
-                Customer? _customer = db.Customers.FirstOrDefault(x => x.Id == customer.Id);
-                if (_customer is not null)
+                catch (Exception ex)
                 {
-                    db.Customers.Remove(_customer);
-                    db.SaveChanges();
-                    message = $"Заказчик {customer.Name} удален из базы.";
-
-                    CreateWorker(UpdateCustomersCollection, ActionState.update);
+                    Trace.WriteLine($"Ошибка подсветки дропа: {ex.Message}");
                 }
-            }
+            }), DispatcherPriority.Loaded);
         }
         #endregion
 
@@ -6232,16 +6663,6 @@ namespace Metal_Code
                     return true;
             }
             return false;
-        }
-
-        //-----------Поиск расчетов по номеру КП, компании, номеру счета или заказа-----------//
-        private void Search_Offers(object sender, FunctionEventArgs<string> e)
-        {
-            _searchQuery = e.Info ?? string.Empty;
-            _isProductionMode = false;
-            if (InProductionFilterToggle.IsChecked == true)
-                InProductionFilterToggle.IsChecked = false;
-            ApplyCurrentMode();
         }
 
         //-------------Даты-----------//
@@ -6365,7 +6786,7 @@ namespace Metal_Code
             if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames != null)
             {
                 fileNames = openFileDialog.FileNames;
-                CreateWorker(Convert_dwg_to_dxf, ActionState.convert);
+                Convert_dwg_to_dxf();
             }
         }
         public string Convert_dwg_to_dxf(string? message = null)
@@ -6390,70 +6811,76 @@ namespace Metal_Code
         }
 
         //------------Загрузка расчета в режиме чтения-----------//
-        private void OpenOffer(object sender, RoutedEventArgs e)
+        private async void OpenOffer(object sender, RoutedEventArgs e)
         {
-            Offer? offer = null;
+            if (OffersGrid.SelectedItem is not Offer selectedOffer) return;
+
             try
             {
-                // 1. Проверка входных данных
-                if (OffersGrid.SelectedItem is not Offer selectedOffer) return;
-                offer = selectedOffer;  // ← Сохраняем для использования в catch
+                StatusBegin($"Загрузка данных расчета {selectedOffer.N}...", StatusMessageType.Info);
 
-                if (offer.Data == null)
+                // ⭐ 1. Если Data уже есть в памяти — используем его
+                // ⭐ 2. Если Data == null — загружаем из базы через сервис
+                string? dataJson = selectedOffer.Data;
+
+                if (string.IsNullOrEmpty(dataJson))
                 {
-                    StatusBegin("Данные расчета отсутствуют", StatusMessageType.Warning);
+                    dataJson = await DataService.GetOfferDataAsync(selectedOffer.Id);
+
+                    if (string.IsNullOrEmpty(selectedOffer.Data))
+                    {
+                        selectedOffer.Data = dataJson; // ⭐ Кэшируем в объекте
+                    }
+                }
+
+                if (string.IsNullOrEmpty(dataJson))
+                {
+                    StatusBegin($"Данные расчета {selectedOffer.N} отсутствуют в базе", StatusMessageType.Warning);
                     return;
                 }
 
-                // 2. Десериализация данных
-                Product? product = OpenOfferData(offer.Data);
+                // 3. Десериализация данных
+                Product? product = OpenOfferData(dataJson);
                 if (product is null)
                 {
-                    StatusBegin("Не удалось открыть расчет для чтения: данные повреждены", StatusMessageType.Error);
+                    StatusBegin($"Не удалось открыть расчет {selectedOffer.N}: данные повреждены", StatusMessageType.Error);
                     return;
                 }
 
-                // 3. Создание и показ окна
+                // 4. Создание и показ окна
                 ProductWindow clon = new(product)
                 {
-                    Title = $"{offer.N}  {offer.Company}",
-                    Amount = offer.Amount
+                    Title = $"{selectedOffer.N}  {selectedOffer.Company}",
+                    Amount = selectedOffer.Amount
                 };
 
                 clon.Show();
-
-                StatusBegin($"Расчет {offer.N} открыт для чтения", StatusMessageType.Success);
+                StatusBegin($"Расчет {selectedOffer.N} открыт для чтения", StatusMessageType.Success);
             }
             catch (System.Runtime.Serialization.SerializationException ex)
             {
-                // Ошибка формата данных — offer теперь виден!
-                string offerId = offer?.N ?? "неизвестно";
-                StatusBegin($"Ошибка формата данных расчета #{offerId}", StatusMessageType.Error);
-                LogException(ex, $"OpenOffer.Serialization: Offer #{offerId}");
+                StatusBegin($"Ошибка формата данных расчета #{selectedOffer.N}", StatusMessageType.Error);
+                LogException(ex, $"OpenOffer.Serialization: Offer #{selectedOffer.N}");
             }
             catch (IOException ex)
             {
-                string offerId = offer?.N ?? "неизвестно";
-                StatusBegin($"Не удалось прочитать данные расчета #{offerId}", StatusMessageType.Error);
-                LogException(ex, $"OpenOffer.IO: Offer #{offerId}");
+                StatusBegin($"Не удалось прочитать данные расчета #{selectedOffer.N}", StatusMessageType.Error);
+                LogException(ex, $"OpenOffer.IO: Offer #{selectedOffer.N}");
             }
             catch (InvalidOperationException ex)
             {
-                string offerId = offer?.N ?? "неизвестно";
-                StatusBegin($"Ошибка интерфейса при открытии расчета #{offerId}", StatusMessageType.Error);
-                LogException(ex, $"OpenOffer.InvalidOp: Offer #{offerId}");
+                StatusBegin($"Ошибка интерфейса при открытии расчета #{selectedOffer.N}", StatusMessageType.Error);
+                LogException(ex, $"OpenOffer.InvalidOp: Offer #{selectedOffer.N}");
             }
             catch (NullReferenceException ex)
             {
-                string offerId = offer?.N ?? "неизвестно";
                 StatusBegin("Внутренняя ошибка приложения. Обратитесь к разработчику.", StatusMessageType.Error);
-                LogException(ex, $"OpenOffer.NullRef: Offer #{offerId}", true);
+                LogException(ex, $"OpenOffer.NullRef: Offer #{selectedOffer.N}", true);
             }
             catch (Exception ex)
             {
-                string offerId = offer?.N ?? "неизвестно";
-                StatusBegin($"Непредвиденная ошибка при открытии расчета #{offerId}", StatusMessageType.Error);
-                LogException(ex, $"OpenOffer.General: Offer #{offerId}");
+                StatusBegin($"Непредвиденная ошибка при открытии расчета #{selectedOffer.N}", StatusMessageType.Error);
+                LogException(ex, $"OpenOffer.General: Offer #{selectedOffer.N}");
             }
         }
 
@@ -6489,12 +6916,12 @@ namespace Metal_Code
             // catch { /* Игнорируем ошибки логирования, чтобы не зациклить */ }
 
             // Если ошибка критическая — можно показать диалог или завершить работу
-            if (isCritical)
-            {
+            //if (isCritical)
+            //{
                 // MessageBox.Show("Критическая ошибка. Приложение будет закрыто.", "Ошибка", 
                 //     MessageBoxButton.OK, MessageBoxImage.Error);
                 // Application.Current.Shutdown(1);
-            }
+            //}
         }
 
         //------------Создание папки проекта-----------------//
@@ -7132,15 +7559,19 @@ namespace Metal_Code
         }
 
         //------------Запуск в производство----------------------//
-        private void LaunchToWork(object sender, RoutedEventArgs e)
+        private async void LaunchToWork(object sender, RoutedEventArgs e)
         {
             if (OffersGrid.SelectedItem is Offer offer)
             {
-                try { MessageBox.Show(LaunchToWork(offer)); }
-                catch (Exception ex) { MessageBox.Show(ex.Message); }
+                string result = await LaunchToWork(offer);
+
+                if (result.StartsWith("Не удалось"))
+                    MessageBox.Show(result, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                else
+                    StatusBegin(result, StatusMessageType.Success);
             }
         }
-        private string LaunchToWork(Offer offer)
+        private async System.Threading.Tasks.Task<string> LaunchToWork(Offer offer)
         {
             if (!Directory.Exists(connections[8]))
                 return $"Не удалось запустить в производство!\n" +
@@ -7196,7 +7627,7 @@ namespace Metal_Code
             }
 
             // Открываем файл с эксклюзивной блокировкой
-            using (var stream = new FileStream(logFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            using (var stream = new FileStream(logFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None, 4096, useAsync: true))
             {
                 // --- 1. Читаем последнюю строку из файла (последний выданный номер программой) ---
                 stream.Position = 0;
@@ -7204,7 +7635,7 @@ namespace Metal_Code
                 using (var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true))
                 {
                     string? line;
-                    while ((line = reader.ReadLine()) != null)
+                    while ((line = await reader.ReadLineAsync()) != null)
                     {
                         line = line.Trim();
                         // Игнорируем пустые строки и комментарии (начинающиеся с #)
@@ -7227,7 +7658,11 @@ namespace Metal_Code
                 HashSet<int> candidateNumbers = new() { lastIssued }; // всегда включаем последний из файла
 
                 string orderPattern = @"^\d{4}(?=\D|$)"; // ровно 4 цифры в начале имени папки
-                foreach (string dirPath in Directory.GetDirectories(workingDir))
+
+                // ⭐ Асинхронное получение списка директорий
+                var directories = await System.Threading.Tasks.Task.Run(() => Directory.GetDirectories(workingDir));
+
+                foreach (string dirPath in directories)
                 {
                     string dirName = Path.GetFileName(dirPath);
                     Match match = Regex.Match(dirName, orderPattern);
@@ -7246,7 +7681,9 @@ namespace Metal_Code
 
                 if (nextOrder > MAX_ORDER)
                 {
-                    throw new InvalidOperationException($"Достигнут максимальный номер заказа ({MAX_ORDER}). Невозможно назначить новый.");
+                    // ⭐ Вместо throw возвращаем строку ошибки
+                    return $"Не удалось запустить в производство!\n" +
+                           $"Достигнут максимальный номер заказа ({MAX_ORDER}). Невозможно назначить новый.";
                 }
 
                 // --- 4. Записываем новый номер в конец файла ---
@@ -7260,7 +7697,7 @@ namespace Metal_Code
                     if (lastByte != '\n' && lastByte != '\r')
                     {
                         stream.Seek(0, SeekOrigin.End);
-                        stream.WriteByte((byte)'\n');
+                        await stream.WriteAsync(new byte[] { (byte)'\n' }, 0, 1);
                     }
                     else
                     {
@@ -7270,8 +7707,8 @@ namespace Metal_Code
 
                 using (var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 1, leaveOpen: true))
                 {
-                    writer.WriteLine(nextOrder.ToString());
-                    writer.Flush();
+                    await writer.WriteLineAsync(nextOrder.ToString());
+                    await writer.FlushAsync();
                 }
             }
 
@@ -7313,8 +7750,8 @@ namespace Metal_Code
 
             if (!string.IsNullOrEmpty(sourceDir))
             {
-                // Копируем папки с рабочими файлами в папку созданного заказа
-                CopyDirectoryToWork(sourceDir, destinationDir, true, sourceDir);
+                // ⭐ Копирование файлов — потенциально долгая операция, запускаем в фоне
+                await System.Threading.Tasks.Task.Run(() => CopyDirectoryToWork(sourceDir, destinationDir, true, sourceDir));
 
                 // Ищем счет в корневой папке расчета
                 DirectoryInfo dir = new(sourceDir);
@@ -7400,7 +7837,8 @@ namespace Metal_Code
                 StatusBegin($"Ошибка переименования КП: {ex.Message}", StatusMessageType.Error);
             }
 
-            UpdateOffer(OffersGrid); // Сохраняем изменения данных текущего расчета в базе
+            await UpdateOfferAsync(offer);
+
             Process.Start("explorer.exe", destinationDir);
 
             return notify + nextOrder;
@@ -7708,7 +8146,7 @@ namespace Metal_Code
                 "Мешеронова Мария" => "м",
                 "Барабанов Дмитрий" => "дб",
                 "Абрамова Анна" => "ан",
-                "Андросова Светлана" => "са",
+                "Еремин Андрей" => "еа",
                 _ => ""
             };
         }
@@ -7945,15 +8383,12 @@ namespace Metal_Code
 
         //-------------Выход и перезагрузка----------------------//
         #region
-        public void Exit(object sender, RoutedEventArgs e)
-        {
-            Environment.Exit(0);
-        }
+        public void Exit(object sender, RoutedEventArgs e) => Environment.Exit(0);
         private void Exit(object sender, CancelEventArgs e)
         {
             MessageBoxResult response = MessageBox.Show("Выйти без сохранения?", "Выход из программы",
                                            MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-            if (response == MessageBoxResult.Yes) CreateWorker(InsertDatabase, ActionState.exit);       //запускаем фоновый процесс с выходом из программмы
+            if (response == MessageBoxResult.Yes) Environment.Exit(0);
             e.Cancel = true;
         }
 
@@ -7967,7 +8402,7 @@ namespace Metal_Code
 
                 if (response == MessageBoxResult.No) return;
 
-                CreateWorker(InsertDatabase, ActionState.restartApp);
+                //CreateWorker(InsertDatabase, ActionState.restartApp);
             }
             else
             {
@@ -7977,7 +8412,7 @@ namespace Metal_Code
 
                 if (response == MessageBoxResult.No) return;
 
-                CreateWorker(InsertDatabase, ActionState.restartApp);
+                //CreateWorker(InsertDatabase, ActionState.restartApp);
             }
         }
         private void Restart()
@@ -7988,7 +8423,7 @@ namespace Metal_Code
 
         public bool CheckVersion(out string _version)                   //метод проверки версии приложения
         {
-            if (!IsLocal || !File.Exists(connections[9] + "\\version.txt"))
+            if (!File.Exists(connections[9] + "\\version.txt"))
             {
                 _version = $"{Version}, без подключения к серверу.";
                 return true;
