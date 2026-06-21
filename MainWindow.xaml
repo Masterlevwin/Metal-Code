@@ -800,19 +800,19 @@
                 Visibility="Collapsed">
 
                                             <TextBlock Text="Прибыль:" VerticalAlignment="Center"/>
-                                            <TextBox x:Name="ForecastPlan" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
+                                            <TextBox x:Name="ForecastPlan" Margin="3,0,0,0" Width="60" TextAlignment="Center" 
                  VerticalContentAlignment="Center" IsReadOnly="True"/>
 
                                             <TextBlock Text="Бонус ООО:" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                                            <TextBox x:Name="ForecastBonusOoo" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
+                                            <TextBox x:Name="ForecastBonusOoo" Margin="3,0,0,0" Width="60" TextAlignment="Center" 
                  VerticalContentAlignment="Center" IsReadOnly="True"/>
 
                                             <TextBlock Text="Бонус ИП и ПК:" Margin="8,0,0,0" VerticalAlignment="Center" Width="90"/>
-                                            <TextBox x:Name="ForecastBonusIp" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
+                                            <TextBox x:Name="ForecastBonusIp" Margin="3,0,0,0" Width="60" TextAlignment="Center" 
                  VerticalContentAlignment="Center" IsReadOnly="True"/>
 
                                             <TextBlock Text="Итого:" Margin="8,0,0,0" VerticalAlignment="Center" Width="40"/>
-                                            <TextBox x:Name="ForecastSalary" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
+                                            <TextBox x:Name="ForecastSalary" Margin="3,0,0,0" Width="60" TextAlignment="Center" 
                  VerticalContentAlignment="Center" IsReadOnly="True"/>
                                         </StackPanel>
 

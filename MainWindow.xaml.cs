@@ -1359,7 +1359,7 @@ namespace Metal_Code
         private void ForecastModeToggle_Click(object sender, RoutedEventArgs e)
         {
             _forecastMixedMode = ForecastModeToggle.IsChecked == true;
-            ForecastModeText.Text = _forecastMixedMode ? "🔄 Текущие + Отгруженные" : "📦 Текущие";
+            ForecastModeText.Text = _forecastMixedMode ? "🔄 Все" : "📦 Текущие";
 
             // 🔹 Если панель видна — сразу пересчитываем
             if (InProductionFilterToggle.IsChecked == true)
@@ -2057,23 +2057,82 @@ namespace Metal_Code
             }
         }
 
-        private async void OffersGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        private void OffersGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
+            // ⭐ Игнорируем отмену редактирования (Esc)
             if (e.EditAction != DataGridEditAction.Commit) return;
             if (e.Row.Item is not Offer offer) return;
-            if (DataService == null) return;
 
-            if (e.EditingElement is FrameworkElement element)
+            // ⭐ Проверяем, действительно ли данные изменились
+            if (!HasOfferDataChanged(e.EditingElement, offer))
             {
-                string propertyName = GetBindingPropertyName(element);
+                Trace.WriteLine($"ℹ️ Изменений в расчёте {offer.N} не обнаружено, пропуск");
+                return;
+            }
 
-                if (propertyName is nameof(Offer.Agent) or nameof(Offer.Invoice)
-                                     or nameof(Offer.Order) or nameof(Offer.Act)
-                                     or nameof(Offer.EndDate))
+            // ⭐ Проверка прав доступа
+            if (CurrentManager?.IsEngineer == true)
+            {
+                StatusBegin("Инженеры не могут редактировать расчёты", StatusMessageType.Warning);
+                e.Cancel = true;
+                return;
+            }
+
+            if (CurrentManager != null && !CurrentManager.IsAdmin && offer.ManagerId != CurrentManager.Id)
+            {
+                StatusBegin("Вы не можете редактировать расчёты другого менеджера", StatusMessageType.Warning);
+                e.Cancel = true;
+                return;
+            }
+
+            // ⭐ ГЛАВНОЕ: откладываем обновление через Dispatcher
+            // Это даёт WPF время завершить режим редактирования ДО вызова Refresh
+            Dispatcher.BeginInvoke(new Action(async () =>
+            {
+                try
                 {
                     await UpdateOfferAsync(offer);
                 }
+                catch (Exception ex)
+                {
+                    StatusBegin($"Ошибка сохранения: {ex.Message}", StatusMessageType.Error);
+                    Trace.WriteLine($"❌ Ошибка отложенного UpdateOfferAsync: {ex.Message}");
+                }
+            }), DispatcherPriority.Background);
+        }
+        /// <summary>
+        /// Проверяет, действительно ли изменились данные в редактируемой ячейке.
+        /// </summary>
+        private bool HasOfferDataChanged(FrameworkElement editingElement, Offer offer)
+        {
+            // Получаем привязку ячейки
+            if (editingElement is TextBox textBox)
+            {
+                var binding = textBox.GetBindingExpression(TextBox.TextProperty);
+                if (binding?.ParentBinding?.Path?.Path == null) return true;
+
+                string propertyName = binding.ParentBinding.Path.Path;
+
+                // Получаем текущее и исходное значение
+                var currentValue = textBox.Text;
+                var originalValue = offer.GetType().GetProperty(propertyName)?.GetValue(offer)?.ToString() ?? "";
+
+                return currentValue != originalValue;
             }
+
+            if (editingElement is CheckBox checkBox)
+            {
+                var binding = checkBox.GetBindingExpression(CheckBox.IsCheckedProperty);
+                if (binding?.ParentBinding?.Path?.Path == null) return true;
+
+                string propertyName = binding.ParentBinding.Path.Path;
+                var currentValue = checkBox.IsChecked ?? false;
+                var originalValue = offer.GetType().GetProperty(propertyName)?.GetValue(offer) as bool? ?? false;
+
+                return currentValue != originalValue;
+            }
+
+            return true; // По умолчанию считаем, что изменения есть
         }
         private string GetBindingPropertyName(FrameworkElement element)
         {
@@ -2097,28 +2156,42 @@ namespace Metal_Code
             try
             {
                 StatusBegin($"Сохранение изменений расчёта {offer.N}...", StatusMessageType.Info);
+
+                // ⭐ Сохраняем состояние групп ДО обновления
+                var expandedGroups = GetExpandedGroupNames();
+
+                // ⭐ Сохраняем в БД
                 bool success = await DataService.UpdateOfferAsync(offer);
 
                 if (success)
                 {
                     StatusBegin($"Данные расчёта {offer.N} изменены.", StatusMessageType.Success);
 
-                    // ⭐ Обновляем объект в CurrentOffers (если он там есть)
-                    var existingOffer = CurrentOffers.FirstOrDefault(o => o.Id == offer.Id);
-                    if (existingOffer != null)
+                    // ⭐ ВАЖНО: Refresh через DispatcherPriority.Loaded
+                    // К этому моменту WPF уже завершил режим редактирования
+                    await Dispatcher.InvokeAsync(() =>
                     {
-                        // Копируем изменённые поля
-                        existingOffer.Agent = offer.Agent;
-                        existingOffer.Invoice = offer.Invoice;
-                        existingOffer.Order = offer.Order;
-                        existingOffer.Act = offer.Act;
-                        existingOffer.EndDate = offer.EndDate;
-                    }
+                        try
+                        {
+                            OffersView?.Refresh();
+                        }
+                        catch (InvalidOperationException ex)
+                        {
+                            Trace.WriteLine($"⚠️ Refresh отложен: {ex.Message}");
+                            // Повторная попытка на следующем цикле отрисовки
+                            Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                try { OffersView?.Refresh(); }
+                                catch { /* игнорируем */ }
+                            }), DispatcherPriority.Loaded);
+                        }
+                    }, DispatcherPriority.Loaded);
 
-                    var expandedGroups = GetExpandedGroupNames();
-                    OffersView?.Refresh();
+                    // ⭐ Ждём пересоздания контейнеров
                     await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background);
                     RestoreExpandedGroups(expandedGroups);
+
+                    // ⭐ Подсветка строки
                     HighlightOfferRow(offer);
 
                     if (ActiveOffer?.Id == offer.Id)
@@ -2126,10 +2199,15 @@ namespace Metal_Code
                         CreateComplect(connections[8], offer);
                     }
                 }
+                else
+                {
+                    StatusBegin($"Не удалось сохранить изменения расчёта {offer.N}.", StatusMessageType.Warning);
+                }
             }
             catch (Exception ex)
             {
                 StatusBegin($"Ошибка обновления: {ex.Message}", StatusMessageType.Error);
+                Trace.WriteLine($"❌ Ошибка UpdateOfferAsync: {ex.Message}");
             }
         }
 

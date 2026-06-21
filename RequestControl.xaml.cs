@@ -895,7 +895,7 @@ namespace Metal_Code
                                             Width = techItem.Width,
                                             Height = techItem.Height,
                                             PartType = PartType.Rectangle,
-                                            DisplayGeometry = techItem.DisplayGeometry,
+                                            DisplayGeometry = techItem.CalculationGeometry,
                                         };
 
                                         cut.PartsControl?.UpdatePartAfterEdit(part, m, destiny, true);
