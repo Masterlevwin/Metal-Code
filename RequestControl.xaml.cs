@@ -58,7 +58,7 @@ namespace Metal_Code
             }
         }
 
-        private readonly RequestContext db = new(MainWindow.M.connections[12]);
+        private readonly RequestContext db = new(MainWindow.M.connections[4]);
         public List<string> Paths { get; set; } = new();
         public List<string> Works { get; set; } = new()
         {

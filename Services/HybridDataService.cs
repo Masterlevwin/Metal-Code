@@ -32,16 +32,21 @@ namespace Metal_Code.Services
             try
             {
                 using var testCtx = new AppDbContext(_pgOptions);
-                await testCtx.Database.CanConnectAsync();
+                testCtx.Database.SetCommandTimeout(5);
+
+                // ⭐ Реальный запрос, а не CanConnectAsync
+                await testCtx.Database.ExecuteSqlRawAsync("SELECT 1");
+
                 _isOnline = true;
+                Trace.WriteLine("✅ PG доступен");
 
                 await SyncReferenceDataAsync();
-
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
                 _isOnline = false;
+                Trace.WriteLine($"⚠️ PG недоступен: {ex.Message}");
                 return false;
             }
         }
@@ -60,7 +65,7 @@ namespace Metal_Code.Services
                 var pgMetals = await pgContext.Metals.AsNoTracking().ToListAsync();
                 if (pgMetals.Any())
                 {
-                    using var localCtx = new MetalContext(_connections[6]);
+                    using var localCtx = new MetalContext(_connections[3]);
                     localCtx.Metals.RemoveRange(localCtx.Metals);
                     localCtx.Metals.AddRange(pgMetals);
                     await localCtx.SaveChangesAsync();
@@ -69,7 +74,7 @@ namespace Metal_Code.Services
                 var pgTypes = await pgContext.TypeDetails.AsNoTracking().ToListAsync();
                 if (pgTypes.Any())
                 {
-                    using var localCtx = new TypeDetailContext(_connections[2]);
+                    using var localCtx = new TypeDetailContext(_connections[1]);
                     localCtx.TypeDetails.RemoveRange(localCtx.TypeDetails);
                     localCtx.TypeDetails.AddRange(pgTypes);
                     await localCtx.SaveChangesAsync();
@@ -78,7 +83,7 @@ namespace Metal_Code.Services
                 var pgWorks = await pgContext.Works.AsNoTracking().ToListAsync();
                 if (pgWorks.Any())
                 {
-                    using var localCtx = new WorkContext(_connections[4]);
+                    using var localCtx = new WorkContext(_connections[2]);
                     localCtx.Works.RemoveRange(localCtx.Works);
                     localCtx.Works.AddRange(pgWorks);
                     await localCtx.SaveChangesAsync();
@@ -411,19 +416,19 @@ namespace Metal_Code.Services
 
         public async Task<List<Metal>> GetLocalMetalsAsync()
         {
-            using var ctx = new MetalContext(_connections[6]);
+            using var ctx = new MetalContext(_connections[3]);
             return await ctx.Metals.OrderBy(m => m.Name).ToListAsync();
         }
 
         public async Task<List<TypeDetail>> GetLocalTypeDetailsAsync()
         {
-            using var ctx = new TypeDetailContext(_connections[2]);
+            using var ctx = new TypeDetailContext(_connections[1]);
             return await ctx.TypeDetails.OrderBy(t => t.Sort).ThenBy(t => t.Name).ToListAsync();
         }
 
         public async Task<List<Work>> GetLocalWorksAsync()
         {
-            using var ctx = new WorkContext(_connections[4]);
+            using var ctx = new WorkContext(_connections[2]);
             return await ctx.Works.OrderBy(w => w.Name).ToListAsync();
         }
 

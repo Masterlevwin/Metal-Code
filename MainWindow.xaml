@@ -574,7 +574,7 @@
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <DataGrid x:Name="OffersGrid" ItemsSource="{Binding OffersView}"
+                                    <DataGrid x:Name="OffersGrid"
                                               Style="{StaticResource DataGrid.Small}" CanUserReorderColumns="False"
                                               CanUserDeleteRows="False" CanUserAddRows="False" CanUserResizeRows="False"
                                               LoadingRow="OffersGrid_LoadingRow" EnableColumnVirtualization="True"
@@ -800,7 +800,7 @@
                 Visibility="Collapsed">
 
                                             <TextBlock Text="Прибыль:" VerticalAlignment="Center"/>
-                                            <TextBox x:Name="ForecastPlan" Margin="3,0,0,0" Width="60" TextAlignment="Center" 
+                                            <TextBox x:Name="ForecastPlan" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
                  VerticalContentAlignment="Center" IsReadOnly="True"/>
 
                                             <TextBlock Text="Бонус ООО:" Margin="8,0,0,0" VerticalAlignment="Center"/>
@@ -812,7 +812,7 @@
                  VerticalContentAlignment="Center" IsReadOnly="True"/>
 
                                             <TextBlock Text="Итого:" Margin="8,0,0,0" VerticalAlignment="Center" Width="40"/>
-                                            <TextBox x:Name="ForecastSalary" Margin="3,0,0,0" Width="60" TextAlignment="Center" 
+                                            <TextBox x:Name="ForecastSalary" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
                  VerticalContentAlignment="Center" IsReadOnly="True"/>
                                         </StackPanel>
 

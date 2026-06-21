@@ -19,7 +19,7 @@
         </ContextMenu>
     </UserControl.ContextMenu>
 
-    <Border x:Name="RootElement" BorderThickness="1" CornerRadius="4" Padding="3">
+    <Border x:Name="RootElement" BorderThickness="1" CornerRadius="4" Padding="3" Background="#00F0F0F0">
         <StackPanel Orientation="Horizontal">
             <hc:ComboBox hc:InfoElement.Placeholder="Выбор работы" 
              x:Name="WorkDrop" 

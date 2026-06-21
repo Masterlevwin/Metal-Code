@@ -90,10 +90,7 @@ namespace Metal_Code
                 .OrderByPriority(w => w.Name, "Лазерная резка", "Труборез", "Лентопил");
         }
 
-        private void AddWork(object sender, RoutedEventArgs e)
-        {
-            type.AddWork();
-        }
+        private void AddWork(object sender, RoutedEventArgs e) => type.AddWork();
 
         private void Remove(object sender, RoutedEventArgs e)
         {
@@ -193,7 +190,6 @@ namespace Metal_Code
             else if (WorkDrop.SelectedItem is Work work) SetResult(work.Price, false);
         }
 
-        public bool IsProgrammaticChange { get; set; } = false;
         public UserControl? workType;
         public void CreateWork(object sender, SelectionChangedEventArgs e) { CreateWork(); }
         public void CreateWork()
@@ -443,6 +439,20 @@ namespace Metal_Code
                     SetResult(work.Price, false);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Применяет или снимает состояние "только чтение" с WorkControl.
+        /// </summary>
+        public void ApplyReadOnlyState(bool isReadOnly = true)
+        {
+            if (WorkDrop.SelectedItem is not Work work) return;
+
+            string reason = $"{work.Name} — редактируется через нарезанные детали";
+
+            WorkDrop.IsHitTestVisible = WorkGrid.IsHitTestVisible = !isReadOnly;
+            WorkDrop.Cursor = WorkGrid.Cursor = isReadOnly ? Cursors.No : Cursors.Arrow;
+            RootElement.ToolTip = isReadOnly ? reason : null;
         }
 
         public void SetResult(float price, bool addMin = true)

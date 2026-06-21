@@ -10,7 +10,7 @@ namespace Metal_Code
     /// </summary>
     public partial class WorkWindow : Window
     {
-        WorkContext db = new(MainWindow.M.connections[4]);
+        readonly WorkContext db = new(MainWindow.M.connections[2]);
         public WorkWindow()
         {
             InitializeComponent();

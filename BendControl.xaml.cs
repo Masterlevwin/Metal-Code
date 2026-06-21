@@ -281,9 +281,13 @@ namespace Metal_Code
                         MainWindow.M.IsLoadData = originalState;  // Гарантированно восстанавливаем!
                     }
 
-                    // Устанавливаем параметр на созданную основную работу
+                    // Устанавливаем параметры на созданную основную работу
                     if (newWorkControl.workType is BendControl bend)
+                    {
                         bend.Group = Group;
+                        newWorkControl.ApplyReadOnlyState();
+                    }
+                        
                 }
             }
             OnPriceChanged();

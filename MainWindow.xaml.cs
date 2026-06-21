@@ -54,38 +54,21 @@ namespace Metal_Code
         public static MainWindow M = new();
 
         public readonly string[] connections =
-        {   //дом
+        {
+            // [0] managers.db (локальная SQLite — для работы оффлайн)
             "Data Source=managers.db",
-            //$"Data Source = C:\\ProgramData\\Metal-Code\\managers.db",
-            $"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
-            //$"Data Source = C:\\Users\\Михаил\\Desktop\\Тест\\Базы\\managers.db",
+            // [1] typedetails.db (локальная SQLite)
             "Data Source=typedetails.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\typedetails.db",
+            // [2] works.db (локальная SQLite)
             "Data Source=works.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\works.db",
+            // [3] metals.db (локальная SQLite)
             "Data Source=metals.db",
-            $"Data Source = C:\\ProgramData\\Metal-Code\\metals.db",
-            //$"C:\\Users\\Михаил\\Desktop\\Тесты\\Производство",
-            $"Y:\\Производство\\Laser rezka\\В работу",
-            $"M:\\Metal-Code",
-            $"C:\\ProgramData",
-            $"Host=srv-fs-laser;Port=5432;Database=metal-codedb;Username=postgres;Password=lazerpro",
+            // [4] templates.db (локальная SQLite)
             "Data Source=templates.db",
-
-            //прод
-            //"Data Source=managers.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\managers.db",
-            //"Data Source=typedetails.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\typedetails.db",
-            //"Data Source=works.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\works.db",
-            //"Data Source=metals.db",
-            //$"Data Source = Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code\\metals.db",
-            //$"Y:\\Производство\\Laser rezka\\В работу",
-            //$"M:\\Metal-Code",
-            //$"Y:\\Конструкторский отдел\\Расчет Заказов ЛФ Сервер\\Metal-Code",
-            //$"Host=srv-fs-laser;Port=5432;Database=metal-codedb;Username=postgres;Password=lazerpro",
-            //"Data Source=templates.db",
+            // [5] Рабочая папка "В работу" (сетевая — для запуска в производство)
+            @"Y:\Производство\Laser rezka\В работу",
+            // [6] Metal-Code (сетевая — общая папка для проверки обновления программы)
+            @"M:\Metal-Code",
         };
 
         public HybridDataService DataService { get; set; } = null!;
@@ -544,16 +527,19 @@ namespace Metal_Code
         {
             InitializeComponent();
             M = this;
-            Title = $"Metal-Code {Version}";
+
+            if (!CheckVersion(out string versionInfo))
+                Restart();
+
+            // ⭐ Показываем версию + статус подключения
+            Title = $"Metal-Code {Version} | {versionInfo}";
+
+            DataContext = ProductModel;
 
             ReportDrop.ItemsSource = Months;
             ReportDrop.SelectedItem = Months[DateTime.Now.Month - 1];
             ReportGrid.ItemsSource = ReportOffers;
 
-            //if (!CheckVersion(out string _version)) Restart();
-            //else UpdateDatabases();
-
-            DataContext = ProductModel;
             Loaded += LoadDataBases;
         }
 
@@ -714,7 +700,7 @@ namespace Metal_Code
         public void ShowUpdateWindow()          // метод добавления и загрузки обновлений
         {
             // Создаём контекст
-            using var ctx = new RequestContext(connections[12]);
+            using var ctx = new RequestContext(connections[4]);
             ctx.EnsureUpdateTableExists();
 
             // Гарантируем, что история есть
@@ -745,14 +731,14 @@ namespace Metal_Code
                 updateWindow.ShowDialog();
 
                 // После закрытия — помечаем как просмотренные
-                using var freshCtx = new RequestContext(connections[12]); // или переиспользуйте, если в том же потоке
+                using var freshCtx = new RequestContext(connections[4]); // или переиспользуйте, если в том же потоке
                 freshCtx.MarkStartupUpdatesAsSeen();
             }
         }
 
         private void OnUpdatesMenuItemClick(object sender, RoutedEventArgs e)
         {
-            using var ctx = new RequestContext(connections[12]);
+            using var ctx = new RequestContext(connections[4]);
 
             // Показываем ВСЮ историю (без фильтра IsShownAtStartup)
             var allUpdates = ctx.UpdateItems
@@ -2100,6 +2086,7 @@ namespace Metal_Code
                 }
             }), DispatcherPriority.Background);
         }
+
         /// <summary>
         /// Проверяет, действительно ли изменились данные в редактируемой ячейке.
         /// </summary>
@@ -2196,7 +2183,7 @@ namespace Metal_Code
 
                     if (ActiveOffer?.Id == offer.Id)
                     {
-                        CreateComplect(connections[8], offer);
+                        CreateComplect(connections[5], offer);
                     }
                 }
                 else
@@ -7651,7 +7638,7 @@ namespace Metal_Code
         }
         private async System.Threading.Tasks.Task<string> LaunchToWork(Offer offer)
         {
-            if (!Directory.Exists(connections[8]))
+            if (!Directory.Exists(connections[5]))
                 return $"Не удалось запустить в производство!\n" +
                        $"Нет подключения к папке \"В работу\"";
 
@@ -7694,7 +7681,7 @@ namespace Metal_Code
             const int WINDOW_SIZE = 50; // Максимальное количество "ручных" папок вперёд от последнего номера
 
             int nextOrder = MIN_ORDER;
-            string workingDir = connections[8];
+            string workingDir = connections[5];
             string logFilePath = Path.Combine(workingDir, "issued_orders.txt");
 
             // Создаём файл, если он не существует, и делаем его скрытым
@@ -7783,11 +7770,9 @@ namespace Metal_Code
                     }
                 }
 
-                using (var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 1, leaveOpen: true))
-                {
-                    await writer.WriteLineAsync(nextOrder.ToString());
-                    await writer.FlushAsync();
-                }
+                using var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 1, leaveOpen: true);
+                await writer.WriteLineAsync(nextOrder.ToString());
+                await writer.FlushAsync();
             }
 
             // Присваиваем номер заказа
@@ -8479,8 +8464,6 @@ namespace Metal_Code
                     "Обновление программы", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                 if (response == MessageBoxResult.No) return;
-
-                //CreateWorker(InsertDatabase, ActionState.restartApp);
             }
             else
             {
@@ -8489,8 +8472,6 @@ namespace Metal_Code
                     "Обновление программы", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
 
                 if (response == MessageBoxResult.No) return;
-
-                //CreateWorker(InsertDatabase, ActionState.restartApp);
             }
         }
         private void Restart()
@@ -8499,21 +8480,37 @@ namespace Metal_Code
             Environment.Exit(0);
         }
 
-        public bool CheckVersion(out string _version)                   //метод проверки версии приложения
+        public bool CheckVersion(out string _version)
         {
-            if (!File.Exists(connections[9] + "\\version.txt"))
+            string networkFolder = connections[6]; // M:\Metal-Code
+
+            // ⭐ Проверяем доступность сетевой папки напрямую
+            if (!Directory.Exists(networkFolder))
             {
                 _version = $"{Version}, без подключения к серверу.";
+                return true; // Считаем версию актуальной (не можем проверить)
+            }
+
+            string serverVersionPath = Path.Combine(networkFolder, "version.txt");
+            string localVersionPath = Path.Combine(Directory.GetCurrentDirectory(), "version.txt");
+
+            if (!File.Exists(serverVersionPath) || !File.Exists(localVersionPath))
+            {
+                _version = $"{Version}, файл версии не найден.";
                 return true;
             }
 
-            FileInfo serverVersionFile = new(connections[9] + "\\version.txt");
-            FileInfo localVersionFile = new(Directory.GetCurrentDirectory() + "\\version.txt");
-
-            _version = File.ReadAllText(connections[9] + "\\version.txt");
-
-            return serverVersionFile.Exists && localVersionFile.Exists
-                && File.ReadAllText(connections[9] + "\\version.txt") == File.ReadAllText(Directory.GetCurrentDirectory() + "\\version.txt");
+            try
+            {
+                _version = File.ReadAllText(serverVersionPath).Trim();
+                string localVersion = File.ReadAllText(localVersionPath).Trim();
+                return _version == localVersion;
+            }
+            catch (Exception ex)
+            {
+                _version = $"{Version}, ошибка чтения: {ex.Message}";
+                return true; // При ошибке считаем версию актуальной
+            }
         }
         #endregion
 

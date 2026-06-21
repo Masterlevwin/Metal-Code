@@ -159,7 +159,11 @@ namespace Metal_Code
                         }
 
                         if (newWorkControl.workType is ThreadControl targetThread)
+                        {
                             targetThread.Wide = Wide;
+                            newWorkControl.ApplyReadOnlyState();
+                        }
+                            
                     }
                 }
             }

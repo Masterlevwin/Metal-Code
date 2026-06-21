@@ -12,7 +12,7 @@ namespace Metal_Code
     /// </summary>
     public partial class MetalWindow : Window
     {
-        MetalContext db = new(MainWindow.M.connections[6]);
+        readonly MetalContext db = new(MainWindow.M.connections[3]);
         public MetalWindow()
         {
             InitializeComponent();
