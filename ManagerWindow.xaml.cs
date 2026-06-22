@@ -1,6 +1,7 @@
 ﻿using Metal_Code.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -14,6 +15,7 @@ namespace Metal_Code
     public partial class ManagerWindow : Window
     {
         ManagerContext db = new(MainWindow.M.connections[0]);
+
         public ManagerWindow()
         {
             InitializeComponent();
@@ -25,11 +27,12 @@ namespace Metal_Code
         {
             // загружаем данные из БД
             db.Managers.Load();
-            // и устанавливаем данные в качестве контекста
-            DataContext = db.Managers.Local.ToObservableCollection();
 
-            LaserList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => x.IsLaser);
-            AppList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => !x.IsLaser);
+            // устанавливаем данные в качестве контекста
+            var managers = db.Managers.Local.ToObservableCollection();
+
+            LaserList.ItemsSource = managers.Where(x => x.IsLaser).ToList();
+            AppList.ItemsSource = managers.Where(x => !x.IsLaser).ToList();
         }
 
         // добавление
@@ -42,19 +45,17 @@ namespace Metal_Code
                 db.Managers.Add(Manager);
                 db.SaveChanges();
 
-                LaserList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => x.IsLaser);
-                AppList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => !x.IsLaser);
+                RefreshLists();
             }
         }
+
         // редактирование
         private void Edit_DoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (sender is not ListBox list) return;
 
-            // получаем выделенный объект
             Manager? manager = list.SelectedItem as Manager;
 
-            // если ни одного объекта не выделено, выходим
             if (manager is null || manager.Password == "uri") return;
 
             ManagerSettings ManagerSettings = new(new()
@@ -70,7 +71,6 @@ namespace Metal_Code
 
             if (ManagerSettings.ShowDialog() == true)
             {
-                // получаем измененный объект
                 manager = db.Managers.Find(ManagerSettings.Manager.Id);
                 if (manager != null)
                 {
@@ -82,18 +82,16 @@ namespace Metal_Code
                     manager.IsLaser = ManagerSettings.Manager.IsLaser;
                     db.SaveChanges();
 
-                    LaserList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => x.IsLaser);
-                    AppList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => !x.IsLaser);
+                    RefreshLists();
                 }
             }
         }
 
-        // удаление
+        // удаление из списка лазерных операторов
         private void DeleteLaser_Click(object sender, RoutedEventArgs e)
         {
-            if (LaserList.SelectedItem is not Manager manager || manager.IsAdmin) return;
+            if (LaserList.SelectedItem is not Manager manager) return;
 
-            // ⭐ Защита от удаления текущего пользователя
             if (manager.Id == MainWindow.M.CurrentManager?.Id)
             {
                 MessageBox.Show("Нельзя удалить текущего пользователя!\nСначала войдите под другим пользователем.",
@@ -109,7 +107,6 @@ namespace Metal_Code
             try
             {
                 DeleteManagerCompletely(manager.Id);
-                LaserList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => x.IsLaser);
                 HaveChanged = true;
             }
             catch (Exception ex)
@@ -118,11 +115,11 @@ namespace Metal_Code
             }
         }
 
+        // удаление из списка менеджеров
         private void DeleteApp_Click(object sender, RoutedEventArgs e)
         {
-            if (AppList.SelectedItem is not Manager manager || manager.IsAdmin) return;
+            if (AppList.SelectedItem is not Manager manager) return;
 
-            // ⭐ Защита от удаления текущего пользователя
             if (manager.Id == MainWindow.M.CurrentManager?.Id)
             {
                 MessageBox.Show("Нельзя удалить текущего пользователя!\nСначала войдите под другим пользователем.",
@@ -138,18 +135,17 @@ namespace Metal_Code
             try
             {
                 DeleteManagerCompletely(manager.Id);
-                AppList.DataContext = db.Managers.Local.ToObservableCollection().Where(x => !x.IsLaser);
                 HaveChanged = true;
             }
             catch (Exception ex)
             {
+                Trace.WriteLine($"Ошибка удаления: {ex.Message}");
                 MessageBox.Show($"Ошибка удаления: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         /// <summary>
         /// Полностью удаляет менеджера и все связанные данные (заказчики, расчёты) через прямой SQL.
-        /// Обходит проблему с [NotMapped] навигационными свойствами.
         /// </summary>
         private void DeleteManagerCompletely(int managerId)
         {
@@ -165,20 +161,38 @@ namespace Metal_Code
             db.Database.ExecuteSqlRaw(
                 "DELETE FROM Managers WHERE Id = {0}", managerId);
 
-            // 4. Перечитываем коллекцию, чтобы UI обновился
-            db.Entry(db.Managers.Local).State = EntityState.Detached;
-            db.Managers.Load();
+            // 4. Обновляем UI
+            RefreshLists();
         }
 
-        private bool HaveChanged = false;           //было ли удаление менеджера
+        /// <summary>
+        /// Обновляет списки менеджеров в UI.
+        /// </summary>
+        private void RefreshLists()
+        {
+            // Очищаем ChangeTracker от всех отслеживаемых сущностей
+            db.ChangeTracker.Clear();
+
+            // Перечитываем коллекцию из базы
+            db.Managers.Load();
+
+            // Обновляем ObservableCollection
+            var managers = db.Managers.Local.ToObservableCollection();
+
+            LaserList.ItemsSource = managers.Where(x => x.IsLaser).ToList();
+            AppList.ItemsSource = managers.Where(x => !x.IsLaser).ToList();
+        }
+
+        private bool HaveChanged = false;
+
         private void FocusMainWindow(object sender, EventArgs e)
         {
-            if (HaveChanged)                        //если произошло удаление менеджера, перезапускаем программу
+            if (HaveChanged)
             {
                 System.Windows.Forms.Application.Restart();
                 Environment.Exit(0);
             }
-            else MainWindow.M.IsEnabled = true;     //иначе просто активируем главное окно
+            else MainWindow.M.IsEnabled = true;
         }
     }
 }
