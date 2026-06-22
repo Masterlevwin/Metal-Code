@@ -532,7 +532,7 @@ namespace Metal_Code
                 Restart();
 
             // ⭐ Показываем версию + статус подключения
-            Title = $"Metal-Code {Version} | {versionInfo}";
+            Title = $"Metal-Code {versionInfo}";
 
             DataContext = ProductModel;
 
@@ -1468,7 +1468,14 @@ namespace Metal_Code
             }
         }
 
-        private void ReportChanged(object sender, RoutedEventArgs e) => RefreshReportIfNeeded();
+        private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // ⭐ Проверяем, что активной стала именно вкладка отчётов
+            if (e.AddedItems.Contains(ReportTab) && ReportTab.IsLoaded)
+            {
+                RefreshReportIfNeeded();
+            }
+        }
         private void ReportChanged(object sender, SelectionChangedEventArgs e) => RefreshReportIfNeeded();
         
         /// <summary>
@@ -1511,7 +1518,7 @@ namespace Metal_Code
                             ReportOffers.Add(offer);
                         }
                     });
-                    ReportView();
+                    await ReportView();
 
                     StatusBegin($"Отгружено за {target:MMMM yyyy}: {ReportOffers.Count} расчётов", StatusMessageType.Success);
                 }
@@ -5830,7 +5837,7 @@ namespace Metal_Code
         public decimal NormWorkingHours { get; set; } = 180m;
         public decimal ActualWorkingHours { get; set; } = 180m;
 
-        private void ReportView()
+        private async System.Threading.Tasks.Task ReportView()
         {
             if (ReportOffers == null || ReportOffers.Count == 0)
             {
@@ -5838,8 +5845,18 @@ namespace Metal_Code
                 return;
             }
 
+            StatusBegin("Формирование отчета...", StatusMessageType.Info);
+
             _currentReport = BuildReport(ReportOffers);
             UpdateReportUi((_currentReport.Plan, _currentReport.BonusOoo, _currentReport.BonusIp, _currentReport.TotalSalary));
+
+            // ⭐ Принудительное обновление таблицы (чтобы не пришлось прокручивать)
+            await Dispatcher.InvokeAsync(() =>
+            {
+                var currentSource = ReportGrid.ItemsSource;
+                ReportGrid.ItemsSource = null;
+                ReportGrid.ItemsSource = currentSource;
+            });
         }
 
         private void UpdateReportUi((decimal Plan, decimal BonusOoo, decimal BonusIp, decimal TotalSalary) result)

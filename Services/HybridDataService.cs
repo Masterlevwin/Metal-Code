@@ -1361,6 +1361,7 @@ namespace Metal_Code.Services
                                 Autor = o.Autor,
                                 Act = o.Act,
                                 ManagerId = finalLocalManagerId,
+                                Data = o.Data,
                                 IsPendingSync = false
                             })
                             .ToListAsync();
@@ -1397,6 +1398,7 @@ namespace Metal_Code.Services
                     Autor = o.Autor,
                     Act = o.Act,
                     ManagerId = o.ManagerId,
+                    Data = o.Data,
                     IsPendingSync = false
                 })
                 .ToListAsync();
