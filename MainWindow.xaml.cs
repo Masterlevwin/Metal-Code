@@ -8474,22 +8474,24 @@ namespace Metal_Code
 
         private void Restart(object sender, RoutedEventArgs e)
         {
-            if (CheckVersion(out string _version))
-            {
-                MessageBoxResult response = MessageBox.Show(
-                    $"Metal-Code не требует обновления.\nТекущая версия - {_version}.\nНажмите \"Да\", если требуется обновить принудительно.",
-                    "Обновление программы", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            bool isUpToDate = CheckVersion(out string currentVersion);
 
-                if (response == MessageBoxResult.No) return;
-            }
-            else
-            {
-                MessageBoxResult response = MessageBox.Show(
-                    "Для обновления программы, потребуется перезагрузка.\nНажмите \"Нет\", если требуется сохранить текущий расчет.",
-                    "Обновление программы", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+            // ⭐ Формируем сообщение в зависимости от состояния версии
+            string message = isUpToDate
+                ? $"Metal-Code не требует обновления.\nТекущая версия: {currentVersion}\n\nНажмите \"Да\" для принудительного обновления."
+                : $"Доступна новая версия программы.\nТекущая версия: {currentVersion}\n\nНажмите \"Да\" для обновления.\nНажмите \"Нет\" для отмены (не забудьте сохранить текущий расчёт).";
 
-                if (response == MessageBoxResult.No) return;
-            }
+            MessageBoxImage icon = isUpToDate ? MessageBoxImage.Question : MessageBoxImage.Exclamation;
+
+            MessageBoxResult response = MessageBox.Show(
+                message,
+                "Обновление программы",
+                MessageBoxButton.YesNo,
+                icon);
+
+            if (response == MessageBoxResult.No) return;
+
+            Restart();
         }
         private void Restart()
         {
