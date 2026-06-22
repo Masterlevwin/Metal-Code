@@ -181,6 +181,7 @@ namespace Metal_Code.Services
 
         /// <summary>
         /// Миграция данных из локальной SQLite в PG при первом запуске.
+        /// Мигрирует только те данные, которых ещё нет в PG (сравнение по количеству).
         /// </summary>
         public async System.Threading.Tasks.Task MigrateUserDataToPgAsync()
         {
@@ -193,10 +194,10 @@ namespace Metal_Code.Services
 
                 // 1. Исправление счётчиков PostgreSQL
                 await pgContext.Database.ExecuteSqlRawAsync(@"
-                    SELECT setval('managers_id_seq', COALESCE((SELECT MAX(id) FROM managers), 1));
-                    SELECT setval('offers_id_seq', COALESCE((SELECT MAX(id) FROM offers), 1));
-                    SELECT setval('customers_id_seq', COALESCE((SELECT MAX(id) FROM customers), 1));
-                ");
+            SELECT setval('managers_id_seq', COALESCE((SELECT MAX(id) FROM managers), 1));
+            SELECT setval('offers_id_seq', COALESCE((SELECT MAX(id) FROM offers), 1));
+            SELECT setval('customers_id_seq', COALESCE((SELECT MAX(id) FROM customers), 1));
+        ");
 
                 // 2. Находим текущего пользователя локально
                 var localCurrentUser = await localCtx.Managers
@@ -230,8 +231,8 @@ namespace Metal_Code.Services
                 {
                     List<Manager> pgManagers = await pgContext.Managers.AsNoTracking().ToListAsync();
                     managersToMigrate = pgManagers
-                        .Where(m => m.Name != null)       // ⭐ Отсеиваем null
-                        .Select(m => m.Name!)              // ⭐ Null-forgiving оператор (мы уже проверили)
+                        .Where(m => m.Name != null)
+                        .Select(m => m.Name!)
                         .ToList();
                 }
                 else if (localCurrentUser.Name != null)
@@ -255,21 +256,44 @@ namespace Metal_Code.Services
 
                     Trace.WriteLine($"🔄 Начало миграции данных для '{managerName}'...");
 
-                    // ⭐ ПРОВЕРКА ЗАКАЗЧИКОВ: мигрируем только если их нет в PG
-                    bool customersAlreadyMigrated = await pgContext.Customers.AsNoTracking().AnyAsync(c => c.ManagerId == pgManager.Id);
+                    // ================================================================
+                    // ⭐ ПРОВЕРКА ЗАКАЗЧИКОВ: мигрируем, если в PG меньше, чем локально
+                    // ================================================================
+                    var localCustomersCount = await localCtx.Customers
+                        .AsNoTracking()
+                        .Where(c => localIds.Contains(c.ManagerId))
+                        .CountAsync();
 
-                    if (!customersAlreadyMigrated)
+                    var pgCustomersCount = await pgContext.Customers
+                        .AsNoTracking()
+                        .Where(c => c.ManagerId == pgManager.Id)
+                        .CountAsync();
+
+                    Trace.WriteLine($"📊 Заказчики для '{managerName}': локально={localCustomersCount}, в PG={pgCustomersCount}");
+
+                    if (pgCustomersCount < localCustomersCount)
                     {
                         var localCustomers = await localCtx.Customers
                             .AsNoTracking()
                             .Where(c => localIds.Contains(c.ManagerId))
                             .ToListAsync();
 
-                        if (localCustomers.Any())
-                        {
-                            Trace.WriteLine($"📦 Миграция {localCustomers.Count} заказчиков...");
+                        // ⭐ Фильтруем только тех, которых нет в PG (по имени)
+                        var pgCustomerNames = await pgContext.Customers
+                            .AsNoTracking()
+                            .Where(c => c.ManagerId == pgManager.Id)
+                            .Select(c => c.Name)
+                            .ToListAsync();
 
-                            foreach (var c in localCustomers)
+                        var customersToMigrate = localCustomers
+                            .Where(c => !pgCustomerNames.Contains(c.Name))
+                            .ToList();
+
+                        if (customersToMigrate.Any())
+                        {
+                            Trace.WriteLine($"📦 Миграция {customersToMigrate.Count} заказчиков...");
+
+                            foreach (var c in customersToMigrate)
                             {
                                 // ⭐ Сериализуем SpecTemplate (owned entity из SQLite) в JSON для PG
                                 string specTemplateJson = System.Text.Json.JsonSerializer.Serialize(c.SpecTemplate);
@@ -286,7 +310,11 @@ namespace Metal_Code.Services
                             }
 
                             await pgContext.SaveChangesAsync();
-                            Trace.WriteLine($"✅ Мигрировано {localCustomers.Count} заказчиков для '{managerName}'");
+                            Trace.WriteLine($"✅ Мигрировано {customersToMigrate.Count} заказчиков для '{managerName}'");
+                        }
+                        else
+                        {
+                            Trace.WriteLine($"ℹ️ Все заказчики уже мигрированы для '{managerName}' (разница в количестве из-за удалённых)");
                         }
                     }
                     else
@@ -294,52 +322,85 @@ namespace Metal_Code.Services
                         Trace.WriteLine($"ℹ️ Заказчики уже мигрированы для '{managerName}'");
                     }
 
-                    // ⭐ ПРОВЕРКА РАСЧЁТОВ: мигрируем только если их нет в PG
-                    bool offersAlreadyMigrated = await pgContext.Offers.AsNoTracking().AnyAsync(o => o.ManagerId == pgManager.Id);
+                    // ================================================================
+                    // ⭐ ПРОВЕРКА РАСЧЁТОВ: мигрируем, если в PG меньше, чем локально
+                    // ================================================================
+                    var localOffersCount = await localCtx.Offers
+                        .AsNoTracking()
+                        .Where(o => localIds.Contains(o.ManagerId))
+                        .CountAsync();
 
-                    if (!offersAlreadyMigrated)
+                    var pgOffersCount = await pgContext.Offers
+                        .AsNoTracking()
+                        .Where(o => o.ManagerId == pgManager.Id)
+                        .CountAsync();
+
+                    Trace.WriteLine($"📊 Расчёты для '{managerName}': локально={localOffersCount}, в PG={pgOffersCount}");
+
+                    if (pgOffersCount < localOffersCount)
                     {
                         var localOffers = await localCtx.Offers
                             .AsNoTracking()
                             .Where(o => localIds.Contains(o.ManagerId))
                             .ToListAsync();
 
-                        if (localOffers.Any())
+                        // ⭐ Фильтруем только те, которых нет в PG (по номеру N)
+                        // Номер + ManagerId — естественный ключ расчёта
+                        var pgOfferKeys = await pgContext.Offers
+                            .AsNoTracking()
+                            .Where(o => o.ManagerId == pgManager.Id)
+                            .Select(o => o.N)
+                            .ToListAsync();
+
+                        var offersToMigrate = localOffers
+                            .Where(o => !pgOfferKeys.Contains(o.N))
+                            .ToList();
+
+                        if (offersToMigrate.Any())
                         {
-                            Trace.WriteLine($"📦 Миграция {localOffers.Count} расчётов пакетами по 10...");
+                            Trace.WriteLine($"📦 Миграция {offersToMigrate.Count} расчётов пакетами по 10...");
 
                             const int batchSize = 10;
                             int savedCount = 0;
+                            int failedCount = 0;
 
-                            for (int i = 0; i < localOffers.Count; i += batchSize)
+                            for (int i = 0; i < offersToMigrate.Count; i += batchSize)
                             {
-                                var batch = localOffers.Skip(i).Take(batchSize).ToList();
+                                var batch = offersToMigrate.Skip(i).Take(batchSize).ToList();
 
                                 foreach (var o in batch)
                                 {
-                                    var pgOffer = new Offer
+                                    try
                                     {
-                                        N = o.N,
-                                        Company = o.Company,
-                                        Amount = o.Amount,
-                                        Material = o.Material,
-                                        Services = o.Services,
-                                        Agent = o.Agent,
-                                        Invoice = o.Invoice,
-                                        CreatedDate = o.CreatedDate.HasValue
-                                            ? DateTime.SpecifyKind(o.CreatedDate.Value, DateTimeKind.Utc)
-                                            : DateTime.UtcNow,
-                                        EndDate = o.EndDate.HasValue
-                                            ? DateTime.SpecifyKind(o.EndDate.Value, DateTimeKind.Utc)
-                                            : null,
-                                        Order = o.Order,
-                                        Autor = o.Autor,
-                                        Act = o.Act,
-                                        ManagerId = pgManager.Id,
-                                        Data = o.Data
-                                    };
+                                        var pgOffer = new Offer
+                                        {
+                                            N = o.N,
+                                            Company = o.Company,
+                                            Amount = o.Amount,
+                                            Material = o.Material,
+                                            Services = o.Services,
+                                            Agent = o.Agent,
+                                            Invoice = o.Invoice,
+                                            CreatedDate = o.CreatedDate.HasValue
+                                                ? DateTime.SpecifyKind(o.CreatedDate.Value, DateTimeKind.Utc)
+                                                : DateTime.UtcNow,
+                                            EndDate = o.EndDate.HasValue
+                                                ? DateTime.SpecifyKind(o.EndDate.Value, DateTimeKind.Utc)
+                                                : null,
+                                            Order = o.Order,
+                                            Autor = o.Autor,
+                                            Act = o.Act,
+                                            ManagerId = pgManager.Id,
+                                            Data = o.Data
+                                        };
 
-                                    pgContext.Offers.Add(pgOffer);
+                                        pgContext.Offers.Add(pgOffer);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        failedCount++;
+                                        Trace.WriteLine($"⚠️ Пропуск расчёта {o.N}: {ex.Message}");
+                                    }
                                 }
 
                                 pgContext.Database.SetCommandTimeout(300);
@@ -351,10 +412,15 @@ namespace Metal_Code.Services
                                 }
 
                                 savedCount += batch.Count;
-                                Trace.WriteLine($"  📦 Пакет {i / batchSize + 1}: сохранено {savedCount} из {localOffers.Count}");
+                                Trace.WriteLine($"  📦 Пакет {i / batchSize + 1}: сохранено {savedCount} из {offersToMigrate.Count}");
                             }
 
-                            Trace.WriteLine($"✅ Мигрировано {localOffers.Count} расчётов для '{managerName}'");
+                            Trace.WriteLine($"✅ Мигрировано {savedCount} расчётов для '{managerName}'" +
+                                            (failedCount > 0 ? $" (пропущено: {failedCount})" : ""));
+                        }
+                        else
+                        {
+                            Trace.WriteLine($"ℹ️ Все расчёты уже мигрированы для '{managerName}' (разница в количестве из-за удалённых)");
                         }
                     }
                     else
@@ -364,9 +430,9 @@ namespace Metal_Code.Services
 
                     // Помечаем локальные расчёты как синхронизированные
                     await localCtx.Database.ExecuteSqlInterpolatedAsync($@"
-        UPDATE Offers 
-        SET IsPendingSync = 0 
-        WHERE ManagerId IN (SELECT Id FROM Managers WHERE Name = {managerName})");
+                UPDATE Offers 
+                SET IsPendingSync = 0 
+                WHERE ManagerId IN (SELECT Id FROM Managers WHERE Name = {managerName})");
 
                     Trace.WriteLine($"✅ Завершена миграция для '{managerName}'");
                 }
@@ -376,11 +442,11 @@ namespace Metal_Code.Services
                 foreach (var pgMgr in pgManagersList)
                 {
                     await localCtx.Database.ExecuteSqlInterpolatedAsync($@"
-                        UPDATE Managers 
-                        SET IsAdmin = {pgMgr.IsAdmin}, 
-                            IsEngineer = {pgMgr.IsEngineer}, 
-                            IsLaser = {pgMgr.IsLaser}
-                        WHERE Name = {pgMgr.Name}");
+                UPDATE Managers 
+                SET IsAdmin = {pgMgr.IsAdmin}, 
+                    IsEngineer = {pgMgr.IsEngineer}, 
+                    IsLaser = {pgMgr.IsLaser}
+                WHERE Name = {pgMgr.Name}");
                 }
             }
             catch (Exception ex)
