@@ -437,7 +437,7 @@
                 <GroupBox.Header>
                     <StackPanel Orientation="Horizontal" Margin="5">
                         <TextBlock Text="КП №" VerticalAlignment="Center" FontWeight="Bold" Width="40"/>
-                        <TextBox x:Name="Order" MaxLines="1" ToolTip="Введите номер предложения" Width="60" Margin="5,0,0,0" HorizontalContentAlignment="Center"/>
+                        <TextBox x:Name="Order" MaxLines="1" ToolTip="Введите номер предложения" Width="60" Margin="5,0,0,0" HorizontalContentAlignment="Center" LostFocus="Order_LostFocus"/>
                         <TextBlock Text="{Binding IsAgent, Converter={StaticResource IsAgentToTextConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="Blue" Width="50"/>
                         <hc:ComboBox hc:InfoElement.Placeholder="Выбор заказчика" x:Name="CustomerDrop" DisplayMemberPath="Name" IsEditable="True" SelectedIndex="0" SelectionChanged="CustomerChanged" Margin="10,0,0,0" Width="210" ToolTip="Выберите заказчика"/>
                         <StackPanel Orientation="Horizontal" Margin="20,0,0,0">
@@ -950,8 +950,7 @@
                                         <TextBox x:Name="BonusIP" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" Width="50"/>
                                         <TextBlock Text="Итого:" Margin="5,0,0,0" TextAlignment="Center" VerticalAlignment="Center" Width="40"/>
                                         <TextBox x:Name="Salary" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" Width="50"/>
-                                        <ToggleButton IsChecked="{Binding IsReportByCreated, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"
-                                                      Margin="5,0,0,0" Style="{StaticResource ToggleButtonSwitch.Small}" ToolTip="Перестроить отчет по дате создания / по дате отрузки"/>
+                                        <Button Content="📊" Click="SyncWithCrm_Click" Margin="10,0,0,0" ToolTip="Сравнить с отчетом CRM и выделить отсутствующие расчеты"/>
                                     </StackPanel>
                                 </Grid>
                             </Border>

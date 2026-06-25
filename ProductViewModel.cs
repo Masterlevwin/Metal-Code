@@ -617,29 +617,82 @@ namespace Metal_Code
                     {
                         if (MainWindow.M.OffersGrid.SelectedItem is not Offer offer) return;
 
-                        bool isOnline = MainWindow.M.DataService.IsOnline;
-                        bool isOwnManager = MainWindow.M.CurrentManager?.Id == offer.ManagerId;
-
-                        string message;
-                        if (isOnline && isOwnManager)
+                        var currentManager = MainWindow.M.CurrentManager;
+                        if (currentManager == null)
                         {
-                            message = "Уверены? Расчет будет удален из основной базы (сервер)!";
+                            MainWindow.M.StatusBegin("Пользователь не определён", MainWindow.StatusMessageType.Error);
+                            return;
                         }
-                        else if (isOnline && !isOwnManager)
+
+                        // ⭐ ПРОВЕРКА ПРАВ ДОСТУПА
+                        bool isOwner = currentManager.Id == offer.ManagerId;
+                        bool isAdmin = currentManager.IsAdmin;
+                        bool isEngineer = currentManager.IsEngineer;
+
+                        // Инженеры не могут удалять расчёты (как и редактировать)
+                        if (isEngineer)
                         {
-                            message = "Уверены? Расчет другого менеджера будет удален из основной базы (сервер)!";
+                            MainWindow.M.StatusBegin("Инженеры не могут удалять расчёты", MainWindow.StatusMessageType.Warning);
+                            return;
+                        }
+
+                        // Менеджер может удалять только свои расчёты (админ — любые)
+                        if (!isOwner && !isAdmin)
+                        {
+                            // Находим владельца расчёта для информативного сообщения
+                            string ownerName = "неизвестно";
+                            try
+                            {
+                                using var localCtx = new ManagerContext(MainWindow.M.connections[0]);
+                                var owner = await localCtx.Managers.AsNoTracking()
+                                    .FirstOrDefaultAsync(m => m.Id == offer.ManagerId);
+                                if (owner != null) ownerName = owner.Name ?? ownerName;
+                            }
+                            catch { /* игнорируем ошибку получения имени */ }
+
+                            MessageBox.Show(
+                                $"Вы не можете удалить расчёт {offer.N}.\n" +
+                                $"Этот расчёт принадлежит менеджеру «{ownerName}».\n\n" +
+                                $"Удалять расчёты может только их владелец или администратор.",
+                                "Доступ запрещён",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Warning);
+                            return;
+                        }
+
+                        // ⭐ Формируем сообщение в зависимости от ситуации
+                        bool isOnline = MainWindow.M.DataService.IsOnline;
+                        string message;
+
+                        if (isOwner)
+                        {
+                            message = isOnline
+                                ? $"Уверены? Расчёт {offer.N} будет удалён из основной базы (сервер)."
+                                : $"Уверены? Расчёт {offer.N} будет удалён из локальной базы.";
                         }
                         else
                         {
-                            message = "Уверены? Расчет будет удален из локальной базы!";
+                            string ownerName = "неизвестно";
+                            try
+                            {
+                                using var localCtx = new ManagerContext(MainWindow.M.connections[0]);
+                                var owner = await localCtx.Managers.AsNoTracking()
+                                    .FirstOrDefaultAsync(m => m.Id == offer.ManagerId);
+                                if (owner != null) ownerName = owner.Name ?? ownerName;
+                            }
+                            catch { /* игнорируем */ }
+
+                            message = isOnline
+                                ? $"Уверены? Расчёт {offer.N} менеджера «{ownerName}» будет удалён из основной базы (сервер).\n\nДействие от имени администратора."
+                                : $"Уверены? Расчёт {offer.N} менеджера «{ownerName}» будет удалён из локальной базы.\n\nДействие от имени администратора.";
                         }
 
-                        var response = MessageBox.Show(message, "Удаление расчета",
+                        var response = MessageBox.Show(message, "Удаление расчёта",
                             MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
 
                         if (response != MessageBoxResult.Yes) return;
 
-                        MainWindow.M.StatusBegin($"Удаление расчета {offer.N}...", MainWindow.StatusMessageType.Info);
+                        MainWindow.M.StatusBegin($"Удаление расчёта {offer.N}...", MainWindow.StatusMessageType.Info);
 
                         bool removed = await MainWindow.M.DataService.RemoveOfferAsync(offer.Id);
 
@@ -649,17 +702,18 @@ namespace Metal_Code
                             MainWindow.M.InitializeOffersView();
                             MainWindow.M.SummaryInfoTextBlock.Text = $"Всего расчётов: {MainWindow.M.CurrentOffers.Count} шт.";
 
-                            MainWindow.M.StatusBegin($"Расчет {offer.N} удален.", MainWindow.StatusMessageType.Success);
-                            Trace.WriteLine($"✅ Расчет {offer.N} (Id={offer.Id}) успешно удален");
+                            MainWindow.M.StatusBegin($"Расчёт {offer.N} удалён.", MainWindow.StatusMessageType.Success);
+                            Trace.WriteLine($"✅ Расчёт {offer.N} (Id={offer.Id}) удалён пользователем {currentManager.Name}" +
+                                            (isOwner ? "" : " (администратор)"));
                         }
                         else
                         {
-                            dialogService.ShowMessage($"Не удалось удалить расчет {offer.N}");
+                            dialogService.ShowMessage($"Не удалось удалить расчёт {offer.N}");
                         }
                     }
                     catch (Exception ex)
                     {
-                        Trace.WriteLine($"❌ Ошибка удаления расчета: {ex.Message}");
+                        Trace.WriteLine($"❌ Ошибка удаления расчёта: {ex.Message}");
                         dialogService.ShowMessage(ex.Message);
                     }
                 });

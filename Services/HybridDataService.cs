@@ -29,12 +29,20 @@ namespace Metal_Code.Services
 
         public async Task<bool> InitializeAsync()
         {
+            // ⭐ ПРОВЕРКА 1: Отключение PG через конфигурацию
+            if (IsPostgresDisabledByConfig())
+            {
+                _isOnline = false;
+                Trace.WriteLine("🔌 PostgreSQL отключён через конфигурацию (DisablePostgres=true)");
+                return false;
+            }
+
+            // ⭐ ПРОВЕРКА 2: Реальное подключение к PG
             try
             {
                 using var testCtx = new AppDbContext(_pgOptions);
                 testCtx.Database.SetCommandTimeout(5);
 
-                // ⭐ Реальный запрос, а не CanConnectAsync
                 await testCtx.Database.ExecuteSqlRawAsync("SELECT 1");
 
                 _isOnline = true;
@@ -49,6 +57,24 @@ namespace Metal_Code.Services
                 Trace.WriteLine($"⚠️ PG недоступен: {ex.Message}");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Проверяет, отключён ли PostgreSQL через настройку DisablePostgres в App.config.
+        /// </summary>
+        private bool IsPostgresDisabledByConfig()
+        {
+            try
+            {
+                string? setting = System.Configuration.ConfigurationManager.AppSettings["DisablePostgres"];
+                if (bool.TryParse(setting, out bool disabled))
+                    return disabled;
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"⚠️ Ошибка чтения настройки DisablePostgres: {ex.Message}");
+            }
+            return false;
         }
 
         /// <summary>

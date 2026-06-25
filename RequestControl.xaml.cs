@@ -357,76 +357,105 @@ namespace Metal_Code
                 var _techItem = TechItems.FirstOrDefault(x => x.PathToModel == techItem.PathToModel);
                 if (_techItem != null) continue;
 
-                //определяем материал
+                // Определяем материал
                 string aisiPattern = @"(aisi\s*(\d+)\s*зер)|(aisi\s*(\d+)\s*шлиф)|(aisi\s*(\d+))";
                 string d16atPattern = @"д\s*16\s*(?:а\s*т|т)";
                 string d16amPattern = @"д\s*16\s*(?:а\s*м|м)";
-                string amgPattern = @"амг\s*(\d+)";
 
-                foreach (Metal metal in MainWindow.M.Metals)
-                    if (metal.Name != null && metal.Name.Contains("aisi"))
-                    {
-                        Match match = Regex.Match(path, aisiPattern, RegexOptions.IgnoreCase);
-                        if (match.Success && metal.Name.Contains(match.Value.Replace(" ", ""), StringComparison.OrdinalIgnoreCase))
-                        {
-                            techItem.Material = metal.Name;
-                            techItem.NumberName = Regex.Replace(techItem.NumberName, aisiPattern, "", RegexOptions.IgnoreCase);
-                            break;
-                        }
-                    }
-                    else if (metal.Name != null && metal.Name.Contains("д16АТ"))
-                    {
-                        Match match = Regex.Match(path, d16atPattern, RegexOptions.IgnoreCase);
-                        if (match.Success)
-                        {
-                            techItem.Material = metal.Name;
-                            techItem.NumberName = Regex.Replace(techItem.NumberName, d16atPattern, "", RegexOptions.IgnoreCase);
-                            break;
-                        }
-                    }
-                    else if (metal.Name != null && metal.Name.Contains("д16АМ"))
-                    {
-                        Match match = Regex.Match(path, d16amPattern, RegexOptions.IgnoreCase);
-                        if (match.Success)
-                        {
-                            techItem.Material = metal.Name;
-                            techItem.NumberName = Regex.Replace(techItem.NumberName, d16amPattern, "", RegexOptions.IgnoreCase);
-                            break;
-                        }
-                    }
-                    else if (metal.Name != null && metal.Name.Contains("амг"))
-                    {
-                        Match match = Regex.Match(path, amgPattern, RegexOptions.IgnoreCase);
-                        if (match.Success && metal.Name.Contains(match.Value.Replace(" ", ""), StringComparison.OrdinalIgnoreCase))
-                        {
-                            techItem.Material = metal.Name;
-                            techItem.NumberName = Regex.Replace(techItem.NumberName, amgPattern, "", RegexOptions.IgnoreCase);
-                            break;
-                        }
-                    }
-                    else if (metal.Name != null && path.Contains(metal.Name, StringComparison.OrdinalIgnoreCase))
-                    {
-                        techItem.Material = metal.Name;
-                        techItem.NumberName = Regex.Replace(techItem.NumberName, metal.Name, "", RegexOptions.IgnoreCase);
-                        break;
-                    }
+                // Паттерн для марки материала "амг" + цифра (амг2, амг3, амг5, амг6)
+                string amgPattern = @"(?<!\p{L})амг\s*(\d+)";
 
-                //определяем толщину
-                string destinyPattern;
-                if (template.PosDestiny)
+                // Паттерн для "al/алюм/алюминий" + цифра → материал "амг2", цифра = толщина
+                string alPattern = @"(?<!\p{L})(?:al|алюм(?:иний)?)\s*(\d+)";
+
+                bool materialFound = false;
+
+                // Сначала проверяем "al/алюм/алюминий" — это особый случай: материал всегда "амг2", цифра — толщина
+                Match alMatch = Regex.Match(path, alPattern, RegexOptions.IgnoreCase);
+                if (alMatch.Success)
                 {
-                    destinyPattern = $@"{Regex.Escape(template.DestinyPattern)}\s*(?<!\d)(\d{{1,2}}(?:[,.]\d+)?)(?!\d)";
-                }
-                else
-                {
-                    destinyPattern = $@"(?<!\d)(\d{{1,2}}(?:[,.]\d+)?)(?!\d)\s*{Regex.Escape(template.DestinyPattern)}";
+                    // Ищем в БД материал "амг2"
+                    var amg2Metal = MainWindow.M.Metals.FirstOrDefault(m => m.Name != null && m.Name.Contains("амг2", StringComparison.OrdinalIgnoreCase));
+                    if (amg2Metal != null)
+                    {
+                        techItem.Material = amg2Metal.Name;
+                        techItem.Destiny = alMatch.Groups[1].Value;
+                        techItem.NumberName = Regex.Replace(techItem.NumberName, alPattern, "", RegexOptions.IgnoreCase);
+                        materialFound = true;
+                    }
                 }
 
-                Match matchDestiny = Regex.Match(path, destinyPattern, RegexOptions.IgnoreCase);
-                if (matchDestiny.Success)
+                // Если не нашли по "al", идём по обычному циклу
+                if (!materialFound)
                 {
-                    techItem.Destiny = matchDestiny.Groups[1].Value.Replace(",", ".");
-                    techItem.NumberName = Regex.Replace(techItem.NumberName, destinyPattern, "", RegexOptions.IgnoreCase);
+                    foreach (Metal metal in MainWindow.M.Metals)
+                        if (metal.Name != null && metal.Name.Contains("aisi"))
+                        {
+                            Match match = Regex.Match(path, aisiPattern, RegexOptions.IgnoreCase);
+                            if (match.Success && metal.Name.Contains(match.Value.Replace(" ", ""), StringComparison.OrdinalIgnoreCase))
+                            {
+                                techItem.Material = metal.Name;
+                                techItem.NumberName = Regex.Replace(techItem.NumberName, aisiPattern, "", RegexOptions.IgnoreCase);
+                                break;
+                            }
+                        }
+                        else if (metal.Name != null && metal.Name.Contains("д16АТ"))
+                        {
+                            Match match = Regex.Match(path, d16atPattern, RegexOptions.IgnoreCase);
+                            if (match.Success)
+                            {
+                                techItem.Material = metal.Name;
+                                techItem.NumberName = Regex.Replace(techItem.NumberName, d16atPattern, "", RegexOptions.IgnoreCase);
+                                break;
+                            }
+                        }
+                        else if (metal.Name != null && metal.Name.Contains("д16АМ"))
+                        {
+                            Match match = Regex.Match(path, d16amPattern, RegexOptions.IgnoreCase);
+                            if (match.Success)
+                            {
+                                techItem.Material = metal.Name;
+                                techItem.NumberName = Regex.Replace(techItem.NumberName, d16amPattern, "", RegexOptions.IgnoreCase);
+                                break;
+                            }
+                        }
+                        else if (metal.Name != null && metal.Name.Contains("амг"))
+                        {
+                            Match match = Regex.Match(path, amgPattern, RegexOptions.IgnoreCase);
+                            if (match.Success && metal.Name.Contains(match.Value.Replace(" ", ""), StringComparison.OrdinalIgnoreCase))
+                            {
+                                techItem.Material = metal.Name;
+                                techItem.NumberName = Regex.Replace(techItem.NumberName, amgPattern, "", RegexOptions.IgnoreCase);
+                                break;
+                            }
+                        }
+                        else if (metal.Name != null && path.Contains(metal.Name, StringComparison.OrdinalIgnoreCase))
+                        {
+                            techItem.Material = metal.Name;
+                            techItem.NumberName = Regex.Replace(techItem.NumberName, metal.Name, "", RegexOptions.IgnoreCase);
+                            break;
+                        }
+                }
+
+                // Определяем толщину (только если ещё не установлена из "al/алюм/алюминий")
+                if (string.IsNullOrWhiteSpace(techItem.Destiny))
+                {
+                    string destinyPattern;
+                    if (template.PosDestiny)
+                    {
+                        destinyPattern = $@"{Regex.Escape(template.DestinyPattern)}\s*(?<!\d)(\d{{1,2}}(?:[,.]\d+)?)(?!\d)";
+                    }
+                    else
+                    {
+                        destinyPattern = $@"(?<!\d)(\d{{1,2}}(?:[,.]\d+)?)(?!\d)\s*{Regex.Escape(template.DestinyPattern)}";
+                    }
+
+                    Match matchDestiny = Regex.Match(path, destinyPattern, RegexOptions.IgnoreCase);
+                    if (matchDestiny.Success)
+                    {
+                        techItem.Destiny = matchDestiny.Groups[1].Value.Replace(",", ".");
+                        techItem.NumberName = Regex.Replace(techItem.NumberName, destinyPattern, "", RegexOptions.IgnoreCase);
+                    }
                 }
 
                 //определяем количество
@@ -898,7 +927,7 @@ namespace Metal_Code
                                             DisplayGeometry = techItem.CalculationGeometry,
                                         };
 
-                                        cut.PartsControl?.UpdatePartAfterEdit(part, m, destiny, true);
+                                        cut.PartsControl?.UpdatePartAfterEdit(part, m, destiny, part.DisplayGeometry != null);
                                         parts.Add(part);
                                     }
 

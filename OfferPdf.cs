@@ -6,10 +6,8 @@ using QuestPDF.Infrastructure;
 using System;
 using System.Collections.ObjectModel;
 using System.Data;
-using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text.RegularExpressions;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 
 namespace Metal_Code
 {
@@ -293,19 +291,55 @@ namespace Metal_Code
                         {
                             row.RelativeItem().Column(left =>
                             {
-                                left.Item().Text($"Материал: {(MainWindow.M.DetailControls[0].TypeDetailControls[0].HasMetal ?
-                                    "Исполнителя" : "Заказчика (внимание: остатки давальческого материала забираются вместе с заказом, иначе эти остатки утилизируются!)")}").SemiBold();
-                                
+                                // Определяем источник материала по всем заготовкам
+                                var allTypeDetails = MainWindow.M.DetailControls
+                                    .SelectMany(dc => dc.TypeDetailControls)
+                                    .ToList();
+
+                                bool allFromExecutor = allTypeDetails.All(t => t.HasMetal);
+                                bool allFromCustomer = allTypeDetails.All(t => !t.HasMetal);
+                                bool mixedSituation = !allFromExecutor && !allFromCustomer;
+
+                                // Проверяем наличие алюминиевых листов от исполнителя
+                                bool hasAluminumSheets = allTypeDetails.Any(t =>
+                                    t.TypeDetailDrop?.Text == "Лист металла" &&
+                                    t.HasMetal &&
+                                    t.MetalDrop?.Text != null &&
+                                    (t.MetalDrop.Text.Contains("амг2", StringComparison.OrdinalIgnoreCase) ||
+                                     t.MetalDrop.Text.Contains("амг5", StringComparison.OrdinalIgnoreCase) ||
+                                     t.MetalDrop.Text.Contains("амг6", StringComparison.OrdinalIgnoreCase) ||
+                                     t.MetalDrop.Text.Contains("д16АТ", StringComparison.OrdinalIgnoreCase) ||
+                                     t.MetalDrop.Text.Contains("д16АМ", StringComparison.OrdinalIgnoreCase)));
+
+                                string aluminumWarning = hasAluminumSheets ? " (возможны неглубокие царапины от обрезков)" : "";
+
+                                string materialText;
+                                if (allFromExecutor)
+                                {
+                                    materialText = "Материал: Исполнителя" + aluminumWarning;
+                                }
+                                else if (allFromCustomer)
+                                {
+                                    materialText = "Материал: Заказчика (внимание: остатки давальческого материала забираются вместе с заказом, иначе эти остатки утилизируются!)";
+                                }
+                                else // mixedSituation
+                                {
+                                    materialText = "Материал: Частично исполнителя, частично заказчика" + aluminumWarning +
+                                                  " (внимание: остатки давальческого материала забираются вместе с заказом, иначе эти остатки утилизируются!)";
+                                }
+
+                                left.Item().Text(materialText).SemiBold();
+
                                 left.Item().PaddingVertical(5).Text($"Срок изготовления: {MainWindow.M.DateProduction.Text} раб/дней" +
                                     $"{(MainWindow.M.HasAssembly ? " (ЭКСПРЕСС)." : ".")}").SemiBold();
 
                                 left.Item().PaddingVertical(5).Text("Условия оплаты: предоплата 100% по счету Исполнителя.");
-                                
+
                                 if (MainWindow.M.HasDelivery is true)
                                     left.Item().PaddingVertical(5).Text($"Порядок отгрузки: доставка силами Исполнителя по адресу: {MainWindow.M.Adress.Text}.");
                                 else left.Item().PaddingVertical(5).Text("Порядок отгрузки: самовывоз со склада Исполнителя по адресу: Ленинградская область, Всеволожский район, " +
                                                 "Колтуши, деревня Мяглово, ул. Дорожная, уч. 4Б.");
-                                
+
                                 left.Item().PaddingVertical(5).Text("Точность: H14/h14 ±IT14/2");
 
                                 left.Item().PaddingVertical(5).Text($"Расшифровка работ: {descriptionWorks}");

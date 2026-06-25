@@ -4,6 +4,7 @@ using ACadSharp.IO;
 using ACadSharp.Tables;
 using CSMath;
 using HandyControl.Data;
+using HtmlAgilityPack;
 using Metal_Code.Models;
 using Metal_Code.Services;
 using Metal_Code.Utils;
@@ -1118,6 +1119,59 @@ namespace Metal_Code
             }
         }
 
+        // ⭐ Флаг для предотвращения рекурсии
+        private bool _isSyncingManagerOrder = false;
+
+        /// <summary>
+        /// При потере фокуса полем Order — определяем менеджера по номеру.
+        /// </summary>
+        private void Order_LostFocus(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (_isSyncingManagerOrder) return;
+
+            // ⭐ Работает только для инженеров и админов
+            if (CurrentManager == null || (!CurrentManager.IsEngineer && !CurrentManager.IsAdmin))
+                return;
+
+            string orderText = Order.Text.Trim();
+            if (string.IsNullOrEmpty(orderText)) return;
+
+            _isSyncingManagerOrder = true;
+            try
+            {
+                // ⭐ Извлекаем имя менеджера из номера заказа
+                string? managerName = ManagerCodes.ExtractManagerNameFromOrder(orderText);
+                if (managerName == null)
+                {
+                    Trace.WriteLine($"⚠️ Не удалось определить менеджера по номеру: {orderText}");
+                    return;
+                }
+
+                // ⭐ Получаем список менеджеров из дропа
+                var managers = ManagerDrop.ItemsSource as IEnumerable<Manager>;
+                if (managers == null) return;
+
+                // ⭐ Ищем менеджера по имени
+                var manager = ManagerCodes.FindByName(managerName, managers);
+
+                if (manager != null && ManagerDrop.SelectedItem != manager)
+                {
+                    ManagerDrop.SelectedItem = manager;
+                    Trace.WriteLine($"🔄 Номер {orderText} → менеджер {manager.Name}");
+                    StatusBegin($"Автоматически выбран менеджер: {manager.Name}", StatusMessageType.Info);
+                }
+                else if (manager == null)
+                {
+                    Trace.WriteLine($"⚠️ Менеджер '{managerName}' не найден в списке");
+                    StatusBegin($"Менеджер '{managerName}' не найден в списке", StatusMessageType.Warning);
+                }
+            }
+            finally
+            {
+                _isSyncingManagerOrder = false;
+            }
+        }
+
         /// <summary>
         /// Обработчик выбора менеджера из выпадающего списка.
         /// </summary>
@@ -1130,6 +1184,42 @@ namespace Metal_Code
                 StatusBegin($"Загрузка расчётов для {man.Name}...", StatusMessageType.Info);
 
                 if (_isLoadingManagerData) return;
+
+                // ⭐ НОВОЕ: Для инженеров и админов — записываем префикс менеджера в Order
+                if (CurrentManager != null && (CurrentManager.IsEngineer || CurrentManager.IsAdmin))
+                {
+                    if (!_isSyncingManagerOrder)
+                    {
+                        _isSyncingManagerOrder = true;
+                        try
+                        {
+                            string currentOrder = Order.Text.Trim();
+                            string prefix = ManagerCodes.GetCode(man);
+
+                            // ⭐ Записываем префикс, если:
+                            // - Order пустой
+                            // - Или текущий номер не соответствует выбранному менеджеру
+                            if (string.IsNullOrEmpty(currentOrder))
+                            {
+                                Order.Text = prefix;
+                                Trace.WriteLine($"🔄 Менеджер {man.Name} → префикс {prefix}");
+                            }
+                            else
+                            {
+                                string? currentManagerName = ManagerCodes.ExtractManagerNameFromOrder(currentOrder);
+                                if (!string.Equals(currentManagerName, man.Name, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    Order.Text = prefix;
+                                    Trace.WriteLine($"🔄 Менеджер {man.Name} → префикс {prefix} (был {currentManagerName ?? "не определён"})");
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            _isSyncingManagerOrder = false;
+                        }
+                    }
+                }
 
                 // Для инженера: синхронизируем заказчиков выбранного менеджера
                 if (CurrentManager?.IsEngineer == true)
@@ -1435,39 +1525,6 @@ namespace Metal_Code
         // Норма рабочих часов по месяцам
         private readonly int[] WorkingHours = { 136, 152, 168, 168, 144, 152, 168, 168, 168, 168, 160, 168 };
 
-        private bool _isReportByCreated = false; // false = EndDate (по умолчанию)
-        public bool IsReportByCreated
-        {
-            get => _isReportByCreated;
-            set
-            {
-                if (_isReportByCreated != value)
-                {
-                    _isReportByCreated = value;
-                    OnPropertyChanged(nameof(IsReportByCreated));
-                    RebuildCurrentReport();
-                }
-            }
-        }
-        private void RebuildCurrentReport()
-        {
-            if (ReportDrop.SelectedItem is string monthStr)
-            {
-                int monthIndex = Array.IndexOf(Months, monthStr);
-                if (monthIndex == -1) return;
-
-                var now = DateTime.Now;
-                int selectedMonth = monthIndex + 1;
-
-                int year = now.Year;
-                // Если сейчас начало года (янв–март), а выбран конец года (окт–дек) → прошлый год
-                if (now.Month <= 3 && selectedMonth >= 10)
-                    year--;
-
-                ReportChanged(new DateTime(year, selectedMonth, 1));
-            }
-        }
-
         private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             // ⭐ Проверяем, что активной стала именно вкладка отчётов
@@ -1477,7 +1534,7 @@ namespace Metal_Code
             }
         }
         private void ReportChanged(object sender, SelectionChangedEventArgs e) => RefreshReportIfNeeded();
-        
+
         /// <summary>
         /// Пересчитывает отчёт на основе выбранного месяца.
         /// Вызывается из обработчиков событий GotFocus и SelectionChanged.
@@ -3320,15 +3377,57 @@ namespace Metal_Code
             worksheet.Cells[row, 1, row, 8].Style.Border.BorderAround(ExcelBorderStyle.Medium);
             worksheet.Cells[8, 7, row, 8].Style.Numberformat.Format = "#,##0.00";
 
+            // Собираем информацию о материале со всех заготовок
+            var allTypeDetails = DetailControls
+                .SelectMany(dc => dc.TypeDetailControls)
+                .ToList();
+
+            bool allFromExecutor = allTypeDetails.All(t => t.HasMetal);
+            bool allFromCustomer = allTypeDetails.All(t => !t.HasMetal);
+            bool mixedSituation = !allFromExecutor && !allFromCustomer;
+
+            // Проверяем наличие алюминиевых листов от исполнителя
+            bool hasAluminumSheets = allTypeDetails.Any(t =>
+                t.TypeDetailDrop?.Text == "Лист металла" &&
+                t.HasMetal &&
+                t.MetalDrop?.Text != null &&
+                (t.MetalDrop.Text.Contains("амг2", StringComparison.OrdinalIgnoreCase) ||
+                 t.MetalDrop.Text.Contains("амг5", StringComparison.OrdinalIgnoreCase) ||
+                 t.MetalDrop.Text.Contains("амг6", StringComparison.OrdinalIgnoreCase) ||
+                 t.MetalDrop.Text.Contains("д16АТ", StringComparison.OrdinalIgnoreCase) ||
+                 t.MetalDrop.Text.Contains("д16АМ", StringComparison.OrdinalIgnoreCase)));
+
+            string aluminumWarning = hasAluminumSheets ? " (возможны неглубокие царапины от обрезков)" : "";
+
             worksheet.Cells[row + 1, 1].Value = "Материал:";
             worksheet.Cells[row + 1, 1, row + 1, 4].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
-            worksheet.Cells[row + 1, 2].Value = DetailControls[0].TypeDetailControls[0].HasMetal ? "Исполнителя" : "Заказчика";
+
+            if (allFromExecutor)
+            {
+                worksheet.Cells[row + 1, 2].Value = "Исполнителя" + aluminumWarning;
+            }
+            else if (allFromCustomer)
+            {
+                worksheet.Cells[row + 1, 2].Value = "Заказчика";
+            }
+            else // mixedSituation
+            {
+                worksheet.Cells[row + 1, 2].Value = "Частично заказчика, частично исполнителя" + aluminumWarning;
+            }
+
             worksheet.Cells[row + 1, 2].Style.Font.Bold = true;
             worksheet.Cells[row + 1, 2, row + 1, 3].Merge = true;
+            worksheet.Cells[row + 1, 2].Style.WrapText = true;
+            worksheet.Row(row + 1).Height = 30;
 
-            if (!DetailControls[0].TypeDetailControls[0].HasMetal)
+            // Предупреждение показываем, если есть хоть один давальческий материал
+            if (!allFromExecutor)
             {
-                worksheet.Cells[row + 1, 4].Value = "Внимание: остатки давальческого материала забираются вместе с заказом, иначе эти остатки утилизируются!";
+                string warningText = mixedSituation
+                    ? "Внимание: часть материала давальческий. Остатки давальческого материала забираются вместе с заказом, иначе эти остатки утилизируются!"
+                    : "Внимание: остатки давальческого материала забираются вместе с заказом, иначе эти остатки утилизируются!";
+
+                worksheet.Cells[row + 1, 4].Value = warningText;
                 worksheet.Cells[row + 1, 4, row + 1, 8].Merge = true;
                 worksheet.Cells[row + 1, 4].Style.WrapText = true;
             }
@@ -3366,24 +3465,24 @@ namespace Metal_Code
 
                 // Словарь: ключ (символ или строка) -> расшифровка
                 var operations = new Dictionary<string, string>
-    {
-        { "Л", "Л - Лазер " },
-        { "Б", "Б - Без лазера " },
-        { "Т", "Т - Труборез " },
-                { "ЛП", "ЛП - Лентопил " },
-        { "Г ", "Г - Гибка " },
-        { "В ", "В - Вальцовка " },
-        { "Р ", "Р - Резьба " },
-        { "З ", "З - Зенковка " },
-        { "Зк ", "Зк - Заклепки " },
-        { "С ", "С - Сверловка " },
-        { "Св ", "Св - Сварка " },
-        { "О ", "О - Окраска " },
-        { "Ц ", "Ц - Цинкование " },
-        { "Ф ", "Ф - Фрезеровка " },
-        { "А ", "А - Аквабластинг " },
-        { "Доп ", "Доп - Дополнительные работы " }
-    };
+                {
+                    { "Л", "Л - Лазер " },
+                    { "Б", "Б - Без лазера " },
+                    { "Т", "Т - Труборез " },
+                    { "ЛП", "ЛП - Лентопил " },
+                    { "Г ", "Г - Гибка " },
+                    { "В ", "В - Вальцовка " },
+                    { "Р ", "Р - Резьба " },
+                    { "З ", "З - Зенковка " },
+                    { "Зк ", "Зк - Заклепки " },
+                    { "С ", "С - Сверловка " },
+                    { "Св ", "Св - Сварка " },
+                    { "О ", "О - Окраска " },
+                    { "Ц ", "Ц - Цинкование " },
+                    { "Ф ", "Ф - Фрезеровка " },
+                    { "А ", "А - Аквабластинг " },
+                    { "Доп ", "Доп - Дополнительные работы " }
+                };
 
                 // Проходим по ячейкам в столбце 4 (столбец D)
                 for (int r = 8; r <= row + 8; r++)
@@ -4643,7 +4742,7 @@ namespace Metal_Code
                                             // Высота строки под картинку
                                             itemsheet.Row(namePic + 1).Height = targetPixelHeight / 1.33 + 10;
 
-                                            namePic ++;
+                                            namePic++;
                                         }
                                         else if (item.imageBytes is not null)
                                         {
@@ -5868,8 +5967,6 @@ namespace Metal_Code
             BonusOOO.Text = result.BonusOoo.ToString("N0");
             BonusIP.Text = result.BonusIp.ToString("N0");
             Salary.Text = result.TotalSalary.ToString("N0");
-
-            StatusBegin($"Отчет перестроен {(IsReportByCreated ? "по дате создания" : "по дате отгрузки")}");
         }
 
         private ReportResult BuildReport(ObservableCollection<Offer> offers)
@@ -6024,7 +6121,7 @@ namespace Metal_Code
             var worksheet = workbook.Workbook.Worksheets.Add("Лист1");
 
             int row = 1;
-            var _headers = new List<string> { $"дата {(IsReportByCreated ? "создания" : "отгрузки")}", "№счета", "проект", "№заказа", "работа", "металл", "Итого", "%", "бонус", "№КП" };
+            var _headers = new List<string> { $"дата отгрузки", "№счета", "проект", "№заказа", "работа", "металл", "Итого", "%", "бонус", "№КП" };
 
             // === ООО ===
             if (report.OooItems.Count > 0)
@@ -6038,7 +6135,7 @@ namespace Metal_Code
 
                 foreach (var item in report.OooItems)
                 {
-                    worksheet.Cells[row, 1].Value = IsReportByCreated ? item.CreatedDate : item.EndDate;
+                    worksheet.Cells[row, 1].Value = item.EndDate;
                     worksheet.Cells[row, 1].Style.Numberformat.Format = "d MMM";
                     worksheet.Cells[row, 2].Value = item.Invoice;
                     worksheet.Cells[row, 3].Value = item.Company;
@@ -6111,7 +6208,7 @@ namespace Metal_Code
 
                 foreach (var item in report.IpItems)
                 {
-                    worksheet.Cells[row, 1].Value = IsReportByCreated ? item.CreatedDate : item.EndDate;
+                    worksheet.Cells[row, 1].Value = item.EndDate;
                     worksheet.Cells[row, 1].Style.Numberformat.Format = "d MMM";
                     worksheet.Cells[row, 2].Value = item.Invoice;
                     worksheet.Cells[row, 3].Value = item.Company;
@@ -6316,6 +6413,386 @@ namespace Metal_Code
                 ws.Names.Add(name, ws.Cells[startRow, col, endRow, col]);
             else
                 ws.Names.Add(name, ws.Cells[1, 1]); // пустой диапазон
+        }
+
+
+        // ⭐ Обработчик кнопки синхронизации
+        private async void SyncWithCrm_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var openFileDialog = new OpenFileDialog
+                {
+                    Title = "Выберите отчет из CRM",
+                    Filter = "Excel файлы|*.xls;*.xlsx|Все файлы|*.*",
+                    DefaultExt = ".xls"
+                };
+
+                bool? result = openFileDialog.ShowDialog();
+                if (result != true) return;
+
+                string crmFilePath = openFileDialog.FileName;
+                StatusBegin("Синхронизация с CRM отчетом...", StatusMessageType.Info);
+
+                // ⭐ СНАЧАЛА: читаем HTML и собираем номера заказов
+                var crmOrderNumbers = await System.Threading.Tasks.Task.Run(() => ReadCrmOrderNumbers(crmFilePath));
+
+                if (crmOrderNumbers.Count == 0)
+                {
+                    StatusBegin("В CRM отчете не найдено номеров заказов", StatusMessageType.Warning);
+                    return;
+                }
+
+                // ⭐ ПОТОМ: создаём .xlsx с выделением отсутствующих строк
+                await System.Threading.Tasks.Task.Run(() => HighlightCrmReport(crmFilePath, crmOrderNumbers));
+
+                // ⭐ И В КОНЦЕ: автоматическая отгрузка расчётов, которые есть в CRM, но не отгружены
+                await AutoShipOffersFromCrmAsync(crmOrderNumbers);
+
+                StatusBegin("Синхронизация завершена", StatusMessageType.Success);
+            }
+            catch (Exception ex)
+            {
+                StatusBegin($"Ошибка синхронизации: {ex.Message}", StatusMessageType.Error);
+                Trace.WriteLine($"❌ Ошибка SyncWithCrm_Click: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Читает HTML-отчет из CRM и возвращает HashSet номеров заказов.
+        /// </summary>
+        private HashSet<string> ReadCrmOrderNumbers(string filePath)
+        {
+            var sourceTable = ReadHtmlTable(filePath);
+
+            // ⭐ Находим столбец "№заказа"
+            int orderColumnIndex = -1;
+            for (int col = 0; col < sourceTable.Columns.Count; col++)
+            {
+                string colName = sourceTable.Columns[col].ColumnName?.Trim() ?? "";
+                if (colName.Equals("№заказа", StringComparison.OrdinalIgnoreCase) ||
+                    colName.Equals("№ заказа", StringComparison.OrdinalIgnoreCase))
+                {
+                    orderColumnIndex = col;
+                    break;
+                }
+            }
+
+            if (orderColumnIndex < 0)
+                throw new Exception("Не найден столбец '№заказа' в файле");
+
+            // ⭐ Собираем все номера заказов из CRM (строгое сравнение)
+            var crmOrders = new HashSet<string>(StringComparer.Ordinal);
+            foreach (DataRow row in sourceTable.Rows)
+            {
+                var orderNumber = row[orderColumnIndex]?.ToString()?.Trim() ?? "";
+                if (string.IsNullOrEmpty(orderNumber)) continue;
+                crmOrders.Add(orderNumber);
+            }
+
+            Trace.WriteLine($"📊 В CRM отчете найдено {crmOrders.Count} уникальных номеров заказов");
+            return crmOrders;
+        }
+
+        /// <summary>
+        /// Создаёт .xlsx файл с выделением отсутствующих строк.
+        /// </summary>
+        private void HighlightCrmReport(string crmFilePath, HashSet<string> crmOrderNumbers)
+        {
+            // ⭐ Собираем номера заказов из отчета приложения
+            var appOrderNumbers = new HashSet<string>(StringComparer.Ordinal);
+            if (_currentReport != null)
+            {
+                foreach (var item in _currentReport.OooItems)
+                    if (!string.IsNullOrEmpty(item.Order))
+                        appOrderNumbers.Add(item.Order.Trim());
+                foreach (var item in _currentReport.IpItems)
+                    if (!string.IsNullOrEmpty(item.Order))
+                        appOrderNumbers.Add(item.Order.Trim());
+            }
+
+            // ⭐ Читаем HTML-таблицу
+            var sourceTable = ReadHtmlTable(crmFilePath);
+
+            int orderColumnIndex = -1;
+            for (int col = 0; col < sourceTable.Columns.Count; col++)
+            {
+                string colName = sourceTable.Columns[col].ColumnName?.Trim() ?? "";
+                if (colName.Equals("№заказа", StringComparison.OrdinalIgnoreCase) ||
+                    colName.Equals("№ заказа", StringComparison.OrdinalIgnoreCase))
+                {
+                    orderColumnIndex = col;
+                    break;
+                }
+            }
+
+            if (orderColumnIndex < 0)
+                throw new Exception("Не найден столбец '№заказа' в файле");
+
+            // ⭐ Создаём .xlsx через EPPlus
+            OfficeOpenXml.ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+            string newFilePath = Path.ChangeExtension(crmFilePath, ".xlsx");
+            if (File.Exists(newFilePath)) File.Delete(newFilePath);
+
+            int highlightedCount = 0;
+            int totalRows = 0;
+
+            using (var package = new OfficeOpenXml.ExcelPackage(new FileInfo(newFilePath)))
+            {
+                var worksheet = package.Workbook.Worksheets.Add("CRM Report");
+
+                // ⭐ Копируем все данные
+                for (int row = 0; row < sourceTable.Rows.Count; row++)
+                {
+                    for (int col = 0; col < sourceTable.Columns.Count; col++)
+                    {
+                        var cellValue = sourceTable.Rows[row][col]?.ToString() ?? "";
+                        worksheet.Cells[row + 1, col + 1].Value = cellValue;
+                    }
+                }
+
+                // ⭐ Выделяем отсутствующие строки желтым
+                for (int row = 0; row < sourceTable.Rows.Count; row++)
+                {
+                    var orderNumber = sourceTable.Rows[row][orderColumnIndex]?.ToString()?.Trim() ?? "";
+                    if (string.IsNullOrEmpty(orderNumber)) continue;
+
+                    // Пропускаем заголовки секций
+                    if (orderNumber.Equals("№заказа", StringComparison.OrdinalIgnoreCase) ||
+                        orderNumber.Equals("№ заказа", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    totalRows++;
+
+                    if (!appOrderNumbers.Contains(orderNumber))
+                    {
+                        var rowRange = worksheet.Cells[row + 1, 1, row + 1, sourceTable.Columns.Count];
+                        rowRange.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+                        rowRange.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Yellow);
+
+                        highlightedCount++;
+                        Trace.WriteLine($"⚠️ Заказ {orderNumber} не найден (строка {row + 1})");
+                    }
+                }
+
+                worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+                package.Save();
+            }
+
+            Trace.WriteLine($"✅ Создан файл: {newFilePath}");
+            Trace.WriteLine($"✅ Выделено {highlightedCount} из {totalRows} строк");
+
+            Dispatcher.Invoke(() =>
+            {
+                MessageBox.Show(
+                    $"Синхронизация завершена!\n\n" +
+                    $"Найдено в приложении: {appOrderNumbers.Count} заказов\n" +
+                    $"Проверено в CRM: {totalRows} строк\n" +
+                    $"Выделено: {highlightedCount} строк\n\n" +
+                    $"Новый файл сохранён:\n{newFilePath}",
+                    "Синхронизация с CRM",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            });
+        }
+
+        /// <summary>
+        /// Автоматически отгружает расчёты, которые есть в CRM, но ещё не отгружены в приложении.
+        /// </summary>
+        private async System.Threading.Tasks.Task AutoShipOffersFromCrmAsync(HashSet<string> crmOrderNumbers)
+        {
+            // ⭐ Находим расчёты в CurrentOffers, которые:
+            // 1. Имеют заполненный Order
+            // 2. Ещё не отгружены (EndDate == null)
+            // 3. Их Order есть в CRM-отчете (строгое сравнение)
+            var offersToShip = CurrentOffers
+                .Where(o => !string.IsNullOrEmpty(o.Order)
+                         && o.EndDate == null
+                         && crmOrderNumbers.Contains(o.Order.Trim()))
+                .ToList();
+
+            if (offersToShip.Count == 0)
+            {
+                Trace.WriteLine("ℹ️ Нет расчётов для автоматической отгрузки");
+                return;
+            }
+
+            // ⭐ Показываем список пользователю для подтверждения
+            string preview = string.Join("\n", offersToShip.Take(20).Select(o => $"• №{o.N} (заказ {o.Order}) — {o.Company}"));
+            if (offersToShip.Count > 20)
+                preview += $"\n... и ещё {offersToShip.Count - 20} расчётов";
+
+            var response = MessageBox.Show(
+                $"Обнаружено {offersToShip.Count} расчётов, которые есть в CRM, но ещё не отгружены.\n\n" +
+                $"{preview}\n\n" +
+                $"Отметить их как отгруженные (установить дату отгрузки = сегодня)?",
+                "Автоматическая отгрузка",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (response != MessageBoxResult.Yes) return;
+
+            StatusBegin($"Отгрузка {offersToShip.Count} расчётов...", StatusMessageType.Info);
+
+            int successCount = 0;
+            int failedCount = 0;
+            var shippedOffers = new List<Offer>();
+
+            foreach (var offer in offersToShip)
+            {
+                try
+                {
+                    // ⭐ Устанавливаем дату отгрузки = сегодня (UTC)
+                    offer.EndDate = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+
+                    // ⭐ Сохраняем в БД
+                    bool success = await DataService.UpdateOfferAsync(offer);
+
+                    if (success)
+                    {
+                        successCount++;
+                        shippedOffers.Add(offer);
+                        Trace.WriteLine($"✅ Отгружен расчёт {offer.N} (заказ {offer.Order})");
+                    }
+                    else
+                    {
+                        failedCount++;
+                        offer.EndDate = null; // ⭐ Откатываем изменение
+                        Trace.WriteLine($"⚠️ Не удалось отгрузить расчёт {offer.N}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failedCount++;
+                    offer.EndDate = null;
+                    Trace.WriteLine($"❌ Ошибка отгрузки {offer.N}: {ex.Message}");
+                }
+            }
+
+            // ⭐ Обновляем представление таблицы расчётов
+            if (shippedOffers.Any())
+            {
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    try
+                    {
+                        OffersView?.Refresh();
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine($"⚠️ Refresh отложен: {ex.Message}");
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            try { OffersView?.Refresh(); }
+                            catch { /* игнорируем */ }
+                        }), DispatcherPriority.Loaded);
+                    }
+                }, DispatcherPriority.Loaded);
+
+                await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background);
+            }
+
+            // ⭐ Автоматически перестраиваем отчёт, чтобы новые отгрузки попали в него
+            if (shippedOffers.Any())
+            {
+                await Dispatcher.InvokeAsync(async () =>
+                {
+                    foreach (var offer in shippedOffers)
+                    {
+                        if (!ReportOffers.Any(o => o.Id == offer.Id))
+                        {
+                            ReportOffers.Add(offer);
+                        }
+                    }
+                    await ReportView();
+                });
+            }
+
+            // ⭐ Финальное сообщение
+            Dispatcher.Invoke(() =>
+            {
+                MessageBox.Show(
+                    $"Автоматическая отгрузка завершена!\n\n" +
+                    $"Отгружено: {successCount} расчётов\n" +
+                    (failedCount > 0 ? $"Ошибок: {failedCount}\n\n" : "") +
+                    $"Отчёт пересчитан с учётом новых отгрузок.",
+                    "Автоматическая отгрузка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            });
+
+            Trace.WriteLine($"✅ Автоотгрузка: успешно={successCount}, ошибок={failedCount}");
+        }
+
+        /// <summary>
+        /// Читает HTML-таблицу из файла CRM и возвращает DataTable.
+        /// </summary>
+        private DataTable ReadHtmlTable(string filePath)
+        {
+            var doc = new HtmlAgilityPack.HtmlDocument();
+            doc.Load(filePath, System.Text.Encoding.UTF8);
+
+            var tables = doc.DocumentNode.SelectNodes("//table");
+            if (tables == null || tables.Count == 0)
+                throw new Exception("В HTML-файле не найдены таблицы");
+
+            Trace.WriteLine($"📄 Найдено таблиц в HTML: {tables.Count}");
+
+            HtmlNode? targetTable = null;
+            foreach (var table in tables)
+            {
+                var headerText = table.InnerText;
+                if (headerText.Contains("№заказа") || headerText.Contains("№ заказа"))
+                {
+                    targetTable = table;
+                    break;
+                }
+            }
+
+            if (targetTable == null)
+                throw new Exception("Не найдена таблица с заголовком '№заказа'");
+
+            var dataTable = new DataTable("CrmReport");
+            var rows = targetTable.SelectNodes(".//tr");
+            if (rows == null || rows.Count == 0)
+                throw new Exception("Таблица пуста");
+
+            bool headerAdded = false;
+            foreach (var row in rows)
+            {
+                var cells = row.SelectNodes(".//th|.//td");
+                if (cells == null) continue;
+
+                var cellValues = cells.Select(c => System.Net.WebUtility.HtmlDecode(c.InnerText).Trim()).ToArray();
+
+                if (cellValues.All(string.IsNullOrEmpty)) continue;
+
+                if (cellValues.Length == 1 &&
+                    (cellValues[0] == "ООО" || cellValues[0] == "ИП и ПК"))
+                    continue;
+
+                if (!headerAdded)
+                {
+                    for (int i = 0; i < cellValues.Length; i++)
+                    {
+                        string colName = string.IsNullOrEmpty(cellValues[i]) ? $"Col{i}" : cellValues[i];
+                        dataTable.Columns.Add(colName);
+                    }
+                    headerAdded = true;
+                }
+                else
+                {
+                    var dataRow = dataTable.NewRow();
+                    for (int i = 0; i < Math.Min(cellValues.Length, dataTable.Columns.Count); i++)
+                    {
+                        dataRow[i] = cellValues[i];
+                    }
+                    dataTable.Rows.Add(dataRow);
+                }
+            }
+
+            Trace.WriteLine($"✅ Прочитано строк из HTML: {dataTable.Rows.Count}, столбцов: {dataTable.Columns.Count}");
+            return dataTable;
         }
         #endregion
 
@@ -7000,9 +7477,9 @@ namespace Metal_Code
             // Если ошибка критическая — можно показать диалог или завершить работу
             //if (isCritical)
             //{
-                // MessageBox.Show("Критическая ошибка. Приложение будет закрыто.", "Ошибка", 
-                //     MessageBoxButton.OK, MessageBoxImage.Error);
-                // Application.Current.Shutdown(1);
+            // MessageBox.Show("Критическая ошибка. Приложение будет закрыто.", "Ошибка", 
+            //     MessageBoxButton.OK, MessageBoxImage.Error);
+            // Application.Current.Shutdown(1);
             //}
         }
 
