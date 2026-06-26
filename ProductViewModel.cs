@@ -7,14 +7,12 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
-using System.Diagnostics.Metrics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization.Json;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Threading;
 
 namespace Metal_Code
 {
@@ -147,7 +145,6 @@ namespace Metal_Code
                                     autor: autor,
                                     actPath: fullPath,
                                     dataJson: dataJson,
-                                    endDate: MainWindow.M.ActiveOffer?.EndDate,
                                     managerId: MainWindow.M.TargetManager.Id
                                 );
 

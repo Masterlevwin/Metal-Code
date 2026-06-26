@@ -815,7 +815,6 @@ namespace Metal_Code
                         autor: autor,
                         actPath: filePath,
                         dataJson: dataJson,
-                        endDate: ActiveOffer?.EndDate,
                         managerId: TargetManager.Id
                     );
 
@@ -4437,7 +4436,6 @@ namespace Metal_Code
                 services: GetServices(),
                 isAgent: IsAgent,
                 autor: CurrentManager.Name,
-                null,
                 null,
                 null,
                 managerId: TargetManager.Id

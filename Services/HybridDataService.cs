@@ -921,7 +921,7 @@ namespace Metal_Code.Services
         /// </summary>
         public async Task<Offer> SaveOfferAsync(
             string? orderNumber, string? companyName, float amount, float material, float services,
-            bool isAgent, string? autor, string? actPath, string? dataJson, DateTime? endDate, int managerId)
+            bool isAgent, string? autor, string? actPath, string? dataJson, int managerId)
         {
             if (managerId == 0)
             {
@@ -942,7 +942,6 @@ namespace Metal_Code.Services
                 Autor = autor,
                 Act = actPath,
                 Data = dataJson,
-                EndDate = endDate,
                 CreatedDate = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc),
                 ManagerId = managerId
             };
@@ -978,8 +977,6 @@ namespace Metal_Code.Services
                         Agent = offer.Agent,
                         Invoice = offer.Invoice,
                         CreatedDate = DateTime.SpecifyKind(offer.CreatedDate!.Value, DateTimeKind.Utc),
-                        EndDate = offer.EndDate.HasValue
-                            ? DateTime.SpecifyKind(offer.EndDate.Value, DateTimeKind.Utc) : null,
                         Order = offer.Order,
                         Autor = offer.Autor,
                         Act = offer.Act,
@@ -1008,7 +1005,6 @@ namespace Metal_Code.Services
                         Agent = offer.Agent,
                         Invoice = offer.Invoice,
                         CreatedDate = offer.CreatedDate,
-                        EndDate = offer.EndDate,
                         Order = offer.Order,
                         Autor = offer.Autor,
                         Act = offer.Act,
@@ -1042,7 +1038,6 @@ namespace Metal_Code.Services
                 Agent = offer.Agent,
                 Invoice = offer.Invoice,
                 CreatedDate = offer.CreatedDate,
-                EndDate = offer.EndDate,
                 Order = offer.Order,
                 Autor = offer.Autor,
                 Act = offer.Act,

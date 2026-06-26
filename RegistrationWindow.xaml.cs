@@ -1,5 +1,6 @@
 ﻿using Metal_Code.Models;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 
@@ -44,12 +45,15 @@ namespace Metal_Code
                 return;
             }
 
+            // ⭐ НОВОЕ: Создаём менеджера по умолчанию, если его нет
+            EnsureDefaultManagerExists(db);
+
             // Создаем зарегистрированного пользователя
             Manager manager = new()
             {
                 Name = login,
                 Password = password,
-                Contact = ContactText.Text.Trim(), // ⭐ НОВОЕ: сохраняем контактные данные
+                Contact = ContactText.Text.Trim(),
                 MachineName = currentMachine,
                 IsAdmin = false,
                 IsEngineer = IsEngineer.IsChecked == true,
@@ -72,6 +76,39 @@ namespace Metal_Code
                 "Успешная регистрация",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
+        }
+
+        /// <summary>
+        /// Создаёт менеджера по умолчанию "Сергеев Юрий" (администратор), если его нет в базе.
+        /// Это гарантирует, что в дропе менеджеров будет хотя бы один пользователь при первом запуске.
+        /// Пароль "uri" — специальный маркер, защищающий от случайного удаления.
+        /// </summary>
+        private void EnsureDefaultManagerExists(ManagerContext db)
+        {
+            // ⭐ Проверяем, есть ли уже менеджер по умолчанию (по паролю-маркеру "uri")
+            bool defaultManagerExists = db.Managers.Any(m => m.Password == "uri" && m.IsAdmin);
+
+            if (!defaultManagerExists)
+            {
+                Manager defaultManager = new()
+                {
+                    Name = "Сергеев Юрий",
+                    Password = "uri",
+                    MachineName = null,
+                    IsAdmin = true,
+                    IsEngineer = false,
+                    IsLaser = false
+                };
+
+                db.Managers.Add(defaultManager);
+                db.SaveChanges();
+
+                Trace.WriteLine($"✅ Создан менеджер по умолчанию: {defaultManager.Name} (Id={defaultManager.Id})");
+            }
+            else
+            {
+                Trace.WriteLine($"ℹ️ Менеджер по умолчанию уже существует");
+            }
         }
 
         private void Exit(object sender, RoutedEventArgs e) => Environment.Exit(0);
