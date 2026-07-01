@@ -9,17 +9,49 @@ namespace Metal_Code
         public DateTime SelectedTo { get; private set; }
         public bool IsConfirmed { get; private set; }
 
-        public ReportPeriodDialog(bool isAdmin, string managerName)
+        // ⭐ НОВОЕ: тип отчёта
+        public ReportType ReportType { get; }
+
+        /// <summary>
+        /// Конструктор диалога выбора периода отчёта.
+        /// </summary>
+        /// <param name="isAdmin">Является ли текущий пользователь администратором.</param>
+        /// <param name="managerName">Имя текущего менеджера.</param>
+        /// <param name="reportType">Тип отчёта: Sales (с выбором периода) или Production (все расчёты).</param>
+        public ReportPeriodDialog(bool isAdmin, string managerName, ReportType reportType = ReportType.Sales)
         {
             InitializeComponent();
+            ReportType = reportType;
 
-            // ⭐ Период по умолчанию: если после 14-го — текущий месяц, иначе — прошлый
-            SetDefaultPeriod();
+            // ⭐ Настраиваем интерфейс в зависимости от типа отчёта
+            if (reportType == ReportType.Production)
+            {
+                Title = "Отчет по расчетам в производстве";
+                TitleText.Text = "Отчет по расчетам в производстве";
 
-            // Информация о режиме
-            ModeInfoText.Text = isAdmin
-                ? "🔓 Режим администратора: будут показаны продажи ВСЕХ менеджеров."
-                : $"👤 Режим менеджера: будут показаны только ваши продажи ({managerName}).";
+                // ⭐ Скрываем блок выбора периода
+                PeriodPanel.Visibility = Visibility.Collapsed;
+
+                // ⭐ Устанавливаем маркеры "все расчёты"
+                SelectedFrom = DateTime.MinValue;
+                SelectedTo = DateTime.MaxValue;
+
+                ModeInfoText.Text = isAdmin
+                    ? "🔓 Режим администратора: будут показаны ВСЕ расчёты в производстве (с номером заказа, но не отгруженные)."
+                    : $"👤 Режим менеджера: будут показаны только ваши расчёты в производстве ({managerName}).";
+            }
+            else
+            {
+                Title = "Выбор периода отчета";
+                TitleText.Text = "Выберите период для отчета по продажам:";
+
+                // ⭐ Период по умолчанию: если после 14-го — текущий месяц, иначе — прошлый
+                SetDefaultPeriod();
+
+                ModeInfoText.Text = isAdmin
+                    ? "🔓 Режим администратора: будут показаны продажи ВСЕХ менеджеров."
+                    : $"👤 Режим менеджера: будут показаны только ваши продажи ({managerName}).";
+            }
         }
 
         private void SetDefaultPeriod()
@@ -27,7 +59,7 @@ namespace Metal_Code
             bool isAfter15th = DateTime.Today.Day > 14;
             var referenceMonth = isAfter15th ? DateTime.Today : DateTime.Today.AddMonths(-1);
             var firstDay = new DateTime(referenceMonth.Year, referenceMonth.Month, 1);
-            var lastDay = DateTime.Today; // По текущую дату
+            var lastDay = DateTime.Today;
 
             DateFrom.SelectedDate = firstDay;
             DateTo.SelectedDate = lastDay;
@@ -59,6 +91,16 @@ namespace Metal_Code
 
         private void Ok_Click(object sender, RoutedEventArgs e)
         {
+            // ⭐ Для отчёта по производству даты уже установлены (MinValue/MaxValue)
+            if (ReportType == ReportType.Production)
+            {
+                IsConfirmed = true;
+                DialogResult = true;
+                Close();
+                return;
+            }
+
+            // ⭐ Для отчёта по продажам — проверяем введённые даты
             if (DateFrom.SelectedDate == null || DateTo.SelectedDate == null)
             {
                 MessageBox.Show(this, "Укажите обе даты периода", "Ошибка",

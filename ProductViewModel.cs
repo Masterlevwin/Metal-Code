@@ -697,6 +697,7 @@ namespace Metal_Code
                         {
                             MainWindow.M.CurrentOffers.Remove(offer);
                             MainWindow.M.InitializeOffersView();
+                            await MainWindow.M.UpdateOffersCountCacheAsync();
                             MainWindow.M.SummaryInfoTextBlock.Text = $"Всего расчётов: {MainWindow.M.CurrentOffers.Count} шт.";
 
                             MainWindow.M.StatusBegin($"Расчёт {offer.N} удалён.", MainWindow.StatusMessageType.Success);

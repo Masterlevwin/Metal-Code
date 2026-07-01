@@ -108,8 +108,6 @@ namespace Metal_Code
         private string _searchQuery = string.Empty;
         private bool _isProductionMode = false;
 
-        //временный словарь расчетов для синхронизации с основной базой (0 - новые, 1 - удаленные, 2 - измененные)
-        private readonly Dictionary<byte, List<Offer>> TempOffersDict = new() { [0] = new(), [1] = new(), [2] = new() };
         private readonly Dictionary<string, float> TempWorksDict = new();                                       //временный словарь работ
 
         public readonly List<float> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 25, 30 };
@@ -572,11 +570,11 @@ namespace Metal_Code
                     StatusBegin("Проверка и синхронизация данных с сервером. Пожалуйста, подождите...", StatusMessageType.Info);
                     try
                     {
-                        // 1. СНАЧАЛА миграция
-                        await DataService.MigrateUserDataToPgAsync();
-
-                        // 2. ПОТОМ синхронизация отложенных расчетов
+                        // 1. СНАЧАЛА синхронизация отложенных расчетов
                         await DataService.SyncPendingOffersAsync();
+                        
+                        // 2. ПОТОМ миграция
+                        await DataService.MigrateUserDataToPgAsync();
 
                         StatusBegin("Синхронизация с сервером успешно завершена.", StatusMessageType.Success);
                     }
@@ -659,9 +657,15 @@ namespace Metal_Code
             if (CurrentManager == null || CurrentManager.IsEngineer) return;
             if (DataService == null || !DataService.IsOnline) return;
             if (TargetManager == null || TargetManager.Name is null) return;
-            if (_lastKnownCreatedDate == DateTime.MinValue) return;
 
-            // Ограничение частоты запросов (по времени клиента)
+            // ⭐ Если количество ещё не инициализировано — загружаем из БД
+            if (_lastKnownOffersCount < 0)
+            {
+                await UpdateOffersCountCacheAsync();
+                return;
+            }
+
+            // Ограничение частоты запросов
             if ((DateTime.UtcNow - _lastOffersCheck).TotalSeconds < OFFERS_CHECK_INTERVAL_SECONDS)
                 return;
 
@@ -669,18 +673,49 @@ namespace Metal_Code
 
             try
             {
-                // ⭐ Используем время СЕРВЕРА (из последнего загруженного расчёта), а не клиента
-                int newCount = await DataService.GetNewOffersCountAsync(
-                    TargetManager.Id, TargetManager.Name, _lastKnownCreatedDate);
+                int currentCount = await DataService.GetTotalOffersCountAsync(
+                    TargetManager.Id, TargetManager.Name);
 
-                if (newCount > 0)
+                if (currentCount > _lastKnownOffersCount)
                 {
+                    int newCount = currentCount - _lastKnownOffersCount;
+                    Trace.WriteLine($"🔔 Новые расчёты: было {_lastKnownOffersCount}, стало {currentCount} (+{newCount})");
                     ShowNewOffersNotification(newCount);
                 }
+                else if (currentCount < _lastKnownOffersCount)
+                {
+                    Trace.WriteLine($"ℹ️ Расчёты были удалены: было {_lastKnownOffersCount}, стало {currentCount}");
+                }
+
+                _lastKnownOffersCount = currentCount;
             }
-            catch
+            catch (Exception ex)
             {
-                // Игнорируем ошибки
+                Trace.WriteLine($"⚠️ Ошибка проверки новых расчётов: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Обновляет счётчик расчётов из базы данных.
+        /// Вызывать после LoadManagerDataAsync, когда TargetManager уже установлен.
+        /// </summary>
+        public async System.Threading.Tasks.Task UpdateOffersCountCacheAsync()
+        {
+            if (TargetManager == null || TargetManager.Name == null) return;
+            if (DataService == null || !DataService.IsOnline) return;
+
+            try
+            {
+                // ⭐ Получаем РЕАЛЬНОЕ количество из БД, а не из UI-коллекции
+                int count = await DataService.GetTotalOffersCountAsync(
+                    TargetManager.Id, TargetManager.Name);
+
+                _lastKnownOffersCount = count;
+                Trace.WriteLine($"📊 Счётчик расчётов обновлён из БД: {_lastKnownOffersCount}");
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"⚠️ Ошибка обновления счётчика: {ex.Message}");
             }
         }
 
@@ -1289,10 +1324,7 @@ namespace Metal_Code
                     }
                 }
 
-                _lastKnownCreatedDate = offers.Any()
-                    ? offers.Max(o => o.CreatedDate ?? DateTime.MinValue)
-                    : DateTime.UtcNow;
-                _lastOffersCheck = DateTime.UtcNow;
+                await UpdateOffersCountCacheAsync();
 
                 SummaryInfoTextBlock.Text = $"Показано: {CurrentOffers.Count} из {totalCount} расчётов";
                 StatusBegin($"📅 Загружено {CurrentOffers.Count} из {totalCount} расчётов для '{man.Name}'");
@@ -2013,8 +2045,8 @@ namespace Metal_Code
 
         //-------------Подключения к базе расчетов-----------------//
         #region
-        private DateTime _lastKnownCreatedDate = DateTime.MinValue;
-        private DateTime _lastOffersCheck = DateTime.MinValue; // для ограничения частоты запросов
+        private int _lastKnownOffersCount = -1;                 // -1 означает "не инициализировано"
+        private DateTime _lastOffersCheck = DateTime.MinValue;  // для ограничения частоты запросов
         private const int OFFERS_CHECK_INTERVAL_SECONDS = 30;
 
         /// <summary>
@@ -3874,7 +3906,11 @@ namespace Metal_Code
                 "Гибочные работы", "Время лазерных работ", "Производство", "Нанесение покрытий",
                 "Логистика", "Комментарий", "Дата сдачи", "Время фрезерных работ"
             };
-            for (int col = 0; col < _headersBitrix.Count; col++) statsheet.Cells[1, col + 7].Value = _headersBitrix[col];
+            for (int col = 0; col < _headersBitrix.Count; col++)
+            {
+                statsheet.Cells[1, col + 7].Value = _headersBitrix[col];
+                statsheet.Cells[1, col + 7].Style.WrapText = true;
+            }
 
             statsheet.Cells[1, 2].Value = "ПРОВЭЛД";
             statsheet.Cells[1, 2, 1, 3].Merge = true;
@@ -3924,7 +3960,7 @@ namespace Metal_Code
             statsheet.Cells[5 + temp, 3].Value = Math.Round(GetMaterial(), 2);
             statsheet.Cells[6 + temp, 2].Value = "Доставка:";
             statsheet.Cells[6 + temp, 3].Value = Delivery * DeliveryRatio;
-            statsheet.Cells[7 + temp, 2].Value = "Конструкторские работы:";
+            statsheet.Cells[7 + temp, 2].Value = "Конструктор:";
             statsheet.Cells[7 + temp, 3].Value = Construct;
 
             int countTypeDetails = DetailControls.Sum(t => t.TypeDetailControls.Count) + AssemblyWindow.A.Assemblies.Count;
@@ -3936,12 +3972,15 @@ namespace Metal_Code
 
             List<string> _headersL = new()
             {
-                "№ заказа", "Заказчик", "Менеджер", "Толщина и марка металла", "V",
+                "№ заказа", "Заказчик", "Менеджер", "Материал", "V",
                 "Гибка", "V", "Доп работы", "V", "Комментарий", "Дата сдачи", "Лазер (время работ)",
                 "Гибка (время работ)", "Количество материала", "Номер КП", "Статус", "Комментарий менеджера", "КК", "ПК"
             };
-            for (int col = 0; col < _headersL.Count; col++) statsheet.Cells[temp, col + 1].Value = _headersL[col];
-
+            for (int col = 0; col < _headersL.Count; col++)
+            {
+                statsheet.Cells[temp, col + 1].Value = _headersL[col];
+                statsheet.Cells[temp, col + 1].Style.WrapText = true;
+            }
             temp++;
 
             float _lkk, _lpk, _bkk, _bpk;          //счетчики коэффициентов лазера и гибки
@@ -4188,13 +4227,16 @@ namespace Metal_Code
 
             List<string> _headersP = new()
             {
-                "Дата", "№ п/п", "№ Проекта / Лазера", "Наименование изделия\n/вид работы", "Кол-во",
+                "Дата", "№ п/п", "№ Проекта / Лазера", "Наименование изделия / вид работы", "Кол-во",
                 "ед изм.", "Подразделение", "Компания", "Мастер", "Менеджер", "Инженер", "Время работ, мин",
                 "Дата отгрузки", "Готово к отгрузке", "Отгружено", "Готово \"V\"", "Цвет/цинк",
                 "Примечание", "Ход проекта", "ОТГРУЗКИ _ дата и количество", "Стоимость работ"
             };
-            for (int col = 0; col < _headersP.Count; col++) statsheet.Cells[temp, col + 1].Value = _headersP[col];
-
+            for (int col = 0; col < _headersP.Count; col++)
+            {
+                statsheet.Cells[temp, col + 1].Value = _headersP[col];
+                statsheet.Cells[temp, col + 1].Style.WrapText = true;
+            }
             temp++;
 
             if (TempWorksDict.Count > 0)
@@ -4326,7 +4368,6 @@ namespace Metal_Code
             statsheet.Cells[temp, 13].Style.Font.Size = 11;
             statsheet.Cells[temp, 3].Style.Font.Size = statsheet.Cells[temp, 21].Style.Font.Size = 14;
             statsheet.Cells[temp, 1].Style.Font.Bold = statsheet.Cells[temp, 3].Style.Font.Bold = statsheet.Cells[temp, 13].Style.Font.Bold = true;
-
 
             // ----- обводка границ и авторастягивание столбцов -----
 
@@ -6795,14 +6836,16 @@ namespace Metal_Code
         #endregion
 
 
-        //-------------Отчеты по заказам-----------------//
+        //-------------Отчеты ---------------------------//
         #region
-        private void Report_On_Shipped_Orders(object sender, RoutedEventArgs e)
+        private void Report_On_Shipped_Orders(object sender, RoutedEventArgs e) => ShowReport(ReportType.Sales);
+        private void Report_On_Production_Orders(object sender, RoutedEventArgs e) => ShowReport(ReportType.Production);
+        private void ShowReport(ReportType reportType)
         {
-            if (CurrentManager.Name is null) return;
+            if (CurrentManager?.Name is null) return;
 
-            // ⭐ 1. Сначала показываем маленькое окно выбора периода
-            var periodDialog = new ReportPeriodDialog(CurrentManager.IsAdmin, CurrentManager.Name)
+            // ⭐ 1. Показываем диалог выбора периода (модальный — без него нельзя)
+            var periodDialog = new ReportPeriodDialog(CurrentManager.IsAdmin, CurrentManager.Name, reportType)
             {
                 Owner = this
             };
@@ -6810,14 +6853,16 @@ namespace Metal_Code
             if (periodDialog.ShowDialog() != true)
                 return; // Пользователь нажал "Отмена"
 
-            // ⭐ 2. Только после подтверждения открываем окно отчета
+            // ⭐ 2. Открываем окно отчета НЕМодально — можно открыть несколько для сравнения
             var previewWindow = new ReportPreviewWindow(
                 periodDialog.SelectedFrom,
-                periodDialog.SelectedTo)
+                periodDialog.SelectedTo,
+                reportType)
             {
-                Owner = this
+                Owner = this  // ⭐ Окно будет закрываться вместе с главным
             };
-            previewWindow.ShowDialog();
+
+            previewWindow.Show();  // ⭐ Show() вместо ShowDialog()
         }
         #endregion
 

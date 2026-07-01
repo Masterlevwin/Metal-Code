@@ -454,12 +454,6 @@ namespace Metal_Code.Services
                         Trace.WriteLine($"ℹ️ Расчёты уже мигрированы для '{managerName}'");
                     }
 
-                    // Помечаем локальные расчёты как синхронизированные
-                    await localCtx.Database.ExecuteSqlInterpolatedAsync($@"
-                UPDATE Offers 
-                SET IsPendingSync = 0 
-                WHERE ManagerId IN (SELECT Id FROM Managers WHERE Name = {managerName})");
-
                     Trace.WriteLine($"✅ Завершена миграция для '{managerName}'");
                 }
 
@@ -1564,6 +1558,67 @@ namespace Metal_Code.Services
             catch (Exception ex)
             {
                 Trace.WriteLine($"❌ Ошибка загрузки отчета по продажам: {ex.Message}");
+                return new List<Offer>();
+            }
+        }
+
+        /// <summary>
+        /// Загружает данные для отчёта по расчётам в производстве за период.
+        /// Критерии: Order заполнен (расчёт запущен в производство), EndDate пустой (не отгружен).
+        /// Если isAdmin = false — фильтрует по имени менеджера.
+        /// </summary>
+        public async Task<List<Offer>> GetProductionReportAsync(DateTime from, DateTime to, bool isAdmin, string? managerName)
+        {
+            if (!_isOnline)
+            {
+                Trace.WriteLine("⚠️ Отчет по производству недоступен: нет соединения с сервером");
+                return new List<Offer>();
+            }
+
+            try
+            {
+                using var pgContext = new AppDbContext(_pgOptions);
+                pgContext.Database.SetCommandTimeout(30);
+
+                // ⭐ Базовый запрос: расчёты в производстве (Order есть, EndDate нет)
+                IQueryable<Offer> query = pgContext.Offers.AsNoTracking()
+                    .Include(o => o.Manager)
+                    .Where(o => !string.IsNullOrWhiteSpace(o.Order)
+                        && !o.EndDate.HasValue);
+
+                // ⭐ Фильтр по дате создания (если задан реальный период, а не "все расчёты")
+                bool filterByDate = from != DateTime.MinValue && to != DateTime.MaxValue;
+
+                if (filterByDate)
+                {
+                    DateTime fromUtc = DateTime.SpecifyKind(from, DateTimeKind.Utc);
+                    DateTime toUtc = DateTime.SpecifyKind(to.AddDays(1), DateTimeKind.Utc);
+
+                    query = query.Where(o => o.CreatedDate.HasValue
+                        && o.CreatedDate.Value >= fromUtc
+                        && o.CreatedDate.Value < toUtc);
+                }
+
+                // ⭐ Фильтр по менеджеру
+                if (!isAdmin && !string.IsNullOrWhiteSpace(managerName))
+                {
+                    query = query.Where(o => o.Manager != null && o.Manager.Name == managerName);
+                }
+
+                var offers = await query
+                    .OrderByDescending(o => o.CreatedDate)
+                    .ToListAsync();
+
+                string periodInfo = filterByDate
+                    ? $"за {from:dd.MM.yyyy} — {to:dd.MM.yyyy}"
+                    : "за всё время";
+
+                Trace.WriteLine($"🏭 Отчет по производству: загружено {offers.Count} расчётов {periodInfo}");
+                return offers;
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"❌ Ошибка загрузки отчета по производству: {ex.Message}");
                 return new List<Offer>();
             }
         }

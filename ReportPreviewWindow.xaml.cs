@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using Metal_Code.Models;
+using Microsoft.Win32;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System;
@@ -54,14 +55,38 @@ namespace Metal_Code
 
         private readonly DateTime _from;
         private readonly DateTime _to;
+        private readonly ReportType _reportType;
 
-        public ReportPreviewWindow(DateTime from, DateTime to)
+        // Заголовок колонки даты в зависимости от типа отчёта
+        public string DateColumnHeader => _reportType == ReportType.Sales ? "Отгружен" : "Создан";
+
+        private string ReportTitle => _reportType switch
+        {
+            ReportType.Sales => "Отчет по продажам",
+            ReportType.Production => "Отчет по производству",
+            _ => "Отчет"
+        };
+
+        private string ReportSheetName => _reportType switch
+        {
+            ReportType.Sales => "Отчет по продажам",
+            ReportType.Production => "В производстве",
+            _ => "Отчет"
+        };
+
+        public ReportPreviewWindow(DateTime from, DateTime to, ReportType reportType = ReportType.Sales)
         {
             InitializeComponent();
             DataContext = this;
 
             _from = from;
             _to = to;
+            _reportType = reportType;
+
+            // ⭐ Устанавливаем заголовок окна
+            Title = $"{ReportTitle} за {from:dd.MM.yyyy} — {to:dd.MM.yyyy}";
+
+            DateColumn.Header = DateColumnHeader;
 
             PeriodText = $"{from:dd.MM.yyyy} — {to:dd.MM.yyyy}";
             ModeText = MainWindow.M.CurrentManager.IsAdmin
@@ -84,20 +109,50 @@ namespace Metal_Code
         {
             try
             {
-                MainWindow.M.StatusBegin("Формирование отчета...", MainWindow.StatusMessageType.Info);
+                string statusText = _reportType == ReportType.Sales
+                    ? "Формирование отчета по продажам..."
+                    : "Формирование отчета по производству...";
+
+                MainWindow.M.StatusBegin(statusText, MainWindow.StatusMessageType.Info);
 
                 bool isAdmin = MainWindow.M.CurrentManager.IsAdmin;
                 string managerName = MainWindow.M.CurrentManager.Name ?? "";
 
-                // ⭐ Запрос к сервису (только PG!)
-                var offers = await MainWindow.M.DataService.GetSalesReportAsync(_from, _to, isAdmin, managerName);
+                List<Offer> offers;
+                if (_reportType == ReportType.Sales)
+                    offers = await MainWindow.M.DataService.GetSalesReportAsync(_from, _to, isAdmin, managerName);
+                else
+                    offers = await MainWindow.M.DataService.GetProductionReportAsync(_from, _to, isAdmin, managerName);
 
                 if (offers.Count == 0)
                 {
-                    MainWindow.M.StatusBegin("За выбранного период расчётов не найдено", MainWindow.StatusMessageType.Warning);
+                    string emptyMessage = _reportType == ReportType.Sales
+                        ? "За выбранный период отгруженных расчётов не найдено"
+                        : "Расчётов в производстве не найдено";
+
+                    MainWindow.M.StatusBegin(emptyMessage, MainWindow.StatusMessageType.Warning);
                     Items = new ObservableCollection<OfferReportPreviewItem>();
                     RecalculateTotals();
                     return;
+                }
+
+                if (_reportType == ReportType.Production)
+                {
+                    var dates = offers
+                        .Where(o => o.CreatedDate.HasValue)
+                        .Select(o => o.CreatedDate!.Value.ToLocalTime().Date)
+                        .ToList();
+
+                    if (dates.Any())
+                    {
+                        DateTime minDate = dates.Min();
+                        DateTime maxDate = dates.Max();
+                        Title = PeriodText = $"расчёты с {minDate:dd.MM.yyyy} по {maxDate:dd.MM.yyyy} ({offers.Count} шт.)";
+                    }
+                    else
+                    {
+                        Title = PeriodText = $"все расчёты ({offers.Count} шт.)";
+                    }
                 }
 
                 // ⭐ Десериализация и заполнение DTO
@@ -116,6 +171,7 @@ namespace Metal_Code
                         Invoice = offer.Invoice,
                         Order = offer.Order,
                         EndDate = offer.EndDate?.ToLocalTime(),
+                        CreatedDate = offer.CreatedDate?.ToLocalTime(),
                         Author = offer.Autor,
                         ManagerName = offer.Manager?.Name ?? offer.Autor ?? "—"
                     };
@@ -126,13 +182,9 @@ namespace Metal_Code
                         {
                             var product = MainWindow.OpenOfferDataSafe(offer.Data, out _);
                             if (product != null)
-                            {
                                 ExtractWorkCosts(item, product);
-                            }
                             else
-                            {
                                 skippedCount++;
-                            }
                         }
                         catch
                         {
@@ -152,11 +204,15 @@ namespace Metal_Code
                 view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(OfferReportPreviewItem.ManagerName)));
                 view.SortDescriptions.Clear();
                 view.SortDescriptions.Add(new SortDescription(nameof(OfferReportPreviewItem.ManagerName), ListSortDirection.Ascending));
-                view.SortDescriptions.Add(new SortDescription(nameof(OfferReportPreviewItem.EndDate), ListSortDirection.Descending));
+
+                string dateProperty = _reportType == ReportType.Sales
+                    ? nameof(OfferReportPreviewItem.EndDate)
+                    : nameof(OfferReportPreviewItem.CreatedDate);
+                view.SortDescriptions.Add(new SortDescription(dateProperty, ListSortDirection.Descending));
 
                 string status = skippedCount > 0
-                    ? $"Отчет сформирован: {previewItems.Count} расчётов ({skippedCount} с ошибками данных)"
-                    : $"Отчет сформирован: {previewItems.Count} расчётов";
+                    ? $"{ReportTitle} сформирован: {previewItems.Count} расчётов ({skippedCount} с ошибками данных)"
+                    : $"{ReportTitle} сформирован: {previewItems.Count} расчётов";
 
                 MainWindow.M.StatusBegin(status, MainWindow.StatusMessageType.Success);
             }
@@ -268,9 +324,14 @@ namespace Metal_Code
 
         private void ExportToExcelWithDialog()
         {
+            // ⭐ Имя файла зависит от типа отчёта
+            string fileName = _reportType == ReportType.Sales
+                ? $"Отчет_продаж_{_from:yyyy-MM-dd}_{_to:yyyy-MM-dd}"
+                : $"Отчет_производство_{DateTime.Now:yyyy-MM-dd}";
+
             var dlg = new SaveFileDialog
             {
-                FileName = $"Отчет_продаж_{_from:yyyy-MM-dd}_{_to:yyyy-MM-dd}",
+                FileName = fileName,
                 DefaultExt = ".xlsx",
                 Filter = "Excel файлы (*.xlsx)|*.xlsx"
             };
@@ -295,19 +356,26 @@ namespace Metal_Code
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
             using var package = new ExcelPackage();
-            var ws = package.Workbook.Worksheets.Add("Отчет по продажам");
+            var ws = package.Workbook.Worksheets.Add(ReportSheetName);
 
-            ws.Cells[1, 1].Value = $"Отчет по продажам за период {_from:dd.MM.yyyy} — {_to:dd.MM.yyyy}";
+            // ⭐ Формируем заголовок в зависимости от типа отчёта
+            string headerText = _reportType == ReportType.Sales
+                ? $"{ReportTitle} за период {PeriodText}"
+                : $"{ReportTitle}: {PeriodText}";
+
+            ws.Cells[1, 1].Value = headerText;
             ws.Cells[1, 1, 1, 14].Merge = true;
             ws.Cells[1, 1].Style.Font.Bold = true;
             ws.Cells[1, 1].Style.Font.Size = 14;
             ws.Cells[1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
+            // ⭐ Заголовки столбцов: для производства "Создан" вместо "Отгружен"
             var headers = new[]
             {
-                "№", "Компания", "Сумма", "Нал", "Счёт", "Заказ", "Отгружен", "Автор", "Материал",
-                "Лазер", "Гибка", "Труборез", "Производство", "Всего работ"
-            };
+        "№", "Компания", "Сумма", "Нал", "Счёт", "Заказ",
+        _reportType == ReportType.Sales ? "Отгружен" : "Создан",
+        "Автор", "Материал", "Лазер", "Гибка", "Труборез", "Производство", "Всего работ"
+    };
 
             ws.Cells[3, 1].LoadFromArrays(new[] { headers });
             var headerRange = ws.Cells[3, 1, 3, headers.Length];
@@ -331,7 +399,7 @@ namespace Metal_Code
                 ws.Cells[row, 1].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(230, 230, 240));
                 row++;
 
-                foreach (var item in groupList.OrderBy(i => i.EndDate))
+                foreach (var item in groupList.OrderBy(i => i.DisplayDate))
                 {
                     ws.Cells[row, 1].Value = item.Number;
                     ws.Cells[row, 2].Value = item.Company;
@@ -339,7 +407,7 @@ namespace Metal_Code
                     ws.Cells[row, 4].Value = item.IsCash ? "ИП/ПК" : "ООО";
                     ws.Cells[row, 5].Value = item.Invoice;
                     ws.Cells[row, 6].Value = item.Order;
-                    ws.Cells[row, 7].Value = item.EndDate?.ToString("dd.MM.yyyy");
+                    ws.Cells[row, 7].Value = item.DisplayDate?.ToString("dd.MM.yyyy");
                     ws.Cells[row, 8].Value = item.Author;
                     ws.Cells[row, 9].Value = item.MaterialAmount;
                     ws.Cells[row, 10].Value = item.LaserCost;
@@ -391,6 +459,7 @@ namespace Metal_Code
         public string Invoice { get; set; } = null!;
         public string Order { get; set; } = null!;
         public DateTime? EndDate { get; set; }
+        public DateTime? CreatedDate { get; set; }
         public string Author { get; set; } = null!;
         public string ManagerName { get; set; } = null!;
 
@@ -400,12 +469,24 @@ namespace Metal_Code
         public float PipeCost { get; set; }       // стоимость трубореза (61)
         public float ProductionCost { get; set; } // стоимость производства (53 и 54)
 
-        // ⭐ Вычисляемое свойство: общая стоимость всех работ
+        // Вычисляемое свойство: общая стоимость всех работ
         public float TotalWorks => LaserCost + BendingCost + PipeCost + ProductionCost;
+
+        // Возвращает EndDate для отчёта продаж, CreatedDate — для производства
+        public DateTime? DisplayDate => EndDate ?? CreatedDate;
 
         // Для группировки
         public string GroupKey => !string.IsNullOrWhiteSpace(ManagerName)
             ? ManagerName
             : (!string.IsNullOrWhiteSpace(Author) ? Author : "Без ответственного");
+    }
+
+    /// <summary>
+    /// Тип отчёта для окна предпросмотра.
+    /// </summary>
+    public enum ReportType
+    {
+        Sales,       // Отчёт по продажам (отгруженные расчёты)
+        Production   // Отчёт по производству (неотгруженные расчёты)
     }
 }
