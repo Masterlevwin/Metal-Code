@@ -117,7 +117,7 @@ namespace Metal_Code
 
         //----------Свойства и их основные методы---------//
         #region
-        private string version = "2.7.0";
+        private string version = "2.7.1";
         public string Version
         {
             get => version;
@@ -2091,41 +2091,47 @@ namespace Metal_Code
                 UpdateBtn.IsEnabled = false;
                 StatusBegin("Обновление списка расчётов...", StatusMessageType.Info);
 
-                // ⭐ Сбрасываем фильтры ПЕРЕД загрузкой
+                bool wasSearchActive = !string.IsNullOrWhiteSpace(_searchQuery);
+
                 ResetFilters();
 
-                // ⭐ Запоминаем Id последнего расчёта ДО обновления
-                int lastOfferIdBefore = CurrentOffers?.Max(o => o.Id) ?? 0;
+                int lastOfferIdBefore = CurrentOffers?.Select(o => o.Id).DefaultIfEmpty(0).Max() ?? 0;
 
                 await LoadManagerDataAsync(TargetManager);
 
-                // ⭐ Находим ВСЕ новые расчёты
-                var newOffers = CurrentOffers?
-                    .Where(o => o.Id > lastOfferIdBefore)
-                    .OrderByDescending(o => o.Id)
-                    .ToList() ?? new List<Offer>();
+                // Сбрасываем флаг поиска после обновления
+                _searchQuery = string.Empty;
 
-                int newCount = newOffers.Count;
-
-                // ⭐ Формируем статус в зависимости от количества новых
-                if (newCount == 0)
+                if (wasSearchActive)
                 {
-                    StatusBegin("Список расчётов обновлён (новых нет)", StatusMessageType.Success);
-                }
-                else if (newCount == 1)
-                {
-                    // Один новый — прокручиваем и подсвечиваем
-                    ScrollToOfferAndHighlight(newOffers[0]);
-                    StatusBegin($"Обновлено: добавлен расчёт {newOffers[0].N}", StatusMessageType.Success);
+                    // После поиска не считаем «новые» — просто сообщаем об обновлении
+                    StatusBegin("Список расчётов обновлён", StatusMessageType.Success);
                 }
                 else
                 {
-                    // Несколько новых — прокручиваем к самому новому, но не подсвечиваем
-                    ScrollToOfferAndHighlight(newOffers[0]);
-                    StatusBegin($"Обновлено: добавлено {newCount} расчётов", StatusMessageType.Success);
+                    var newOffers = CurrentOffers?
+                        .Where(o => o.Id > lastOfferIdBefore)
+                        .OrderByDescending(o => o.Id)
+                        .ToList() ?? new List<Offer>();
+
+                    int newCount = newOffers.Count;
+
+                    if (newCount == 0)
+                    {
+                        StatusBegin("Список расчётов обновлён (новых нет)", StatusMessageType.Success);
+                    }
+                    else if (newCount == 1)
+                    {
+                        ScrollToOfferAndHighlight(newOffers[0]);
+                        StatusBegin($"Обновлено: добавлен расчёт {newOffers[0].N}", StatusMessageType.Success);
+                    }
+                    else
+                    {
+                        ScrollToOfferAndHighlight(newOffers[0]);
+                        StatusBegin($"Обновлено: добавлено {newCount} расчётов", StatusMessageType.Success);
+                    }
                 }
 
-                // Сбрасываем подсветку кнопки
                 UpdateBtn?.ClearValue(BackgroundProperty);
             }
             catch (Exception ex)
@@ -2294,53 +2300,6 @@ namespace Metal_Code
         }
 
         /// <summary>
-        /// Прокручивает OffersGrid к указанному расчёту, разворачивает его группу и подсвечивает строку.
-        /// Используется после добавления нового расчёта.
-        /// </summary>
-        public void ScrollToOfferAndHighlight(Offer offer)
-        {
-            if (offer == null || OffersGrid == null) return;
-
-            Dispatcher.BeginInvoke(new Action(async () =>
-            {
-                try
-                {
-                    // ⭐ ГЛАВНОЕ: Находим актуальный объект в коллекции по Id
-                    var actualOffer = CurrentOffers.FirstOrDefault(o => o.Id == offer.Id);
-                    if (actualOffer == null)
-                    {
-                        Trace.WriteLine($"⚠️ Расчёт Id={offer.Id} не найден в коллекции CurrentOffers");
-                        return;
-                    }
-
-                    Trace.WriteLine($"🔍 Прокрутка к расчёту: Id={actualOffer.Id}, N={actualOffer.N}, ParentQuoteNumber={actualOffer.ParentQuoteNumber}");
-
-                    // Ждём, пока WPF построит группы
-                    await System.Threading.Tasks.Task.Delay(300);
-
-                    // 1. Разворачиваем группу
-                    ExpandGroupByParentQuoteNumber(actualOffer.ParentQuoteNumber);
-
-                    // Ещё раз ждём, пока группа раскроется
-                    await System.Threading.Tasks.Task.Delay(400);
-
-                    // 2. Прокручиваем к строке (используем actualOffer, а не offer!)
-                    OffersGrid.ScrollIntoView(actualOffer);
-                    OffersGrid.UpdateLayout();
-
-                    // 3. Подсвечиваем строку
-                    HighlightOfferRow(actualOffer);
-
-                    Trace.WriteLine($"✅ Прокрутка и подсветка выполнены для Id={actualOffer.Id}");
-                }
-                catch (Exception ex)
-                {
-                    Trace.WriteLine($"Ошибка прокрутки к расчёту: {ex.Message}");
-                }
-            }), DispatcherPriority.Loaded); // ⭐ Используем Loaded вместо Background
-        }
-
-        /// <summary>
         /// Собирает имена всех развёрнутых групп.
         /// </summary>
         private HashSet<string> GetExpandedGroupNames()
@@ -2398,12 +2357,17 @@ namespace Metal_Code
         /// </summary>
         private void ExpandGroupByParentQuoteNumber(string parentQuoteNumber)
         {
-            if (string.IsNullOrEmpty(parentQuoteNumber) || OffersGrid?.Items.Groups == null) return;
+            if (string.IsNullOrEmpty(parentQuoteNumber) || OffersView == null) return;
 
-            foreach (var group in OffersGrid.Items.Groups)
+            // ⭐ Работаем с OffersView, а не с OffersGrid.Items.Groups
+            var groups = OffersView.Groups;
+            if (groups == null) return;
+
+            foreach (var group in groups)
             {
                 if (group is CollectionViewGroup cvg && cvg.Name?.ToString() == parentQuoteNumber)
                 {
+                    // ⭐ Находим GroupItem через ItemContainerGenerator
                     var groupItem = OffersGrid.ItemContainerGenerator.ContainerFromItem(group) as GroupItem;
                     if (groupItem != null)
                     {
@@ -2411,11 +2375,68 @@ namespace Metal_Code
                         if (expander != null && !expander.IsExpanded)
                         {
                             expander.IsExpanded = true;
+                            Trace.WriteLine($"✅ Группа '{parentQuoteNumber}' развёрнута");
                         }
+                    }
+                    else
+                    {
+                        Trace.WriteLine($"⚠️ GroupItem не найден для группы '{parentQuoteNumber}'");
                     }
                     break;
                 }
             }
+        }
+
+        /// <summary>
+        /// Прокручивает OffersGrid к указанному расчёту, разворачивает его группу и подсвечивает строку.
+        /// Используется после добавления нового расчёта.
+        /// </summary>
+        public void ScrollToOfferAndHighlight(Offer offer)
+        {
+            if (offer == null || OffersGrid == null) return;
+
+            Dispatcher.BeginInvoke(new Action(async () =>
+            {
+                try
+                {
+                    // Находим актуальный объект в коллекции по Id
+                    var actualOffer = CurrentOffers.FirstOrDefault(o => o.Id == offer.Id);
+                    if (actualOffer == null)
+                    {
+                        Trace.WriteLine($"⚠️ Расчёт Id={offer.Id} не найден в коллекции CurrentOffers");
+                        return;
+                    }
+
+                    Trace.WriteLine($"🔍 Прокрутка к расчёту: Id={actualOffer.Id}, N={actualOffer.N}, ParentQuoteNumber={actualOffer.ParentQuoteNumber}");
+
+                    // ⭐ Ждём завершения рендеринга
+                    await System.Threading.Tasks.Task.Delay(150);
+                    await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Render);
+
+                    // 1. Разворачиваем группу
+                    ExpandGroupByParentQuoteNumber(actualOffer.ParentQuoteNumber);
+
+                    // ⭐ Ждём, пока группа раскроется
+                    await System.Threading.Tasks.Task.Delay(250);
+                    await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Render);
+
+                    // 2. Прокручиваем к строке
+                    OffersGrid.ScrollIntoView(actualOffer);
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        OffersGrid.UpdateLayout();
+                    }, DispatcherPriority.Render);
+
+                    // 3. Подсвечиваем строку
+                    HighlightOfferRow(actualOffer);
+
+                    Trace.WriteLine($"✅ Прокрутка и подсветка выполнены для Id={actualOffer.Id}");
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine($"Ошибка прокрутки к расчёту: {ex.Message}");
+                }
+            }), DispatcherPriority.Input); // ⭐ Input вместо Loaded
         }
 
         /// <summary>
@@ -2429,7 +2450,7 @@ namespace Metal_Code
             {
                 try
                 {
-                    // ⭐ Находим актуальный объект в коллекции
+                    // Находим актуальный объект в коллекции
                     var actualOffer = CurrentOffers.FirstOrDefault(o => o.Id == offer.Id);
                     if (actualOffer == null) return;
 
@@ -2446,7 +2467,8 @@ namespace Metal_Code
                         {
                             var retryRow = OffersGrid.ItemContainerGenerator.ContainerFromItem(actualOffer) as DataGridRow;
                             if (retryRow != null) ApplyHighlight(retryRow);
-                        }), DispatcherPriority.Background);
+                            else Trace.WriteLine($"⚠️ Строка не найдена после повторной попытки для Id={actualOffer.Id}");
+                        }), DispatcherPriority.Input); // ⭐ Input вместо Background
                         return;
                     }
 
@@ -2456,7 +2478,7 @@ namespace Metal_Code
                 {
                     Trace.WriteLine($"Ошибка подсветки строки: {ex.Message}");
                 }
-            }), DispatcherPriority.Loaded);
+            }), DispatcherPriority.Input); // ⭐ Input вместо Loaded
         }
 
         private void ApplyHighlight(DataGridRow row)
@@ -6885,13 +6907,14 @@ namespace Metal_Code
 
             try
             {
-                StatusBegin($"Проверка и добавление заказчика '{CustomerDrop.Text}'...", StatusMessageType.Info);
+                string customerName = CustomerDrop.Text.Trim();
+                StatusBegin($"Проверка и добавление заказчика '{customerName}'...", StatusMessageType.Info);
 
                 int.TryParse(DeliveryPrice.Text, out int delivery);
                 bool isEngineer = CurrentManager?.IsEngineer == true;
 
                 var newCustomer = await DataService.AddCustomerAsync(
-                    CustomerDrop.Text.Trim(),
+                    customerName,
                     Adress.Text,
                     IsAgent,
                     delivery,
@@ -6907,11 +6930,34 @@ namespace Metal_Code
                 else
                 {
                     // ⭐ СПЕЦИАЛЬНОЕ СООБЩЕНИЕ О ГЛОБАЛЬНОМ ДУБЛИКАТЕ
-                    StatusBegin($"Заказчик '{CustomerDrop.Text}' уже существует в общей базе у другого менеджера. Пожалуйста, переименуйте его (например, добавьте город или ИНН) и попробуйте снова.", StatusMessageType.Warning);
+                    var (ownerName, actualCustomerName) = await DataService.FindCustomerOwnerInPgAsync(customerName);
 
-                    // Возвращаем фокус в поле ввода, чтобы пользователь мог сразу исправить имя
+                    string message;
+                    if (!string.IsNullOrEmpty(ownerName) && !string.IsNullOrEmpty(actualCustomerName))
+                    {
+                        if (actualCustomerName.Equals(customerName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            message = $"Заказчик '{customerName}' уже существует в общей базе у менеджера «{ownerName}».\n\n" +
+                                      $"Пожалуйста, переименуйте его (например, добавьте город или ИНН) и попробуйте снова.";
+                        }
+                        else
+                        {
+                            message = $"Заказчик с похожим именем «{actualCustomerName}» уже существует в общей базе у менеджера «{ownerName}».\n\n" +
+                                      $"Вы ввели: '{customerName}'\n" +
+                                      $"В базе найдено: '{actualCustomerName}'\n\n" +
+                                      $"Пожалуйста, используйте точное имя или переименуйте вашего заказчика.";
+                        }
+                    }
+                    else
+                    {
+                        message = $"Заказчик '{customerName}' уже существует в общей базе у другого менеджера.\n\n" +
+                                  $"Пожалуйста, переименуйте его (например, добавьте город или ИНН) и попробуйте снова.";
+                    }
+
+                    StatusBegin(message, StatusMessageType.Warning);
+
                     CustomerDrop.Focus();
-                    CustomerDrop.IsDropDownOpen = false; // Закрыть дроп, чтобы можно было редактировать текст
+                    CustomerDrop.IsDropDownOpen = false;
                 }
             }
             catch (Exception ex)

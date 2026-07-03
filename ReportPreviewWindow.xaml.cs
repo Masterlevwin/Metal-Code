@@ -155,7 +155,6 @@ namespace Metal_Code
                     }
                 }
 
-                // ⭐ Десериализация и заполнение DTO
                 var previewItems = new List<OfferReportPreviewItem>();
                 int skippedCount = 0;
 
@@ -198,7 +197,6 @@ namespace Metal_Code
                 Items = new ObservableCollection<OfferReportPreviewItem>(previewItems);
                 RecalculateTotals();
 
-                // Группировка по менеджеру
                 var view = CollectionViewSource.GetDefaultView(Items);
                 view.GroupDescriptions.Clear();
                 view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(OfferReportPreviewItem.ManagerName)));
@@ -249,14 +247,57 @@ namespace Metal_Code
         private static void ExtractWorkCosts(OfferReportPreviewItem item, Product product)
         {
             var workKeys = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
-            {
-                { "Лазерная резка", 51 },
-                { "Гибка", 52 },
-                { "Сварка", 53 },
-                { "Окраска", 54 },
-                { "Труборез", 61 },
-            };
+    {
+        { "Лазерная резка", 51 },
+        { "Гибка", 52 },
+        { "Сварка", 53 },
+        { "Окраска", 54 },
+        { "Резьба", 55 },
+        { "Зенковка", 56 },
+        { "Сверловка", 57 },
+        { "Вальцовка", 58 },
+        { "Доп работа П", 59 },
+        { "Доп работа Л", 60 },
+        { "Труборез", 61 },
+        { "Лентопил", 61 },
+        { "Фрезеровка", 64 },
+        { "Заклепки", 65 },
+        { "Аквабластинг", 66 },
+        { "Цинкование", 67 },
+    };
 
+            // Работы, которые могут дублироваться в td.Works,
+            // но их стоимость уже объединена в part.PropsDict.
+            var dedupWorkNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "Резьба",
+        "Зенковка",
+        "Сверловка",
+        "Заклепки",
+        "Гибка",
+        "Доп работа Л",
+        "Доп работа П",
+    };
+
+            // === Учёт доставки ===
+            item.ProductionCost += product.Delivery * product.DeliveryRatio;
+
+            // === Учёт стоимости сварки и окраски из сборок ===
+            if (product.Assemblies != null && product.Assemblies.Count > 0)
+            {
+                foreach (var assembly in product.Assemblies)
+                {
+                    if (assembly == null) continue;
+
+                    if (assembly.WeldPrice > 0)
+                        item.ProductionCost += assembly.WeldPrice;
+
+                    if (assembly.PaintPrice > 0)
+                        item.ProductionCost += assembly.PaintPrice;
+                }
+            }
+
+            // === Обработка работ по деталям ===
             foreach (var detail in product.Details)
             {
                 foreach (var td in detail.TypeDetails)
@@ -271,11 +312,21 @@ namespace Metal_Code
                         }
                     }
 
+                    var processedWorks = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
                     foreach (var work in td.Works)
                     {
                         var workName = work.NameWork?.Trim();
                         if (string.IsNullOrWhiteSpace(workName) || !workKeys.TryGetValue(workName, out int key))
                             continue;
+
+                        // Пропускаем дубликаты работ из dedupWorkNames
+                        if (dedupWorkNames.Contains(workName))
+                        {
+                            if (processedWorks.Contains(workName))
+                                continue;
+                            processedWorks.Add(workName);
+                        }
 
                         float cost = ExtractWorkCost(contextParts, key);
 
@@ -287,9 +338,31 @@ namespace Metal_Code
                                 item.BendingCost += cost; break;
                             case var n when n.Equals("Труборез", StringComparison.OrdinalIgnoreCase):
                                 item.PipeCost += cost; break;
+                            case var n when n.Equals("Лентопил", StringComparison.OrdinalIgnoreCase):
+                                item.PipeCost += cost; break;
                             case var n when n.Equals("Сварка", StringComparison.OrdinalIgnoreCase):
                                 item.ProductionCost += cost; break;
                             case var n when n.Equals("Окраска", StringComparison.OrdinalIgnoreCase):
+                                item.ProductionCost += cost; break;
+                            case var n when n.Equals("Резьба", StringComparison.OrdinalIgnoreCase):
+                                item.ProductionCost += cost; break;
+                            case var n when n.Equals("Зенковка", StringComparison.OrdinalIgnoreCase):
+                                item.ProductionCost += cost; break;
+                            case var n when n.Equals("Сверловка", StringComparison.OrdinalIgnoreCase):
+                                item.ProductionCost += cost; break;
+                            case var n when n.Equals("Вальцовка", StringComparison.OrdinalIgnoreCase):
+                                item.ProductionCost += cost; break;
+                            case var n when n.Equals("Доп работа П", StringComparison.OrdinalIgnoreCase):
+                                item.ProductionCost += cost; break;
+                            case var n when n.Equals("Доп работа Л", StringComparison.OrdinalIgnoreCase):
+                                item.ProductionCost += cost; break;
+                            case var n when n.Equals("Фрезеровка", StringComparison.OrdinalIgnoreCase):
+                                item.ProductionCost += cost; break;
+                            case var n when n.Equals("Заклепки", StringComparison.OrdinalIgnoreCase):
+                                item.ProductionCost += cost; break;
+                            case var n when n.Equals("Аквабластинг", StringComparison.OrdinalIgnoreCase):
+                                item.ProductionCost += cost; break;
+                            case var n when n.Equals("Цинкование", StringComparison.OrdinalIgnoreCase):
                                 item.ProductionCost += cost; break;
                         }
                     }
@@ -466,8 +539,8 @@ namespace Metal_Code
         // 🔹 Поля для детализации работ
         public float LaserCost { get; set; }      // стоимость лазерной резки (51)
         public float BendingCost { get; set; }    // стоимость гибки (52)
-        public float PipeCost { get; set; }       // стоимость трубореза (61)
-        public float ProductionCost { get; set; } // стоимость производства (53 и 54)
+        public float PipeCost { get; set; }       // стоимость трубореза и лентопила (61)
+        public float ProductionCost { get; set; } // стоимость производства (остальные)
 
         // Вычисляемое свойство: общая стоимость всех работ
         public float TotalWorks => LaserCost + BendingCost + PipeCost + ProductionCost;

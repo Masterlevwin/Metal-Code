@@ -31,6 +31,13 @@ namespace Metal_Code
         private double _currentSheetHeight;
 
         private NestingSheet _currentSheet = null!;
+
+        // Состояние перетаскивания
+        private Path _draggedPath;
+        private PartPlacement _draggedPlacement;
+        private Point _startMouseLogicalPos;
+        private double _startPartX, _startPartY;
+
         public NestingPreviewControl() => InitializeUI();
 
 
@@ -63,6 +70,10 @@ namespace Metal_Code
 
             _rootViewbox.Child = _rootCanvas;
             Content = _rootViewbox;
+
+            _invertedLayer.PreviewMouseMove += InvertedLayer_PreviewMouseMove;
+            _invertedLayer.PreviewMouseLeftButtonUp += InvertedLayer_PreviewMouseLeftButtonUp;
+            _invertedLayer.PreviewKeyDown += InvertedLayer_PreviewKeyDown;
         }
 
         /// <summary>
@@ -76,7 +87,6 @@ namespace Metal_Code
                 return;
             }
 
-            // Если размеры изменились, перестраиваем холст и сетку
             if (Math.Abs(_currentSheetWidth - sheet.Width) > 0.1 ||
                 Math.Abs(_currentSheetHeight - sheet.Height) > 0.1)
             {
@@ -90,7 +100,8 @@ namespace Metal_Code
                 if (placement.Part.DisplayGeometry == null)
                     PartPreviewGenerator.EnsureDisplayGeometry(placement.Part);
 
-                AddPartToCanvas(placement.Part, placement.X, placement.Y, placement.Rotation);
+                // ИЗМЕНЕНО: Передаем весь placement
+                AddPartToCanvas(placement);
             }
         }
 
@@ -370,25 +381,13 @@ namespace Metal_Code
             _labelsCanvas.Children.Add(text);
         }
 
-        private void AddPartToCanvas(Part part, double x, double y, double rotation = 0)
+        private void AddPartToCanvas(PartPlacement placement)
         {
+            var part = placement.Part;
             if (part.DisplayGeometry is null) return;
 
             var geometry = PartPreviewGenerator.CloneGeometry(part.DisplayGeometry);
             if (geometry == null) return;
-
-            var bounds = geometry.Bounds;
-
-            // Получаем размеры с учётом поворота
-            var (partWidth, partHeight) = NestingHelper.GetPartDimensions(part, rotation);
-
-            // Сдвигаем геометрию к (0,0)
-            double offsetX = -bounds.Left;
-            double offsetY = -bounds.Top;
-
-            // Центр геометрии для поворота
-            double centerX = bounds.Width / 2;
-            double centerY = bounds.Height / 2;
 
             var path = new Path
             {
@@ -400,44 +399,230 @@ namespace Metal_Code
                     ? Brushes.DarkRed
                     : Brushes.DarkBlue,
                 StrokeThickness = 1.5,
-                ToolTip = $"{part.Title}\n{partWidth:0}×{partHeight:0}мм{(rotation != 0 ? " (↻)" : "")}",
-                IsHitTestVisible = true
+                IsHitTestVisible = true,
+                Tag = placement // <-- Маппинг визуала с данными
             };
 
-            var transformGroup = new TransformGroup();
+            var (partWidth, partHeight) = NestingHelper.GetPartDimensions(part, placement.Rotation);
+            path.ToolTip = $"{part.Title}\n{partWidth:0}×{partHeight:0}мм{(placement.Rotation != 0 ? " (↻)" : "")}";
 
-            // 1️. Сдвиг геометрии к началу координат
+            // Применяем координаты и поворот через универсальный метод
+            ApplyPlacementToPath(path, placement);
+
+            // Подписываемся на начало перетаскивания
+            path.PreviewMouseLeftButtonDown += Path_PreviewMouseLeftButtonDown;
+            path.PreviewMouseRightButtonUp += (s, e) => OnPartRightClick(part, e);
+
+            _partsCanvas.Children.Add(path);
+        }
+
+        /// <summary>
+        /// Применяет координаты (X, Y) и поворот (Rotation) к визуальному объекту Path.
+        /// </summary>
+        private void ApplyPlacementToPath(Path path, PartPlacement placement)
+        {
+            var part = placement.Part;
+            double rotation = placement.Rotation;
+
+            var geometry = path.Data as Geometry;
+            if (geometry == null) return;
+
+            var bounds = geometry.Bounds;
+
+            double offsetX = -bounds.Left;
+            double offsetY = -bounds.Top;
+            double centerX = bounds.Width / 2;
+            double centerY = bounds.Height / 2;
+
+            var transformGroup = new TransformGroup();
             transformGroup.Children.Add(new TranslateTransform(offsetX, offsetY));
 
-            // 2️. Поворот вокруг ЦЕНТРА детали
-            // Знак "-" компенсирует инверсию Y у родительского _invertedLayer
             if (Math.Abs(rotation) > 0.1)
             {
+                // Знак "-" компенсирует инверсию Y у родительского _invertedLayer
                 transformGroup.Children.Add(new RotateTransform(-rotation, centerX, centerY));
             }
 
             path.RenderTransform = transformGroup;
 
-            // 3️. Корректировка позиции для компенсации изменения габаритов
-            // При повороте на 90° ширина и высота меняются местами
-            // Нужно сместить так, чтобы нижний левый угол детали остался в (x, y)
-            double adjustedX = x;
-            double adjustedY = y;
+            double adjustedX = placement.X;
+            double adjustedY = placement.Y;
 
-            if (Math.Abs(rotation - 90) < 0.1)
+            // Компенсация смещения центра при повороте на 90/270 градусов
+            if (Math.Abs(rotation - 90) < 0.1 || Math.Abs(rotation - 270) < 0.1)
             {
-                // Компенсация смещения при повороте на 90°
-                // Деталь 1400×50 → 50×1400, центр смещается
-                adjustedX = x + (bounds.Height - bounds.Width) / 2;
-                adjustedY = y + (bounds.Width - bounds.Height) / 2;
+                adjustedX = placement.X + (bounds.Height - bounds.Width) / 2;
+                adjustedY = placement.Y + (bounds.Width - bounds.Height) / 2;
             }
 
             Canvas.SetLeft(path, adjustedX);
             Canvas.SetTop(path, adjustedY);
-
-            path.PreviewMouseRightButtonUp += (s, e) => OnPartRightClick(part, e);
-            _partsCanvas.Children.Add(path);
         }
+
+        /// <summary>
+        /// Проверяет, можно ли разместить деталь в указанных координатах без пересечений и выхода за границы.
+        /// </summary>
+        private bool IsValidPlacement(NestingSheet sheet, PartPlacement movingPart, double x, double y, double rotation)
+        {
+            var (w, h) = NestingHelper.GetPartDimensions(movingPart.Part, rotation);
+
+            // 1. Проверка выхода за границы листа
+            if (x < NestingHelper.Spacing || y < NestingHelper.Spacing) return false;
+            if (x + w > sheet.Width - NestingHelper.Spacing) return false;
+            if (y + h > sheet.Height - NestingHelper.Spacing) return false;
+
+            // 2. Проверка пересечений с ДРУГИМИ деталями
+            foreach (var existing in sheet.Parts)
+            {
+                if (ReferenceEquals(existing, movingPart)) continue; // Игнорируем саму перемещаемую деталь
+
+                var (ew, eh) = NestingHelper.GetPartDimensions(existing.Part, existing.Rotation);
+
+                // Логика AABB (Axis-Aligned Bounding Box)
+                if (x + w + NestingHelper.Spacing <= existing.X) continue;
+                if (existing.X + ew + NestingHelper.Spacing <= x) continue;
+                if (y + h + NestingHelper.Spacing <= existing.Y) continue;
+                if (existing.Y + eh + NestingHelper.Spacing <= y) continue;
+
+                return false; // Найдено пересечение
+            }
+
+            return true;
+        }
+
+        private void Path_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not Path path || path.Tag is not PartPlacement placement) return;
+
+            _draggedPath = path;
+            _draggedPlacement = placement;
+
+            // Получаем позицию мыши относительно инвертированного слоя.
+            // WPF сам учтет RenderTransform (ScaleY = -1), и Y будет расти вверх.
+            _startMouseLogicalPos = e.GetPosition(_invertedLayer);
+
+            _startPartX = placement.X;
+            _startPartY = placement.Y;
+
+            // Визуальное выделение
+            path.Stroke = Brushes.Orange;
+            path.StrokeThickness = 3;
+
+            // Поднимаем деталь наверх (Z-Order), чтобы она перекрывала остальные
+            _partsCanvas.Children.Remove(path);
+            _partsCanvas.Children.Add(path);
+
+            // Захватываем мышь и фокус для обработки клавиатуры
+            _invertedLayer.Focusable = true;
+            _invertedLayer.Focus();
+            _invertedLayer.CaptureMouse();
+
+            e.Handled = true;
+        }
+
+        private void InvertedLayer_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (_draggedPath == null || _draggedPlacement == null) return;
+
+            Point currentMousePos = e.GetPosition(_invertedLayer);
+            double deltaX = currentMousePos.X - _startMouseLogicalPos.X;
+            double deltaY = currentMousePos.Y - _startMouseLogicalPos.Y;
+
+            double newX = _startPartX + deltaX;
+            double newY = _startPartY + deltaY;
+
+            bool isValid = IsValidPlacement(_currentSheet, _draggedPlacement, newX, newY, _draggedPlacement.Rotation);
+
+            // Визуальная обратная связь: Зеленый - можно ставить, Красный - коллизия
+            _draggedPath.Stroke = isValid ? Brushes.LimeGreen : Brushes.Red;
+
+            // Временно обновляем визуал (но еще не пишем в _draggedPlacement)
+            var tempPlacement = new PartPlacement
+            {
+                Part = _draggedPlacement.Part,
+                X = newX,
+                Y = newY,
+                Rotation = _draggedPlacement.Rotation
+            };
+            ApplyPlacementToPath(_draggedPath, tempPlacement);
+        }
+
+        private void InvertedLayer_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_draggedPath == null || _draggedPlacement == null) return;
+
+            Point endMousePos = e.GetPosition(_invertedLayer);
+            double deltaX = endMousePos.X - _startMouseLogicalPos.X;
+            double deltaY = endMousePos.Y - _startMouseLogicalPos.Y;
+
+            double newX = _startPartX + deltaX;
+            double newY = _startPartY + deltaY;
+
+            if (IsValidPlacement(_currentSheet, _draggedPlacement, newX, newY, _draggedPlacement.Rotation))
+            {
+                // Применяем изменения к данным
+                _draggedPlacement.X = newX;
+                _draggedPlacement.Y = newY;
+
+                // Пересчитываем оптимизированные размеры листа (красную линию обрезки)
+                NestingHelper.OptimizeSheetSize(_currentSheet);
+
+                // Обновляем визуал (перерисовка линии обрезки и т.д.)
+                RebuildLayout(_currentSheet);
+                ShowSheet(_currentSheet);
+            }
+            else
+            {
+                // Возвращаем на место, если бросили в невалидном месте
+                ApplyPlacementToPath(_draggedPath, _draggedPlacement);
+            }
+
+            // Сброс состояния и визуала
+            _draggedPath.Stroke = _draggedPlacement.Part.PartType == PartType.Round ? Brushes.DarkRed : Brushes.DarkBlue;
+            _draggedPath.StrokeThickness = 1.5;
+
+            _draggedPath = null;
+            _draggedPlacement = null;
+            _invertedLayer.ReleaseMouseCapture();
+        }
+
+        private void InvertedLayer_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (_draggedPath?.Tag is not PartPlacement placement) return;
+
+            // Поворот клавишами Home (90°) и End (-90°) как в AJANCAM
+            if (e.Key == Key.Home || e.Key == Key.End)
+            {
+                if (placement.Part.PartType == PartType.Round) return; // Круги не крутим
+
+                double newRotation = placement.Rotation;
+                if (e.Key == Key.Home)
+                {
+                    newRotation = (placement.Rotation + 90) % 360;
+                }
+                else if (e.Key == Key.End)
+                {
+                    newRotation = (placement.Rotation - 90 + 360) % 360;
+                }
+
+                if (IsValidPlacement(_currentSheet, placement, placement.X, placement.Y, newRotation))
+                {
+                    placement.Rotation = newRotation;
+                    ApplyPlacementToPath(_draggedPath, placement);
+
+                    // Обновляем Tooltip
+                    var (pw, ph) = NestingHelper.GetPartDimensions(placement.Part, newRotation);
+                    _draggedPath.ToolTip = $"{placement.Part.Title}\n{pw:0}×{ph:0}мм (↻)";
+                }
+                else
+                {
+                    // Звуковой сигнал, если повернуть нельзя (коллизия)
+                    System.Media.SystemSounds.Beep.Play();
+                }
+                e.Handled = true;
+            }
+        }
+
         #endregion
 
         //-------------Заполнение листа----------//

@@ -51,7 +51,7 @@ namespace Metal_Code.Utils
                     item.Width = w;
                     item.Height = h;
                     item.Thickness = t;
-                    item.Destiny = $"{item.Width}×{item.Height}×{item.Thickness}";
+                    item.Destiny = $"{item.Width}x{item.Height}x{item.Thickness}";
                     item.PartType = PartType.RectangularTube;
                     return;
                 }
@@ -67,7 +67,7 @@ namespace Metal_Code.Utils
                 {
                     item.Width = item.Height = side;
                     item.Thickness = wall;
-                    item.Destiny = $"{item.Width}×{item.Height}×{item.Thickness}";
+                    item.Destiny = $"{item.Width}x{item.Height}x{item.Thickness}";
                     item.PartType = PartType.RectangularTube;
                     return;
                 }
@@ -125,7 +125,7 @@ namespace Metal_Code.Utils
                     item.Width = h;
                     item.Height = b;
                     item.Thickness = t;
-                    item.Destiny = $"I{item.Width}×{item.Height}×{item.Thickness}";
+                    item.Destiny = $"I{item.Width}x{item.Height}x{item.Thickness}";
                     item.PartType = PartType.IBeam;
                     return;
                 }
@@ -147,7 +147,7 @@ namespace Metal_Code.Utils
                     item.Width = l1;
                     item.Height = l2;
                     item.Thickness = t;
-                    item.Destiny = $"L{item.Width}×{item.Height}×{item.Thickness}";
+                    item.Destiny = $"L{item.Width}x{item.Height}x{item.Thickness}";
                     item.PartType = PartType.Angle;
                     return;
                 }
@@ -163,7 +163,7 @@ namespace Metal_Code.Utils
                 {
                     item.Width = item.Height = leg;
                     item.Thickness = wall;
-                    item.Destiny = $"L{item.Width}×{item.Thickness}";
+                    item.Destiny = $"L{item.Width}x{item.Thickness}";
                     item.PartType = PartType.Angle;
                     return;
                 }
@@ -197,7 +197,7 @@ namespace Metal_Code.Utils
                     item.Width = h;
                     item.Height = b;
                     item.Thickness = t;
-                    item.Destiny = $"U{item.Width}×{item.Height}×{item.Thickness}";
+                    item.Destiny = $"U{item.Width}x{item.Height}x{item.Thickness}";
                     item.PartType = PartType.Channel;
                     return;
                 }

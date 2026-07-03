@@ -7,7 +7,7 @@ namespace Metal_Code.Utils
     public static class NestingHelper
     {
         // Отступы между деталями и от краёв вынесены в константу
-        private const double Spacing = 10;
+        public const double Spacing = 10;
 
         /// <summary>
         /// Пакетный нестинг: размещает ВСЕ детали на минимальном количестве листов.

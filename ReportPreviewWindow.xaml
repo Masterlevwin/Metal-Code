@@ -39,6 +39,7 @@
                                Margin="20,0,0,0" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"/>
                 </StackPanel>
 
+                
                 <Button Grid.Column="1" Content="💾 Экспорт в Excel" 
                         Command="{Binding ExportCommand}"
                         Style="{StaticResource ButtonSuccess}" Padding="12,6" Margin="0,0,5,0"/>
@@ -96,6 +97,7 @@
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Right"/>
+                            <Setter Property="Foreground" Value="Blue"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -107,7 +109,7 @@
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
                 <DataGridTextColumn Header="Счёт" Binding="{Binding Invoice}" Width="100"/>
-                <DataGridTextColumn Header="Заказ" Binding="{Binding Order}" Width="100"/>
+                <DataGridTextColumn Header="Заказ" Binding="{Binding Order}" Width="100" Foreground="OrangeRed"/>
                 <DataGridTextColumn x:Name="DateColumn" Binding="{Binding DisplayDate, StringFormat=dd.MM.yyyy}" Width="90"/>
                 <DataGridTextColumn Header="Автор" Binding="{Binding Author}" Width="120"/>
                 <DataGridTextColumn Header="Материал" Binding="{Binding MaterialAmount, StringFormat={}{0:N2} ₽}" Width="100">

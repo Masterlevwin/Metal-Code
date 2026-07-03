@@ -120,15 +120,24 @@ namespace Metal_Code
                                 // ⭐ СОХРАНЕНИЕ В БАЗУ ЧЕРЕЗ СЕРВИС
                                 MainWindow.M.StatusBegin("Сохранение расчета в базу...", MainWindow.StatusMessageType.Info);
 
-                                // Определяем автора
+                                string now = DateTime.Now.ToString("dd.MM.yyyy HH:mm");
+                                string? currentManager = MainWindow.M.CurrentManager.Name;
                                 string? autor;
-                                if (MainWindow.M.ActiveOffer?.Autor == MainWindow.M.CurrentManager.Name || MainWindow.M.ActiveOffer is null)
+
+                                bool isNewOffer = MainWindow.M.ActiveOffer is null;
+                                bool isNumberChanged = MainWindow.M.ActiveOffer?.N != MainWindow.M.Order.Text;
+                                bool isSameAuthor = MainWindow.M.ActiveOffer?.Autor == currentManager;
+
+                                if (isNewOffer || isNumberChanged || isSameAuthor)
                                 {
-                                    autor = MainWindow.M.CurrentManager.Name;
+                                    // Новый расчет, измененный номер или тот же автор — 
+                                    // устанавливаем текущего менеджера как автора с датой и временем
+                                    autor = $"{currentManager} ({now})";
                                 }
                                 else
                                 {
-                                    autor = $"{MainWindow.M.ActiveOffer?.Autor}\n{MainWindow.M.CurrentManager.Name} ({DateTime.Now:dd.MM.yyyy})";
+                                    // Другой автор и номер не менялся — добавляем текущего менеджера в цепочку
+                                    autor = $"{MainWindow.M.ActiveOffer?.Autor}\n{currentManager} ({now})";
                                 }
 
                                 // Сериализуем данные расчета

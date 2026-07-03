@@ -16,6 +16,7 @@
         <local:OrderToBoolConverter x:Key="OrderToBoolConverter"/>
         <converters:GroupCompanyNamesConverter x:Key="GroupCompanyNamesConverter"/>
         <converters:ShipmentButtonTextConverter x:Key="ShipmentButtonTextConverter"/>
+        <converters:LocalOfferColorConverter x:Key="LocalOfferColorConverter"/>
         
         <!-- Плавные функции для анимации -->
         <PowerEase x:Key="EaseOut" EasingMode="EaseOut"/>
@@ -660,7 +661,7 @@
                                                 </GroupStyle.ContainerStyle>
                                             </GroupStyle>
                                         </DataGrid.GroupStyle>
-                                        
+
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="№" Binding="{Binding N}" IsReadOnly="True" FontWeight="Bold"/>
                                             <DataGridTextColumn Header="Компания" Binding="{Binding Company}" IsReadOnly="True"/>
@@ -714,6 +715,7 @@
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
+
                                         </DataGrid.Columns>
 
                                         <DataGrid.RowDetailsTemplate>
@@ -728,6 +730,11 @@
                                                         <TextBlock Margin="5,0,0,0" Text="{Binding CreatedDate, StringFormat=d.MM.y}" Foreground="{DynamicResource PrimaryTextBrush}"/>
                                                         <TextBlock Margin="10,0,0,0" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}">Автор -</TextBlock>
                                                         <TextBlock Margin="5,0,0,0" Text="{Binding Autor}" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                                        <Ellipse Width="10" Height="10" Margin="10,0,0,0">
+                                                            <Ellipse.Fill>
+                                                                <SolidColorBrush Color="{Binding IsLocalOffer, Converter={StaticResource LocalOfferColorConverter}}"/>
+                                                            </Ellipse.Fill>
+                                                        </Ellipse>
                                                     </StackPanel>
                                                 </Border>
                                             </DataTemplate>

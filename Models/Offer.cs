@@ -52,8 +52,15 @@ namespace Metal_Code.Models
     }
 
     // ==================== Offer ====================
-    public class Offer
+    public class Offer : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
         public Offer() { }
 
         public Offer(string? n = null, string? company = null, float amount = 0, float material = 0, float services = 0)
@@ -118,6 +125,21 @@ namespace Metal_Code.Models
                 if (string.IsNullOrWhiteSpace(N)) return "Без номера";
                 var match = Regex.Match(N.Trim(), @"^(\d+)");
                 return match.Success ? match.Groups[1].Value : N.Trim();
+            }
+        }
+
+        private bool _isLocalOffer;
+        [NotMapped]
+        public bool IsLocalOffer
+        {
+            get => _isLocalOffer;
+            set
+            {
+                if (_isLocalOffer != value)
+                {
+                    _isLocalOffer = value;
+                    OnPropertyChanged();
+                }
             }
         }
     }
