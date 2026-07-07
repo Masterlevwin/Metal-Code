@@ -1,27 +1,31 @@
 ﻿using System;
 using System.Globalization;
 using System.Linq;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Markup;
 
 namespace Metal_Code.Converters
 {
-    public class GroupSumConverter : MarkupExtension, IValueConverter
+    public class GroupSumConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is CollectionViewGroup group)
+            if (value is not CollectionViewGroup group)
+                return "";
+
+            float totalWorks = 0;
+            foreach (var item in group.Items)
             {
-                var sum = group.Items.OfType<OfferReportPreviewItem>().Sum(i => i.TotalWorks);
-                return $"Сумма работ: {sum:N2} ₽";
+                if (item is OfferReportPreviewItem oi)
+                    totalWorks += oi.TotalWorks;
             }
-            return "";
+
+            return $"Работы: {totalWorks:N0} ₽";
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => throw new NotImplementedException();
-
-        public override object ProvideValue(IServiceProvider serviceProvider) => this;
+            => throw new NotSupportedException();
     }
 
     public class BoolToTaxConverter : MarkupExtension, IValueConverter
@@ -33,5 +37,14 @@ namespace Metal_Code.Converters
             => throw new NotImplementedException();
 
         public override object ProvideValue(IServiceProvider serviceProvider) => this;
+    }
+
+    public class CountToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+            => value is int count && count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotSupportedException();
     }
 }

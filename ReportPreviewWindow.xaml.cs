@@ -48,6 +48,19 @@ namespace Metal_Code
         public float TotalProduction { get; private set; }
         public float TotalWorks => TotalLaser + TotalBending + TotalPipe + TotalProduction;
 
+        // Сводка по менеджерам (анонимные типы через dynamic)
+        private List<dynamic> _managersSummary = new();
+        public List<dynamic> ManagersSummary
+        {
+            get => _managersSummary;
+            private set { _managersSummary = value; OnPropertyChanged(nameof(ManagersSummary)); }
+        }
+
+        // Итого по всем менеджерам
+        public float TotalWorksSum { get; private set; }
+        public float TotalPercent { get; private set; }
+        public float TotalBonus { get; private set; }
+
         // Команды
         public RelayCommand ExportCommand { get; }
         public RelayCommand CloseCommand { get; }
@@ -226,6 +239,8 @@ namespace Metal_Code
             if (Items == null || !Items.Any())
             {
                 TotalMaterial = TotalLaser = TotalBending = TotalPipe = TotalProduction = 0;
+                TotalWorksSum = TotalPercent = TotalBonus = 0;
+                ManagersSummary = new List<dynamic>();
             }
             else
             {
@@ -234,6 +249,35 @@ namespace Metal_Code
                 TotalBending = Items.Sum(i => i.BendingCost);
                 TotalPipe = Items.Sum(i => i.PipeCost);
                 TotalProduction = Items.Sum(i => i.ProductionCost);
+
+                // ⭐ Сводка по менеджерам
+                float planTarget = 7_000_000f;
+                float planBonus = 100_000f;
+
+                var summary = Items
+                    .GroupBy(i => string.IsNullOrWhiteSpace(i.ManagerName) ? "Без ответственного" : i.ManagerName)
+                    .Select(g =>
+                    {
+                        float totalWorks = g.Sum(i => i.TotalWorks);
+                        float percent = totalWorks / planTarget * 100f;
+                        float bonus = planBonus * Math.Min(percent, 100f) / 100f;
+
+                        return new
+                        {
+                            ManagerName = g.Key,
+                            TotalWorks = totalWorks,
+                            Percent = percent,
+                            Bonus = bonus
+                        };
+                    })
+                    .OrderByDescending(m => m.Percent)
+                    .ToList<dynamic>();
+
+                ManagersSummary = summary;
+
+                TotalWorksSum = Items.Sum(i => i.TotalWorks);
+                TotalPercent = TotalWorksSum / planTarget * 100f;
+                TotalBonus = planBonus * Math.Min(TotalPercent, 100f) / 100f;
             }
 
             OnPropertyChanged(nameof(TotalMaterial));
@@ -242,10 +286,20 @@ namespace Metal_Code
             OnPropertyChanged(nameof(TotalPipe));
             OnPropertyChanged(nameof(TotalProduction));
             OnPropertyChanged(nameof(TotalWorks));
+            OnPropertyChanged(nameof(TotalWorksSum));
+            OnPropertyChanged(nameof(TotalPercent));
+            OnPropertyChanged(nameof(TotalBonus));
         }
 
         private static void ExtractWorkCosts(OfferReportPreviewItem item, Product product)
         {
+            // ⭐ Сохраняем коэффициенты для отображения в отчёте
+            item.RatioValue = (float)product.Ratio;
+            item.BonusRatioValue = product.BonusRatio;
+
+            // Итоговый коэффициент для расчёта работ
+            float ratio = item.RatioValue * (1 + item.BonusRatioValue / 100);
+
             var workKeys = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
     {
         { "Лазерная резка", 51 },
@@ -275,12 +329,10 @@ namespace Metal_Code
         "Сверловка",
         "Заклепки",
         "Гибка",
+        "Окраска",
         "Доп работа Л",
         "Доп работа П",
     };
-
-            // === Учёт доставки ===
-            item.ProductionCost += product.Delivery * product.DeliveryRatio;
 
             // === Учёт стоимости сварки и окраски из сборок ===
             if (product.Assemblies != null && product.Assemblies.Count > 0)
@@ -328,7 +380,7 @@ namespace Metal_Code
                             processedWorks.Add(workName);
                         }
 
-                        float cost = ExtractWorkCost(contextParts, key);
+                        float cost = ExtractWorkCost(contextParts, key) * ratio;
 
                         switch (workName)
                         {
@@ -431,23 +483,23 @@ namespace Metal_Code
             using var package = new ExcelPackage();
             var ws = package.Workbook.Worksheets.Add(ReportSheetName);
 
-            // ⭐ Формируем заголовок в зависимости от типа отчёта
             string headerText = _reportType == ReportType.Sales
                 ? $"{ReportTitle} за период {PeriodText}"
                 : $"{ReportTitle}: {PeriodText}";
 
             ws.Cells[1, 1].Value = headerText;
-            ws.Cells[1, 1, 1, 14].Merge = true;
+            ws.Cells[1, 1, 1, 16].Merge = true;  // ⭐ было 14, стало 16
             ws.Cells[1, 1].Style.Font.Bold = true;
             ws.Cells[1, 1].Style.Font.Size = 14;
             ws.Cells[1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
-            // ⭐ Заголовки столбцов: для производства "Создан" вместо "Отгружен"
+            // ⭐ Заголовки: добавлены "Коэфф." и "Бонус %"
             var headers = new[]
             {
         "№", "Компания", "Сумма", "Нал", "Счёт", "Заказ",
         _reportType == ReportType.Sales ? "Отгружен" : "Создан",
-        "Автор", "Материал", "Лазер", "Гибка", "Труборез", "Производство", "Всего работ"
+        "Автор", "Коэфф.", "Бонус %",
+        "Материал", "Лазер", "Гибка", "Труборез", "Производство", "Всего работ"
     };
 
             ws.Cells[3, 1].LoadFromArrays(new[] { headers });
@@ -466,7 +518,7 @@ namespace Metal_Code
                 float groupWorksSum = groupList.Sum(i => i.TotalWorks);
 
                 ws.Cells[row, 1].Value = $"👤 {group.Key} ({groupList.Count} расчётов, работы: {groupWorksSum:N2} ₽)";
-                ws.Cells[row, 1, row, 14].Merge = true;
+                ws.Cells[row, 1, row, 16].Merge = true;
                 ws.Cells[row, 1].Style.Font.Bold = true;
                 ws.Cells[row, 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
                 ws.Cells[row, 1].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(230, 230, 240));
@@ -482,41 +534,184 @@ namespace Metal_Code
                     ws.Cells[row, 6].Value = item.Order;
                     ws.Cells[row, 7].Value = item.DisplayDate?.ToString("dd.MM.yyyy");
                     ws.Cells[row, 8].Value = item.Author;
-                    ws.Cells[row, 9].Value = item.MaterialAmount;
-                    ws.Cells[row, 10].Value = item.LaserCost;
-                    ws.Cells[row, 11].Value = item.BendingCost;
-                    ws.Cells[row, 12].Value = item.PipeCost;
-                    ws.Cells[row, 13].Value = item.ProductionCost;
-                    ws.Cells[row, 14].Value = item.TotalWorks;
+
+                    // ⭐ Новые колонки коэффициентов
+                    ws.Cells[row, 9].Value = item.RatioValue;
+                    ws.Cells[row, 9].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                    ws.Cells[row, 9].Style.Font.Bold = true;
+                    ws.Cells[row, 9].Style.Font.Color.SetColor(System.Drawing.Color.DarkSlateBlue);
+
+                    ws.Cells[row, 10].Value = item.BonusRatioValue / 100;
+                    ws.Cells[row, 10].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                    ws.Cells[row, 10].Style.Font.Color.SetColor(System.Drawing.Color.DarkOrange);
+
+                    ws.Cells[row, 11].Value = item.MaterialAmount;
+                    ws.Cells[row, 12].Value = item.LaserCost;
+                    ws.Cells[row, 13].Value = item.BendingCost;
+                    ws.Cells[row, 14].Value = item.PipeCost;
+                    ws.Cells[row, 15].Value = item.ProductionCost;
+                    ws.Cells[row, 16].Value = item.TotalWorks;
                     row++;
                 }
                 row++;
             }
 
+            // Итоговая строка
             ws.Cells[row, 1].Value = "📈 ИТОГО:";
-            ws.Cells[row, 1, row, 8].Merge = true;
+            ws.Cells[row, 1, row, 10].Merge = true;  // ⭐ объединяем до колонки "Бонус %"
             ws.Cells[row, 1].Style.Font.Bold = true;
-            ws.Cells[row, 9].Value = TotalMaterial;
-            ws.Cells[row, 10].Value = TotalLaser;
-            ws.Cells[row, 11].Value = TotalBending;
-            ws.Cells[row, 12].Value = TotalPipe;
-            ws.Cells[row, 13].Value = TotalProduction;
-            ws.Cells[row, 14].Value = TotalWorks;
+            ws.Cells[row, 11].Value = TotalMaterial;
+            ws.Cells[row, 12].Value = TotalLaser;
+            ws.Cells[row, 13].Value = TotalBending;
+            ws.Cells[row, 14].Value = TotalPipe;
+            ws.Cells[row, 15].Value = TotalProduction;
+            ws.Cells[row, 16].Value = TotalWorks;
 
-            var totalsRange = ws.Cells[row, 9, row, 14];
+            var totalsRange = ws.Cells[row, 11, row, 16];
             totalsRange.Style.Font.Bold = true;
             totalsRange.Style.Fill.PatternType = ExcelFillStyle.Solid;
             totalsRange.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(255, 215, 0));
             totalsRange.Style.Numberformat.Format = "# ### ##0.00 ₽";
 
-            var moneyCols = new[] { 3, 9, 10, 11, 12, 13, 14 };
+            // ⭐ Форматирование денежных колонок (сдвинулись на 2 вправо)
+            var moneyCols = new[] { 3, 11, 12, 13, 14, 15, 16 };
             foreach (var col in moneyCols)
             {
                 ws.Cells[4, col, row, col].Style.Numberformat.Format = "# ### ##0.00 ₽";
             }
 
-            ws.Cells[1, 1, row, 14].AutoFitColumns();
+            // ⭐ Формат "0.00" для колонки "Коэфф." (колонка 9)
+            ws.Cells[4, 9, row, 9].Style.Numberformat.Format = "0.00";
+
+            // ⭐ Формат % для колонки "Бонус %"
+            ws.Cells[4, 10, row, 10].Style.Numberformat.Format = "0%";
+
+            ws.Cells[1, 1, row, 16].AutoFitColumns();
             ws.View.FreezePanes(4, 1);
+
+            // ⭐ СВОДНАЯ ТАБЛИЦА ПО МЕНЕДЖЕРАМ
+            row += 2; // отступ от основной таблицы
+
+            float planTarget = 7_000_000f;
+            float planBonus = 100_000f;
+
+            // Заголовок секции
+            ws.Cells[row, 1].Value = "📊 Выполнение плана";
+            ws.Cells[row, 1, row, 5].Merge = true;
+            ws.Cells[row, 1].Style.Font.Bold = true;
+            ws.Cells[row, 1].Style.Font.Size = 13;
+            row++;
+
+            ws.Cells[row, 1].Value = $"План услуг: {planTarget:N0} ₽ | Макс. премия: {planBonus:N0} ₽";
+            ws.Cells[row, 1, row, 5].Merge = true;
+            ws.Cells[row, 1].Style.Font.Italic = true;
+            ws.Cells[row, 1].Style.Font.Color.SetColor(System.Drawing.Color.Gray);
+            row++;
+
+            // Заголовки колонок сводной таблицы
+            var summaryHeaders = new[] { "Менеджер", "Расчётов", "Работы", "План %", "Премия" };
+            ws.Cells[row, 1].LoadFromArrays(new[] { summaryHeaders });
+            var summaryHeaderRange = ws.Cells[row, 1, row, summaryHeaders.Length];
+            summaryHeaderRange.Style.Font.Bold = true;
+            summaryHeaderRange.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            summaryHeaderRange.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+            summaryHeaderRange.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            row++;
+
+            // Группируем по менеджерам
+            var managersSummary = Items
+                .GroupBy(i => string.IsNullOrWhiteSpace(i.ManagerName) ? "Без ответственного" : i.ManagerName)
+                .Select(g =>
+                {
+                    float totalWorks = g.Sum(i => i.TotalWorks);
+                    float percent = totalWorks / planTarget * 100f;
+                    float bonus = planBonus * Math.Min(percent, 100f) / 100f;
+                    return new
+                    {
+                        Name = g.Key,
+                        Count = g.Count(),
+                        TotalWorks = totalWorks,
+                        Percent = percent,
+                        Bonus = bonus
+                    };
+                })
+                .OrderByDescending(m => m.Percent)
+                .ToList();
+
+            // Строки по менеджерам
+            int summaryStartRow = row;
+            foreach (var m in managersSummary)
+            {
+                ws.Cells[row, 1].Value = m.Name;
+                ws.Cells[row, 1].Style.Font.Bold = true;
+
+                ws.Cells[row, 2].Value = m.Count;
+                ws.Cells[row, 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                ws.Cells[row, 3].Value = m.TotalWorks;
+                ws.Cells[row, 3].Style.Numberformat.Format = "# ### ##0.00 ₽";
+                ws.Cells[row, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                ws.Cells[row, 3].Style.Font.Color.SetColor(System.Drawing.Color.DarkGreen);
+
+                ws.Cells[row, 4].Value = m.Percent / 100f; // в долях для формата %
+                ws.Cells[row, 4].Style.Numberformat.Format = "0.0%";
+                ws.Cells[row, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                ws.Cells[row, 4].Style.Font.Bold = true;
+
+                ws.Cells[row, 5].Value = m.Bonus;
+                ws.Cells[row, 5].Style.Numberformat.Format = "# ### ##0.00 ₽";
+                ws.Cells[row, 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                ws.Cells[row, 5].Style.Font.Bold = true;
+                ws.Cells[row, 5].Style.Font.Color.SetColor(System.Drawing.Color.DarkGreen);
+
+                row++;
+            }
+
+            // Итоговая строка сводной таблицы
+            float totalWorksAll = managersSummary.Sum(m => m.TotalWorks);
+            float totalPercentAll = totalWorksAll / planTarget * 100f;
+            float totalBonusAll = planBonus * Math.Min(totalPercentAll, 100f) / 100f;
+
+            ws.Cells[row, 1].Value = "ИТОГО:";
+            ws.Cells[row, 1].Style.Font.Bold = true;
+            ws.Cells[row, 1].Style.Font.Size = 12;
+
+            ws.Cells[row, 2].Value = managersSummary.Sum(m => m.Count);
+            ws.Cells[row, 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            ws.Cells[row, 2].Style.Font.Bold = true;
+
+            ws.Cells[row, 3].Value = totalWorksAll;
+            ws.Cells[row, 3].Style.Numberformat.Format = "# ### ##0.00 ₽";
+            ws.Cells[row, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            ws.Cells[row, 3].Style.Font.Bold = true;
+            ws.Cells[row, 3].Style.Font.Color.SetColor(System.Drawing.Color.DarkGreen);
+
+            ws.Cells[row, 4].Value = totalPercentAll / 100f;
+            ws.Cells[row, 4].Style.Numberformat.Format = "0.0%";
+            ws.Cells[row, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            ws.Cells[row, 4].Style.Font.Bold = true;
+
+            ws.Cells[row, 5].Value = totalBonusAll;
+            ws.Cells[row, 5].Style.Numberformat.Format = "# ### ##0.00 ₽";
+            ws.Cells[row, 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            ws.Cells[row, 5].Style.Font.Bold = true;
+            ws.Cells[row, 5].Style.Font.Color.SetColor(System.Drawing.Color.DarkGreen);
+
+            // Золотой фон для итоговой строки сводной таблицы
+            var summaryTotalRange = ws.Cells[row, 1, row, 5];
+            summaryTotalRange.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            summaryTotalRange.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(255, 215, 0));
+
+            // Рамки для сводной таблицы
+            var summaryDataRange = ws.Cells[summaryStartRow - 1, 1, row, 5];
+            summaryDataRange.Style.Border.Top.Style = ExcelBorderStyle.Thin;
+            summaryDataRange.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            summaryDataRange.Style.Border.Left.Style = ExcelBorderStyle.Thin;
+            summaryDataRange.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+
+            // Автоподбор ширины колонок сводной таблицы
+            ws.Cells[summaryStartRow - 1, 1, row, 5].AutoFitColumns();
+
             package.SaveAs(new FileInfo(filePath));
         }
     }
@@ -536,19 +731,18 @@ namespace Metal_Code
         public string Author { get; set; } = null!;
         public string ManagerName { get; set; } = null!;
 
+        // 🔹 Коэффициенты расчёта
+        public float RatioValue { get; set; } = 1f;
+        public float BonusRatioValue { get; set; } = 100f;
+
         // 🔹 Поля для детализации работ
-        public float LaserCost { get; set; }      // стоимость лазерной резки (51)
-        public float BendingCost { get; set; }    // стоимость гибки (52)
-        public float PipeCost { get; set; }       // стоимость трубореза и лентопила (61)
-        public float ProductionCost { get; set; } // стоимость производства (остальные)
+        public float LaserCost { get; set; }
+        public float BendingCost { get; set; }
+        public float PipeCost { get; set; }
+        public float ProductionCost { get; set; }
 
-        // Вычисляемое свойство: общая стоимость всех работ
         public float TotalWorks => LaserCost + BendingCost + PipeCost + ProductionCost;
-
-        // Возвращает EndDate для отчёта продаж, CreatedDate — для производства
         public DateTime? DisplayDate => EndDate ?? CreatedDate;
-
-        // Для группировки
         public string GroupKey => !string.IsNullOrWhiteSpace(ManagerName)
             ? ManagerName
             : (!string.IsNullOrWhiteSpace(Author) ? Author : "Без ответственного");

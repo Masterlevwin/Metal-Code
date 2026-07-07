@@ -576,6 +576,9 @@ namespace Metal_Code
                         // 2. ПОТОМ миграция
                         await DataService.MigrateUserDataToPgAsync();
 
+                        // 3. Очистка осиротевших локальных расчётов
+                        await DataService.CleanupOrphanedLocalOffersAsync();
+
                         StatusBegin("Синхронизация с сервером успешно завершена.", StatusMessageType.Success);
                     }
                     catch (Exception ex)
@@ -1159,7 +1162,7 @@ namespace Metal_Code
         /// <summary>
         /// При потере фокуса полем Order — определяем менеджера по номеру.
         /// </summary>
-        private void Order_LostFocus(object sender, System.Windows.RoutedEventArgs e)
+        private void Order_LostFocus(object sender, RoutedEventArgs e)
         {
             if (_isSyncingManagerOrder) return;
 
@@ -1296,7 +1299,7 @@ namespace Metal_Code
                 }
 
                 // 2. ⭐ Загружаем только ПОСЛЕДНИЕ 50 расчётов
-                var offers = await DataService.GetRecentOffersAsync(man.Id, man.Name, 50);
+                var offers = await DataService.GetOffersAsync(man.Name, 50);
 
                 CurrentOffers.Clear();
                 foreach (var offer in offers) CurrentOffers.Add(offer);
@@ -1432,7 +1435,7 @@ namespace Metal_Code
                 else if (TargetManager.Name != null)
                 {
                     // 2. ⭐ Загружаем только ПОСЛЕДНИЕ 50 расчётов
-                    var offers = await DataService.GetRecentOffersAsync(TargetManager.Id, TargetManager.Name, 50);
+                    var offers = await DataService.GetOffersAsync(TargetManager.Name, 50);
 
                     CurrentOffers.Clear();
                     foreach (var offer in offers) CurrentOffers.Add(offer);
@@ -2076,8 +2079,6 @@ namespace Metal_Code
             if (!string.IsNullOrEmpty(_searchQuery))
             {
                 _searchQuery = string.Empty;
-                // Если у вас есть поле поиска в UI, очистите его:
-                // SearchBox.Text = string.Empty;
             }
         }
 
@@ -2515,6 +2516,9 @@ namespace Metal_Code
         {
             var expandedGroups = GetExpandedGroupNames();
             var viewSource = new CollectionViewSource { Source = CurrentOffers };
+
+            // ⭐ ДОБАВЛЯЕМ СОРТИРОВКУ ПО Id (сохраняет порядок из коллекции)
+            viewSource.SortDescriptions.Add(new SortDescription(nameof(Offer.Id), ListSortDirection.Ascending));
 
             // Группировка по ParentQuoteNumber
             viewSource.GroupDescriptions.Add(new PropertyGroupDescription(nameof(Offer.ParentQuoteNumber)));
@@ -6181,6 +6185,16 @@ namespace Metal_Code
             using var workbook = new ExcelPackage();
             var worksheet = workbook.Workbook.Worksheets.Add("Лист1");
 
+            // === Заглушка для пустых секций (используется, если OooItems или IpItems пусты) ===
+            int stubRow = 1000;
+            worksheet.Cells[stubRow, 5].Value = 0;    // totalS / services bonus
+            worksheet.Cells[stubRow, 6].Value = 0;    // totalM / material bonus
+            worksheet.Cells[stubRow, 7].Value = 0;    // total
+            worksheet.Cells[stubRow, 9].Value = 0;    // bonus
+            worksheet.Cells[stubRow, 13].Value = 0;   // services net
+            worksheet.Cells[stubRow, 14].Value = 0;   // material net
+            worksheet.Cells[stubRow, 17].Value = 0;   // notbonus
+
             int row = 1;
             var _headers = new List<string> { $"дата отгрузки", "№счета", "проект", "№заказа", "работа", "металл", "Итого", "%", "бонус", "№КП" };
 
@@ -6256,6 +6270,16 @@ namespace Metal_Code
 
                 row++;
             }
+            else
+            {
+                // ⭐ Секция пуста — определяем имена, ссылающиеся на нулевую заглушку
+                DefineName(worksheet, "totalS1", stubRow, stubRow, 5);
+                DefineName(worksheet, "totalM1", stubRow, stubRow, 6);
+                DefineName(worksheet, "total1", stubRow, stubRow, 7);
+                DefineName(worksheet, "bonus1", stubRow, stubRow, 9);
+                DefineName(worksheet, "services1", stubRow, stubRow, 13);
+                DefineName(worksheet, "material1", stubRow, stubRow, 14);
+            }
 
             // === ИП и ПК ===
             if (report.IpItems.Count > 0)
@@ -6324,6 +6348,16 @@ namespace Metal_Code
 
                 row++;
             }
+            else
+            {
+                // ⭐ Секция пуста — определяем имена, ссылающиеся на нулевую заглушку
+                DefineName(worksheet, "totalS1", stubRow, stubRow, 5);
+                DefineName(worksheet, "totalM1", stubRow, stubRow, 6);
+                DefineName(worksheet, "total1", stubRow, stubRow, 7);
+                DefineName(worksheet, "bonus1", stubRow, stubRow, 9);
+                DefineName(worksheet, "services1", stubRow, stubRow, 13);
+                DefineName(worksheet, "material1", stubRow, stubRow, 14);
+            }
 
             // === Прибыль месяца (с разделением на "Чист" и "Устар") ===
             row++;
@@ -6336,7 +6370,6 @@ namespace Metal_Code
                 $"+(SUM(material2)-SUM(material2)/{VatRateMaterialStr})/{ProfitMarginStr}" +
                 $"+SUM(bonus1)+SUM(bonus2)" +
                 $", 0)";
-            //worksheet.Cells[row, 2].Value = report.Plan; // ← это cleanProfit + бонусы
             worksheet.Cells[row, 2].Style.Font.Bold = true;
 
             // === Общие итоги ===
@@ -6355,7 +6388,6 @@ namespace Metal_Code
                     $"+(SUM(services2)-SUM(services2)/{VatRateServicesStr})/{ProfitMarginStr}" +
                     $"+(SUM(material2)-SUM(material2)/{VatRateMaterialStr})/{ProfitMarginStr}" +
                 ", 0)";
-            //worksheet.Cells[row, 12].Value = Math.Ceiling(report.CleanProfit);
 
             // Устаревший расчёт (для сравнения/проверки)
             worksheet.Cells[row, 13].Value = "Устар:";
@@ -6403,7 +6435,6 @@ namespace Metal_Code
             worksheet.Cells[salaryRow, 2].Formula =
                 $"=(SUM(total2)-SUM(notbonus)) / (5 * {ProfitMarginForIpStr} / ({ProfitMarginForIpStr} - 1))";
             worksheet.Cells[salaryRow, 2].Style.Numberformat.Format = "0";
-            //worksheet.Cells[salaryRow, 2].Value = report.BonusIp;
             worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightBlue);
             salaryRow++;
 
@@ -6414,13 +6445,11 @@ namespace Metal_Code
 
             worksheet.Cells[salaryRow, 1].Value = "Премия за план:";
             worksheet.Cells[salaryRow, 2].Formula = $"=IF(B{totalRow}>={BonusOooThresholdStr}, 20000, 0)";
-            //worksheet.Cells[salaryRow, 2].Value = report.Plan >= BonusOooThreshold ? 20000 : 0; // 20 000, если план выполнен
             worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightBlue);
             salaryRow++;
 
             worksheet.Cells[salaryRow, 1].Value = "%:";
             worksheet.Cells[salaryRow, 2].Formula = $"=IF(B{totalRow}>={BonusOooThresholdStr}, ROUND((B{totalRow}-{BonusOooThresholdStr})*{BonusOooRateStr}, 0), 0)";
-            //worksheet.Cells[salaryRow, 2].Value = report.BonusOoo; // это (Plan - 200000) * 0.15, если Plan >= 200000
             worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightBlue);
             salaryRow++;
 
@@ -6432,20 +6461,13 @@ namespace Metal_Code
             worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.LightYellow);
             salaryRow += 2;
 
-            // Итоговая сумма
-            //decimal totalSalary = report.BonusIp + 30000 +
-            //                     (report.Plan >= BonusOooThreshold ? 20000 : 0) +
-            //                     report.BonusOoo;
-
             worksheet.Cells[salaryRow, 1].Value = "Итоговая за месяц:";
             worksheet.Cells[salaryRow, 2].Formula = $"=ROUND(SUM(B{row}:B{row + 3}), 0)";
-            //worksheet.Cells[salaryRow, 2].Value = totalSalary;
             worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.GreenYellow);
             salaryRow++;
 
             worksheet.Cells[salaryRow, 1].Value = "К доплате:";
             worksheet.Cells[salaryRow, 2].Formula = $"=ROUND(SUM(B{row}:B{row + 3})-SUM(B{row + 4}:B{row + 6}), 0)";
-            //worksheet.Cells[salaryRow, 2].Value = totalSalary; // или можно сделать ссылку на ячейку
             worksheet.Cells[salaryRow, 2].Style.Font.Color.SetColor(System.Drawing.Color.Red);
             worksheet.Cells[salaryRow, 1, salaryRow, 2].Style.Fill.SetBackground(System.Drawing.Color.GreenYellow);
 
@@ -6454,10 +6476,14 @@ namespace Metal_Code
             table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             // Скрыть вспомогательные столбцы
-            for (int col = 10; col <= 14; col++)
+            for (int col = 11; col <= 14; col++)
                 worksheet.Column(col).Hidden = true;
 
             worksheet.Cells.AutoFitColumns();
+
+            // Скрываем строку-заглушку, чтобы её не было видно в файле
+            worksheet.Row(stubRow).Hidden = true;
+
             workbook.SaveAs(path + ".xlsx");
             return true;
         }

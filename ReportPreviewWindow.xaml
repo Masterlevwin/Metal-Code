@@ -13,12 +13,14 @@
         <!-- ⭐ Конвертеры регистрируем в ресурсах окна -->
         <converters:GroupSumConverter x:Key="GroupSumConverter"/>
         <converters:BoolToTaxConverter x:Key="BoolToTaxConverter"/>
+        <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
     </Window.Resources>
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
@@ -75,9 +77,9 @@
                                                 <StackPanel Orientation="Horizontal" Margin="0,3">
                                                     <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="13"/>
                                                     <TextBlock Text="{Binding ItemCount, StringFormat=' ({0} расчётов)'}" 
-                                                               Margin="10,0,0,0" Foreground="Gray"/>
+                                                   Margin="10,0,0,0" Foreground="Gray"/>
                                                     <TextBlock Text="{Binding Converter={StaticResource GroupSumConverter}}" 
-                                                               Margin="20,0,0,0" FontWeight="Bold" Foreground="Green"/>
+                                                   Margin="20,0,0,0" FontWeight="Bold" Foreground="Green"/>
                                                 </StackPanel>
                                             </Expander.Header>
                                             <ItemsPresenter />
@@ -89,73 +91,9 @@
                     </GroupStyle.ContainerStyle>
                 </GroupStyle>
             </DataGrid.GroupStyle>
-
+            
             <DataGrid.Columns>
-                <DataGridTextColumn Header="№" Binding="{Binding Number}" Width="100"/>
-                <DataGridTextColumn Header="Компания" Binding="{Binding Company}" Width="200"/>
-                <DataGridTextColumn Header="Сумма" Binding="{Binding TotalAmount, StringFormat={}{0:N2} ₽}" Width="100">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="HorizontalAlignment" Value="Right"/>
-                            <Setter Property="Foreground" Value="Blue"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Нал" Binding="{Binding IsCash, Converter={StaticResource BoolToTaxConverter}}" Width="60">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="HorizontalAlignment" Value="Center"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Счёт" Binding="{Binding Invoice}" Width="100"/>
-                <DataGridTextColumn Header="Заказ" Binding="{Binding Order}" Width="100" Foreground="OrangeRed"/>
-                <DataGridTextColumn x:Name="DateColumn" Binding="{Binding DisplayDate, StringFormat=dd.MM.yyyy}" Width="90"/>
-                <DataGridTextColumn Header="Автор" Binding="{Binding Author}" Width="120"/>
-                <DataGridTextColumn Header="Материал" Binding="{Binding MaterialAmount, StringFormat={}{0:N2} ₽}" Width="100">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="HorizontalAlignment" Value="Right"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Лазер" Binding="{Binding LaserCost, StringFormat={}{0:N2} ₽}" Width="90">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="HorizontalAlignment" Value="Right"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Гибка" Binding="{Binding BendingCost, StringFormat={}{0:N2} ₽}" Width="90">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="HorizontalAlignment" Value="Right"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Труборез" Binding="{Binding PipeCost, StringFormat={}{0:N2} ₽}" Width="90">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="HorizontalAlignment" Value="Right"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Производство" Binding="{Binding ProductionCost, StringFormat={}{0:N2} ₽}" Width="100">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="HorizontalAlignment" Value="Right"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Всего работ" Binding="{Binding TotalWorks, StringFormat={}{0:N2} ₽}" Width="100">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="HorizontalAlignment" Value="Right"/>
-                            <Setter Property="FontWeight" Value="Bold"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTemplateColumn Header="" Width="40">
+                <DataGridTemplateColumn Header="✖">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Button Content="✖" ToolTip="Удалить из отчета"
@@ -166,22 +104,187 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
+
+                <DataGridTextColumn Header="№" Binding="{Binding Number}"/>
+                <DataGridTextColumn Header="Компания" Binding="{Binding Company}"/>
+                <DataGridTextColumn Header="Сумма" Binding="{Binding TotalAmount, StringFormat={}{0:N2} ₽}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                            <Setter Property="Foreground" Value="Blue"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Нал" Binding="{Binding IsCash, Converter={StaticResource BoolToTaxConverter}}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Счёт" Binding="{Binding Invoice}"/>
+                <DataGridTextColumn Header="Заказ" Binding="{Binding Order}" Foreground="OrangeRed"/>
+                <DataGridTextColumn x:Name="DateColumn" Binding="{Binding DisplayDate, StringFormat=dd.MM.yyyy}"/>
+                <DataGridTextColumn Header="Автор" Binding="{Binding Author}"/>
+                <DataGridTextColumn Header="Коэфф." Binding="{Binding RatioValue, StringFormat={}{0:F2}}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="Foreground" Value="DarkSlateBlue"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Бонус %" Binding="{Binding BonusRatioValue, StringFormat={}{0:F0}%}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Setter Property="Foreground" Value="DarkOrange"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Материал" Binding="{Binding MaterialAmount, StringFormat={}{0:N2} ₽}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Лазер" Binding="{Binding LaserCost, StringFormat={}{0:N2} ₽}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Гибка" Binding="{Binding BendingCost, StringFormat={}{0:N2} ₽}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Труборез" Binding="{Binding PipeCost, StringFormat={}{0:N2} ₽}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Производство" Binding="{Binding ProductionCost, StringFormat={}{0:N2} ₽}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Всего работ" Binding="{Binding TotalWorks, StringFormat={}{0:N2} ₽}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
 
-        <!-- 🔹 ИТОГОВАЯ ПАНЕЛЬ -->
-        <Border Grid.Row="2" Background="{DynamicResource SecondaryRegionBrush}" 
-                CornerRadius="4" Padding="10" Margin="0,10,0,0">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Всего расчётов:" FontWeight="Bold" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding Items.Count, StringFormat=' {0}'}" Margin="5,0,20,0" VerticalAlignment="Center"/>
+        <!-- 🔹 СВОДКА ПО МЕНЕДЖЕРАМ -->
+        <Border Grid.Row="2" Background="#FFF9E6" BorderBrush="#E6D9A8" BorderThickness="1"
+        CornerRadius="4" Padding="10" Margin="0,10,0,0"
+        Visibility="{Binding Items.Count, Converter={StaticResource CountToVisibilityConverter}}">
+            <StackPanel>
 
-                <TextBlock Text="Материал:" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding TotalMaterial, StringFormat={}{0:N2} ₽}" Margin="5,0,15,0" VerticalAlignment="Center"/>
+                <!-- ⭐ Expander со списком менеджеров -->
+                <Expander>
+                    <Expander.Header>
+                        <Grid HorizontalAlignment="Stretch">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-                <TextBlock Text="Работы:" FontWeight="Bold" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding TotalWorks, StringFormat={}{0:N2} ₽}" Margin="5,0,0,0" 
-                           FontWeight="Bold" Foreground="Green" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" 
+                   Text="📊 Выполнение плана (план: 7 000 000 ₽, макс. премия: 100 000 ₽)"
+                   FontWeight="Bold" FontSize="14"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Margin="20,0,0,0"/>
+                        </Grid>
+                    </Expander.Header>
+                    
+                    <!-- Содержимое Expander: только список менеджеров -->
+                    <ItemsControl ItemsSource="{Binding ManagersSummary, Mode=OneWay}" Margin="0,8,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0,2" Padding="8,5" Background="White" 
+                                BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="3">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="200"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="120"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0" Text="{Binding ManagerName, Mode=OneWay}" 
+                                           FontWeight="Bold" VerticalAlignment="Center"/>
+
+                                        <TextBlock Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                    <Run Text="Работы: "/>
+                                    <Run Text="{Binding TotalWorks, StringFormat={}{0:N0} ₽, Mode=OneWay}" 
+                                         FontWeight="Bold" Foreground="Green"/>
+                                        </TextBlock>
+
+                                        <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <Run Text="План: "/>
+                                    <Run Text="{Binding Percent, StringFormat={}{0:F1}%, Mode=OneWay}" 
+                                         FontWeight="Bold"/>
+                                        </TextBlock>
+
+                                        <TextBlock Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                           FontWeight="Bold" Foreground="DarkGreen">
+                                    <Run Text="💰 "/>
+                                    <Run Text="{Binding Bonus, StringFormat={}{0:N0} ₽, Mode=OneWay}"/>
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Expander>
+
+                <!-- ⭐ Итоговая строка — СНАРУЖИ Expander, видна всегда -->
+                <Border Margin="0,8,0,0" Padding="8,5" Background="#FFE4B5" BorderBrush="#DAA520" 
+                BorderThickness="1" CornerRadius="3">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="120"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="ИТОГО:" FontWeight="Bold" FontSize="13" VerticalAlignment="Center"/>
+
+                        <TextBlock Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" FontWeight="Bold">
+                    <Run Text="Работы: "/>
+                    <Run Text="{Binding TotalWorksSum, StringFormat={}{0:N0} ₽, Mode=OneWay}" Foreground="Green"/>
+                        </TextBlock>
+
+                        <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold">
+                    <Run Text="План: "/>
+                    <Run Text="{Binding TotalPercent, StringFormat={}{0:F1}%, Mode=OneWay}"/>
+                        </TextBlock>
+
+                        <TextBlock Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Right" 
+                           FontWeight="Bold" FontSize="13" Foreground="DarkGreen">
+                    <Run Text="💰 "/>
+                    <Run Text="{Binding TotalBonus, StringFormat={}{0:N0} ₽, Mode=OneWay}"/>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+
             </StackPanel>
         </Border>
     </Grid>

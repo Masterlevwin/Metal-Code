@@ -206,6 +206,162 @@ namespace Metal_Code.Services
         }
 
         /// <summary>
+        /// Синхронизирует отложенные расчёты (IsPendingSync = true) с PostgreSQL.
+        /// Использует транзакцию для атомарности операций.
+        /// Возвращает количество успешно синхронизированных расчётов.
+        /// </summary>
+        public async Task<int> SyncPendingOffersAsync()
+        {
+            if (!_isOnline) return 0;
+
+            try
+            {
+                using var localCtx = new ManagerContext(_connections[0]);
+
+                // ⭐ Загружаем отложенные расчёты БЕЗ отслеживания
+                var pendingOffers = await localCtx.Offers
+                    .AsNoTracking()
+                    .Where(o => o.IsPendingSync)
+                    .ToListAsync();
+
+                if (!pendingOffers.Any())
+                {
+                    Trace.WriteLine("ℹ️ Отложенных расчётов нет");
+                    return 0;
+                }
+
+                Trace.WriteLine($"🔄 Синхронизация {pendingOffers.Count} отложенных расчётов...");
+
+                int syncedCount = 0;
+
+                using var pgContext = new AppDbContext(_pgOptions);
+                pgContext.Database.SetCommandTimeout(60);
+
+                foreach (var localOffer in pendingOffers)
+                {
+                    try
+                    {
+                        // Находим менеджера в PG
+                        var localManager = await localCtx.Managers.AsNoTracking()
+                            .FirstOrDefaultAsync(m => m.Id == localOffer.ManagerId);
+
+                        if (localManager == null)
+                        {
+                            Trace.WriteLine($"⚠️ Менеджер с Id={localOffer.ManagerId} не найден локально");
+                            continue;
+                        }
+
+                        var pgManager = await pgContext.Managers.AsNoTracking()
+                            .FirstOrDefaultAsync(m => m.Name == localManager.Name);
+
+                        if (pgManager == null)
+                        {
+                            Trace.WriteLine($"⚠️ Менеджер '{localManager.Name}' не найден в PG");
+                            continue;
+                        }
+
+                        // ⭐ Проверяем, нет ли уже такого расчёта в PG (по номеру N)
+                        var existingPgOffer = await pgContext.Offers.AsNoTracking()
+                            .FirstOrDefaultAsync(o => o.N == localOffer.N && o.ManagerId == pgManager.Id);
+
+                        int pgOfferId;
+
+                        if (existingPgOffer != null)
+                        {
+                            pgOfferId = existingPgOffer.Id;
+                            Trace.WriteLine($"ℹ️ Расчёт {localOffer.N} уже есть в PG (Id={pgOfferId})");
+                        }
+                        else
+                        {
+                            // Создаём новый расчёт в PG
+                            var pgOffer = new Offer
+                            {
+                                N = localOffer.N,
+                                Company = localOffer.Company,
+                                Amount = localOffer.Amount,
+                                Material = localOffer.Material,
+                                Services = localOffer.Services,
+                                Agent = localOffer.Agent,
+                                Invoice = localOffer.Invoice,
+                                CreatedDate = localOffer.CreatedDate.HasValue
+                                    ? DateTime.SpecifyKind(localOffer.CreatedDate.Value, DateTimeKind.Utc)
+                                    : DateTime.UtcNow,
+                                EndDate = localOffer.EndDate.HasValue
+                                    ? DateTime.SpecifyKind(localOffer.EndDate.Value, DateTimeKind.Utc)
+                                    : null,
+                                Order = localOffer.Order,
+                                Autor = localOffer.Autor,
+                                Act = localOffer.Act,
+                                ManagerId = pgManager.Id,
+                                Data = localOffer.Data
+                            };
+
+                            pgContext.Offers.Add(pgOffer);
+                            await pgContext.SaveChangesAsync();
+                            pgOfferId = pgOffer.Id;
+                        }
+
+                        // ⭐ АТОМАРНАЯ ЗАМЕНА через транзакцию
+                        using var transaction = localCtx.Database.BeginTransaction();
+                        try
+                        {
+                            // ⭐ Проверяем, есть ли уже расчёт с таким Id в локальной БД
+                            var existingLocal = await localCtx.Offers.AsNoTracking()
+                                .FirstOrDefaultAsync(o => o.Id == pgOfferId);
+
+                            if (existingLocal != null)
+                            {
+                                // ⭐ Удаляем конфликтующую запись
+                                await localCtx.Database.ExecuteSqlInterpolatedAsync(
+                                    $"DELETE FROM Offers WHERE Id = {pgOfferId}");
+                                Trace.WriteLine($"🗑️ Удалён конфликтующий локальный расчёт Id={pgOfferId}");
+                            }
+
+                            // ⭐ Удаляем старый локальный расчёт через прямой SQL
+                            int deleted = await localCtx.Database.ExecuteSqlInterpolatedAsync(
+                                $"DELETE FROM Offers WHERE Id = {localOffer.Id}");
+
+                            Trace.WriteLine($"🗑️ Удалён старый локальный расчёт Id={localOffer.Id} (строк затронуто: {deleted})");
+
+                            // ⭐ Создаём новый локальный расчёт с правильным Id
+                            await localCtx.Database.ExecuteSqlInterpolatedAsync($@"
+                        INSERT INTO Offers (
+                            Id, N, Company, Amount, Material, Services, Agent, Invoice,
+                            CreatedDate, EndDate, ""Order"", Autor, Act, ManagerId, Data, IsPendingSync
+                        ) VALUES (
+                            {pgOfferId}, {localOffer.N}, {localOffer.Company}, {localOffer.Amount},
+                            {localOffer.Material}, {localOffer.Services}, {localOffer.Agent}, {localOffer.Invoice},
+                            {localOffer.CreatedDate}, {localOffer.EndDate}, {localOffer.Order}, {localOffer.Autor},
+                            {localOffer.Act}, {localOffer.ManagerId}, {localOffer.Data}, 0
+                        )");
+
+                            await transaction.CommitAsync();
+                            syncedCount++;
+                            Trace.WriteLine($"✅ Синхронизирован расчёт {localOffer.N} (Id={pgOfferId})");
+                        }
+                        catch (Exception ex)
+                        {
+                            await transaction.RollbackAsync();
+                            Trace.WriteLine($"❌ Ошибка транзакции для расчёта {localOffer.N}: {ex.Message}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine($"❌ Ошибка синхронизации расчёта {localOffer.N}: {ex.Message}");
+                    }
+                }
+
+                Trace.WriteLine($"✅ Синхронизировано расчётов: {syncedCount} из {pendingOffers.Count}");
+                return syncedCount;
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"❌ Ошибка SyncPendingOffersAsync: {ex.Message}");
+                return 0;
+            }
+        }
+
+        /// <summary>
         /// Миграция данных из локальной SQLite в PG при первом запуске.
         /// Мигрирует только те данные, которых ещё нет в PG (сравнение по количеству).
         /// </summary>
@@ -421,48 +577,11 @@ namespace Metal_Code.Services
 
                                     int pgOfferId = pgOffer.Id;
 
-                                    // ⭐ АТОМАРНАЯ ЗАМЕНА в локальной БД через транзакцию
-                                    using var transaction = localCtx.Database.BeginTransaction();
-                                    try
-                                    {
-                                        // Проверяем, нет ли уже расчёта с таким Id
-                                        var existingLocal = await localCtx.Offers.AsNoTracking()
-                                            .FirstOrDefaultAsync(lo => lo.Id == pgOfferId);
+                                    // ⭐ ПРОСТО УДАЛЯЕМ старый локальный расчёт, без создания нового
+                                    int deleted = await localCtx.Database.ExecuteSqlInterpolatedAsync(
+                                        $"DELETE FROM Offers WHERE Id = {o.Id}");
 
-                                        if (existingLocal != null)
-                                        {
-                                            await localCtx.Database.ExecuteSqlInterpolatedAsync(
-                                                $"DELETE FROM Offers WHERE Id = {pgOfferId}");
-                                            Trace.WriteLine($"🗑️ Удалён конфликтующий локальный расчёт Id={pgOfferId}");
-                                        }
-
-                                        // ⭐ Удаляем старый локальный расчёт
-                                        int deleted = await localCtx.Database.ExecuteSqlInterpolatedAsync(
-                                            $"DELETE FROM Offers WHERE Id = {o.Id}");
-
-                                        // ⭐ Создаём новый локальный расчёт с PG Id
-                                        await localCtx.Database.ExecuteSqlInterpolatedAsync($@"
-                        INSERT INTO Offers (
-                            Id, N, Company, Amount, Material, Services, Agent, Invoice,
-                            CreatedDate, EndDate, ""Order"", Autor, Act, ManagerId, Data, IsPendingSync
-                        ) VALUES (
-                            {pgOfferId}, {o.N}, {o.Company}, {o.Amount},
-                            {o.Material}, {o.Services}, {o.Agent}, {o.Invoice},
-                            {o.CreatedDate}, {o.EndDate}, {o.Order}, {o.Autor},
-                            {o.Act}, {o.ManagerId}, {o.Data}, 0
-                        )");
-
-                                        await transaction.CommitAsync();
-                                        Trace.WriteLine($"🗑️ Удалён локальный расчёт Id={o.Id}, создан с PG Id={pgOfferId} (строк удалено: {deleted})");
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        await transaction.RollbackAsync();
-                                        Trace.WriteLine($"❌ Ошибка транзакции для расчёта {o.N}: {ex.Message}");
-                                        failedCount++;
-                                        continue;
-                                    }
-
+                                    Trace.WriteLine($"✅ Мигрирован расчёт {o.N} в PG (Id={pgOfferId}), удалён локальный Id={o.Id} (строк: {deleted})");
                                     savedCount++;
                                 }
                                 catch (Exception ex)
@@ -526,6 +645,74 @@ namespace Metal_Code.Services
                 }
 
                 Trace.WriteLine($"❌ Ошибка миграции (игнорируется, переход в офлайн): {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Удаляет из локальной SQLite расчёты, которых уже нет в PG.
+        /// Не трогает расчёты с IsPendingSync = true (ожидающие синхронизации).
+        /// </summary>
+        public async System.Threading.Tasks.Task CleanupOrphanedLocalOffersAsync()
+        {
+            if (!_isOnline) return;
+
+            try
+            {
+                using var localCtx = new ManagerContext(_connections[0]);
+                using var pgContext = new AppDbContext(_pgOptions);
+
+                // Получаем всех локальных менеджеров
+                var localManagers = await localCtx.Managers.AsNoTracking().ToListAsync();
+                int totalDeleted = 0;
+
+                foreach (var localManager in localManagers)
+                {
+                    var pgManager = await pgContext.Managers.AsNoTracking()
+                        .FirstOrDefaultAsync(m => m.Name == localManager.Name);
+
+                    if (pgManager == null) continue;
+
+                    // Номера расчётов этого менеджера в PG
+                    var pgOfferNumbers = await pgContext.Offers.AsNoTracking()
+                        .Where(o => o.ManagerId == pgManager.Id)
+                        .Select(o => o.N)
+                        .ToListAsync();
+
+                    var pgNumbersSet = new HashSet<string>(pgOfferNumbers.Where(n => n != null)!);
+
+                    // Локальные расчёты этого менеджера, которые НЕ ждут синхронизации
+                    var localOffers = await localCtx.Offers
+                        .Where(o => o.ManagerId == localManager.Id && !o.IsPendingSync)
+                        .ToListAsync();
+
+                    // Находим те, которых нет в PG
+                    var orphaned = localOffers
+                        .Where(o => !string.IsNullOrEmpty(o.N) && !pgNumbersSet.Contains(o.N))
+                        .ToList();
+
+                    if (orphaned.Any())
+                    {
+                        Trace.WriteLine($"🗑️ Удаление {orphaned.Count} осиротевших расчётов для '{localManager.Name}'");
+
+                        foreach (var offer in orphaned)
+                        {
+                            await localCtx.Database.ExecuteSqlInterpolatedAsync(
+                                $"DELETE FROM Offers WHERE Id = {offer.Id}");
+                        }
+
+                        totalDeleted += orphaned.Count;
+                        Trace.WriteLine($"✅ Удалено {orphaned.Count} осиротевших расчётов для '{localManager.Name}'");
+                    }
+                }
+
+                if (totalDeleted > 0)
+                {
+                    Trace.WriteLine($"🧹 Всего удалено осиротевших расчётов: {totalDeleted}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"⚠️ Ошибка очистки осиротевших расчётов: {ex.Message}");
             }
         }
 
@@ -620,44 +807,9 @@ namespace Metal_Code.Services
             return localCustomers;
         }
 
-        public async Task<List<Offer>> GetOffersAsync(int localManagerId, string managerName, int count = 50)
+        public async Task<List<Offer>> GetOffersAsync(string managerName, int count = 50)
         {
-            // ⭐ 1. ВСЕГДА загружаем из локальной БД
-            using var localCtx = new ManagerContext(_connections[0]);
-            localCtx.Database.SetCommandTimeout(10);
-
-            var localManager = await localCtx.Managers.AsNoTracking()
-                .FirstOrDefaultAsync(m => m.Name == managerName);
-
-            if (localManager == null) return new List<Offer>();
-
-            // ⭐ Все локальные расчёты с IsLocalOffer = true
-            var allLocalOffers = await localCtx.Offers.AsNoTracking()
-                .Where(o => o.ManagerId == localManager.Id)
-                .OrderByDescending(o => o.Id)
-                .Take(count * 2)
-                .Select(o => new Offer
-                {
-                    Id = o.Id,
-                    N = o.N,
-                    Company = o.Company,
-                    Amount = o.Amount,
-                    Material = o.Material,
-                    Services = o.Services,
-                    Agent = o.Agent,
-                    Invoice = o.Invoice,
-                    CreatedDate = o.CreatedDate,
-                    EndDate = o.EndDate,
-                    Order = o.Order,
-                    Autor = o.Autor,
-                    Act = o.Act,
-                    ManagerId = o.ManagerId,
-                    IsPendingSync = o.IsPendingSync,
-                    IsLocalOffer = true  // ⭐ УСТАНАВЛИВАЕМ при загрузке из локальной БД
-                })
-                .ToListAsync();
-
-            // ⭐ 2. Если онлайн — дополняем расчётами из PG
+            // ⭐ Если онлайн — загружаем ТОЛЬКО из PG
             if (_isOnline)
             {
                 try
@@ -670,6 +822,13 @@ namespace Metal_Code.Services
 
                     if (pgManager != null)
                     {
+                        // Находим локального менеджера для ManagerId
+                        using var localCtx = new ManagerContext(_connections[0]);
+                        var localManager = await localCtx.Managers.AsNoTracking()
+                            .FirstOrDefaultAsync(m => m.Name == managerName);
+
+                        int localManagerIdForOffers = localManager?.Id ?? 0;
+
                         var pgOffers = await pgContext.Offers.AsNoTracking()
                             .Where(o => o.ManagerId == pgManager.Id)
                             .OrderByDescending(o => o.Id)
@@ -689,47 +848,14 @@ namespace Metal_Code.Services
                                 Order = o.Order,
                                 Autor = o.Autor,
                                 Act = o.Act,
-                                ManagerId = localManager.Id,
+                                ManagerId = localManagerIdForOffers,
                                 IsPendingSync = false,
-                                IsLocalOffer = false  // ⭐ Из PG — НЕ локальные
+                                IsLocalOffer = false
                             })
                             .ToListAsync();
 
-                        var pgIds = new HashSet<int>(pgOffers.Select(o => o.Id));
-
-                        // ⭐ Локальные расчёты, которых НЕТ в PG (по Id)
-                        var localOnlyOffers = allLocalOffers
-                            .Where(o => !pgIds.Contains(o.Id))
-                            .Take(count)
-                            .ToList();
-
-                        var result = localOnlyOffers
-                            .Concat(pgOffers)
-                            .OrderByDescending(o => o.Id)
-                            .Take(count)
-                            .ToList();
-
-                        int localCount = result.Count(o => o.IsLocalOffer);
-                        Trace.WriteLine($"📊 Загружено {result.Count} расчётов для '{managerName}': " +
-                                       $"PG={pgOffers.Count}, локальных={localCount}");
-
-                        // ⭐ Детальный лог первых 5 расчётов
-                        foreach (var o in result.Take(5))
-                        {
-                            Trace.WriteLine($"  📋 Id={o.Id}, N={o.N}, IsLocalOffer={o.IsLocalOffer}");
-                        }
-
-                        // ⭐ Лог ВСЕХ локальных расчётов
-                        if (localCount > 0)
-                        {
-                            var localOffers = result.Where(o => o.IsLocalOffer);
-                            foreach (var lo in localOffers)
-                            {
-                                Trace.WriteLine($"  🟠 ЛОКАЛЬНЫЙ: Id={lo.Id}, N={lo.N}");
-                            }
-                        }
-
-                        return result;
+                        pgOffers.Reverse();
+                        return pgOffers;
                     }
                 }
                 catch (Exception ex)
@@ -739,14 +865,42 @@ namespace Metal_Code.Services
                 }
             }
 
-            // ⭐ 3. Фоллбэк: только локальная БД
-            var fallbackOffers = allLocalOffers
-                .Take(count)
-                .OrderByDescending(o => o.Id)
-                .ToList();
+            // ⭐ Если офлайн — загружаем из локальной БД
+            using var localCtxOffline = new ManagerContext(_connections[0]);
+            localCtxOffline.Database.SetCommandTimeout(10);
 
-            Trace.WriteLine($"📊 Загружено {fallbackOffers.Count} расчётов из локальной БД для '{managerName}'");
-            return fallbackOffers;
+            var localManagerOffline = await localCtxOffline.Managers.AsNoTracking()
+                .FirstOrDefaultAsync(m => m.Name == managerName);
+
+            if (localManagerOffline == null) return new List<Offer>();
+
+            var localOffers = await localCtxOffline.Offers.AsNoTracking()
+                .Where(o => o.ManagerId == localManagerOffline.Id)
+                .OrderByDescending(o => o.Id)
+                .Take(count)
+                .Select(o => new Offer
+                {
+                    Id = o.Id,
+                    N = o.N,
+                    Company = o.Company,
+                    Amount = o.Amount,
+                    Material = o.Material,
+                    Services = o.Services,
+                    Agent = o.Agent,
+                    Invoice = o.Invoice,
+                    CreatedDate = o.CreatedDate,
+                    EndDate = o.EndDate,
+                    Order = o.Order,
+                    Autor = o.Autor,
+                    Act = o.Act,
+                    ManagerId = o.ManagerId,
+                    IsPendingSync = o.IsPendingSync,
+                    IsLocalOffer = true
+                })
+                .ToListAsync();
+
+            localOffers.Reverse();
+            return localOffers;
         }
 
         /// <summary>
@@ -1127,162 +1281,6 @@ namespace Metal_Code.Services
         }
 
         /// <summary>
-        /// Синхронизирует отложенные расчёты (IsPendingSync = true) с PostgreSQL.
-        /// Использует транзакцию для атомарности операций.
-        /// Возвращает количество успешно синхронизированных расчётов.
-        /// </summary>
-        public async Task<int> SyncPendingOffersAsync()
-        {
-            if (!_isOnline) return 0;
-
-            try
-            {
-                using var localCtx = new ManagerContext(_connections[0]);
-
-                // ⭐ Загружаем отложенные расчёты БЕЗ отслеживания
-                var pendingOffers = await localCtx.Offers
-                    .AsNoTracking()
-                    .Where(o => o.IsPendingSync)
-                    .ToListAsync();
-
-                if (!pendingOffers.Any())
-                {
-                    Trace.WriteLine("ℹ️ Отложенных расчётов нет");
-                    return 0;
-                }
-
-                Trace.WriteLine($"🔄 Синхронизация {pendingOffers.Count} отложенных расчётов...");
-
-                int syncedCount = 0;
-
-                using var pgContext = new AppDbContext(_pgOptions);
-                pgContext.Database.SetCommandTimeout(60);
-
-                foreach (var localOffer in pendingOffers)
-                {
-                    try
-                    {
-                        // Находим менеджера в PG
-                        var localManager = await localCtx.Managers.AsNoTracking()
-                            .FirstOrDefaultAsync(m => m.Id == localOffer.ManagerId);
-
-                        if (localManager == null)
-                        {
-                            Trace.WriteLine($"⚠️ Менеджер с Id={localOffer.ManagerId} не найден локально");
-                            continue;
-                        }
-
-                        var pgManager = await pgContext.Managers.AsNoTracking()
-                            .FirstOrDefaultAsync(m => m.Name == localManager.Name);
-
-                        if (pgManager == null)
-                        {
-                            Trace.WriteLine($"⚠️ Менеджер '{localManager.Name}' не найден в PG");
-                            continue;
-                        }
-
-                        // ⭐ Проверяем, нет ли уже такого расчёта в PG (по номеру N)
-                        var existingPgOffer = await pgContext.Offers.AsNoTracking()
-                            .FirstOrDefaultAsync(o => o.N == localOffer.N && o.ManagerId == pgManager.Id);
-
-                        int pgOfferId;
-
-                        if (existingPgOffer != null)
-                        {
-                            pgOfferId = existingPgOffer.Id;
-                            Trace.WriteLine($"ℹ️ Расчёт {localOffer.N} уже есть в PG (Id={pgOfferId})");
-                        }
-                        else
-                        {
-                            // Создаём новый расчёт в PG
-                            var pgOffer = new Offer
-                            {
-                                N = localOffer.N,
-                                Company = localOffer.Company,
-                                Amount = localOffer.Amount,
-                                Material = localOffer.Material,
-                                Services = localOffer.Services,
-                                Agent = localOffer.Agent,
-                                Invoice = localOffer.Invoice,
-                                CreatedDate = localOffer.CreatedDate.HasValue
-                                    ? DateTime.SpecifyKind(localOffer.CreatedDate.Value, DateTimeKind.Utc)
-                                    : DateTime.UtcNow,
-                                EndDate = localOffer.EndDate.HasValue
-                                    ? DateTime.SpecifyKind(localOffer.EndDate.Value, DateTimeKind.Utc)
-                                    : null,
-                                Order = localOffer.Order,
-                                Autor = localOffer.Autor,
-                                Act = localOffer.Act,
-                                ManagerId = pgManager.Id,
-                                Data = localOffer.Data
-                            };
-
-                            pgContext.Offers.Add(pgOffer);
-                            await pgContext.SaveChangesAsync();
-                            pgOfferId = pgOffer.Id;
-                        }
-
-                        // ⭐ АТОМАРНАЯ ЗАМЕНА через транзакцию
-                        using var transaction = localCtx.Database.BeginTransaction();
-                        try
-                        {
-                            // ⭐ Проверяем, есть ли уже расчёт с таким Id в локальной БД
-                            var existingLocal = await localCtx.Offers.AsNoTracking()
-                                .FirstOrDefaultAsync(o => o.Id == pgOfferId);
-
-                            if (existingLocal != null)
-                            {
-                                // ⭐ Удаляем конфликтующую запись
-                                await localCtx.Database.ExecuteSqlInterpolatedAsync(
-                                    $"DELETE FROM Offers WHERE Id = {pgOfferId}");
-                                Trace.WriteLine($"🗑️ Удалён конфликтующий локальный расчёт Id={pgOfferId}");
-                            }
-
-                            // ⭐ Удаляем старый локальный расчёт через прямой SQL
-                            int deleted = await localCtx.Database.ExecuteSqlInterpolatedAsync(
-                                $"DELETE FROM Offers WHERE Id = {localOffer.Id}");
-
-                            Trace.WriteLine($"🗑️ Удалён старый локальный расчёт Id={localOffer.Id} (строк затронуто: {deleted})");
-
-                            // ⭐ Создаём новый локальный расчёт с правильным Id
-                            await localCtx.Database.ExecuteSqlInterpolatedAsync($@"
-                        INSERT INTO Offers (
-                            Id, N, Company, Amount, Material, Services, Agent, Invoice,
-                            CreatedDate, EndDate, ""Order"", Autor, Act, ManagerId, Data, IsPendingSync
-                        ) VALUES (
-                            {pgOfferId}, {localOffer.N}, {localOffer.Company}, {localOffer.Amount},
-                            {localOffer.Material}, {localOffer.Services}, {localOffer.Agent}, {localOffer.Invoice},
-                            {localOffer.CreatedDate}, {localOffer.EndDate}, {localOffer.Order}, {localOffer.Autor},
-                            {localOffer.Act}, {localOffer.ManagerId}, {localOffer.Data}, 0
-                        )");
-
-                            await transaction.CommitAsync();
-                            syncedCount++;
-                            Trace.WriteLine($"✅ Синхронизирован расчёт {localOffer.N} (Id={pgOfferId})");
-                        }
-                        catch (Exception ex)
-                        {
-                            await transaction.RollbackAsync();
-                            Trace.WriteLine($"❌ Ошибка транзакции для расчёта {localOffer.N}: {ex.Message}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine($"❌ Ошибка синхронизации расчёта {localOffer.N}: {ex.Message}");
-                    }
-                }
-
-                Trace.WriteLine($"✅ Синхронизировано расчётов: {syncedCount} из {pendingOffers.Count}");
-                return syncedCount;
-            }
-            catch (Exception ex)
-            {
-                Trace.WriteLine($"❌ Ошибка SyncPendingOffersAsync: {ex.Message}");
-                return 0;
-            }
-        }
-
-        /// <summary>
         /// Возвращает количество новых расчётов для менеджера, созданных после указанной даты.
         /// </summary>
         public async Task<int> GetNewOffersCountAsync(int localManagerId, string managerName, DateTime since)
@@ -1441,14 +1439,6 @@ namespace Metal_Code.Services
             }
 
             return success;
-        }
-
-        /// <summary>
-        /// Загружает последние N расчётов менеджера (для отображения по умолчанию).
-        /// </summary>
-        public async Task<List<Offer>> GetRecentOffersAsync(int localManagerId, string managerName, int count = 50)
-        {
-            return await GetOffersAsync(localManagerId, managerName, count);
         }
 
         /// <summary>
@@ -1812,6 +1802,8 @@ namespace Metal_Code.Services
         }
 
 
+        //----------------Заказчики----------------//
+        #region
         /// <summary>
         /// Добавляет нового заказчика.
         /// Проверяет глобальную уникальность имени в PG. Если имя занято другим менеджером, создание блокируется.
@@ -2364,5 +2356,6 @@ namespace Metal_Code.Services
 
             return false;
         }
+        #endregion
     }
 }
