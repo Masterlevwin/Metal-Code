@@ -18,6 +18,17 @@
         <!-- Общая толщина границы -->
         <Thickness x:Key="DefaultBorderThickness">1</Thickness>
 
+        <!-- Единый стиль для информационных ToolTip -->
+        <Style x:Key="InfoToolTipStyle" TargetType="ToolTip">
+            <Setter Property="Placement" Value="Mouse"/>
+            <Setter Property="Background" Value="#FFF8F0"/>
+            <Setter Property="BorderBrush" Value="#CC3300"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="HasDropShadow" Value="True"/>
+            <Setter Property="MaxWidth" Value="280"/>
+        </Style>
+        
         <!-- Стиль для Button -->
         <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="{StaticResource ButtonBackground}" />
@@ -64,7 +75,27 @@
             <Expander Margin="10">
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal">
-                        <Image Source="/Images/question.png" MouseEnter="ShowPopup" Width="16"/>
+                        <Image Source="/Images/question.png" Width="16">
+                            <Image.ToolTip>
+                                <ToolTip Style="{StaticResource InfoToolTipStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="Список деталей" 
+                                       FontWeight="Bold" 
+                                       FontSize="13"
+                                       Foreground="#CC3300"
+                                       TextAlignment="Center"
+                                       Margin="0,0,0,8"/>
+                                        <TextBlock TextWrapping="Wrap" 
+                                       TextAlignment="Center"
+                                       FontSize="12"
+                                       Foreground="#333333"
+                                       LineHeight="16">
+                                В данном списке находятся только нарезанные детали, и только они могут быть распределены по сборкам. Создайте одну или несколько сборок, назовите каждую, укажите их количество, и распределите эти детали. Проверьте целостность сборок кнопкой «Проверить сборки».
+                                        </TextBlock>
+                                    </StackPanel>
+                                </ToolTip>
+                            </Image.ToolTip>
+                        </Image>
                         <TextBlock Text="Список деталей" VerticalAlignment="Center" Margin="5,0,0,0"/>
                     </StackPanel>
                 </Expander.Header>
@@ -90,7 +121,27 @@
             <Expander Margin="10">
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal">
-                        <Image Source="/Images/question.png" MouseEnter="ShowPopupBaskets" Width="16"/>
+                        <Image Source="/Images/question.png" Width="16">
+                            <Image.ToolTip>
+                                <ToolTip Style="{StaticResource InfoToolTipStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="Покупные изделия" 
+                                       FontWeight="Bold" 
+                                       FontSize="13"
+                                       Foreground="#CC3300"
+                                       TextAlignment="Center"
+                                       Margin="0,0,0,8"/>
+                                        <TextBlock TextWrapping="Wrap" 
+                                       TextAlignment="Center"
+                                       FontSize="12"
+                                       Foreground="#333333"
+                                       LineHeight="16">
+                                В данном списке находятся покупные изделия, добавленные в главном окне программы. Если каких-то изделий не хватает, добавьте их в главном окне через кнопку «ПКИ».
+                                        </TextBlock>
+                                    </StackPanel>
+                                </ToolTip>
+                            </Image.ToolTip>
+                        </Image>
                         <TextBlock Text="Покупные изделия" VerticalAlignment="Center" Margin="5,0,0,0"/>
                     </StackPanel>
                 </Expander.Header>
@@ -112,14 +163,6 @@
                     </ListView.ItemTemplate>
                 </ListView >
             </Expander>
-
-            <Popup x:Name="Popup" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Scroll" StaysOpen="False">
-                <Border BorderThickness="1" CornerRadius="1" BorderBrush="Red">
-                    <StackPanel Background="Snow">
-                        <TextBlock x:Name="Details" TextAlignment="Center" Padding="5"/>
-                    </StackPanel>
-                </Border>
-            </Popup>
 
             <StackPanel Grid.Column="1" Margin="10" HorizontalAlignment="Center">
                 <!-- Глобальная сварка -->

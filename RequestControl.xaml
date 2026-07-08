@@ -10,6 +10,17 @@
     <UserControl.Resources>
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <local:TitleLengthToForegroundConverter x:Key="TitleLengthToForegroundConverter"/>
+
+        <!-- Единый стиль для всех ToolTip -->
+        <Style x:Key="InfoToolTipStyle" TargetType="ToolTip">
+            <Setter Property="Placement" Value="Mouse"/>
+            <Setter Property="Background" Value="#FFF8F0"/>
+            <Setter Property="BorderBrush" Value="#CC3300"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="HasDropShadow" Value="True"/>
+            <Setter Property="MaxWidth" Value="280"/>
+        </Style>
     </UserControl.Resources>
 
     <DockPanel LastChildFill="True">
@@ -126,7 +137,27 @@
                         <Button Content="Запустить анализ" Margin="5" Click="Analyze_Paths"/>
                         <StackPanel Orientation="Horizontal" Margin="5" HorizontalAlignment="Center">
                             <Button Content="Генерация" Click="Rename_Details"/>
-                            <Image Source="/Images/question.png" MouseEnter="ShowPopup_Gen" Width="16"/>
+                            <Image Source="/Images/question.png" Width="16">
+                                <Image.ToolTip>
+                                    <ToolTip Style="{StaticResource InfoToolTipStyle}">
+                                        <StackPanel>
+                                            <TextBlock Text="Генерация имён" 
+                               FontWeight="Bold" 
+                               FontSize="13"
+                               Foreground="#CC3300"
+                               TextAlignment="Center"
+                               Margin="0,0,0,8"/>
+                                            <TextBlock TextWrapping="Wrap" 
+                               TextAlignment="Center"
+                               FontSize="12"
+                               Foreground="#333333"
+                               LineHeight="16">
+                        Генерирует новые имена деталей в виде децимального номера. После загрузки раскладок из Ажанкам эти имена будут заменены обратно на исходные имена от заказчика.
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </ToolTip>
+                                </Image.ToolTip>
+                            </Image>
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>
@@ -137,7 +168,27 @@
                 <GroupBox.Header>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="{Binding TargetTechItem.NumberName}" FontWeight="Bold" ToolTip="{Binding TargetTechItem.NumberName}" Width="120"/>
-                        <Image Source="/Images/question.png" MouseEnter="ShowPopup_Geometries" MaxHeight="10"/>
+                        <Image Source="/Images/question.png" MaxHeight="10">
+                            <Image.ToolTip>
+                                <ToolTip Style="{StaticResource InfoToolTipStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="⚠ Внимание" 
+                                   FontWeight="Bold" 
+                                   FontSize="13"
+                                   Foreground="#CC3300"
+                                   TextAlignment="Center"
+                                   Margin="0,0,0,8"/>
+                                        <TextBlock TextWrapping="Wrap" 
+                                   TextAlignment="Center"
+                                   FontSize="12"
+                                   Foreground="#333333"
+                                   LineHeight="16">
+                            Изображение приблизительно и может отличаться от исходной модели.
+                                        </TextBlock>
+                                    </StackPanel>
+                                </ToolTip>
+                            </Image.ToolTip>
+                        </Image>
                     </StackPanel>
                 </GroupBox.Header>
 
@@ -155,9 +206,29 @@
 
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5">
                         <Button Content="Шильда" Click="Shields_Engraving" Margin="20,0,0,0" ToolTip="Создать шильды на основе пустого шаблона"/>
-                        <Image Source="/Images/question.png" MouseEnter="ShowPopup_Shield" Width="16"/>
+                        <Image Source="/Images/question.png" Width="16">
+                            <Image.ToolTip>
+                                <ToolTip Style="{StaticResource InfoToolTipStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="Гравировка шильд" 
+                               FontWeight="Bold" 
+                               FontSize="13"
+                               Foreground="#CC3300"
+                               TextAlignment="Center"
+                               Margin="0,0,0,8"/>
+                                        <TextBlock TextWrapping="Wrap" 
+                               TextAlignment="Center"
+                               FontSize="12"
+                               Foreground="#333333"
+                               LineHeight="16">
+                        Функция нанесения гравировки на шаблон шильды. Подготовьте txt-файл с необходимыми строчками и dxf-файл с шаблоном шильды. Программа создаст шильду в формате dxf на каждую строчку текста.
+                                        </TextBlock>
+                                    </StackPanel>
+                                </ToolTip>
+                            </Image.ToolTip>
+                        </Image>
                     </StackPanel>
-                    
+
                 </Grid>
             </GroupBox>
 
@@ -259,7 +330,27 @@
                 <GroupBox.Header>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="Правила именования" FontWeight="Bold"/>
-                        <Image Source="/Images/question.png" MouseEnter="ShowPopup_Rules" MaxHeight="10"/>
+                        <Image Source="/Images/question.png" MaxHeight="10">
+                            <Image.ToolTip>
+                                <ToolTip Style="{StaticResource InfoToolTipStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="Правила именования" 
+                                   FontWeight="Bold" 
+                                   FontSize="13"
+                                   Foreground="#CC3300"
+                                   TextAlignment="Center"
+                                   Margin="0,0,0,8"/>
+                                        <TextBlock TextWrapping="Wrap" 
+                                   TextAlignment="Center"
+                                   FontSize="12"
+                                   Foreground="#333333"
+                                   LineHeight="16">
+                            В соответствующем выпадающем списке можно увидеть, как правильно называть материалы деталей и добавляемые к ним работы.
+                                        </TextBlock>
+                                    </StackPanel>
+                                </ToolTip>
+                            </Image.ToolTip>
+                        </Image>
                     </StackPanel>
                 </GroupBox.Header>
 
@@ -294,23 +385,54 @@
             <StackPanel Orientation="Horizontal" Margin="5" Grid.Row="1" VerticalAlignment="Bottom">
                 <TextBox x:Name="DeleteText" Margin="5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="120" Text="Развертка - "/>
                 <Button Content="Удалить" Margin="5" Padding="5" Click="Delete_WithoutNames"/>
-                <Image Source="/Images/question.png" MouseEnter="ShowPopup_Del" MaxHeight="20"/>
+                <Image Source="/Images/question.png" MaxHeight="20">
+                    <Image.ToolTip>
+                        <ToolTip Style="{StaticResource InfoToolTipStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Укорачивание имён" 
+                               FontWeight="Bold" 
+                               FontSize="13"
+                               Foreground="#CC3300"
+                               TextAlignment="Center"
+                               Margin="0,0,0,8"/>
+                                <TextBlock TextWrapping="Wrap" 
+                               TextAlignment="Center"
+                               FontSize="12"
+                               Foreground="#333333"
+                               LineHeight="16">
+                        Функция укорачивания наименований. Введите символ или часть текста, и, если программа найдет совпадение, то удалит это из каждого наименования.
+                                </TextBlock>
+                            </StackPanel>
+                        </ToolTip>
+                    </Image.ToolTip>
+                </Image>
                 <TextBlock Text="Количество комплектов" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="100,0,0,0" MaxWidth="70" TextWrapping="Wrap"/>
                 <TextBox x:Name="CountText" FontWeight="Bold" Foreground="Red" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" MinWidth="40" MaxWidth="40" Margin="5" Text="1"/>
                 <TextBlock Text="Строк заявки:" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="100,0,0,0"/>
                 <TextBlock Text="{Binding TechItems.Count}" Margin="5,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="Blue"/>
                 <Button Content="Очистить" Click="Clear_TechItems" Margin="10,5,5,5" Padding="5"/>
-                <Image Source="/Images/question.png" MouseEnter="ShowPopup_DataGrid" MaxHeight="20"/>
+                <Image Source="/Images/question.png" MaxHeight="20">
+                    <Image.ToolTip>
+                        <ToolTip Style="{StaticResource InfoToolTipStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Очистка таблицы" 
+                           FontWeight="Bold" 
+                           FontSize="13"
+                           Foreground="#CC3300"
+                           TextAlignment="Center"
+                           Margin="0,0,0,8"/>
+                                <TextBlock TextWrapping="Wrap" 
+                           TextAlignment="Center"
+                           FontSize="12"
+                           Foreground="#333333"
+                           LineHeight="16">
+                    Кнопка "Очистить" удаляет ВСЕ строки из таблицы. Чтобы удалить одну строку, нажмите по строке правой кнопкой мыши и левой по команде "Удалить строку".
+                                </TextBlock>
+                            </StackPanel>
+                        </ToolTip>
+                    </Image.ToolTip>
+                </Image>
             </StackPanel>
         </Grid>
-
-        <Popup x:Name="Popup" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Scroll" StaysOpen="False">
-            <Border BorderThickness="1" CornerRadius="1" BorderBrush="Red">
-                <StackPanel Background="Snow">
-                    <TextBlock x:Name="Details" TextAlignment="Center" Padding="5"/>
-                </StackPanel>
-            </Border>
-        </Popup>
-
     </DockPanel>
 </UserControl>

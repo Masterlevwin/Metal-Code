@@ -29,7 +29,49 @@
             <StackPanel Orientation="Horizontal"  Margin="3" HorizontalAlignment="Center">
                 <TextBox x:Name="PricePart" Text="{Binding Price, Converter={StaticResource CostConverter}}" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" BorderThickness="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Width="60"/>
                 <Button Margin="5,0,0,0" Click="SetFixedPrice" BorderThickness="0" Padding="0" Width="16" Height="16">
-                    <Image Source="/Images/fixed.png" MouseEnter="ViewPopupFixedPrice"/>
+                    <Image Source="/Images/fixed.png"/>
+                    <Button.ToolTip>
+                        <ToolTip Placement="Mouse" 
+                 Background="#FFF8F0" 
+                 BorderBrush="#CC3300" 
+                 BorderThickness="2"
+                 Padding="12"
+                 HasDropShadow="True">
+                            <StackPanel MaxWidth="280">
+                                <TextBlock Text="📌 Фиксированная цена" 
+                           FontWeight="Bold" 
+                           FontSize="13"
+                           Foreground="#CC3300"
+                           TextAlignment="Center"
+                           Margin="0,0,0,8"/>
+                                <TextBlock TextWrapping="Wrap" 
+                           TextAlignment="Center"
+                           FontSize="12"
+                           Foreground="#333333"
+                           LineHeight="16">
+                    Чтобы установить фиксированную цену, выделите её целиком (включая «р»), введите значение и нажмите эту кнопку — значение станет красным.
+                                </TextBlock>
+                                <TextBlock TextWrapping="Wrap" 
+                           TextAlignment="Center"
+                           FontSize="12"
+                           Foreground="#333333"
+                           LineHeight="16"
+                           Margin="0,8,0,0">
+                    Чтобы снять фиксацию, нажмите кнопку снова.
+                                </TextBlock>
+                                <Border BorderBrush="#CC3300" 
+                        BorderThickness="0,1,0,0" 
+                        Margin="0,10,0,5" 
+                        Padding="0,5,0,0">
+                                    <TextBlock Text="⚠ Нельзя установить цену ниже рассчитанной!" 
+                               FontWeight="SemiBold"
+                               TextAlignment="Center"
+                               Foreground="#CC3300"
+                               FontSize="11"/>
+                                </Border>
+                            </StackPanel>
+                        </ToolTip>
+                    </Button.ToolTip>
                 </Button>
                 <ToggleButton Margin="5,0,0,0" Width="16" Height="16" Padding="0"
                               Background="Transparent" BorderBrush="Transparent"
@@ -43,35 +85,47 @@
 
             <StackPanel Orientation="Horizontal" Margin="3">
                 <TextBox Text="{Binding Title}" TextWrapping="Wrap" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="90" Height="60"/>
-                <Grid Background="White" Margin="5,0,0,0" MouseWheel="ViewPopupDimensions">
+                <!-- Для Grid с картинкой -->
+                <Grid Background="White" Margin="5,0,0,0"
+      Tag="{Binding Square, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}}}">
                     <Image x:Name="Picture" Loaded="SetPicture" MouseLeftButtonDown="OpenPlan" Height="60" Width="60"/>
                     <Viewbox x:Name="GeometryViewbox" Stretch="Uniform" Loaded="SetPicture" Height="60" Width="60" MouseLeftButtonDown="OpenPlan" Visibility="Collapsed">
                         <Path Data="{Binding DisplayGeometry}" Stroke="Black" StrokeThickness="{Binding VisualStrokeThickness}" Stretch="Fill"/>
                     </Viewbox>
+
+                    <Grid.ToolTip>
+                        <ToolTip Placement="Mouse" Background="Lavender" BorderBrush="#6A5ACD" BorderThickness="2" Padding="10" HasDropShadow="True">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ToolTip}, StringFormat={}{0} кв м}" 
+                           TextAlignment="Center"/>
+                            </StackPanel>
+                        </ToolTip>
+                    </Grid.ToolTip>
                 </Grid>
                 <Button Margin="5,0,0,0" VerticalAlignment="Top" Content="X" FontWeight="Bold" Padding="0" Click="RemovePart" Width="16" Height="16"/>
             </StackPanel>
 
-            <Popup x:Name="PopupDimensions" StaysOpen="False" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="5">
-                <StackPanel Background="Lavender" Orientation="Horizontal">
-                    <TextBlock Text="{Binding Square, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" TextAlignment="Center" Padding="3"/>
-                    <TextBlock Text="кв м" MouseWheel="ViewPopupDimensions" VerticalAlignment="Center" Padding="3"/>
-                </StackPanel>
-            </Popup>
-
-            <Popup x:Name="Popup" Placement="Mouse" AllowsTransparency="True" PopupAnimation="Scroll" StaysOpen="False">
-                <Border BorderThickness="1" CornerRadius="1" BorderBrush="Red">
-                    <StackPanel Background="Snow">
-                        <TextBlock x:Name="Details" TextAlignment="Center" Padding="5"/>
-                    </StackPanel>
-                </Border>
-            </Popup>
-
             <StackPanel Orientation="Horizontal" Margin="3">
                 <TextBox Text="{Binding Count}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Количество вырезанных деталей" Width="40" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="Blue"/>
                 <TextBlock Text="шт" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                <TextBlock x:Name="DimensionsText" Text="{Binding Dimensions, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" ToolTip="Размеры детали" Margin="30,0,0,0" VerticalAlignment="Center"/>
-                <TextBlock Text="мм" MouseWheel="ViewPopupDimensions" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="DimensionsText" 
+               Text="{Binding Dimensions, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" 
+               ToolTip="Размеры детали" 
+               Margin="30,0,0,0" 
+               VerticalAlignment="Center"/>
+
+                <!-- Для TextBlock "мм" -->
+                <TextBlock Text="мм" Margin="5,0,0,0" VerticalAlignment="Center"
+           Tag="{Binding Square, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}}}">
+                    <TextBlock.ToolTip>
+                        <ToolTip Placement="Mouse" Background="Lavender" BorderBrush="#6A5ACD" BorderThickness="2" Padding="10" HasDropShadow="True">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ToolTip}, StringFormat={}{0} кв м}" 
+                           TextAlignment="Center" Padding="3"/>
+                            </StackPanel>
+                        </ToolTip>
+                    </TextBlock.ToolTip>
+</TextBlock>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="3">

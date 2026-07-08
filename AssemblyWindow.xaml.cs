@@ -360,27 +360,6 @@ namespace Metal_Code
             }
         }
 
-        private void ShowPopup(object sender, MouseEventArgs e)
-        {
-            Popup.IsOpen = true;
-
-            Details.Text = "В данном списке находятся только нарезанные детали,\n" +
-                "и только они могут быть распределены по сборкам.\n" +
-                "Создайте одну или несколько сборок, назовите каждую,\n" +
-                "укажите их количество, и распределите эти детали.\n" +
-                "Проверьте целостность сборок кнопкой \"Проверить сборки\".";
-        }
-
-        private void ShowPopupBaskets(object sender, MouseEventArgs e)
-        {
-            Popup.IsOpen = true;
-
-            Details.Text = "В данном списке находятся покупные изделия,\n" +
-                "добавленные в главном окне программы.\n" +
-                "Если каких-то изделий не хватает,\n" +
-                "добавьте их в главном окне через кнопку \"ПКИ\".";
-        }
-
         public void Set_WorksPrice()
         {
             if (Assemblies.Count == 0) return;

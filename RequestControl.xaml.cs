@@ -542,16 +542,6 @@ namespace Metal_Code
 
             MainWindow.M.StatusBegin("Наименования деталей сгенерированы.", MainWindow.StatusMessageType.Success);
         }
-        private void ShowPopup_Gen(object sender, MouseEventArgs e)
-        {
-            Popup.IsOpen = true;
-
-            Details.Text = "Генерирует новые имена деталей\n" +
-                "в виде децимального номера.\n" +
-                "После загрузки раскладок из Ажанкам эти имена\n" +
-                "будут заменены обратно на исходные имена от заказчика.";
-        }
-
 
         //-----получение геометрии выбранной детали-----//
         private void Set_TargetTechItem(object sender, SelectedCellsChangedEventArgs e)
@@ -646,14 +636,6 @@ namespace Metal_Code
                 if (item.NumberName.Contains(DeleteText.Text, StringComparison.OrdinalIgnoreCase))
                     item.NumberName = item.NumberName.Replace(DeleteText.Text, "");
         }
-        private void ShowPopup_Del(object sender, MouseEventArgs e)
-        {
-            Popup.IsOpen = true;
-
-            Details.Text = "Функция укорачивания наименований.\n" +
-                "Введите символ или часть текста, и ,если программа\n" +
-                "найдет совпадение, то удалит это из каждого наименования.";
-        }
 
         //-----добавление пустой строки в список деталей-----//
         private void Add_TechItem(object sender, RoutedEventArgs e) { TechItems.Add(new()); }
@@ -673,15 +655,6 @@ namespace Metal_Code
             TargetTechItem = null;
             IsAvailable = false;
         }
-        private void ShowPopup_DataGrid(object sender, MouseEventArgs e)
-        {
-            Popup.IsOpen = true;
-
-            Details.Text = $"Кнопка \"Очистить\" удаляет ВСЕ строки из таблицы.\n" +
-                "Чтобы удалить одну строку, нажмите по строке правой кнопкой мыши" +
-                "и левой по команде \"Удалить строку\".";
-        }
-
 
         //-----создание заявки и подготовка папок одновременно-----//
         private void Launch_Tech(object sender, RoutedEventArgs e) { if (Create_Request()) Create_Tech(); }
@@ -1051,13 +1024,6 @@ namespace Metal_Code
             }
         }
 
-        private void ShowPopup_Geometries(object sender, MouseEventArgs e)
-        {
-            Popup.IsOpen = true;
-
-            Details.Text = $"Изображение приблизительно, и может отличаться от исходной модели.";
-        }
-
         private void ToggleRowDetails_Click(object sender, RoutedEventArgs e)
         {
             if (sender is FrameworkElement element)
@@ -1071,16 +1037,6 @@ namespace Metal_Code
                 }
             }
         }
-
-        private void ShowPopup_Rules(object sender, MouseEventArgs e)
-        {
-            Popup.IsOpen = true;
-
-            Details.Text = $"В соответствующем выпадающем списке можно увидеть,\n" +
-                $"как правильно называть материалы деталей\n" +
-                $"и добавляемые к ним работы.";
-        }
-
 
         //-----метод добавления металла, толщины или работ в выбранные строки-----//
         private void Copy_Metal(object sender, RoutedEventArgs e)
@@ -1280,17 +1236,6 @@ namespace Metal_Code
             }
 
             MainWindow.M.StatusBegin($"Создано {lines.Sum(l => l.Split(' ').Length > 1 && int.TryParse(l.Split(' ')[1], out int n) ? n : 0)} файлов", MainWindow.StatusMessageType.Info);
-        }
-
-        private void ShowPopup_Shield(object sender, MouseEventArgs e)
-        {
-            Popup.IsOpen = true;
-
-            Details.Text = $"Функция нанесения гравировки на шаблон шильды.\n" +
-                $"Подготовьте txt-файл с необходимыми строчками\n" +
-                $"и dxf-файл с шаблоном шильды.\n" +
-                $"Программа создаст шильду в формате dxf\n" +
-                $"на каждую строчку текста.";
         }
 
         private void AddEngraving_ToAllTechItems(object sender, RoutedEventArgs e)

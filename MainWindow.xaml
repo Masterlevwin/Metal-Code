@@ -593,7 +593,8 @@
                                               LoadingRow="OffersGrid_LoadingRow" EnableColumnVirtualization="True"
                                               AutoGenerateColumns="False" RowDetailsVisibilityMode="Collapsed"
                                               BorderBrush="Red" CellEditEnding="OffersGrid_CellEditEnding"
-                                              IsReadOnly="{Binding IsOffersGridReadOnly, ElementName=MainWindowRoot}">
+                                              IsReadOnly="{Binding IsOffersGridReadOnly, ElementName=MainWindowRoot}"
+                                              ContextMenuOpening="OffersGrid_ContextMenuOpening">
 
                                         <DataGrid.GroupStyle>
                                             <GroupStyle>
@@ -752,7 +753,7 @@
                                                         <Image Source="/Images/del_offer.png"/>
                                                     </MenuItem.Icon>
                                                 </MenuItem>
-                                                <MenuItem Header="Запустить в производство" Click="LaunchToWork">
+                                                <MenuItem x:Name="LaunchToWorkMenuItem" Header="Запустить в производство" Click="LaunchToWork">
                                                     <MenuItem.Icon>
                                                         <Image Source="/Images/order.png"/>
                                                     </MenuItem.Icon>

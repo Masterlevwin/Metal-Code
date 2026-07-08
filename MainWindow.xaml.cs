@@ -542,6 +542,7 @@ namespace Metal_Code
             Loaded += LoadDataBases;
         }
 
+
         //-------------Основные методы-----------//
         #region
         private async void LoadDataBases(object sender, RoutedEventArgs e)
@@ -556,7 +557,8 @@ namespace Metal_Code
                 bool isOnline = await DataService.InitializeAsync();
                 UpdateOnlineStatus();
 
-                // Очищаем локальную базу от старых расчетов
+                // ⭐ Очищаем локальную базу от старых расчетов (всегда, даже оффлайн)
+                // Теперь этот метод корректно пропускает расчетного менеджера
                 await DataService.CleanupLocalOffersAsync();
 
                 if (!isOnline)
@@ -571,12 +573,14 @@ namespace Metal_Code
                     try
                     {
                         // 1. СНАЧАЛА синхронизация отложенных расчетов
+                        // (теперь пропускает расчетного менеджера)
                         await DataService.SyncPendingOffersAsync();
-                        
+
                         // 2. ПОТОМ миграция
                         await DataService.MigrateUserDataToPgAsync();
 
                         // 3. Очистка осиротевших локальных расчётов
+                        // (уже пропускает расчетного менеджера)
                         await DataService.CleanupOrphanedLocalOffersAsync();
 
                         StatusBegin("Синхронизация с сервером успешно завершена.", StatusMessageType.Success);
@@ -1006,7 +1010,6 @@ namespace Metal_Code
 
             if (currentManager == null)
             {
-                // Стандартный поиск по MachineName
                 using var tempCtx = new ManagerContext(connections[0]);
                 currentManager = await tempCtx.Managers
                     .FirstOrDefaultAsync(m => m.MachineName == Environment.MachineName || m.Contact == Environment.MachineName);
@@ -1033,8 +1036,14 @@ namespace Metal_Code
             }
             else
             {
-                // ⭐ Простой менеджер видит ТОЛЬКО СЕБЯ
+                // ⭐ Простой менеджер видит СЕБЯ и "Расчетного менеджера"
                 managersForDrop = new List<Manager> { CurrentManager };
+
+                var draftManager = Managers.FirstOrDefault(m => m.Name == "Расчетный менеджер");
+                if (draftManager != null)
+                {
+                    managersForDrop.Add(draftManager);
+                }
             }
 
             ManagerDrop.ItemsSource = managersForDrop;
@@ -1285,7 +1294,7 @@ namespace Metal_Code
             {
                 IsLaser = man.IsLaser;
 
-                // 1. Заказчики (без изменений)
+                // 1. Заказчики
                 var customers = await DataService.GetCustomersAsync(man.Id, man.Name);
                 var selectedCustomerName = (CustomerDrop.SelectedItem as Customer)?.Name;
                 Customers.Clear();
@@ -2140,6 +2149,13 @@ namespace Metal_Code
             {
                 UpdateBtn.IsEnabled = true;
             }
+        }
+
+        private void OffersGrid_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            // ⭐ Быстрая синхронная проверка: если выбран расчетный менеджер — скрываем пункт
+            bool isDraftManager = TargetManager?.Name == "Расчетный менеджер";
+            LaunchToWorkMenuItem.Visibility = isDraftManager ? Visibility.Collapsed : Visibility.Visible;
         }
 
         private void OffersGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
@@ -8244,6 +8260,11 @@ namespace Metal_Code
         }
         private async System.Threading.Tasks.Task<string> LaunchToWork(Offer offer)
         {
+            // ⭐ Защита от запуска тестового расчёта в производство
+            if (await DataService.IsDraftOfferAsync(offer.Id))
+                return $"Не удалось запустить в производство!\n" +
+                       $"Расчёт {offer.N} является тестовым (расчетный менеджер) и не может быть передан в производство.";
+
             if (!Directory.Exists(connections[5]))
                 return $"Не удалось запустить в производство!\n" +
                        $"Нет подключения к папке \"В работу\"";

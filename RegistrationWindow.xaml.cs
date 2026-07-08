@@ -85,19 +85,19 @@ namespace Metal_Code
         /// </summary>
         private void EnsureDefaultManagerExists(ManagerContext db)
         {
-            // ⭐ Проверяем, есть ли уже менеджер по умолчанию (по паролю-маркеру "uri")
-            bool defaultManagerExists = db.Managers.Any(m => m.Password == "uri" && m.IsAdmin);
+            // ⭐ Проверяем, есть ли уже менеджер по умолчанию (по паролю-маркеру "0000")
+            bool defaultManagerExists = db.Managers.Any(m => m.Password == "0000");
 
             if (!defaultManagerExists)
             {
                 Manager defaultManager = new()
                 {
-                    Name = "Сергеев Юрий",
-                    Password = "uri",
+                    Name = "Расчетный менеджер",
+                    Password = "0000",
                     MachineName = null,
-                    IsAdmin = true,
+                    IsAdmin = false,
                     IsEngineer = false,
-                    IsLaser = false
+                    IsLaser = true
                 };
 
                 db.Managers.Add(defaultManager);

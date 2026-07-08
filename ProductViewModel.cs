@@ -130,13 +130,10 @@ namespace Metal_Code
 
                                 if (isNewOffer || isNumberChanged || isSameAuthor)
                                 {
-                                    // Новый расчет, измененный номер или тот же автор — 
-                                    // устанавливаем текущего менеджера как автора с датой и временем
                                     autor = $"{currentManager} ({now})";
                                 }
                                 else
                                 {
-                                    // Другой автор и номер не менялся — добавляем текущего менеджера в цепочку
                                     autor = $"{MainWindow.M.ActiveOffer?.Autor}\n{currentManager} ({now})";
                                 }
 
@@ -167,9 +164,22 @@ namespace Metal_Code
                                 // ⭐ ПРОКРУТКА К НОВОМУ РАСЧЁТУ С ПОДСВЕТКОЙ
                                 MainWindow.M.ScrollToOfferAndHighlight(savedOffer);
 
-                                string statusMessage = MainWindow.M.DataService.IsOnline
-                                    ? $"Расчет {savedOffer.N} {savedOffer.Company} сохранен на сервере."
-                                    : $"Расчет {savedOffer.N} {savedOffer.Company} сохранен локально (ожидает синхронизации).";
+                                // ⭐ ФОРМИРУЕМ СООБЩЕНИЕ С УЧЁТОМ ТИПА МЕНЕДЖЕРА
+                                bool isDraftManager = MainWindow.M.TargetManager.Name == "Расчетный менеджер";
+
+                                string statusMessage;
+                                if (isDraftManager)
+                                {
+                                    statusMessage = $"Расчет {savedOffer.N} {savedOffer.Company} сохранен локально (расчетный менеджер).";
+                                }
+                                else if (MainWindow.M.DataService.IsOnline)
+                                {
+                                    statusMessage = $"Расчет {savedOffer.N} {savedOffer.Company} сохранен на сервере.";
+                                }
+                                else
+                                {
+                                    statusMessage = $"Расчет {savedOffer.N} {savedOffer.Company} сохранен локально (ожидает синхронизации).";
+                                }
 
                                 MainWindow.M.StatusBegin(statusMessage, MainWindow.StatusMessageType.Success);
                                 Trace.WriteLine($"💾 {statusMessage}");
@@ -192,7 +202,7 @@ namespace Metal_Code
                                     MainWindow.M.Log += $"\nТекущая версия не актуальна. Рекомендуется обновить программу.\n";
                                 }
 
-                                // ⭐ ЖДЁМ, ПОКА UI ПОЛНОСТЬЮ ОТРИСУЕТСЯ (прокрутка, подсветка, группы)
+                                // ⭐ ЖДЁМ, ПОКА UI ПОЛНОСТЬЮ ОТРИСУЕТСЯ
                                 await System.Threading.Tasks.Task.Delay(500);
 
                                 // Вывод лога
@@ -630,67 +640,84 @@ namespace Metal_Code
                             return;
                         }
 
-                        // ⭐ ПРОВЕРКА ПРАВ ДОСТУПА
-                        bool isOwner = currentManager.Id == offer.ManagerId;
-                        bool isAdmin = currentManager.IsAdmin;
-                        bool isEngineer = currentManager.IsEngineer;
+                        // ⭐ ПРОВЕРКА: является ли расчёт "расчетным"
+                        bool isDraftOffer = await MainWindow.M.DataService.IsDraftOfferAsync(offer.Id);
 
-                        // Инженеры не могут удалять расчёты (как и редактировать)
-                        if (isEngineer)
+                        // ⭐ ПРОВЕРКА ПРАВ ДОСТУПА (только для обычных расчётов)
+                        if (!isDraftOffer)
                         {
-                            MainWindow.M.StatusBegin("Инженеры не могут удалять расчёты", MainWindow.StatusMessageType.Warning);
-                            return;
-                        }
+                            bool isOwner = currentManager.Id == offer.ManagerId;
+                            bool isAdmin = currentManager.IsAdmin;
+                            bool isEngineer = currentManager.IsEngineer;
 
-                        // Менеджер может удалять только свои расчёты (админ — любые)
-                        if (!isOwner && !isAdmin)
-                        {
-                            // Находим владельца расчёта для информативного сообщения
-                            string ownerName = "неизвестно";
-                            try
+                            // Инженеры не могут удалять расчёты (как и редактировать)
+                            if (isEngineer)
                             {
-                                using var localCtx = new ManagerContext(MainWindow.M.connections[0]);
-                                var owner = await localCtx.Managers.AsNoTracking()
-                                    .FirstOrDefaultAsync(m => m.Id == offer.ManagerId);
-                                if (owner != null) ownerName = owner.Name ?? ownerName;
+                                MainWindow.M.StatusBegin("Инженеры не могут удалять расчёты", MainWindow.StatusMessageType.Warning);
+                                return;
                             }
-                            catch { /* игнорируем ошибку получения имени */ }
 
-                            MessageBox.Show(
-                                $"Вы не можете удалить расчёт {offer.N}.\n" +
-                                $"Этот расчёт принадлежит менеджеру «{ownerName}».\n\n" +
-                                $"Удалять расчёты может только их владелец или администратор.",
-                                "Доступ запрещён",
-                                MessageBoxButton.OK,
-                                MessageBoxImage.Warning);
-                            return;
+                            // Менеджер может удалять только свои расчёты (админ — любые)
+                            if (!isOwner && !isAdmin)
+                            {
+                                string ownerName = "неизвестно";
+                                try
+                                {
+                                    using var localCtx = new ManagerContext(MainWindow.M.connections[0]);
+                                    var owner = await localCtx.Managers.AsNoTracking()
+                                        .FirstOrDefaultAsync(m => m.Id == offer.ManagerId);
+                                    if (owner != null) ownerName = owner.Name ?? ownerName;
+                                }
+                                catch { /* игнорируем ошибку получения имени */ }
+
+                                MessageBox.Show(
+                                    $"Вы не можете удалить расчёт {offer.N}.\n" +
+                                    $"Этот расчёт принадлежит менеджеру «{ownerName}».\n\n" +
+                                    $"Удалять расчёты может только их владелец или администратор.",
+                                    "Доступ запрещён",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Warning);
+                                return;
+                            }
                         }
 
-                        // ⭐ Формируем сообщение в зависимости от ситуации
-                        bool isOnline = MainWindow.M.DataService.IsOnline;
+                        // ⭐ Формируем сообщение в зависимости от типа расчёта
                         string message;
+                        bool isOnline = MainWindow.M.DataService.IsOnline;
 
-                        if (isOwner)
+                        if (isDraftOffer)
                         {
-                            message = isOnline
-                                ? $"Уверены? Расчёт {offer.N} будет удалён из основной базы (сервер)."
-                                : $"Уверены? Расчёт {offer.N} будет удалён из локальной базы.";
+                            // ⭐ Расчетный расчёт — всегда только локальное удаление
+                            message = $"Уверены? Предварительный расчёт {offer.N} будет удалён из локальной базы.\n\n" +
+                                      $"Этот расчёт является тестовым и не хранится на сервере.";
                         }
                         else
                         {
-                            string ownerName = "неизвестно";
-                            try
-                            {
-                                using var localCtx = new ManagerContext(MainWindow.M.connections[0]);
-                                var owner = await localCtx.Managers.AsNoTracking()
-                                    .FirstOrDefaultAsync(m => m.Id == offer.ManagerId);
-                                if (owner != null) ownerName = owner.Name ?? ownerName;
-                            }
-                            catch { /* игнорируем */ }
+                            bool isOwner = currentManager.Id == offer.ManagerId;
+                            bool isAdmin = currentManager.IsAdmin;
 
-                            message = isOnline
-                                ? $"Уверены? Расчёт {offer.N} менеджера «{ownerName}» будет удалён из основной базы (сервер).\n\nДействие от имени администратора."
-                                : $"Уверены? Расчёт {offer.N} менеджера «{ownerName}» будет удалён из локальной базы.\n\nДействие от имени администратора.";
+                            if (isOwner)
+                            {
+                                message = isOnline
+                                    ? $"Уверены? Расчёт {offer.N} будет удалён из основной базы (сервер)."
+                                    : $"Уверены? Расчёт {offer.N} будет удалён из локальной базы.";
+                            }
+                            else
+                            {
+                                string ownerName = "неизвестно";
+                                try
+                                {
+                                    using var localCtx = new ManagerContext(MainWindow.M.connections[0]);
+                                    var owner = await localCtx.Managers.AsNoTracking()
+                                        .FirstOrDefaultAsync(m => m.Id == offer.ManagerId);
+                                    if (owner != null) ownerName = owner.Name ?? ownerName;
+                                }
+                                catch { /* игнорируем */ }
+
+                                message = isOnline
+                                    ? $"Уверены? Расчёт {offer.N} менеджера «{ownerName}» будет удалён из основной базы (сервер).\n\nДействие от имени администратора."
+                                    : $"Уверены? Расчёт {offer.N} менеджера «{ownerName}» будет удалён из локальной базы.\n\nДействие от имени администратора.";
+                            }
                         }
 
                         var response = MessageBox.Show(message, "Удаление расчёта",
@@ -710,8 +737,10 @@ namespace Metal_Code
                             MainWindow.M.SummaryInfoTextBlock.Text = $"Всего расчётов: {MainWindow.M.CurrentOffers.Count} шт.";
 
                             MainWindow.M.StatusBegin($"Расчёт {offer.N} удалён.", MainWindow.StatusMessageType.Success);
-                            Trace.WriteLine($"✅ Расчёт {offer.N} (Id={offer.Id}) удалён пользователем {currentManager.Name}" +
-                                            (isOwner ? "" : " (администратор)"));
+
+                            string logSuffix = isDraftOffer ? " (расчетный расчёт)"
+                                            : (currentManager.Id == offer.ManagerId ? "" : " (администратор)");
+                            Trace.WriteLine($"✅ Расчёт {offer.N} (Id={offer.Id}) удалён пользователем {currentManager.Name}{logSuffix}");
                         }
                         else
                         {
