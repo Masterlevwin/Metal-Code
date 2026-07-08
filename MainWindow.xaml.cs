@@ -1261,7 +1261,7 @@ namespace Metal_Code
                 // Для инженера: синхронизируем заказчиков выбранного менеджера
                 if (CurrentManager?.IsEngineer == true)
                 {
-                    await DataService.SyncCustomersForEngineerAsync(man.Name);
+                    await DataService.SyncCustomersToLocalAsync(man.Name);
                 }
 
                 await LoadManagerDataAsync(man);
@@ -1310,21 +1310,18 @@ namespace Metal_Code
                 // 4. Перестраиваем представление
                 InitializeOffersView();
 
-                // 5. Синхронизация для инженера
-                if (CurrentManager?.IsEngineer == true)
+                // ⭐ ВСЕГДА синхронизируем заказчиков из PG в локалку (не только для инженеров)
+                await DataService.SyncCustomersToLocalAsync(man.Name);
+                var refreshedCustomers = await DataService.GetCustomersAsync(man.Id, man.Name);
+                selectedCustomerName = (CustomerDrop.SelectedItem as Customer)?.Name;
+                Customers.Clear();
+                foreach (var c in refreshedCustomers) Customers.Add(c);
+                CurrentCustomers = Customers.ToList();
+                CustomerDrop.ItemsSource = CurrentCustomers;
+                if (!string.IsNullOrEmpty(selectedCustomerName))
                 {
-                    await DataService.SyncCustomersForEngineerAsync(man.Name);
-                    var refreshedCustomers = await DataService.GetCustomersAsync(man.Id, man.Name);
-                    selectedCustomerName = (CustomerDrop.SelectedItem as Customer)?.Name;
-                    Customers.Clear();
-                    foreach (var c in refreshedCustomers) Customers.Add(c);
-                    CurrentCustomers = Customers.ToList();
-                    CustomerDrop.ItemsSource = CurrentCustomers;
-                    if (!string.IsNullOrEmpty(selectedCustomerName))
-                    {
-                        var restored = Customers.FirstOrDefault(c => c.Name == selectedCustomerName);
-                        if (restored != null) CustomerDrop.SelectedItem = restored;
-                    }
+                    var restored = Customers.FirstOrDefault(c => c.Name == selectedCustomerName);
+                    if (restored != null) CustomerDrop.SelectedItem = restored;
                 }
 
                 await UpdateOffersCountCacheAsync();
@@ -2517,11 +2514,11 @@ namespace Metal_Code
             var expandedGroups = GetExpandedGroupNames();
             var viewSource = new CollectionViewSource { Source = CurrentOffers };
 
-            // ⭐ ДОБАВЛЯЕМ СОРТИРОВКУ ПО Id (сохраняет порядок из коллекции)
-            viewSource.SortDescriptions.Add(new SortDescription(nameof(Offer.Id), ListSortDirection.Ascending));
-
             // Группировка по ParentQuoteNumber
             viewSource.GroupDescriptions.Add(new PropertyGroupDescription(nameof(Offer.ParentQuoteNumber)));
+
+            // ⭐ ДОБАВЛЯЕМ СОРТИРОВКУ ПО Id (сохраняет порядок из коллекции)
+            viewSource.SortDescriptions.Add(new SortDescription(nameof(Offer.ParentQuoteNumber), ListSortDirection.Ascending));
 
             OffersView = viewSource.View;
             OffersGrid.ItemsSource = OffersView;
