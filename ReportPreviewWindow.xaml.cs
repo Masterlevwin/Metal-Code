@@ -48,7 +48,10 @@ namespace Metal_Code
         public float TotalProduction { get; private set; }
         public float TotalWorks => TotalLaser + TotalBending + TotalPipe + TotalProduction;
 
-        // Сводка по менеджерам (анонимные типы через dynamic)
+        // ⭐ НОВОЕ: Итоговая сумма всех расчётов
+        public float TotalAmountSum { get; private set; }
+
+        // Сводка по менеджерам
         private List<dynamic> _managersSummary = new();
         public List<dynamic> ManagersSummary
         {
@@ -70,7 +73,6 @@ namespace Metal_Code
         private readonly DateTime _to;
         private readonly ReportType _reportType;
 
-        // Заголовок колонки даты в зависимости от типа отчёта
         public string DateColumnHeader => _reportType == ReportType.Sales ? "Отгружен" : "Создан";
 
         private string ReportTitle => _reportType switch
@@ -96,7 +98,6 @@ namespace Metal_Code
             _to = to;
             _reportType = reportType;
 
-            // ⭐ Устанавливаем заголовок окна
             Title = $"{ReportTitle} за {from:dd.MM.yyyy} — {to:dd.MM.yyyy}";
 
             DateColumn.Header = DateColumnHeader;
@@ -114,7 +115,6 @@ namespace Metal_Code
                 execute: obj => RemoveItemFromReport(obj as OfferReportPreviewItem),
                 canExecute: obj => obj is OfferReportPreviewItem);
 
-            // ⭐ Загружаем данные через сервис
             _ = LoadReportAsync();
         }
 
@@ -194,7 +194,24 @@ namespace Metal_Code
                         {
                             var product = MainWindow.OpenOfferDataSafe(offer.Data, out _);
                             if (product != null)
+                            {
+                                // Сохраняем коэффициенты для отображения
+                                item.RatioValue = (float)product.Ratio;
+                                item.BonusRatioValue = product.BonusRatio;
+
+                                // ⭐ ВЫЧИСЛЯЕМ БОНУС В РУБЛЯХ ПРАВИЛЬНО
+                                // Бонус = (базовые материалы + базовые работы - доставка) × BonusRatio / 100
+                                float baseSum = offer.Material + offer.Services - product.Delivery * product.DeliveryRatio;
+                                float bonusAmount = baseSum * item.BonusRatioValue / 100f;
+                                item.BonusAmount = Math.Max(0, bonusAmount);
+
+                                // Считаем детализированные работы с итоговым коэффициентом
                                 ExtractWorkCosts(item, product);
+
+                                // Применяем итоговый коэффициент к материалам
+                                float ratio = item.RatioValue * (1 + item.BonusRatioValue / 100);
+                                item.MaterialAmount *= ratio;
+                            }
                             else
                                 skippedCount++;
                         }
@@ -203,7 +220,6 @@ namespace Metal_Code
                             skippedCount++;
                         }
                     }
-
                     previewItems.Add(item);
                 }
 
@@ -240,6 +256,7 @@ namespace Metal_Code
             {
                 TotalMaterial = TotalLaser = TotalBending = TotalPipe = TotalProduction = 0;
                 TotalWorksSum = TotalPercent = TotalBonus = 0;
+                TotalAmountSum = 0;
                 ManagersSummary = new List<dynamic>();
             }
             else
@@ -250,6 +267,9 @@ namespace Metal_Code
                 TotalPipe = Items.Sum(i => i.PipeCost);
                 TotalProduction = Items.Sum(i => i.ProductionCost);
 
+                // ⭐ Итоговая сумма всех расчётов
+                TotalAmountSum = Items.Sum(i => i.TotalAmount);
+
                 // ⭐ Сводка по менеджерам
                 float planTarget = 7_000_000f;
                 float planBonus = 100_000f;
@@ -259,6 +279,7 @@ namespace Metal_Code
                     .Select(g =>
                     {
                         float totalWorks = g.Sum(i => i.TotalWorks);
+                        float totalAmount = g.Sum(i => i.TotalAmount); // ⭐ НОВОЕ
                         float percent = totalWorks / planTarget * 100f;
                         float bonus = planBonus * Math.Min(percent, 100f) / 100f;
 
@@ -266,6 +287,7 @@ namespace Metal_Code
                         {
                             ManagerName = g.Key,
                             TotalWorks = totalWorks,
+                            TotalAmount = totalAmount, // ⭐ НОВОЕ
                             Percent = percent,
                             Bonus = bonus
                         };
@@ -286,6 +308,7 @@ namespace Metal_Code
             OnPropertyChanged(nameof(TotalPipe));
             OnPropertyChanged(nameof(TotalProduction));
             OnPropertyChanged(nameof(TotalWorks));
+            OnPropertyChanged(nameof(TotalAmountSum));
             OnPropertyChanged(nameof(TotalWorksSum));
             OnPropertyChanged(nameof(TotalPercent));
             OnPropertyChanged(nameof(TotalBonus));
@@ -293,63 +316,31 @@ namespace Metal_Code
 
         private static void ExtractWorkCosts(OfferReportPreviewItem item, Product product)
         {
-            // ⭐ Сохраняем коэффициенты для отображения в отчёте
-            item.RatioValue = (float)product.Ratio;
-            item.BonusRatioValue = product.BonusRatio;
-
-            // Итоговый коэффициент для расчёта работ
             float ratio = item.RatioValue * (1 + item.BonusRatioValue / 100);
 
             var workKeys = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
-    {
-        { "Лазерная резка", 51 },
-        { "Гибка", 52 },
-        { "Сварка", 53 },
-        { "Окраска", 54 },
-        { "Резьба", 55 },
-        { "Зенковка", 56 },
-        { "Сверловка", 57 },
-        { "Вальцовка", 58 },
-        { "Доп работа П", 59 },
-        { "Доп работа Л", 60 },
-        { "Труборез", 61 },
-        { "Лентопил", 61 },
-        { "Фрезеровка", 64 },
-        { "Заклепки", 65 },
-        { "Аквабластинг", 66 },
-        { "Цинкование", 67 },
-    };
+            {
+                { "Лазерная резка", 51 }, { "Гибка", 52 }, { "Сварка", 53 }, { "Окраска", 54 },
+                { "Резьба", 55 }, { "Зенковка", 56 }, { "Сверловка", 57 }, { "Вальцовка", 58 },
+                { "Доп работа П", 59 }, { "Доп работа Л", 60 }, { "Труборез", 61 }, { "Лентопил", 61 },
+                { "Фрезеровка", 64 }, { "Заклепки", 65 }, { "Аквабластинг", 66 }, { "Цинкование", 67 },
+            };
 
-            // Работы, которые могут дублироваться в td.Works,
-            // но их стоимость уже объединена в part.PropsDict.
             var dedupWorkNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-    {
-        "Резьба",
-        "Зенковка",
-        "Сверловка",
-        "Заклепки",
-        "Гибка",
-        "Окраска",
-        "Доп работа Л",
-        "Доп работа П",
-    };
+            {
+                "Резьба", "Зенковка", "Сверловка", "Заклепки", "Гибка", "Окраска", "Доп работа Л", "Доп работа П",
+            };
 
-            // === Учёт стоимости сварки и окраски из сборок ===
             if (product.Assemblies != null && product.Assemblies.Count > 0)
             {
                 foreach (var assembly in product.Assemblies)
                 {
                     if (assembly == null) continue;
-
-                    if (assembly.WeldPrice > 0)
-                        item.ProductionCost += assembly.WeldPrice;
-
-                    if (assembly.PaintPrice > 0)
-                        item.ProductionCost += assembly.PaintPrice;
+                    if (assembly.WeldPrice > 0) item.ProductionCost += assembly.WeldPrice;
+                    if (assembly.PaintPrice > 0) item.ProductionCost += assembly.PaintPrice;
                 }
             }
 
-            // === Обработка работ по деталям ===
             foreach (var detail in product.Details)
             {
                 foreach (var td in detail.TypeDetails)
@@ -372,11 +363,9 @@ namespace Metal_Code
                         if (string.IsNullOrWhiteSpace(workName) || !workKeys.TryGetValue(workName, out int key))
                             continue;
 
-                        // Пропускаем дубликаты работ из dedupWorkNames
                         if (dedupWorkNames.Contains(workName))
                         {
-                            if (processedWorks.Contains(workName))
-                                continue;
+                            if (processedWorks.Contains(workName)) continue;
                             processedWorks.Add(workName);
                         }
 
@@ -392,29 +381,7 @@ namespace Metal_Code
                                 item.PipeCost += cost; break;
                             case var n when n.Equals("Лентопил", StringComparison.OrdinalIgnoreCase):
                                 item.PipeCost += cost; break;
-                            case var n when n.Equals("Сварка", StringComparison.OrdinalIgnoreCase):
-                                item.ProductionCost += cost; break;
-                            case var n when n.Equals("Окраска", StringComparison.OrdinalIgnoreCase):
-                                item.ProductionCost += cost; break;
-                            case var n when n.Equals("Резьба", StringComparison.OrdinalIgnoreCase):
-                                item.ProductionCost += cost; break;
-                            case var n when n.Equals("Зенковка", StringComparison.OrdinalIgnoreCase):
-                                item.ProductionCost += cost; break;
-                            case var n when n.Equals("Сверловка", StringComparison.OrdinalIgnoreCase):
-                                item.ProductionCost += cost; break;
-                            case var n when n.Equals("Вальцовка", StringComparison.OrdinalIgnoreCase):
-                                item.ProductionCost += cost; break;
-                            case var n when n.Equals("Доп работа П", StringComparison.OrdinalIgnoreCase):
-                                item.ProductionCost += cost; break;
-                            case var n when n.Equals("Доп работа Л", StringComparison.OrdinalIgnoreCase):
-                                item.ProductionCost += cost; break;
-                            case var n when n.Equals("Фрезеровка", StringComparison.OrdinalIgnoreCase):
-                                item.ProductionCost += cost; break;
-                            case var n when n.Equals("Заклепки", StringComparison.OrdinalIgnoreCase):
-                                item.ProductionCost += cost; break;
-                            case var n when n.Equals("Аквабластинг", StringComparison.OrdinalIgnoreCase):
-                                item.ProductionCost += cost; break;
-                            case var n when n.Equals("Цинкование", StringComparison.OrdinalIgnoreCase):
+                            default:
                                 item.ProductionCost += cost; break;
                         }
                     }
@@ -449,7 +416,6 @@ namespace Metal_Code
 
         private void ExportToExcelWithDialog()
         {
-            // ⭐ Имя файла зависит от типа отчёта
             string fileName = _reportType == ReportType.Sales
                 ? $"Отчет_продаж_{_from:yyyy-MM-dd}_{_to:yyyy-MM-dd}"
                 : $"Отчет_производство_{DateTime.Now:yyyy-MM-dd}";
@@ -488,19 +454,19 @@ namespace Metal_Code
                 : $"{ReportTitle}: {PeriodText}";
 
             ws.Cells[1, 1].Value = headerText;
-            ws.Cells[1, 1, 1, 16].Merge = true;  // ⭐ было 14, стало 16
+            ws.Cells[1, 1, 1, 17].Merge = true;
             ws.Cells[1, 1].Style.Font.Bold = true;
             ws.Cells[1, 1].Style.Font.Size = 14;
             ws.Cells[1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
-            // ⭐ Заголовки: добавлены "Коэфф." и "Бонус %"
+            // ⭐ Заголовки: добавлена колонка "Бонус ₽"
             var headers = new[]
             {
-        "№", "Компания", "Сумма", "Нал", "Счёт", "Заказ",
-        _reportType == ReportType.Sales ? "Отгружен" : "Создан",
-        "Автор", "Коэфф.", "Бонус %",
-        "Материал", "Лазер", "Гибка", "Труборез", "Производство", "Всего работ"
-    };
+                "№", "Компания", "Сумма", "Нал", "Счёт", "Заказ",
+                _reportType == ReportType.Sales ? "Отгружен" : "Создан",
+                "Автор", "Коэфф.", "Бонус %", "Бонус ₽",
+                "Материал", "Лазер", "Гибка", "Труборез", "Производство", "Всего работ"
+            };
 
             ws.Cells[3, 1].LoadFromArrays(new[] { headers });
             var headerRange = ws.Cells[3, 1, 3, headers.Length];
@@ -516,9 +482,11 @@ namespace Metal_Code
             {
                 var groupList = group.ToList();
                 float groupWorksSum = groupList.Sum(i => i.TotalWorks);
+                float groupAmountSum = groupList.Sum(i => i.TotalAmount); // ⭐ НОВОЕ
 
-                ws.Cells[row, 1].Value = $"👤 {group.Key} ({groupList.Count} расчётов, работы: {groupWorksSum:N2} ₽)";
-                ws.Cells[row, 1, row, 16].Merge = true;
+                // ⭐ Обновлённый заголовок группы
+                ws.Cells[row, 1].Value = $"👤 {group.Key} ({groupList.Count} расчётов) | Работы: {groupWorksSum:N2} ₽ из Всего: {groupAmountSum:N2} ₽";
+                ws.Cells[row, 1, row, 17].Merge = true;
                 ws.Cells[row, 1].Style.Font.Bold = true;
                 ws.Cells[row, 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
                 ws.Cells[row, 1].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(230, 230, 240));
@@ -535,7 +503,6 @@ namespace Metal_Code
                     ws.Cells[row, 7].Value = item.DisplayDate?.ToString("dd.MM.yyyy");
                     ws.Cells[row, 8].Value = item.Author;
 
-                    // ⭐ Новые колонки коэффициентов
                     ws.Cells[row, 9].Value = item.RatioValue;
                     ws.Cells[row, 9].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                     ws.Cells[row, 9].Style.Font.Bold = true;
@@ -545,12 +512,18 @@ namespace Metal_Code
                     ws.Cells[row, 10].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                     ws.Cells[row, 10].Style.Font.Color.SetColor(System.Drawing.Color.DarkOrange);
 
-                    ws.Cells[row, 11].Value = item.MaterialAmount;
-                    ws.Cells[row, 12].Value = item.LaserCost;
-                    ws.Cells[row, 13].Value = item.BendingCost;
-                    ws.Cells[row, 14].Value = item.PipeCost;
-                    ws.Cells[row, 15].Value = item.ProductionCost;
-                    ws.Cells[row, 16].Value = item.TotalWorks;
+                    // ⭐ НОВАЯ колонка 11: Бонус ₽
+                    ws.Cells[row, 11].Value = item.BonusAmount;
+                    ws.Cells[row, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                    ws.Cells[row, 11].Style.Font.Bold = true;
+                    ws.Cells[row, 11].Style.Font.Color.SetColor(System.Drawing.Color.DarkOrange);
+
+                    ws.Cells[row, 12].Value = item.MaterialAmount;
+                    ws.Cells[row, 13].Value = item.LaserCost;
+                    ws.Cells[row, 14].Value = item.BendingCost;
+                    ws.Cells[row, 15].Value = item.PipeCost;
+                    ws.Cells[row, 16].Value = item.ProductionCost;
+                    ws.Cells[row, 17].Value = item.TotalWorks;
                     row++;
                 }
                 row++;
@@ -558,44 +531,55 @@ namespace Metal_Code
 
             // Итоговая строка
             ws.Cells[row, 1].Value = "📈 ИТОГО:";
-            ws.Cells[row, 1, row, 10].Merge = true;  // ⭐ объединяем до колонки "Бонус %"
+            ws.Cells[row, 1, row, 2].Merge = true;  // ⭐ Объединяем только 1-2, чтобы колонка 3 была свободна
             ws.Cells[row, 1].Style.Font.Bold = true;
-            ws.Cells[row, 11].Value = TotalMaterial;
-            ws.Cells[row, 12].Value = TotalLaser;
-            ws.Cells[row, 13].Value = TotalBending;
-            ws.Cells[row, 14].Value = TotalPipe;
-            ws.Cells[row, 15].Value = TotalProduction;
-            ws.Cells[row, 16].Value = TotalWorks;
+            ws.Cells[row, 1].Style.Font.Size = 12;
 
-            var totalsRange = ws.Cells[row, 11, row, 16];
+            // ⭐ Итоговая сумма всех расчётов в колонке "Сумма" (колонка 3)
+            ws.Cells[row, 3].Value = TotalAmountSum;
+            ws.Cells[row, 3].Style.Font.Bold = true;
+            ws.Cells[row, 3].Style.Font.Size = 12;
+            ws.Cells[row, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+
+            ws.Cells[row, 12].Value = TotalMaterial;
+            ws.Cells[row, 13].Value = TotalLaser;
+            ws.Cells[row, 14].Value = TotalBending;
+            ws.Cells[row, 15].Value = TotalPipe;
+            ws.Cells[row, 16].Value = TotalProduction;
+            ws.Cells[row, 17].Value = TotalWorks;
+
+            // ⭐ Золотой фон для колонки 3 (Сумма)
+            var amountTotalRange = ws.Cells[row, 3, row, 3];
+            amountTotalRange.Style.Font.Bold = true;
+            amountTotalRange.Style.Fill.PatternType = ExcelFillStyle.Solid;
+            amountTotalRange.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(255, 215, 0));
+            amountTotalRange.Style.Numberformat.Format = "# ### ##0.00 ₽";
+
+            // ⭐ Золотой фон для колонок 12-17 (Материал...Всего работ)
+            var totalsRange = ws.Cells[row, 12, row, 17];
             totalsRange.Style.Font.Bold = true;
             totalsRange.Style.Fill.PatternType = ExcelFillStyle.Solid;
             totalsRange.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(255, 215, 0));
             totalsRange.Style.Numberformat.Format = "# ### ##0.00 ₽";
 
-            // ⭐ Форматирование денежных колонок (сдвинулись на 2 вправо)
-            var moneyCols = new[] { 3, 11, 12, 13, 14, 15, 16 };
+            var moneyCols = new[] { 3, 11, 12, 13, 14, 15, 16, 17 };
             foreach (var col in moneyCols)
             {
                 ws.Cells[4, col, row, col].Style.Numberformat.Format = "# ### ##0.00 ₽";
             }
 
-            // ⭐ Формат "0.00" для колонки "Коэфф." (колонка 9)
             ws.Cells[4, 9, row, 9].Style.Numberformat.Format = "0.00";
-
-            // ⭐ Формат % для колонки "Бонус %"
             ws.Cells[4, 10, row, 10].Style.Numberformat.Format = "0%";
 
-            ws.Cells[1, 1, row, 16].AutoFitColumns();
+            ws.Cells[1, 1, row, 17].AutoFitColumns();
             ws.View.FreezePanes(4, 1);
 
             // ⭐ СВОДНАЯ ТАБЛИЦА ПО МЕНЕДЖЕРАМ
-            row += 2; // отступ от основной таблицы
+            row += 2;
 
             float planTarget = 7_000_000f;
             float planBonus = 100_000f;
 
-            // Заголовок секции
             ws.Cells[row, 1].Value = "📊 Выполнение плана";
             ws.Cells[row, 1, row, 5].Merge = true;
             ws.Cells[row, 1].Style.Font.Bold = true;
@@ -608,7 +592,6 @@ namespace Metal_Code
             ws.Cells[row, 1].Style.Font.Color.SetColor(System.Drawing.Color.Gray);
             row++;
 
-            // Заголовки колонок сводной таблицы
             var summaryHeaders = new[] { "Менеджер", "Расчётов", "Работы", "План %", "Премия" };
             ws.Cells[row, 1].LoadFromArrays(new[] { summaryHeaders });
             var summaryHeaderRange = ws.Cells[row, 1, row, summaryHeaders.Length];
@@ -618,7 +601,6 @@ namespace Metal_Code
             summaryHeaderRange.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             row++;
 
-            // Группируем по менеджерам
             var managersSummary = Items
                 .GroupBy(i => string.IsNullOrWhiteSpace(i.ManagerName) ? "Без ответственного" : i.ManagerName)
                 .Select(g =>
@@ -638,7 +620,6 @@ namespace Metal_Code
                 .OrderByDescending(m => m.Percent)
                 .ToList();
 
-            // Строки по менеджерам
             int summaryStartRow = row;
             foreach (var m in managersSummary)
             {
@@ -653,7 +634,7 @@ namespace Metal_Code
                 ws.Cells[row, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
                 ws.Cells[row, 3].Style.Font.Color.SetColor(System.Drawing.Color.DarkGreen);
 
-                ws.Cells[row, 4].Value = m.Percent / 100f; // в долях для формата %
+                ws.Cells[row, 4].Value = m.Percent / 100f;
                 ws.Cells[row, 4].Style.Numberformat.Format = "0.0%";
                 ws.Cells[row, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 ws.Cells[row, 4].Style.Font.Bold = true;
@@ -667,7 +648,6 @@ namespace Metal_Code
                 row++;
             }
 
-            // Итоговая строка сводной таблицы
             float totalWorksAll = managersSummary.Sum(m => m.TotalWorks);
             float totalPercentAll = totalWorksAll / planTarget * 100f;
             float totalBonusAll = planBonus * Math.Min(totalPercentAll, 100f) / 100f;
@@ -697,19 +677,16 @@ namespace Metal_Code
             ws.Cells[row, 5].Style.Font.Bold = true;
             ws.Cells[row, 5].Style.Font.Color.SetColor(System.Drawing.Color.DarkGreen);
 
-            // Золотой фон для итоговой строки сводной таблицы
             var summaryTotalRange = ws.Cells[row, 1, row, 5];
             summaryTotalRange.Style.Fill.PatternType = ExcelFillStyle.Solid;
             summaryTotalRange.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(255, 215, 0));
 
-            // Рамки для сводной таблицы
             var summaryDataRange = ws.Cells[summaryStartRow - 1, 1, row, 5];
             summaryDataRange.Style.Border.Top.Style = ExcelBorderStyle.Thin;
             summaryDataRange.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
             summaryDataRange.Style.Border.Left.Style = ExcelBorderStyle.Thin;
             summaryDataRange.Style.Border.Right.Style = ExcelBorderStyle.Thin;
 
-            // Автоподбор ширины колонок сводной таблицы
             ws.Cells[summaryStartRow - 1, 1, row, 5].AutoFitColumns();
 
             package.SaveAs(new FileInfo(filePath));
@@ -718,7 +695,6 @@ namespace Metal_Code
 
     public class OfferReportPreviewItem
     {
-        // Основные поля
         public string Number { get; set; } = null!;
         public string Company { get; set; } = null!;
         public float TotalAmount { get; set; }
@@ -731,11 +707,10 @@ namespace Metal_Code
         public string Author { get; set; } = null!;
         public string ManagerName { get; set; } = null!;
 
-        // 🔹 Коэффициенты расчёта
         public float RatioValue { get; set; } = 1f;
         public float BonusRatioValue { get; set; } = 100f;
+        public float BonusAmount { get; set; }
 
-        // 🔹 Поля для детализации работ
         public float LaserCost { get; set; }
         public float BendingCost { get; set; }
         public float PipeCost { get; set; }
@@ -748,12 +723,9 @@ namespace Metal_Code
             : (!string.IsNullOrWhiteSpace(Author) ? Author : "Без ответственного");
     }
 
-    /// <summary>
-    /// Тип отчёта для окна предпросмотра.
-    /// </summary>
     public enum ReportType
     {
-        Sales,       // Отчёт по продажам (отгруженные расчёты)
-        Production   // Отчёт по производству (неотгруженные расчёты)
+        Sales,
+        Production
     }
 }

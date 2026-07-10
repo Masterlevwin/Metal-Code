@@ -14,14 +14,13 @@ namespace Metal_Code.Converters
             if (value is not CollectionViewGroup group)
                 return "";
 
-            float totalWorks = 0;
-            foreach (var item in group.Items)
-            {
-                if (item is OfferReportPreviewItem oi)
-                    totalWorks += oi.TotalWorks;
-            }
+            var items = group.Items?.Cast<OfferReportPreviewItem>().ToList();
+            if (items == null || items.Count == 0) return "";
 
-            return $"Работы: {totalWorks:N0} ₽";
+            float totalWorks = items.Sum(i => i.TotalWorks);
+            float totalAmount = items.Sum(i => i.TotalAmount);
+
+            return $"Работы: {totalWorks:N0} ₽  из  Всего: {totalAmount:N0} ₽";
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

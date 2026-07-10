@@ -33,8 +33,8 @@ namespace Metal_Code
         private NestingSheet _currentSheet = null!;
 
         // Состояние перетаскивания
-        private Path _draggedPath;
-        private PartPlacement _draggedPlacement;
+        private Path? _draggedPath;
+        private PartPlacement? _draggedPlacement;
         private Point _startMouseLogicalPos;
         private double _startPartX, _startPartY;
 
@@ -74,6 +74,11 @@ namespace Metal_Code
             _invertedLayer.PreviewMouseMove += InvertedLayer_PreviewMouseMove;
             _invertedLayer.PreviewMouseLeftButtonUp += InvertedLayer_PreviewMouseLeftButtonUp;
             _invertedLayer.PreviewKeyDown += InvertedLayer_PreviewKeyDown;
+
+            // Подписки для группового выделения
+            _invertedLayer.PreviewMouseLeftButtonDown += InvertedLayer_GroupSelectMouseDown;
+            _invertedLayer.PreviewMouseLeftButtonUp += InvertedLayer_GroupSelectMouseUp;
+            _invertedLayer.PreviewKeyDown += InvertedLayer_EscapeHandler;
         }
 
         /// <summary>
@@ -81,6 +86,10 @@ namespace Metal_Code
         /// </summary>
         public void ShowSheet(NestingSheet sheet)
         {
+            // При полной перерисовке снимаем выделение, чтобы не было "висящих" ссылок
+            _selectedPlacements.Clear();
+            _originalStrokes.Clear();
+
             if (sheet == null || sheet.Parts == null)
             {
                 _partsCanvas?.Children.Clear();
@@ -395,40 +404,33 @@ namespace Metal_Code
                 Fill = part.PartType == PartType.Round
                     ? new SolidColorBrush(Color.FromArgb(150, 255, 150, 150))
                     : new SolidColorBrush(Color.FromArgb(150, 150, 200, 255)),
-                Stroke = part.PartType == PartType.Round
-                    ? Brushes.DarkRed
-                    : Brushes.DarkBlue,
+                Stroke = part.PartType == PartType.Round ? Brushes.DarkRed : Brushes.DarkBlue,
                 StrokeThickness = 1.5,
                 IsHitTestVisible = true,
-                Tag = placement // <-- Маппинг визуала с данными
+                Tag = placement
             };
 
             var (partWidth, partHeight) = NestingHelper.GetPartDimensions(part, placement.Rotation);
             path.ToolTip = $"{part.Title}\n{partWidth:0}×{partHeight:0}мм{(placement.Rotation != 0 ? " (↻)" : "")}";
 
-            // Применяем координаты и поворот через универсальный метод
             ApplyPlacementToPath(path, placement);
 
-            // Подписываемся на начало перетаскивания
             path.PreviewMouseLeftButtonDown += Path_PreviewMouseLeftButtonDown;
             path.PreviewMouseRightButtonUp += (s, e) => OnPartRightClick(part, e);
 
             _partsCanvas.Children.Add(path);
         }
+        #endregion
 
-        /// <summary>
-        /// Применяет координаты (X, Y) и поворот (Rotation) к визуальному объекту Path.
-        /// </summary>
+
+        //-------------Интеркативность раскладки-------------//
+        #region
         private void ApplyPlacementToPath(Path path, PartPlacement placement)
         {
-            var part = placement.Part;
-            double rotation = placement.Rotation;
-
             var geometry = path.Data as Geometry;
             if (geometry == null) return;
 
             var bounds = geometry.Bounds;
-
             double offsetX = -bounds.Left;
             double offsetY = -bounds.Top;
             double centerX = bounds.Width / 2;
@@ -437,10 +439,9 @@ namespace Metal_Code
             var transformGroup = new TransformGroup();
             transformGroup.Children.Add(new TranslateTransform(offsetX, offsetY));
 
-            if (Math.Abs(rotation) > 0.1)
+            if (Math.Abs(placement.Rotation) > 0.1)
             {
-                // Знак "-" компенсирует инверсию Y у родительского _invertedLayer
-                transformGroup.Children.Add(new RotateTransform(-rotation, centerX, centerY));
+                transformGroup.Children.Add(new RotateTransform(-placement.Rotation, centerX, centerY));
             }
 
             path.RenderTransform = transformGroup;
@@ -448,8 +449,7 @@ namespace Metal_Code
             double adjustedX = placement.X;
             double adjustedY = placement.Y;
 
-            // Компенсация смещения центра при повороте на 90/270 градусов
-            if (Math.Abs(rotation - 90) < 0.1 || Math.Abs(rotation - 270) < 0.1)
+            if (Math.Abs(placement.Rotation - 90) < 0.1 || Math.Abs(placement.Rotation - 270) < 0.1)
             {
                 adjustedX = placement.X + (bounds.Height - bounds.Width) / 2;
                 adjustedY = placement.Y + (bounds.Width - bounds.Height) / 2;
@@ -459,60 +459,52 @@ namespace Metal_Code
             Canvas.SetTop(path, adjustedY);
         }
 
-        /// <summary>
-        /// Проверяет, можно ли разместить деталь в указанных координатах без пересечений и выхода за границы.
-        /// </summary>
-        private bool IsValidPlacement(NestingSheet sheet, PartPlacement movingPart, double x, double y, double rotation)
-        {
-            var (w, h) = NestingHelper.GetPartDimensions(movingPart.Part, rotation);
-
-            // 1. Проверка выхода за границы листа
-            if (x < NestingHelper.Spacing || y < NestingHelper.Spacing) return false;
-            if (x + w > sheet.Width - NestingHelper.Spacing) return false;
-            if (y + h > sheet.Height - NestingHelper.Spacing) return false;
-
-            // 2. Проверка пересечений с ДРУГИМИ деталями
-            foreach (var existing in sheet.Parts)
-            {
-                if (ReferenceEquals(existing, movingPart)) continue; // Игнорируем саму перемещаемую деталь
-
-                var (ew, eh) = NestingHelper.GetPartDimensions(existing.Part, existing.Rotation);
-
-                // Логика AABB (Axis-Aligned Bounding Box)
-                if (x + w + NestingHelper.Spacing <= existing.X) continue;
-                if (existing.X + ew + NestingHelper.Spacing <= x) continue;
-                if (y + h + NestingHelper.Spacing <= existing.Y) continue;
-                if (existing.Y + eh + NestingHelper.Spacing <= y) continue;
-
-                return false; // Найдено пересечение
-            }
-
-            return true;
-        }
-
         private void Path_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is not Path path || path.Tag is not PartPlacement placement) return;
 
+            // 🔥 Если деталь выделена — начинаем групповое перемещение
+            if (_selectedPlacements.Contains(placement))
+            {
+                _isDraggingGroup = true;
+                _groupDragStartPoint = e.GetPosition(_invertedLayer);
+
+                // Сохраняем исходные позиции всех выделенных деталей
+                _groupOriginalPositions.Clear();
+                foreach (var selected in _selectedPlacements)
+                {
+                    _groupOriginalPositions[selected] = (selected.X, selected.Y);
+                }
+
+                // Визуальное выделение
+                path.Stroke = Brushes.Orange;
+                path.StrokeThickness = 3;
+
+                _invertedLayer.Focusable = true;
+                _invertedLayer.Focus();
+                _invertedLayer.CaptureMouse();
+
+                e.Handled = true;
+                return;
+            }
+
+            // Одиночное перемещение (существующая логика)
             _draggedPath = path;
             _draggedPlacement = placement;
 
-            // Получаем позицию мыши относительно инвертированного слоя.
-            // WPF сам учтет RenderTransform (ScaleY = -1), и Y будет расти вверх.
             _startMouseLogicalPos = e.GetPosition(_invertedLayer);
-
             _startPartX = placement.X;
             _startPartY = placement.Y;
 
-            // Визуальное выделение
             path.Stroke = Brushes.Orange;
             path.StrokeThickness = 3;
 
-            // Поднимаем деталь наверх (Z-Order), чтобы она перекрывала остальные
             _partsCanvas.Children.Remove(path);
             _partsCanvas.Children.Add(path);
 
-            // Захватываем мышь и фокус для обработки клавиатуры
+            bool isValid = NestingHelper.IsValidPlacement(_currentSheet, placement, placement.X, placement.Y, placement.Rotation);
+            DrawValidationZones(placement.X, placement.Y, placement.Rotation, isValid);
+
             _invertedLayer.Focusable = true;
             _invertedLayer.Focus();
             _invertedLayer.CaptureMouse();
@@ -522,64 +514,210 @@ namespace Metal_Code
 
         private void InvertedLayer_PreviewMouseMove(object sender, MouseEventArgs e)
         {
+            Point currentPos = e.GetPosition(_invertedLayer);
+
+            // 🔥 Групповое выделение (rubber band)
+            if (_isSelecting && _selectionRect != null)
+            {
+                double x = Math.Min(_selectionStartPoint.X, currentPos.X);
+                double y = Math.Min(_selectionStartPoint.Y, currentPos.Y);
+                double width = Math.Abs(currentPos.X - _selectionStartPoint.X);
+                double height = Math.Abs(currentPos.Y - _selectionStartPoint.Y);
+
+                Canvas.SetLeft(_selectionRect, x);
+                Canvas.SetTop(_selectionRect, y);
+                _selectionRect.Width = width;
+                _selectionRect.Height = height;
+                return;
+            }
+
+            // 🔥 Групповое перемещение
+            if (_isDraggingGroup && _groupOriginalPositions.Any())
+            {
+                double deltaX = currentPos.X - _groupDragStartPoint.X;
+                double deltaY = currentPos.Y - _groupDragStartPoint.Y;
+
+                var newPositions = new Dictionary<PartPlacement, (double X, double Y)>();
+                foreach (var kvp in _groupOriginalPositions)
+                {
+                    var placement = kvp.Key;
+                    var (origX, origY) = kvp.Value;
+                    newPositions[placement] = (Math.Round(origX + deltaX), Math.Round(origY + deltaY));
+                }
+
+                bool isValid = IsGroupPlacementValid(newPositions);
+
+                foreach (var kvp in newPositions)
+                {
+                    var placement = kvp.Key;
+                    var (newX, newY) = kvp.Value;
+
+                    var path = _partsCanvas.Children.OfType<Path>().FirstOrDefault(p => p.Tag == placement);
+                    if (path != null)
+                    {
+                        path.Stroke = isValid ? Brushes.LimeGreen : Brushes.Red;
+                        ApplyPlacementToPath(path, new PartPlacement
+                        {
+                            Part = placement.Part,
+                            X = newX,
+                            Y = newY,
+                            Rotation = placement.Rotation
+                        });
+                    }
+                }
+                return;
+            }
+
+            // Одиночное перемещение
             if (_draggedPath == null || _draggedPlacement == null) return;
 
-            Point currentMousePos = e.GetPosition(_invertedLayer);
-            double deltaX = currentMousePos.X - _startMouseLogicalPos.X;
-            double deltaY = currentMousePos.Y - _startMouseLogicalPos.Y;
+            double deltaXSingle = currentPos.X - _startMouseLogicalPos.X;
+            double deltaYSingle = currentPos.Y - _startMouseLogicalPos.Y;
+            double newXS = Math.Round(_startPartX + deltaXSingle);
+            double newYS = Math.Round(_startPartY + deltaYSingle);
 
-            double newX = _startPartX + deltaX;
-            double newY = _startPartY + deltaY;
+            bool isValidSingle = NestingHelper.IsValidPlacement(_currentSheet, _draggedPlacement, newXS, newYS, _draggedPlacement.Rotation);
 
-            bool isValid = IsValidPlacement(_currentSheet, _draggedPlacement, newX, newY, _draggedPlacement.Rotation);
+            _draggedPath.Stroke = isValidSingle ? Brushes.LimeGreen : Brushes.Red;
+            DrawValidationZones(newXS, newYS, _draggedPlacement.Rotation, isValidSingle);
 
-            // Визуальная обратная связь: Зеленый - можно ставить, Красный - коллизия
-            _draggedPath.Stroke = isValid ? Brushes.LimeGreen : Brushes.Red;
-
-            // Временно обновляем визуал (но еще не пишем в _draggedPlacement)
-            var tempPlacement = new PartPlacement
+            ApplyPlacementToPath(_draggedPath, new PartPlacement
             {
                 Part = _draggedPlacement.Part,
-                X = newX,
-                Y = newY,
+                X = newXS,
+                Y = newYS,
                 Rotation = _draggedPlacement.Rotation
-            };
-            ApplyPlacementToPath(_draggedPath, tempPlacement);
+            });
         }
 
         private void InvertedLayer_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            Point endPos = e.GetPosition(_invertedLayer);
+
+            // 🔥 Завершение группового перемещения
+            if (_isDraggingGroup)
+            {
+                _isDraggingGroup = false;
+                _invertedLayer.ReleaseMouseCapture();
+
+                double deltaX = endPos.X - _groupDragStartPoint.X;
+                double deltaY = endPos.Y - _groupDragStartPoint.Y;
+
+                var finalPositions = new Dictionary<PartPlacement, (double X, double Y)>();
+                foreach (var kvp in _groupOriginalPositions)
+                {
+                    var placement = kvp.Key;
+                    var (origX, origY) = kvp.Value;
+                    finalPositions[placement] = (Math.Round(origX + deltaX), Math.Round(origY + deltaY));
+                }
+
+                if (IsGroupPlacementValid(finalPositions))
+                {
+                    foreach (var kvp in finalPositions)
+                    {
+                        kvp.Key.X = kvp.Value.X;
+                        kvp.Key.Y = kvp.Value.Y;
+                    }
+
+                    NestingHelper.OptimizeSheetSize(_currentSheet);
+                    RebuildLayout(_currentSheet);
+                    ShowSheet(_currentSheet);
+                    RecalculateAfterManualEdit();
+
+                    MainWindow.M.StatusBegin($"Группа из {_selectedPlacements.Count} деталей перемещена",
+                        MainWindow.StatusMessageType.Success);
+                }
+                else
+                {
+                    foreach (var kvp in _groupOriginalPositions)
+                    {
+                        kvp.Key.X = kvp.Value.X;
+                        kvp.Key.Y = kvp.Value.Y;
+                    }
+
+                    RebuildLayout(_currentSheet);
+                    ShowSheet(_currentSheet);
+
+                    MainWindow.M.StatusBegin("Не удалось переместить группу — нет свободного места",
+                        MainWindow.StatusMessageType.Warning);
+                }
+
+                _groupOriginalPositions.Clear();
+                ClearSelection();
+                return;
+            }
+
+            // Одиночное перемещение
             if (_draggedPath == null || _draggedPlacement == null) return;
 
-            Point endMousePos = e.GetPosition(_invertedLayer);
-            double deltaX = endMousePos.X - _startMouseLogicalPos.X;
-            double deltaY = endMousePos.Y - _startMouseLogicalPos.Y;
+            double newXS = Math.Round(_startPartX + (endPos.X - _startMouseLogicalPos.X));
+            double newYS = Math.Round(_startPartY + (endPos.Y - _startMouseLogicalPos.Y));
 
-            double newX = _startPartX + deltaX;
-            double newY = _startPartY + deltaY;
+            var currentPath = _draggedPath;
+            var currentPlacement = _draggedPlacement;
 
-            if (IsValidPlacement(_currentSheet, _draggedPlacement, newX, newY, _draggedPlacement.Rotation))
+            bool isValid = NestingHelper.IsValidPlacement(_currentSheet, _draggedPlacement, newXS, newYS, _draggedPlacement.Rotation);
+
+            if (isValid)
             {
-                // Применяем изменения к данным
-                _draggedPlacement.X = newX;
-                _draggedPlacement.Y = newY;
-
-                // Пересчитываем оптимизированные размеры листа (красную линию обрезки)
-                NestingHelper.OptimizeSheetSize(_currentSheet);
-
-                // Обновляем визуал (перерисовка линии обрезки и т.д.)
-                RebuildLayout(_currentSheet);
-                ShowSheet(_currentSheet);
+                _draggedPlacement.X = newXS;
+                _draggedPlacement.Y = newYS;
             }
             else
             {
-                // Возвращаем на место, если бросили в невалидном месте
-                ApplyPlacementToPath(_draggedPath, _draggedPlacement);
+                var result = FindNearestValidPosition(_draggedPlacement, newXS, newYS, searchRadius: 150);
+
+                if (result.Found)
+                {
+                    _draggedPlacement.X = result.X;
+                    _draggedPlacement.Y = result.Y;
+
+                    _draggedPath.Stroke = Brushes.Yellow;
+                    System.Threading.Tasks.Task.Delay(200).ContinueWith(_ =>
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            _draggedPath.Stroke = currentPlacement.Part.PartType == PartType.Round
+                                ? Brushes.DarkRed
+                                : Brushes.DarkBlue;
+                            _draggedPath.StrokeThickness = 1.5;
+                        });
+                    });
+
+                    MainWindow.M.StatusBegin($"Деталь автоматически размещена в позиции ({result.X:0}, {result.Y:0})",
+                        MainWindow.StatusMessageType.Info);
+                }
+                else
+                {
+                    ApplyPlacementToPath(_draggedPath, _draggedPlacement);
+                    MainWindow.M.StatusBegin("Не удалось найти подходящее место для детали",
+                        MainWindow.StatusMessageType.Warning);
+
+                    ClearValidationVisuals();
+                    currentPath.Stroke = currentPlacement.Part.PartType == PartType.Round ? Brushes.DarkRed : Brushes.DarkBlue;
+                    currentPath.StrokeThickness = 1.5;
+
+                    _draggedPath = null;
+                    _draggedPlacement = null;
+                    _invertedLayer.ReleaseMouseCapture();
+                    return;
+                }
             }
 
-            // Сброс состояния и визуала
-            _draggedPath.Stroke = _draggedPlacement.Part.PartType == PartType.Round ? Brushes.DarkRed : Brushes.DarkBlue;
-            _draggedPath.StrokeThickness = 1.5;
+            NestingHelper.OptimizeSheetSize(_currentSheet);
+            RebuildLayout(_currentSheet);
+            ShowSheet(_currentSheet);
+            RecalculateAfterManualEdit();
+
+            if (isValid)
+            {
+                MainWindow.M.StatusBegin("Раскладка обновлена", MainWindow.StatusMessageType.Success);
+            }
+
+            ClearValidationVisuals();
+
+            currentPath.Stroke = currentPlacement.Part.PartType == PartType.Round ? Brushes.DarkRed : Brushes.DarkBlue;
+            currentPath.StrokeThickness = 1.5;
 
             _draggedPath = null;
             _draggedPlacement = null;
@@ -588,41 +726,581 @@ namespace Metal_Code
 
         private void InvertedLayer_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (_draggedPath?.Tag is not PartPlacement placement) return;
-
-            // Поворот клавишами Home (90°) и End (-90°) как в AJANCAM
-            if (e.Key == Key.Home || e.Key == Key.End)
+            // 🔥 Групповой поворот вокруг центра группы
+            if (_selectedPlacements.Any() && (e.Key == Key.Home || e.Key == Key.End))
             {
-                if (placement.Part.PartType == PartType.Round) return; // Круги не крутим
+                double rotationDelta = e.Key == Key.Home ? 90 : -90;
+                double rotationRad = rotationDelta * Math.PI / 180.0;
 
-                double newRotation = placement.Rotation;
-                if (e.Key == Key.Home)
+                // 1. Находим центр группы
+                double groupCenterX = 0, groupCenterY = 0;
+                foreach (var selPlc in _selectedPlacements)
                 {
-                    newRotation = (placement.Rotation + 90) % 360;
+                    var (w, h) = NestingHelper.GetPartDimensions(selPlc.Part, selPlc.Rotation);
+                    groupCenterX += selPlc.X + w / 2;
+                    groupCenterY += selPlc.Y + h / 2;
                 }
-                else if (e.Key == Key.End)
+                groupCenterX /= _selectedPlacements.Count;
+                groupCenterY /= _selectedPlacements.Count;
+
+                // 2. Рассчитываем новые позиции и повороты
+                var newStates = new Dictionary<PartPlacement, (double X, double Y, double Rotation)>();
+                foreach (var curPlc in _selectedPlacements)
                 {
-                    newRotation = (placement.Rotation - 90 + 360) % 360;
+                    var (curW, curH) = NestingHelper.GetPartDimensions(curPlc.Part, curPlc.Rotation);
+                    double partCenterX = curPlc.X + curW / 2;
+                    double partCenterY = curPlc.Y + curH / 2;
+
+                    double dx = partCenterX - groupCenterX;
+                    double dy = partCenterY - groupCenterY;
+                    double rotCenterX = groupCenterX + dx * Math.Cos(rotationRad) - dy * Math.Sin(rotationRad);
+                    double rotCenterY = groupCenterY + dx * Math.Sin(rotationRad) + dy * Math.Cos(rotationRad);
+
+                    double targetRot = (curPlc.Rotation + rotationDelta + 360) % 360;
+                    var (rotW, rotH) = NestingHelper.GetPartDimensions(curPlc.Part, targetRot);
+
+                    double targetX = rotCenterX - rotW / 2;
+                    double targetY = rotCenterY - rotH / 2;
+
+                    newStates[curPlc] = (Math.Round(targetX), Math.Round(targetY), targetRot);
                 }
 
-                if (IsValidPlacement(_currentSheet, placement, placement.X, placement.Y, newRotation))
-                {
-                    placement.Rotation = newRotation;
-                    ApplyPlacementToPath(_draggedPath, placement);
+                // 3. Проверяем валидность (игнорируем выделенные детали при проверке коллизий)
+                bool allValid = true;
+                string failReason = "";
+                PartPlacement collisionPartner = null;
 
-                    // Обновляем Tooltip
-                    var (pw, ph) = NestingHelper.GetPartDimensions(placement.Part, newRotation);
-                    _draggedPath.ToolTip = $"{placement.Part.Title}\n{pw:0}×{ph:0}мм (↻)";
+                foreach (var state in newStates)
+                {
+                    var plcToCheck = state.Key;
+                    var (chkX, chkY, chkRot) = state.Value;
+                    var (chkW, chkH) = NestingHelper.GetPartDimensions(plcToCheck.Part, chkRot);
+
+                    if (chkX < NestingHelper.Spacing || chkY < NestingHelper.Spacing ||
+                        chkX + chkW > _currentSheet.Width - NestingHelper.Spacing ||
+                        chkY + chkH > _currentSheet.Height - NestingHelper.Spacing)
+                    {
+                        failReason = "Деталь выходит за границы листа после поворота";
+                        allValid = false;
+                        break;
+                    }
+
+                    foreach (var existing in _currentSheet.Parts)
+                    {
+                        if (_selectedPlacements.Contains(existing)) continue;
+
+                        var (exW, exH) = NestingHelper.GetPartDimensions(existing.Part, existing.Rotation);
+
+                        if (chkX + chkW + NestingHelper.Spacing <= existing.X) continue;
+                        if (existing.X + exW + NestingHelper.Spacing <= chkX) continue;
+                        if (chkY + chkH + NestingHelper.Spacing <= existing.Y) continue;
+                        if (existing.Y + exH + NestingHelper.Spacing <= chkY) continue;
+
+                        failReason = $"Коллизия с '{existing.Part.Title}'";
+                        collisionPartner = existing;
+                        allValid = false;
+                        break;
+                    }
+                    if (!allValid) break;
+                }
+
+                if (allValid)
+                {
+                    foreach (var apply in newStates)
+                    {
+                        var plcApply = apply.Key;
+                        var (appX, appY, appRot) = apply.Value;
+
+                        plcApply.X = appX;
+                        plcApply.Y = appY;
+                        plcApply.Rotation = appRot;
+
+                        var pathApply = _partsCanvas.Children.OfType<Path>().FirstOrDefault(p => p.Tag == plcApply);
+                        if (pathApply != null)
+                        {
+                            ApplyPlacementToPath(pathApply, plcApply);
+                            var (finW, finH) = NestingHelper.GetPartDimensions(plcApply.Part, appRot);
+                            pathApply.ToolTip = $"{plcApply.Part.Title}\n{finW:0}×{finH:0}мм (↻)";
+                        }
+                    }
+
+                    UpdateSelectionVisuals();
+                    NestingHelper.OptimizeSheetSize(_currentSheet);
+                    RebuildLayout(_currentSheet);
+                    ShowSheet(_currentSheet);
+                    RecalculateAfterManualEdit();
+
+                    MainWindow.M.StatusBegin($"Группа из {_selectedPlacements.Count} деталей повёрнута на {rotationDelta}°",
+                        MainWindow.StatusMessageType.Success);
                 }
                 else
                 {
-                    // Звуковой сигнал, если повернуть нельзя (коллизия)
+                    System.Media.SystemSounds.Beep.Play();
+                    MainWindow.M.StatusBegin($"Не удалось повернуть группу: {failReason}",
+                        MainWindow.StatusMessageType.Warning);
+
+                    // 🔥 Визуальная подсказка: подсвечиваем деталь-препятствие красным
+                    if (collisionPartner != null)
+                    {
+                        var obstaclePath = _partsCanvas.Children.OfType<Path>()
+                            .FirstOrDefault(p => p.Tag == collisionPartner);
+                        if (obstaclePath != null)
+                        {
+                            var originalStroke = obstaclePath.Stroke;
+                            obstaclePath.Stroke = Brushes.Red;
+                            obstaclePath.StrokeThickness = 4;
+
+                            System.Threading.Tasks.Task.Delay(1500).ContinueWith(_ =>
+                            {
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    obstaclePath.Stroke = originalStroke;
+                                    obstaclePath.StrokeThickness = 1.5;
+                                });
+                            });
+                        }
+                    }
+                }
+
+                e.Handled = true;
+                return;
+            }
+
+            // Одиночный поворот (существующая логика)
+            if (_draggedPath?.Tag is not PartPlacement singlePlc) return;
+
+            if (e.Key == Key.Home || e.Key == Key.End)
+            {
+                if (singlePlc.Part.PartType == PartType.Round) return;
+
+                double singleRot = singlePlc.Rotation;
+                if (e.Key == Key.Home)
+                    singleRot = (singlePlc.Rotation + 90) % 360;
+                else if (e.Key == Key.End)
+                    singleRot = (singlePlc.Rotation - 90 + 360) % 360;
+
+                bool singleOk = NestingHelper.IsValidPlacement(_currentSheet, singlePlc, singlePlc.X, singlePlc.Y, singleRot);
+
+                if (singleOk)
+                {
+                    singlePlc.Rotation = singleRot;
+                    ApplyPlacementToPath(_draggedPath, singlePlc);
+                    DrawValidationZones(singlePlc.X, singlePlc.Y, singleRot, true);
+
+                    var (sw, sh) = NestingHelper.GetPartDimensions(singlePlc.Part, singleRot);
+                    _draggedPath.ToolTip = $"{singlePlc.Part.Title}\n{sw:0}×{sh:0}мм (↻)";
+                }
+                else
+                {
+                    _draggedPath.Stroke = Brushes.Red;
+                    _draggedPath.StrokeThickness = 4;
+
+                    System.Threading.Tasks.Task.Delay(200).ContinueWith(_ =>
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            _draggedPath.Stroke = Brushes.Orange;
+                            _draggedPath.StrokeThickness = 3;
+                        });
+                    });
+
                     System.Media.SystemSounds.Beep.Play();
                 }
                 e.Handled = true;
             }
         }
 
+        /// <summary>
+        /// Пересчитывает массу и размер листа после ручного перемещения детали.
+        /// </summary>
+        private void RecalculateAfterManualEdit()
+        {
+            foreach (var detail in MainWindow.M.DetailControls)
+                foreach (var typeDetail in detail.TypeDetailControls)
+                    foreach (var work in typeDetail.WorkControls)
+                        if (work.workType is CutControl cut && cut.Items != null)
+                        {
+                            var item = cut.Items.FirstOrDefault(i => i.NestingSheet?.Id == _currentSheet.Id);
+                            if (item == null) continue;
+
+                            double sheetArea = _currentSheet.OptimizedWidth * _currentSheet.OptimizedHeight;
+                            double destiny = double.TryParse(item.destiny, out var d) ? d : 0;
+                            var metal = MainWindow.M.Metals?.FirstOrDefault(m => m.Name == item.metal);
+                            double density = metal?.Density ?? 0;
+
+                            item.mass = (float)(sheetArea * destiny * density / 1_000_000);
+                            item.sheetSize = $"{_currentSheet.OptimizedWidth:0}x{_currentSheet.OptimizedHeight:0}";
+
+                            cut.SumProperties(cut.Items);
+                            cut.work.type.CreateSort();
+                            cut.work.type.MassCalculate();
+
+                            break;
+                        }
+        }
+
+        private readonly List<Shape> _validationVisuals = new();
+
+        /// <summary>
+        /// Рисует зоны запрета вокруг всех деталей и footprint перемещаемой детали.
+        /// </summary>
+        private void DrawValidationZones(double movingX, double movingY, double movingRotation, bool isValid)
+        {
+            ClearValidationVisuals();
+            _partsCanvas.UpdateLayout();
+
+            // 1. Зоны запрета вокруг всех деталей
+            foreach (var placement in _currentSheet.Parts)
+            {
+                if (ReferenceEquals(placement, _draggedPlacement)) continue;
+
+                if (placement.Part == _draggedPlacement?.Part &&
+                    Math.Abs(placement.X - _draggedPlacement.X) < 0.1 &&
+                    Math.Abs(placement.Y - _draggedPlacement.Y) < 0.1 &&
+                    Math.Abs(placement.Rotation - _draggedPlacement.Rotation) < 0.1)
+                    continue;
+
+                var (w, h) = NestingHelper.GetPartDimensions(placement.Part, placement.Rotation);
+
+                var zoneRect = new Rectangle
+                {
+                    Width = w + NestingHelper.Spacing * 2,
+                    Height = h + NestingHelper.Spacing * 2,
+                    Fill = new SolidColorBrush(Color.FromArgb(40, 255, 0, 0)),
+                    Stroke = new SolidColorBrush(Color.FromArgb(80, 255, 0, 0)),
+                    StrokeThickness = 1,
+                    StrokeDashArray = new DoubleCollection { 3, 3 },
+                    IsHitTestVisible = false
+                };
+
+                Canvas.SetLeft(zoneRect, placement.X - NestingHelper.Spacing);
+                Canvas.SetTop(zoneRect, placement.Y - NestingHelper.Spacing);
+
+                _partsCanvas.Children.Add(zoneRect);
+                _validationVisuals.Add(zoneRect);
+            }
+
+            // 2. Границы листа
+            var boundaryRect = new Rectangle
+            {
+                Width = _currentSheet.Width - NestingHelper.Spacing * 2,
+                Height = _currentSheet.Height - NestingHelper.Spacing * 2,
+                Fill = Brushes.Transparent,
+                Stroke = new SolidColorBrush(Color.FromArgb(100, 0, 100, 255)),
+                StrokeThickness = 2,
+                StrokeDashArray = new DoubleCollection { 5, 5 },
+                IsHitTestVisible = false
+            };
+
+            Canvas.SetLeft(boundaryRect, NestingHelper.Spacing);
+            Canvas.SetTop(boundaryRect, NestingHelper.Spacing);
+
+            _partsCanvas.Children.Add(boundaryRect);
+            _validationVisuals.Add(boundaryRect);
+
+            if (_draggedPlacement is null) return;
+
+            // 3. Footprint перемещаемой детали
+            var (movingW, movingH) = NestingHelper.GetPartDimensions(_draggedPlacement.Part, movingRotation);
+
+            var footprintRect = new Rectangle
+            {
+                Width = movingW,
+                Height = movingH,
+                Fill = isValid
+                    ? new SolidColorBrush(Color.FromArgb(60, 0, 255, 0))
+                    : new SolidColorBrush(Color.FromArgb(60, 255, 0, 0)),
+                Stroke = isValid ? Brushes.LimeGreen : Brushes.Red,
+                StrokeThickness = 2,
+                IsHitTestVisible = false
+            };
+
+            Canvas.SetLeft(footprintRect, movingX);
+            Canvas.SetTop(footprintRect, movingY);
+
+            _partsCanvas.Children.Add(footprintRect);
+            _validationVisuals.Add(footprintRect);
+        }
+
+        /// <summary>
+        /// Удаляет все визуальные элементы зон валидности.
+        /// </summary>
+        private void ClearValidationVisuals()
+        {
+            var visualsToRemove = _validationVisuals.ToList();
+
+            foreach (var visual in visualsToRemove)
+            {
+                if (_partsCanvas.Children.Contains(visual))
+                {
+                    _partsCanvas.Children.Remove(visual);
+                }
+            }
+
+            _validationVisuals.Clear();
+        }
+
+        /// <summary>
+        /// Ищет ближайшую валидную позицию для детали в радиусе searchRadius.
+        /// Приоритет: позиции относительно существующих деталей, затем сетка.
+        /// </summary>
+        private (bool Found, double X, double Y) FindNearestValidPosition(
+            PartPlacement placement,
+            double currentX,
+            double currentY,
+            double searchRadius = 100)
+        {
+            var candidates = new List<(double X, double Y, double Distance)>();
+            var (w, h) = NestingHelper.GetPartDimensions(placement.Part, placement.Rotation);
+
+            // 1. Генерируем кандидаты вокруг существующих деталей
+            foreach (var existing in _currentSheet.Parts)
+            {
+                if (ReferenceEquals(existing, placement)) continue;
+
+                var (ew, eh) = NestingHelper.GetPartDimensions(existing.Part, existing.Rotation);
+
+                // Позиции вокруг существующей детали (слева, справа, снизу, сверху)
+                var positions = new[]
+                {
+            (X: existing.X + ew + NestingHelper.Spacing, Y: existing.Y),                    // Справа
+            (X: existing.X - w - NestingHelper.Spacing, Y: existing.Y),                     // Слева
+            (X: existing.X, Y: existing.Y + eh + NestingHelper.Spacing),                    // Сверху
+            (X: existing.X, Y: existing.Y - h - NestingHelper.Spacing),                     // Снизу
+            // Угловые позиции
+            (X: existing.X + ew + NestingHelper.Spacing, Y: existing.Y + eh + NestingHelper.Spacing),
+            (X: existing.X - w - NestingHelper.Spacing, Y: existing.Y + eh + NestingHelper.Spacing),
+            (X: existing.X + ew + NestingHelper.Spacing, Y: existing.Y - h - NestingHelper.Spacing),
+            (X: existing.X - w - NestingHelper.Spacing, Y: existing.Y - h - NestingHelper.Spacing),
+        };
+
+                foreach (var pos in positions)
+                {
+                    // Проверяем, находится ли кандидат в радиусе поиска
+                    double distance = Math.Sqrt(Math.Pow(pos.X - currentX, 2) + Math.Pow(pos.Y - currentY, 2));
+                    if (distance <= searchRadius)
+                    {
+                        // Округляем до целых
+                        double roundedX = Math.Round(pos.X);
+                        double roundedY = Math.Round(pos.Y);
+
+                        // Проверяем валидность
+                        if (NestingHelper.IsValidPlacement(_currentSheet, placement, roundedX, roundedY, placement.Rotation))
+                        {
+                            candidates.Add((roundedX, roundedY, distance));
+                        }
+                    }
+                }
+            }
+
+            // 2. Если не нашли кандидатов вокруг деталей, сканируем сетку вокруг точки отпускания
+            if (!candidates.Any())
+            {
+                int step = 10; // Шаг сетки в мм
+                int radiusSteps = (int)(searchRadius / step);
+
+                for (int dx = -radiusSteps; dx <= radiusSteps; dx++)
+                {
+                    for (int dy = -radiusSteps; dy <= radiusSteps; dy++)
+                    {
+                        double testX = Math.Round(currentX + dx * step);
+                        double testY = Math.Round(currentY + dy * step);
+
+                        if (NestingHelper.IsValidPlacement(_currentSheet, placement, testX, testY, placement.Rotation))
+                        {
+                            double distance = Math.Sqrt(Math.Pow(testX - currentX, 2) + Math.Pow(testY - currentY, 2));
+                            candidates.Add((testX, testY, distance));
+                        }
+                    }
+                }
+            }
+
+            // 3. Возвращаем ближайшую валидную позицию
+            if (candidates.Any())
+            {
+                var best = candidates.OrderBy(c => c.Distance).First();
+                return (true, best.X, best.Y);
+            }
+
+            return (false, 0, 0);
+        }
+
+
+        // --- Групповое выделение ---
+        private readonly List<PartPlacement> _selectedPlacements = new();
+        private Rectangle _selectionRect;          // Rubber band
+        private Point _selectionStartPoint;        // Точка начала выделения
+        private bool _isSelecting;                 // Идёт ли процесс выделения
+        private bool _isDraggingGroup;             // Идёт ли групповое перемещение
+        private Dictionary<Path, Brush> _originalStrokes = new(); // Оригинальные цвета для восстановления
+        private Dictionary<Path, Brush> _originalFills = new(); // Оригинальные заливки для восстановления
+        private Point _groupDragStartPoint;
+        private Dictionary<PartPlacement, (double X, double Y)> _groupOriginalPositions = new();
+
+        /// <summary>
+        /// Начало выделения: клик по пустому месту на листе.
+        /// </summary>
+        private void InvertedLayer_GroupSelectMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource is Path) return;
+
+            ClearSelection();
+
+            _selectionStartPoint = e.GetPosition(_invertedLayer);
+            _isSelecting = true;
+
+            _selectionRect = new Rectangle
+            {
+                Stroke = new SolidColorBrush(Color.FromRgb(0, 120, 215)),
+                StrokeThickness = 2,
+                StrokeDashArray = new DoubleCollection { 6, 3 },
+                Fill = new SolidColorBrush(Color.FromArgb(70, 0, 120, 215)),
+                IsHitTestVisible = false
+            };
+
+            Canvas.SetLeft(_selectionRect, _selectionStartPoint.X);
+            Canvas.SetTop(_selectionRect, _selectionStartPoint.Y);
+
+            // 🔥 Добавляем напрямую в _invertedLayer, чтобы быть поверх всего
+            _invertedLayer.Children.Add(_selectionRect);
+
+            _invertedLayer.CaptureMouse();
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// Завершение выделения: отпускаем мышь и определяем попавшие детали.
+        /// </summary>
+        private void InvertedLayer_GroupSelectMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!_isSelecting) return;
+
+            _isSelecting = false;
+            _invertedLayer.ReleaseMouseCapture();
+
+            // Удаляем rubber band из того же контейнера
+            if (_selectionRect != null)
+            {
+                _invertedLayer.Children.Remove(_selectionRect);  // ← Изменили с _partsCanvas на _invertedLayer
+                _selectionRect = null;
+            }
+
+            // Определяем конечную точку
+            Point endPoint = e.GetPosition(_invertedLayer);
+
+            // Строим прямоугольник выделения (нормализуем, если тянули влево/вверх)
+            double x = Math.Min(_selectionStartPoint.X, endPoint.X);
+            double y = Math.Min(_selectionStartPoint.Y, endPoint.Y);
+            double w = Math.Abs(endPoint.X - _selectionStartPoint.X);
+            double h = Math.Abs(endPoint.Y - _selectionStartPoint.Y);
+
+            // Если выделение слишком маленькое (просто клик) — не выделяем ничего
+            if (w < 5 || h < 5) return;
+
+            var selectionBounds = new Rect(x, y, w, h);
+
+            // Находим все детали, чьи габариты попали в прямоугольник
+            foreach (var placement in _currentSheet.Parts)
+            {
+                var (pw, ph) = NestingHelper.GetPartDimensions(placement.Part, placement.Rotation);
+                var partBounds = new Rect(placement.X, placement.Y, pw, ph);
+
+                if (selectionBounds.IntersectsWith(partBounds) || selectionBounds.Contains(partBounds))
+                {
+                    _selectedPlacements.Add(placement);
+                }
+            }
+
+            UpdateSelectionVisuals();
+
+            if (_selectedPlacements.Count > 0)
+            {
+                MainWindow.M.StatusBegin($"Выделено деталей: {_selectedPlacements.Count}",
+                    MainWindow.StatusMessageType.Info);
+            }
+        }
+
+        /// <summary>
+        /// Обновляет визуальное отображение выделенных деталей (золотая обводка).
+        /// </summary>
+        private void UpdateSelectionVisuals()
+        {
+            // Восстанавливаем оригинальные цвета у всех деталей
+            foreach (var child in _partsCanvas.Children.OfType<Path>())
+            {
+                if (child.Tag is PartPlacement placement)
+                {
+                    if (_originalStrokes.TryGetValue(child, out var originalBrush))
+                    {
+                        child.Stroke = originalBrush;
+                        child.StrokeThickness = 1.5;
+                    }
+
+                    // Восстанавливаем оригинальную заливку
+                    if (_originalFills.TryGetValue(child, out var originalFill))
+                    {
+                        child.Fill = originalFill;
+                    }
+                }
+            }
+            _originalStrokes.Clear();
+            _originalFills.Clear();
+
+            // 🔥 Подсвечиваем выделенные детали: зелёная заливка + синяя обводка
+            foreach (var child in _partsCanvas.Children.OfType<Path>())
+            {
+                if (child.Tag is PartPlacement placement && _selectedPlacements.Contains(placement))
+                {
+                    _originalStrokes[child] = child.Stroke;
+                    _originalFills[child] = child.Fill;
+
+                    child.Stroke = new SolidColorBrush(Color.FromRgb(0, 120, 215)); // Синяя обводка
+                    child.StrokeThickness = 2.5;
+                    child.Fill = new SolidColorBrush(Color.FromArgb(150, 0, 255, 0)); // Зелёная заливка
+                }
+            }
+        }
+
+        /// <summary>
+        /// Снимает выделение со всех деталей.
+        /// </summary>
+        private void ClearSelection()
+        {
+            _selectedPlacements.Clear();
+            UpdateSelectionVisuals();
+        }
+
+        /// <summary>
+        /// Обработчик Escape для снятия выделения.
+        /// </summary>
+        private void InvertedLayer_EscapeHandler(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape && _selectedPlacements.Any())
+            {
+                ClearSelection();
+                MainWindow.M.StatusBegin("Выделение снято", MainWindow.StatusMessageType.Info);
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// Проверяет, можно ли разместить всю группу деталей в новых позициях.
+        /// </summary>
+        private bool IsGroupPlacementValid(Dictionary<PartPlacement, (double X, double Y)> newPositions)
+        {
+            foreach (var kvp in newPositions)
+            {
+                var placement = kvp.Key;
+                var (newX, newY) = kvp.Value;
+
+                if (!NestingHelper.IsValidPlacement(_currentSheet, placement, newX, newY, placement.Rotation))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
         #endregion
 
         //-------------Заполнение листа----------//

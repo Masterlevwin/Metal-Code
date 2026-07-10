@@ -394,6 +394,41 @@ namespace Metal_Code.Utils
         }
 
         /// <summary>
+        /// Проверяет, можно ли разместить деталь в указанных координатах 
+        /// без выхода за границы и пересечений с другими деталями.
+        /// </summary>
+        public static bool IsValidPlacement(NestingSheet sheet, PartPlacement movingPart, double x, double y, double rotation)
+        {
+            var (w, h) = GetPartDimensions(movingPart.Part, rotation);
+
+            // 1. Проверка выхода за границы листа
+            if (x < Spacing || y < Spacing) return false;
+            if (x + w > sheet.Width - Spacing) return false;
+            if (y + h > sheet.Height - Spacing) return false;
+
+            // 2. Проверка пересечений с ДРУГИМИ деталями
+            foreach (var existing in sheet.Parts)
+            {
+                // Исключаем саму перемещаемую деталь
+                if (ReferenceEquals(existing, movingPart)) continue;
+
+                var (ew, eh) = GetPartDimensions(existing.Part, existing.Rotation);
+                double ex = existing.X;
+                double ey = existing.Y;
+
+                // AABB — логика из IsOverlapping
+                if (x + w + Spacing <= ex) continue;
+                if (ex + ew + Spacing <= x) continue;
+                if (y + h + Spacing <= ey) continue;
+                if (ey + eh + Spacing <= y) continue;
+
+                return false; // Пересечение найдено
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Возвращает ширину и высоту детали с учётом поворота.
         /// </summary>
         public static (double Width, double Height) GetPartDimensions(Part part, double rotation)

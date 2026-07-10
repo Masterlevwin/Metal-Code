@@ -6364,12 +6364,13 @@ namespace Metal_Code
             else
             {
                 // ⭐ Секция пуста — определяем имена, ссылающиеся на нулевую заглушку
-                DefineName(worksheet, "totalS1", stubRow, stubRow, 5);
-                DefineName(worksheet, "totalM1", stubRow, stubRow, 6);
-                DefineName(worksheet, "total1", stubRow, stubRow, 7);
-                DefineName(worksheet, "bonus1", stubRow, stubRow, 9);
-                DefineName(worksheet, "services1", stubRow, stubRow, 13);
-                DefineName(worksheet, "material1", stubRow, stubRow, 14);
+                DefineName(worksheet, "totalS2", stubRow, stubRow, 5);
+                DefineName(worksheet, "totalM2", stubRow, stubRow, 6);
+                DefineName(worksheet, "total2", stubRow, stubRow, 7);
+                DefineName(worksheet, "bonus2", stubRow, stubRow, 9);
+                DefineName(worksheet, "services2", stubRow, stubRow, 13);
+                DefineName(worksheet, "material2", stubRow, stubRow, 14);
+                DefineName(worksheet, "notbonus", stubRow, stubRow, 17); // Не забываем про notbonus!
             }
 
             // === Прибыль месяца (с разделением на "Чист" и "Устар") ===

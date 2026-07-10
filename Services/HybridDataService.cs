@@ -761,7 +761,8 @@ namespace Metal_Code.Services
                 if (currentUser != null) managerId = currentUser.Id;
             }
 
-            bool isDraftManager = await IsDraftManagerAsync();
+            // ⭐ Проверяем, является ли ТЕКУЩИЙ менеджер (для которого сохраняем) расчетным
+            bool isDraftManager = await IsDraftManagerAsync(managerId);
 
             // Для расчетного менеджера — используем его локальный Id
             if (isDraftManager)
@@ -864,7 +865,6 @@ namespace Metal_Code.Services
             await offlineCtx.SaveChangesAsync();
 
             // Явно устанавливаем IsPendingSync=False для расчетного менеджера
-            // (обход HasDefaultValue(true) в конфигурации контекста)
             if (isDraftManager)
             {
                 offlineOffer.IsPendingSync = false;
@@ -1483,19 +1483,20 @@ namespace Metal_Code.Services
         }
 
         /// <summary>
-        /// Проверяет, является ли менеджер "расчетным" (предназначен для предварительных расчётов).
-        /// Расчётный менеджер определяется по имени "Расчетный менеджер" и отсутствию MachineName/Contact.
+        /// Проверяет, является ли указанный менеджер "расчетным" (предназначен для предварительных расчётов).
         /// </summary>
-        public async Task<bool> IsDraftManagerAsync()
+        public async Task<bool> IsDraftManagerAsync(int managerId)
         {
             using var localCtx = new ManagerContext(_connections[0]);
-            var draftManager = await localCtx.Managers.AsNoTracking()
-                .FirstOrDefaultAsync(m => m.Name == "Расчетный менеджер");
+            var manager = await localCtx.Managers.AsNoTracking()
+                .FirstOrDefaultAsync(m => m.Id == managerId);
 
-            if (draftManager == null) return false;
+            if (manager == null) return false;
 
-            return string.IsNullOrWhiteSpace(draftManager.MachineName)
-                && string.IsNullOrWhiteSpace(draftManager.Contact);
+            // Проверяем, что это именно "Расчетный менеджер" и у него нет MachineName/Contact
+            return manager.Name == "Расчетный менеджер"
+                && string.IsNullOrWhiteSpace(manager.MachineName)
+                && string.IsNullOrWhiteSpace(manager.Contact);
         }
 
         /// <summary>
@@ -1508,13 +1509,7 @@ namespace Metal_Code.Services
                 .FirstOrDefaultAsync(o => o.Id == offerId);
             if (offer == null) return false;
 
-            var manager = await localCtx.Managers.AsNoTracking()
-                .FirstOrDefaultAsync(m => m.Id == offer.ManagerId);
-            if (manager == null) return false;
-
-            return manager.Name == "Расчетный менеджер"
-                && string.IsNullOrWhiteSpace(manager.MachineName)
-                && string.IsNullOrWhiteSpace(manager.Contact);
+            return await IsDraftManagerAsync(offer.ManagerId);
         }
 
         //----------------Заказчики----------------//
