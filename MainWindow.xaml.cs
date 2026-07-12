@@ -3138,6 +3138,27 @@ namespace Metal_Code
                                 cut.Parts = cut.PartList();
                                 cut.PartsControl = new(cut, cut.Parts);
                                 cut.AddPartsControl();
+
+                                if (cut.PartDetails?.Count > 0 && cut.Items?.Count > 0)
+                                {
+                                    var partByTitle = cut.PartDetails
+                                        .Where(p => !string.IsNullOrEmpty(p.Title))
+                                        .GroupBy(p => p.Title!)
+                                        .ToDictionary(g => g.Key, g => g.First());
+
+                                    foreach (var laserItem in cut.Items)
+                                    {
+                                        if (laserItem.NestingSheet?.Parts == null) continue;
+                                        foreach (var placement in laserItem.NestingSheet.Parts)
+                                        {
+                                            if (placement.Part?.Title != null &&
+                                                partByTitle.TryGetValue(placement.Part.Title, out var canonicalPart))
+                                            {
+                                                placement.Part = canonicalPart;
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             else if (_cut is PipeControl pipe)
                             {

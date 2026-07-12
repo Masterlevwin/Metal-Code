@@ -799,6 +799,14 @@ namespace Metal_Code
                 return;
             }
 
+            // 🔥 Удаление деталей
+            if (e.Key == Key.Delete)
+            {
+                DeleteSelectedParts();
+                e.Handled = true;
+                return;
+            }
+
             if (e.Key != Key.Home && e.Key != Key.End) return;
 
             var targets = _isDragging && _activePlacements.Any()
@@ -809,6 +817,86 @@ namespace Metal_Code
 
             RotateTargets(targets, e.Key == Key.Home ? 90 : -90, skipValidation: _isDragging);
             e.Handled = true;
+        }
+
+        /// <summary>
+        /// Удаляет выделенные детали с листа.
+        /// Ограничение: минимум одна деталь каждой позиции (Part) должна остаться на листе.
+        /// </summary>
+        private void DeleteSelectedParts()
+        {
+            var candidates = _selectedPlacements.Any()
+                ? _selectedPlacements.ToList()
+                : _activePlacements.ToList();
+
+            if (!candidates.Any())
+            {
+                MainWindow.M.StatusBegin("Нет деталей для удаления", MainWindow.StatusMessageType.Warning);
+                return;
+            }
+
+            var toDelete = new List<PartPlacement>();
+            var skipped = new List<PartPlacement>();
+
+            var groupedByPart = candidates.GroupBy(c => c.Part);
+
+            foreach (var group in groupedByPart)
+            {
+                var part = group.Key;
+                int onSheetCount = _currentSheet.Parts.Count(p => p.Part == part);
+                int requestedToDelete = group.Count();
+
+                int allowedToDelete = Math.Max(0, onSheetCount - 1);
+
+                if (requestedToDelete <= allowedToDelete)
+                {
+                    toDelete.AddRange(group);
+                }
+                else if (allowedToDelete > 0)
+                {
+                    toDelete.AddRange(group.Take(allowedToDelete));
+                    skipped.AddRange(group.Skip(allowedToDelete));
+                }
+                else
+                {
+                    skipped.AddRange(group);
+                }
+            }
+
+            if (!toDelete.Any())
+            {
+                MainWindow.M.StatusBegin("Нельзя удалить: на листе должна остаться хотя бы одна деталь каждой позиции",
+                    MainWindow.StatusMessageType.Warning);
+                return;
+            }
+
+            foreach (var placement in toDelete)
+            {
+                _currentSheet.Parts.Remove(placement);
+                placement.Part.Count--;
+                placement.Part.NotifyTotalChanged();
+            }
+
+            string message;
+            if (skipped.Any())
+            {
+                var skippedParts = skipped.Select(s => s.Part.Title).Distinct();
+                message = $"Удалено: {toDelete.Count}. Пропущено (последние на листе): {string.Join(", ", skippedParts)}";
+                MainWindow.M.StatusBegin(message, MainWindow.StatusMessageType.Warning);
+            }
+            else
+            {
+                message = $"Удалено деталей: {toDelete.Count}";
+                MainWindow.M.StatusBegin(message, MainWindow.StatusMessageType.Success);
+            }
+
+            ClearSelection();
+            _activePlacements.Clear();
+
+            NestingHelper.OptimizeSheetSize(_currentSheet);
+            RebuildLayout(_currentSheet);
+            ShowSheet(_currentSheet);
+            RecalculateSheetParameters();
         }
 
         /// <summary>
