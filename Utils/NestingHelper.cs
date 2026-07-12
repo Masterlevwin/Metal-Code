@@ -434,12 +434,13 @@ namespace Metal_Code.Utils
         public static (double Width, double Height) GetPartDimensions(Part part, double rotation)
         {
             if (part.PartType == PartType.Round)
-                return (part.Width, part.Width); // Круг симметричен
+                return (part.Width, part.Width);
 
-            if (Math.Abs(rotation - 90) < 0.1)
-                return (part.Height, part.Width); // Поворот на 90 меняет местами W и H
+            // 🔥 Проверяем и 90°, и 270°
+            if (Math.Abs(rotation - 90) < 0.1 || Math.Abs(rotation - 270) < 0.1)
+                return (part.Height, part.Width);
             else
-                return (part.Width, part.Height); // Исходная ориентация
+                return (part.Width, part.Height);
         }
 
 
