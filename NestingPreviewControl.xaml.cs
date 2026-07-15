@@ -1,6 +1,7 @@
 ﻿using Metal_Code.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -140,9 +141,6 @@ namespace Metal_Code
             }
         }
 
-        /// <summary>
-        /// Полный сброс состояния интерактивности.
-        /// </summary>
         private void ResetInteractionState()
         {
             _selectedPlacements.Clear();
@@ -392,6 +390,100 @@ namespace Metal_Code
             path.PreviewMouseRightButtonUp += (s, e) => OnPartRightClick(part, e);
 
             _partsCanvas.Children.Add(path);
+        }
+
+        public void AddContinuousCopyToggle()
+        {
+            var toggle = new ToggleButton
+            {
+                Width = 30,
+                Height = 30,
+                ToolTip = "Режим непрерывного копирования (массив)",
+                Cursor = Cursors.Hand,
+                Background = new SolidColorBrush(Color.FromRgb(250, 250, 250)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
+                BorderThickness = new Thickness(1),
+                Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    Color = Colors.Black,
+                    Direction = 315,
+                    ShadowDepth = 2,
+                    Opacity = 0.25,
+                    BlurRadius = 4
+                }
+            };
+
+            var icon = new Path
+            {
+                Data = Geometry.Parse("M3,11H11V3H3V11M3,21H11V13H3V21M13,3V11H21V3H13M13,21H21V13H13V21Z"),
+                Fill = Brushes.Gray,
+                Width = 16,
+                Height = 16,
+                Stretch = Stretch.Uniform
+            };
+            toggle.Content = icon;
+
+            toggle.MouseEnter += (s, e) =>
+            {
+                if (!toggle.IsChecked.GetValueOrDefault())
+                {
+                    toggle.Background = new SolidColorBrush(Color.FromRgb(235, 235, 235));
+                    toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(74, 144, 226));
+                }
+            };
+            toggle.MouseLeave += (s, e) =>
+            {
+                if (!toggle.IsChecked.GetValueOrDefault())
+                {
+                    toggle.Background = new SolidColorBrush(Color.FromRgb(250, 250, 250));
+                    toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200));
+                }
+            };
+
+            toggle.Checked += (s, e) =>
+            {
+                IsContinuousCopyMode = true;
+                toggle.Background = new SolidColorBrush(Color.FromRgb(76, 175, 80));
+                toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(56, 142, 60));
+                icon.Fill = Brushes.White;
+                toggle.ToolTip = "Режим массива включен";
+            };
+
+            toggle.Unchecked += (s, e) =>
+            {
+                IsContinuousCopyMode = false;
+                toggle.Background = new SolidColorBrush(Color.FromRgb(250, 250, 250));
+                toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200));
+                icon.Fill = Brushes.Gray;
+                toggle.ToolTip = "Режим массива выключен";
+            };
+
+            _uiLayer.Children.Add(toggle);
+
+            _rootViewbox.SizeChanged += (s, e) =>
+            {
+                double canvasWidth = _rootViewbox.ActualWidth;
+                if (canvasWidth > 40)
+                {
+                    double left = canvasWidth - 40;
+                    Canvas.SetLeft(toggle, left);
+                    Canvas.SetTop(toggle, 10);
+                }
+            };
+
+            Loaded += (s, e) =>
+            {
+                Dispatcher.InvokeAsync(() =>
+                {
+                    double canvasWidth = _rootViewbox.ActualWidth;
+                    if (canvasWidth > 40)
+                    {
+                        double left = canvasWidth - 40;
+                        Canvas.SetLeft(toggle, left);
+                        Canvas.SetTop(toggle, 10);
+                    }
+                }, System.Windows.Threading.DispatcherPriority.Render);
+            };
         }
         #endregion
 
@@ -1433,81 +1525,6 @@ namespace Metal_Code
 
         //-------------Заполнение листа----------//
         #region
-        public void AddContinuousCopyToggle()
-        {
-            var toggle = new ToggleButton
-            {
-                Width = 44,
-                Height = 44,
-                ToolTip = "Режим непрерывного копирования (массив)\nПеретаскивание создаст шлейф копий",
-                Cursor = Cursors.Hand,
-                Background = new SolidColorBrush(Color.FromRgb(250, 250, 250)),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
-                BorderThickness = new Thickness(1),
-                // Прикрепляем к правому верхнему углу
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, 30, 10, 0)
-            };
-
-            toggle.Effect = new System.Windows.Media.Effects.DropShadowEffect
-            {
-                Color = Colors.Black,
-                Direction = 315,
-                ShadowDepth = 2,
-                Opacity = 0.25,
-                BlurRadius = 4
-            };
-
-            var icon = new Path
-            {
-                Data = Geometry.Parse("M16,1H4C2.9,1 2,1.9 2,3V17H4V3H16V1M19,5H8C6.9,5 6,5.9 6,7V21C6,22.1 6.9,23 8,23H19C20.1,23 21,22.1 21,21V7C21,5.9 20.1,5 19,5M19,21H8V7H19V21Z"),
-                Fill = Brushes.Gray,
-                Width = 24,
-                Height = 24,
-                Stretch = Stretch.Uniform
-            };
-            toggle.Content = icon;
-
-            toggle.MouseEnter += (s, e) =>
-            {
-                if (!toggle.IsChecked.GetValueOrDefault())
-                {
-                    toggle.Background = new SolidColorBrush(Color.FromRgb(235, 235, 235));
-                    toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(74, 144, 226));
-                }
-            };
-            toggle.MouseLeave += (s, e) =>
-            {
-                if (!toggle.IsChecked.GetValueOrDefault())
-                {
-                    toggle.Background = new SolidColorBrush(Color.FromRgb(250, 250, 250));
-                    toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200));
-                }
-            };
-
-            toggle.Checked += (s, e) =>
-            {
-                IsContinuousCopyMode = true;
-                toggle.Background = new SolidColorBrush(Color.FromRgb(255, 152, 0));
-                toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(245, 124, 0));
-                icon.Fill = Brushes.White;
-                MainWindow.M.StatusBegin("Режим массива включен", MainWindow.StatusMessageType.Info);
-            };
-
-            toggle.Unchecked += (s, e) =>
-            {
-                IsContinuousCopyMode = false;
-                toggle.Background = new SolidColorBrush(Color.FromRgb(250, 250, 250));
-                toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200));
-                icon.Fill = Brushes.Gray;
-                MainWindow.M.StatusBegin("Режим массива выключен", MainWindow.StatusMessageType.Info);
-            };
-
-            // 🔥 Добавляем в НЕ масштабируемый слой
-            _uiLayer.Children.Add(toggle);
-        }
-
         private void OnPartRightClick(Part part, MouseButtonEventArgs e)
         {
             e.Handled = true;

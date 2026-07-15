@@ -91,8 +91,6 @@
 
 
         <!-- ================= СТРОКА 1: МАССОВЫЕ ОПЕРАЦИИ ================= -->
-        <!-- Иконка шестеренки в сайдбаре -->
-        <Image Grid.Row="1" Source="Images/works2.png" Width="20" VerticalAlignment="Center" HorizontalAlignment="Center"/>
 
         <!-- Панель массовых операций (в основном контенте) -->
         <Border Grid.Row="1" Grid.Column="1" 
@@ -102,7 +100,10 @@
         CornerRadius="6"
         Margin="5">
             <StackPanel Orientation="Horizontal" Margin="10,4">
-                <ComboBox x:Name="WorksDrop" SelectedIndex="0" Width="180" SelectionChanged="SelectedWork" Margin="0,0,15,0">
+                <!-- Иконка шестеренки в сайдбаре -->
+                <Image Grid.Row="1" Source="Images/works2.png" Width="20" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
+                <ComboBox x:Name="WorksDrop" SelectedIndex="0" Width="180" SelectionChanged="SelectedWork" Margin="15,0">
                     <ComboBox.ItemContainerStyle>
                         <Style TargetType="ComboBoxItem">
                             <Setter Property="Height" Value="28"/>
