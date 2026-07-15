@@ -8297,31 +8297,70 @@ namespace Metal_Code
 
             string? sourceDir = null; // путь к сохраненному расчету на диске (КП)
 
-            // Проверяем путь к КП или пытаемся обновить его по номеру расчета, если пути нет
-            if (File.Exists(offer.Act))
-                sourceDir = Path.GetDirectoryName(Path.GetDirectoryName(offer.Act));
-            else if (offer.Act is not null && !File.Exists(offer.Act))
+            // 1. Проверяем, существует ли файл по сохраненному пути (папка не переименовывалась)
+            if (!string.IsNullOrEmpty(offer.Act) && File.Exists(offer.Act))
             {
-                string? dirOffers = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(offer.Act)));
+                sourceDir = Path.GetDirectoryName(Path.GetDirectoryName(offer.Act));
+            }
 
-                if (dirOffers is not null)
+            // 2. Если файл не найден, пытаемся найти папку, поднимаясь по дереву до существующей директории
+            if (string.IsNullOrEmpty(sourceDir) || !Directory.Exists(sourceDir))
+            {
+                if (!string.IsNullOrEmpty(offer.Act))
                 {
-                    DirectoryInfo dir = new(dirOffers);
+                    // Поднимаемся по дереву каталогов, пока не найдем тот, который реально существует
+                    string? currentPath = Path.GetDirectoryName(offer.Act);
+                    string? validSearchRoot = null;
 
-                    foreach (DirectoryInfo name in dir.GetDirectories())
+                    while (!string.IsNullOrEmpty(currentPath))
                     {
-                        if (name.Name.Length > 5 && offer.Act.Contains(name.Name.Remove(5)))
+                        if (Directory.Exists(currentPath))
                         {
-                            sourceDir = name.FullName;
+                            validSearchRoot = currentPath;
                             break;
+                        }
+                        currentPath = Path.GetDirectoryName(currentPath);
+                    }
+
+                    if (!string.IsNullOrEmpty(validSearchRoot))
+                    {
+                        string calcNumber = (offer.N ?? "").Trim();
+
+                        // Асинхронное получение списка директорий для поиска
+                        var directories = await System.Threading.Tasks.Task.Run(() => Directory.GetDirectories(validSearchRoot));
+
+                        foreach (string dirPath in directories)
+                        {
+                            string dirName = Path.GetFileName(dirPath);
+
+                            // Проверяем наличие номера расчета как отдельного "слова"
+                            bool hasNumber = false;
+                            if (!string.IsNullOrEmpty(calcNumber))
+                            {
+                                // Ищем номер в начале строки, или после пробела/подчеркивания/дефиса
+                                string pattern = $@"(?:^|[\s_\-]){System.Text.RegularExpressions.Regex.Escape(calcNumber)}(?:[\s_\-]|$)";
+                                hasNumber = System.Text.RegularExpressions.Regex.IsMatch(dirName, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                                // Дополнительная страховка: если имя папки просто начинается с номера
+                                if (!hasNumber && dirName.StartsWith(calcNumber, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    hasNumber = true;
+                                }
+                            }
+
+                            if (hasNumber)
+                            {
+                                sourceDir = dirPath;
+                                break; // Останавливаем поиск после первого успешного совпадения
+                            }
                         }
                     }
                 }
             }
 
-            if (string.IsNullOrEmpty(sourceDir))
+            if (string.IsNullOrEmpty(sourceDir) || !Directory.Exists(sourceDir))
                 return $"Не удалось запустить в производство!\n" +
-                       $"Не найден путь к КП. Пересохраните расчет и повторите попытку.";
+                       $"Не найден путь к КП. Проверьте, что папка с расчетом (№ {offer.N}) существует, или пересохраните расчет.";
 
             string notify = $"Расчет {offer.N} запущен в производство с номером заказа ";
 
@@ -8352,7 +8391,6 @@ namespace Metal_Code
                     while ((line = await reader.ReadLineAsync()) != null)
                     {
                         line = line.Trim();
-                        // Игнорируем пустые строки и комментарии (начинающиеся с #)
                         if (!string.IsNullOrEmpty(line) && !line.StartsWith("#"))
                         {
                             lastLine = line;
@@ -8369,20 +8407,18 @@ namespace Metal_Code
 
                 // --- 2. Собираем номера из папок в окне [lastIssued, lastIssued + WINDOW_SIZE] ---
                 int windowEnd = Math.Min(MAX_ORDER, lastIssued + WINDOW_SIZE);
-                HashSet<int> candidateNumbers = new() { lastIssued }; // всегда включаем последний из файла
+                HashSet<int> candidateNumbers = new() { lastIssued };
 
-                string orderPattern = @"^\d{4}(?=\D|$)"; // ровно 4 цифры в начале имени папки
+                string orderPattern = @"^\d{4}(?=\D|$)";
 
-                // ⭐ Асинхронное получение списка директорий
-                var directories = await System.Threading.Tasks.Task.Run(() => Directory.GetDirectories(workingDir));
+                var directoriesWork = await System.Threading.Tasks.Task.Run(() => Directory.GetDirectories(workingDir));
 
-                foreach (string dirPath in directories)
+                foreach (string dirPath in directoriesWork)
                 {
                     string dirName = Path.GetFileName(dirPath);
-                    Match match = Regex.Match(dirName, orderPattern);
+                    var match = System.Text.RegularExpressions.Regex.Match(dirName, orderPattern);
                     if (match.Success && int.TryParse(match.Value, out int orderNum))
                     {
-                        // Учитываем только номера в пределах окна и допустимого диапазона
                         if (orderNum >= lastIssued && orderNum <= windowEnd)
                         {
                             candidateNumbers.Add(orderNum);
@@ -8395,7 +8431,6 @@ namespace Metal_Code
 
                 if (nextOrder > MAX_ORDER)
                 {
-                    // ⭐ Вместо throw возвращаем строку ошибки
                     return $"Не удалось запустить в производство!\n" +
                            $"Достигнут максимальный номер заказа ({MAX_ORDER}). Невозможно назначить новый.";
                 }
@@ -8403,7 +8438,6 @@ namespace Metal_Code
                 // --- 4. Записываем новый номер в конец файла ---
                 stream.Seek(0, SeekOrigin.End);
 
-                // Добавляем перевод строки, если файл не пуст и не заканчивается им
                 if (stream.Length > 0)
                 {
                     stream.Seek(-1, SeekOrigin.End);
@@ -8424,10 +8458,8 @@ namespace Metal_Code
                 await writer.FlushAsync();
             }
 
-            // Присваиваем номер заказа
             offer.Order = nextOrder.ToString();
 
-            // Убеждаемся, что файл остаётся скрытым
             try
             {
                 var attrs = File.GetAttributes(logFilePath);
@@ -8436,12 +8468,8 @@ namespace Metal_Code
                     File.SetAttributes(logFilePath, attrs | FileAttributes.Hidden);
                 }
             }
-            catch
-            {
-                /* Не критично — продолжаем работу */
-            }
+            catch { /* Не критично — продолжаем работу */ }
 
-            // Проверяем наличие трубореза среди работ
             bool hasPipe = false;
             foreach (DetailControl det in DetailControls)
                 foreach (TypeDetailControl type in det.TypeDetailControls)
@@ -8452,7 +8480,6 @@ namespace Metal_Code
                             break;
                         }
 
-            // Создаём папку нового заказа
             string destinationDir = Directory.CreateDirectory(
                 Path.Combine(
                     workingDir,
@@ -8462,10 +8489,8 @@ namespace Metal_Code
 
             if (!string.IsNullOrEmpty(sourceDir))
             {
-                // ⭐ Копирование файлов — потенциально долгая операция, запускаем в фоне
                 await System.Threading.Tasks.Task.Run(() => CopyDirectoryToWork(sourceDir, destinationDir, true, sourceDir));
 
-                // Ищем счет в корневой папке расчета
                 DirectoryInfo dir = new(sourceDir);
                 if (dir.GetFiles().Length == 0)
                 {
@@ -8476,7 +8501,7 @@ namespace Metal_Code
                     foreach (FileInfo file in dir.GetFiles())
                     {
                         string pattern = @"счет[ё]?(?:\s+\S+)*\s+№\s*(\d+)";
-                        Match match = Regex.Match(file.Name, pattern, RegexOptions.IgnoreCase);
+                        var match = System.Text.RegularExpressions.Regex.Match(file.Name, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                         if (match.Success)
                         {
                             offer.Invoice = $"№ {match.Groups[1].Value}";
@@ -8493,20 +8518,16 @@ namespace Metal_Code
                 {
                     string originalName = Path.GetFileName(sourceDir);
 
-                    // Формируем суффикс в зависимости от типа расчёта
                     string invoiceNumber = "без_счёта";
                     if (!string.IsNullOrEmpty(offer.Invoice))
                     {
-                        // Извлекаем только цифры из offer.Invoice (например, "№ 20" → "20")
-                        var match = Regex.Match(offer.Invoice, @"\d+");
+                        var match = System.Text.RegularExpressions.Regex.Match(offer.Invoice, @"\d+");
                         if (match.Success)
                             invoiceNumber = match.Value;
                     }
                     string invoiceSuffix = offer.Agent ? $"нал№{invoiceNumber}" : $"сч№{invoiceNumber}";
-
                     string orderPart = !string.IsNullOrEmpty(offer.Order) ? offer.Order.Trim() : "без_заказа";
 
-                    // Удаляем недопустимые символы из динамических частей (но не из originalName — он уже существует)
                     string SanitizePart(string input)
                     {
                         var invalid = Path.GetInvalidFileNameChars();
@@ -8516,7 +8537,6 @@ namespace Metal_Code
                     invoiceSuffix = SanitizePart(invoiceSuffix);
                     orderPart = SanitizePart(orderPart);
 
-                    // === Условное выравнивание ===
                     const int ALIGN_WIDTH = 30;
                     string baseNamePart = originalName.Length <= ALIGN_WIDTH
                         ? originalName.PadRight(ALIGN_WIDTH)
@@ -8524,7 +8544,6 @@ namespace Metal_Code
 
                     string newKpFolderName = $"{baseNamePart} {invoiceSuffix} {orderPart}".TrimEnd();
 
-                    // Избегаем повторного переименования и конфликтов
                     if (originalName != newKpFolderName)
                     {
                         string parentDir = Path.GetDirectoryName(sourceDir)!;
@@ -8534,11 +8553,23 @@ namespace Metal_Code
                         {
                             Directory.Move(sourceDir, newKpPath);
 
-                            // Обновляем offer.Act, если он существует
+                            // === Безопасное обновление offer.Act ===
                             if (!string.IsNullOrEmpty(offer.Act))
                             {
-                                string relativePath = Path.GetRelativePath(sourceDir, offer.Act);
-                                offer.Act = Path.Combine(newKpPath, relativePath);
+                                string fileName = Path.GetFileName(offer.Act);
+
+                                // Если старый путь невалиден (папку уже переименовали), 
+                                // мы просто собираем новый путь из новой папки и имени файла.
+                                if (!File.Exists(offer.Act))
+                                {
+                                    offer.Act = Path.Combine(newKpPath, fileName);
+                                }
+                                else
+                                {
+                                    // Если файл всё ещё существует по старому пути (на случай, если это была подпапка)
+                                    string relativePath = Path.GetRelativePath(sourceDir, offer.Act);
+                                    offer.Act = Path.Combine(newKpPath, relativePath);
+                                }
                             }
                         }
                     }

@@ -1,12 +1,15 @@
 ﻿using Metal_Code.Models;
 using Metal_Code.Utils;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace Metal_Code
 {
@@ -274,124 +277,194 @@ namespace Metal_Code
             }
         }
 
-        // показать или скрыть раскладки
+        // Показать или скрыть раскладки
         private void ShowNesting_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button btn)
+            bool shouldShow = imagesScroll.Visibility != Visibility.Visible;
+
+            if (shouldShow && owner is ICut cut && cut.Items?.Count > 0)
             {
-                if ($"{btn.Content}" == "Показать раскладки" && owner is ICut cut && cut.Items?.Count > 0)
+                imagesStack.Children.Clear();
+
+                foreach (LaserItem item in cut.Items)
                 {
-                    imagesList.Items.Clear();
-
-                    foreach (LaserItem item in cut.Items)
+                    if (item.NestingSheet is not null)
                     {
-                        // === ЛИСТЫ ===
-                        if (item.NestingSheet is not null)
+                        var preview = new NestingPreviewControl { Height = 320 };
+                        preview.ShowSheet(item.NestingSheet);
+
+                        // 🔥 Добавляем переключатель режима копирования
+                        preview.AddContinuousCopyToggle();
+
+                        var border = new Border
                         {
-                            var preview = new NestingPreviewControl
-                            {
-                                Height = 320,
-                                Margin = new Thickness(15, 0, 5, 0)
-                            };
-                            preview.ShowSheet(item.NestingSheet);
+                            Child = preview,
+                            BorderBrush = item.sheets > 1 ? Brushes.Orange : Brushes.Gray,
+                            BorderThickness = new Thickness(1),
+                            CornerRadius = new CornerRadius(6),
+                            Padding = new Thickness(5)
+                        };
 
-                            // Добавляем подпись с типом листа
-                            var border = new Border
-                            {
-                                Child = preview,
-                                BorderBrush = item.sheets > 1 ? Brushes.Orange : Brushes.Gray,
-                                BorderThickness = new Thickness(1),
-                                CornerRadius = new CornerRadius(3),
-                                Padding = new Thickness(5)
-                            };
+                        var stack = new StackPanel
+                        {
+                            Orientation = Orientation.Vertical,
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            Margin = new Thickness(5)
+                        };
+                        stack.Children.Add(border);
 
-                            // Добавляем информацию о листе
-                            var stack = new StackPanel { Orientation = Orientation.Vertical };
-                            stack.Children.Add(border);
+                        string sheetInfo = $"{item.sheets} шт ({item.sheetSize} мм)";
+                        var infoText = new TextBlock
+                        {
+                            Text = sheetInfo,
+                            FontSize = 10,
+                            FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal,
+                            Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.Gray,
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            Margin = new Thickness(0, 5, 0, 0),
+                            TextAlignment = TextAlignment.Center
+                        };
+                        stack.Children.Add(infoText);
+                        imagesStack.Children.Add(stack);
+                    }
+                    else if (item.PipeStocks != null && item.PipeStocks.Count > 0)
+                    {
+                        var stock = item.PipeStocks[0];
+                        var preview = new PipeStockVisualizationControl { Stock = stock, Width = 820, Height = 70, Margin = new Thickness(0) };
 
-                            // Подпись с количеством листов и их размером
-                            string sheetInfo = $"{item.sheets} шт ({item.sheetSize} мм)";
+                        var border = new Border
+                        {
+                            Child = preview,
+                            BorderBrush = item.sheets > 1 ? Brushes.Orange : Brushes.Gray,
+                            BorderThickness = new Thickness(1),
+                            CornerRadius = new CornerRadius(6),
+                            Padding = new Thickness(5)
+                        };
 
-                            var infoText = new TextBlock
-                            {
-                                Text = sheetInfo,
-                                FontSize = 10,
-                                FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal,
-                                Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.Gray,
-                                HorizontalAlignment = HorizontalAlignment.Center,
-                                Margin = new Thickness(0, 5, 0, 5),
-                                TextAlignment = TextAlignment.Center
-                            };
-                            stack.Children.Add(infoText);
+                        var stack = new StackPanel
+                        {
+                            Orientation = Orientation.Vertical,
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            Margin = new Thickness(5)
+                        };
+                        stack.Children.Add(border);
 
-                            imagesList.Items.Add(stack);
+                        string stockInfo = $"{item.sheets} шт ({stock.OptimizedLength:0} мм)";
+                        var infoText = new TextBlock
+                        {
+                            Text = stockInfo,
+                            FontSize = 10,
+                            FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal,
+                            Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.Gray,
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            Margin = new Thickness(0, 5, 0, 0),
+                            TextAlignment = TextAlignment.Center
+                        };
+                        stack.Children.Add(infoText);
+                        imagesStack.Children.Add(stack); // 🔥 Изменено
+                    }
+                    else if (item.imageBytes is not null)
+                    {
+                        var img = new Image
+                        {
+                            Source = MainWindow.CreateBitmap(item.imageBytes),
+                            Height = 320,
+                            HorizontalAlignment = HorizontalAlignment.Left
+                        };
+
+                        var border = new Border
+                        {
+                            Child = img,
+                            BorderBrush = Brushes.Gray,
+                            BorderThickness = new Thickness(1),
+                            CornerRadius = new CornerRadius(6),
+                            Padding = new Thickness(5)
+                        };
+
+                        var stack = new StackPanel
+                        {
+                            Orientation = Orientation.Vertical,
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            Margin = new Thickness(5)
+                        };
+                        stack.Children.Add(border);
+
+                        string sheetInfo = $"{item.sheets} шт ({item.sheetSize} мм)";
+                        var infoText = new TextBlock
+                        {
+                            Text = sheetInfo,
+                            FontSize = 10,
+                            FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal,
+                            Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.Gray,
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            Margin = new Thickness(0, 5, 0, 0),
+                            TextAlignment = TextAlignment.Center
+                        };
+                        stack.Children.Add(infoText);
+                        imagesStack.Children.Add(stack);
+                    }
+                }
+
+                imagesScroll.Visibility = Visibility.Visible;
+                NestingToggle.IsChecked = true;
+            }
+            else
+            {
+                imagesScroll.Visibility = Visibility.Collapsed;
+                NestingToggle.IsChecked = false;
+            }
+        }
+
+        // Добавить стандартную деталь
+        private void Add_StandartPart_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ToggleButton btn) return;
+
+            // 🔥 Включаем оранжевую подсветку на время работы с окном
+            btn.IsChecked = true;
+
+            try
+            {
+                (Metal? metal, float thickness, string? metalName) = GetMetalAndThickness(owner);
+                if (metal == null || string.IsNullOrEmpty(metalName))
+                    return;
+
+                var templatePart = CreateStandardPart(metalName, thickness, 0);
+                if (templatePart == null) return;
+
+                PartPreviewGenerator.EnsureDisplayGeometry(templatePart);
+
+                var window = new StandartPartWindow(templatePart);
+                if (window.ShowDialog() == true)
+                {
+                    var batchedParts = window.GetBatchedParts();
+
+                    if (batchedParts.Count > 0)
+                    {
+                        foreach (var part in batchedParts)
+                        {
+                            UpdatePartAfterEdit(part, metal, thickness);
                         }
-                        // === ТРУБЫ ===
-                        else if (item.PipeStocks != null && item.PipeStocks.Count > 0)
+
+                        if (owner is CutControl cut)
                         {
-                            var stock = item.PipeStocks[0]; // Берём первый (единственный) хлыст из группы
-
-                            var preview = new PipeStockVisualizationControl
-                            {
-                                Stock = stock,
-                                Width = 820,
-                                Height = 70,
-                                Margin = new Thickness(15, 0, 5, 10)
-                            };
-
-                            // Добавляем подпись с количеством хлыстов
-                            var border = new Border
-                            {
-                                Child = preview,
-                                BorderBrush = item.sheets > 1 ? Brushes.Orange : Brushes.Gray,
-                                BorderThickness = new Thickness(1),
-                                CornerRadius = new CornerRadius(3),
-                                Padding = new Thickness(5)
-                            };
-
-                            var stack = new StackPanel { Orientation = Orientation.Vertical };
-                            stack.Children.Add(border);
-
-                            // Подпись с количеством хлыстов и их длиной
-                            string stockInfo = $"{item.sheets} шт ({stock.OptimizedLength:0} мм)";
-
-                            var infoText = new TextBlock
-                            {
-                                Text = stockInfo,
-                                FontSize = 10,
-                                FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal,
-                                Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.Gray,
-                                HorizontalAlignment = HorizontalAlignment.Center,
-                                Margin = new Thickness(0, 5, 0, 5),
-                                TextAlignment = TextAlignment.Center
-                            };
-                            stack.Children.Add(infoText);
-
-                            imagesList.Items.Add(stack);
+                            AddBatchToCutControl(cut, batchedParts, metal, window.UseAutoNesting);
                         }
-                        // === ИЗОБРАЖЕНИЯ ===
-                        else if (item.imageBytes is not null)
+                        else if (owner is PipeControl pipe)
                         {
-                            Image _img = new()
-                            {
-                                Source = MainWindow.CreateBitmap(item.imageBytes),
-                                Margin = new Thickness(5),
-                                Height = 320
-                            };
-                            imagesList.Items.Add(_img);
+                            AddBatchToPipeControl(pipe, batchedParts, metal);
+                        }
+                        else if (owner is SawControl saw)
+                        {
+                            AddBatchToSawControl(saw, batchedParts, metal);
                         }
                     }
-
-                    imagesScroll.Visibility = Visibility.Visible;
-                    partsScroll.Visibility = Visibility.Collapsed;
-                    btn.Content = "Скрыть раскладки";
                 }
-                else
-                {
-                    partsScroll.Visibility = Visibility.Visible;
-                    imagesScroll.Visibility = Visibility.Collapsed;
-                    btn.Content = "Показать раскладки";
-                }
+            }
+            finally
+            {
+                // 🔥 Гарантированно выключаем подсветку после закрытия окна (даже если произошла ошибка)
+                btn.IsChecked = false;
             }
         }
 
@@ -400,52 +473,6 @@ namespace Metal_Code
         {
             foreach (PartControl p in Parts)
                 foreach (BendControl item in p.UserControls.OfType<BendControl>()) item.SetGroup("-");
-        }
-
-
-        // добавить стандартную деталь
-        private void Add_StandartPart_Click(object sender, RoutedEventArgs e)
-        {
-            (Metal? metal, float thickness, string? metalName) = GetMetalAndThickness(owner);
-            if (metal == null || string.IsNullOrEmpty(metalName))
-                return;
-
-            // Создаём шаблонную деталь для редактирования
-            var templatePart = CreateStandardPart(metalName, thickness, 0);
-            if (templatePart == null) return;
-
-            PartPreviewGenerator.EnsureDisplayGeometry(templatePart);
-
-            // Открываем окно
-            var window = new StandartPartWindow(templatePart);
-            if (window.ShowDialog() == true)
-            {
-                // Получаем ВСЕ детали из буфера
-                var batchedParts = window.GetBatchedParts();
-
-                if (batchedParts.Count > 0)
-                {
-                    // Обновляем геометрию и расчёты для каждой детали
-                    foreach (var part in batchedParts)
-                    {
-                        UpdatePartAfterEdit(part, metal, thickness);
-                    }
-
-                    // === ПАКЕТНАЯ ОБРАБОТКА В ЗАВИСИМОСТИ ОТ ТИПА КОНТРОЛЛЕРА ===
-                    if (owner is CutControl cut)
-                    {
-                        AddBatchToCutControl(cut, batchedParts, metal, window.UseAutoNesting);
-                    }
-                    else if (owner is PipeControl pipe)
-                    {
-                        AddBatchToPipeControl(pipe, batchedParts, metal);
-                    }
-                    else if (owner is SawControl saw)
-                    {
-                        AddBatchToSawControl(saw, batchedParts, metal);
-                    }
-                }
-            }
         }
 
         public static (Metal?, float, string?) GetMetalAndThickness(object controller)

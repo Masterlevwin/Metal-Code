@@ -21,7 +21,7 @@
         <Storyboard x:Key="ExpandParts">
             <DoubleAnimation Storyboard.TargetName="PartsStack"
                              Storyboard.TargetProperty="MaxHeight"
-                             To="400"
+                             To="800"
                              Duration="0:0:0.35">
                 <DoubleAnimation.EasingFunction>
                     <StaticResource ResourceKey="EaseOut"/>
@@ -221,11 +221,12 @@
             </ToggleButton>
 
             <!-- Контейнер для PartsControl -->
-            <StackPanel x:Name="PartsStack"
-                        MaxHeight="0"
-                        Visibility="Collapsed"
-                        Margin="0,0,0,10"
-                        Cursor="" HorizontalAlignment="Left"/>
+            <Grid x:Name="PartsStack"
+                  MaxHeight="0"
+                  Visibility="Collapsed"
+                  Margin="0,0,0,10"
+                  ClipToBounds="True"
+                  HorizontalAlignment="Left"/>
         </StackPanel>
     </GroupBox>
 </UserControl>

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -25,6 +26,7 @@ namespace Metal_Code
         private Canvas _invertedLayer = null!;
         private Canvas _labelsCanvas = null!;
         private Canvas _partsCanvas = null!;
+        private Canvas _uiLayer = null!;
 
         private double _currentSheetWidth;
         private double _currentSheetHeight;
@@ -44,6 +46,19 @@ namespace Metal_Code
         private Point _selectionStartPoint;
         private bool _isSelecting;
 
+        // === Состояние непрерывного копирования ===
+        private bool _isCopyOperation;
+        private bool _isContinuousCopying;
+        private CopyAxis _lockedAxis;
+        private PartPlacement? _baseCopyPart;
+        private double _baseCopyX;
+        private double _baseCopyY;
+        private Point _mouseDownPos;
+        private readonly List<PartPlacement> _pendingContinuousCopies = new();
+        private readonly List<Path> _pendingContinuousPaths = new();
+        public bool IsContinuousCopyMode { get; private set; } = false;
+        private enum CopyAxis { None, X, Y }
+
         // === Визуализация зон валидности ===
         private readonly List<Shape> _validationVisuals = new();
 
@@ -56,6 +71,7 @@ namespace Metal_Code
         #region
         private void InitializeUI()
         {
+            // === СЛОЙ 1: Масштабируемый контент (лист, детали, сетка) ===
             _rootViewbox = new Viewbox
             {
                 Stretch = Stretch.Uniform,
@@ -75,13 +91,26 @@ namespace Metal_Code
             _rootCanvas.Children.Add(_labelsCanvas);
 
             _rootViewbox.Child = _rootCanvas;
-            Content = _rootViewbox;
 
+            // === СЛОЙ 2: НЕ масштабируемый UI (кнопки, переключатели) ===
+            _uiLayer = new Canvas
+            {
+                IsHitTestVisible = true,
+                ClipToBounds = false
+            };
+
+            // Основной контейнер: Grid с двумя слоями
+            var mainGrid = new Grid();
+            mainGrid.Children.Add(_rootViewbox); // Слой 1 (снизу)
+            mainGrid.Children.Add(_uiLayer);     // Слой 2 (сверху)
+
+            Content = mainGrid;
+
+            // === События ===
             _invertedLayer.PreviewMouseLeftButtonDown += InvertedLayer_MouseLeftButtonDown;
             _invertedLayer.PreviewMouseMove += InvertedLayer_PreviewMouseMove;
             _invertedLayer.PreviewMouseLeftButtonUp += InvertedLayer_PreviewMouseLeftButtonUp;
 
-            // Перехват клавиш на уровне UserControl — раньше, чем ScrollViewer
             PreviewKeyDown += NestingPreviewControl_PreviewKeyDown;
         }
 
@@ -400,9 +429,34 @@ namespace Metal_Code
         {
             if (sender is not Path path || path.Tag is not PartPlacement placement) return;
 
-            List<PartPlacement> toDrag;
-            bool isCopying = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
+            // 🔥 ПРИОРИТЕТ: Режим непрерывного копирования (активируется на любой детали)
+            if (IsContinuousCopyMode)
+            {
+                e.Handled = true;
 
+                // Сбрасываем старое выделение и выбираем только эту деталь как базу для копирования
+                ClearSelection();
+                _selectedPlacements.Add(placement);
+                // Если у вас есть метод визуального выделения (например, HighlightPlacement), вызовите его здесь
+
+                _isContinuousCopying = true;
+                _lockedAxis = CopyAxis.None;
+                _baseCopyPart = placement;
+                _baseCopyX = placement.X;
+                _baseCopyY = placement.Y;
+                _mouseDownPos = e.GetPosition(_invertedLayer);
+
+                _pendingContinuousCopies.Clear();
+                _pendingContinuousPaths.Clear();
+
+                _invertedLayer.CaptureMouse();
+                return; // Прерываем выполнение, чтобы не сработала стандартная логика
+            }
+
+            // --- СТАНДАРТНАЯ ЛОГИКА (Перемещение или однократное копирование через SHIFT) ---
+            bool isShiftPressed = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
+
+            List<PartPlacement> toDrag;
             if (_selectedPlacements.Contains(placement))
             {
                 toDrag = _selectedPlacements.ToList();
@@ -413,7 +467,7 @@ namespace Metal_Code
                 toDrag = new List<PartPlacement> { placement };
             }
 
-            if (isCopying)
+            if (isShiftPressed)
             {
                 toDrag = CopyPlacements(toDrag);
                 if (!toDrag.Any()) return;
@@ -468,8 +522,6 @@ namespace Metal_Code
 
             return copies;
         }
-
-        private bool _isCopyOperation;
 
         /// <summary>
         /// Начинает перетаскивание указанных деталей.
@@ -548,6 +600,70 @@ namespace Metal_Code
         {
             Point currentPos = e.GetPosition(_invertedLayer);
 
+            // 🔥 ЛОГИКА НЕПРЕРЫВНОГО КОПИРОВАНИЯ (МАССИВА)
+            if (_isContinuousCopying && _baseCopyPart != null)
+            {
+                double _deltaX = currentPos.X - _mouseDownPos.X;
+                double _deltaY = currentPos.Y - _mouseDownPos.Y;
+
+                // 1. Определяем ось при сдвиге > 10 пикселей
+                if (_lockedAxis == CopyAxis.None)
+                {
+                    if (Math.Abs(_deltaX) > 10 || Math.Abs(_deltaY) > 10)
+                    {
+                        _lockedAxis = Math.Abs(_deltaX) > Math.Abs(_deltaY) ? CopyAxis.X : CopyAxis.Y;
+                    }
+                }
+
+                // 2. Генерируем шлейф
+                if (_lockedAxis != CopyAxis.None)
+                {
+                    var (w, h) = NestingHelper.GetPartDimensions(_baseCopyPart.Part, _baseCopyPart.Rotation);
+
+                    // ВАЖНО: Убедитесь, что NestingHelper.Spacing существует. Если нет, замените на константу, например, 5.0
+                    double step = (_lockedAxis == CopyAxis.X ? w : h) + NestingHelper.Spacing;
+
+                    double delta = _lockedAxis == CopyAxis.X ? _deltaX : _deltaY;
+                    int direction = Math.Sign(delta);
+                    int steps = (int)(Math.Abs(delta) / step);
+
+                    ClearContinuousPreview();
+
+                    for (int i = 1; i <= steps; i++)
+                    {
+                        double candidateX = _baseCopyX + (_lockedAxis == CopyAxis.X ? (i * step * direction) : 0);
+                        double candidateY = _baseCopyY + (_lockedAxis == CopyAxis.Y ? (i * step * direction) : 0);
+
+                        // 🔥 Создаем временный объект для честной проверки коллизий
+                        var tempPlc = new PartPlacement
+                        {
+                            Part = _baseCopyPart.Part,
+                            X = candidateX,
+                            Y = candidateY,
+                            Rotation = _baseCopyPart.Rotation
+                        };
+
+                        // Если ваш метод IsValidPlacement имеет другую сигнатуру, адаптируйте эту строку:
+                        if (NestingHelper.IsValidPlacement(_currentSheet, tempPlc, tempPlc.X, tempPlc.Y, tempPlc.Rotation))
+                        {
+                            _pendingContinuousCopies.Add(tempPlc);
+
+                            var path = CreatePreviewPath(_baseCopyPart.Part, candidateX, candidateY, _baseCopyPart.Rotation);
+                            if (path != null)
+                            {
+                                _partsCanvas.Children.Add(path); // Убедитесь, что имя Canvas верное (_partsCanvas или _rootCanvas)
+                                _pendingContinuousPaths.Add(path);
+                            }
+                        }
+                        else
+                        {
+                            // Столкновение или выход за границы: прерываем шлейф
+                            break;
+                        }
+                    }
+                }
+            }
+
             // Rubber band
             if (_isSelecting && _selectionRect != null)
             {
@@ -604,6 +720,42 @@ namespace Metal_Code
 
         private void InvertedLayer_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            // 🔥 ЗАВЕРШЕНИЕ НЕПРЕРЫВНОГО КОПИРОВАНИЯ
+            if (_isContinuousCopying)
+            {
+                int addedCount = 0;
+                foreach (var copy in _pendingContinuousCopies)
+                {
+                    _currentSheet.Parts.Add(copy);
+                    copy.Part.Count++;
+                    copy.Part.NotifyTotalChanged();
+                    addedCount++;
+                }
+
+                ClearContinuousPreview();
+                _invertedLayer.ReleaseMouseCapture();
+
+                // Сброс флагов
+                _isContinuousCopying = false;
+                _lockedAxis = CopyAxis.None;
+                _baseCopyPart = null;
+
+                if (addedCount > 0)
+                {
+                    NestingHelper.OptimizeSheetSize(_currentSheet);
+                    RebuildLayout(_currentSheet);
+                    ShowSheet(_currentSheet);
+                    RecalculateSheetParameters();
+                    MainWindow.M.StatusBegin($"Добавлено копий: {addedCount}", MainWindow.StatusMessageType.Success);
+                }
+                else
+                {
+                    MainWindow.M.StatusBegin("Копирование отменено: нет свободного места", MainWindow.StatusMessageType.Warning);
+                }
+
+                return; // Прерываем выполнение, чтобы не сработала стандартная логика MouseUp
+            }
+
             Point endPos = e.GetPosition(_invertedLayer);
 
             if (_isSelecting)
@@ -682,6 +834,19 @@ namespace Metal_Code
             }
 
             FinishDrag();
+        }
+
+        private void ClearContinuousPreview()
+        {
+            foreach (var path in _pendingContinuousPaths)
+            {
+                if (_partsCanvas.Children.Contains(path)) // Или _rootCanvas, в зависимости от того, куда вы добавляете path
+                {
+                    _partsCanvas.Children.Remove(path);
+                }
+            }
+            _pendingContinuousPaths.Clear();
+            _pendingContinuousCopies.Clear();
         }
 
         private void FinishSelection(Point endPoint)
@@ -821,7 +986,6 @@ namespace Metal_Code
 
         /// <summary>
         /// Удаляет выделенные детали с листа.
-        /// Ограничение: минимум одна деталь каждой позиции (Part) должна остаться на листе.
         /// </summary>
         private void DeleteSelectedParts()
         {
@@ -835,38 +999,11 @@ namespace Metal_Code
                 return;
             }
 
-            var toDelete = new List<PartPlacement>();
-            var skipped = new List<PartPlacement>();
-
-            var groupedByPart = candidates.GroupBy(c => c.Part);
-
-            foreach (var group in groupedByPart)
-            {
-                var part = group.Key;
-                int onSheetCount = _currentSheet.Parts.Count(p => p.Part == part);
-                int requestedToDelete = group.Count();
-
-                int allowedToDelete = Math.Max(0, onSheetCount - 1);
-
-                if (requestedToDelete <= allowedToDelete)
-                {
-                    toDelete.AddRange(group);
-                }
-                else if (allowedToDelete > 0)
-                {
-                    toDelete.AddRange(group.Take(allowedToDelete));
-                    skipped.AddRange(group.Skip(allowedToDelete));
-                }
-                else
-                {
-                    skipped.AddRange(group);
-                }
-            }
+            var toDelete = candidates.Where(c => _currentSheet.Parts.Contains(c)).ToList();
 
             if (!toDelete.Any())
             {
-                MainWindow.M.StatusBegin("Нельзя удалить: на листе должна остаться хотя бы одна деталь каждой позиции",
-                    MainWindow.StatusMessageType.Warning);
+                MainWindow.M.StatusBegin("Выделенные детали отсутствуют на листе", MainWindow.StatusMessageType.Warning);
                 return;
             }
 
@@ -877,18 +1014,7 @@ namespace Metal_Code
                 placement.Part.NotifyTotalChanged();
             }
 
-            string message;
-            if (skipped.Any())
-            {
-                var skippedParts = skipped.Select(s => s.Part.Title).Distinct();
-                message = $"Удалено: {toDelete.Count}. Пропущено (последние на листе): {string.Join(", ", skippedParts)}";
-                MainWindow.M.StatusBegin(message, MainWindow.StatusMessageType.Warning);
-            }
-            else
-            {
-                message = $"Удалено деталей: {toDelete.Count}";
-                MainWindow.M.StatusBegin(message, MainWindow.StatusMessageType.Success);
-            }
+            MainWindow.M.StatusBegin($"Удалено деталей: {toDelete.Count}", MainWindow.StatusMessageType.Success);
 
             ClearSelection();
             _activePlacements.Clear();
@@ -1307,26 +1433,119 @@ namespace Metal_Code
 
         //-------------Заполнение листа----------//
         #region
+        public void AddContinuousCopyToggle()
+        {
+            var toggle = new ToggleButton
+            {
+                Width = 44,
+                Height = 44,
+                ToolTip = "Режим непрерывного копирования (массив)\nПеретаскивание создаст шлейф копий",
+                Cursor = Cursors.Hand,
+                Background = new SolidColorBrush(Color.FromRgb(250, 250, 250)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
+                BorderThickness = new Thickness(1),
+                // Прикрепляем к правому верхнему углу
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 30, 10, 0)
+            };
+
+            toggle.Effect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                Color = Colors.Black,
+                Direction = 315,
+                ShadowDepth = 2,
+                Opacity = 0.25,
+                BlurRadius = 4
+            };
+
+            var icon = new Path
+            {
+                Data = Geometry.Parse("M16,1H4C2.9,1 2,1.9 2,3V17H4V3H16V1M19,5H8C6.9,5 6,5.9 6,7V21C6,22.1 6.9,23 8,23H19C20.1,23 21,22.1 21,21V7C21,5.9 20.1,5 19,5M19,21H8V7H19V21Z"),
+                Fill = Brushes.Gray,
+                Width = 24,
+                Height = 24,
+                Stretch = Stretch.Uniform
+            };
+            toggle.Content = icon;
+
+            toggle.MouseEnter += (s, e) =>
+            {
+                if (!toggle.IsChecked.GetValueOrDefault())
+                {
+                    toggle.Background = new SolidColorBrush(Color.FromRgb(235, 235, 235));
+                    toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(74, 144, 226));
+                }
+            };
+            toggle.MouseLeave += (s, e) =>
+            {
+                if (!toggle.IsChecked.GetValueOrDefault())
+                {
+                    toggle.Background = new SolidColorBrush(Color.FromRgb(250, 250, 250));
+                    toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200));
+                }
+            };
+
+            toggle.Checked += (s, e) =>
+            {
+                IsContinuousCopyMode = true;
+                toggle.Background = new SolidColorBrush(Color.FromRgb(255, 152, 0));
+                toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(245, 124, 0));
+                icon.Fill = Brushes.White;
+                MainWindow.M.StatusBegin("Режим массива включен", MainWindow.StatusMessageType.Info);
+            };
+
+            toggle.Unchecked += (s, e) =>
+            {
+                IsContinuousCopyMode = false;
+                toggle.Background = new SolidColorBrush(Color.FromRgb(250, 250, 250));
+                toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200));
+                icon.Fill = Brushes.Gray;
+                MainWindow.M.StatusBegin("Режим массива выключен", MainWindow.StatusMessageType.Info);
+            };
+
+            // 🔥 Добавляем в НЕ масштабируемый слой
+            _uiLayer.Children.Add(toggle);
+        }
+
         private void OnPartRightClick(Part part, MouseButtonEventArgs e)
         {
             e.Handled = true;
 
             var menu = new ContextMenu();
-            var fillItem = new MenuItem { Header = "Дополнить лист" };
-            fillItem.Click += (s, args) => FillSheetWithPart(part);
-            menu.Items.Add(fillItem);
+
+            // Вариант 1: Заполнение до физических границ листа
+            var fillFullItem = new MenuItem { Header = "Дополнить до размера листа" };
+            fillFullItem.Click += (s, args) => FillSheetWithPart(part, fillToCutLine: false);
+            menu.Items.Add(fillFullItem);
+
+            // Вариант 2: Заполнение только до текущей линии обрезки
+            var fillOptimizedItem = new MenuItem { Header = "Дополнить до линии обрезки" };
+            fillOptimizedItem.Click += (s, args) => FillSheetWithPart(part, fillToCutLine: true);
+            menu.Items.Add(fillOptimizedItem);
+
             menu.IsOpen = true;
+            e.Handled = true;
         }
 
-        private void FillSheetWithPart(Part part)
+        private void FillSheetWithPart(Part part, bool fillToCutLine)
         {
+            // Определяем целевые границы для алгоритма заполнения
+            double targetWidth = fillToCutLine ? _currentSheet.OptimizedWidth : _currentSheet.StockWidth;
+            double targetHeight = fillToCutLine ? _currentSheet.OptimizedHeight : _currentSheet.StockHeight;
+
             var testSheet = new NestingSheet
             {
                 Id = _currentSheet.Id,
-                StockWidth = _currentSheet.StockWidth,
-                StockHeight = _currentSheet.StockHeight,
+                // 🔥 Ключевой момент: для теста временно сужаем физические границы листа до линии обрезки,
+                // чтобы NestingHelper не размещал детали за её пределами.
+                StockWidth = targetWidth,
+                StockHeight = targetHeight,
+
+                // Оригинальные оптимизированные размеры сохраняем для корректного отображения
                 OptimizedWidth = _currentSheet.OptimizedWidth,
                 OptimizedHeight = _currentSheet.OptimizedHeight,
+
                 Parts = _currentSheet.Parts.Select(p => new PartPlacement
                 {
                     Part = p.Part,
@@ -1337,9 +1556,11 @@ namespace Metal_Code
             };
 
             int placedCount = NestingHelper.TryFillSheetWithPart(testSheet, part);
+
             if (placedCount == 0)
             {
-                MessageBox.Show("Нет свободного места для размещения детали.", "Предпросмотр",
+                string reason = fillToCutLine ? "до линии обрезки" : "до размера листа";
+                MessageBox.Show($"Нет свободного места для размещения детали {reason}.", "Предпросмотр",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -1347,18 +1568,30 @@ namespace Metal_Code
             var newPlacements = testSheet.Parts.Skip(_currentSheet.Parts.Count).ToList();
             DrawPreviewParts(newPlacements);
 
+            string actionText = fillToCutLine ? "до линии обрезки" : "до размера листа";
             var result = MessageBox.Show(
-                $"На листе будет размещено ещё {placedCount} шт. \"{part.Title}\".\nПрименить изменения?",
+                $"На листе будет размещено ещё {placedCount} шт. \"{part.Title}\" ({actionText}).\nПрименить изменения?",
                 "Подтверждение заполнения", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
             ClearPreview();
 
             if (result == MessageBoxResult.Yes)
             {
+                // Применяем изменения к реальному листу
                 _currentSheet = testSheet;
+
+                // Восстанавливаем оригинальные физические границы листа в реальном объекте
+                _currentSheet.StockWidth = this._currentSheet.StockWidth; // (если нужно, или берем из исходного)
+                _currentSheet.StockHeight = this._currentSheet.StockHeight;
+
                 ShowSheet(_currentSheet);
                 RecalculateFromSheet(_currentSheet, part, placedCount);
-                MainWindow.M.StatusBegin($"Успешно добавлено {placedCount} шт.", MainWindow.StatusMessageType.Success);
+
+                string successMsg = fillToCutLine
+                    ? $"Успешно добавлено {placedCount} шт. (в пределах линии обрезки)."
+                    : $"Успешно добавлено {placedCount} шт.";
+
+                MainWindow.M.StatusBegin(successMsg, MainWindow.StatusMessageType.Success);
             }
         }
 
@@ -1381,11 +1614,16 @@ namespace Metal_Code
                             if (item is not null)
                             {
                                 Part? _part = cut.PartDetails.FirstOrDefault(p => p.Title == part.Title);
-                                if (_part is not null) _part.Count += placed;
+                                if (_part is not null)
+                                {
+                                    _part.Count += placed;
+                                    _part.NotifyTotalChanged();
+                                }
 
                                 var metal = MainWindow.M.Metals?.FirstOrDefault(m => m.Name == item.metal);
                                 if (metal != null)
                                 {
+                                    // Площадь считается по оптимизированным размерам (фактически занятым)
                                     double sheetArea = sheet.OptimizedWidth * sheet.OptimizedHeight;
                                     double sheetMass = sheetArea * sheet.Parts[0].Part.Destiny * metal.Density / 1_000_000;
                                     double sheetWay = sheet.Parts.Sum(p => p.Part.Way);
@@ -1443,7 +1681,6 @@ namespace Metal_Code
             double adjustedX = x;
             double adjustedY = y;
 
-            // Проверка и для 90°, и для 270° — для консистентности с ApplyPlacementToPath
             if (Math.Abs(rotation - 90) < 0.1 || Math.Abs(rotation - 270) < 0.1)
             {
                 adjustedX = x + (bounds.Height - bounds.Width) / 2;
