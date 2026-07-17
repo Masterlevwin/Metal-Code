@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Metal_Code.Utils;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -310,54 +311,150 @@ namespace Metal_Code
             }
         }
 
+
         private void RemovePart(object sender, RoutedEventArgs e)
         {
-            if (owner is ICut cut && cut.PartsControl is not null && cut.PartsControl.Parts.Contains(this))
+            if (owner is not CutControl cut || cut.PartsControl == null
+                || !cut.PartsControl.Parts.Contains(this) || cut.Items is null)
+                return;
+
+            if (cut.PartsControl.Parts.Count == 1)
             {
-                if (cut.PartsControl.Parts.Count == 1)
+                MessageBox.Show("Нельзя удалить единственную деталь в заготовке.\nВместо этого удалите саму заготовку.",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var response = MessageBox.Show(
+                "Уверены, что хотите удалить деталь?\n" +
+                "Общее количество этой детали в расчете будет уменьшено.",
+                "Удаление детали", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (response != MessageBoxResult.Yes) return;
+
+            // 1. Уменьшаем глобальный счетчик детали и уведомляем интерфейс
+            Part.Count = 0;
+            Part.NotifyTotalChanged();
+
+            // 2. Отвязываем деталь от всех работ, к которым она была привязана
+            DetachPartFromWorks();
+
+            // 3. УДАЛЯЕМ СО ВСЕХ ЛИСТОВ РАСКЛАДКИ (но листы остаются!)
+            RemovePartFromAllNestingSheets(Part);
+
+            // 4. Удаляем из основных коллекций
+            cut.PartsControl.Parts.Remove(this);
+            cut.PartDetails?.Remove(Part);
+
+            // 5. Принудительно пересчитываем общие итоги расчета (масса, длина реза, стоимость)
+            cut.SumProperties(cut.Items);
+            cut.work.type.MassCalculate();
+
+            MainWindow.M.StatusBegin($"Деталь \"{Part.Title}\" удалена.", MainWindow.StatusMessageType.Success);
+        }
+
+        /// <summary>
+        /// Отвязывает текущую деталь (PartControl) от всех связанных с ней работ.
+        /// </summary>
+        private void DetachPartFromWorks()
+        {
+            if (UserControls == null || work?.type?.WorkControls == null) return;
+
+            foreach (var uc in UserControls)
+            {
+                foreach (var _work in work.type.WorkControls)
                 {
-                    MessageBox.Show("Нельзя удалить единственную деталь в заготовке.\n" +
-                        "Вместо этого удалите саму заготовку.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-
-                MessageBoxResult response = MessageBox.Show(
-                    "Уверены, что хотите удалить деталь?\n" +
-                    "В случае удаления, стоимость расчета не изменится,\n" +
-                    "но КП будет сохранено с другой суммой без этой детали.\n" +
-                    "Не рекомендуется удалять детали вручную - лучше сделать раскладку заново!",
-                    "Удаление детали", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
-
-                if (response == MessageBoxResult.No) return;
-
-                if (UserControls.Count > 0)
-                    foreach (UserControl uc in UserControls)
+                    if (_work.workType is ThreadControl thread && uc is ThreadControl _thread &&
+                        thread.CharName == _thread.CharName && thread.Wide == _thread.Wide)
                     {
-                        foreach (WorkControl _work in work.type.WorkControls)
-                            if (_work.workType is ThreadControl thread &&
-                                uc is ThreadControl _thread &&
-                                thread.CharName == _thread.CharName &&
-                                thread.Wide == _thread.Wide)
-                            {
-                                thread.Parts?.Remove(this);
-                            }
-                            else if (_work.workType is PaintControl paint &&
-                                uc is PaintControl _paint &&
-                                paint.Ral == _paint.Ral)
-                            {
-                                paint.Parts?.Remove(this);
-                            }
-                            else if (_work.workType?.GetType() == uc.GetType() && _work.workType is IPriceChanged w)
-                            {
-                                w.Parts?.Remove(this);
-                                break;
-                            }
+                        thread.Parts?.Remove(this);
                     }
+                    else if (_work.workType is PaintControl paint && uc is PaintControl _paint &&
+                             paint.Ral == _paint.Ral)
+                    {
+                        paint.Parts?.Remove(this);
+                    }
+                    else if (_work.workType?.GetType() == uc.GetType() && _work.workType is IPriceChanged w)
+                    {
+                        w.Parts?.Remove(this);
+                        break; // Деталь удалена из этой группы работ, переходим к следующему UserControl
+                    }
+                }
+            }
+        }
 
-                cut.PartsControl.Parts.Remove(this);
-                cut.PartsControl?.partsList.Items.Refresh();
-                cut.PartDetails?.Remove(Part);
-                MainWindow.M.StatusBegin($"Деталь \"{Part.Title}\" удалена.");
+        /// <summary>
+        /// Находит и удаляет указанную деталь со ВСЕХ листов раскладки в текущем расчете.
+        /// Сам лист при этом остается в системе (даже если становится пустым).
+        /// </summary>
+        private void RemovePartFromAllNestingSheets(Part partToRemove)
+        {
+            if (owner is not CutControl cut || cut.Items == null) return;
+
+            bool anySheetModified = false;
+
+            foreach (var item in cut.Items)
+            {
+                if (item.NestingSheet != null && item.NestingSheet.Parts != null)
+                {
+                    // Находим все размещения, которые ссылаются на удаляемую деталь
+                    var placementsToRemove = item.NestingSheet.Parts
+                        .Where(p => ReferenceEquals(p.Part, partToRemove))
+                        .ToList();
+
+                    if (placementsToRemove.Any())
+                    {
+                        // Удаляем их с листа
+                        foreach (var placement in placementsToRemove)
+                        {
+                            item.NestingSheet.Parts.Remove(placement);
+                        }
+
+                        anySheetModified = true;
+
+                        NestingHelper.OptimizeSheetSize(item.NestingSheet);
+                        // 🔥 Пересчитываем метрики листа (массу, длину реза), так как детали убрали
+                        // Используем наш оптимизированный метод из прошлого шага
+                        RecalculateSheetMetricsForItem(item);
+                    }
+                }
+            }
+
+            if (anySheetModified)
+            {
+                // Если раскладки сейчас отображаются на экране, обновляем их визуализацию
+                cut.PartsControl?.RefreshNestingPreview();
+            }
+        }
+
+        /// <summary>
+        /// Вспомогательный метод для пересчета метрик конкретного листа (вынесен для чистоты кода).
+        /// </summary>
+        private void RecalculateSheetMetricsForItem(LaserItem item)
+        {
+            if (item.NestingSheet == null) return;
+
+            double sheetWay = item.NestingSheet.Parts.Sum(p => p.Part.Way);
+            int sheetPinholes = item.NestingSheet.Parts.Sum(p =>
+                int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var val) ? val : 0);
+
+            double sheetArea = item.NestingSheet.OptimizedWidth * item.NestingSheet.OptimizedHeight;
+            var metal = MainWindow.M.Metals?.FirstOrDefault(m => m.Name == item.metal);
+            double density = metal?.Density ?? 0;
+            double destiny = double.TryParse(item.destiny, out var d) ? d : 0;
+
+            item.way = (float)sheetWay;
+            item.pinholes = sheetPinholes;
+            item.mass = (float)(sheetArea * destiny * density / 1_000_000);
+            item.sheetSize = $"{item.NestingSheet.OptimizedWidth:0}x{item.NestingSheet.OptimizedHeight:0}";
+
+            // Обновляем общие итоги в CutControl
+            if (owner is CutControl cut && cut.PartDetails != null && cut.Items != null)
+            {
+                cut.WayTotal = cut.PartDetails.Sum(p => p.Way * p.Count);
+                cut.MassTotal = cut.PartDetails.Sum(p => p.Mass * p.Count);
+                cut.SumProperties(cut.Items);
+                cut.work.type.MassCalculate();
             }
         }
 
@@ -402,6 +499,41 @@ namespace Metal_Code
             PricePart.Foreground = Part.IsFixed ? Brushes.Red : Brushes.Black;
 
             Part.FixedPrice = Part.IsFixed ? Part.Price : 0;
+        }
+
+
+        private Point _dragStartPoint;
+        private bool _isDragging;
+
+        private void PartControl_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _dragStartPoint = e.GetPosition(this);
+            _isDragging = false;
+        }
+
+        private void PartControl_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            // Начинаем перетаскивание только если зажата левая кнопка и DataContext это Part
+            if (e.LeftButton == MouseButtonState.Pressed && !_isDragging && this.DataContext is Part part)
+            {
+                Point currentPos = e.GetPosition(this);
+                Vector diff = _dragStartPoint - currentPos;
+
+                // Проверяем, что мышь сдвинулась больше, чем на минимальное расстояние для драга (защита от случайных кликов)
+                if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                    Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+                {
+                    _isDragging = true;
+
+                    // Создаем объект данных для передачи
+                    var dataObject = new DataObject(typeof(Part), part);
+
+                    // Запускаем стандартную операцию Drag-and-Drop
+                    DragDrop.DoDragDrop(this, dataObject, DragDropEffects.Copy);
+
+                    _isDragging = false; // Сбрасываем флаг после завершения операции
+                }
+            }
         }
     }
 

@@ -83,14 +83,17 @@
                 
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal" Margin="3">
+            <StackPanel Orientation="Horizontal" Margin="3"
+                              PreviewMouseLeftButtonDown="PartControl_PreviewMouseLeftButtonDown"
+                              PreviewMouseMove="PartControl_PreviewMouseMove">
                 <TextBox Text="{Binding Title}" TextWrapping="Wrap" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="90" Height="60"/>
                 <!-- Для Grid с картинкой -->
                 <Grid Background="White" Margin="5,0,0,0"
       Tag="{Binding Square, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}}}">
                     <Image x:Name="Picture" Loaded="SetPicture" MouseLeftButtonDown="OpenPlan" Height="60" Width="60"/>
                     <Viewbox x:Name="GeometryViewbox" Stretch="Uniform" Loaded="SetPicture" Height="60" Width="60" MouseLeftButtonDown="OpenPlan" Visibility="Collapsed">
-                        <Path Data="{Binding DisplayGeometry}" Stroke="Black" StrokeThickness="{Binding VisualStrokeThickness}" Stretch="Fill"/>
+                        <Path Data="{Binding DisplayGeometry}" Stroke="Black"
+                              StrokeThickness="{Binding VisualStrokeThickness}" Stretch="Fill"/>
                     </Viewbox>
 
                     <Grid.ToolTip>

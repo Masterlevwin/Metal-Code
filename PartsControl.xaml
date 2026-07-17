@@ -62,7 +62,7 @@
             <!-- Строка 0: Раскладки -->
             <RowDefinition Height="Auto"/>
             <!-- Строка 1: Массовые операции -->
-            <RowDefinition Height="*" MinHeight="140"/>
+            <RowDefinition Height="*" MinHeight="200"/>
             <!-- Строка 2: Стандартные детали + Список деталей -->
         </Grid.RowDefinitions>
 
@@ -70,25 +70,85 @@
 
         <!-- Кнопка раскладок (в сайдбаре, всегда сверху) -->
         <Border Background="{DynamicResource RegionBrush}"
-                BorderBrush="LightGray" 
-                BorderThickness="1"
-                CornerRadius="6"
-                VerticalAlignment="Top">
-            <ToggleButton x:Name="NestingToggle" 
-                          ToolTip="Показать/скрыть раскладки" 
-                          Click="ShowNesting_Click" 
-                          Style="{StaticResource SideIconButton}">
-                <Image Source="Images/nesting.png" Width="20"/>
-            </ToggleButton>
+        BorderBrush="LightGray" 
+        BorderThickness="1"
+        CornerRadius="6"
+        VerticalAlignment="Top">
+            <StackPanel>
+                <ToggleButton x:Name="NestingToggle" 
+                      ToolTip="Показать/скрыть раскладки" 
+                      Click="ShowNesting_Click" 
+                      Style="{StaticResource SideIconButton}">
+                    <Image Source="Images/nesting.png" Width="20"/>
+                </ToggleButton>
+
+                <!-- 🔥 Кнопки управления листами (показываются только когда раскладки активны) -->
+                <StackPanel x:Name="SheetManagementButtons" Visibility="Collapsed" Margin="0,4,0,0">
+
+                    <!-- Кнопка добавления (обычная Button, не ToggleButton) -->
+                    <Button x:Name="AddSheetBtn" 
+            Content="+" 
+            Click="AddSheet_Click" 
+            Width="30" Height="30" Margin="4,2"
+            ToolTip="Добавить новый лист" 
+            FontSize="16" FontWeight="Bold" Foreground="Green"
+            Background="#F0FFF0" BorderBrush="#90EE90" BorderThickness="1">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+
+                    <!-- Кнопка удаления -->
+                    <Button Content="−" 
+            Click="RemoveSheet_Click" 
+            Width="30" Height="30" Margin="4,2"
+            ToolTip="Удалить последний лист" 
+            FontSize="16" FontWeight="Bold" Foreground="Red"
+            Background="#FFF0F0" BorderBrush="#FFB6C1" BorderThickness="1">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+
+                    <!-- 🔥 Inline-форма ввода размеров листа (скрыта по умолчанию) -->
+                    <StackPanel x:Name="AddSheetForm" Visibility="Collapsed" Margin="4,4,4,0">
+                        <TextBlock Text="Ширина" FontSize="10" Foreground="Gray" Margin="0,2,0,0"/>
+                        <TextBox x:Name="SheetWidthInput" Text="2000" Margin="0,2" 
+                 VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+
+                        <TextBlock Text="Высота" FontSize="10" Foreground="Gray" Margin="0,4,0,0"/>
+                        <TextBox x:Name="SheetHeightInput" Text="1000" Margin="0,2" 
+                 VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+
+                            <Button Content="✓" Click="ConfirmAddSheet_Click" 
+                    Width="26" Height="26" Margin="2,4" 
+                    ToolTip="Создать лист"
+                    Foreground="Green" FontWeight="Bold"
+                    Background="#F0FFF0" BorderBrush="#90EE90" BorderThickness="1"/>
+                            <Button Content="✗" Click="CancelAddSheet_Click" 
+                    Width="26" Height="26" Margin="2,4" 
+                    ToolTip="Отмена"
+                    Foreground="Red" FontWeight="Bold"
+                    Background="#FFF0F0" BorderBrush="#FFB6C1" BorderThickness="1"/>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
         </Border>
 
         <!-- Список раскладок (в основном контенте) -->
-        <ScrollViewer x:Name="imagesScroll" Grid.Column="1"
-              Visibility="Collapsed" HorizontalScrollBarVisibility="Auto">
-            <!-- 🔥 Обычный StackPanel вместо ItemsControl -->
+        <ScrollViewer x:Name="imagesScroll" 
+              Grid.Row="0" Grid.Column="1"
+              Visibility="Collapsed" 
+              HorizontalScrollBarVisibility="Auto"
+              VerticalScrollBarVisibility="Disabled"
+              PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
+            <!-- 🔥 Перехватываем колесико -->
             <StackPanel x:Name="imagesStack" Orientation="Horizontal" Margin="5"/>
         </ScrollViewer>
-
 
         <!-- ================= СТРОКА 1: МАССОВЫЕ ОПЕРАЦИИ ================= -->
 
@@ -287,9 +347,22 @@
                 </ToggleButton>
             </Border>
 
+            <!-- 🔥 НОВАЯ КНОПКА: Добавить детали из DXF -->
+            <Button ToolTip="Добавить детали из DXF-файлов" 
+        Click="AddPartsFromDxf_Click">
+                <!-- Иконка "Открыть файл" или "Импорт" -->
+                <Path Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12,12L16,16H13.5V19H10.5V16H8L12,12Z" 
+          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" 
+          Stretch="Uniform"/>
+            </Button>
+            
             <!-- Список деталей (в основном контенте) -->
-            <ScrollViewer x:Name="partsScroll" Grid.Column="1"
-                          HorizontalScrollBarVisibility="Auto">
+            <ScrollViewer x:Name="partsScroll" 
+              Grid.Column="1"
+              HorizontalScrollBarVisibility="Auto"
+              VerticalScrollBarVisibility="Disabled"
+              PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
+                <!-- 🔥 Перехватываем колесико -->
                 <ItemsControl x:Name="partsList" Margin="3">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>

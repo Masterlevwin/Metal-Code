@@ -1,15 +1,16 @@
 ﻿using Metal_Code.Models;
 using Metal_Code.Utils;
+using netDxf;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
 
 namespace Metal_Code
 {
@@ -277,134 +278,213 @@ namespace Metal_Code
             }
         }
 
-        // Показать или скрыть раскладки
+        /// <summary>
+        /// Позволяет ScrollViewer'у прокручиваться только по горизонтали, 
+        /// а вертикальную прокрутку колесиком мыши передает родительскому окну.
+        /// </summary>
+        private void ScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            var scrollViewer = (ScrollViewer)sender;
+
+            // Если это вертикальная прокрутка колесиком
+            if (e.Delta != 0)
+            {
+                // Создаем новое событие прокрутки
+                var eventArg = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+                {
+                    RoutedEvent = UIElement.MouseWheelEvent,
+                    Source = sender
+                };
+
+                // Находим родительский элемент (обычно это Grid или главное окно)
+                var parent = scrollViewer.Parent as UIElement;
+
+                // И "всплываем" событие к нему, минуя блокировку текущего ScrollViewer
+                parent?.RaiseEvent(eventArg);
+
+                // Помечаем исходное событие как обработанное, чтобы ScrollViewer не пытался скроллить сам
+                e.Handled = true;
+            }
+        }
+
+        private void UpdateSheetManagementButtonsVisibility()
+        {
+            if (SheetManagementButtons != null)
+            {
+                bool isVisible = NestingToggle.IsChecked == true;
+                SheetManagementButtons.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
+
+                // При скрытии кнопок — форма тоже должна исчезнуть
+                if (!isVisible && AddSheetForm != null)
+                {
+                    AddSheetForm.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Обработчик изменения состояния переключателя раскладок.
+        /// </summary>
+        private void NestingToggle_Checked(object sender, RoutedEventArgs e)
+        {
+            UpdateSheetManagementButtonsVisibility();
+        }
+
+        private void NestingToggle_Unchecked(object sender, RoutedEventArgs e)
+        {
+            UpdateSheetManagementButtonsVisibility();
+        }
+
+        /// <summary>
+        /// Показывает inline-форму для ввода размеров нового листа.
+        /// </summary>
+        private void AddSheet_Click(object sender, RoutedEventArgs e)
+        {
+            // Предзаполняем размерами последнего листа, если он есть
+            if (owner is CutControl cut && cut.Items?.Any(i => i.NestingSheet != null) == true)
+            {
+                var lastSheet = cut.Items.Last(i => i.NestingSheet != null).NestingSheet;
+                SheetWidthInput.Text = lastSheet?.StockWidth.ToString("F0");
+                SheetHeightInput.Text = lastSheet?.StockHeight.ToString("F0");
+            }
+            else
+            {
+                SheetWidthInput.Text = "2000";
+                SheetHeightInput.Text = "1000";
+            }
+
+            AddSheetForm.Visibility = Visibility.Visible;
+            SheetWidthInput.Focus();
+            SheetWidthInput.SelectAll();
+        }
+
+        /// <summary>
+        /// Подтверждение создания листа с введенными размерами.
+        /// </summary>
+        private void ConfirmAddSheet_Click(object sender, RoutedEventArgs e)
+        {
+            if (!double.TryParse(SheetWidthInput.Text.Replace('.', ','), out double width) || width <= 0)
+            {
+                MainWindow.M.StatusBegin("Некорректная ширина листа", MainWindow.StatusMessageType.Warning);
+                SheetWidthInput.Focus();
+                return;
+            }
+
+            if (!double.TryParse(SheetHeightInput.Text.Replace('.', ','), out double height) || height <= 0)
+            {
+                MainWindow.M.StatusBegin("Некорректная высота листа", MainWindow.StatusMessageType.Warning);
+                SheetHeightInput.Focus();
+                return;
+            }
+
+            if (owner is not CutControl cut || cut.Items is null)
+            {
+                MainWindow.M.StatusBegin("Не удалось добавить лист: владелец не является ICut", MainWindow.StatusMessageType.Error);
+                return;
+            }
+
+            var (metal, thickness, metalName) = GetMetalAndThickness(owner);
+            if (metal == null || string.IsNullOrEmpty(metalName))
+            {
+                MainWindow.M.StatusBegin("Не выбран материал или толщина", MainWindow.StatusMessageType.Warning);
+                return;
+            }
+
+            // Создаем новый лист
+            var newSheet = new NestingSheet
+            {
+                Id = Guid.NewGuid(),
+                StockWidth = width,
+                StockHeight = height,
+                OptimizedWidth = width,
+                OptimizedHeight = height,
+                Parts = new List<PartPlacement>()
+            };
+
+            var newItem = new LaserItem
+            {
+                NestingSheet = newSheet,
+                sheets = 1,
+                sheetSize = $"{width:0}x{height:0}",
+                metal = metalName,
+                destiny = thickness.ToString()
+            };
+
+            cut.Items.Add(newItem);
+            cut.SumProperties(cut.Items);
+            cut.work.type.MassCalculate();
+
+            // 🔥 Принудительно перерисовываем раскладки (не переключая видимость)
+            RefreshNestingPreview();
+
+            // Скрываем форму и обновляем отображение
+            AddSheetForm.Visibility = Visibility.Collapsed;
+            MainWindow.M.StatusBegin($"Добавлен лист {width:0}×{height:0} мм", MainWindow.StatusMessageType.Success);
+        }
+
+        /// <summary>
+        /// Отмена добавления листа — скрывает форму.
+        /// </summary>
+        private void CancelAddSheet_Click(object sender, RoutedEventArgs e)
+        {
+            AddSheetForm.Visibility = Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// Удаляет последний лист раскладки с подтверждением и корректно уменьшает количество деталей.
+        /// </summary>
+        private void RemoveSheet_Click(object sender, RoutedEventArgs e)
+        {
+            if (owner is not CutControl cut || cut.Items == null || !cut.Items.Any(i => i.NestingSheet != null))
+            {
+                MainWindow.M.StatusBegin("Нет листов для удаления", MainWindow.StatusMessageType.Warning);
+                return;
+            }
+
+            var result = MessageBox.Show(
+                "Удалить последний лист? Все детали на нём будут удалены с раскладки (их общее количество уменьшится).",
+                "Удаление листа",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result != MessageBoxResult.Yes) return;
+
+            var itemToRemove = cut.Items.Last(i => i.NestingSheet != null);
+
+            // 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Уменьшаем счетчик для каждой детали, которая была на этом листе
+            if (itemToRemove.NestingSheet?.Parts != null)
+            {
+                foreach (var placement in itemToRemove.NestingSheet.Parts)
+                {
+                    placement.Part.Count--;
+                    placement.Part.NotifyTotalChanged(); // Уведомляем интерфейс об изменении количества
+                }
+            }
+
+            // Теперь безопасно удаляем сам лист из списка
+            cut.Items.Remove(itemToRemove);
+
+            // Пересчитываем итоги
+            cut.SumProperties(cut.Items);
+            cut.work.type.MassCalculate();
+
+            // Принудительно перерисовываем раскладки
+            RefreshNestingPreview();
+
+            MainWindow.M.StatusBegin("Лист удалён, детали возвращены в общий список", MainWindow.StatusMessageType.Success);
+        }
+
+
+        /// <summary>
+        /// Переключатель видимости раскладок (вызывается по клику на кнопку-тоггл).
+        /// </summary>
         private void ShowNesting_Click(object sender, RoutedEventArgs e)
         {
             bool shouldShow = imagesScroll.Visibility != Visibility.Visible;
 
-            if (shouldShow && owner is ICut cut && cut.Items?.Count > 0)
+            if (shouldShow)
             {
-                imagesStack.Children.Clear();
-
-                foreach (LaserItem item in cut.Items)
-                {
-                    if (item.NestingSheet is not null)
-                    {
-                        var preview = new NestingPreviewControl { Height = 320 };
-                        preview.ShowSheet(item.NestingSheet);
-
-                        // 🔥 Добавляем переключатель режима копирования
-                        preview.AddContinuousCopyToggle();
-
-                        var border = new Border
-                        {
-                            Child = preview,
-                            BorderBrush = item.sheets > 1 ? Brushes.Orange : Brushes.Gray,
-                            BorderThickness = new Thickness(1),
-                            CornerRadius = new CornerRadius(6),
-                            Padding = new Thickness(5)
-                        };
-
-                        var stack = new StackPanel
-                        {
-                            Orientation = Orientation.Vertical,
-                            HorizontalAlignment = HorizontalAlignment.Left,
-                            Margin = new Thickness(5)
-                        };
-                        stack.Children.Add(border);
-
-                        string sheetInfo = $"{item.sheets} шт ({item.sheetSize} мм)";
-                        var infoText = new TextBlock
-                        {
-                            Text = sheetInfo,
-                            FontSize = 10,
-                            FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal,
-                            Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.Gray,
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            Margin = new Thickness(0, 5, 0, 0),
-                            TextAlignment = TextAlignment.Center
-                        };
-                        stack.Children.Add(infoText);
-                        imagesStack.Children.Add(stack);
-                    }
-                    else if (item.PipeStocks != null && item.PipeStocks.Count > 0)
-                    {
-                        var stock = item.PipeStocks[0];
-                        var preview = new PipeStockVisualizationControl { Stock = stock, Width = 820, Height = 70, Margin = new Thickness(0) };
-
-                        var border = new Border
-                        {
-                            Child = preview,
-                            BorderBrush = item.sheets > 1 ? Brushes.Orange : Brushes.Gray,
-                            BorderThickness = new Thickness(1),
-                            CornerRadius = new CornerRadius(6),
-                            Padding = new Thickness(5)
-                        };
-
-                        var stack = new StackPanel
-                        {
-                            Orientation = Orientation.Vertical,
-                            HorizontalAlignment = HorizontalAlignment.Left,
-                            Margin = new Thickness(5)
-                        };
-                        stack.Children.Add(border);
-
-                        string stockInfo = $"{item.sheets} шт ({stock.OptimizedLength:0} мм)";
-                        var infoText = new TextBlock
-                        {
-                            Text = stockInfo,
-                            FontSize = 10,
-                            FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal,
-                            Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.Gray,
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            Margin = new Thickness(0, 5, 0, 0),
-                            TextAlignment = TextAlignment.Center
-                        };
-                        stack.Children.Add(infoText);
-                        imagesStack.Children.Add(stack); // 🔥 Изменено
-                    }
-                    else if (item.imageBytes is not null)
-                    {
-                        var img = new Image
-                        {
-                            Source = MainWindow.CreateBitmap(item.imageBytes),
-                            Height = 320,
-                            HorizontalAlignment = HorizontalAlignment.Left
-                        };
-
-                        var border = new Border
-                        {
-                            Child = img,
-                            BorderBrush = Brushes.Gray,
-                            BorderThickness = new Thickness(1),
-                            CornerRadius = new CornerRadius(6),
-                            Padding = new Thickness(5)
-                        };
-
-                        var stack = new StackPanel
-                        {
-                            Orientation = Orientation.Vertical,
-                            HorizontalAlignment = HorizontalAlignment.Left,
-                            Margin = new Thickness(5)
-                        };
-                        stack.Children.Add(border);
-
-                        string sheetInfo = $"{item.sheets} шт ({item.sheetSize} мм)";
-                        var infoText = new TextBlock
-                        {
-                            Text = sheetInfo,
-                            FontSize = 10,
-                            FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal,
-                            Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.Gray,
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            Margin = new Thickness(0, 5, 0, 0),
-                            TextAlignment = TextAlignment.Center
-                        };
-                        stack.Children.Add(infoText);
-                        imagesStack.Children.Add(stack);
-                    }
-                }
-
+                RefreshNestingPreview();
                 imagesScroll.Visibility = Visibility.Visible;
                 NestingToggle.IsChecked = true;
             }
@@ -412,6 +492,209 @@ namespace Metal_Code
             {
                 imagesScroll.Visibility = Visibility.Collapsed;
                 NestingToggle.IsChecked = false;
+            }
+
+            UpdateSheetManagementButtonsVisibility();
+        }
+
+        /// <summary>
+        /// Принудительно перерисовывает все раскладки (вызывается при добавлении/удалении листа).
+        /// </summary>
+        public void RefreshNestingPreview()
+        {
+            if (owner is not ICut cut || cut.Items is null)
+            {
+                imagesStack.Children.Clear();
+                return;
+            }
+
+            imagesStack.Children.Clear();
+
+            foreach (LaserItem item in cut.Items)
+            {
+                if (item.NestingSheet is not null)
+                {
+                    var preview = new NestingPreviewControl { Height = 320, Margin = new Thickness(0) };
+                    preview.ShowSheet(item.NestingSheet);
+                    preview.AddContinuousCopyToggle();
+
+                    var border = new Border
+                    {
+                        Child = preview,
+                        BorderBrush = item.sheets > 1 ? Brushes.Orange : Brushes.Gray,
+                        BorderThickness = new Thickness(1),
+                        CornerRadius = new CornerRadius(6),
+                        Padding = new Thickness(5)
+                    };
+
+                    var stack = new StackPanel
+                    {
+                        Orientation = Orientation.Vertical,
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        Margin = new Thickness(5)
+                    };
+                    stack.Children.Add(border);
+
+                    string sheetInfo = $"{item.sheets} шт ({item.sheetSize} мм)";
+                    var infoText = new TextBlock
+                    {
+                        Text = sheetInfo,
+                        FontSize = 10,
+                        FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal,
+                        Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.Gray,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        Margin = new Thickness(0, 5, 0, 0),
+                        TextAlignment = TextAlignment.Center
+                    };
+                    stack.Children.Add(infoText);
+                    imagesStack.Children.Add(stack);
+                }
+                else if (item.PipeStocks != null && item.PipeStocks.Count > 0)
+                {
+                    var stock = item.PipeStocks[0];
+                    var preview = new PipeStockVisualizationControl { Stock = stock, Width = 820, Height = 70, Margin = new Thickness(5) };
+
+                    var border = new Border
+                    {
+                        Child = preview,
+                        BorderBrush = item.sheets > 1 ? Brushes.Orange : Brushes.Gray,
+                        BorderThickness = new Thickness(1),
+                        CornerRadius = new CornerRadius(6),
+                        Padding = new Thickness(5)
+                    };
+
+                    var stack = new StackPanel
+                    {
+                        Orientation = Orientation.Vertical,
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        Margin = new Thickness(5)
+                    };
+                    stack.Children.Add(border);
+
+                    string stockInfo = $"{item.sheets} шт ({stock.OptimizedLength:0} мм)";
+                    var infoText = new TextBlock
+                    {
+                        Text = stockInfo,
+                        FontSize = 10,
+                        FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal,
+                        Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.Gray,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        Margin = new Thickness(0, 5, 0, 0),
+                        TextAlignment = TextAlignment.Center
+                    };
+                    stack.Children.Add(infoText);
+                    imagesStack.Children.Add(stack);
+                }
+                else if (item.imageBytes is not null)
+                {
+                    var img = new Image
+                    {
+                        Source = MainWindow.CreateBitmap(item.imageBytes),
+                        Height = 320,
+                        HorizontalAlignment = HorizontalAlignment.Left
+                    };
+
+                    var border = new Border
+                    {
+                        Child = img,
+                        BorderBrush = Brushes.Gray,
+                        BorderThickness = new Thickness(1),
+                        CornerRadius = new CornerRadius(6),
+                        Padding = new Thickness(5),
+                        Margin = new Thickness(5)
+                    };
+
+                    var stack = new StackPanel
+                    {
+                        Orientation = Orientation.Vertical,
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        Margin = new Thickness(5)
+                    };
+                    stack.Children.Add(border);
+                    imagesStack.Children.Add(stack);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Открывает диалог выбора DXF-файлов и добавляет их как новые детали.
+        /// </summary>
+        private void AddPartsFromDxf_Click(object sender, RoutedEventArgs e)
+        {
+            if (owner is not CutControl cut) return;
+
+            var openFileDialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "Выберите DXF-файлы деталей",
+                Filter = "DXF файлы (*.dxf)|*.dxf|Все файлы (*.*)|*.*",
+                Multiselect = true,
+                InitialDirectory = MainWindow.M.lastInputDirectory
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                int addedCount = 0;
+                var failedFiles = new List<string>();
+                var (metal, thickness, metalName) = GetMetalAndThickness(owner);
+
+                foreach (var filePath in openFileDialog.FileNames)
+                {
+                    try
+                    {
+                        var doc = DxfDocument.Load(filePath);
+                        var calculationGeometry = DxfToWpfConverter.ConvertToPathGeometryWithClosedContours(doc);
+
+                        if (calculationGeometry == null || calculationGeometry.IsEmpty())
+                            throw new InvalidOperationException("DXF не содержит распознаваемых замкнутых контуров.");
+
+                        var part = new Part(Path.GetFileNameWithoutExtension(filePath))
+                        {
+                            Count = 0,
+                            Metal = metalName,
+                            Destiny = thickness,
+                            Width = Math.Ceiling(calculationGeometry.Bounds.Width),
+                            Height = Math.Ceiling(calculationGeometry.Bounds.Height),
+                            PartType = PartType.Rectangle, // Или логика определения типа
+                            DisplayGeometry = calculationGeometry,
+                        };
+
+                        if (part.DisplayGeometry.CanFreeze)
+                            part.DisplayGeometry.Freeze();
+
+                        if (metal is not null)
+                            UpdatePartAfterEdit(part, metal, thickness, true);
+
+                        var partControl = new PartControl(owner, cut.work, part);
+
+                        // Добавляем во все необходимые коллекции
+                        Parts.Add(partControl);
+                        cut.Parts?.Add(partControl);
+                        cut.PartDetails?.Add(part);
+
+                        addedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        // 🔥 Собираем ошибки, чтобы не прерывать цикл и не спамить пользователя окнами
+                        failedFiles.Add(System.IO.Path.GetFileName(filePath));
+                        System.Diagnostics.Debug.WriteLine($"Ошибка импорта {filePath}: {ex.Message}");
+                    }
+                }
+
+                if (addedCount > 0)
+                {
+                    MainWindow.M.StatusBegin($"Успешно добавлено деталей: {addedCount}", MainWindow.StatusMessageType.Success);
+                }
+
+                if (failedFiles.Count > 0)
+                {
+                    string fileList = string.Join("\n", failedFiles.Take(5)); // Показываем первые 5
+                    string moreText = failedFiles.Count > 5 ? $"\n...и ещё {failedFiles.Count - 5} файлов." : "";
+
+                    MessageBox.Show($"Не удалось прочитать следующие файлы:\n{fileList}{moreText}\n\n" +
+                                    "Пересохраните их в CAD-программе (например, в DXF R12 или R14) и попробуйте снова.",
+                                    "Ошибка импорта", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 
@@ -582,23 +865,20 @@ namespace Metal_Code
 
         public void UpdatePartAfterEdit(Part part, Metal metal, float thickness, bool isOriginal = false)
         {
-            bool isSheetPart = part.PartType == PartType.Round || part.PartType == PartType.Rectangle;
+            if (part.PropsDict == null) part.PropsDict = new Dictionary<int, List<string>>();
 
+            bool isSheetPart = part.PartType == PartType.Round || part.PartType == PartType.Rectangle;
             int pinholes = 0;
             double cuttingLength = 0;
 
             // === ШАГ 1: Генерация геометрии, если ее нет ===
             if (!isOriginal)
             {
-                part.DisplayGeometry = null;        // Сбрасываем кэш геометрии
+                part.DisplayGeometry = null;
                 if (isSheetPart)
-                {
                     PartPreviewGenerator.EnsureDisplayGeometryWithHoles(part);
-                }
                 else
-                {
-                    PartPreviewGenerator.EnsureDisplayGeometry(part); // Без отверстий в сечении
-                }
+                    PartPreviewGenerator.EnsureDisplayGeometry(part);
             }
 
             // === ШАГ 2: Расчёт длины реза и проколов ===
@@ -606,7 +886,6 @@ namespace Metal_Code
             {
                 cuttingLength = TechItemCalculator.CalculateCuttingLength(part.DisplayGeometry);
 
-                // Дополнительная длина реза за счёт отверстий (для труб — сверление вдоль длины)
                 if (part.HoleGroups?.Count > 0)
                 {
                     foreach (var group in part.HoleGroups)
@@ -616,16 +895,9 @@ namespace Metal_Code
                     }
                 }
 
-                // Расчёт проколов
-                if (isSheetPart)
-                {
-                    pinholes = TechItemCalculator.CalculatePiercingCount(part.DisplayGeometry);
-                }
-                else
-                {
-                    // Для труб — проколы = количество отверстий + 2 реза сечения (грубо)
-                    pinholes = part.HoleGroups?.Sum(g => g.Count) + 2 ?? 0;
-                }
+                pinholes = isSheetPart
+                    ? TechItemCalculator.CalculatePiercingCount(part.DisplayGeometry)
+                    : (part.HoleGroups?.Sum(g => g.Count) + 2 ?? 0);
             }
 
             part.Way = (float)Math.Round(cuttingLength / 1000, 3);
@@ -633,29 +905,29 @@ namespace Metal_Code
             // === ШАГ 3: Расчёт массы ===
             if (isSheetPart)
             {
-                // Листовые: масса = площадь × толщина × плотность
-                double area = CalculateCrossSectionArea(part.PartType, part.Width, part.Height, 1); // толщина = 1 для "плоскости"
+                double area = CalculateCrossSectionArea(part.PartType, part.Width, part.Height, 1);
                 part.Mass = (float)Math.Round(area * thickness * metal.Density / 1_000_000, 3);
 
-                part.PropsDict[100] = new()
-                {
-                    $"{part.Width}",
-                    $"{part.Height}",
-                    part.PartType == PartType.Round ? $"Ø{part.Width}" : $"{part.Width}x{part.Height}"
-                };
+                part.PropsDict[100] = new List<string>
+        {
+            $"{part.Width}",
+            $"{part.Height}",
+            part.PartType == PartType.Round ? $"Ø{part.Width}" : $"{part.Width}x{part.Height}"
+        };
             }
             else
             {
-                // Профильные: масса = площадь сечения × длина × плотность
                 double area = CalculateCrossSectionArea(part, thickness);
                 part.Mass = (float)Math.Round(area * part.Length * metal.Density / 1_000_000, 3);
 
-                part.PropsDict[100] = new() {
-                    $"{SquareToPaint(part)}", "", $"{part.Length}" };
+                part.PropsDict[100] = new List<string>
+        {
+            $"{SquareToPaint(part)}", "", $"{part.Length}"
+        };
             }
 
             // === ШАГ 4: Сохранение данных об отверстиях ===
-            part.PropsDict[200] = new() { pinholes.ToString() };
+            part.PropsDict[200] = new List<string> { pinholes.ToString() };
         }
 
         /// <summary>

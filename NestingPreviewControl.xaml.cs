@@ -1,7 +1,6 @@
 ﻿using Metal_Code.Utils;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -40,6 +39,7 @@ namespace Metal_Code
         private readonly Dictionary<Path, (Brush Stroke, Brush Fill)> _originalVisuals = new();
         private Point _dragStartPoint;
         private bool _isDragging;
+        private bool _isCopyOperation;
 
         // === Состояние выделения ===
         private readonly List<PartPlacement> _selectedPlacements = new();
@@ -47,8 +47,7 @@ namespace Metal_Code
         private Point _selectionStartPoint;
         private bool _isSelecting;
 
-        // === Состояние непрерывного копирования ===
-        private bool _isCopyOperation;
+        // === Состояние непрерывного копирования (одиночная деталь) ===
         private bool _isContinuousCopying;
         private CopyAxis _lockedAxis;
         private PartPlacement? _baseCopyPart;
@@ -60,10 +59,8 @@ namespace Metal_Code
         public bool IsContinuousCopyMode { get; private set; } = false;
         private enum CopyAxis { None, X, Y }
 
-        // === Визуализация зон валидности ===
+        // === Визуализация зон валидности и предпросмотра ===
         private readonly List<Shape> _validationVisuals = new();
-
-        // === Предпросмотр заполнения ===
         private readonly List<Path> _previewPaths = new();
 
         public NestingPreviewControl() => InitializeUI();
@@ -72,7 +69,6 @@ namespace Metal_Code
         #region
         private void InitializeUI()
         {
-            // === СЛОЙ 1: Масштабируемый контент (лист, детали, сетка) ===
             _rootViewbox = new Viewbox
             {
                 Stretch = Stretch.Uniform,
@@ -90,49 +86,39 @@ namespace Metal_Code
             _invertedLayer.Children.Add(_partsCanvas);
             _rootCanvas.Children.Add(_invertedLayer);
             _rootCanvas.Children.Add(_labelsCanvas);
-
             _rootViewbox.Child = _rootCanvas;
 
-            // === СЛОЙ 2: НЕ масштабируемый UI (кнопки, переключатели) ===
-            _uiLayer = new Canvas
-            {
-                IsHitTestVisible = true,
-                ClipToBounds = false
-            };
+            _uiLayer = new Canvas { IsHitTestVisible = true, ClipToBounds = false };
 
-            // Основной контейнер: Grid с двумя слоями
             var mainGrid = new Grid();
-            mainGrid.Children.Add(_rootViewbox); // Слой 1 (снизу)
-            mainGrid.Children.Add(_uiLayer);     // Слой 2 (сверху)
-
+            mainGrid.Children.Add(_rootViewbox);
+            mainGrid.Children.Add(_uiLayer);
             Content = mainGrid;
 
-            // === События ===
+            _invertedLayer.AllowDrop = true;
+            _invertedLayer.DragEnter += InvertedLayer_DragEnter;
+            _invertedLayer.Drop += InvertedLayer_Drop;
             _invertedLayer.PreviewMouseLeftButtonDown += InvertedLayer_MouseLeftButtonDown;
             _invertedLayer.PreviewMouseMove += InvertedLayer_PreviewMouseMove;
             _invertedLayer.PreviewMouseLeftButtonUp += InvertedLayer_PreviewMouseLeftButtonUp;
-
             PreviewKeyDown += NestingPreviewControl_PreviewKeyDown;
         }
 
         public void ShowSheet(NestingSheet sheet)
         {
             ResetInteractionState();
-
             if (sheet == null || sheet.Parts == null)
             {
                 _partsCanvas?.Children.Clear();
                 return;
             }
 
-            if (Math.Abs(_currentSheetWidth - sheet.Width) > 0.1 ||
-                Math.Abs(_currentSheetHeight - sheet.Height) > 0.1)
+            if (Math.Abs(_currentSheetWidth - sheet.Width) > 0.1 || Math.Abs(_currentSheetHeight - sheet.Height) > 0.1)
             {
                 RebuildLayout(sheet);
             }
 
             _partsCanvas.Children.Clear();
-
             foreach (var placement in sheet.Parts)
             {
                 if (placement.Part.DisplayGeometry == null)
@@ -157,53 +143,46 @@ namespace Metal_Code
         private void RebuildLayout(NestingSheet sheet)
         {
             _currentSheet = sheet;
-            double width = sheet.StockWidth;
-            double height = sheet.StockHeight;
+            _currentSheetWidth = sheet.StockWidth;
+            _currentSheetHeight = sheet.StockHeight;
 
-            _currentSheetWidth = width;
-            _currentSheetHeight = height;
+            _rootCanvas.Width = _currentSheetWidth + LabelMarginLeft;
+            _rootCanvas.Height = _currentSheetHeight + LabelMarginBottom;
 
-            _rootCanvas.Width = width + LabelMarginLeft;
-            _rootCanvas.Height = height + LabelMarginBottom;
-
-            _invertedLayer.Width = width;
-            _invertedLayer.Height = height;
-
+            _invertedLayer.Width = _currentSheetWidth;
+            _invertedLayer.Height = _currentSheetHeight;
             _invertedLayer.RenderTransform = new TransformGroup
             {
                 Children = new TransformCollection
                 {
                     new ScaleTransform { ScaleX = 1, ScaleY = -1 },
-                    new TranslateTransform { Y = height }
+                    new TranslateTransform { Y = _currentSheetHeight }
                 }
             };
 
             _invertedLayer.Children.Clear();
             _invertedLayer.Children.Add(_partsCanvas);
 
-            var sheetRect = new Rectangle
+            _invertedLayer.Children.Insert(0, new Rectangle
             {
-                Width = width,
-                Height = height,
+                Width = _currentSheetWidth,
+                Height = _currentSheetHeight,
                 Fill = new SolidColorBrush(Color.FromArgb(30, 240, 240, 240)),
                 Stroke = Brushes.Gray,
                 StrokeThickness = 1
-            };
-            _invertedLayer.Children.Insert(0, sheetRect);
+            });
 
-            DrawGrid(_invertedLayer, width, height);
-            DrawCutLine(_invertedLayer, sheet.OptimizedWidth, sheet.OptimizedHeight, width, height);
+            DrawGrid(_invertedLayer, _currentSheetWidth, _currentSheetHeight);
+            DrawCutLine(_invertedLayer, sheet.OptimizedWidth, sheet.OptimizedHeight, _currentSheetWidth, _currentSheetHeight);
 
             Canvas.SetLeft(_invertedLayer, LabelMarginLeft);
             Canvas.SetTop(_invertedLayer, 0);
-
-            DrawLabels(width, height);
+            DrawLabels(_currentSheetWidth, _currentSheetHeight);
         }
 
         private void DrawCutLine(Canvas canvas, double optWidth, double optHeight, double fullWidth, double fullHeight)
         {
-            if (Math.Abs(optWidth - fullWidth) < 1 && Math.Abs(optHeight - fullHeight) < 1)
-                return;
+            if (Math.Abs(optWidth - fullWidth) < 1 && Math.Abs(optHeight - fullHeight) < 1) return;
 
             var cutRect = new Rectangle
             {
@@ -216,10 +195,8 @@ namespace Metal_Code
             };
 
             int index = canvas.Children.IndexOf(_partsCanvas);
-            if (index >= 0)
-                canvas.Children.Insert(index, cutRect);
-            else
-                canvas.Children.Add(cutRect);
+            if (index >= 0) canvas.Children.Insert(index, cutRect);
+            else canvas.Children.Add(cutRect);
 
             double displayWidth = Math.Ceiling(optWidth / 100) * 100;
             double displayHeight = Math.Ceiling(optHeight / 100) * 100;
@@ -227,7 +204,7 @@ namespace Metal_Code
 
             if (Math.Abs(optWidth - fullWidth) > 1)
             {
-                var text = new TextBlock
+                canvas.Children.Add(new TextBlock
                 {
                     Text = ((int)displayWidth).ToString(),
                     FontSize = 36,
@@ -236,15 +213,13 @@ namespace Metal_Code
                     Background = Brushes.White,
                     IsHitTestVisible = false,
                     RenderTransform = normalizeTransform,
-                    RenderTransformOrigin = new Point(0.5, 0.5)
-                };
-                Canvas.SetLeft(text, optWidth + 10);
-                Canvas.SetTop(text, (fullHeight / 2) - 20);
-                canvas.Children.Add(text);
+                    RenderTransformOrigin = new Point(0.5, 0.5),
+                    Margin = new Thickness(optWidth + 10, (fullHeight / 2) - 20, 0, 0)
+                });
             }
             else if (Math.Abs(optHeight - fullHeight) > 1)
             {
-                var text = new TextBlock
+                canvas.Children.Add(new TextBlock
                 {
                     Text = ((int)displayHeight).ToString(),
                     FontSize = 36,
@@ -253,113 +228,46 @@ namespace Metal_Code
                     Background = Brushes.White,
                     IsHitTestVisible = false,
                     RenderTransform = normalizeTransform,
-                    RenderTransformOrigin = new Point(0.5, 0.5)
-                };
-                Canvas.SetTop(text, optHeight + 10);
-                Canvas.SetLeft(text, (fullWidth / 2) - 20);
-                canvas.Children.Add(text);
+                    RenderTransformOrigin = new Point(0.5, 0.5),
+                    Margin = new Thickness((fullWidth / 2) - 20, optHeight + 10, 0, 0)
+                });
             }
         }
 
         private void DrawGrid(Canvas canvas, double width, double height)
         {
             for (double x = GridStep; x < width; x += GridStep)
-            {
-                canvas.Children.Add(new Line
-                {
-                    X1 = x,
-                    Y1 = 0,
-                    X2 = x,
-                    Y2 = height,
-                    Stroke = Brushes.LightGray,
-                    StrokeThickness = 0.5,
-                    StrokeDashArray = new DoubleCollection { 5, 5 }
-                });
-            }
-            canvas.Children.Add(new Line
-            {
-                X1 = width,
-                Y1 = 0,
-                X2 = width,
-                Y2 = height,
-                Stroke = Brushes.Gray,
-                StrokeThickness = 1
-            });
+                canvas.Children.Add(new Line { X1 = x, Y1 = 0, X2 = x, Y2 = height, Stroke = Brushes.LightGray, StrokeThickness = 0.5, StrokeDashArray = new DoubleCollection { 5, 5 } });
+
+            canvas.Children.Add(new Line { X1 = width, Y1 = 0, X2 = width, Y2 = height, Stroke = Brushes.Gray, StrokeThickness = 1 });
 
             for (double y = GridStep; y < height; y += GridStep)
-            {
-                canvas.Children.Add(new Line
-                {
-                    X1 = 0,
-                    Y1 = y,
-                    X2 = width,
-                    Y2 = y,
-                    Stroke = Brushes.LightGray,
-                    StrokeThickness = 0.5,
-                    StrokeDashArray = new DoubleCollection { 5, 5 }
-                });
-            }
-            canvas.Children.Add(new Line
-            {
-                X1 = 0,
-                Y1 = height,
-                X2 = width,
-                Y2 = height,
-                Stroke = Brushes.Gray,
-                StrokeThickness = 1
-            });
+                canvas.Children.Add(new Line { X1 = 0, Y1 = y, X2 = width, Y2 = y, Stroke = Brushes.LightGray, StrokeThickness = 0.5, StrokeDashArray = new DoubleCollection { 5, 5 } });
+
+            canvas.Children.Add(new Line { X1 = 0, Y1 = height, X2 = width, Y2 = height, Stroke = Brushes.Gray, StrokeThickness = 1 });
         }
 
         private void DrawLabels(double width, double height)
         {
             _labelsCanvas.Children.Clear();
-
             for (double x = GridStep; x < width; x += GridStep) AddLabelX(x, height);
             if (width > 0) AddLabelX(width, height);
-
             for (double y = GridStep; y < height; y += GridStep) AddLabelY(y, height);
             if (height > 0) AddLabelY(height, height);
 
-            var originLabel = new TextBlock
+            _labelsCanvas.Children.Add(new TextBlock
             {
                 Text = "0",
                 FontSize = 40,
                 FontWeight = FontWeights.Bold,
                 Foreground = Brushes.Red,
-                IsHitTestVisible = false
-            };
-            Canvas.SetLeft(originLabel, -LabelMarginLeft * 0.8);
-            Canvas.SetTop(originLabel, height + 10);
-            _labelsCanvas.Children.Add(originLabel);
+                IsHitTestVisible = false,
+                Margin = new Thickness(-LabelMarginLeft * 0.8, height + 10, 0, 0)
+            });
         }
 
-        private void AddLabelX(double x, double height)
-        {
-            var text = new TextBlock
-            {
-                Text = ((int)x).ToString(),
-                FontSize = 40,
-                Foreground = Brushes.Gray,
-                IsHitTestVisible = false
-            };
-            Canvas.SetLeft(text, LabelMarginLeft + x - 20);
-            Canvas.SetTop(text, height + 10);
-            _labelsCanvas.Children.Add(text);
-        }
-
-        private void AddLabelY(double y, double height)
-        {
-            var text = new TextBlock
-            {
-                Text = ((int)y).ToString(),
-                FontSize = 40,
-                Foreground = Brushes.Gray,
-                IsHitTestVisible = false
-            };
-            Canvas.SetLeft(text, 0);
-            Canvas.SetTop(text, height - y - 10);
-            _labelsCanvas.Children.Add(text);
-        }
+        private void AddLabelX(double x, double height) => _labelsCanvas.Children.Add(new TextBlock { Text = ((int)x).ToString(), FontSize = 40, Foreground = Brushes.Gray, IsHitTestVisible = false, Margin = new Thickness(LabelMarginLeft + x - 20, height + 10, 0, 0) });
+        private void AddLabelY(double y, double height) => _labelsCanvas.Children.Add(new TextBlock { Text = ((int)y).ToString(), FontSize = 40, Foreground = Brushes.Gray, IsHitTestVisible = false, Margin = new Thickness(0, height - y - 10, 0, 0) });
 
         private void AddPartToCanvas(PartPlacement placement)
         {
@@ -372,9 +280,7 @@ namespace Metal_Code
             var path = new Path
             {
                 Data = geometry,
-                Fill = part.PartType == PartType.Round
-                    ? new SolidColorBrush(Color.FromArgb(150, 255, 150, 150))
-                    : new SolidColorBrush(Color.FromArgb(150, 150, 200, 255)),
+                Fill = part.PartType == PartType.Round ? new SolidColorBrush(Color.FromArgb(150, 255, 150, 150)) : new SolidColorBrush(Color.FromArgb(150, 150, 200, 255)),
                 Stroke = part.PartType == PartType.Round ? Brushes.DarkRed : Brushes.DarkBlue,
                 StrokeThickness = 1.5,
                 IsHitTestVisible = true,
@@ -385,7 +291,6 @@ namespace Metal_Code
             path.ToolTip = $"{part.Title}\n{partWidth:0}×{partHeight:0}мм{(placement.Rotation != 0 ? " (↻)" : "")}";
 
             ApplyPlacementToPath(path, placement);
-
             path.PreviewMouseLeftButtonDown += Path_PreviewMouseLeftButtonDown;
             path.PreviewMouseRightButtonUp += (s, e) => OnPartRightClick(part, e);
 
@@ -403,93 +308,106 @@ namespace Metal_Code
                 Background = new SolidColorBrush(Color.FromRgb(250, 250, 250)),
                 BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
                 BorderThickness = new Thickness(1),
-                Effect = new System.Windows.Media.Effects.DropShadowEffect
-                {
-                    Color = Colors.Black,
-                    Direction = 315,
-                    ShadowDepth = 2,
-                    Opacity = 0.25,
-                    BlurRadius = 4
-                }
+                Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, Direction = 315, ShadowDepth = 2, Opacity = 0.25, BlurRadius = 4 }
             };
 
-            var icon = new Path
-            {
-                Data = Geometry.Parse("M3,11H11V3H3V11M3,21H11V13H3V21M13,3V11H21V3H13M13,21H21V13H13V21Z"),
-                Fill = Brushes.Gray,
-                Width = 16,
-                Height = 16,
-                Stretch = Stretch.Uniform
-            };
+            var icon = new Path { Data = Geometry.Parse("M3,11H11V3H3V11M3,21H11V13H3V21M13,3V11H21V3H13M13,21H21V13H13V21Z"), Fill = Brushes.Gray, Width = 16, Height = 16, Stretch = Stretch.Uniform };
             toggle.Content = icon;
 
-            toggle.MouseEnter += (s, e) =>
-            {
-                if (!toggle.IsChecked.GetValueOrDefault())
-                {
-                    toggle.Background = new SolidColorBrush(Color.FromRgb(235, 235, 235));
-                    toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(74, 144, 226));
-                }
-            };
-            toggle.MouseLeave += (s, e) =>
-            {
-                if (!toggle.IsChecked.GetValueOrDefault())
-                {
-                    toggle.Background = new SolidColorBrush(Color.FromRgb(250, 250, 250));
-                    toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200));
-                }
-            };
-
-            toggle.Checked += (s, e) =>
-            {
-                IsContinuousCopyMode = true;
-                toggle.Background = new SolidColorBrush(Color.FromRgb(76, 175, 80));
-                toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(56, 142, 60));
-                icon.Fill = Brushes.White;
-                toggle.ToolTip = "Режим массива включен";
-            };
-
-            toggle.Unchecked += (s, e) =>
-            {
-                IsContinuousCopyMode = false;
-                toggle.Background = new SolidColorBrush(Color.FromRgb(250, 250, 250));
-                toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200));
-                icon.Fill = Brushes.Gray;
-                toggle.ToolTip = "Режим массива выключен";
-            };
+            toggle.MouseEnter += (s, e) => { if (!toggle.IsChecked.GetValueOrDefault()) { toggle.Background = new SolidColorBrush(Color.FromRgb(235, 235, 235)); toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(74, 144, 226)); } };
+            toggle.MouseLeave += (s, e) => { if (!toggle.IsChecked.GetValueOrDefault()) { toggle.Background = new SolidColorBrush(Color.FromRgb(250, 250, 250)); toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200)); } };
+            toggle.Checked += (s, e) => { IsContinuousCopyMode = true; toggle.Background = new SolidColorBrush(Color.FromRgb(76, 175, 80)); toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(56, 142, 60)); icon.Fill = Brushes.White; toggle.ToolTip = "Режим массива включен"; };
+            toggle.Unchecked += (s, e) => { IsContinuousCopyMode = false; toggle.Background = new SolidColorBrush(Color.FromRgb(250, 250, 250)); toggle.BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200)); icon.Fill = Brushes.Gray; toggle.ToolTip = "Режим массива выключен"; };
 
             _uiLayer.Children.Add(toggle);
-
-            _rootViewbox.SizeChanged += (s, e) =>
-            {
-                double canvasWidth = _rootViewbox.ActualWidth;
-                if (canvasWidth > 40)
-                {
-                    double left = canvasWidth - 40;
-                    Canvas.SetLeft(toggle, left);
-                    Canvas.SetTop(toggle, 10);
-                }
-            };
-
-            Loaded += (s, e) =>
-            {
-                Dispatcher.InvokeAsync(() =>
-                {
-                    double canvasWidth = _rootViewbox.ActualWidth;
-                    if (canvasWidth > 40)
-                    {
-                        double left = canvasWidth - 40;
-                        Canvas.SetLeft(toggle, left);
-                        Canvas.SetTop(toggle, 10);
-                    }
-                }, System.Windows.Threading.DispatcherPriority.Render);
-            };
+            _rootViewbox.SizeChanged += (s, e) => { if (_rootViewbox.ActualWidth > 40) { Canvas.SetLeft(toggle, _rootViewbox.ActualWidth - 40); Canvas.SetTop(toggle, 10); } };
+            Loaded += (s, e) => Dispatcher.InvokeAsync(() => { if (_rootViewbox.ActualWidth > 40) { Canvas.SetLeft(toggle, _rootViewbox.ActualWidth - 40); Canvas.SetTop(toggle, 10); } }, System.Windows.Threading.DispatcherPriority.Render);
         }
         #endregion
 
-
         //-------------Интерактивность раскладки-------------//
         #region
+        /// <summary>
+        /// Указывает системе, что мы готовы принять перетаскиваемый объект, если это деталь.
+        /// </summary>
+        private void InvertedLayer_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(typeof(Part)))
+            {
+                e.Effects = DragDropEffects.Copy; // Показываем курсор "копирования" (+)
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None; // Запрещаем сброс
+            }
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// Обрабатывает фактический сброс детали на лист.
+        /// </summary>
+        private void InvertedLayer_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(typeof(Part)) && _currentSheet != null)
+            {
+                // 1. Извлекаем перетаскиваемую деталь
+                var part = (Part)e.Data.GetData(typeof(Part));
+                if (part == null) return;
+
+                // 2. Получаем координаты сброса относительно _invertedLayer.
+                // ВАЖНО: Поскольку у _invertedLayer есть RenderTransform (Scale Y=-1, Translate Y=height),
+                // метод GetPosition АВТОМАТИЧЕСКИ возвращает координаты в "перевернутой" системе, 
+                // которая идеально совпадает с нашей логикой размещения (где Y растет вверх)!
+                Point dropPoint = e.GetPosition(_invertedLayer);
+
+                // 3. Гарантируем наличие геометрии для расчета габаритов
+                if (part.DisplayGeometry == null)
+                    PartPreviewGenerator.EnsureDisplayGeometry(part);
+
+                var (w, h) = NestingHelper.GetPartDimensions(part, 0); // Пока размещаем с поворотом 0
+
+                // 4. Центрируем деталь относительно точки сброса (для удобства пользователя)
+                double placementX = dropPoint.X - (w / 2);
+                double placementY = dropPoint.Y - (h / 2);
+
+                // 5. Не даем детали вылезти за левый/нижний край (с учетом зазора)
+                placementX = Math.Max(NestingHelper.Spacing, placementX);
+                placementY = Math.Max(NestingHelper.Spacing, placementY);
+
+                // 6. Создаем новое размещение
+                var newPlacement = new PartPlacement
+                {
+                    Part = part,
+                    X = placementX,
+                    Y = placementY,
+                    Rotation = 0
+                };
+
+                // 7. Проверяем валидность (нет ли коллизий и в пределах ли листа)
+                if (NestingHelper.IsValidPlacement(_currentSheet, newPlacement, newPlacement.X, newPlacement.Y, newPlacement.Rotation))
+                {
+                    _currentSheet.Parts.Add(newPlacement);
+
+                    // Увеличиваем счетчик детали в глобальном списке
+                    part.Count++;
+                    part.NotifyTotalChanged();
+
+                    // 8. Обновляем лист и пересчитываем метрики (используем наш оптимизированный метод!)
+                    NestingHelper.OptimizeSheetSize(_currentSheet);
+                    RebuildLayout(_currentSheet);
+                    ShowSheet(_currentSheet);
+                    RecalculateSheetMetrics();
+
+                    MainWindow.M.StatusBegin($"Деталь '{part.Title}' добавлена на лист", MainWindow.StatusMessageType.Success);
+                }
+                else
+                {
+                    MainWindow.M.StatusBegin("Недостаточно места или коллизия с другой деталью в этой точке", MainWindow.StatusMessageType.Warning);
+                }
+            }
+            e.Handled = true;
+        }
+
         private void ApplyPlacementToPath(Path path, PartPlacement placement)
         {
             var geometry = path.Data as Geometry;
@@ -498,15 +416,11 @@ namespace Metal_Code
             var bounds = geometry.Bounds;
             var transformGroup = new TransformGroup();
             transformGroup.Children.Add(new TranslateTransform(-bounds.Left, -bounds.Top));
-
             if (Math.Abs(placement.Rotation) > 0.1)
                 transformGroup.Children.Add(new RotateTransform(-placement.Rotation, bounds.Width / 2, bounds.Height / 2));
-
             path.RenderTransform = transformGroup;
 
-            double adjustedX = placement.X;
-            double adjustedY = placement.Y;
-
+            double adjustedX = placement.X, adjustedY = placement.Y;
             if (Math.Abs(placement.Rotation - 90) < 0.1 || Math.Abs(placement.Rotation - 270) < 0.1)
             {
                 adjustedX = placement.X + (bounds.Height - bounds.Width) / 2;
@@ -521,43 +435,27 @@ namespace Metal_Code
         {
             if (sender is not Path path || path.Tag is not PartPlacement placement) return;
 
-            // 🔥 ПРИОРИТЕТ: Режим непрерывного копирования (активируется на любой детали)
             if (IsContinuousCopyMode)
             {
                 e.Handled = true;
-
-                // Сбрасываем старое выделение и выбираем только эту деталь как базу для копирования
                 ClearSelection();
                 _selectedPlacements.Add(placement);
-                // Если у вас есть метод визуального выделения (например, HighlightPlacement), вызовите его здесь
-
                 _isContinuousCopying = true;
                 _lockedAxis = CopyAxis.None;
                 _baseCopyPart = placement;
                 _baseCopyX = placement.X;
                 _baseCopyY = placement.Y;
                 _mouseDownPos = e.GetPosition(_invertedLayer);
-
                 _pendingContinuousCopies.Clear();
                 _pendingContinuousPaths.Clear();
-
                 _invertedLayer.CaptureMouse();
-                return; // Прерываем выполнение, чтобы не сработала стандартная логика
+                return;
             }
 
-            // --- СТАНДАРТНАЯ ЛОГИКА (Перемещение или однократное копирование через SHIFT) ---
             bool isShiftPressed = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
+            List<PartPlacement> toDrag = _selectedPlacements.Contains(placement) ? _selectedPlacements.ToList() : new List<PartPlacement> { placement };
 
-            List<PartPlacement> toDrag;
-            if (_selectedPlacements.Contains(placement))
-            {
-                toDrag = _selectedPlacements.ToList();
-            }
-            else
-            {
-                ClearSelection();
-                toDrag = new List<PartPlacement> { placement };
-            }
+            if (!_selectedPlacements.Contains(placement) && !isShiftPressed) ClearSelection();
 
             if (isShiftPressed)
             {
@@ -569,79 +467,50 @@ namespace Metal_Code
             {
                 StartDrag(toDrag, isCopying: false);
             }
-
             e.Handled = true;
         }
 
-        /// <summary>
-        /// Создаёт копии указанных деталей и добавляет их в текущий лист.
-        /// Возвращает список новых PartPlacement.
-        /// </summary>
         private List<PartPlacement> CopyPlacements(List<PartPlacement> source)
         {
             var copies = new List<PartPlacement>();
-
             foreach (var src in source)
             {
-                var copy = new PartPlacement
-                {
-                    Part = src.Part,
-                    X = src.X,
-                    Y = src.Y,
-                    Rotation = src.Rotation
-                };
+                var copy = new PartPlacement { Part = src.Part, X = src.X, Y = src.Y, Rotation = src.Rotation };
                 copies.Add(copy);
                 _currentSheet.Parts.Add(copy);
             }
 
-            // Увеличиваем количество деталей
-            var grouped = copies.GroupBy(c => c.Part);
-            foreach (var group in grouped)
+            foreach (var group in copies.GroupBy(c => c.Part))
             {
                 group.Key.Count += group.Count();
-                // 🔥 Явно уведомляем об изменении Count
                 group.Key.NotifyTotalChanged();
             }
 
-            // Перерисовываем лист БЕЗ сброса состояния интерактивности
             _partsCanvas.Children.Clear();
             foreach (var placement in _currentSheet.Parts)
             {
-                if (placement.Part.DisplayGeometry == null)
-                    PartPreviewGenerator.EnsureDisplayGeometry(placement.Part);
+                if (placement.Part.DisplayGeometry == null) PartPreviewGenerator.EnsureDisplayGeometry(placement.Part);
                 AddPartToCanvas(placement);
             }
-
             return copies;
         }
 
-        /// <summary>
-        /// Начинает перетаскивание указанных деталей.
-        /// </summary>
         private void StartDrag(List<PartPlacement> placements, bool isCopying = false)
         {
             _isCopyOperation = isCopying;
-
-            _activePlacements.Clear();
-            _activePaths.Clear();
-            _originalPositions.Clear();
-            _originalVisuals.Clear();
+            _activePlacements.Clear(); _activePaths.Clear(); _originalPositions.Clear(); _originalVisuals.Clear();
 
             foreach (var plc in placements)
             {
                 _activePlacements.Add(plc);
                 _originalPositions[plc] = (plc.X, plc.Y);
-
                 var path = _partsCanvas.Children.OfType<Path>().FirstOrDefault(p => p.Tag == plc);
                 if (path != null)
                 {
                     _activePaths[plc] = path;
                     _originalVisuals[path] = (path.Stroke, path.Fill);
-
-                    // Поднимаем наверх (Z-order)
                     _partsCanvas.Children.Remove(path);
                     _partsCanvas.Children.Add(path);
-
                     path.Stroke = Brushes.Orange;
                     path.StrokeThickness = 3;
                 }
@@ -649,10 +518,7 @@ namespace Metal_Code
 
             _dragStartPoint = Mouse.GetPosition(_invertedLayer);
             _isDragging = true;
-
-            _invertedLayer.Focusable = true;
-            _invertedLayer.Focus();
-            _invertedLayer.CaptureMouse();
+            _invertedLayer.Focusable = true; _invertedLayer.Focus(); _invertedLayer.CaptureMouse();
 
             if (_activePlacements.Count == 1)
             {
@@ -665,25 +531,13 @@ namespace Metal_Code
         private void InvertedLayer_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.OriginalSource is Path) return;
-
             ClearSelection();
-
             _selectionStartPoint = e.GetPosition(_invertedLayer);
             _isSelecting = true;
-
-            _selectionRect = new Rectangle
-            {
-                Stroke = new SolidColorBrush(Color.FromRgb(0, 120, 215)),
-                StrokeThickness = 2,
-                StrokeDashArray = new DoubleCollection { 6, 3 },
-                Fill = new SolidColorBrush(Color.FromArgb(70, 0, 120, 215)),
-                IsHitTestVisible = false
-            };
-
+            _selectionRect = new Rectangle { Stroke = new SolidColorBrush(Color.FromRgb(0, 120, 215)), StrokeThickness = 2, StrokeDashArray = new DoubleCollection { 6, 3 }, Fill = new SolidColorBrush(Color.FromArgb(70, 0, 120, 215)), IsHitTestVisible = false };
             Canvas.SetLeft(_selectionRect, _selectionStartPoint.X);
             Canvas.SetTop(_selectionRect, _selectionStartPoint.Y);
             _invertedLayer.Children.Add(_selectionRect);
-
             _invertedLayer.CaptureMouse();
             e.Handled = true;
         }
@@ -692,29 +546,18 @@ namespace Metal_Code
         {
             Point currentPos = e.GetPosition(_invertedLayer);
 
-            // 🔥 ЛОГИКА НЕПРЕРЫВНОГО КОПИРОВАНИЯ (МАССИВА)
             if (_isContinuousCopying && _baseCopyPart != null)
             {
                 double _deltaX = currentPos.X - _mouseDownPos.X;
                 double _deltaY = currentPos.Y - _mouseDownPos.Y;
 
-                // 1. Определяем ось при сдвиге > 10 пикселей
-                if (_lockedAxis == CopyAxis.None)
-                {
-                    if (Math.Abs(_deltaX) > 10 || Math.Abs(_deltaY) > 10)
-                    {
-                        _lockedAxis = Math.Abs(_deltaX) > Math.Abs(_deltaY) ? CopyAxis.X : CopyAxis.Y;
-                    }
-                }
+                if (_lockedAxis == CopyAxis.None && (Math.Abs(_deltaX) > 10 || Math.Abs(_deltaY) > 10))
+                    _lockedAxis = Math.Abs(_deltaX) > Math.Abs(_deltaY) ? CopyAxis.X : CopyAxis.Y;
 
-                // 2. Генерируем шлейф
                 if (_lockedAxis != CopyAxis.None)
                 {
                     var (w, h) = NestingHelper.GetPartDimensions(_baseCopyPart.Part, _baseCopyPart.Rotation);
-
-                    // ВАЖНО: Убедитесь, что NestingHelper.Spacing существует. Если нет, замените на константу, например, 5.0
                     double step = (_lockedAxis == CopyAxis.X ? w : h) + NestingHelper.Spacing;
-
                     double delta = _lockedAxis == CopyAxis.X ? _deltaX : _deltaY;
                     int direction = Math.Sign(delta);
                     int steps = (int)(Math.Abs(delta) / step);
@@ -726,48 +569,27 @@ namespace Metal_Code
                         double candidateX = _baseCopyX + (_lockedAxis == CopyAxis.X ? (i * step * direction) : 0);
                         double candidateY = _baseCopyY + (_lockedAxis == CopyAxis.Y ? (i * step * direction) : 0);
 
-                        // 🔥 Создаем временный объект для честной проверки коллизий
-                        var tempPlc = new PartPlacement
-                        {
-                            Part = _baseCopyPart.Part,
-                            X = candidateX,
-                            Y = candidateY,
-                            Rotation = _baseCopyPart.Rotation
-                        };
+                        var tempPlc = new PartPlacement { Part = _baseCopyPart.Part, X = candidateX, Y = candidateY, Rotation = _baseCopyPart.Rotation };
 
-                        // Если ваш метод IsValidPlacement имеет другую сигнатуру, адаптируйте эту строку:
                         if (NestingHelper.IsValidPlacement(_currentSheet, tempPlc, tempPlc.X, tempPlc.Y, tempPlc.Rotation))
                         {
                             _pendingContinuousCopies.Add(tempPlc);
-
                             var path = CreatePreviewPath(_baseCopyPart.Part, candidateX, candidateY, _baseCopyPart.Rotation);
-                            if (path != null)
-                            {
-                                _partsCanvas.Children.Add(path); // Убедитесь, что имя Canvas верное (_partsCanvas или _rootCanvas)
-                                _pendingContinuousPaths.Add(path);
-                            }
+                            if (path != null) { _partsCanvas.Children.Add(path); _pendingContinuousPaths.Add(path); }
                         }
-                        else
-                        {
-                            // Столкновение или выход за границы: прерываем шлейф
-                            break;
-                        }
+                        else { break; }
                     }
                 }
             }
 
-            // Rubber band
             if (_isSelecting && _selectionRect != null)
             {
                 double x = Math.Min(_selectionStartPoint.X, currentPos.X);
                 double y = Math.Min(_selectionStartPoint.Y, currentPos.Y);
-                double w = Math.Abs(currentPos.X - _selectionStartPoint.X);
-                double h = Math.Abs(currentPos.Y - _selectionStartPoint.Y);
-
+                _selectionRect.Width = Math.Abs(currentPos.X - _selectionStartPoint.X);
+                _selectionRect.Height = Math.Abs(currentPos.Y - _selectionStartPoint.Y);
                 Canvas.SetLeft(_selectionRect, x);
                 Canvas.SetTop(_selectionRect, y);
-                _selectionRect.Width = w;
-                _selectionRect.Height = h;
                 return;
             }
 
@@ -775,8 +597,8 @@ namespace Metal_Code
 
             double deltaX = currentPos.X - _dragStartPoint.X;
             double deltaY = currentPos.Y - _dragStartPoint.Y;
-
             var newPositions = new Dictionary<PartPlacement, (double X, double Y)>();
+
             foreach (var plc in _activePlacements)
             {
                 var (origX, origY) = _originalPositions[plc];
@@ -789,18 +611,9 @@ namespace Metal_Code
             {
                 if (!_activePaths.TryGetValue(plc, out var path)) continue;
                 var (newX, newY) = newPositions[plc];
-
-                plc.X = newX;
-                plc.Y = newY;
-
+                plc.X = newX; plc.Y = newY;
                 path.Stroke = isValid ? Brushes.LimeGreen : Brushes.Red;
-                ApplyPlacementToPath(path, new PartPlacement
-                {
-                    Part = plc.Part,
-                    X = newX,
-                    Y = newY,
-                    Rotation = plc.Rotation
-                });
+                ApplyPlacementToPath(path, new PartPlacement { Part = plc.Part, X = newX, Y = newY, Rotation = plc.Rotation });
             }
 
             if (_activePlacements.Count == 1)
@@ -812,7 +625,6 @@ namespace Metal_Code
 
         private void InvertedLayer_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            // 🔥 ЗАВЕРШЕНИЕ НЕПРЕРЫВНОГО КОПИРОВАНИЯ
             if (_isContinuousCopying)
             {
                 int addedCount = 0;
@@ -826,41 +638,29 @@ namespace Metal_Code
 
                 ClearContinuousPreview();
                 _invertedLayer.ReleaseMouseCapture();
-
-                // Сброс флагов
-                _isContinuousCopying = false;
-                _lockedAxis = CopyAxis.None;
-                _baseCopyPart = null;
+                _isContinuousCopying = false; _lockedAxis = CopyAxis.None; _baseCopyPart = null;
 
                 if (addedCount > 0)
                 {
                     NestingHelper.OptimizeSheetSize(_currentSheet);
                     RebuildLayout(_currentSheet);
                     ShowSheet(_currentSheet);
-                    RecalculateSheetParameters();
+                    RecalculateSheetMetrics();
                     MainWindow.M.StatusBegin($"Добавлено копий: {addedCount}", MainWindow.StatusMessageType.Success);
                 }
                 else
                 {
                     MainWindow.M.StatusBegin("Копирование отменено: нет свободного места", MainWindow.StatusMessageType.Warning);
                 }
-
-                return; // Прерываем выполнение, чтобы не сработала стандартная логика MouseUp
-            }
-
-            Point endPos = e.GetPosition(_invertedLayer);
-
-            if (_isSelecting)
-            {
-                FinishSelection(endPos);
                 return;
             }
 
+            Point endPos = e.GetPosition(_invertedLayer);
+            if (_isSelecting) { FinishSelection(endPos); return; }
             if (!_isDragging || !_activePlacements.Any()) return;
 
             double deltaX = endPos.X - _dragStartPoint.X;
             double deltaY = endPos.Y - _dragStartPoint.Y;
-
             var finalPositions = new Dictionary<PartPlacement, (double X, double Y)>();
             foreach (var plc in _activePlacements)
             {
@@ -870,19 +670,9 @@ namespace Metal_Code
 
             bool wasSingle = _activePlacements.Count == 1;
 
-            // 🔥 Определяем, были ли это копии (они уже в _currentSheet.Parts)
-            bool wasCopying = _activePlacements.All(p => _currentSheet.Parts.Contains(p) &&
-                                                         !_originalPositions.ContainsKey(p) == false);
-            // Упрощённо: если детали были скопированы, они уже в _currentSheet.Parts с самого начала
-
             if (IsGroupPlacementValid(finalPositions, _activePlacements))
             {
-                foreach (var plc in _activePlacements)
-                {
-                    plc.X = finalPositions[plc].X;
-                    plc.Y = finalPositions[plc].Y;
-                }
-
+                foreach (var plc in _activePlacements) { plc.X = finalPositions[plc].X; plc.Y = finalPositions[plc].Y; }
                 CommitChanges($"Перемещено деталей: {_activePlacements.Count}");
             }
             else if (wasSingle)
@@ -893,88 +683,47 @@ namespace Metal_Code
 
                 if (result.Found)
                 {
-                    only.X = result.X;
-                    only.Y = result.Y;
-
+                    only.X = result.X; only.Y = result.Y;
                     if (_activePaths.TryGetValue(only, out var path))
                     {
                         path.Stroke = Brushes.Yellow;
-                        System.Threading.Tasks.Task.Delay(200).ContinueWith(_ =>
-                        {
-                            Application.Current.Dispatcher.Invoke(() =>
-                            {
-                                if (_activePaths.TryGetValue(only, out var p))
-                                    RestoreVisual(p);
-                            });
-                        });
+                        System.Threading.Tasks.Task.Delay(200).ContinueWith(_ => Application.Current.Dispatcher.Invoke(() => { if (_activePaths.TryGetValue(only, out var p)) RestoreVisual(p); }));
                     }
-
                     CommitChanges($"Деталь автоматически размещена в позиции ({result.X:0}, {result.Y:0})");
                 }
-                else
-                {
-                    RollbackDrag();
-                    MainWindow.M.StatusBegin("Не удалось найти подходящее место для детали",
-                        MainWindow.StatusMessageType.Warning);
-                }
+                else { RollbackDrag(); MainWindow.M.StatusBegin("Не удалось найти подходящее место для детали", MainWindow.StatusMessageType.Warning); }
             }
-            else
-            {
-                RollbackDrag();
-                MainWindow.M.StatusBegin("Не удалось переместить группу — нет свободного места",
-                    MainWindow.StatusMessageType.Warning);
-            }
+            else { RollbackDrag(); MainWindow.M.StatusBegin("Не удалось переместить группу — нет свободного места", MainWindow.StatusMessageType.Warning); }
 
             FinishDrag();
         }
 
         private void ClearContinuousPreview()
         {
-            foreach (var path in _pendingContinuousPaths)
-            {
-                if (_partsCanvas.Children.Contains(path)) // Или _rootCanvas, в зависимости от того, куда вы добавляете path
-                {
-                    _partsCanvas.Children.Remove(path);
-                }
-            }
-            _pendingContinuousPaths.Clear();
-            _pendingContinuousCopies.Clear();
+            foreach (var path in _pendingContinuousPaths) if (_partsCanvas.Children.Contains(path)) _partsCanvas.Children.Remove(path);
+            _pendingContinuousPaths.Clear(); _pendingContinuousCopies.Clear();
         }
 
         private void FinishSelection(Point endPoint)
         {
-            _isSelecting = false;
-            _invertedLayer.ReleaseMouseCapture();
-
-            if (_selectionRect != null)
-            {
-                _invertedLayer.Children.Remove(_selectionRect);
-                _selectionRect = null;
-            }
+            _isSelecting = false; _invertedLayer.ReleaseMouseCapture();
+            if (_selectionRect != null) { _invertedLayer.Children.Remove(_selectionRect); _selectionRect = null; }
 
             double x = Math.Min(_selectionStartPoint.X, endPoint.X);
             double y = Math.Min(_selectionStartPoint.Y, endPoint.Y);
             double w = Math.Abs(endPoint.X - _selectionStartPoint.X);
             double h = Math.Abs(endPoint.Y - _selectionStartPoint.Y);
-
             if (w < 5 || h < 5) return;
 
             var selectionBounds = new Rect(x, y, w, h);
-
             foreach (var placement in _currentSheet.Parts)
             {
                 var (pw, ph) = NestingHelper.GetPartDimensions(placement.Part, placement.Rotation);
                 var partBounds = new Rect(placement.X, placement.Y, pw, ph);
-
-                if (selectionBounds.IntersectsWith(partBounds) || selectionBounds.Contains(partBounds))
-                    _selectedPlacements.Add(placement);
+                if (selectionBounds.IntersectsWith(partBounds) || selectionBounds.Contains(partBounds)) _selectedPlacements.Add(placement);
             }
-
             UpdateSelectionVisuals();
-
-            if (_selectedPlacements.Count > 0)
-                MainWindow.M.StatusBegin($"Выделено деталей: {_selectedPlacements.Count}",
-                    MainWindow.StatusMessageType.Info);
+            if (_selectedPlacements.Count > 0) MainWindow.M.StatusBegin($"Выделено деталей: {_selectedPlacements.Count}", MainWindow.StatusMessageType.Info);
         }
 
         private void CommitChanges(string statusMessage)
@@ -982,59 +731,33 @@ namespace Metal_Code
             NestingHelper.OptimizeSheetSize(_currentSheet);
             RebuildLayout(_currentSheet);
             ShowSheet(_currentSheet);
-            RecalculateSheetParameters();
+            RecalculateSheetMetrics();
             MainWindow.M.StatusBegin(statusMessage, MainWindow.StatusMessageType.Success);
         }
 
         private void RollbackDrag()
         {
             bool wasCopying = _isCopyOperation;
-
             foreach (var plc in _activePlacements)
             {
-                if (wasCopying)
-                {
-                    _currentSheet.Parts.Remove(plc);
-                    plc.Part.Count--;
-                    plc.Part.NotifyTotalChanged();
-                }
-                else if (_originalPositions.TryGetValue(plc, out var orig))
-                {
-                    plc.X = orig.X;
-                    plc.Y = orig.Y;
-                }
+                if (wasCopying) { _currentSheet.Parts.Remove(plc); plc.Part.Count--; plc.Part.NotifyTotalChanged(); }
+                else if (_originalPositions.TryGetValue(plc, out var orig)) { plc.X = orig.X; plc.Y = orig.Y; }
             }
-
-            RebuildLayout(_currentSheet);
-            ShowSheet(_currentSheet);
-
-            // 🔥 Пересчитываем параметры после любой отмены
-            RecalculateSheetParameters();
+            RebuildLayout(_currentSheet); ShowSheet(_currentSheet);
+            RecalculateSheetMetrics();
         }
 
         private void FinishDrag()
         {
-            _isDragging = false;
-            _invertedLayer.ReleaseMouseCapture();
-
-            foreach (var path in _activePaths.Values)
-                RestoreVisual(path);
-
-            _activePlacements.Clear();
-            _activePaths.Clear();
-            _originalPositions.Clear();
-            _originalVisuals.Clear();
+            _isDragging = false; _invertedLayer.ReleaseMouseCapture();
+            foreach (var path in _activePaths.Values) RestoreVisual(path);
+            _activePlacements.Clear(); _activePaths.Clear(); _originalPositions.Clear(); _originalVisuals.Clear();
             ClearValidationVisuals();
         }
 
         private void RestoreVisual(Path path)
         {
-            if (_originalVisuals.TryGetValue(path, out var vis))
-            {
-                path.Stroke = vis.Stroke;
-                path.Fill = vis.Fill;
-                path.StrokeThickness = 1.5;
-            }
+            if (_originalVisuals.TryGetValue(path, out var vis)) { path.Stroke = vis.Stroke; path.Fill = vis.Fill; path.StrokeThickness = 1.5; }
             else
             {
                 var placement = path.Tag as PartPlacement;
@@ -1045,157 +768,70 @@ namespace Metal_Code
 
         private void NestingPreviewControl_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Escape)
-            {
-                if (_selectedPlacements.Any())
-                {
-                    ClearSelection();
-                    MainWindow.M.StatusBegin("Выделение снято", MainWindow.StatusMessageType.Info);
-                    e.Handled = true;
-                }
-                return;
-            }
-
-            // 🔥 Удаление деталей
-            if (e.Key == Key.Delete)
-            {
-                DeleteSelectedParts();
-                e.Handled = true;
-                return;
-            }
-
+            if (e.Key == Key.Escape && _selectedPlacements.Any()) { ClearSelection(); MainWindow.M.StatusBegin("Выделение снято", MainWindow.StatusMessageType.Info); e.Handled = true; return; }
+            if (e.Key == Key.Delete) { DeleteSelectedParts(); e.Handled = true; return; }
             if (e.Key != Key.Home && e.Key != Key.End) return;
 
-            var targets = _isDragging && _activePlacements.Any()
-                ? _activePlacements.ToList()
-                : _selectedPlacements.ToList();
-
-            if (!targets.Any()) return;
-
-            RotateTargets(targets, e.Key == Key.Home ? 90 : -90, skipValidation: _isDragging);
-            e.Handled = true;
+            var targets = (_isDragging && _activePlacements.Any()) ? _activePlacements.ToList() : _selectedPlacements.ToList();
+            if (targets.Any()) { RotateTargets(targets, e.Key == Key.Home ? 90 : -90, skipValidation: _isDragging); e.Handled = true; }
         }
 
-        /// <summary>
-        /// Удаляет выделенные детали с листа.
-        /// </summary>
         private void DeleteSelectedParts()
         {
-            var candidates = _selectedPlacements.Any()
-                ? _selectedPlacements.ToList()
-                : _activePlacements.ToList();
-
-            if (!candidates.Any())
-            {
-                MainWindow.M.StatusBegin("Нет деталей для удаления", MainWindow.StatusMessageType.Warning);
-                return;
-            }
+            var candidates = _selectedPlacements.Any() ? _selectedPlacements.ToList() : _activePlacements.ToList();
+            if (!candidates.Any()) { MainWindow.M.StatusBegin("Нет деталей для удаления", MainWindow.StatusMessageType.Warning); return; }
 
             var toDelete = candidates.Where(c => _currentSheet.Parts.Contains(c)).ToList();
+            if (!toDelete.Any()) { MainWindow.M.StatusBegin("Выделенные детали отсутствуют на листе", MainWindow.StatusMessageType.Warning); return; }
 
-            if (!toDelete.Any())
-            {
-                MainWindow.M.StatusBegin("Выделенные детали отсутствуют на листе", MainWindow.StatusMessageType.Warning);
-                return;
-            }
-
-            foreach (var placement in toDelete)
-            {
-                _currentSheet.Parts.Remove(placement);
-                placement.Part.Count--;
-                placement.Part.NotifyTotalChanged();
-            }
-
+            foreach (var placement in toDelete) { _currentSheet.Parts.Remove(placement); placement.Part.Count--; placement.Part.NotifyTotalChanged(); }
             MainWindow.M.StatusBegin($"Удалено деталей: {toDelete.Count}", MainWindow.StatusMessageType.Success);
 
-            ClearSelection();
-            _activePlacements.Clear();
-
-            NestingHelper.OptimizeSheetSize(_currentSheet);
-            RebuildLayout(_currentSheet);
-            ShowSheet(_currentSheet);
-            RecalculateSheetParameters();
+            ClearSelection(); _activePlacements.Clear();
+            NestingHelper.OptimizeSheetSize(_currentSheet); RebuildLayout(_currentSheet); ShowSheet(_currentSheet);
+            RecalculateSheetMetrics();
         }
 
-        /// <summary>
-        /// Поворачивает указанные детали вокруг их общего центра.
-        /// </summary>
-        /// <param name="skipValidation">Если true, не проверяет коллизии и границы (во время перетаскивания).</param>
         private void RotateTargets(List<PartPlacement> targets, double rotationDelta, bool skipValidation = false)
         {
             double rotationRad = rotationDelta * Math.PI / 180.0;
-
-            // 1. Находим центр группы
             double groupCenterX = 0, groupCenterY = 0;
-            foreach (var plc in targets)
-            {
-                var (w, h) = NestingHelper.GetPartDimensions(plc.Part, plc.Rotation);
-                groupCenterX += plc.X + w / 2;
-                groupCenterY += plc.Y + h / 2;
-            }
-            groupCenterX /= targets.Count;
-            groupCenterY /= targets.Count;
+            foreach (var plc in targets) { var (w, h) = NestingHelper.GetPartDimensions(plc.Part, plc.Rotation); groupCenterX += plc.X + w / 2; groupCenterY += plc.Y + h / 2; }
+            groupCenterX /= targets.Count; groupCenterY /= targets.Count;
 
-            // 2. Рассчитываем новые состояния
             var newStates = new Dictionary<PartPlacement, (double X, double Y, double Rotation)>();
             foreach (var plc in targets)
             {
                 if (plc.Part.PartType == PartType.Round) continue;
-
                 var (curW, curH) = NestingHelper.GetPartDimensions(plc.Part, plc.Rotation);
-                double partCenterX = plc.X + curW / 2;
-                double partCenterY = plc.Y + curH / 2;
-
-                double dx = partCenterX - groupCenterX;
-                double dy = partCenterY - groupCenterY;
+                double dx = (plc.X + curW / 2) - groupCenterX;
+                double dy = (plc.Y + curH / 2) - groupCenterY;
                 double rotCenterX = groupCenterX + dx * Math.Cos(rotationRad) - dy * Math.Sin(rotationRad);
                 double rotCenterY = groupCenterY + dx * Math.Sin(rotationRad) + dy * Math.Cos(rotationRad);
-
                 double targetRot = (plc.Rotation + rotationDelta + 360) % 360;
                 var (rotW, rotH) = NestingHelper.GetPartDimensions(plc.Part, targetRot);
-
-                double targetX = rotCenterX - rotW / 2;
-                double targetY = rotCenterY - rotH / 2;
-
-                newStates[plc] = (Math.Round(targetX), Math.Round(targetY), targetRot);
+                newStates[plc] = (Math.Round(rotCenterX - rotW / 2), Math.Round(rotCenterY - rotH / 2), targetRot);
             }
 
             if (!newStates.Any()) return;
 
-            // 3. Проверка валидности
             if (!skipValidation)
             {
-                string failReason = "";
-                PartPlacement? collisionPartner = null;
-
+                string failReason = ""; PartPlacement? collisionPartner = null;
                 foreach (var state in newStates)
                 {
-                    var plcToCheck = state.Key;
-                    var (chkX, chkY, chkRot) = state.Value;
+                    var plcToCheck = state.Key; var (chkX, chkY, chkRot) = state.Value;
                     var (chkW, chkH) = NestingHelper.GetPartDimensions(plcToCheck.Part, chkRot);
 
-                    if (chkX < NestingHelper.Spacing || chkY < NestingHelper.Spacing ||
-                        chkX + chkW > _currentSheet.Width - NestingHelper.Spacing ||
-                        chkY + chkH > _currentSheet.Height - NestingHelper.Spacing)
-                    {
-                        failReason = "Деталь выходит за границы листа после поворота";
-                        break;
-                    }
+                    if (chkX < NestingHelper.Spacing || chkY < NestingHelper.Spacing || chkX + chkW > _currentSheet.Width - NestingHelper.Spacing || chkY + chkH > _currentSheet.Height - NestingHelper.Spacing)
+                    { failReason = "Деталь выходит за границы листа после поворота"; break; }
 
                     foreach (var existing in _currentSheet.Parts)
                     {
                         if (targets.Contains(existing)) continue;
-
                         var (exW, exH) = NestingHelper.GetPartDimensions(existing.Part, existing.Rotation);
-
-                        if (chkX + chkW + NestingHelper.Spacing <= existing.X) continue;
-                        if (existing.X + exW + NestingHelper.Spacing <= chkX) continue;
-                        if (chkY + chkH + NestingHelper.Spacing <= existing.Y) continue;
-                        if (existing.Y + exH + NestingHelper.Spacing <= chkY) continue;
-
-                        failReason = $"Коллизия с '{existing.Part.Title}'";
-                        collisionPartner = existing;
-                        break;
+                        if (chkX + chkW + NestingHelper.Spacing <= existing.X || existing.X + exW + NestingHelper.Spacing <= chkX || chkY + chkH + NestingHelper.Spacing <= existing.Y || existing.Y + exH + NestingHelper.Spacing <= chkY) continue;
+                        failReason = $"Коллизия с '{existing.Part.Title}'"; collisionPartner = existing; break;
                     }
                     if (!string.IsNullOrEmpty(failReason)) break;
                 }
@@ -1203,83 +839,42 @@ namespace Metal_Code
                 if (!string.IsNullOrEmpty(failReason))
                 {
                     System.Media.SystemSounds.Beep.Play();
-                    MainWindow.M.StatusBegin($"Не удалось повернуть: {failReason}",
-                        MainWindow.StatusMessageType.Warning);
-
+                    MainWindow.M.StatusBegin($"Не удалось повернуть: {failReason}", MainWindow.StatusMessageType.Warning);
                     if (collisionPartner != null)
                     {
-                        var obstaclePath = _partsCanvas.Children.OfType<Path>()
-                            .FirstOrDefault(p => p.Tag == collisionPartner);
+                        var obstaclePath = _partsCanvas.Children.OfType<Path>().FirstOrDefault(p => p.Tag == collisionPartner);
                         if (obstaclePath != null)
                         {
-                            var originalStroke = obstaclePath.Stroke;
-                            var originalThickness = obstaclePath.StrokeThickness;
-                            obstaclePath.Stroke = Brushes.Red;
-                            obstaclePath.StrokeThickness = 4;
-
-                            System.Threading.Tasks.Task.Delay(1500).ContinueWith(_ =>
-                            {
-                                Application.Current.Dispatcher.Invoke(() =>
-                                {
-                                    obstaclePath.Stroke = originalStroke;
-                                    obstaclePath.StrokeThickness = originalThickness;
-                                });
-                            });
+                            var originalStroke = obstaclePath.Stroke; var originalThickness = obstaclePath.StrokeThickness;
+                            obstaclePath.Stroke = Brushes.Red; obstaclePath.StrokeThickness = 4;
+                            System.Threading.Tasks.Task.Delay(1500).ContinueWith(_ => Application.Current.Dispatcher.Invoke(() => { obstaclePath.Stroke = originalStroke; obstaclePath.StrokeThickness = originalThickness; }));
                         }
                     }
                     return;
                 }
             }
 
-            // 4. Применяем повороты
             foreach (var state in newStates)
             {
-                var plc = state.Key;
-                var (appX, appY, appRot) = state.Value;
-
-                plc.X = appX;
-                plc.Y = appY;
-                plc.Rotation = appRot;
-
+                var plc = state.Key; var (appX, appY, appRot) = state.Value;
+                plc.X = appX; plc.Y = appY; plc.Rotation = appRot;
                 var path = _partsCanvas.Children.OfType<Path>().FirstOrDefault(p => p.Tag == plc);
-                if (path != null)
-                {
-                    ApplyPlacementToPath(path, plc);
-                    var (finW, finH) = NestingHelper.GetPartDimensions(plc.Part, appRot);
-                    path.ToolTip = $"{plc.Part.Title}\n{finW:0}×{finH:0}мм (↻)";
-                }
-
-                if (_isDragging && _originalPositions.ContainsKey(plc))
-                    _originalPositions[plc] = (appX, appY);
+                if (path != null) { ApplyPlacementToPath(path, plc); var (finW, finH) = NestingHelper.GetPartDimensions(plc.Part, appRot); path.ToolTip = $"{plc.Part.Title}\n{finW:0}×{finH:0}мм (↻)"; }
+                if (_isDragging && _originalPositions.ContainsKey(plc)) _originalPositions[plc] = (appX, appY);
             }
 
             UpdateSelectionVisuals();
-
-            if (_isDragging)
-            {
-                _dragStartPoint = Mouse.GetPosition(_invertedLayer);
-                ClearValidationVisuals();
-                NestingHelper.OptimizeSheetSize(_currentSheet);
-            }
-            else
-            {
-                CommitChanges($"Повернуто деталей: {newStates.Count} на {rotationDelta}°");
-            }
+            if (_isDragging) { _dragStartPoint = Mouse.GetPosition(_invertedLayer); ClearValidationVisuals(); NestingHelper.OptimizeSheetSize(_currentSheet); }
+            else { CommitChanges($"Повернуто деталей: {newStates.Count} на {rotationDelta}°"); }
         }
 
         private void UpdateSelectionVisuals()
         {
             foreach (var child in _partsCanvas.Children.OfType<Path>())
             {
-                if (child.Tag is PartPlacement && _originalVisuals.TryGetValue(child, out var vis))
-                {
-                    child.Stroke = vis.Stroke;
-                    child.Fill = vis.Fill;
-                    child.StrokeThickness = 1.5;
-                }
+                if (child.Tag is PartPlacement && _originalVisuals.TryGetValue(child, out var vis)) { child.Stroke = vis.Stroke; child.Fill = vis.Fill; child.StrokeThickness = 1.5; }
             }
             _originalVisuals.Clear();
-
             foreach (var child in _partsCanvas.Children.OfType<Path>())
             {
                 if (child.Tag is PartPlacement placement && _selectedPlacements.Contains(placement))
@@ -1292,36 +887,21 @@ namespace Metal_Code
             }
         }
 
-        private void ClearSelection()
-        {
-            _selectedPlacements.Clear();
-            UpdateSelectionVisuals();
-        }
+        private void ClearSelection() { _selectedPlacements.Clear(); UpdateSelectionVisuals(); }
 
         private bool IsGroupPlacementValid(Dictionary<PartPlacement, (double X, double Y)> newPositions, List<PartPlacement> ignorePlacements)
         {
             foreach (var kvp in newPositions)
             {
-                var plc = kvp.Key;
-                var (newX, newY) = kvp.Value;
+                var plc = kvp.Key; var (newX, newY) = kvp.Value;
                 var (w, h) = NestingHelper.GetPartDimensions(plc.Part, plc.Rotation);
-
-                if (newX < NestingHelper.Spacing || newY < NestingHelper.Spacing ||
-                    newX + w > _currentSheet.Width - NestingHelper.Spacing ||
-                    newY + h > _currentSheet.Height - NestingHelper.Spacing)
-                    return false;
+                if (newX < NestingHelper.Spacing || newY < NestingHelper.Spacing || newX + w > _currentSheet.Width - NestingHelper.Spacing || newY + h > _currentSheet.Height - NestingHelper.Spacing) return false;
 
                 foreach (var existing in _currentSheet.Parts)
                 {
                     if (ignorePlacements.Contains(existing)) continue;
-
                     var (exW, exH) = NestingHelper.GetPartDimensions(existing.Part, existing.Rotation);
-
-                    if (newX + w + NestingHelper.Spacing <= existing.X) continue;
-                    if (existing.X + exW + NestingHelper.Spacing <= newX) continue;
-                    if (newY + h + NestingHelper.Spacing <= existing.Y) continue;
-                    if (existing.Y + exH + NestingHelper.Spacing <= newY) continue;
-
+                    if (newX + w + NestingHelper.Spacing <= existing.X || existing.X + exW + NestingHelper.Spacing <= newX || newY + h + NestingHelper.Spacing <= existing.Y || existing.Y + exH + NestingHelper.Spacing <= newY) continue;
                     return false;
                 }
             }
@@ -1330,90 +910,37 @@ namespace Metal_Code
 
         private void DrawValidationZones(double movingX, double movingY, double movingRotation, bool isValid)
         {
-            ClearValidationVisuals();
-            _partsCanvas.UpdateLayout();
-
-            // 1. Зоны запрета вокруг всех деталей (кроме активных)
+            ClearValidationVisuals(); _partsCanvas.UpdateLayout();
             foreach (var placement in _currentSheet.Parts)
             {
                 if (_activePlacements.Contains(placement)) continue;
-
                 var (w, h) = NestingHelper.GetPartDimensions(placement.Part, placement.Rotation);
-
-                var zoneRect = new Rectangle
-                {
-                    Width = w + NestingHelper.Spacing * 2,
-                    Height = h + NestingHelper.Spacing * 2,
-                    Fill = new SolidColorBrush(Color.FromArgb(40, 255, 0, 0)),
-                    Stroke = new SolidColorBrush(Color.FromArgb(80, 255, 0, 0)),
-                    StrokeThickness = 1,
-                    StrokeDashArray = new DoubleCollection { 3, 3 },
-                    IsHitTestVisible = false
-                };
-
-                Canvas.SetLeft(zoneRect, placement.X - NestingHelper.Spacing);
-                Canvas.SetTop(zoneRect, placement.Y - NestingHelper.Spacing);
-
-                _partsCanvas.Children.Add(zoneRect);
-                _validationVisuals.Add(zoneRect);
+                var zoneRect = new Rectangle { Width = w + NestingHelper.Spacing * 2, Height = h + NestingHelper.Spacing * 2, Fill = new SolidColorBrush(Color.FromArgb(40, 255, 0, 0)), Stroke = new SolidColorBrush(Color.FromArgb(80, 255, 0, 0)), StrokeThickness = 1, StrokeDashArray = new DoubleCollection { 3, 3 }, IsHitTestVisible = false };
+                Canvas.SetLeft(zoneRect, placement.X - NestingHelper.Spacing); Canvas.SetTop(zoneRect, placement.Y - NestingHelper.Spacing);
+                _partsCanvas.Children.Add(zoneRect); _validationVisuals.Add(zoneRect);
             }
 
-            // 2. Границы листа
-            var boundaryRect = new Rectangle
-            {
-                Width = _currentSheet.Width - NestingHelper.Spacing * 2,
-                Height = _currentSheet.Height - NestingHelper.Spacing * 2,
-                Fill = Brushes.Transparent,
-                Stroke = new SolidColorBrush(Color.FromArgb(100, 0, 100, 255)),
-                StrokeThickness = 2,
-                StrokeDashArray = new DoubleCollection { 5, 5 },
-                IsHitTestVisible = false
-            };
+            var boundaryRect = new Rectangle { Width = _currentSheet.Width - NestingHelper.Spacing * 2, Height = _currentSheet.Height - NestingHelper.Spacing * 2, Fill = Brushes.Transparent, Stroke = new SolidColorBrush(Color.FromArgb(100, 0, 100, 255)), StrokeThickness = 2, StrokeDashArray = new DoubleCollection { 5, 5 }, IsHitTestVisible = false };
+            Canvas.SetLeft(boundaryRect, NestingHelper.Spacing); Canvas.SetTop(boundaryRect, NestingHelper.Spacing);
+            _partsCanvas.Children.Add(boundaryRect); _validationVisuals.Add(boundaryRect);
 
-            Canvas.SetLeft(boundaryRect, NestingHelper.Spacing);
-            Canvas.SetTop(boundaryRect, NestingHelper.Spacing);
-
-            _partsCanvas.Children.Add(boundaryRect);
-            _validationVisuals.Add(boundaryRect);
-
-            // 3. Footprint для каждой активной детали
             foreach (var plc in _activePlacements)
             {
                 var (mw, mh) = NestingHelper.GetPartDimensions(plc.Part, plc.Rotation);
-
-                var footprintRect = new Rectangle
-                {
-                    Width = mw,
-                    Height = mh,
-                    Fill = isValid
-                        ? new SolidColorBrush(Color.FromArgb(60, 0, 255, 0))
-                        : new SolidColorBrush(Color.FromArgb(60, 255, 0, 0)),
-                    Stroke = isValid ? Brushes.LimeGreen : Brushes.Red,
-                    StrokeThickness = 2,
-                    IsHitTestVisible = false
-                };
-
-                Canvas.SetLeft(footprintRect, plc.X);
-                Canvas.SetTop(footprintRect, plc.Y);
-
-                _partsCanvas.Children.Add(footprintRect);
-                _validationVisuals.Add(footprintRect);
+                var footprintRect = new Rectangle { Width = mw, Height = mh, Fill = isValid ? new SolidColorBrush(Color.FromArgb(60, 0, 255, 0)) : new SolidColorBrush(Color.FromArgb(60, 255, 0, 0)), Stroke = isValid ? Brushes.LimeGreen : Brushes.Red, StrokeThickness = 2, IsHitTestVisible = false };
+                Canvas.SetLeft(footprintRect, plc.X); Canvas.SetTop(footprintRect, plc.Y);
+                _partsCanvas.Children.Add(footprintRect); _validationVisuals.Add(footprintRect);
             }
         }
 
         private void ClearValidationVisuals()
         {
             var visualsToRemove = _validationVisuals.ToList();
-            foreach (var visual in visualsToRemove)
-            {
-                if (_partsCanvas.Children.Contains(visual))
-                    _partsCanvas.Children.Remove(visual);
-            }
+            foreach (var visual in visualsToRemove) if (_partsCanvas.Children.Contains(visual)) _partsCanvas.Children.Remove(visual);
             _validationVisuals.Clear();
         }
 
-        private (bool Found, double X, double Y) FindNearestValidPosition(
-            PartPlacement placement, double currentX, double currentY, double searchRadius = 100)
+        private (bool Found, double X, double Y) FindNearestValidPosition(PartPlacement placement, double currentX, double currentY, double searchRadius = 100)
         {
             var candidates = new List<(double X, double Y, double Distance)>();
             var (w, h) = NestingHelper.GetPartDimensions(placement.Part, placement.Rotation);
@@ -1422,87 +949,76 @@ namespace Metal_Code
             {
                 if (ReferenceEquals(existing, placement)) continue;
                 var (ew, eh) = NestingHelper.GetPartDimensions(existing.Part, existing.Rotation);
-
-                var positions = new[]
-                {
-                    (X: existing.X + ew + NestingHelper.Spacing, Y: existing.Y),
-                    (X: existing.X - w - NestingHelper.Spacing, Y: existing.Y),
-                    (X: existing.X, Y: existing.Y + eh + NestingHelper.Spacing),
-                    (X: existing.X, Y: existing.Y - h - NestingHelper.Spacing),
-                    (X: existing.X + ew + NestingHelper.Spacing, Y: existing.Y + eh + NestingHelper.Spacing),
-                    (X: existing.X - w - NestingHelper.Spacing, Y: existing.Y + eh + NestingHelper.Spacing),
-                    (X: existing.X + ew + NestingHelper.Spacing, Y: existing.Y - h - NestingHelper.Spacing),
-                    (X: existing.X - w - NestingHelper.Spacing, Y: existing.Y - h - NestingHelper.Spacing),
-                };
+                var positions = new[] { (X: existing.X + ew + NestingHelper.Spacing, Y: existing.Y), (X: existing.X - w - NestingHelper.Spacing, Y: existing.Y), (X: existing.X, Y: existing.Y + eh + NestingHelper.Spacing), (X: existing.X, Y: existing.Y - h - NestingHelper.Spacing), (X: existing.X + ew + NestingHelper.Spacing, Y: existing.Y + eh + NestingHelper.Spacing), (X: existing.X - w - NestingHelper.Spacing, Y: existing.Y + eh + NestingHelper.Spacing), (X: existing.X + ew + NestingHelper.Spacing, Y: existing.Y - h - NestingHelper.Spacing), (X: existing.X - w - NestingHelper.Spacing, Y: existing.Y - h - NestingHelper.Spacing) };
 
                 foreach (var pos in positions)
                 {
                     double distance = Math.Sqrt(Math.Pow(pos.X - currentX, 2) + Math.Pow(pos.Y - currentY, 2));
                     if (distance > searchRadius) continue;
-
-                    double roundedX = Math.Round(pos.X);
-                    double roundedY = Math.Round(pos.Y);
-
-                    if (NestingHelper.IsValidPlacement(_currentSheet, placement, roundedX, roundedY, placement.Rotation))
-                        candidates.Add((roundedX, roundedY, distance));
+                    if (NestingHelper.IsValidPlacement(_currentSheet, placement, Math.Round(pos.X), Math.Round(pos.Y), placement.Rotation)) candidates.Add((Math.Round(pos.X), Math.Round(pos.Y), distance));
                 }
             }
 
             if (!candidates.Any())
             {
-                int step = 10;
-                int radiusSteps = (int)(searchRadius / step);
-
+                int step = 10, radiusSteps = (int)(searchRadius / step);
                 for (int dx = -radiusSteps; dx <= radiusSteps; dx++)
-                {
                     for (int dy = -radiusSteps; dy <= radiusSteps; dy++)
-                    {
-                        double testX = Math.Round(currentX + dx * step);
-                        double testY = Math.Round(currentY + dy * step);
+                        if (NestingHelper.IsValidPlacement(_currentSheet, placement, Math.Round(currentX + dx * step), Math.Round(currentY + dy * step), placement.Rotation))
+                            candidates.Add((Math.Round(currentX + dx * step), Math.Round(currentY + dy * step), Math.Sqrt(Math.Pow(dx * step, 2) + Math.Pow(dy * step, 2))));
+            }
 
-                        if (NestingHelper.IsValidPlacement(_currentSheet, placement, testX, testY, placement.Rotation))
+            return candidates.Any() ? (true, candidates.OrderBy(c => c.Distance).First().X, candidates.OrderBy(c => c.Distance).First().Y) : (false, 0, 0);
+        }
+
+        /// <summary>
+        /// УНИФИЦИРОВАННЫЙ МЕТОД: Обновляет метрики текущего листа и синхронизирует их с CutControl.
+        /// Опционально увеличивает счетчик конкретной детали (используется при заполнении листа).
+        /// </summary>
+        private void RecalculateSheetMetrics(Part? partToUpdate = null, int addedCount = 0)
+        {
+            if (_currentSheet == null) return;
+
+            // 1. Если это операция заполнения, обновляем счетчик конкретной детали в глобальном списке
+            if (partToUpdate != null && addedCount > 0)
+            {
+                foreach (var detail in MainWindow.M.DetailControls)
+                {
+                    foreach (var typeDetail in detail.TypeDetailControls)
+                    {
+                        foreach (var work in typeDetail.WorkControls)
                         {
-                            double distance = Math.Sqrt(Math.Pow(testX - currentX, 2) + Math.Pow(testY - currentY, 2));
-                            candidates.Add((testX, testY, distance));
+                            if (work.workType is CutControl cut && cut.PartDetails != null)
+                            {
+                                var globalPart = cut.PartDetails.FirstOrDefault(p => p.Title == partToUpdate.Title);
+                                if (globalPart != null) { globalPart.Count += addedCount; globalPart.NotifyTotalChanged(); goto Metrics; }
+                            }
                         }
                     }
                 }
             }
 
-            if (candidates.Any())
-            {
-                var best = candidates.OrderBy(c => c.Distance).First();
-                return (true, best.X, best.Y);
-            }
+        Metrics:
+            // 2. Считаем метрики текущего листа
+            double sheetWay = _currentSheet.Parts.Sum(p => p.Part.Way);
+            int sheetPinholes = _currentSheet.Parts.Sum(p => int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var val) ? val : 0);
+            double sheetArea = _currentSheet.OptimizedWidth * _currentSheet.OptimizedHeight;
 
-            return (false, 0, 0);
-        }
-
-        /// <summary>
-        /// Пересчитывает все параметры листа (way, pinholes, mass, sheetSize) 
-        /// и обновляет итоги в CutControl.
-        /// Вызывается после любой операции с листом: перемещения, копирования, поворота.
-        /// </summary>
-        private void RecalculateSheetParameters()
-        {
+            // 3. Синхронизируем с CutControl
             foreach (var detail in MainWindow.M.DetailControls)
+            {
                 foreach (var typeDetail in detail.TypeDetailControls)
+                {
                     foreach (var work in typeDetail.WorkControls)
+                    {
                         if (work.workType is CutControl cut && cut.Items != null && cut.PartDetails != null)
                         {
                             var item = cut.Items.FirstOrDefault(i => i.NestingSheet?.Id == _currentSheet.Id);
                             if (item == null) continue;
 
-                            // Длина реза и проколы (сумма по всем деталям на листе, включая копии)
-                            double sheetWay = _currentSheet.Parts.Sum(p => p.Part.Way);
-                            int sheetPinholes = _currentSheet.Parts.Sum(p =>
-                                int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var val) ? val : 0);
-
-                            // Масса и размер листа
-                            double sheetArea = _currentSheet.OptimizedWidth * _currentSheet.OptimizedHeight;
-                            double destiny = double.TryParse(item.destiny, out var d) ? d : 0;
                             var metal = MainWindow.M.Metals?.FirstOrDefault(m => m.Name == item.metal);
                             double density = metal?.Density ?? 0;
+                            double destiny = double.TryParse(item.destiny, out var d) ? d : 0;
 
                             item.way = (float)sheetWay;
                             item.pinholes = sheetPinholes;
@@ -1510,25 +1026,24 @@ namespace Metal_Code
                             item.sheetSize = $"{_currentSheet.OptimizedWidth:0}x{_currentSheet.OptimizedHeight:0}";
                             item.NestingSheet = _currentSheet;
 
-                            // Обновляем итоги
                             cut.WayTotal = cut.PartDetails.Sum(p => p.Way * p.Count);
                             cut.MassTotal = cut.PartDetails.Sum(p => p.Mass * p.Count);
                             cut.SumProperties(cut.Items);
                             cut.work.type.CreateSort();
                             cut.work.type.MassCalculate();
-
-                            break;
+                            return; // Лист найден и обновлен, выходим
                         }
+                    }
+                }
+            }
         }
         #endregion
-
 
         //-------------Заполнение листа----------//
         #region
         private void OnPartRightClick(Part part, MouseButtonEventArgs e)
         {
             e.Handled = true;
-
             var menu = new ContextMenu();
 
             // Вариант 1: Заполнение до физических границ листа
@@ -1547,123 +1062,46 @@ namespace Metal_Code
 
         private void FillSheetWithPart(Part part, bool fillToCutLine)
         {
-            // Определяем целевые границы для алгоритма заполнения
             double targetWidth = fillToCutLine ? _currentSheet.OptimizedWidth : _currentSheet.StockWidth;
             double targetHeight = fillToCutLine ? _currentSheet.OptimizedHeight : _currentSheet.StockHeight;
 
             var testSheet = new NestingSheet
             {
                 Id = _currentSheet.Id,
-                // 🔥 Ключевой момент: для теста временно сужаем физические границы листа до линии обрезки,
-                // чтобы NestingHelper не размещал детали за её пределами.
                 StockWidth = targetWidth,
                 StockHeight = targetHeight,
-
-                // Оригинальные оптимизированные размеры сохраняем для корректного отображения
                 OptimizedWidth = _currentSheet.OptimizedWidth,
                 OptimizedHeight = _currentSheet.OptimizedHeight,
-
-                Parts = _currentSheet.Parts.Select(p => new PartPlacement
-                {
-                    Part = p.Part,
-                    X = p.X,
-                    Y = p.Y,
-                    Rotation = p.Rotation
-                }).ToList()
+                Parts = _currentSheet.Parts.Select(p => new PartPlacement { Part = p.Part, X = p.X, Y = p.Y, Rotation = p.Rotation }).ToList()
             };
 
             int placedCount = NestingHelper.TryFillSheetWithPart(testSheet, part);
-
             if (placedCount == 0)
             {
-                string reason = fillToCutLine ? "до линии обрезки" : "до размера листа";
-                MessageBox.Show($"Нет свободного места для размещения детали {reason}.", "Предпросмотр",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show($"Нет свободного места для размещения детали {(fillToCutLine ? "до линии обрезки" : "до размера листа")}.", "Предпросмотр", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            var newPlacements = testSheet.Parts.Skip(_currentSheet.Parts.Count).ToList();
-            DrawPreviewParts(newPlacements);
-
-            string actionText = fillToCutLine ? "до линии обрезки" : "до размера листа";
-            var result = MessageBox.Show(
-                $"На листе будет размещено ещё {placedCount} шт. \"{part.Title}\" ({actionText}).\nПрименить изменения?",
-                "Подтверждение заполнения", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
+            DrawPreviewParts(testSheet.Parts.Skip(_currentSheet.Parts.Count).ToList());
+            var result = MessageBox.Show($"На листе будет размещено ещё {placedCount} шт. \"{part.Title}\" ({(fillToCutLine ? "до линии обрезки" : "до размера листа")}).\nПрименить изменения?", "Подтверждение заполнения", MessageBoxButton.YesNo, MessageBoxImage.Question);
             ClearPreview();
 
             if (result == MessageBoxResult.Yes)
             {
-                // Применяем изменения к реальному листу
-                _currentSheet = testSheet;
+                // 🔥 ИСПРАВЛЕНИЕ: Сохраняем оригинальные границы ПЕРЕД заменой ссылки
+                double originalStockWidth = _currentSheet.StockWidth;
+                double originalStockHeight = _currentSheet.StockHeight;
 
-                // Восстанавливаем оригинальные физические границы листа в реальном объекте
-                _currentSheet.StockWidth = this._currentSheet.StockWidth; // (если нужно, или берем из исходного)
-                _currentSheet.StockHeight = this._currentSheet.StockHeight;
+                _currentSheet = testSheet;
+                _currentSheet.StockWidth = originalStockWidth;
+                _currentSheet.StockHeight = originalStockHeight;
 
                 ShowSheet(_currentSheet);
-                RecalculateFromSheet(_currentSheet, part, placedCount);
 
-                string successMsg = fillToCutLine
-                    ? $"Успешно добавлено {placedCount} шт. (в пределах линии обрезки)."
-                    : $"Успешно добавлено {placedCount} шт.";
+                // 🔥 ИСПОЛЬЗУЕМ УНИФИЦИРОВАННЫЙ МЕТОД
+                RecalculateSheetMetrics(part, placedCount);
 
-                MainWindow.M.StatusBegin(successMsg, MainWindow.StatusMessageType.Success);
-            }
-        }
-
-        public static void RecalculateFromSheet(NestingSheet sheet, Part part, int placed)
-        {
-            bool updated = false;
-
-            foreach (var detail in MainWindow.M.DetailControls)
-            {
-                if (updated) break;
-                foreach (var typeDetail in detail.TypeDetailControls)
-                {
-                    if (updated) break;
-                    foreach (var work in typeDetail.WorkControls)
-                    {
-                        if (updated) break;
-                        if (work.workType is CutControl cut && cut.Items?.Count > 0 && cut.PartDetails is not null)
-                        {
-                            var item = cut.Items.FirstOrDefault(i => i.NestingSheet?.Id == sheet.Id);
-                            if (item is not null)
-                            {
-                                Part? _part = cut.PartDetails.FirstOrDefault(p => p.Title == part.Title);
-                                if (_part is not null)
-                                {
-                                    _part.Count += placed;
-                                    _part.NotifyTotalChanged();
-                                }
-
-                                var metal = MainWindow.M.Metals?.FirstOrDefault(m => m.Name == item.metal);
-                                if (metal != null)
-                                {
-                                    // Площадь считается по оптимизированным размерам (фактически занятым)
-                                    double sheetArea = sheet.OptimizedWidth * sheet.OptimizedHeight;
-                                    double sheetMass = sheetArea * sheet.Parts[0].Part.Destiny * metal.Density / 1_000_000;
-                                    double sheetWay = sheet.Parts.Sum(p => p.Part.Way);
-                                    int sheetPinholes = sheet.Parts.Sum(p =>
-                                        int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var val) ? val : 0);
-
-                                    item.way = (float)sheetWay;
-                                    item.pinholes = sheetPinholes;
-                                    item.mass = (float)sheetMass;
-                                    item.sheetSize = $"{sheet.OptimizedWidth:0}x{sheet.OptimizedHeight:0}";
-                                    item.NestingSheet = sheet;
-                                }
-
-                                cut.WayTotal = cut.PartDetails.Sum(p => p.Way * p.Count);
-                                cut.MassTotal = cut.PartDetails.Sum(p => p.Mass * p.Count);
-                                cut.SumProperties(cut.Items);
-                                cut.work.type.MassCalculate();
-
-                                updated = true;
-                            }
-                        }
-                    }
-                }
+                MainWindow.M.StatusBegin($"Успешно добавлено {placedCount} шт. {(fillToCutLine ? "(в пределах линии обрезки)" : "")}", MainWindow.StatusMessageType.Success);
             }
         }
 
@@ -1673,38 +1111,29 @@ namespace Metal_Code
             foreach (var placement in placements)
             {
                 var path = CreatePreviewPath(placement.Part, placement.X, placement.Y, placement.Rotation);
-                if (path != null)
-                {
-                    _partsCanvas.Children.Add(path);
-                    _previewPaths.Add(path);
-                }
+                if (path != null) { _partsCanvas.Children.Add(path); _previewPaths.Add(path); }
             }
         }
 
         private Path? CreatePreviewPath(Part part, double x, double y, double rotation = 0)
         {
             if (part.DisplayGeometry is null) return null;
-
             var geometry = PartPreviewGenerator.CloneGeometry(part.DisplayGeometry);
             if (geometry == null) return null;
 
             var bounds = geometry.Bounds;
             var transformGroup = new TransformGroup();
             transformGroup.Children.Add(new TranslateTransform(-bounds.Left, -bounds.Top));
+            if (Math.Abs(rotation) > 0.1) transformGroup.Children.Add(new RotateTransform(-rotation, bounds.Width / 2, bounds.Height / 2));
 
-            if (Math.Abs(rotation) > 0.1)
-                transformGroup.Children.Add(new RotateTransform(-rotation, bounds.Width / 2, bounds.Height / 2));
-
-            double adjustedX = x;
-            double adjustedY = y;
-
+            double adjustedX = x, adjustedY = y;
             if (Math.Abs(rotation - 90) < 0.1 || Math.Abs(rotation - 270) < 0.1)
             {
                 adjustedX = x + (bounds.Height - bounds.Width) / 2;
                 adjustedY = y + (bounds.Width - bounds.Height) / 2;
             }
 
-            var path = new Path
+            return new Path
             {
                 Data = geometry,
                 Fill = new SolidColorBrush(Color.FromArgb(70, 0, 180, 60)),
@@ -1713,21 +1142,43 @@ namespace Metal_Code
                 StrokeLineJoin = PenLineJoin.Round,
                 RenderTransform = transformGroup,
                 IsHitTestVisible = false,
-                Opacity = 0.85
+                Opacity = 0.85,
+                Margin = new Thickness(adjustedX, adjustedY, 0, 0) // Используем Margin вместо Canvas.SetLeft/Top для упрощения, либо оставьте как было
             };
+        }
+        // Примечание: если CreatePreviewPath использовал Canvas.SetLeft/Top, верните эти строки вместо Margin.
+        // Для совместимости с вашим исходным кодом, лучше оставить Canvas.SetLeft/Top:
+        /*
+        private Path? CreatePreviewPath(Part part, double x, double y, double rotation = 0)
+        {
+            if (part.DisplayGeometry is null) return null;
+            var geometry = PartPreviewGenerator.CloneGeometry(part.DisplayGeometry);
+            if (geometry == null) return null;
 
-            Canvas.SetLeft(path, adjustedX);
-            Canvas.SetTop(path, adjustedY);
+            var bounds = geometry.Bounds;
+            var transformGroup = new TransformGroup();
+            transformGroup.Children.Add(new TranslateTransform(-bounds.Left, -bounds.Top));
+            if (Math.Abs(rotation) > 0.1) transformGroup.Children.Add(new RotateTransform(-rotation, bounds.Width / 2, bounds.Height / 2));
 
+            double adjustedX = x, adjustedY = y;
+            if (Math.Abs(rotation - 90) < 0.1 || Math.Abs(rotation - 270) < 0.1)
+            {
+                adjustedX = x + (bounds.Height - bounds.Width) / 2;
+                adjustedY = y + (bounds.Width - bounds.Height) / 2;
+            }
+
+            var path = new Path
+            {
+                Data = geometry, Fill = new SolidColorBrush(Color.FromArgb(70, 0, 180, 60)), Stroke = Brushes.LimeGreen,
+                StrokeThickness = 2.5, StrokeLineJoin = PenLineJoin.Round, RenderTransform = transformGroup,
+                IsHitTestVisible = false, Opacity = 0.85
+            };
+            Canvas.SetLeft(path, adjustedX); Canvas.SetTop(path, adjustedY);
             return path;
         }
+        */
 
-        private void ClearPreview()
-        {
-            foreach (var path in _previewPaths)
-                _partsCanvas.Children.Remove(path);
-            _previewPaths.Clear();
-        }
+        private void ClearPreview() { foreach (var path in _previewPaths) _partsCanvas.Children.Remove(path); _previewPaths.Clear(); }
         #endregion
     }
 }
