@@ -6,7 +6,6 @@ namespace Metal_Code.Utils
 {
     public static class SkylineNestingHelper
     {
-        public const double Spacing = 10;
         private const double Epsilon = 0.01;
 
         /// <summary>
@@ -15,7 +14,8 @@ namespace Metal_Code.Utils
         public static List<NestingSheet> CreateNestingSkyline(
             List<Part> parts,
             double sheetWidth = 3000,
-            double sheetHeight = 1500)
+            double sheetHeight = 1500,
+            double spacing = 10) // 🔥 Добавлен параметр spacing по умолчанию
         {
             // Подготовка: размножение и сортировка деталей
             var allParts = parts
@@ -47,15 +47,14 @@ namespace Metal_Code.Utils
                     var newSheet = new NestingSheet
                     {
                         StockWidth = sheetWidth,
-                        StockHeight = sheetHeight
+                        StockHeight = sheetHeight,
+                        Spacing = spacing // 🔥 Передаем отступ при создании
                     };
 
                     if (TryPlaceWithSkyline(newSheet, part))
                     {
                         sheets.Add(newSheet);
                     }
-                    // Если деталь не влезает даже на пустой лист нового размера, она пропускается
-                    // (или можно выбросить исключение, в зависимости от требований)
                 }
             }
 
@@ -67,13 +66,14 @@ namespace Metal_Code.Utils
         }
 
         /// <summary>
-        /// АВТОПОДБОР ЛИСТА.
+        /// АВТОПОДБОР ЛИСТА с автоматическим расчетом отступа на основе толщины.
         /// Выбрасывает InvalidOperationException, если материал не распознан или детали не влезают ни в один формат.
         /// </summary>
         public static List<NestingSheet> CreateNestingSkylineAutoSheet(
             List<Part> parts,
             string materialName,
-            double thickness)
+            double thickness,
+            double spacing = 0) // 0 означает "вычислить автоматически"
         {
             var allowedStocks = SheetStockConfig.GetAllowedStocks(materialName, thickness);
 
@@ -81,6 +81,13 @@ namespace Metal_Code.Utils
             {
                 throw new InvalidOperationException($"Нет доступных типоразмеров для материала '{materialName}'.");
             }
+
+            // 🔥 АВТОМАТИЧЕСКИЙ РАСЧЕТ ОТСТУПА:
+            // Если толщина <= 10, отступ = 10. Если толщина > 10, отступ = толщине.
+            double autoSpacing = Math.Max(10.0, thickness);
+
+            // Используем переданный вручную отступ, если он > 0, иначе берем автоматический
+            double finalSpacing = spacing > 0 ? spacing : autoSpacing;
 
             var allParts = parts
                 .SelectMany(p => Enumerable.Repeat(p, p.Count))
@@ -111,7 +118,8 @@ namespace Metal_Code.Utils
                     // Список оставшихся деталей (текущая + все следующие)
                     var remainingParts = allParts.Skip(i).ToList();
 
-                    var bestSheet = FindBestNewSheetForPart(part, allowedStocks, remainingParts);
+                    // 🔥 Передаем вычисленный finalSpacing в метод подбора листа
+                    var bestSheet = FindBestNewSheetForPart(part, allowedStocks, remainingParts, finalSpacing);
 
                     if (bestSheet != null)
                     {
@@ -140,83 +148,69 @@ namespace Metal_Code.Utils
 
         /// <summary>
         /// Выбирает размер нового листа на основе суммарной площади оставшихся деталей.
-        /// Стратегия: Использовать наименьший возможный лист, который вместит все остатки.
         /// </summary>
         private static NestingSheet? FindBestNewSheetForPart(
             Part currentPart,
             List<SheetStock> allowedStocks,
-            List<Part> remainingParts)
+            List<Part> remainingParts,
+            double spacing)
         {
             if (!allowedStocks.Any()) return null;
 
-            // Оптимизация: Если доступен только один тип листа, сразу создаем его
             if (allowedStocks.Count == 1)
             {
                 var stock = allowedStocks.First();
-                var sheet = new NestingSheet { StockWidth = stock.Width, StockHeight = stock.Height };
+                var sheet = new NestingSheet { StockWidth = stock.Width, StockHeight = stock.Height, Spacing = spacing };
 
-                // Проверяем, влезает ли хоть текущая деталь
                 if (TryPlaceWithSkyline(sheet, currentPart))
                     return sheet;
 
-                return null; // Деталь не влезает даже в единственный доступный формат
+                return null;
             }
 
-            // 1. Рассчитываем суммарную площадь всех оставшихся деталей
             double totalRemainingArea = remainingParts.Sum(p => p.Width * p.Height);
-
-            // Добавляем коэффициент "запаса" на неизбежные отходы при нестинге (например, 15%)
-            // Если площадь деталей 10 м2, нам нужно минимум ~11.5 м2 листа.
             double requiredAreaWithWaste = totalRemainingArea * 1.15;
 
-            // 2. Сортируем листы от меньшего к большему
             var sortedStocks = allowedStocks.OrderBy(s => s.Area).ToList();
 
-            // 3. Ищем наименьший лист, который теоретически вместит все остатки
             SheetStock? candidateStock = null;
             foreach (var stock in sortedStocks)
             {
                 if (stock.Area >= requiredAreaWithWaste)
                 {
                     candidateStock = stock;
-                    break; // Берем первый подходящий (он будет наименьшим из подходящих)
+                    break;
                 }
             }
 
-            // 4. Если ни один лист не вмещает всю массу остатков, берем самый большой доступный
             if (candidateStock == null)
             {
                 candidateStock = sortedStocks.Last();
             }
 
-            // 5. КРИТИЧЕСКАЯ ПРОВЕРКА: Влезает ли ТЕКУЩАЯ деталь в выбранный кандидат?
-            // Бывает, что общая площадь мелочевки большая, но одна деталь длинная/широкая и не влезает в малый лист.
             var testSheet = new NestingSheet
             {
                 StockWidth = candidateStock.Width,
-                StockHeight = candidateStock.Height
+                StockHeight = candidateStock.Height,
+                Spacing = spacing // 🔥 Передаем отступ
             };
 
             if (TryPlaceWithSkyline(testSheet, currentPart))
             {
-                // Все ок, возвращаем этот лист
                 return testSheet;
             }
 
-            // 6. FALLBACK: Если текущая деталь не влезла в "экономичный" лист,
-            // ищем следующий по размеру лист, куда она влезет.
             foreach (var stock in sortedStocks)
             {
-                if (stock.Area < candidateStock.Area) continue; // Пропускаем те, что уже проверили и они меньше
+                if (stock.Area < candidateStock.Area) continue;
 
-                testSheet = new NestingSheet { StockWidth = stock.Width, StockHeight = stock.Height };
+                testSheet = new NestingSheet { StockWidth = stock.Width, StockHeight = stock.Height, Spacing = spacing };
                 if (TryPlaceWithSkyline(testSheet, currentPart))
                 {
                     return testSheet;
                 }
             }
 
-            // Если ничего не подошло (деталь гигантская), возвращаем null (обработается как ошибка выше)
             return null;
         }
 
@@ -225,18 +219,15 @@ namespace Metal_Code.Utils
         /// </summary>
         private static bool TryPlaceWithSkyline(NestingSheet sheet, Part part)
         {
-            // Для кругов поворот не имеет смысла
             if (part.PartType == PartType.Round)
                 return TryPlaceWithSkylineRotation(sheet, part, 0);
 
-            // Оцениваем обе ориентации
             var result0 = EstimateSkylinePlacement(sheet, part, 0);
             var result90 = EstimateSkylinePlacement(sheet, part, 90);
 
             if (!result0.CanPlace && !result90.CanPlace)
                 return false;
 
-            // Выбираем лучшую ориентацию
             PlacementResult best;
             if (!result0.CanPlace)
                 best = result90;
@@ -244,7 +235,6 @@ namespace Metal_Code.Utils
                 best = result0;
             else
             {
-                // ГЛОБАЛЬНАЯ ОЦЕНКА: сравниваем влияние на отход листа
                 var impact0 = EstimateSheetImpact(sheet, result0.X, result0.Y, result0.Width, result0.Height);
                 var impact90 = EstimateSheetImpact(sheet, result90.X, result90.Y, result90.Width, result90.Height);
 
@@ -252,13 +242,11 @@ namespace Metal_Code.Utils
                 else if (impact90.EstimatedArea == double.MaxValue) best = result0;
                 else
                 {
-                    // Выбираем ориентацию с МЕНЬШЕЙ итоговой площадью
                     if (impact90.EstimatedArea < impact0.EstimatedArea - Epsilon)
                         best = result90;
                     else if (impact0.EstimatedArea < impact90.EstimatedArea - Epsilon)
                         best = result0;
                     else
-                        // При равной площади оставляем локально более выгодную позицию (ниже/левее)
                         best = result0.FitScore <= result90.FitScore ? result0 : result90;
                 }
             }
@@ -409,8 +397,6 @@ namespace Metal_Code.Utils
 
         /// <summary>
         /// Находит все возможные позиции размещения на основе Skyline.
-        /// С приоритетом колонок (слева-направо, внутри колонки снизу-вверх).
-        /// Для широких деталей (>90% ширины листа) добавляет позиции вертикального штабелирования.
         /// </summary>
         private static List<PlacementCandidate> FindPlacementCandidates(
             List<SkylineSegment> skyline,
@@ -421,10 +407,12 @@ namespace Metal_Code.Utils
             NestingSheet sheet)
         {
             var candidates = new List<PlacementCandidate>();
-            double effectiveWidth = sheetWidth - Spacing;
-            double effectiveHeight = sheetHeight - Spacing;
 
-            // 🔧 ОПРЕДЕЛЯЕМ: является ли деталь "широкой" (занимает >90% полезной ширины листа)
+            // 🔥 ЗАМЕНА: Используем sheet.Spacing
+            double sp = sheet.Spacing;
+            double effectiveWidth = sheetWidth - sp;
+            double effectiveHeight = sheetHeight - sp;
+
             bool isWidePart = partWidth > (effectiveWidth) * 0.90;
 
             // ========================================================================
@@ -432,34 +420,26 @@ namespace Metal_Code.Utils
             // ========================================================================
             if (isWidePart && sheet.Parts.Any())
             {
-                // Ищем на листе детали примерно той же ширины, чтобы поставить новую поверх них
                 foreach (var existing in sheet.Parts)
                 {
                     var (ew, eh) = NestingHelper.GetPartDimensions(existing.Part, existing.Rotation);
 
-                    // Если ширина существующей детали близка к ширине новой (допуск = Spacing)
-                    if (Math.Abs(ew - partWidth) <= Spacing)
+                    if (Math.Abs(ew - partWidth) <= sp) // 🔥 ЗАМЕНА
                     {
-                        // Позиция: та же координата X, сразу над существующей деталью + отступ
                         double stackX = existing.X;
-                        double stackY = existing.Y + eh + Spacing;
+                        double stackY = existing.Y + eh + sp; // 🔥 ЗАМЕНА
 
-                        // Проверка: не вылезает ли за верх листа
                         if (stackY + partHeight > effectiveHeight)
                             continue;
 
-                        // Проверка: не вылезает ли за правый край (на всякий случай)
                         if (stackX + partWidth > effectiveWidth)
                             continue;
 
-                        // Проверка на пересечения с другими деталями (страховка)
                         if (IsOverlappingAny(sheet, stackX, stackY, partWidth, partHeight))
                             continue;
 
-                        // Уплотнение влево (для широких деталей обычно не сдвинет, но на всякий случай)
-                        double finalX = FindLeftmostPosition(sheet, stackX, stackY, partWidth, partHeight, sheetWidth);
+                        double finalX = FindLeftmostPosition(sheet, stackX, stackY, partWidth, partHeight, sheetWidth, sp); // 🔥 ЗАМЕНА: передача sp
 
-                        // Скоринг: приоритет по минимальному Y (ниже = лучше), затем по минимальному X
                         double score = stackY * 10000 + finalX;
 
                         candidates.Add(new PlacementCandidate
@@ -467,7 +447,7 @@ namespace Metal_Code.Utils
                             X = finalX,
                             Y = stackY,
                             FitScore = score,
-                            SegmentIndex = -1 // Маркер: позиция из "штабелирования"
+                            SegmentIndex = -1
                         });
                     }
                 }
@@ -480,15 +460,12 @@ namespace Metal_Code.Utils
             {
                 var segment = skyline[i];
 
-                // Базовая позиция: левый край сегмента + отступ
-                double baseX = segment.XStart + Spacing;
-                double candidateY = segment.YHeight + Spacing;
+                double baseX = segment.XStart + sp; // 🔥 ЗАМЕНА
+                double candidateY = segment.YHeight + sp; // 🔥 ЗАМЕНА
 
-                // Проверка по высоте листа
                 if (candidateY + partHeight > effectiveHeight)
                     continue;
 
-                // Проверка: влезает ли деталь по ширине в непрерывную область
                 double requiredRightEdge = segment.XStart + partWidth;
                 bool canFitWidth = false;
 
@@ -496,11 +473,9 @@ namespace Metal_Code.Utils
                 {
                     var s = skyline[j];
 
-                    // Если сегмент выше допустимого уровня — прерываем (не можем «перепрыгнуть»)
                     if (s.YHeight > segment.YHeight + Epsilon)
                         break;
 
-                    // Если достигли нужной ширины — успех
                     if (s.XEnd >= requiredRightEdge - Epsilon)
                     {
                         canFitWidth = true;
@@ -511,18 +486,14 @@ namespace Metal_Code.Utils
                 if (!canFitWidth)
                     continue;
 
-                // Проверка по ширине листа
                 if (baseX + partWidth > effectiveWidth)
                     continue;
 
-                // 🔧 УПЛОТНЕНИЕ ВЛЕВО: находим максимально левую позицию на этом уровне Y
-                double finalX = FindLeftmostPosition(sheet, baseX, candidateY, partWidth, partHeight, sheetWidth);
+                double finalX = FindLeftmostPosition(sheet, baseX, candidateY, partWidth, partHeight, sheetWidth, sp); // 🔥 ЗАМЕНА: передача sp
 
-                // Финальная проверка пересечений (страховка)
                 if (IsOverlappingAny(sheet, finalX, candidateY, partWidth, partHeight))
                     continue;
 
-                // 🔧 СКОРИНГ: приоритет по X (колонки слева-направо), затем по Y (снизу-вверх)
                 double score = finalX * 10000 + candidateY;
 
                 candidates.Add(new PlacementCandidate
@@ -534,17 +505,11 @@ namespace Metal_Code.Utils
                 });
             }
 
-            // ========================================================================
-            // ФИНАЛЬНАЯ СОРТИРОВКА И ВОЗВРАТ
-            // ========================================================================
-
-            // Если есть кандидаты от штабелирования (SegmentIndex == -1), отдаём им приоритет
-            // при равном скоринге, так как они гарантированно эффективны для широких деталей
             return candidates
-                .OrderBy(c => c.FitScore)                    // Сначала по скорингу
-                .ThenBy(c => c.SegmentIndex == -1 ? 0 : 1)   // Затем приоритет штабелированным позициям
-                .ThenBy(c => c.X)                            // Затем по горизонтали
-                .ThenBy(c => c.Y)                            // Затем по вертикали
+                .OrderBy(c => c.FitScore)
+                .ThenBy(c => c.SegmentIndex == -1 ? 0 : 1)
+                .ThenBy(c => c.X)
+                .ThenBy(c => c.Y)
                 .ToList();
         }
 
@@ -557,13 +522,14 @@ namespace Metal_Code.Utils
             double candidateY,
             double partWidth,
             double partHeight,
-            double sheetWidth)
+            double sheetWidth,
+            double spacing) // 🔥 ЗАМЕНА: добавлен параметр spacing
         {
             double bestX = candidateX;
 
-            for (double testX = Spacing; testX <= candidateX + Epsilon; testX += 1)
+            for (double testX = spacing; testX <= candidateX + Epsilon; testX += 1) // 🔥 ЗАМЕНА
             {
-                if (testX + partWidth > sheetWidth - Spacing)
+                if (testX + partWidth > sheetWidth - spacing) // 🔥 ЗАМЕНА
                     break;
 
                 if (!IsOverlappingAny(sheet, testX, candidateY, partWidth, partHeight))
@@ -582,6 +548,8 @@ namespace Metal_Code.Utils
         private static (double OptWidth, double OptHeight, double EstimatedArea) EstimateSheetImpact(
             NestingSheet sheet, double partX, double partY, double partWidth, double partHeight)
         {
+            // 🔥 ЗАМЕНА: Используем sheet.Spacing
+            double sp = sheet.Spacing;
             double currentMaxX = 0;
             double currentMaxY = 0;
 
@@ -602,8 +570,8 @@ namespace Metal_Code.Utils
             double newMaxX = Math.Max(currentMaxX, partX + partWidth);
             double newMaxY = Math.Max(currentMaxY, partY + partHeight);
 
-            double reqW = newMaxX + Spacing * 2;
-            double reqH = newMaxY + Spacing * 2;
+            double reqW = newMaxX + sp * 2; // 🔥 ЗАМЕНА
+            double reqH = newMaxY + sp * 2; // 🔥 ЗАМЕНА
 
             if (reqW > sheet.StockWidth || reqH > sheet.StockHeight)
                 return (double.MaxValue, double.MaxValue, double.MaxValue);
@@ -630,16 +598,19 @@ namespace Metal_Code.Utils
         /// </summary>
         private static bool IsOverlappingAny(NestingSheet sheet, double x, double y, double width, double height)
         {
+            // 🔥 ЗАМЕНА: Используем sheet.Spacing
+            double sp = sheet.Spacing;
+
             foreach (var existing in sheet.Parts)
             {
                 var (ew, eh) = NestingHelper.GetPartDimensions(existing.Part, existing.Rotation);
                 double ex = existing.X;
                 double ey = existing.Y;
 
-                if (x + width + Spacing <= ex) continue;
-                if (ex + ew + Spacing <= x) continue;
-                if (y + height + Spacing <= ey) continue;
-                if (ey + eh + Spacing <= y) continue;
+                if (x + width + sp <= ex) continue; // 🔥 ЗАМЕНА
+                if (ex + ew + sp <= x) continue;    // 🔥 ЗАМЕНА
+                if (y + height + sp <= ey) continue; // 🔥 ЗАМЕНА
+                if (ey + eh + sp <= y) continue;    // 🔥 ЗАМЕНА
 
                 return true;
             }
@@ -663,7 +634,7 @@ namespace Metal_Code.Utils
             return usedArea / totalArea * 100;
         }
 
-        // --- Вспомогательные структуры (упрощенные) ---
+        // --- Вспомогательные структуры ---
 
         private class PlacementResult
         {

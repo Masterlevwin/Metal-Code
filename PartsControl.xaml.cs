@@ -377,6 +377,13 @@ namespace Metal_Code
                 return;
             }
 
+            // Читаем отступ (с защитой от отрицательных значений и пустой строки)
+            double spacing = 10;
+            if (double.TryParse(SheetSpacingInput.Text, out double parsedSpacing))
+            {
+                spacing = Math.Max(0, parsedSpacing); // Гарантируем неотрицательный отступ
+            }
+
             if (owner is not CutControl cut || cut.Items is null)
             {
                 MainWindow.M.StatusBegin("Не удалось добавить лист: владелец не является ICut", MainWindow.StatusMessageType.Error);
@@ -398,6 +405,7 @@ namespace Metal_Code
                 StockHeight = height,
                 OptimizedWidth = width,
                 OptimizedHeight = height,
+                Spacing = spacing,
                 Parts = new List<PartPlacement>()
             };
 
@@ -514,7 +522,7 @@ namespace Metal_Code
             {
                 if (item.NestingSheet is not null)
                 {
-                    var preview = new NestingPreviewControl { Height = 320, Margin = new Thickness(0) };
+                    var preview = new NestingPreviewControl { Height = 320 };
                     preview.ShowSheet(item.NestingSheet);
                     preview.AddContinuousCopyToggle();
 
@@ -524,7 +532,8 @@ namespace Metal_Code
                         BorderBrush = item.sheets > 1 ? Brushes.Orange : Brushes.Gray,
                         BorderThickness = new Thickness(1),
                         CornerRadius = new CornerRadius(6),
-                        Padding = new Thickness(5)
+                        Padding = new Thickness(5),
+                        Margin = new Thickness(5)
                     };
 
                     var stack = new StackPanel
@@ -591,7 +600,6 @@ namespace Metal_Code
                     {
                         Source = MainWindow.CreateBitmap(item.imageBytes),
                         Height = 320,
-                        HorizontalAlignment = HorizontalAlignment.Left
                     };
 
                     var border = new Border
@@ -621,7 +629,10 @@ namespace Metal_Code
         /// </summary>
         private void AddPartsFromDxf_Click(object sender, RoutedEventArgs e)
         {
-            if (owner is not CutControl cut) return;
+            if (owner is not CutControl cut || sender is not ToggleButton btn) return;
+
+            // 🔥 Включаем оранжевую подсветку на время работы с окном
+            btn.IsChecked = true;
 
             var openFileDialog = new Microsoft.Win32.OpenFileDialog
             {
@@ -654,7 +665,7 @@ namespace Metal_Code
                             Destiny = thickness,
                             Width = Math.Ceiling(calculationGeometry.Bounds.Width),
                             Height = Math.Ceiling(calculationGeometry.Bounds.Height),
-                            PartType = PartType.Rectangle, // Или логика определения типа
+                            PartType = PartType.Rectangle,
                             DisplayGeometry = calculationGeometry,
                         };
 
@@ -665,19 +676,20 @@ namespace Metal_Code
                             UpdatePartAfterEdit(part, metal, thickness, true);
 
                         var partControl = new PartControl(owner, cut.work, part);
-
-                        // Добавляем во все необходимые коллекции
                         Parts.Add(partControl);
-                        cut.Parts?.Add(partControl);
-                        cut.PartDetails?.Add(part);
+
+                        cut.Parts ??= new();
+                        if (!cut.Parts.Contains(partControl)) cut.Parts.Add(partControl);
+
+                        cut.PartDetails ??= new();
+                        if (!cut.PartDetails.Contains(part)) cut.PartDetails.Add(part);
 
                         addedCount++;
                     }
                     catch (Exception ex)
                     {
-                        // 🔥 Собираем ошибки, чтобы не прерывать цикл и не спамить пользователя окнами
-                        failedFiles.Add(System.IO.Path.GetFileName(filePath));
-                        System.Diagnostics.Debug.WriteLine($"Ошибка импорта {filePath}: {ex.Message}");
+                        failedFiles.Add(Path.GetFileName(filePath));
+                        System.Diagnostics.Trace.WriteLine($"Ошибка импорта {filePath}: {ex.Message}");
                     }
                 }
 
@@ -688,14 +700,16 @@ namespace Metal_Code
 
                 if (failedFiles.Count > 0)
                 {
-                    string fileList = string.Join("\n", failedFiles.Take(5)); // Показываем первые 5
+                    string fileList = string.Join("\n", failedFiles.Take(5));
                     string moreText = failedFiles.Count > 5 ? $"\n...и ещё {failedFiles.Count - 5} файлов." : "";
-
                     MessageBox.Show($"Не удалось прочитать следующие файлы:\n{fileList}{moreText}\n\n" +
-                                    "Пересохраните их в CAD-программе (например, в DXF R12 или R14) и попробуйте снова.",
+                                    "Пересохраните их в CAD-программе и попробуйте снова.",
                                     "Ошибка импорта", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
+
+            // 🔥 Гарантированно выключаем подсветку после закрытия окна (даже если произошла ошибка)
+            btn.IsChecked = false;
         }
 
         // Добавить стандартную деталь
@@ -703,7 +717,6 @@ namespace Metal_Code
         {
             if (sender is not ToggleButton btn) return;
 
-            // 🔥 Включаем оранжевую подсветку на время работы с окном
             btn.IsChecked = true;
 
             try
@@ -731,7 +744,8 @@ namespace Metal_Code
 
                         if (owner is CutControl cut)
                         {
-                            AddBatchToCutControl(cut, batchedParts, metal, window.UseAutoNesting);
+                            // 🔥 ПЕРЕДАЕМ ОТСТУП В МЕТОД
+                            AddBatchToCutControl(cut, batchedParts, metal, window.UseAutoNesting, window.CustomSpacing);
                         }
                         else if (owner is PipeControl pipe)
                         {
@@ -746,7 +760,6 @@ namespace Metal_Code
             }
             finally
             {
-                // 🔥 Гарантированно выключаем подсветку после закрытия окна (даже если произошла ошибка)
                 btn.IsChecked = false;
             }
         }
@@ -756,6 +769,141 @@ namespace Metal_Code
         {
             foreach (PartControl p in Parts)
                 foreach (BendControl item in p.UserControls.OfType<BendControl>()) item.SetGroup("-");
+        }
+
+        /// <summary>
+        /// Пересчитывает раскладку (автонестинг) только для деталей, имеющих геометрию.
+        /// Игнорирует детали, загруженные как изображения (imageBytes).
+        /// </summary>
+        private async void AutoNest_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ToggleButton btn) return;
+
+            // 🔥 ВКЛЮЧАЕМ оранжевую подсветку
+            btn.IsChecked = true;
+            Mouse.OverrideCursor = Cursors.Wait;
+
+            try
+            {
+                if (owner is not CutControl cut || cut.Items == null || cut.PartDetails == null)
+                {
+                    MainWindow.M.StatusBegin("Нет данных для пересчета раскладки", MainWindow.StatusMessageType.Warning);
+                    return;
+                }
+
+                // 1. СБОР ДАННЫХ В UI-ПОТОКЕ (обращение к UI-элементам безопасно только здесь)
+                var partsToNest = cut.PartDetails
+                    .Where(p => p.DisplayGeometry != null && p.Count > 0)
+                    .ToList();
+
+                if (!partsToNest.Any())
+                {
+                    MessageBox.Show("В расчете нет деталей с геометрией для автоматической раскладки.\n(Детали, загруженные как изображения, игнорируются)",
+                        "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                string metalName = cut.work.type.MetalDrop.Text;
+                float thickness = cut.work.type.S;
+
+                if (string.IsNullOrEmpty(metalName) || thickness <= 0)
+                {
+                    MessageBox.Show("Не указан материал или толщина листа в настройках.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                MainWindow.M.StatusBegin("Выполняется автоматическая раскладка...", MainWindow.StatusMessageType.Info);
+
+                // 🔥 2. ТЯЖЕЛЫЕ ВЫЧИСЛЕНИЯ В ФОНОВОМ ПОТОКЕ
+                // UI-поток освобождается и отрисовывает оранжевую кнопку
+                var result = await System.Threading.Tasks.Task.Run(() =>
+                {
+                    // SkylineNestingHelper работает с замороженными Geometry, это безопасно
+                    return SkylineNestingHelper.CreateNestingSkylineAutoSheet(partsToNest, metalName, thickness, 0);
+                });
+
+                // 🔥 3. МЫ СНОВА В UI-ПОТОКЕ (после await)
+                if (result == null || !result.Any())
+                {
+                    MessageBox.Show("Алгоритму не удалось разместить детали на доступных листах.", "Ошибка раскладки", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // 4. ОЧИСТКА СТАРЫХ РАСКЛАДОК
+                var oldNestingItems = cut.Items.OfType<LaserItem>().Where(i => i.NestingSheet != null).ToList();
+                foreach (var item in oldNestingItems)
+                {
+                    cut.Items.Remove(item);
+                }
+
+                // 5. ГРУППИРОВКА И СОЗДАНИЕ НОВЫХ LaserItem
+                var groupedSheets = GroupIdenticalSheets(result);
+
+                foreach (var group in groupedSheets)
+                {
+                    var sheet = group.Key;
+                    int sheetCount = group.Value;
+
+                    if (sheet.Parts.Count == 0) continue;
+
+                    double sheetArea = sheet.OptimizedWidth * sheet.OptimizedHeight;
+                    var metal = MainWindow.M.Metals?.FirstOrDefault(m => m.Name == metalName);
+                    double density = metal?.Density ?? 0;
+                    double sheetMass = sheetArea * thickness * density / 1_000_000;
+
+                    double sheetWay = sheet.Parts.Sum(p => p.Part.Way);
+                    int sheetPinholes = sheet.Parts.Sum(p => int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var val) ? val : 0);
+
+                    var newItem = new LaserItem
+                    {
+                        sheets = sheetCount,
+                        sheetSize = $"{sheet.OptimizedWidth:0}x{sheet.OptimizedHeight:0}",
+                        way = (float)sheetWay,
+                        pinholes = sheetPinholes,
+                        mass = (float)sheetMass,
+                        metal = metalName,
+                        destiny = thickness.ToString(),
+                        NestingSheet = sheet
+                    };
+
+                    cut.Items.Add(newItem);
+                }
+
+                // 6. ОБНОВЛЕНИЕ ИТОГОВ И UI
+                RecalculateTotals(cut);
+                RefreshNestingPreview();
+
+                MainWindow.M.StatusBegin($"Авто-раскладка завершена. Создано листов: {result.Count}", MainWindow.StatusMessageType.Success);
+            }
+            catch (Exception ex)
+            {
+                MainWindow.M.StatusBegin($"Ошибка при авто-раскладке: {ex.Message}", MainWindow.StatusMessageType.Error);
+                System.Diagnostics.Trace.WriteLine($"AutoNest Error: {ex}");
+            }
+            finally
+            {
+                // 🔥 ГАРАНТИРОВАННО ВОЗВРАЩАЕМ кнопку в исходное состояние
+                btn.IsChecked = false;
+                Mouse.OverrideCursor = null;
+            }
+        }
+
+        /// <summary>
+        /// Пересчет общих итогов (WayTotal, MassTotal) после изменения раскладок
+        /// </summary>
+        private void RecalculateTotals(CutControl cut)
+        {
+            if (cut.PartDetails is null) return;
+
+            // Сбрасываем и пересчитываем на основе актуальных PartDetails
+            cut.WayTotal = cut.PartDetails.Sum(p => p.Way * p.Count);
+            cut.MassTotal = cut.PartDetails.Sum(p => p.Mass * p.Count);
+
+            if (cut.Items?.Count > 0)
+            {
+                cut.SumProperties(cut.Items);
+                cut.work.type.CreateSort(); // Триггер для обновления UI привязок
+            }
         }
 
         public static (Metal?, float, string?) GetMetalAndThickness(object controller)
@@ -933,15 +1081,16 @@ namespace Metal_Code
         /// <summary>
         /// Добавляет КОЛЛЕКЦИЮ деталей с общим нестингом на минимальное количество листов
         /// </summary>
-        public void AddBatchToCutControl(CutControl cut, List<Part> parts, Metal metal, bool isAutoSheet = true)
+        public void AddBatchToCutControl(CutControl cut, List<Part> parts, Metal metal, bool isAutoSheet = true, double customSpacing = 0)
         {
             if (parts == null || parts.Count == 0)
                 return;
 
             // === СОЗДАЁМ ЕДИНУЮ РАСКЛАДКУ ДЛЯ ВСЕХ ДЕТАЛЕЙ ===
             var nestingSheets = isAutoSheet ?
-                SkylineNestingHelper.CreateNestingSkylineAutoSheet(parts, cut.work.type.MetalDrop.Text, cut.work.type.S)
-                : SkylineNestingHelper.CreateNestingSkyline(parts, cut.work.type.A, cut.work.type.B);
+                SkylineNestingHelper.CreateNestingSkylineAutoSheet(parts, cut.work.type.MetalDrop.Text, cut.work.type.S, customSpacing)
+                :
+                SkylineNestingHelper.CreateNestingSkyline(parts, cut.work.type.A, cut.work.type.B, customSpacing);
 
             if (nestingSheets == null || nestingSheets.Count == 0)
             {

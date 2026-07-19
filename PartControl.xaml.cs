@@ -311,46 +311,54 @@ namespace Metal_Code
             }
         }
 
-
         private void RemovePart(object sender, RoutedEventArgs e)
         {
-            if (owner is not CutControl cut || cut.PartsControl == null
-                || !cut.PartsControl.Parts.Contains(this) || cut.Items is null)
+            if (owner is not CutControl cut || cut.PartsControl == null || !cut.PartsControl.Parts.Contains(this) || cut.Items is null)
                 return;
 
             if (cut.PartsControl.Parts.Count == 1)
             {
-                MessageBox.Show("Нельзя удалить единственную деталь в заготовке.\nВместо этого удалите саму заготовку.",
-                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                var warningResponse = MessageBox.Show(
+                    "Вы удаляете последнюю деталь в заготовке.\n" +
+                    "После этого заготовка останется пустой.\n\n" +
+                    "Продолжить удаление?",
+                    "Удаление последней детали",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (warningResponse != MessageBoxResult.Yes) return;
+            }
+            else
+            {
+                var response = MessageBox.Show(
+                    "Уверены, что хотите удалить эту деталь из расчета?\n" +
+                    "Она будет полностью удалена из списка, со всех листов раскладки, а её количество обнулится.",
+                    "Удаление детали", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (response != MessageBoxResult.Yes) return;
             }
 
-            var response = MessageBox.Show(
-                "Уверены, что хотите удалить деталь?\n" +
-                "Общее количество этой детали в расчете будет уменьшено.",
-                "Удаление детали", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-            if (response != MessageBoxResult.Yes) return;
-
-            // 1. Уменьшаем глобальный счетчик детали и уведомляем интерфейс
+            // 1. Полное обнуление счетчика
             Part.Count = 0;
             Part.NotifyTotalChanged();
 
-            // 2. Отвязываем деталь от всех работ, к которым она была привязана
+            // 2. Отвязываем деталь от всех видов работ
             DetachPartFromWorks();
 
-            // 3. УДАЛЯЕМ СО ВСЕХ ЛИСТОВ РАСКЛАДКИ (но листы остаются!)
+            // 3. Удаляем все экземпляры этой детали со всех листов раскладки
             RemovePartFromAllNestingSheets(Part);
 
-            // 4. Удаляем из основных коллекций
+            // 4. Удаляем из ВСЕХ релевантных коллекций данных
             cut.PartsControl.Parts.Remove(this);
+            cut.Parts?.Remove(this);
             cut.PartDetails?.Remove(Part);
+            MainWindow.M.Parts?.Remove(Part);
 
-            // 5. Принудительно пересчитываем общие итоги расчета (масса, длина реза, стоимость)
+            // 5. Пересчитываем общие итоги расчета
             cut.SumProperties(cut.Items);
             cut.work.type.MassCalculate();
 
-            MainWindow.M.StatusBegin($"Деталь \"{Part.Title}\" удалена.", MainWindow.StatusMessageType.Success);
+            MainWindow.M.StatusBegin($"Деталь \"{Part.Title}\" полностью удалена из расчета.", MainWindow.StatusMessageType.Success);
         }
 
         /// <summary>

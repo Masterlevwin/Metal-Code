@@ -1,4 +1,5 @@
 ﻿<UserControl x:Class="Metal_Code.PartsControl"
+             xmlns:hc="https://handyorg.github.io/handycontrol"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -24,9 +25,9 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
                         <Border Background="{TemplateBinding Background}" 
-                        BorderThickness="{TemplateBinding BorderThickness}" 
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        CornerRadius="6">
+                BorderThickness="{TemplateBinding BorderThickness}" 
+                BorderBrush="{TemplateBinding BorderBrush}"
+                CornerRadius="6">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -37,13 +38,12 @@
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#F5F5F5"/>
                     <Setter Property="BorderBrush" Value="#4A90E2"/>
-                    <!-- 🔥 Изменено на синий -->
                 </Trigger>
 
-                <!-- Активное состояние: сплошной оранжевый фон + темная рамка -->
+                <!-- Активное состояние: светлый оранжевый фон + отчетливая рамка -->
                 <Trigger Property="IsChecked" Value="True">
-                    <Setter Property="Background" Value="#FF9800"/>
-                    <Setter Property="BorderBrush" Value="#F57C00"/>
+                    <Setter Property="Background" Value="#FFB74D"/>
+                    <Setter Property="BorderBrush" Value="#CC8833"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -60,10 +60,10 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" MaxHeight="400"/>
             <!-- Строка 0: Раскладки -->
-            <RowDefinition Height="Auto"/>
-            <!-- Строка 1: Массовые операции -->
             <RowDefinition Height="*" MinHeight="200"/>
-            <!-- Строка 2: Стандартные детали + Список деталей -->
+            <!-- Строка 1: Стандартные детали + Список деталей -->
+            <RowDefinition Height="Auto"/>
+            <!-- Строка 2: Массовые операции -->
         </Grid.RowDefinitions>
 
         <!-- ================= СТРОКА 0: РАСКЛАДКИ ================= -->
@@ -79,7 +79,7 @@
                       ToolTip="Показать/скрыть раскладки" 
                       Click="ShowNesting_Click" 
                       Style="{StaticResource SideIconButton}">
-                    <Image Source="Images/nesting.png" Width="20"/>
+                    <Image Source="Images/nesting.png" Width="24"/>
                 </ToggleButton>
 
                 <!-- 🔥 Кнопки управления листами (показываются только когда раскладки активны) -->
@@ -117,23 +117,26 @@
                     <!-- 🔥 Inline-форма ввода размеров листа (скрыта по умолчанию) -->
                     <StackPanel x:Name="AddSheetForm" Visibility="Collapsed" Margin="4,4,4,0">
                         <TextBlock Text="Ширина" FontSize="10" Foreground="Gray" Margin="0,2,0,0"/>
-                        <TextBox x:Name="SheetWidthInput" Text="2000" Margin="0,2" 
-                 VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                        <TextBox x:Name="SheetWidthInput" Text="2000" Margin="0,2"
+             VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
 
                         <TextBlock Text="Высота" FontSize="10" Foreground="Gray" Margin="0,4,0,0"/>
-                        <TextBox x:Name="SheetHeightInput" Text="1000" Margin="0,2" 
-                 VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                        <TextBox x:Name="SheetHeightInput" Text="1000" Margin="0,2"
+             VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
 
-                            <Button Content="✓" Click="ConfirmAddSheet_Click" 
-                    Width="26" Height="26" Margin="2,4" 
-                    ToolTip="Создать лист"
-                    Foreground="Green" FontWeight="Bold"
-                    Background="#F0FFF0" BorderBrush="#90EE90" BorderThickness="1"/>
-                            <Button Content="✗" Click="CancelAddSheet_Click" 
-                    Width="26" Height="26" Margin="2,4" 
-                    ToolTip="Отмена"
-                    Foreground="Red" FontWeight="Bold"
-                    Background="#FFF0F0" BorderBrush="#FFB6C1" BorderThickness="1"/>
+                        <!-- Поле для отступа -->
+                        <TextBlock Text="Отступ" FontSize="10" Foreground="Gray" Margin="0,4,0,0"/>
+                        <TextBox x:Name="SheetSpacingInput" Text="10" Margin="0,2"
+             VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+
+                            <Button Content="✓" Click="ConfirmAddSheet_Click"
+                Width="26" Height="26" Margin="0,2"
+                ToolTip="Создать лист" Foreground="Green" FontWeight="Bold"
+                Background="#F0FFF0" BorderBrush="#90EE90" BorderThickness="1"/>
+                            <Button Content="✗" Click="CancelAddSheet_Click"
+                Width="26" Height="26" Margin="0,2"
+                ToolTip="Отмена" Foreground="Red" FontWeight="Bold"
+                Background="#FFF0F0" BorderBrush="#FFB6C1" BorderThickness="1"/>
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
@@ -150,10 +153,76 @@
             <StackPanel x:Name="imagesStack" Orientation="Horizontal" Margin="5"/>
         </ScrollViewer>
 
-        <!-- ================= СТРОКА 1: МАССОВЫЕ ОПЕРАЦИИ ================= -->
+        <!-- ================= СТРОКА 1: СТАНДАРТНЫЕ ДЕТАЛИ + СПИСОК ДЕТАЛЕЙ ================= -->
+        <Grid Grid.Row="1" Grid.ColumnSpan="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="50"/>
+                <!-- Колонка для кнопки (совпадает с глобальной) -->
+                <ColumnDefinition Width="*"/>
+                <!-- Колонка для списка деталей -->
+            </Grid.ColumnDefinitions>
 
-        <!-- Панель массовых операций (в основном контенте) -->
-        <Border Grid.Row="1" Grid.Column="1" 
+            <StackPanel>
+                <!-- Кнопка стандартных деталей -->
+                <Border Background="{DynamicResource RegionBrush}"
+                    BorderBrush="LightGray"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    VerticalAlignment="Top">
+                    <ToggleButton x:Name="StandardPartsToggle" 
+                              ToolTip="Добавить стандартную деталь" 
+                              Click="Add_StandartPart_Click" 
+                              Style="{StaticResource SideIconButton}">
+                        <Image Source="/Images/standard.png" Width="24"/>
+                    </ToggleButton>
+                </Border>
+
+                <!-- Кнопка добавления деталей из DXF-файлов -->
+                <Border Background="{DynamicResource RegionBrush}"
+                    BorderBrush="LightGray"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    VerticalAlignment="Top">
+                    <ToggleButton ToolTip="Добавить детали из DXF-файлов" 
+                              Click="AddPartsFromDxf_Click" 
+                              Style="{StaticResource SideIconButton}">
+                        <Image Source="/Images/add_models.png" Width="24"/>
+                    </ToggleButton>
+                </Border>
+
+                <!-- Кнопка авто-нестинга -->
+                <Border Background="{DynamicResource RegionBrush}"
+                    BorderBrush="LightGray"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    VerticalAlignment="Top">
+                    <ToggleButton ToolTip="Переразложить детали с геометрией"
+                              Click="AutoNest_Click"
+                              Style="{StaticResource SideIconButton}">
+                        <Image Source="/Images/autonest.png" Width="24"/>
+                    </ToggleButton>
+                </Border>
+            </StackPanel>
+
+            <!-- Список деталей (в основном контенте) -->
+            <ScrollViewer x:Name="partsScroll" 
+              Grid.Column="1"
+              HorizontalScrollBarVisibility="Auto"
+              VerticalScrollBarVisibility="Disabled"
+              PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
+                <!-- 🔥 Перехватываем колесико -->
+                <ItemsControl x:Name="partsList" Margin="3">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+        
+        <!-- ================= СТРОКА 1: МАССОВЫЕ ОПЕРАЦИИ ================= -->
+        <Border Grid.Row="2" Grid.Column="1" 
         Background="{DynamicResource RegionBrush}" 
         BorderBrush="LightGray" 
         BorderThickness="1"
@@ -322,56 +391,6 @@
                 </StackPanel>
             </StackPanel>
         </Border>
-
-        <!-- ================= СТРОКА 2: СТАНДАРТНЫЕ ДЕТАЛИ + СПИСОК ДЕТАЛЕЙ ================= -->
-        <Grid Grid.Row="2" Grid.ColumnSpan="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="50"/>
-                <!-- Колонка для кнопки (совпадает с глобальной) -->
-                <ColumnDefinition Width="*"/>
-                <!-- Колонка для списка деталей -->
-            </Grid.ColumnDefinitions>
-
-            <!-- Кнопка стандартных деталей (в сайдбаре) -->
-            <Border Grid.Column="0" 
-                    Background="{DynamicResource RegionBrush}" 
-                    BorderBrush="LightGray" 
-                    BorderThickness="1"
-                    CornerRadius="6"
-                    VerticalAlignment="Top">
-                <ToggleButton x:Name="StandardPartsToggle" 
-                              ToolTip="Добавить стандартную деталь" 
-                              Click="Add_StandartPart_Click" 
-                              Style="{StaticResource SideIconButton}">
-                    <Image Source="/Images/works.png" Width="20"/>
-                </ToggleButton>
-            </Border>
-
-            <!-- 🔥 НОВАЯ КНОПКА: Добавить детали из DXF -->
-            <Button ToolTip="Добавить детали из DXF-файлов" 
-        Click="AddPartsFromDxf_Click">
-                <!-- Иконка "Открыть файл" или "Импорт" -->
-                <Path Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12,12L16,16H13.5V19H10.5V16H8L12,12Z" 
-          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" 
-          Stretch="Uniform"/>
-            </Button>
-            
-            <!-- Список деталей (в основном контенте) -->
-            <ScrollViewer x:Name="partsScroll" 
-              Grid.Column="1"
-              HorizontalScrollBarVisibility="Auto"
-              VerticalScrollBarVisibility="Disabled"
-              PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
-                <!-- 🔥 Перехватываем колесико -->
-                <ItemsControl x:Name="partsList" Margin="3">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <VirtualizingStackPanel Orientation="Horizontal"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                </ItemsControl>
-            </ScrollViewer>
-        </Grid>
 
     </Grid>
 </UserControl>

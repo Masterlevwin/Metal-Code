@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -13,8 +14,11 @@ namespace Metal_Code
         private readonly Part _currentPart;
         private readonly ObservableCollection<Part> _batchBuffer = new();
 
-        // ✅ НОВОЕ СВОЙСТВО: Определяет режим нестинга
+        // Определяет режим нестинга
         public bool UseAutoNesting { get; private set; } = true; // По умолчанию включено
+
+        // Пользовательский отступ (0 означает "авто")
+        public double CustomSpacing { get; private set; } = 0;
 
         public StandartPartWindow(Part templatePart)
         {
@@ -166,6 +170,17 @@ namespace Metal_Code
 
             // ✅ СОХРАНЯЕМ ЗНАЧЕНИЕ ЧЕКБОКСА ПЕРЕД ЗАКРЫТИЕМ
             UseAutoNesting = AutoNestingCheck.IsChecked ?? true;
+
+            // 🔥 СЧИТЫВАЕМ И ВАЛИДИРУЕМ ОТСТУП
+            // Используем InvariantCulture, чтобы корректно обрабатывать и точку, и запятую
+            if (double.TryParse(SpacingInput.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double spacing) && spacing >= 0)
+            {
+                CustomSpacing = spacing;
+            }
+            else
+            {
+                CustomSpacing = 0; // Если поле пустое или введено некорректное значение, сбрасываем на "авто"
+            }
 
             DialogResult = true;
             Close();

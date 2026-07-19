@@ -16,7 +16,9 @@
     <None Remove="app_logo.jpg" />
     <None Remove="Images\add.png" />
     <None Remove="Images\address.png" />
+    <None Remove="Images\add_models.png" />
     <None Remove="Images\assembly.png" />
+    <None Remove="Images\autonest.png" />
     <None Remove="Images\basket.png" />
     <None Remove="Images\basket2.png" />
     <None Remove="Images\bends.png" />
@@ -94,6 +96,7 @@
     <None Remove="Images\signature.jpg" />
     <None Remove="Images\signature1.jpg" />
     <None Remove="Images\signature2.jpg" />
+    <None Remove="Images\standard.png" />
     <None Remove="Images\tableofbends.jpg" />
     <None Remove="Images\tot.png" />
     <None Remove="Images\unlock.png" />
@@ -187,7 +190,9 @@
     </Resource>
     <Resource Include="Images\add.png" />
     <Resource Include="Images\address.png" />
+    <Resource Include="Images\add_models.png" />
     <Resource Include="Images\assembly.png" />
+    <Resource Include="Images\autonest.png" />
     <Resource Include="Images\basket.png" />
     <Resource Include="Images\basket2.png" />
     <Resource Include="Images\bends.png" />
@@ -263,6 +268,7 @@
     <Resource Include="Images\signature2.jpg">
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Images\standard.png" />
     <Resource Include="Images\tableofbends.jpg" />
     <Resource Include="Images\tot.png" />
     <Resource Include="Images\unlock.png" />

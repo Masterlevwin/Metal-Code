@@ -46,7 +46,8 @@ namespace Metal_Code.Utils
                     var newSheet = new NestingSheet
                     {
                         StockWidth = sheetWidth,
-                        StockHeight = sheetHeight
+                        StockHeight = sheetHeight,
+                        Spacing = Spacing
                     };
 
                     // На новом листе просто кладем деталь (ориентация уже выбрана или дефолтная)
@@ -185,6 +186,7 @@ namespace Metal_Code.Utils
             {
                 StockWidth = sheet.StockWidth,
                 StockHeight = sheet.StockHeight,
+                Spacing = sheet.Spacing,
                 Parts = sheet.Parts.Select(p => new PartPlacement
                 {
                     Part = p.Part,
@@ -226,8 +228,8 @@ namespace Metal_Code.Utils
                 return p.Y + dims.Height;
             });
 
-            double requiredWidth = maxX + Spacing * 2;
-            double requiredHeight = maxY + Spacing * 2;
+            double requiredWidth = maxX + sheet.Spacing * 2;
+            double requiredHeight = maxY + sheet.Spacing * 2;
 
             double wasteWidth = sheet.StockWidth - requiredWidth;
             double wasteHeight = sheet.StockHeight - requiredHeight;
@@ -251,123 +253,64 @@ namespace Metal_Code.Utils
         private static bool TryPlaceWithRotation(NestingSheet sheet, Part part, double rotation)
         {
             var (partWidth, partHeight) = GetPartDimensions(part, rotation);
+            double sp = sheet.Spacing; // 🔥 Локальная переменная для краткости
 
-            // 1. Ищем все существующие столбцы (группируем по X)
-            var columns = sheet.Parts
-                .GroupBy(p => Math.Round(p.X, 0))
-                .Select(g => new
-                {
+            var columns = sheet.Parts.GroupBy(p => Math.Round(p.X, 0))
+                .Select(g => new {
                     X = g.Key,
-                    // Находим верхнюю точку самого высокого элемента в столбце
-                    MaxY = g.Max(p =>
-                    {
-                        var dims = GetPartDimensions(p.Part, p.Rotation);
-                        return p.Y + dims.Height;
-                    })
-                })
-                .OrderBy(c => c.X) // Сначала рассматриваем левые столбцы
-                .ToList();
+                    MaxY = g.Max(p => { var dims = GetPartDimensions(p.Part, p.Rotation); return p.Y + dims.Height; })
+                }).OrderBy(c => c.X).ToList();
 
-            // 2. Пробуем разместить деталь поверх существующих столбцов
             foreach (var column in columns)
             {
                 double candidateX = column.X;
-                double candidateY = column.MaxY + Spacing;
+                double candidateY = column.MaxY + sp;
 
-                // Проверка границ листа
-                if (candidateY + partHeight > sheet.Height - Spacing) continue;
-                if (candidateX + partWidth > sheet.Width - Spacing) continue;
-
-                // Проверка пересечений (страховка)
+                if (candidateY + partHeight > sheet.Height - sp) continue;
+                if (candidateX + partWidth > sheet.Width - sp) continue;
                 if (IsOverlapping(sheet, candidateX, candidateY, partWidth, partHeight)) continue;
 
-                // Успех: добавляем деталь
-                sheet.Parts.Add(new PartPlacement
-                {
-                    Part = part,
-                    X = candidateX,
-                    Y = candidateY,
-                    Rotation = rotation
-                });
+                sheet.Parts.Add(new PartPlacement { Part = part, X = candidateX, Y = candidateY, Rotation = rotation });
                 return true;
             }
 
-            // Внутри TryPlaceWithRotation, после перебора столбцов:
-            // 2.5. Пробуем разместить в "карманах" между существующими деталями
             foreach (var existing in sheet.Parts.OrderByDescending(p => p.Y))
             {
                 var (ew, eh) = GetPartDimensions(existing.Part, existing.Rotation);
-
-                // Позиция справа от существующей детали, на той же высоте
-                double candidateX = existing.X + ew + Spacing;
+                double candidateX = existing.X + ew + sp;
                 double candidateY = existing.Y;
 
                 if (CanPlaceAt(sheet, candidateX, candidateY, partWidth, partHeight))
                 {
-                    // Проверка пересечений (страховка)
                     if (IsOverlapping(sheet, candidateX, candidateY, partWidth, partHeight)) continue;
-
-                    // Успех: добавляем деталь
-                    sheet.Parts.Add(new PartPlacement
-                    {
-                        Part = part,
-                        X = candidateX,
-                        Y = candidateY,
-                        Rotation = rotation
-                    });
+                    sheet.Parts.Add(new PartPlacement { Part = part, X = candidateX, Y = candidateY, Rotation = rotation });
                     return true;
                 }
 
-                // Позиция над существующей, но сдвинутая влево (поиск "полки")
-                candidateX = Math.Max(Spacing, existing.X - partWidth - Spacing);
-                candidateY = existing.Y + eh + Spacing;
+                candidateX = Math.Max(sp, existing.X - partWidth - sp);
+                candidateY = existing.Y + eh + sp;
 
                 if (CanPlaceAt(sheet, candidateX, candidateY, partWidth, partHeight))
                 {
-                    // Проверка пересечений (страховка)
                     if (IsOverlapping(sheet, candidateX, candidateY, partWidth, partHeight)) continue;
-
-                    // Успех: добавляем деталь
-                    sheet.Parts.Add(new PartPlacement
-                    {
-                        Part = part,
-                        X = candidateX,
-                        Y = candidateY,
-                        Rotation = rotation
-                    });
+                    sheet.Parts.Add(new PartPlacement { Part = part, X = candidateX, Y = candidateY, Rotation = rotation });
                     return true;
                 }
             }
 
-            // 3. Если ни в один столбец не влезло — создаем новый столбец справа
-            double newX = Spacing;
+            double newX = sp;
             if (sheet.Parts.Count > 0)
             {
-                // Находим самый правый край среди всех деталей на листе
-                double rightmostRight = sheet.Parts.Max(p =>
-                {
-                    var dims = GetPartDimensions(p.Part, p.Rotation);
-                    return p.X + dims.Width;
-                });
-                newX = rightmostRight + Spacing;
+                double rightmostRight = sheet.Parts.Max(p => { var dims = GetPartDimensions(p.Part, p.Rotation); return p.X + dims.Width; });
+                newX = rightmostRight + sp;
             }
 
-            // Проверка: влезает ли новый столбец по ширине листа
-            if (newX + partWidth > sheet.Width - Spacing) return false;
+            if (newX + partWidth > sheet.Width - sp) return false;
+            double newY = sp;
 
-            // Новый столбец начинается снизу листа
-            double newY = Spacing;
-
-            // Финальная проверка пересечений для новой позиции
             if (IsOverlapping(sheet, newX, newY, partWidth, partHeight)) return false;
 
-            sheet.Parts.Add(new PartPlacement
-            {
-                Part = part,
-                X = newX,
-                Y = newY,
-                Rotation = rotation
-            });
+            sheet.Parts.Add(new PartPlacement { Part = part, X = newX, Y = newY, Rotation = rotation });
             return true;
         }
 
@@ -383,10 +326,10 @@ namespace Metal_Code.Utils
                 double ey = existing.Y;
 
                 // Алгоритм проверки непересечения AABB (Axis-Aligned Bounding Box)
-                if (x + width + Spacing <= ex) continue; // Новая деталь левее существующей
-                if (ex + ew + Spacing <= x) continue;    // Существующая левее новой
-                if (y + height + Spacing <= ey) continue; // Новая деталь ниже существующей
-                if (ey + eh + Spacing <= y) continue;    // Существующая ниже новой
+                if (x + width + sheet.Spacing <= ex) continue;  // Новая деталь левее существующей
+                if (ex + ew + sheet.Spacing <= x) continue;     // Существующая левее новой
+                if (y + height + sheet.Spacing <= ey) continue; // Новая деталь ниже существующей
+                if (ey + eh + sheet.Spacing <= y) continue;     // Существующая ниже новой
 
                 return true; // Пересечение есть
             }
@@ -402,9 +345,9 @@ namespace Metal_Code.Utils
             var (w, h) = GetPartDimensions(movingPart.Part, rotation);
 
             // 1. Проверка выхода за границы листа
-            if (x < Spacing || y < Spacing) return false;
-            if (x + w > sheet.Width - Spacing) return false;
-            if (y + h > sheet.Height - Spacing) return false;
+            if (x < sheet.Spacing || y < sheet.Spacing) return false;
+            if (x + w > sheet.Width - sheet.Spacing) return false;
+            if (y + h > sheet.Height - sheet.Spacing) return false;
 
             // 2. Проверка пересечений с ДРУГИМИ деталями
             foreach (var existing in sheet.Parts)
@@ -417,10 +360,10 @@ namespace Metal_Code.Utils
                 double ey = existing.Y;
 
                 // AABB — логика из IsOverlapping
-                if (x + w + Spacing <= ex) continue;
-                if (ex + ew + Spacing <= x) continue;
-                if (y + h + Spacing <= ey) continue;
-                if (ey + eh + Spacing <= y) continue;
+                if (x + w + sheet.Spacing <= ex) continue;
+                if (ex + ew + sheet.Spacing <= x) continue;
+                if (y + h + sheet.Spacing <= ey) continue;
+                if (ey + eh + sheet.Spacing <= y) continue;
 
                 return false; // Пересечение найдено
             }
@@ -443,13 +386,12 @@ namespace Metal_Code.Utils
                 return (part.Width, part.Height);
         }
 
-
         // Вспомогательный метод для чистой проверки (без добавления)
         private static bool CanPlaceAt(NestingSheet sheet, double x, double y, double width, double height)
         {
-            if (x < Spacing || y < Spacing) return false;
-            if (x + width > sheet.Width - Spacing) return false;
-            if (y + height > sheet.Height - Spacing) return false;
+            if (x < sheet.Spacing || y < sheet.Spacing) return false;
+            if (x + width > sheet.Width - sheet.Spacing) return false;
+            if (y + height > sheet.Height - sheet.Spacing) return false;
             return !IsOverlapping(sheet, x, y, width, height);
         }
 
@@ -570,6 +512,9 @@ namespace Metal_Code.Utils
         // Пусть Width/Height остаются полными (Stock), а для обрезки используем Optimized.
         public double Width => StockWidth;
         public double Height => StockHeight;
+
+        // Отступ для этого конкретного листа
+        public double Spacing { get; set; } = 10;
 
         /// <summary>
         /// Свободная ширина листа (разница между полной и оптимизированной)

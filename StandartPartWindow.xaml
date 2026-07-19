@@ -239,9 +239,23 @@
                 <!-- Кнопки управления (Внизу правой колонки) -->
                 <StackPanel Grid.Row="2" Margin="15">
                     <ToggleButton x:Name="AutoNestingCheck" Content="Автоподбор листов"
-                                  Style="{StaticResource ToggleButtonSwitch.Small}" IsChecked="True" Margin="0,0,0,15"
-                                  ToolTip="Если включено, алгоритм сам выберет оптимальный размер листа для каждой детали. Если выключено, используется фиксированный размер листа." HorizontalAlignment="Center"/>
-                    
+                                  Style="{StaticResource ToggleButtonSwitch.Small}" IsChecked="True" Margin="0,0,0,10"
+                                  ToolTip="Если включено, алгоритм сам выберет оптимальный размер листа. Если выключено, используется фиксированный размер." 
+                                  HorizontalAlignment="Center"/>
+
+                    <!-- 🔥 НОВОЕ: Поле для ввода отступа -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,15">
+                        <TextBlock Text="Отступы" VerticalAlignment="Center" Margin="5,0" 
+                                   FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBox x:Name="SpacingInput" 
+                                 Style="{StaticResource TextBoxExtend}" 
+                                 hc:InfoElement.Placeholder="0 = авто"
+                                 TextAlignment="Center" VerticalContentAlignment="Center"/>
+                        <!-- Опционально: защита от букв -->
+                        <TextBlock Text="(0 = авто)" VerticalAlignment="Center" Margin="5,0" 
+                                   FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                    </StackPanel>
+
                     <Button Content="Завершить и рассчитать"
                             Click="FinishBatch_Click"
                             IsDefault="True"

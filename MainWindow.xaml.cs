@@ -2024,7 +2024,8 @@ namespace Metal_Code
                     foreach (Part part in parts)
                     {
                         Part? _part = AssemblyWindow.A.Assemblies.SelectMany(a => a.Particles).FirstOrDefault(x => x.Title == part.Title);
-                        if (_part is null) LooseParts.Add(part);
+
+                        if (_part is null && !LooseParts.Contains(part)) LooseParts.Add(part);
                     }
             }
         }
