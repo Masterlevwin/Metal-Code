@@ -442,7 +442,7 @@ namespace Metal_Code
                 {
                     var (w, h) = NestingHelper.GetPartDimensions(part, rotation);
 
-                    // 🔥 ЗАМЕНА: Используем _currentSheet.Spacing
+                    // Используем отступ конкретного листа
                     double placementX = Math.Max(_currentSheet.Spacing, dropPoint.X - (w / 2));
                     double placementY = Math.Max(_currentSheet.Spacing, dropPoint.Y - (h / 2));
 
@@ -459,16 +459,31 @@ namespace Metal_Code
                 if (successfulPlacement != null)
                 {
                     _currentSheet.Parts.Add(successfulPlacement);
-                    part.Count++;
+
+                    // 🔥 1. ОПРЕДЕЛЯЕМ МНОЖИТЕЛЬ (количество одинаковых листов в группе)
+                    int sheetMultiplier = 1;
+                    LaserItem? laserItem = FindLaserItemForCurrentSheet(); // Используем тот же метод, что и при удалении
+
+                    if (laserItem != null)
+                    {
+                        sheetMultiplier = laserItem.sheets;
+                    }
+
+                    // 🔥 2. УВЕЛИЧИВАЕМ КОЛИЧЕСТВО С УЧЕТОМ МНОЖИТЕЛЯ
+                    part.Count += sheetMultiplier;
                     part.NotifyTotalChanged();
 
+                    // 3. ПЕРЕСЧЕТ И ОБНОВЛЕНИЕ
                     NestingHelper.OptimizeSheetSize(_currentSheet);
                     RebuildLayout(_currentSheet);
                     ShowSheet(_currentSheet);
                     RecalculateSheetMetrics();
 
+                    // Формируем информативное сообщение
                     string rotationMsg = usedRotation == 90 ? " (автоматически повернута на 90°)" : "";
-                    MainWindow.M.StatusBegin($"Деталь '{part.Title}' добавлена на лист{rotationMsg}", MainWindow.StatusMessageType.Success);
+                    string multiplierMsg = sheetMultiplier > 1 ? $" (добавлено {sheetMultiplier} шт. с учетом одинаковых листов)" : "";
+
+                    MainWindow.M.StatusBegin($"Деталь '{part.Title}' добавлена на лист{rotationMsg}{multiplierMsg}", MainWindow.StatusMessageType.Success);
                 }
                 else
                 {
@@ -860,17 +875,94 @@ namespace Metal_Code
         private void DeleteSelectedParts()
         {
             var candidates = _selectedPlacements.Any() ? _selectedPlacements.ToList() : _activePlacements.ToList();
-            if (!candidates.Any()) { MainWindow.M.StatusBegin("Нет деталей для удаления", MainWindow.StatusMessageType.Warning); return; }
+            if (!candidates.Any())
+            {
+                MainWindow.M.StatusBegin("Нет деталей для удаления", MainWindow.StatusMessageType.Warning);
+                return;
+            }
 
             var toDelete = candidates.Where(c => _currentSheet.Parts.Contains(c)).ToList();
-            if (!toDelete.Any()) { MainWindow.M.StatusBegin("Выделенные детали отсутствуют на листе", MainWindow.StatusMessageType.Warning); return; }
+            if (!toDelete.Any())
+            {
+                MainWindow.M.StatusBegin("Выделенные детали отсутствуют на листе", MainWindow.StatusMessageType.Warning);
+                return;
+            }
 
-            foreach (var placement in toDelete) { _currentSheet.Parts.Remove(placement); placement.Part.Count--; placement.Part.NotifyTotalChanged(); }
-            MainWindow.M.StatusBegin($"Удалено деталей: {toDelete.Count}", MainWindow.StatusMessageType.Success);
+            // 🔥 1. НАХОДИМ МНОЖИТЕЛЬ (количество одинаковых листов в группе)
+            int sheetMultiplier = 1;
+            LaserItem? laserItem = FindLaserItemForCurrentSheet();
 
-            ClearSelection(); _activePlacements.Clear();
-            NestingHelper.OptimizeSheetSize(_currentSheet); RebuildLayout(_currentSheet); ShowSheet(_currentSheet);
+            if (laserItem != null)
+            {
+                sheetMultiplier = laserItem.sheets;
+            }
+            else
+            {
+                // Если не найден (например, в тестовом режиме), используем 1
+                MainWindow.M.StatusBegin("Не удалось определить множитель листов. Используется значение 1.",
+                    MainWindow.StatusMessageType.Warning);
+            }
+
+            // 🔥 2. УДАЛЯЕМ РАЗМЕЩЕНИЯ И КОРРЕКТИРУЕМ COUNT С УЧЕТОМ МНОЖИТЕЛЯ
+            foreach (var placement in toDelete)
+            {
+                _currentSheet.Parts.Remove(placement);
+
+                // Уменьшаем общее количество детали на величину, кратную количеству одинаковых листов
+                placement.Part.Count -= sheetMultiplier;
+
+                // Страховка от отрицательных значений
+                if (placement.Part.Count < 0)
+                {
+                    placement.Part.Count = 0;
+                }
+
+                placement.Part.NotifyTotalChanged();
+            }
+
+            // Информативное сообщение для пользователя
+            int totalDeletedFromOrder = toDelete.Count * sheetMultiplier;
+            string multiplierText = sheetMultiplier > 1 ? $" (с учетом {sheetMultiplier} одинаковых листов)" : "";
+            MainWindow.M.StatusBegin($"Удалено с раскладки: {totalDeletedFromOrder} шт.{multiplierText}", MainWindow.StatusMessageType.Success);
+
+            ClearSelection();
+            _activePlacements.Clear();
+
+            // 3. ПЕРЕСЧЕТ И ОБНОВЛЕНИЕ
+            NestingHelper.OptimizeSheetSize(_currentSheet);
+            RebuildLayout(_currentSheet);
+            ShowSheet(_currentSheet);
             RecalculateSheetMetrics();
+        }
+
+        /// <summary>
+        /// Находит LaserItem, который содержит текущий NestingSheet
+        /// </summary>
+        private LaserItem? FindLaserItemForCurrentSheet()
+        {
+            // Используем статический доступ к главному окну
+            foreach (var detailControl in MainWindow.M.DetailControls)
+            {
+                foreach (var typeDetail in detailControl.TypeDetailControls)
+                {
+                    foreach (var workControl in typeDetail.WorkControls)
+                    {
+                        if (workControl.workType is CutControl cut && cut.Items != null)
+                        {
+                            // Ищем LaserItem, который ссылается на текущий лист
+                            var laserItem = cut.Items.FirstOrDefault(i =>
+                                i.NestingSheet != null &&
+                                i.NestingSheet.Id == _currentSheet.Id
+                            );
+
+                            if (laserItem != null)
+                                return laserItem;
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
 
         private void RotateTargets(List<PartPlacement> targets, double rotationDelta, bool skipValidation = false)

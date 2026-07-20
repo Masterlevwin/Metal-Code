@@ -751,18 +751,10 @@ namespace Metal_Code
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.7.0.6",
-                releaseDate: new DateTime(2026, 05, 22),
-                description: "Усовершенствован нестинг предварительного расчета.",
-                screenshotPath: "/Updates/v2.7.0.6_2026-05-22.png"
-            );
-
-            // Добавить новое обновление (если его ещё нет)
-            ctx.AddNewUpdateIfNotExists(
-                version: "v2.7.0.5",
-                releaseDate: new DateTime(2026, 05, 22),
-                description: "Результат нестинга.",
-                screenshotPath: "/Updates/v2.7.0.5_2026-05-22.png"
+                version: "v2.7.1.5",
+                releaseDate: new DateTime(2026, 07, 20),
+                description: "Добавлена интерактивность раскладки. Изменен дизайн для этого.",
+                screenshotPath: "/Updates/v2.7.1.5_2026-07-20.png"
             );
 
             // Получаем новые обновления
@@ -2523,24 +2515,107 @@ namespace Metal_Code
             highlightBrush.BeginAnimation(SolidColorBrush.ColorProperty, fadeAnimation);
         }
 
+        // Поля для отслеживания текущего состояния сортировки
+        private ListSortDirection _currentSortDirection = ListSortDirection.Ascending;
+        private string _currentSortColumn = nameof(Offer.ParentQuoteNumber);
+
         /// <summary>
-        /// Инициализация представления таблицы расчетов с группировкой.
+        /// Инициализация представления таблицы расчетов с группировкой по умолчанию.
         /// </summary>
         public void InitializeOffersView()
         {
             var expandedGroups = GetExpandedGroupNames();
             var viewSource = new CollectionViewSource { Source = CurrentOffers };
 
-            // Группировка по ParentQuoteNumber
-            viewSource.GroupDescriptions.Add(new PropertyGroupDescription(nameof(Offer.ParentQuoteNumber)));
-
-            // ⭐ ДОБАВЛЯЕМ СОРТИРОВКУ ПО Id (сохраняет порядок из коллекции)
-            viewSource.SortDescriptions.Add(new SortDescription(nameof(Offer.ParentQuoteNumber), ListSortDirection.Ascending));
-
             OffersView = viewSource.View;
             OffersGrid.ItemsSource = OffersView;
 
+            // Применяем дефолтную сортировку и группировку
+            ApplySortingAndGrouping(nameof(Offer.ParentQuoteNumber), ListSortDirection.Ascending);
+
             Dispatcher.BeginInvoke(new Action(() => RestoreExpandedGroups(expandedGroups)), DispatcherPriority.Background);
+        }
+
+        /// <summary>
+        /// Обработчик клика по заголовку столбца.
+        /// </summary>
+        private void OffersGrid_Sorting(object sender, DataGridSortingEventArgs e)
+        {
+            // Отменяем стандартную сортировку WPF, чтобы управлять ею вручную
+            e.Handled = true;
+
+            var column = e.Column;
+            string propertyName = column.SortMemberPath;
+
+            if (string.IsNullOrEmpty(propertyName)) return;
+
+            // Если кликнули по тому же столбцу, меняем направление. Иначе - сбрасываем на Ascending.
+            if (_currentSortColumn == propertyName)
+            {
+                _currentSortDirection = _currentSortDirection == ListSortDirection.Ascending
+                    ? ListSortDirection.Descending
+                    : ListSortDirection.Ascending;
+            }
+            else
+            {
+                _currentSortColumn = propertyName;
+                _currentSortDirection = ListSortDirection.Ascending;
+            }
+
+            // Применяем новую логику сортировки и группировки
+            ApplySortingAndGrouping(propertyName, _currentSortDirection);
+        }
+
+        /// <summary>
+        /// Централизованное применение сортировки и (опционально) группировки.
+        /// </summary>
+        private void ApplySortingAndGrouping(string sortProperty, ListSortDirection direction)
+        {
+            if (OffersView is not ICollectionView view) return;
+
+            // 1. Очищаем старые правила
+            view.SortDescriptions.Clear();
+            view.GroupDescriptions.Clear();
+
+            // 2. Логика: группировка применяется ТОЛЬКО если сортируем по номеру расчета.
+            // При сортировке по любому другому полю (Компания, Дата и т.д.) группировка снимается 
+            // для отображения глобального отсортированного списка.
+            bool shouldGroup = sortProperty == nameof(Offer.ParentQuoteNumber);
+
+            if (shouldGroup)
+            {
+                view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(Offer.ParentQuoteNumber)));
+            }
+
+            // 3. Добавляем новое правило сортировки
+            view.SortDescriptions.Add(new SortDescription(sortProperty, direction));
+
+            // 4. Обновляем визуальные индикаторы (стрелочки) в заголовках столбцов
+            UpdateColumnSortIndicators(sortProperty, direction);
+
+            // 5. Если мы вернулись к режиму группировки, восстанавливаем развернутые группы
+            if (shouldGroup)
+            {
+                Dispatcher.BeginInvoke(new Action(() => RestoreExpandedGroups(GetExpandedGroupNames())), DispatcherPriority.Background);
+            }
+        }
+
+        /// <summary>
+        /// Визуальное отображение направления сортировки в заголовках столбцов.
+        /// </summary>
+        private void UpdateColumnSortIndicators(string sortProperty, ListSortDirection direction)
+        {
+            foreach (var column in OffersGrid.Columns)
+            {
+                if (column.SortMemberPath == sortProperty)
+                {
+                    column.SortDirection = direction;
+                }
+                else
+                {
+                    column.SortDirection = null; // Сбрасываем индикатор у остальных колонок
+                }
+            }
         }
 
         /// <summary>

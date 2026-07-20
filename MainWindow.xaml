@@ -594,7 +594,8 @@
                                               AutoGenerateColumns="False" RowDetailsVisibilityMode="Collapsed"
                                               BorderBrush="Red" CellEditEnding="OffersGrid_CellEditEnding"
                                               IsReadOnly="{Binding IsOffersGridReadOnly, ElementName=MainWindowRoot}"
-                                              ContextMenuOpening="OffersGrid_ContextMenuOpening">
+                                              ContextMenuOpening="OffersGrid_ContextMenuOpening"
+                                              Sorting="OffersGrid_Sorting">
 
                                         <DataGrid.GroupStyle>
                                             <GroupStyle>
@@ -664,14 +665,14 @@
                                         </DataGrid.GroupStyle>
 
                                         <DataGrid.Columns>
-                                            <DataGridTextColumn Header="№" Binding="{Binding N}" IsReadOnly="True" FontWeight="Bold"/>
-                                            <DataGridTextColumn Header="Компания" Binding="{Binding Company}" IsReadOnly="True"/>
-                                            <DataGridTextColumn Header="Итого" Binding="{Binding Amount, Converter={StaticResource CostConverter}}" IsReadOnly="True" Foreground="Blue"/>
-                                            <DataGridCheckBoxColumn Header="Нал" Binding="{Binding Agent}"/>
-                                            <DataGridTextColumn Header="Счёт" Binding="{Binding Invoice}"/>
-                                            <DataGridTextColumn Header="Заказ" Binding="{Binding Order}" Foreground="OrangeRed"/>
+                                            <DataGridTextColumn Header="№" Binding="{Binding N}" SortMemberPath="ParentQuoteNumber" IsReadOnly="True" FontWeight="Bold"/>
+                                            <DataGridTextColumn Header="Компания" Binding="{Binding Company}" SortMemberPath="Company" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="Итого" Binding="{Binding Amount, Converter={StaticResource CostConverter}}" SortMemberPath="Amount" IsReadOnly="True" Foreground="Blue"/>
+                                            <DataGridCheckBoxColumn Header="Нал" Binding="{Binding Agent}" SortMemberPath="Agent"/>
+                                            <DataGridTextColumn Header="Счёт" Binding="{Binding Invoice}" SortMemberPath="Invoice"/>
+                                            <DataGridTextColumn Header="Заказ" Binding="{Binding Order}" SortMemberPath="Order" Foreground="OrangeRed"/>
 
-                                            <DataGridTemplateColumn Header="Дата отгрузки" CanUserResize="False">
+                                                <DataGridTemplateColumn Header="Дата отгрузки" SortMemberPath="EndDate" CanUserResize="False">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <StackPanel Orientation="Horizontal">
