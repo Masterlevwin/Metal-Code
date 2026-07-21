@@ -506,11 +506,11 @@ namespace Metal_Code
         }
 
         /// <summary>
-        /// Принудительно перерисовывает все раскладки (вызывается при добавлении/удалении листа).
+        /// Принудительно перерисовывает все раскладки, добавляя элементы управления для каждого листа.
         /// </summary>
         public void RefreshNestingPreview()
         {
-            if (owner is not ICut cut || cut.Items is null)
+            if (owner is not CutControl cut || cut.Items is null)
             {
                 imagesStack.Children.Clear();
                 return;
@@ -544,18 +544,99 @@ namespace Metal_Code
                     };
                     stack.Children.Add(border);
 
-                    string sheetInfo = $"{item.sheets} шт ({item.sheetSize} мм)";
+                    // Панель управления: NumericUpDown + Текст + Удалить
+                    var controlPanel = new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        Margin = new Thickness(0, 5, 0, 0)
+                    };
+
+                    // 1. NumericUpDown для количества
+                    var qtyControl = new HandyControl.Controls.NumericUpDown
+                    {
+                        Value = item.sheets,
+                        Minimum = 1,
+                        Maximum = 9999,
+                        Width = 60,
+                        Height = 28,
+                        Margin = new Thickness(0, 0, 10, 0),
+                        ToolTip = "Количество одинаковых листов",
+                        Tag = item.sheets // Сохраняем старое значение для вычисления delta
+                    };
+
+                    // 2. Текстовый блок с размерами (будем обновлять его вручную)
                     var infoText = new TextBlock
                     {
-                        Text = sheetInfo,
-                        FontSize = 10,
-                        FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal,
-                        Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.Gray,
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        Margin = new Thickness(0, 5, 0, 0),
-                        TextAlignment = TextAlignment.Center
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(0, 0, 10, 0)
                     };
-                    stack.Children.Add(infoText);
+
+                    // 🔥 ЛОКАЛЬНАЯ ФУНКЦИЯ: Мгновенно обновляет текст и стиль без INPC
+                    void UpdateInfoText()
+                    {
+                        infoText.Text = $"{item.sheets} шт ({item.sheetSize} мм)";
+                        infoText.FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal;
+                        infoText.Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.DimGray;
+                    }
+
+                    UpdateInfoText(); // Первичная инициализация
+
+                    // Обработчик изменения количества
+                    qtyControl.ValueChanged += (s, e) =>
+                    {
+
+                        var nud = s as HandyControl.Controls.NumericUpDown;
+                        if (nud is null) return;
+
+                        int newQty = Convert.ToInt32(nud.Value);
+                        int oldQty = Convert.ToInt32(nud.Tag);
+
+                        if (newQty != oldQty && item.NestingSheet != null)
+                        {
+                            int delta = newQty - oldQty;
+
+                            // 1. Обновляем модель листа
+                            item.sheets = newQty;
+
+                            // 2. Корректируем количество деталей с учетом множителя
+                            foreach (var placement in item.NestingSheet.Parts)
+                            {
+                                placement.Part.Count += delta;
+                                placement.Part.NotifyTotalChanged();
+                            }
+
+                            // 3. Пересчитываем итоги и обновляем UI
+                            RecalculateTotals(cut);
+
+                            // 4. МГНОВЕННО обновляем визуальный текст
+                            UpdateInfoText();
+
+                            // Обновляем Tag для следующих изменений
+                            nud.Tag = newQty;
+
+                            string action = delta > 0 ? "добавлен" : "удален";
+                            MainWindow.M.StatusBegin($"Количество листов {item.sheetSize} изменено. {Math.Abs(delta)} лист {action}.", MainWindow.StatusMessageType.Success);
+                        }
+                    };
+                    // 3. Кнопка удаления
+                    var deleteBtn = new Button
+                    {
+                        Content = "🗑",
+                        ToolTip = "Удалить этот лист (детали вернутся в общий список)",
+                        Foreground = Brushes.Red,
+                        Background = Brushes.Transparent,
+                        BorderThickness = new Thickness(0),
+                        Cursor = Cursors.Hand,
+                        DataContext = item
+                    };
+                    deleteBtn.Click += DeleteSpecificSheet_Click;
+
+                    controlPanel.Children.Add(qtyControl);
+                    controlPanel.Children.Add(infoText);
+                    controlPanel.Children.Add(deleteBtn);
+
+                    stack.Children.Add(controlPanel);
                     imagesStack.Children.Add(stack);
                 }
                 else if (item.PipeStocks != null && item.PipeStocks.Count > 0)
@@ -622,6 +703,43 @@ namespace Metal_Code
                     imagesStack.Children.Add(stack);
                 }
             }
+        }
+
+        /// <summary>
+        /// Удаляет конкретный лист, уменьшая количество деталей на нем.
+        /// </summary>
+        private void DeleteSpecificSheet_Click(object sender, RoutedEventArgs e)
+        {
+            // Получаем LaserItem из DataContext кнопки
+            if (sender is not Button btn || btn.DataContext is not LaserItem itemToRemove) return;
+            if (owner is not CutControl cut || cut.Items == null) return;
+
+            var result = MessageBox.Show(
+                $"Удалить лист {itemToRemove.sheetSize}? Все детали на нём ({itemToRemove.NestingSheet?.Parts.Count} шт) будут удалены с раскладки, а их общее количество уменьшится.",
+                "Удаление листа",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result != MessageBoxResult.Yes) return;
+
+            // 1. Уменьшаем счетчик для каждой детали на этом листе
+            if (itemToRemove.NestingSheet?.Parts != null)
+            {
+                foreach (var placement in itemToRemove.NestingSheet.Parts)
+                {
+                    placement.Part.Count--;
+                    placement.Part.NotifyTotalChanged();
+                }
+            }
+
+            // 2. Удаляем сам лист из коллекции
+            cut.Items.Remove(itemToRemove);
+
+            // 3. Пересчитываем итоги и обновляем UI
+            RecalculateTotals(cut);
+            RefreshNestingPreview();
+
+            MainWindow.M.StatusBegin("Лист удалён, детали возвращены в общий список", MainWindow.StatusMessageType.Success);
         }
 
         /// <summary>

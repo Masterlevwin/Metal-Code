@@ -550,8 +550,9 @@ namespace Metal_Code
 
         private void PartControl_PreviewMouseMove(object sender, MouseEventArgs e)
         {
-            // Начинаем перетаскивание только если зажата левая кнопка и DataContext это Part
-            if (e.LeftButton == MouseButtonState.Pressed && !_isDragging && this.DataContext is Part part)
+            // Начинаем перетаскивание только если зажата левая кнопка и DataContext это Part и есть геометрия
+            if (e.LeftButton == MouseButtonState.Pressed && !_isDragging
+                && DataContext is Part part && part.DisplayGeometry is not null)
             {
                 Point currentPos = e.GetPosition(this);
                 Vector diff = _dragStartPoint - currentPos;
