@@ -10,7 +10,8 @@ namespace Metal_Code.Utils
         public static List<Part> PrepareVisiblePartsForOffer(
             IEnumerable<Part> parts,
             float ratio,
-            float bonusRatio)
+            float bonusRatio,
+            bool applyMarkup = true)
         {
             return PrepareVisibleItemsCore(
                 parts,
@@ -29,12 +30,14 @@ namespace Metal_Code.Utils
                     Price = newPrice,
                     Mass = p.Mass,
                     Way = p.Way,
+                    FixedPrice = p.FixedPrice,
+                    IsFixed = p.IsFixed
                 },
                 ratio,
-                bonusRatio
+                bonusRatio,
+                applyMarkup
             );
         }
-
 
         // Приватное ядро расчёта — работает с любым типом через делегаты
         private static List<TOut> PrepareVisibleItemsCore<TIn, TOut>(
@@ -45,7 +48,8 @@ namespace Metal_Code.Utils
             Func<TIn, float> getFixedPrice,
             Func<TIn, float, TOut> createOutput,
             float ratio,
-            float bonusRatio)
+            float bonusRatio,
+            bool applyMarkup)
         {
             var itemList = items.ToList();
             var hiddenItems = itemList.Where(getIsHidden).ToList();
@@ -72,7 +76,11 @@ namespace Metal_Code.Utils
 
                 decimal basePrice = (decimal)originalPrice;
                 decimal priceWithHidden = basePrice + hiddenCostPerUnit;
-                decimal adjustedPrice = priceWithHidden * (decimal)ratio * ((100 + (decimal)bonusRatio) / 100);
+
+                decimal adjustedPrice = applyMarkup
+                    ? priceWithHidden * (decimal)ratio * ((100 + (decimal)bonusRatio) / 100)
+                    : priceWithHidden;
+
                 decimal finalPrice = Math.Ceiling(adjustedPrice);
 
                 if (finalPrice < (decimal)fixedPrice)

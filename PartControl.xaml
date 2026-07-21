@@ -109,7 +109,12 @@
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="3">
-                <TextBox Text="{Binding Count}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Количество вырезанных деталей" Width="40" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="Blue"/>
+                <hc:TextBox x:Name="CountInput" Text="{Binding Count}" LostFocus="CountInput_LostFocus"
+                         hc:InfoElement.Placeholder="{Binding TargetCount,
+                            RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}}}"
+                         HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                         MaxLines="1" ToolTip="Количество вырезанных деталей"
+                         Width="50" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="Blue"/>
                 <TextBlock Text="шт" Margin="5,0,0,0" VerticalAlignment="Center"/>
                 <TextBlock x:Name="DimensionsText" 
                Text="{Binding Dimensions, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" 
@@ -128,7 +133,7 @@
                             </StackPanel>
                         </ToolTip>
                     </TextBlock.ToolTip>
-</TextBlock>
+                </TextBlock>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="3">

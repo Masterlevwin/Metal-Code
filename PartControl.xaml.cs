@@ -509,6 +509,35 @@ namespace Metal_Code
             Part.FixedPrice = Part.IsFixed ? Part.Price : 0;
         }
 
+        // 1. Свойство для хранения "якоря" (живет только в памяти контрола)
+        private int _targetCount = 0;
+        public int TargetCount
+        {
+            get => _targetCount;
+            set
+            {
+                if (_targetCount != value)
+                {
+                    _targetCount = value;
+                    OnPropertyChanged(nameof(TargetCount));
+                }
+            }
+        }
+
+        // 2. Обработчик потери фокуса
+        private void CountInput_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox tb && int.TryParse(tb.Text, out int typedCount))
+            {
+                // Устанавливаем целевое количество ТОЛЬКО ЕСЛИ:
+                // 1. Оно еще не было установлено (равно 0)
+                // 2. Пользователь ввел число больше 0
+                if (TargetCount == 0 && typedCount > 0)
+                {
+                    TargetCount = typedCount;
+                }
+            }
+        }
 
         private Point _dragStartPoint;
         private bool _isDragging;
