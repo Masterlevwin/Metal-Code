@@ -1,6 +1,9 @@
 ﻿using Metal_Code.Models;
 using Metal_Code.Utils;
+using Microsoft.Win32;
 using netDxf;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -11,6 +14,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using Colors = QuestPDF.Helpers.Colors;
 
 namespace Metal_Code
 {
@@ -22,7 +26,7 @@ namespace Metal_Code
         public readonly UserControl owner;
         public ObservableCollection<PartControl> Parts { get; set; }
 
-        private string[] works = { "Выберите работу", "Гибка", "Сварка", "Окраска", "Резьба", "Зенковка", "Сверловка",
+        private readonly string[] works = { "Выберите работу", "Гибка", "Сварка", "Окраска", "Резьба", "Зенковка", "Сверловка",
                                     "Вальцовка", "Цинкование", "Фрезеровка", "Заклепки", "Аквабластинг"};
 
         public PartsControl(UserControl _owner, ObservableCollection<PartControl> _parts)
@@ -49,6 +53,8 @@ namespace Metal_Code
             foreach (string s in Roll.Sides) RollDrop.Items.Add(s);
         }
 
+        //-------------Массовые операции----------//
+        #region
         // показываем выбранный блок работы
         private void SetVisibleControl(object sender, RoutedEventArgs e)
         {
@@ -278,10 +284,13 @@ namespace Metal_Code
             }
         }
 
-        /// <summary>
-        /// Позволяет ScrollViewer'у прокручиваться только по горизонтали, 
-        /// а вертикальную прокрутку колесиком мыши передает родительскому окну.
-        /// </summary>
+        // обработчик кнопки сброса групп гибки
+        private void SetDefaultBends(object sender, RoutedEventArgs e)
+        {
+            foreach (PartControl p in Parts)
+                foreach (BendControl item in p.UserControls.OfType<BendControl>()) item.SetGroup("-");
+        }
+
         private void ScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
             var scrollViewer = (ScrollViewer)sender;
@@ -306,183 +315,10 @@ namespace Metal_Code
                 e.Handled = true;
             }
         }
+        #endregion
 
-        private void UpdateSheetManagementButtonsVisibility()
-        {
-            if (SheetManagementButtons != null)
-            {
-                bool isVisible = NestingToggle.IsChecked == true;
-                SheetManagementButtons.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
-
-                // При скрытии кнопок — форма тоже должна исчезнуть
-                if (!isVisible && AddSheetForm != null)
-                {
-                    AddSheetForm.Visibility = Visibility.Collapsed;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Обработчик изменения состояния переключателя раскладок.
-        /// </summary>
-        private void NestingToggle_Checked(object sender, RoutedEventArgs e)
-        {
-            UpdateSheetManagementButtonsVisibility();
-        }
-
-        private void NestingToggle_Unchecked(object sender, RoutedEventArgs e)
-        {
-            UpdateSheetManagementButtonsVisibility();
-        }
-
-        /// <summary>
-        /// Показывает inline-форму для ввода размеров нового листа.
-        /// </summary>
-        private void AddSheet_Click(object sender, RoutedEventArgs e)
-        {
-            // Предзаполняем размерами последнего листа, если он есть
-            if (owner is CutControl cut && cut.Items?.Any(i => i.NestingSheet != null) == true)
-            {
-                var lastSheet = cut.Items.Last(i => i.NestingSheet != null).NestingSheet;
-                SheetWidthInput.Text = lastSheet?.StockWidth.ToString("F0");
-                SheetHeightInput.Text = lastSheet?.StockHeight.ToString("F0");
-            }
-            else
-            {
-                SheetWidthInput.Text = "2000";
-                SheetHeightInput.Text = "1000";
-            }
-
-            AddSheetForm.Visibility = Visibility.Visible;
-            SheetWidthInput.Focus();
-            SheetWidthInput.SelectAll();
-        }
-
-        /// <summary>
-        /// Подтверждение создания листа с введенными размерами.
-        /// </summary>
-        private void ConfirmAddSheet_Click(object sender, RoutedEventArgs e)
-        {
-            if (!double.TryParse(SheetWidthInput.Text.Replace('.', ','), out double width) || width <= 0)
-            {
-                MainWindow.M.StatusBegin("Некорректная ширина листа", MainWindow.StatusMessageType.Warning);
-                SheetWidthInput.Focus();
-                return;
-            }
-
-            if (!double.TryParse(SheetHeightInput.Text.Replace('.', ','), out double height) || height <= 0)
-            {
-                MainWindow.M.StatusBegin("Некорректная высота листа", MainWindow.StatusMessageType.Warning);
-                SheetHeightInput.Focus();
-                return;
-            }
-
-            // Читаем отступ (с защитой от отрицательных значений и пустой строки)
-            double spacing = 10;
-            if (double.TryParse(SheetSpacingInput.Text, out double parsedSpacing))
-            {
-                spacing = Math.Max(0, parsedSpacing); // Гарантируем неотрицательный отступ
-            }
-
-            if (owner is not CutControl cut || cut.Items is null)
-            {
-                MainWindow.M.StatusBegin("Не удалось добавить лист: владелец не является ICut", MainWindow.StatusMessageType.Error);
-                return;
-            }
-
-            var (metal, thickness, metalName) = GetMetalAndThickness(owner);
-            if (metal == null || string.IsNullOrEmpty(metalName))
-            {
-                MainWindow.M.StatusBegin("Не выбран материал или толщина", MainWindow.StatusMessageType.Warning);
-                return;
-            }
-
-            // Создаем новый лист
-            var newSheet = new NestingSheet
-            {
-                Id = Guid.NewGuid(),
-                StockWidth = width,
-                StockHeight = height,
-                OptimizedWidth = width,
-                OptimizedHeight = height,
-                Spacing = spacing,
-                Parts = new List<PartPlacement>()
-            };
-
-            var newItem = new LaserItem
-            {
-                NestingSheet = newSheet,
-                sheets = 1,
-                sheetSize = $"{width:0}x{height:0}",
-                metal = metalName,
-                destiny = thickness.ToString()
-            };
-
-            cut.Items.Add(newItem);
-            cut.SumProperties(cut.Items);
-            cut.work.type.MassCalculate();
-
-            // 🔥 Принудительно перерисовываем раскладки (не переключая видимость)
-            RefreshNestingPreview();
-
-            // Скрываем форму и обновляем отображение
-            AddSheetForm.Visibility = Visibility.Collapsed;
-            MainWindow.M.StatusBegin($"Добавлен лист {width:0}×{height:0} мм", MainWindow.StatusMessageType.Success);
-        }
-
-        /// <summary>
-        /// Отмена добавления листа — скрывает форму.
-        /// </summary>
-        private void CancelAddSheet_Click(object sender, RoutedEventArgs e)
-        {
-            AddSheetForm.Visibility = Visibility.Collapsed;
-        }
-
-        /// <summary>
-        /// Удаляет последний лист раскладки с подтверждением и корректно уменьшает количество деталей.
-        /// </summary>
-        private void RemoveSheet_Click(object sender, RoutedEventArgs e)
-        {
-            if (owner is not CutControl cut || cut.Items == null || !cut.Items.Any(i => i.NestingSheet != null))
-            {
-                MainWindow.M.StatusBegin("Нет листов для удаления", MainWindow.StatusMessageType.Warning);
-                return;
-            }
-
-            var result = MessageBox.Show(
-                "Удалить последний лист? Все детали на нём будут удалены с раскладки (их общее количество уменьшится).",
-                "Удаление листа",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
-
-            if (result != MessageBoxResult.Yes) return;
-
-            var itemToRemove = cut.Items.Last(i => i.NestingSheet != null);
-
-            // 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Уменьшаем счетчик для каждой детали, которая была на этом листе
-            if (itemToRemove.NestingSheet?.Parts != null)
-            {
-                foreach (var placement in itemToRemove.NestingSheet.Parts)
-                {
-                    placement.Part.Count--;
-                    placement.Part.NotifyTotalChanged(); // Уведомляем интерфейс об изменении количества
-                }
-            }
-
-            // Теперь безопасно удаляем сам лист из списка
-            cut.Items.Remove(itemToRemove);
-
-            // Пересчитываем итоги
-            cut.SumProperties(cut.Items);
-            cut.work.type.MassCalculate();
-
-            // Принудительно перерисовываем раскладки
-            RefreshNestingPreview();
-
-            MainWindow.M.StatusBegin("Лист удалён, детали возвращены в общий список", MainWindow.StatusMessageType.Success);
-        }
-
-
+        //-------------Сайдбар-------------//
+        #region
         /// <summary>
         /// Переключатель видимости раскладок (вызывается по клику на кнопку-тоггл).
         /// </summary>
@@ -705,35 +541,190 @@ namespace Metal_Code
             }
         }
 
+        private void UpdateSheetManagementButtonsVisibility()
+        {
+            if (SheetManagementButtons != null)
+            {
+                bool isVisible = NestingToggle.IsChecked == true;
+                SheetManagementButtons.Visibility = isVisible ? Visibility.Visible : Visibility.Collapsed;
+
+                // При скрытии кнопок — форма тоже должна исчезнуть
+                if (!isVisible && AddSheetForm != null)
+                {
+                    AddSheetForm.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
+
         /// <summary>
-        /// Удаляет конкретный лист, уменьшая количество деталей на нем.
+        /// Показывает inline-форму для ввода размеров нового листа.
+        /// </summary>
+        private void AddSheet_Click(object sender, RoutedEventArgs e)
+        {
+            // Предзаполняем размерами последнего листа, если он есть
+            if (owner is CutControl cut && cut.Items?.Any(i => i.NestingSheet != null) == true)
+            {
+                var lastSheet = cut.Items.Last(i => i.NestingSheet != null).NestingSheet;
+                SheetWidthInput.Text = lastSheet?.StockWidth.ToString("F0");
+                SheetHeightInput.Text = lastSheet?.StockHeight.ToString("F0");
+            }
+            else
+            {
+                SheetWidthInput.Text = "2000";
+                SheetHeightInput.Text = "1000";
+            }
+
+            AddSheetForm.Visibility = Visibility.Visible;
+            SheetWidthInput.Focus();
+            SheetWidthInput.SelectAll();
+        }
+
+        /// <summary>
+        /// Подтверждение создания листа с введенными размерами.
+        /// </summary>
+        private void ConfirmAddSheet_Click(object sender, RoutedEventArgs e)
+        {
+            if (!double.TryParse(SheetWidthInput.Text.Replace('.', ','), out double width) || width <= 0)
+            {
+                MainWindow.M.StatusBegin("Некорректная ширина листа", MainWindow.StatusMessageType.Warning);
+                SheetWidthInput.Focus();
+                return;
+            }
+
+            if (!double.TryParse(SheetHeightInput.Text.Replace('.', ','), out double height) || height <= 0)
+            {
+                MainWindow.M.StatusBegin("Некорректная высота листа", MainWindow.StatusMessageType.Warning);
+                SheetHeightInput.Focus();
+                return;
+            }
+
+            // Читаем отступ (с защитой от отрицательных значений и пустой строки)
+            double spacing = 10;
+            if (double.TryParse(SheetSpacingInput.Text, out double parsedSpacing))
+            {
+                spacing = Math.Max(0, parsedSpacing); // Гарантируем неотрицательный отступ
+            }
+
+            if (owner is not CutControl cut || cut.Items is null)
+            {
+                MainWindow.M.StatusBegin("Не удалось добавить лист: владелец не является ICut", MainWindow.StatusMessageType.Error);
+                return;
+            }
+
+            var (metal, thickness, metalName) = GetMetalAndThickness(owner);
+            if (metal == null || string.IsNullOrEmpty(metalName))
+            {
+                MainWindow.M.StatusBegin("Не выбран материал или толщина", MainWindow.StatusMessageType.Warning);
+                return;
+            }
+
+            // Создаем новый лист
+            var newSheet = new NestingSheet
+            {
+                Id = Guid.NewGuid(),
+                StockWidth = width,
+                StockHeight = height,
+                OptimizedWidth = width,
+                OptimizedHeight = height,
+                Spacing = spacing,
+                Parts = new List<PartPlacement>()
+            };
+
+            var newItem = new LaserItem
+            {
+                NestingSheet = newSheet,
+                sheets = 1,
+                sheetSize = $"{width:0}x{height:0}",
+                metal = metalName,
+                destiny = thickness.ToString()
+            };
+
+            cut.Items.Add(newItem);
+            cut.SumProperties(cut.Items);
+            cut.work.type.MassCalculate();
+
+            // 🔥 Принудительно перерисовываем раскладки (не переключая видимость)
+            RefreshNestingPreview();
+
+            // Скрываем форму и обновляем отображение
+            AddSheetForm.Visibility = Visibility.Collapsed;
+            MainWindow.M.StatusBegin($"Добавлен лист {width:0}×{height:0} мм", MainWindow.StatusMessageType.Success);
+        }
+
+        /// <summary>
+        /// Отмена добавления листа — скрывает форму.
+        /// </summary>
+        private void CancelAddSheet_Click(object sender, RoutedEventArgs e)
+        {
+            AddSheetForm.Visibility = Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// Удаляет последний лист раскладки.
+        /// </summary>
+        private void RemoveSheet_Click(object sender, RoutedEventArgs e)
+        {
+            if (owner is not CutControl cut || cut.Items == null) return;
+
+            var itemToRemove = cut.Items.LastOrDefault(i => i.NestingSheet != null);
+
+            if (itemToRemove == null)
+            {
+                MainWindow.M.StatusBegin("Нет листов для удаления", MainWindow.StatusMessageType.Warning);
+                return;
+            }
+
+            var result = MessageBox.Show(
+                "Удалить последний лист? Все детали на нём будут удалены с раскладки (их общее количество уменьшится).",
+                "Удаление листа", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                ExecuteSheetRemoval(itemToRemove, cut);
+            }
+        }
+
+        /// <summary>
+        /// Удаляет конкретный лист по клику на кнопку в интерфейсе.
         /// </summary>
         private void DeleteSpecificSheet_Click(object sender, RoutedEventArgs e)
         {
-            // Получаем LaserItem из DataContext кнопки
             if (sender is not Button btn || btn.DataContext is not LaserItem itemToRemove) return;
             if (owner is not CutControl cut || cut.Items == null) return;
 
+            int totalPartsOnSheet = itemToRemove.NestingSheet?.Parts.Count ?? 0;
+            int totalInstances = totalPartsOnSheet * itemToRemove.sheets;
+
             var result = MessageBox.Show(
-                $"Удалить лист {itemToRemove.sheetSize}? Все детали на нём ({itemToRemove.NestingSheet?.Parts.Count} шт) будут удалены с раскладки, а их общее количество уменьшится.",
-                "Удаление листа",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
+                $"Удалить лист {itemToRemove.sheetSize}? Все детали на нём ({totalInstances} шт) будут удалены с раскладки, а их общее количество уменьшится.",
+                "Удаление листа", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
-            if (result != MessageBoxResult.Yes) return;
-
-            // 1. Уменьшаем счетчик для каждой детали на этом листе
-            if (itemToRemove.NestingSheet?.Parts != null)
+            if (result == MessageBoxResult.Yes)
             {
-                foreach (var placement in itemToRemove.NestingSheet.Parts)
-                {
-                    placement.Part.Count--;
-                    placement.Part.NotifyTotalChanged();
-                }
+                ExecuteSheetRemoval(itemToRemove, cut);
+            }
+        }
+
+        /// <summary>
+        /// Единый метод для удаления листа.
+        /// </summary>
+        private void ExecuteSheetRemoval(LaserItem itemToRemove, CutControl cut)
+        {
+            if (itemToRemove?.NestingSheet == null) return;
+
+            // 1. Уменьшаем счетчик деталей с учетом количества одинаковых листов в группе
+            foreach (var placement in itemToRemove.NestingSheet.Parts)
+            {
+                placement.Part.Count -= itemToRemove.sheets;
+
+                // Страховка от случайных отрицательных значений
+                if (placement.Part.Count < 0) placement.Part.Count = 0;
+
+                placement.Part.NotifyTotalChanged();
             }
 
             // 2. Удаляем сам лист из коллекции
-            cut.Items.Remove(itemToRemove);
+            cut.Items?.Remove(itemToRemove);
 
             // 3. Пересчитываем итоги и обновляем UI
             RecalculateTotals(cut);
@@ -828,65 +819,6 @@ namespace Metal_Code
 
             // 🔥 Гарантированно выключаем подсветку после закрытия окна (даже если произошла ошибка)
             btn.IsChecked = false;
-        }
-
-        // Добавить стандартную деталь
-        private void Add_StandartPart_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is not ToggleButton btn) return;
-
-            btn.IsChecked = true;
-
-            try
-            {
-                (Metal? metal, float thickness, string? metalName) = GetMetalAndThickness(owner);
-                if (metal == null || string.IsNullOrEmpty(metalName))
-                    return;
-
-                var templatePart = CreateStandardPart(metalName, thickness, 0);
-                if (templatePart == null) return;
-
-                PartPreviewGenerator.EnsureDisplayGeometry(templatePart);
-
-                var window = new StandartPartWindow(templatePart);
-                if (window.ShowDialog() == true)
-                {
-                    var batchedParts = window.GetBatchedParts();
-
-                    if (batchedParts.Count > 0)
-                    {
-                        foreach (var part in batchedParts)
-                        {
-                            UpdatePartAfterEdit(part, metal, thickness);
-                        }
-
-                        if (owner is CutControl cut)
-                        {
-                            // 🔥 ПЕРЕДАЕМ ОТСТУП В МЕТОД
-                            AddBatchToCutControl(cut, batchedParts, metal, window.UseAutoNesting, window.CustomSpacing);
-                        }
-                        else if (owner is PipeControl pipe)
-                        {
-                            AddBatchToPipeControl(pipe, batchedParts, metal);
-                        }
-                        else if (owner is SawControl saw)
-                        {
-                            AddBatchToSawControl(saw, batchedParts, metal);
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                btn.IsChecked = false;
-            }
-        }
-
-        // обработчик кнопки сброса групп гибки
-        private void SetDefaultBends(object sender, RoutedEventArgs e)
-        {
-            foreach (PartControl p in Parts)
-                foreach (BendControl item in p.UserControls.OfType<BendControl>()) item.SetGroup("-");
         }
 
         /// <summary>
@@ -1007,44 +939,358 @@ namespace Metal_Code
         }
 
         /// <summary>
-        /// Пересчет общих итогов (WayTotal, MassTotal) после изменения раскладок
+        /// Пересчет общих итогов (WayTotal, MassTotal, Way, Pinholes, Mass) после изменения раскладок.
         /// </summary>
         private void RecalculateTotals(CutControl cut)
         {
             if (cut.PartDetails is null) return;
 
-            // Сбрасываем и пересчитываем на основе актуальных PartDetails
             cut.WayTotal = cut.PartDetails.Sum(p => p.Way * p.Count);
             cut.MassTotal = cut.PartDetails.Sum(p => p.Mass * p.Count);
 
-            if (cut.Items?.Count > 0)
+            cut.SumProperties(cut.Items ?? new());
+            cut.work.type.CreateSort();
+        }
+
+        /// <summary>
+        /// Экспортирует все листы раскладки в PDF-файл: общая сводка, материал/толщина, 
+        /// затем каждый лист с картинкой и компактной таблицей деталей справа.
+        /// </summary>
+        private void ExportNestingToPdf_Click(object sender, RoutedEventArgs e)
+        {
+            if (owner is not CutControl cut || cut.Items == null)
             {
-                cut.SumProperties(cut.Items);
-                cut.work.type.CreateSort(); // Триггер для обновления UI привязок
+                MainWindow.M.StatusBegin("Нет данных для экспорта", MainWindow.StatusMessageType.Warning);
+                return;
+            }
+
+            var sheetsToExport = cut.Items
+                .Where(i => i.NestingSheet != null && i.NestingSheet.Parts.Count > 0)
+                .ToList();
+
+            if (!sheetsToExport.Any())
+            {
+                MessageBox.Show("Нет листов раскладки для экспорта.", "Информация",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var saveDialog = new SaveFileDialog
+            {
+                Filter = "PDF файлы (*.pdf)|*.pdf",
+                FileName = $"Раскладка_{DateTime.Now:yyyyMMdd_HHmmss}.pdf",
+                InitialDirectory = MainWindow.M.lastInputDirectory
+            };
+
+            if (saveDialog.ShowDialog() != true) return;
+
+            MainWindow.M.StatusBegin("Генерация PDF...", MainWindow.StatusMessageType.Info);
+
+            try
+            {
+                QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
+                // Получаем материал и толщину из настроек типа работ
+                string metalName = cut.work.type.MetalDrop.Text;
+                float thickness = cut.work.type.S;
+
+                var sheetData = new List<(
+                    byte[] ImageBytes,
+                    string Title,
+                    int SheetCount,
+                    string? SheetSize,
+                    int PartsCount,
+                    List<PartTableData> PartsTable)>();
+
+                int index = 1;
+                foreach (var item in sheetsToExport)
+                {
+                    if (item.NestingSheet is null) continue;
+
+                    var preview = new NestingPreviewControl();
+                    preview.ShowSheet(item.NestingSheet);
+
+                    byte[] pngBytes = WpfImageHelper.RenderVisualToPng(preview, 1920, 1080);
+
+                    var partsTable = item.NestingSheet.Parts
+                        .GroupBy(p => new { p.Part.Title, p.Part.Width, p.Part.Height, p.Part.PartType })
+                        .Select(g => new PartTableData
+                        {
+                            Name = g.Key.Title,
+                            Dimensions = $"{g.Key.Width:0} × {g.Key.Height:0}",
+                            QtyOnSheet = g.Count(),
+                            TotalQty = g.Count() * item.sheets,
+                            WeightKg = g.Sum(p => (double)p.Part.Mass)
+                        })
+                        .OrderByDescending(p => p.TotalQty)
+                        .ToList();
+
+                    sheetData.Add((
+                        pngBytes,
+                        $"Лист {index} из {sheetsToExport.Count}",
+                        item.sheets,
+                        item.sheetSize,
+                        item.NestingSheet.Parts.Count,
+                        partsTable));
+                    index++;
+                }
+
+                // 1. ФОРМИРУЕМ ОБЩУЮ СВОДНУЮ ТАБЛИЦУ (с суммарным весом)
+                var masterPartsList = sheetData
+                    .SelectMany(s => s.PartsTable)
+                    .GroupBy(p => new { p.Name, p.Dimensions })
+                    .Select(g => new PartTableData
+                    {
+                        Name = g.Key.Name,
+                        Dimensions = g.Key.Dimensions,
+                        TotalQty = g.Sum(p => p.TotalQty),
+                        WeightKg = g.Sum(p => p.WeightKg)
+                    })
+                    .OrderByDescending(p => p.TotalQty)
+                    .ToList();
+
+                // 2. ГЕНЕРАЦИЯ PDF
+                Document.Create(container =>
+                {
+                    container.Page(page =>
+                    {
+                        page.Size(PageSizes.A4.Landscape());
+                        page.Margin(20, QuestPDF.Infrastructure.Unit.Millimetre);
+                        page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
+
+                        page.Header().Row(row =>
+                        {
+                            row.RelativeItem().Text("Карта раскроя материала")
+                                .FontSize(16).Bold().FontColor(Colors.Black);
+                            row.RelativeItem().AlignRight().Text($"Дата: {DateTime.Now:dd.MM.yyyy}")
+                                .FontSize(10).FontColor(Colors.Grey.Darken1);
+                        });
+
+                        page.Content().Column(column =>
+                        {
+                            // ==========================================
+                            // ЧАСТЬ А: МАТЕРИАЛ, ТОЛЩИНА И ОБЩАЯ СВОДКА
+                            // ==========================================
+                            column.Item().Border(1).BorderColor(Colors.Blue.Lighten2).Background(Colors.Blue.Lighten4).Padding(10).Row(row =>
+                            {
+                                row.RelativeItem().Text(x =>
+                                {
+                                    x.Span("Материал: ").FontSize(11);
+                                    x.Span(metalName).Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
+                                    x.Span("  |  Толщина: ").FontSize(11);
+                                    x.Span($"{thickness} мм").Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
+                                });
+                            });
+                            column.Item().PaddingVertical(10);
+
+                            column.Item().Text("Общая спецификация деталей по всему заказу")
+                                .FontSize(14).Bold().FontColor(Colors.Black);
+                            column.Item().PaddingVertical(5);
+
+                            column.Item().Table(masterTable =>
+                            {
+                                // 🔥 ИЗМЕНЕНО: Поменяли местами колонки "Вес" и "Кол-во"
+                                masterTable.ColumnsDefinition(columns =>
+                                {
+                                    columns.RelativeColumn(3);   // Наименование
+                                    columns.RelativeColumn(2);   // Габариты
+                                    columns.RelativeColumn(1.5f); // Вес, кг (теперь идет раньше)
+                                    columns.RelativeColumn(1);   // Кол-во (теперь идет последним)
+                                });
+
+                                masterTable.Header(header =>
+                                {
+                                    header.Cell().Element(TableHeaderStyle).Text("Наименование");
+                                    header.Cell().Element(TableHeaderStyle).Text("Габариты (мм)");
+                                    header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Вес, кг");
+                                    header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Кол-во");
+                                });
+
+                                foreach (var part in masterPartsList)
+                                {
+                                    masterTable.Cell().Element(TableRowStyle).Text(part.Name);
+                                    masterTable.Cell().Element(TableRowStyle).Text(part.Dimensions);
+                                    masterTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.WeightKg.ToString("0.###"));
+                                    masterTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.TotalQty.ToString()).Bold();
+                                }
+                            });
+                            column.Item().PageBreak();
+
+                            // ==========================================
+                            // ЧАСТЬ Б: ЛИСТЫ РАСКЛАДКИ (КАРТИНКА + ТАБЛИЦА СПРАВА)
+                            // ==========================================
+                            for (int i = 0; i < sheetData.Count; i++)
+                            {
+                                var data = sheetData[i];
+
+                                column.Item().Row(row =>
+                                {
+                                    row.RelativeItem().Text(data.Title)
+                                        .FontSize(14).Bold().FontColor(Colors.Blue.Darken2);
+
+                                    row.RelativeItem().AlignRight().Text(x =>
+                                    {
+                                        x.Span($"Размер: {data.SheetSize} мм | Деталей: {data.PartsCount} | Листов в группе: ")
+                                            .FontSize(10).FontColor(Colors.Grey.Darken1);
+                                        x.Span(data.SheetCount.ToString())
+                                            .FontSize(11).Bold().FontColor(Colors.Blue.Darken2);
+                                    });
+                                });
+                                column.Item().PaddingVertical(5);
+
+                                column.Item().Row(row =>
+                                {
+                                    // Левая часть: Изображение раскладки (~60% ширины)
+                                    row.RelativeItem(6)
+                                        .Border(1)
+                                        .BorderColor(Colors.Grey.Lighten2)
+                                        .Image(data.ImageBytes)
+                                        .FitArea();
+
+                                    row.ConstantItem(15); // Отступ
+
+                                    // Правая часть: Таблица деталей (~40% ширины)
+                                    row.RelativeItem(4).Column(tableColumn =>
+                                    {
+                                        tableColumn.Item().Text($"Спецификация листа:")
+                                            .FontSize(11).Bold().FontColor(Colors.Grey.Darken2);
+                                        tableColumn.Item().PaddingVertical(3);
+
+                                        tableColumn.Item().Table(sheetTable =>
+                                        {
+                                            // 🔥 ИЗМЕНЕНО: Поменяли местами колонки "Вес" и "На листе"
+                                            sheetTable.ColumnsDefinition(columns =>
+                                            {
+                                                columns.RelativeColumn(3);   // Деталь
+                                                columns.RelativeColumn(2);   // Размер
+                                                columns.RelativeColumn(1.5f); // Вес, кг (теперь идет раньше)
+                                                columns.RelativeColumn(1);   // На листе (теперь идет последним)
+                                            });
+
+                                            sheetTable.Header(header =>
+                                            {
+                                                header.Cell().Element(TableHeaderStyle).Text("Деталь");
+                                                header.Cell().Element(TableHeaderStyle).Text("Размер");
+                                                header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Вес, кг");
+                                                header.Cell().Element(TableHeaderStyle).AlignCenter().Text("На листе");
+                                            });
+
+                                            foreach (var part in data.PartsTable)
+                                            {
+                                                sheetTable.Cell().Element(TableRowStyle).Text(part.Name);
+                                                sheetTable.Cell().Element(TableRowStyle).Text(part.Dimensions);
+                                                sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.WeightKg.ToString("0.###"));
+                                                sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.QtyOnSheet.ToString());
+                                            }
+                                        });
+                                    });
+                                });
+
+                                if (i < sheetData.Count - 1)
+                                {
+                                    column.Item().PageBreak();
+                                }
+                            }
+                        });
+
+                        page.Footer().AlignCenter().Text(x =>
+                        {
+                            x.Span("Страница ").FontSize(8);
+                            x.CurrentPageNumber().FontSize(8);
+                            x.Span(" из ").FontSize(8);
+                            x.TotalPages().FontSize(8);
+                        });
+                    });
+                }).GeneratePdf(saveDialog.FileName);
+
+                MainWindow.M.StatusBegin(
+                    $"PDF успешно сохранен: {Path.GetFileName(saveDialog.FileName)}",
+                    MainWindow.StatusMessageType.Success);
+            }
+            catch (Exception ex)
+            {
+                MainWindow.M.StatusBegin(
+                    $"Ошибка при создании PDF: {ex.Message}",
+                    MainWindow.StatusMessageType.Error);
+                System.Diagnostics.Trace.WriteLine($"PDF Export Error: {ex}");
             }
         }
 
-        public static (Metal?, float, string?) GetMetalAndThickness(object controller)
+        // ==========================================
+        // Вспомогательные элементы (на уровне класса PartsControl)
+        // ==========================================
+
+        private static QuestPDF.Infrastructure.IContainer TableHeaderStyle(QuestPDF.Infrastructure.IContainer container) => container
+            .BorderBottom(1).BorderColor(Colors.Grey.Darken2)
+            .Background(Colors.Grey.Lighten3)
+            .PaddingVertical(4).PaddingHorizontal(4);
+
+        private static QuestPDF.Infrastructure.IContainer TableRowStyle(QuestPDF.Infrastructure.IContainer container) => container
+            .BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
+            .PaddingVertical(3).PaddingHorizontal(4);
+
+        private class PartTableData
         {
-            if (controller is CutControl cut &&
-                cut.work.type.MetalDrop.SelectedItem is Metal m)
-            {
-                return (m, cut.work.type.S, m.Name);
-            }
+            public string Name { get; set; } = string.Empty;
+            public string Dimensions { get; set; } = string.Empty;
+            public int QtyOnSheet { get; set; }
+            public int TotalQty { get; set; }
+            public double WeightKg { get; set; }
+        }
+        #endregion
 
-            if (controller is PipeControl pipe &&
-                pipe.work.type.MetalDrop.SelectedItem is Metal p)
-            {
-                return (p, pipe.work.type.S, p.Name);
-            }
+        //-------------Нестинг-------------//
+        #region
+        // Добавить стандартную деталь
+        private void Add_StandartPart_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ToggleButton btn) return;
 
-            if (controller is SawControl saw &&
-                saw.work.type.MetalDrop.SelectedItem is Metal s)
-            {
-                return (s, saw.work.type.S, s.Name);
-            }
+            btn.IsChecked = true;
 
-            return (null, 0, null);
+            try
+            {
+                (Metal? metal, float thickness, string? metalName) = GetMetalAndThickness(owner);
+                if (metal == null || string.IsNullOrEmpty(metalName))
+                    return;
+
+                var templatePart = CreateStandardPart(metalName, thickness, 0);
+                if (templatePart == null) return;
+
+                PartPreviewGenerator.EnsureDisplayGeometry(templatePart);
+
+                var window = new StandartPartWindow(templatePart);
+                if (window.ShowDialog() == true)
+                {
+                    var batchedParts = window.GetBatchedParts();
+
+                    if (batchedParts.Count > 0)
+                    {
+                        foreach (var part in batchedParts)
+                        {
+                            UpdatePartAfterEdit(part, metal, thickness);
+                        }
+
+                        if (owner is CutControl cut)
+                        {
+                            // 🔥 ПЕРЕДАЕМ ОТСТУП В МЕТОД
+                            AddBatchToCutControl(cut, batchedParts, metal, window.UseAutoNesting, window.CustomSpacing);
+                        }
+                        else if (owner is PipeControl pipe)
+                        {
+                            AddBatchToPipeControl(pipe, batchedParts, metal);
+                        }
+                        else if (owner is SawControl saw)
+                        {
+                            AddBatchToSawControl(saw, batchedParts, metal);
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                btn.IsChecked = false;
+            }
         }
 
         private Part? CreateStandardPart(string metalName, float thickness, int countIndex)
@@ -1515,6 +1761,30 @@ namespace Metal_Code
             return groups;
         }
 
+        // Возвращает сам металл, толщину и наименование металла родителя
+        public static (Metal?, float, string?) GetMetalAndThickness(object controller)
+        {
+            if (controller is CutControl cut &&
+                cut.work.type.MetalDrop.SelectedItem is Metal m)
+            {
+                return (m, cut.work.type.S, m.Name);
+            }
+
+            if (controller is PipeControl pipe &&
+                pipe.work.type.MetalDrop.SelectedItem is Metal p)
+            {
+                return (p, pipe.work.type.S, p.Name);
+            }
+
+            if (controller is SawControl saw &&
+                saw.work.type.MetalDrop.SelectedItem is Metal s)
+            {
+                return (s, saw.work.type.S, s.Name);
+            }
+
+            return (null, 0, null);
+        }
+
         // Расчет площади окрашивания детали
         private double SquareToPaint(Part part)
         {
@@ -1638,5 +1908,6 @@ namespace Metal_Code
             // Масса = площадь сечения × длина хлыста × плотность / 1_000_000 (мм³ → см³)
             return crossSectionArea * stock.StockLength * metal.Density / 1_000_000;
         }
+        #endregion
     }
 }

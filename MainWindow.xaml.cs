@@ -4452,7 +4452,7 @@ namespace Metal_Code
 
                         statsheet.Cells[temp, 17].Value += $"{key[10..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
                         notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{key[10..]} ({Math.Round(_square, 3)} кв м - {_count} шт) ";
-                        notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = $"{Math.Ceiling(_square * 0.14f)} кг";
+                        notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = $"{Math.Ceiling(_square * 0.3f)} кг";
                         tempNote++;
                     }
                     else statsheet.Cells[temp, 4].Value += $"{key} ";                                       //"Наименование изделия / вид работы"

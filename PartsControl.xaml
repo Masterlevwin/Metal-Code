@@ -202,6 +202,18 @@
                         <Image Source="/Images/autonest.png" Width="24"/>
                     </ToggleButton>
                 </Border>
+
+                <!-- Кнопка экспорта раскладок -->
+                <Border Background="{DynamicResource RegionBrush}"
+                    BorderBrush="LightGray"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    VerticalAlignment="Top">
+                    <ToggleButton Content="📄"
+                                  ToolTip="Сохранить все листы раскладки в PDF-файл"
+                                  Click="ExportNestingToPdf_Click"
+                                  Style="{StaticResource SideIconButton}"/>
+                </Border>            
             </StackPanel>
 
             <!-- Список деталей (в основном контенте) -->
