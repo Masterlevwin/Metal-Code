@@ -75,6 +75,7 @@
     <None Remove="Images\open4.png" />
     <None Remove="Images\order.png" />
     <None Remove="Images\padlock.png" />
+    <None Remove="Images\pdf_generate.png" />
     <None Remove="Images\plus.png" />
     <None Remove="Images\preview.png" />
     <None Remove="Images\preview2.png" />
@@ -247,6 +248,7 @@
     <Resource Include="Images\open4.png" />
     <Resource Include="Images\order.png" />
     <Resource Include="Images\padlock.png" />
+    <Resource Include="Images\pdf_generate.png" />
     <Resource Include="Images\plus.png" />
     <Resource Include="Images\preview.png" />
     <Resource Include="Images\preview2.png" />

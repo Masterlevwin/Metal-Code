@@ -5733,6 +5733,13 @@ namespace Metal_Code
                     }
                 }
 
+                ExcelWorksheet? notesheet = offerbook.Workbook.Worksheets.FirstOrDefault(x => x.Name == "Накладная");
+
+                if (notesheet is not null)
+                    foreach (var cell in notesheet.Cells)
+                        if (cell.Value is not null && $"{cell.Value}" == "НАКЛАДНАЯ №")
+                            notesheet.Cells[cell.Start.Row, cell.Start.Column + 1].Value = offer.Order;
+
                 // ----- сохраняем книгу в файл Excel -----
                 offerbook.SaveAs(offer.Act);      //сохраняем файл .xlsx
             }
@@ -6799,11 +6806,16 @@ namespace Metal_Code
         /// </summary>
         private async System.Threading.Tasks.Task AutoShipOffersFromCrmAsync(HashSet<string> crmOrderNumbers)
         {
-            // ⭐ Находим расчёты в CurrentOffers, которые:
-            // 1. Имеют заполненный Order
+            if (TargetManager.Name is null) return;
+
+            var allProductionOffers = await DataService.GetOffersInProductionAsync(
+                        TargetManager.Id, TargetManager.Name);
+
+            // ⭐ Находим расчёты, которые:
+            // 1. Имеют заполненный Order (уже отфильтровано в GetOffersInProductionAsync, но оставим для надёжности)
             // 2. Ещё не отгружены (EndDate == null)
             // 3. Их Order есть в CRM-отчете (строгое сравнение)
-            var offersToShip = CurrentOffers
+            var offersToShip = allProductionOffers
                 .Where(o => !string.IsNullOrEmpty(o.Order)
                          && o.EndDate == null
                          && crmOrderNumbers.Contains(o.Order.Trim()))
@@ -6855,14 +6867,14 @@ namespace Metal_Code
                     else
                     {
                         failedCount++;
-                        offer.EndDate = null; // ⭐ Откатываем изменение
+                        offer.EndDate = null; // ⭐ Откатываем изменение при неудаче
                         Trace.WriteLine($"⚠️ Не удалось отгрузить расчёт {offer.N}");
                     }
                 }
                 catch (Exception ex)
                 {
                     failedCount++;
-                    offer.EndDate = null;
+                    offer.EndDate = null; // ⭐ Откатываем изменение при ошибке
                     Trace.WriteLine($"❌ Ошибка отгрузки {offer.N}: {ex.Message}");
                 }
             }
@@ -8646,6 +8658,7 @@ namespace Metal_Code
                                     string relativePath = Path.GetRelativePath(sourceDir, offer.Act);
                                     offer.Act = Path.Combine(newKpPath, relativePath);
                                 }
+                                UpdateOffer(offer);
                             }
                         }
                     }

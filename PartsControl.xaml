@@ -209,10 +209,11 @@
                     BorderThickness="1"
                     CornerRadius="6"
                     VerticalAlignment="Top">
-                    <ToggleButton Content="📄"
-                                  ToolTip="Сохранить все листы раскладки в PDF-файл"
+                    <ToggleButton ToolTip="Сохранить все листы раскладки в PDF-файл"
                                   Click="ExportNestingToPdf_Click"
-                                  Style="{StaticResource SideIconButton}"/>
+                                  Style="{StaticResource SideIconButton}">
+                        <Image Source="/Images/pdf_generate.png" Width="24"/>
+                    </ToggleButton>
                 </Border>            
             </StackPanel>
 

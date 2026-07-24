@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
 
 namespace Metal_Code.Utils
 {
@@ -135,9 +136,27 @@ namespace Metal_Code.Utils
             if (unplacedParts.Any())
             {
                 var maxStock = allowedStocks.OrderByDescending(s => s.Width).First();
-                throw new InvalidOperationException(
-                    $"Детали не помещаются в доступные листы. Максимальный формат: {maxStock.Width}x{maxStock.Height}. " +
-                    $"Проблемные детали: {string.Join(", ", unplacedParts.Take(5).Select(p => p.Title))}");
+
+                // 🔥 ЗАМЕНА: Вместо выброса исключения показываем MessageBox и продолжаем работу
+                string problemParts = string.Join(", ", unplacedParts.Take(5).Select(p => p.Title));
+                string moreText = unplacedParts.Count > 5 ? $"\n...и ещё {unplacedParts.Count - 5} деталей." : "";
+
+                MessageBox.Show(
+                    $"Не все детали удалось разместить на доступных листах.\n\n" +
+                    $"Максимальный формат листа: {maxStock.Width}x{maxStock.Height} мм\n\n" +
+                    $"Проблемные детали (слишком большие):\n{problemParts}{moreText}\n\n" +
+                    $"Успешно размещено листов: {sheets.Count}\n" +
+                    $"Не размещено деталей: {unplacedParts.Count}\n\n" +
+                    $"Вы можете продолжить работу с размещенными листами или скорректировать заказ.",
+                    "Предупреждение нестинга",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                // Логируем в трейс для отладки
+                System.Diagnostics.Trace.WriteLine(
+                    $"Skyline AutoSheet: {unplacedParts.Count} деталей не размещено. " +
+                    $"Макс. формат: {maxStock.Width}x{maxStock.Height}. " +
+                    $"Проблемные: {problemParts}");
             }
 
             foreach (var sheet in sheets)

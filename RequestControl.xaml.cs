@@ -337,12 +337,16 @@ namespace Metal_Code
 
         //-----анализ файлов по выбранному шаблону-----//
         private void Analyze_Paths(object sender, RoutedEventArgs e) { Analyze_Paths(); }
+
         private void Analyze_Paths()
         {
             if (Paths.Count == 0) return;
 
             RequestTemplate template = TemplatesList.SelectedItem is not RequestTemplate ?
                 new RequestTemplate() : (RequestTemplate)TemplatesList.SelectedItem;
+
+            // 🔥 НОВОЕ: Список для сбора имен файлов, которые не удалось прочитать
+            List<string> failedDxfFiles = new List<string>();
 
             foreach (string path in Paths)
             {
@@ -361,20 +365,14 @@ namespace Metal_Code
                 string aisiPattern = @"(aisi\s*(\d+)\s*зер)|(aisi\s*(\d+)\s*шлиф)|(aisi\s*(\d+))";
                 string d16atPattern = @"д\s*16\s*(?:а\s*т|т)";
                 string d16amPattern = @"д\s*16\s*(?:а\s*м|м)";
-
-                // Паттерн для марки материала "амг" + цифра (амг2, амг3, амг5, амг6)
                 string amgPattern = @"(?<!\p{L})амг\s*(\d+)";
-
-                // Паттерн для "al/алюм/алюминий" + цифра → материал "амг2", цифра = толщина
                 string alPattern = @"(?<!\p{L})(?:al|алюм(?:иний)?)\s*(\d+)";
 
                 bool materialFound = false;
 
-                // Сначала проверяем "al/алюм/алюминий" — это особый случай: материал всегда "амг2", цифра — толщина
                 Match alMatch = Regex.Match(path, alPattern, RegexOptions.IgnoreCase);
                 if (alMatch.Success)
                 {
-                    // Ищем в БД материал "амг2"
                     var amg2Metal = MainWindow.M.Metals.FirstOrDefault(m => m.Name != null && m.Name.Contains("амг2", StringComparison.OrdinalIgnoreCase));
                     if (amg2Metal != null)
                     {
@@ -385,10 +383,10 @@ namespace Metal_Code
                     }
                 }
 
-                // Если не нашли по "al", идём по обычному циклу
                 if (!materialFound)
                 {
                     foreach (Metal metal in MainWindow.M.Metals)
+                    {
                         if (metal.Name != null && metal.Name.Contains("aisi"))
                         {
                             Match match = Regex.Match(path, aisiPattern, RegexOptions.IgnoreCase);
@@ -435,20 +433,15 @@ namespace Metal_Code
                             techItem.NumberName = Regex.Replace(techItem.NumberName, metal.Name, "", RegexOptions.IgnoreCase);
                             break;
                         }
+                    }
                 }
 
-                // Определяем толщину (только если ещё не установлена из "al/алюм/алюминий")
+                // Определяем толщину
                 if (string.IsNullOrWhiteSpace(techItem.Destiny))
                 {
-                    string destinyPattern;
-                    if (template.PosDestiny)
-                    {
-                        destinyPattern = $@"{Regex.Escape(template.DestinyPattern)}\s*(?<!\d)(\d{{1,2}}(?:[,.]\d+)?)(?!\d)";
-                    }
-                    else
-                    {
-                        destinyPattern = $@"(?<!\d)(\d{{1,2}}(?:[,.]\d+)?)(?!\d)\s*{Regex.Escape(template.DestinyPattern)}";
-                    }
+                    string destinyPattern = template.PosDestiny
+                        ? $@"{Regex.Escape(template.DestinyPattern)}\s*(?<!\d)(\d{{1,2}}(?:[,.]\d+)?)(?!\d)"
+                        : $@"(?<!\d)(\d{{1,2}}(?:[,.]\d+)?)(?!\d)\s*{Regex.Escape(template.DestinyPattern)}";
 
                     Match matchDestiny = Regex.Match(path, destinyPattern, RegexOptions.IgnoreCase);
                     if (matchDestiny.Success)
@@ -458,10 +451,10 @@ namespace Metal_Code
                     }
                 }
 
-                //определяем количество
-                string countPattern;
-                if (template.PosCount) countPattern = $@"{Regex.Escape(template.CountPattern)}\s*(\d+)";
-                else countPattern = $@"(\d+)\s*{Regex.Escape(template.CountPattern)}";
+                // определяем количество
+                string countPattern = template.PosCount
+                    ? $@"{Regex.Escape(template.CountPattern)}\s*(\d+)"
+                    : $@"(\d+)\s*{Regex.Escape(template.CountPattern)}";
 
                 Match matchCount = Regex.Match(path, countPattern, RegexOptions.IgnoreCase);
                 if (matchCount.Success)
@@ -470,10 +463,10 @@ namespace Metal_Code
                     techItem.NumberName = Regex.Replace(techItem.NumberName, countPattern, "", RegexOptions.IgnoreCase);
                 }
 
-                //очищаем наименование
+                // очищаем наименование
                 techItem.NumberName = Regex.Replace(techItem.NumberName, @"[^\p{L}\p{Nd}]+$", "").Trim();
 
-                //определяем размеры
+                // определяем размеры (чтение DXF)
                 if (string.Equals(Path.GetExtension(path), ".dxf", StringComparison.OrdinalIgnoreCase))
                 {
                     try
@@ -493,10 +486,13 @@ namespace Metal_Code
 
                         TechItemCalculator.UpdateFromGeometry(techItem);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        MessageBox.Show($"Не удалось прочитать dxf ({path}).\n" +
-                        $"Пересохраните файл в CAD-программе и попробуйте снова.");
+                        // 🔥 ИЗМЕНЕНО: Вместо MessageBox добавляем имя файла в список ошибок
+                        failedDxfFiles.Add(Path.GetFileName(path));
+
+                        // Логируем ошибку для отладки
+                        System.Diagnostics.Trace.WriteLine($"Ошибка чтения DXF {path}: {ex.Message}");
                     }
                 }
 
@@ -509,10 +505,26 @@ namespace Metal_Code
                 TechItems.Add(techItem);
             }
 
+            // 🔥 НОВОЕ: Показываем ОДНО сводное сообщение после завершения цикла
+            if (failedDxfFiles.Count > 0)
+            {
+                int maxToShow = 10; // Ограничиваем список, чтобы окно не было гигантским
+                string fileList = string.Join("\n", failedDxfFiles.Take(maxToShow));
+                string moreText = failedDxfFiles.Count > maxToShow ? $"\n...и ещё {failedDxfFiles.Count - maxToShow} файлов." : "";
+
+                MessageBox.Show(
+                    $"Не удалось прочитать следующие DXF-файлы ({failedDxfFiles.Count} шт.):\n\n" +
+                    $"{fileList}{moreText}\n\n" +
+                    "Пересохраните их в CAD-программе (например, КОМПАС) и попробуйте снова.\n" +
+                    "Остальные файлы были успешно добавлены в список.",
+                    "Ошибка импорта DXF",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+
             if (TechItems.Count > 0)
                 MainWindow.M.StatusBegin("Файлы успешно проанализированы", MainWindow.StatusMessageType.Success);
         }
-
 
         //-----генерация имён строк заявки-----//
         private void Rename_Details(object sender, RoutedEventArgs e)
@@ -904,7 +916,55 @@ namespace Metal_Code
                                         parts.Add(part);
                                     }
 
+                                    // 1. Создаем раскладку
                                     cut.PartsControl?.AddBatchToCutControl(cut, parts, m);
+
+                                    // 2. АВТОМАТИЧЕСКИЙ ЭКСПОРТ PDF В ПАПКУ "Лазер"
+                                    if (cut.PartsControl != null)
+                                    {
+                                        string? firstModelPath = group.FirstOrDefault()?.PathToModel;
+                                        if (!string.IsNullOrEmpty(firstModelPath))
+                                        {
+                                            string? tzFolder = Path.GetDirectoryName(firstModelPath);
+                                            string? projectRoot = Path.GetDirectoryName(tzFolder);
+
+                                            if (!string.IsNullOrEmpty(projectRoot))
+                                            {
+                                                // 🔥 Целевая папка: ...\Проект\Лазер
+                                                string laserFolder = Path.Combine(projectRoot, "Лазер");
+
+                                                // Гарантируем, что папка "Лазер" существует, чтобы запись не упала с ошибкой
+                                                if (!Directory.Exists(laserFolder)) Directory.CreateDirectory(laserFolder);
+
+                                                // Формируем описание так же, как в PartsControl
+                                                string metalNameForPdf = m.Name ?? "";
+                                                float thicknessForPdf = destiny;
+
+                                                string description = "";
+                                                if ((metalNameForPdf.Contains("ст") && thicknessForPdf >= 3) || (metalNameForPdf.Contains("хк") && thicknessForPdf < 3)) description = $"s{thicknessForPdf}";
+                                                else if (metalNameForPdf.Contains("амг2")) description = $"al{thicknessForPdf}";
+                                                else if (metalNameForPdf.Contains("амг") || metalNameForPdf.Contains("д16")) description = $"al{thicknessForPdf} {metalNameForPdf}";
+                                                else if (metalNameForPdf.Contains("латунь")) description = $"br{thicknessForPdf}";
+                                                else if (metalNameForPdf.Contains("медь")) description = $"cu{thicknessForPdf}";
+                                                else description = $"s{thicknessForPdf} {metalNameForPdf}";
+
+                                                if (cut.IsGrooved) description += " рифл";
+                                                if (cut.work.type.CheckMetal.IsChecked is false) description += " Давальч";
+
+                                                // Очищаем имя файла от недопустимых символов для безопасности
+                                                foreach (char c in Path.GetInvalidFileNameChars())
+                                                {
+                                                    description = description.Replace(c, '_');
+                                                }
+
+                                                string pdfFileName = $"{description}.pdf";
+                                                string fullPath = Path.Combine(laserFolder, pdfFileName);
+
+                                                // Вызываем метод генерации (без диалогового окна)
+                                                cut.PartsControl.GenerateNestingPdf(fullPath);
+                                            }
+                                        }
+                                    }
                                 }
                             }
                             else        // Трубы
