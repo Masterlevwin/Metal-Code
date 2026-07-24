@@ -740,7 +740,6 @@ namespace Metal_Code
         {
             if (owner is not CutControl cut || sender is not ToggleButton btn) return;
 
-            // 🔥 Включаем оранжевую подсветку на время работы с окном
             btn.IsChecked = true;
 
             var openFileDialog = new OpenFileDialog
@@ -767,14 +766,20 @@ namespace Metal_Code
                         if (calculationGeometry == null || calculationGeometry.IsEmpty())
                             throw new InvalidOperationException("DXF не содержит распознаваемых замкнутых контуров.");
 
+                        // 🔥 АВТОМАТИЧЕСКОЕ ОПРЕДЕЛЕНИЕ ТИПА ДЕТАЛИ
+                        PartType detectedType = GeometryAnalyzer.DetectPartType(calculationGeometry);
+
+                        var bounds = calculationGeometry.Bounds;
+
                         var part = new Part(Path.GetFileNameWithoutExtension(filePath))
                         {
                             Count = 0,
                             Metal = metalName,
                             Destiny = thickness,
-                            Width = Math.Ceiling(calculationGeometry.Bounds.Width),
-                            Height = Math.Ceiling(calculationGeometry.Bounds.Height),
-                            PartType = PartType.Rectangle,
+                            // Используем реальные габариты из геометрии
+                            Width = Math.Ceiling(bounds.Width),
+                            Height = Math.Ceiling(bounds.Height),
+                            PartType = detectedType, // <-- Присваиваем определенный тип!
                             DisplayGeometry = calculationGeometry,
                         };
 
@@ -817,7 +822,6 @@ namespace Metal_Code
                 }
             }
 
-            // 🔥 Гарантированно выключаем подсветку после закрытия окна (даже если произошла ошибка)
             btn.IsChecked = false;
         }
 
@@ -1026,6 +1030,7 @@ namespace Metal_Code
 
         /// <summary>
         /// Генерирует PDF-файл раскладки по указанному пути (без диалоговых окон).
+        /// Обновленная структура: Сводка сверху -> Листы (картинка во всю ширину + таблица под ней) -> Общая спецификация в конце.
         /// </summary>
         public void GenerateNestingPdf(string filePath)
         {
@@ -1074,6 +1079,21 @@ namespace Metal_Code
                     index++;
                 }
 
+                // 🔥 1. ФОРМИРУЕМ ВЕРХНЮЮ СВОДКУ ПО ЛИСТАМ
+                var sheetSummary = sheetData
+                    .GroupBy(s => new { s.SheetSize, s.SheetCount })
+                    .Select(g => new
+                    {
+                        Size = g.Key.SheetSize,
+                        TotalSheets = g.Sum(x => x.SheetCount) // Суммируем физическое количество листов этого размера
+                    })
+                    .OrderByDescending(x => x.TotalSheets)
+                    .ToList();
+
+                string totalSheetsText = string.Join(", ", sheetSummary.Select(g => $"{g.TotalSheets} шт. {g.Size}"));
+                int totalPhysicalSheets = sheetSummary.Sum(x => x.TotalSheets);
+
+                // 🔥 2. ФОРМИРУЕМ ОБЩУЮ СВОДНУЮ ТАБЛИЦУ (для размещения в конце)
                 var masterPartsList = sheetData
                     .SelectMany(s => s.PartsTable)
                     .GroupBy(p => new { p.Name, p.Dimensions })
@@ -1087,6 +1107,7 @@ namespace Metal_Code
                     .OrderByDescending(p => p.TotalQty)
                     .ToList();
 
+                // 🔥 3. ГЕНЕРАЦИЯ PDF С НОВОЙ СТРУКТУРОЙ
                 Document.Create(container =>
                 {
                     container.Page(page =>
@@ -1103,6 +1124,9 @@ namespace Metal_Code
 
                         page.Content().Column(column =>
                         {
+                            // ==========================================
+                            // ЧАСТЬ А: МАТЕРИАЛ, ТОЛЩИНА И ОБЩАЯ СВОДКА ПО ЛИСТАМ (ВВЕРХУ)
+                            // ==========================================
                             column.Item().Border(1).BorderColor(Colors.Blue.Lighten2).Background(Colors.Blue.Lighten4).Padding(10).Row(row =>
                             {
                                 row.RelativeItem().Text(x =>
@@ -1112,22 +1136,111 @@ namespace Metal_Code
                                     x.Span("  |  Толщина: ").FontSize(11);
                                     x.Span($"{thickness} мм").Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
                                 });
+
+                                row.RelativeItem().AlignRight().Text(x =>
+                                {
+                                    x.Span("Всего листов: ").FontSize(11);
+                                    x.Span(totalPhysicalSheets.ToString()).Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
+                                    x.Span($" ({totalSheetsText})").FontSize(11);
+                                });
                             });
                             column.Item().PaddingVertical(10);
 
-                            column.Item().Text("Общая спецификация деталей по всему заказу").FontSize(14).Bold().FontColor(Colors.Black);
+                            // ==========================================
+                            // ЧАСТЬ Б: ЛИСТЫ РАСКЛАДКИ (КАРТИНКА ВО ВСЮ ШИРИНУ + ТАБЛИЦА ПОД НЕЙ)
+                            // ==========================================
+                            for (int i = 0; i < sheetData.Count; i++)
+                            {
+                                var data = sheetData[i];
+
+                                // Заголовок листа
+                                column.Item().Row(row =>
+                                {
+                                    row.RelativeItem().Text(data.Title).FontSize(14).Bold().FontColor(Colors.Blue.Darken2);
+                                    row.RelativeItem().AlignRight().Text(x =>
+                                    {
+                                        x.Span($"Размер: {data.SheetSize} мм | Деталей: {data.PartsCount} | Листов в группе: ")
+                                            .FontSize(10).FontColor(Colors.Grey.Darken1);
+                                        x.Span(data.SheetCount.ToString()).FontSize(11).Bold().FontColor(Colors.Blue.Darken2);
+                                    });
+                                });
+                                column.Item().PaddingVertical(5);
+
+                                // 🔥 КАРТИНКА ВО ВСЮ ШИРИНУ (максимально крупно и четко)
+                                column.Item()
+                                    .Border(1)
+                                    .BorderColor(Colors.Grey.Lighten2)
+                                    .Image(data.ImageBytes)
+                                    .FitArea();
+
+                                column.Item().PaddingVertical(10);
+
+                                // 🔥 ТАБЛИЦА СПЕЦИФИКАЦИИ ПОД КАРТИНКОЙ
+                                column.Item().Text($"Спецификация деталей на листе:").FontSize(11).Bold().FontColor(Colors.Grey.Darken2);
+                                column.Item().PaddingVertical(3);
+
+                                column.Item().Table(sheetTable =>
+                                {
+                                    // Поскольку таблица теперь во всю ширину, делаем колонки пропорционально шире для читаемости
+                                    sheetTable.ColumnsDefinition(columns =>
+                                    {
+                                        columns.RelativeColumn(4);   // Деталь (широкая)
+                                        columns.RelativeColumn(2);   // Размер
+                                        columns.RelativeColumn(1.5f); // Вес, кг
+                                        columns.RelativeColumn(1);   // На листе
+                                    });
+
+                                    sheetTable.Header(header =>
+                                    {
+                                        header.Cell().Element(TableHeaderStyle).Text("Наименование детали");
+                                        header.Cell().Element(TableHeaderStyle).Text("Габариты (мм)");
+                                        header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Вес, кг");
+                                        header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Кол-во на листе");
+                                    });
+
+                                    foreach (var part in data.PartsTable)
+                                    {
+                                        sheetTable.Cell().Element(TableRowStyle).Text(part.Name);
+                                        sheetTable.Cell().Element(TableRowStyle).Text(part.Dimensions);
+                                        sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.WeightKg.ToString("0.###"));
+                                        sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.QtyOnSheet.ToString());
+                                    }
+                                });
+
+                                // Разрыв страницы между листами (кроме последнего)
+                                if (i < sheetData.Count - 1)
+                                {
+                                    column.Item().PageBreak();
+                                }
+                            }
+
+                            // ==========================================
+                            // ЧАСТЬ В: ОБЩАЯ СПЕЦИФИКАЦИЯ (В САМОМ КОНЦЕ ДОКУМЕНТА)
+                            // ==========================================
+                            column.Item().PageBreak(); // Гарантируем, что общая сводка начинается с новой страницы
+
+                            column.Item().Text("Общая спецификация деталей по всему заказу")
+                                .FontSize(14).Bold().FontColor(Colors.Black);
                             column.Item().PaddingVertical(5);
 
                             column.Item().Table(masterTable =>
                             {
-                                masterTable.ColumnsDefinition(columns => { columns.RelativeColumn(3); columns.RelativeColumn(2); columns.RelativeColumn(1.5f); columns.RelativeColumn(1); });
+                                masterTable.ColumnsDefinition(columns =>
+                                {
+                                    columns.RelativeColumn(3);   // Наименование
+                                    columns.RelativeColumn(2);   // Габариты
+                                    columns.RelativeColumn(1.5f); // Вес, кг
+                                    columns.RelativeColumn(1);   // Общее кол-во
+                                });
+
                                 masterTable.Header(header =>
                                 {
                                     header.Cell().Element(TableHeaderStyle).Text("Наименование");
                                     header.Cell().Element(TableHeaderStyle).Text("Габариты (мм)");
-                                    header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Вес, кг");
-                                    header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Кол-во");
+                                    header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Общий вес, кг");
+                                    header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Общее кол-во");
                                 });
+
                                 foreach (var part in masterPartsList)
                                 {
                                     masterTable.Cell().Element(TableRowStyle).Text(part.Name);
@@ -1136,56 +1249,15 @@ namespace Metal_Code
                                     masterTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.TotalQty.ToString()).Bold();
                                 }
                             });
-
-                            column.Item().PageBreak();
-
-                            for (int i = 0; i < sheetData.Count; i++)
-                            {
-                                var data = sheetData[i];
-                                column.Item().Row(row =>
-                                {
-                                    row.RelativeItem().Text(data.Title).FontSize(14).Bold().FontColor(Colors.Blue.Darken2);
-                                    row.RelativeItem().AlignRight().Text(x =>
-                                    {
-                                        x.Span($"Размер: {data.SheetSize} мм | Деталей: {data.PartsCount} | Листов в группе: ").FontSize(10).FontColor(Colors.Grey.Darken1);
-                                        x.Span(data.SheetCount.ToString()).FontSize(11).Bold().FontColor(Colors.Blue.Darken2);
-                                    });
-                                });
-                                column.Item().PaddingVertical(5);
-
-                                column.Item().Row(row =>
-                                {
-                                    row.RelativeItem(6).Border(1).BorderColor(Colors.Grey.Lighten2).Image(data.ImageBytes).FitArea();
-                                    row.ConstantItem(15);
-                                    row.RelativeItem(4).Column(tableColumn =>
-                                    {
-                                        tableColumn.Item().Text($"Спецификация листа:").FontSize(11).Bold().FontColor(Colors.Grey.Darken2);
-                                        tableColumn.Item().PaddingVertical(3);
-                                        tableColumn.Item().Table(sheetTable =>
-                                        {
-                                            sheetTable.ColumnsDefinition(columns => { columns.RelativeColumn(3); columns.RelativeColumn(2); columns.RelativeColumn(1.5f); columns.RelativeColumn(1); });
-                                            sheetTable.Header(header =>
-                                            {
-                                                header.Cell().Element(TableHeaderStyle).Text("Деталь");
-                                                header.Cell().Element(TableHeaderStyle).Text("Размер");
-                                                header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Вес, кг");
-                                                header.Cell().Element(TableHeaderStyle).AlignCenter().Text("На листе");
-                                            });
-                                            foreach (var part in data.PartsTable)
-                                            {
-                                                sheetTable.Cell().Element(TableRowStyle).Text(part.Name);
-                                                sheetTable.Cell().Element(TableRowStyle).Text(part.Dimensions);
-                                                sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.WeightKg.ToString("0.###"));
-                                                sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.QtyOnSheet.ToString());
-                                            }
-                                        });
-                                    });
-                                });
-                                if (i < sheetData.Count - 1) column.Item().PageBreak();
-                            }
                         });
 
-                        page.Footer().AlignCenter().Text(x => { x.Span("Страница ").FontSize(8); x.CurrentPageNumber().FontSize(8); x.Span(" из ").FontSize(8); x.TotalPages().FontSize(8); });
+                        page.Footer().AlignCenter().Text(x =>
+                        {
+                            x.Span("Страница ").FontSize(8);
+                            x.CurrentPageNumber().FontSize(8);
+                            x.Span(" из ").FontSize(8);
+                            x.TotalPages().FontSize(8);
+                        });
                     });
                 }).GeneratePdf(filePath);
             }
@@ -1314,6 +1386,7 @@ namespace Metal_Code
             {
                 "Прямоугольник" => PartType.Rectangle,
                 "Круг" => owner is SawControl saw && saw.Tube == TubeType.circle ? PartType.RoundTube : PartType.Round,
+                "Треугольник" => PartType.Triangle,
                 "Квадрат" => PartType.RectangularTube,
                 "Профильная труба" => PartType.RectangularTube,
                 "Круглая труба" => PartType.RoundTube,
@@ -1333,7 +1406,7 @@ namespace Metal_Code
             };
 
             // Устанавливаем базовые размеры
-            if (partType == PartType.Round || partType == PartType.Rectangle)
+            if (partType == PartType.Round || partType == PartType.Rectangle || partType == PartType.Triangle)
                 part.Width = part.Height = 50;
             else if (partType == PartType.RoundTube)
             {
@@ -1354,7 +1427,10 @@ namespace Metal_Code
         {
             if (part.PropsDict == null) part.PropsDict = new Dictionary<int, List<string>>();
 
-            bool isSheetPart = part.PartType == PartType.Round || part.PartType == PartType.Rectangle;
+            bool isSheetPart = part.PartType == PartType.Round ||
+                               part.PartType == PartType.Rectangle ||
+                               part.PartType == PartType.Triangle;
+
             int pinholes = 0;
             double cuttingLength = 0;
 
@@ -1395,11 +1471,17 @@ namespace Metal_Code
                 double area = CalculateCrossSectionArea(part.PartType, part.Width, part.Height, 1);
                 part.Mass = (float)Math.Round(area * thickness * metal.Density / 1_000_000, 3);
 
+                string dimensionString = part.PartType switch
+                {
+                    PartType.Round => $"Ø{part.Width}",
+                    _ => $"{part.Width}x{part.Height}"
+                };
+
                 part.PropsDict[100] = new List<string>
         {
             $"{part.Width}",
             $"{part.Height}",
-            part.PartType == PartType.Round ? $"Ø{part.Width}" : $"{part.Width}x{part.Height}"
+            dimensionString
         };
             }
             else
@@ -1807,11 +1889,8 @@ namespace Metal_Code
         /// <param name="height">Высота/вторая полка (мм), для круглых — не используется</param>
         /// <param name="thickness">Толщина стенки/полки (мм)</param>
         /// <returns>Площадь сечения в мм²</returns>
-        public static double CalculateCrossSectionArea(
-            PartType partType,
-            double width,
-            double height,
-            double thickness)
+        public static double CalculateCrossSectionArea(PartType partType,
+            double width, double height, double thickness)
         {
             // Валидация: толщина не должна превышать 1/3 от меньшего линейного размера
             double minDim = Math.Min(width, height > 0 ? height : width);
@@ -1822,6 +1901,7 @@ namespace Metal_Code
                 // === ЛИСТОВЫЕ И ПРОСТЫЕ СЕЧЕНИЯ ===
                 PartType.Round => Math.PI * Math.Pow(width / 2, 2),
                 PartType.Rectangle or PartType.SquareBar => width * height,
+                PartType.Triangle => width * height / 2.0,
 
                 // === ТРУБЫ ===
                 PartType.RoundTube => Math.PI * (
@@ -1833,13 +1913,8 @@ namespace Metal_Code
                     Math.Max(0, width - 2 * t) * Math.Max(0, height - 2 * t),
 
                 // === ПРОКАТ ===
-                // Уголок: A = t × (b₁ + b₂ − t) — учитываем перекрытие в углу
                 PartType.Angle => t * (width + height - t),
-
-                // Швеллер: A = t × (W + 2H − 2t) = основание + две стенки
                 PartType.Channel => t * (width + 2 * height - 2 * t),
-
-                // Двутавр: A = t × (2W + H − 2t) = две полки + стенка
                 PartType.IBeam => t * (2 * width + height - 2 * t),
 
                 _ => 0
@@ -1851,11 +1926,8 @@ namespace Metal_Code
         /// </summary>
         public static double CalculateCrossSectionArea(Part part, double thickness)
         {
-            return CalculateCrossSectionArea(
-                part.PartType,
-                part.Width,
-                part.Height,
-                thickness);
+            return CalculateCrossSectionArea(part.PartType,
+                part.Width, part.Height, thickness);
         }
 
         /// <summary>

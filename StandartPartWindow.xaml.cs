@@ -36,7 +36,6 @@ namespace Metal_Code
             UpdatePreview();
         }
 
-        // Простой обработчик — только меняем тип и стандартные размеры
         private void OnShapeTypeChanged(object sender, RoutedEventArgs e)
         {
             if (sender is RadioButton rb && rb.Tag is string shapeType)
@@ -45,6 +44,11 @@ namespace Metal_Code
                 {
                     _currentPart.PartType = PartType.Round;
                     _currentPart.Title = "Круг";
+                }
+                else if (shapeType == "Triangle")
+                {
+                    _currentPart.PartType = PartType.Triangle;
+                    _currentPart.Title = "Треугольник";
                 }
                 else // Rectangle
                 {
@@ -72,18 +76,6 @@ namespace Metal_Code
             if (!int.TryParse(CountInput.Text, out int count) || count <= 0)
             {
                 MessageBox.Show("Введите корректное количество отверстий", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            if (diameter < 1 || diameter > 100)
-            {
-                MessageBox.Show("Диаметр должен быть от 1 до 100 мм", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            if (count > 50)
-            {
-                MessageBox.Show("Максимальное количество отверстий в группе - 50", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 

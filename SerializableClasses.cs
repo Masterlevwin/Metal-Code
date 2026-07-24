@@ -334,6 +334,7 @@ namespace Metal_Code
         Angle,            // Уголок
         Channel,          // Швеллер
         IBeam,            // Двутавр
+        Triangle,         // Треугольник
     }
 
     [Serializable]

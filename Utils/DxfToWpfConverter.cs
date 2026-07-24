@@ -6,6 +6,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Media;
 using Point = System.Windows.Point;
+using Trace = System.Diagnostics.Trace;
 
 namespace Metal_Code.Utils
 {
@@ -286,6 +287,197 @@ namespace Metal_Code.Utils
         public static double Distance(Point a, Point b)
         {
             return Math.Sqrt(Math.Pow(b.X - a.X, 2) + Math.Pow(b.Y - a.Y, 2));
+        }
+    }
+
+    public static class GeometryAnalyzer
+    {
+        public static PartType DetectPartType(PathGeometry geometry)
+        {
+            Trace.WriteLine("[GeoAnalyzer] === Начало анализа геометрии ===");
+
+            if (geometry == null || geometry.Figures.Count == 0)
+            {
+                Trace.WriteLine("[GeoAnalyzer] Геометрия пуста. Возврат Rectangle.");
+                return PartType.Rectangle;
+            }
+
+            Trace.WriteLine($"[GeoAnalyzer] Всего фигур (контуров): {geometry.Figures.Count}");
+
+            // Находим самый большой контур (внешнюю границу детали)
+            var mainFigure = geometry.Figures
+                .Where(f => f.IsClosed)
+                .OrderByDescending(f => GetBoundsArea(f))
+                .FirstOrDefault();
+
+            if (mainFigure == null)
+            {
+                Trace.WriteLine("[GeoAnalyzer] Не найдено замкнутых фигур. Возврат Rectangle.");
+                return PartType.Rectangle;
+            }
+
+            Trace.WriteLine($"[GeoAnalyzer] Выбран главный контур. Сегментов в нем: {mainFigure.Segments.Count}");
+
+            int lineCount = 0;
+            int arcCount = 0;
+            var rawVertices = new List<Point>();
+
+            Point current = mainFigure.StartPoint;
+            rawVertices.Add(current);
+
+            foreach (var seg in mainFigure.Segments)
+            {
+                if (seg is LineSegment line)
+                {
+                    lineCount++;
+                    if (Distance(current, line.Point) > 0.5) // Игнорируем микро-отрезки < 0.5 мм
+                    {
+                        rawVertices.Add(line.Point);
+                    }
+                    current = line.Point;
+                }
+                else if (seg is ArcSegment arc)
+                {
+                    arcCount++;
+                    current = arc.Point;
+                }
+            }
+
+            Trace.WriteLine($"[GeoAnalyzer] Сырые данные: Линий={lineCount}, Дуг={arcCount}, Сырых вершин={rawVertices.Count}");
+
+            // Упрощаем полигон
+            var uniqueVertices = SimplifyPolygon(rawVertices, sinTolerance: 0.05); // ~3 градуса допуска
+
+            Trace.WriteLine($"[GeoAnalyzer] Вершин после упрощения: {uniqueVertices.Count}");
+            for (int i = 0; i < uniqueVertices.Count; i++)
+            {
+                Trace.WriteLine($"  Вершина {i + 1}: X={uniqueVertices[i].X:F2}, Y={uniqueVertices[i].Y:F2}");
+            }
+
+            // 1. Если есть дуги и мало прямых линий - это круг
+            if (arcCount > 0 && lineCount <= 2)
+            {
+                Trace.WriteLine("[GeoAnalyzer] Результат: Round (круг)");
+                return PartType.Round;
+            }
+
+            // 2. Если ровно 3 значимые вершины - это треугольник
+            if (uniqueVertices.Count == 3)
+            {
+                Trace.WriteLine("[GeoAnalyzer] Результат: Triangle (треугольник)");
+                return PartType.Triangle;
+            }
+
+            // 3. Если 4 вершины, проверяем, является ли он прямоугольником
+            if (uniqueVertices.Count == 4)
+            {
+                if (IsRectangle(uniqueVertices))
+                {
+                    Trace.WriteLine("[GeoAnalyzer] Результат: Rectangle (прямоугольник)");
+                    return PartType.Rectangle;
+                }
+                else
+                {
+                    Trace.WriteLine("[GeoAnalyzer] Результат: Rectangle (fallback, 4 вершины, но не прямоугольник)");
+                }
+            }
+
+            // Fallback
+            Trace.WriteLine($"[GeoAnalyzer] Результат: Rectangle (fallback, вершин={uniqueVertices.Count})");
+            return PartType.Rectangle;
+        }
+
+        private static double GetBoundsArea(PathFigure figure)
+        {
+            var bounds = new PathGeometry(new[] { figure }).Bounds;
+            return bounds.Width * bounds.Height;
+        }
+
+        private static double Distance(Point a, Point b)
+        {
+            return Math.Sqrt(Math.Pow(b.X - a.X, 2) + Math.Pow(b.Y - a.Y, 2));
+        }
+
+        private static List<Point> SimplifyPolygon(List<Point> points, double sinTolerance)
+        {
+            if (points.Count <= 3) return new List<Point>(points);
+
+            var result = new List<Point> { points[0] };
+
+            for (int i = 1; i < points.Count - 1; i++)
+            {
+                Point pPrev = points[i - 1];
+                Point pCurr = points[i];
+                Point pNext = points[i + 1];
+
+                // Векторы pPrev->pCurr и pCurr->pNext
+                double dx1 = pCurr.X - pPrev.X;
+                double dy1 = pCurr.Y - pPrev.Y;
+                double dx2 = pNext.X - pCurr.X;
+                double dy2 = pNext.Y - pCurr.Y;
+
+                // Модуль векторного произведения
+                double crossProduct = Math.Abs(dx1 * dy2 - dy1 * dx2);
+
+                double len1 = Math.Sqrt(dx1 * dx1 + dy1 * dy1);
+                double len2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
+                double lengthProduct = len1 * len2;
+
+                if (lengthProduct > 0)
+                {
+                    double sinAngle = crossProduct / lengthProduct;
+
+                    // Если sin угла больше допуска, это реальная вершина (излом)
+                    if (sinAngle >= sinTolerance)
+                    {
+                        result.Add(pCurr);
+                    }
+                }
+            }
+
+            // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Удаление дублирующейся замыкающей точки.
+            // Если DXF замкнут, последняя точка часто совпадает с первой (A -> B -> C -> A).
+            // Мы должны удалить последнюю точку, если она практически идентична первой, 
+            // чтобы получить истинное количество вершин (3, а не 4).
+            if (result.Count > 2 && Distance(result[0], result[result.Count - 1]) < 0.5)
+            {
+                result.RemoveAt(result.Count - 1);
+            }
+
+            return result;
+        }
+
+        private static bool IsRectangle(List<Point> pts)
+        {
+            if (pts.Count != 4) return false;
+
+            for (int i = 0; i < 4; i++)
+            {
+                Point p0 = pts[i];
+                Point p1 = pts[(i + 1) % 4];
+                Point p2 = pts[(i + 2) % 4];
+
+                double dx1 = p0.X - p1.X;
+                double dy1 = p0.Y - p1.Y;
+                double dx2 = p2.X - p1.X;
+                double dy2 = p2.Y - p1.Y;
+
+                double dotProduct = dx1 * dx2 + dy1 * dy2;
+                double len1 = Math.Sqrt(dx1 * dx1 + dy1 * dy1);
+                double len2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
+                double lengthProduct = len1 * len2;
+
+                if (lengthProduct > 0)
+                {
+                    double cosAngle = Math.Abs(dotProduct / lengthProduct);
+                    if (cosAngle > 0.1) // Допуск ~6 градусов
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
     }
 }

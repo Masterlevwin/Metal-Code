@@ -1428,7 +1428,6 @@ namespace Metal_Code
                 {
                     // Режим поиска — данные уже загружены в Search_Offers
                     dataToDisplay = CurrentOffers.ToList();
-                    //SummaryInfoTextBlock.Text = $"Найдено: {CurrentOffers.Count} расчётов";
                 }
                 else if (TargetManager.Name != null)
                 {
@@ -1437,9 +1436,6 @@ namespace Metal_Code
 
                     CurrentOffers.Clear();
                     foreach (var offer in offers) CurrentOffers.Add(offer);
-
-                    //int totalCount = await DataService.GetTotalOffersCountAsync(TargetManager.Id, TargetManager.Name);
-                    //SummaryInfoTextBlock.Text = $"Показано: {CurrentOffers.Count} из {totalCount} расчётов";
                 }
 
                 // Обновляем CurrentOffers (если режим "в производстве")
@@ -2524,16 +2520,29 @@ namespace Metal_Code
         /// </summary>
         public void InitializeOffersView()
         {
-            var expandedGroups = GetExpandedGroupNames();
-            var viewSource = new CollectionViewSource { Source = CurrentOffers };
+            // ⭐ КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Создаем представление ТОЛЬКО если его еще нет.
+            // Повторное создание CollectionViewSource при каждом поиске/обновлении 
+            // разрывает внутренние связи DataGrid и является частой причиной крашей в WPF.
+            if (OffersView == null)
+            {
+                var viewSource = new CollectionViewSource { Source = CurrentOffers };
+                OffersView = viewSource.View;
+                OffersGrid.ItemsSource = OffersView;
+            }
 
-            OffersView = viewSource.View;
-            OffersGrid.ItemsSource = OffersView;
+            // Всегда применяем актуальную сортировку и группировку к существующему представлению
+            string sortProp = string.IsNullOrEmpty(_currentSortColumn) ? nameof(Offer.ParentQuoteNumber) : _currentSortColumn;
+            ApplySortingAndGrouping(sortProp, _currentSortDirection);
 
-            // Применяем дефолтную сортировку и группировку
-            ApplySortingAndGrouping(nameof(Offer.ParentQuoteNumber), ListSortDirection.Ascending);
-
-            Dispatcher.BeginInvoke(new Action(() => RestoreExpandedGroups(expandedGroups)), DispatcherPriority.Background);
+            // ⭐ Безопасное восстановление развернутых групп (только если группы вообще существуют)
+            if (OffersView is ICollectionView view && view.Groups != null && view.Groups.Count > 0)
+            {
+                var expandedGroups = GetExpandedGroupNames();
+                if (expandedGroups.Any())
+                {
+                    Dispatcher.BeginInvoke(new Action(() => RestoreExpandedGroups(expandedGroups)), DispatcherPriority.Background);
+                }
+            }
         }
 
         /// <summary>

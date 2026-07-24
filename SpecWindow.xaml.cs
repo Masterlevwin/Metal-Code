@@ -66,7 +66,7 @@ namespace Metal_Code
             }
             else
             {
-                // Если сборок нет вообще, принудительно ставим false, чтобы сработала стандартная логика
+                // Если сборок нет, принудительно ставим false для стандартной логики
                 MainWindow.M.isAssemblyOffer = false;
             }
 
@@ -124,7 +124,7 @@ namespace Metal_Code
                                     MainWindow.M.Parts,
                                     (float)MainWindow.M.Ratio,
                                     MainWindow.M.BonusRatio,
-                                    applyMarkup: false); // Используем наш обновленный метод
+                                    applyMarkup: false); // Цены уже с наценкой, избегаем двойного умножения
 
                                 if (visiblePartsForExport.Count > 0)
                                 {
@@ -164,9 +164,10 @@ namespace Metal_Code
                                     }
                                 }
                             }
-                            else if (AssemblyWindow.A.Assemblies != null)
+                            else
                             {
                                 // --- ЛОГИКА ДЛЯ СБОРОЧНОГО КП ---
+                                if (AssemblyWindow.A.Assemblies is null) return;
 
                                 // 1. Сборочные единицы
                                 if (AssemblyWindow.A.Assemblies.Count > 0)
@@ -200,7 +201,7 @@ namespace Metal_Code
                                     foreach (var lp in looseParts)
                                     {
                                         // Применяем ту же логику наценки и проверки FixedPrice, что и в Excel-КП
-                                        float lpPrice = (float)Math.Ceiling(lp.Price);
+                                        float lpPrice = (float)Math.Ceiling(lp.Price * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
                                         lpPrice = lpPrice < lp.FixedPrice ? lp.FixedPrice : lpPrice;
                                         float lpTotal = lpPrice * lp.Count;
 
@@ -231,13 +232,92 @@ namespace Metal_Code
                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(totalSum.ToString("N2")).Bold();
                         });
 
-                        // ... Далее ваш существующий код для Блока условий и Блока подписей ...
-                        // (Я его сократил здесь для краткости, оставьте его как было в вашем коде)
+                        // Блок условий
+                        content.Item().Row(row =>
+                        {
+                            row.RelativeItem().Column(center =>
+                            {
+                                string totalLine = NumberToWordsHelper.NumberToWords(totalSum);
+
+                                // Извлекаем часть до "рублей"
+                                int rubIndex = totalLine.IndexOf("рублей");
+                                string rubText = rubIndex > 0 ? totalLine[..rubIndex].Trim() : totalLine;
+
+                                // Извлекаем копейки
+                                int kopStart = totalLine.IndexOf("копеек");
+                                string kopValue = "00";
+                                if (kopStart > 0)
+                                {
+                                    var match = System.Text.RegularExpressions.Regex.Match(totalLine.Substring(kopStart), @"\d+");
+                                    kopValue = match.Success ? match.Value.PadLeft(2, '0') : "00";
+                                }
+
+                                // Формируем итоговую строку
+                                center.Item().Text($"ИТОГО: {totalSum:N0} ({rubText}) рублей {kopValue} коп., в т.ч. НДС 22%").Bold();
+
+                                center.Item().PaddingTop(15).Text("Срок поставки: " + EndDate.Text);
+                                center.Item().PaddingTop(5).Text(Delivery.Text);
+                                center.Item().PaddingVertical(5).Text($"Условия оплаты: {CurrentTemplate.Terms}");
+                            });
+                        });
+
+                        // Блок подписей
+                        content.Item().ShowEntire().Row(row =>
+                        {
+                            // Поставщик
+                            row.RelativeItem().Column(left =>
+                            {
+                                left.Item().Text("ПОСТАВЩИК").Bold();
+                                left.Item().Text(CurrentTemplate.Provider);
+
+                                left.Item().Layers(layers =>
+                                {
+                                    layers.PrimaryLayer().Height(120);
+
+                                    layers.Layer().Column(column =>
+                                    {
+                                        column.Item().Row(r =>
+                                        {
+                                            r.ConstantItem(30);
+                                            r.ConstantItem(120).Image(GetImageStream("Metal_Code.Images.print1.jpg")).FitWidth();
+                                        });
+                                    });
+
+                                    layers.Layer().Column(column =>
+                                    {
+                                        column.Item().Row(r =>
+                                        {
+                                            r.ConstantItem(40).Image(GetImageStream("Metal_Code.Images.signature1.jpg")).FitWidth();
+                                            r.RelativeItem();
+                                            r.RelativeItem().AlignBottom().Text("/ Мешеронова М.С.");
+                                        });
+
+                                        column.Item().Row(r =>
+                                        {
+                                            r.RelativeItem().AlignTop().LineHorizontal(1).LineColor(Colors.Black);
+                                        });
+                                    });
+                                });
+                            });
+
+                            // Покупатель
+                            row.RelativeItem().PaddingHorizontal(50).Column(right =>
+                            {
+                                right.Item().Text("ПОКУПАТЕЛЬ").Bold();
+                                right.Item().Text($"{Agent.Text} {TargetCustomer.Name}");
+
+                                right.Item().PaddingVertical(20).Row(r =>
+                                {
+                                    r.RelativeItem().AlignBottom().LineHorizontal(1).LineColor(Colors.Black);
+                                    r.RelativeItem().AlignBottom().Text($"/ {CurrentTemplate.Buyer}");
+                                });
+                            });
+                        });
                     });
                 });
             }).GeneratePdf(outputPath);
 
-            // Сохранение шаблона в БД и уведомление (ваш существующий код)
+            // Сохранение шаблона в БД
             using ManagerContext db = new(MainWindow.M.connections[0]);
             Customer? _customer = db.Customers.FirstOrDefault(x => x.Id == TargetCustomer.Id);
             if (_customer is not null)

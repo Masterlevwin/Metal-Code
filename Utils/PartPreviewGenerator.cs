@@ -18,6 +18,7 @@ namespace Metal_Code.Utils
             {
                 PartType.Rectangle => CreateRectangleSection(part.Width, part.Height),
                 PartType.Round => CreateRoundSection(part.Width),
+                PartType.Triangle => CreateTriangleSection(part.Width, part.Height),
                 PartType.RectangularTube => CreateRectangularTubeSection(part.Width, part.Height, part.Destiny),
                 PartType.RoundTube => CreateRoundTubeSection(part.Width, part.Destiny),
 
@@ -59,6 +60,31 @@ namespace Metal_Code.Utils
             var geometry = new PathGeometry();
             double radius = diameter / 2;
             geometry.Figures.Add(CreateCircleFigure(0, 0, radius, true)); // Заполненный
+            return geometry;
+        }
+
+        public static PathGeometry CreateTriangleSection(double width, double height)
+        {
+            var geometry = new PathGeometry();
+            var figure = new PathFigure
+            {
+                // Начинаем с левого нижнего угла (прямой угол)
+                StartPoint = new Point(-width / 2, height / 2),
+                IsClosed = true,
+                IsFilled = true
+            };
+
+            // Линия вдоль нижнего катета (вправо)
+            figure.Segments.Add(new LineSegment(new Point(width / 2, height / 2), true));
+
+            // Линия гипотенузы (вверх и влево к верхней вершине)
+            figure.Segments.Add(new LineSegment(new Point(-width / 2, -height / 2), true));
+
+            // Линия вдоль левого катета (вниз к начальной точке, замыкается автоматически, но добавим для ясности)
+            figure.Segments.Add(new LineSegment(new Point(-width / 2, height / 2), true));
+
+            geometry.Figures.Add(figure);
+
             return geometry;
         }
 
@@ -351,27 +377,27 @@ namespace Metal_Code.Utils
 
         private static (bool IsValid, string? ErrorMessage) ValidateSheetHoles(Part part)
         {
-            // Проверка минимальных размеров детали
             if (part.Width <= 0 || part.Height <= 0)
                 return (false, "Неверные габариты детали");
 
-            // Суммарная площадь отверстий
             double totalHoleArea = part.HoleGroups.Sum(g => g.TotalArea);
 
-            // Площадь детали
-            double partArea = part.PartType == PartType.Round
-                ? Math.PI * Math.Pow(part.Width / 2, 2)
-                : part.Width * part.Height;
+            // Расчет площади с учетом треугольника
+            double partArea = part.PartType switch
+            {
+                PartType.Round => Math.PI * Math.Pow(part.Width / 2, 2),
+                PartType.Triangle => part.Width * part.Height / 2.0,
+                _ => part.Width * part.Height
+            };
 
-            // Проверка: отверстия не должны занимать более 70% площади
             if (totalHoleArea > partArea * 0.7)
                 return (false, $"Слишком много отверстий: они занимают более 70% площади детали");
 
-            // Проверка минимального отступа от края
             double maxDiameter = part.HoleGroups.Max(g => g.Diameter);
-            double minMargin = maxDiameter / 2 + 5; // радиус + 5мм зазор
+            double minMargin = maxDiameter / 2 + 5;
 
-            if (part.PartType == PartType.Rectangle)
+            // Для прямоугольника и треугольника проверяем оба габарита
+            if (part.PartType == PartType.Rectangle || part.PartType == PartType.Triangle)
             {
                 if (part.Width < minMargin * 2 || part.Height < minMargin * 2)
                     return (false, $"Деталь слишком мала для отверстий диаметром {maxDiameter}мм");
@@ -382,12 +408,6 @@ namespace Metal_Code.Utils
                     return (false, $"Деталь слишком мала для отверстий диаметром {maxDiameter}мм");
             }
 
-            // Проверка максимального количества отверстий
-            int totalCount = part.HoleGroups.Sum(g => g.Count);
-            if (totalCount > 50)
-                return (false, "Слишком много отверстий (максимум 50)");
-
-            // Проверка расстояния между отверстиями (для листов)
             var positions = CalculateHolePositions(part);
             if (!ValidateHoleSpacing(positions))
                 return (false, "Отверстия слишком близко друг к другу или к краям детали");
@@ -418,7 +438,7 @@ namespace Metal_Code.Utils
             // Минимальное расстояние между центрами отверстий = больший диаметр + 10мм зазор
             double minSpacing = holes.Count > 0 ? holes.Max() + 10 : 0;
 
-            // Проверка: достаточно ли места для всех отверстий
+            // Проверка: достаточно ли места для всех отверстий по длине
             double requiredLength = holes.Count * minSpacing;
             if (requiredLength > availableLength)
             {
@@ -428,9 +448,7 @@ namespace Metal_Code.Utils
                     $"Максимум можно разместить {maxPossible} отверстия(й) диаметром {holes.Max()}мм при длине трубы {part.Length}мм");
             }
 
-            // Проверка максимального количества отверстий (ограничение разумности)
-            if (holes.Count > 100)
-                return (false, "Слишком много отверстий (максимум 100 для трубы)");
+            // Ограничение на максимальное количество отверстий (100 шт) снято
 
             // Проверка минимального диаметра отверстия относительно толщины стенки
             double minDiameter = holes.Min();
@@ -512,6 +530,72 @@ namespace Metal_Code.Utils
                     {
                         double x = -part.Width / 2 + marginX + col * spacingX;
                         double y = -part.Height / 2 + marginY + row * spacingY;
+                        positions.Add((new Point(x, y), allHoles[index++]));
+                    }
+                }
+            }
+            else if (part.PartType == PartType.Triangle)
+            {
+                double maxDiameter = allHoles.Max(h => h.Diameter);
+                double pitch = maxDiameter + 5; // Минимальное расстояние между центрами
+
+                int rows = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(count * 1.5)));
+                double spacingY = rows > 1 ? (part.Height - 2 * minMargin) / (rows - 1) : 0;
+
+                int index = 0;
+
+                // Идем снизу вверх (от широкого основания к узкой вершине)
+                for (int row = 0; row < rows && index < count; row++)
+                {
+                    // Y координата: часть.Height / 2 - это низ (катет), -part.Height / 2 - это верх (острый угол)
+                    double y = (part.Height / 2) - minMargin - row * spacingY;
+                    if (rows == 1) y = 0; // Если ряд всего один, центрируем по вертикали
+
+                    // Левая граница (вертикальный катет) всегда фиксирована
+                    double xLeft = -part.Width / 2;
+
+                    // Правая граница (гипотенуза) рассчитывается линейной интерполяцией:
+                    // При y = part.Height/2 (низ) -> xRight = part.Width/2
+                    // При y = -part.Height/2 (верх) -> xRight = -part.Width/2
+                    double xRight = -part.Width / 2 + (part.Width / part.Height) * (y + part.Height / 2);
+
+                    // Текущая ширина сегмента на этой высоте
+                    double currentWidth = xRight - xLeft;
+
+                    // Доступная ширина для центров отверстий (с учетом отступов от обоих краев)
+                    double availableWidth = currentWidth - 2 * minMargin;
+
+                    int holesInThisRow = 0;
+                    double currentSpacingX = 0;
+
+                    if (availableWidth >= 0)
+                    {
+                        holesInThisRow = (int)Math.Floor(availableWidth / pitch) + 1;
+                        holesInThisRow = Math.Max(1, holesInThisRow);
+
+                        if (holesInThisRow > 1)
+                        {
+                            currentSpacingX = availableWidth / (holesInThisRow - 1);
+                        }
+                    }
+                    else
+                    {
+                        // Если доступная ширина отрицательная, но сама ширина сегмента все еще позволяет 
+                        // разместить одно отверстие по центру с минимальными полями
+                        if (currentWidth > maxDiameter + 10)
+                        {
+                            holesInThisRow = 1;
+                        }
+                    }
+
+                    // Размещаем отверстия в текущем ряду
+                    for (int col = 0; col < holesInThisRow && index < count; col++)
+                    {
+                        // Если отверстие одно, центрируем его в доступном сегменте. Иначе распределяем от левого края.
+                        double x = (holesInThisRow == 1)
+                            ? (xLeft + currentWidth / 2)
+                            : (xLeft + minMargin + col * currentSpacingX);
+
                         positions.Add((new Point(x, y), allHoles[index++]));
                     }
                 }

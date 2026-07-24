@@ -36,10 +36,12 @@
                     <StackPanel DockPanel.Dock="Right">
                         <!-- Выбор формы -->
                         <StackPanel Orientation="Horizontal" Margin="10,5"
-                                Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle'}" HorizontalAlignment="Right">
+                                    Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle,Triangle'}"
+                                    HorizontalAlignment="Right">
                             <TextBlock Text="Форма:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold"/>
                             <RadioButton x:Name="RectangleRadio" Content="Прямоугольник" Tag="Rectangle" Checked="OnShapeTypeChanged"/>
                             <RadioButton Content="Круг" Tag="Round" Margin="10,0,0,0" Checked="OnShapeTypeChanged"/>
+                            <RadioButton Content="Треугольник" Tag="Triangle" Margin="10,0,0,0" Checked="OnShapeTypeChanged"/>
                         </StackPanel>
 
                         <!-- Визуализация -->
@@ -55,17 +57,16 @@
                                  Style="{StaticResource TextBoxExtend}" Margin="0,0,0,5"/>
 
                         <TextBlock Text="Ширина (мм):" VerticalAlignment="Center" Margin="0,0,10,5"
-                                   Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle'}"/>
+           Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle,Triangle'}"/>
                         <TextBox Text="{Binding Width}" hc:InfoElement.Placeholder="50" 
-                                 Style="{StaticResource TextBoxExtend}" Margin="0,0,0,5"
-                                 Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle'}"/>
+         Style="{StaticResource TextBoxExtend}" Margin="0,0,0,5"
+         Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle,Triangle'}"/>
 
                         <TextBlock Text="Высота (мм):" VerticalAlignment="Center" Margin="0,0,10,5"
-                                   Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle'}"/>
+           Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle,Triangle'}"/>
                         <TextBox Text="{Binding Height}" hc:InfoElement.Placeholder="50" 
-                                 Style="{StaticResource TextBoxExtend}" Margin="0,0,0,5"
-                                 Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle'}"/>
-
+         Style="{StaticResource TextBoxExtend}" Margin="0,0,0,5"
+         Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle,Triangle'}"/>
                         <TextBlock Text="Длина (мм):" VerticalAlignment="Center" Margin="0,0,10,5"
                                    Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter},
                                     ConverterParameter='RoundTube,RectangularTube,Angle,Channel,IBeam'}"/>
@@ -251,9 +252,6 @@
                                  Style="{StaticResource TextBoxExtend}" 
                                  hc:InfoElement.Placeholder="0 = авто"
                                  TextAlignment="Center" VerticalContentAlignment="Center"/>
-                        <!-- Опционально: защита от букв -->
-                        <TextBlock Text="(0 = авто)" VerticalAlignment="Center" Margin="5,0" 
-                                   FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"/>
                     </StackPanel>
 
                     <Button Content="Завершить и рассчитать"
