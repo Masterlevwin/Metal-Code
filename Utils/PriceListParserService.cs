@@ -5,6 +5,7 @@ using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Metal_Code.Utils
@@ -99,8 +100,7 @@ namespace Metal_Code.Utils
         /// </summary>
         private static bool IsCategoryHeader(string c0, string c1, string c2, string c3)
         {
-            if (string.IsNullOrWhiteSpace(c0))
-                return false;
+            if (string.IsNullOrWhiteSpace(c0)) return false;
 
             // И соседние ячейки должны быть пустыми (имитация объединенной ячейки)
             bool isNextEmpty = string.IsNullOrWhiteSpace(c1) &&
@@ -112,6 +112,7 @@ namespace Metal_Code.Utils
 
         /// <summary>
         /// Фильтрует служебные строки шапки файла.
+        /// 🔥 ИСПРАВЛЕНО: Убраны "." и ":", чтобы не блокировать категории типа "ТРУБЫ НЕРЖАВ."
         /// </summary>
         private static bool IsSkipRow(string text)
         {
@@ -119,10 +120,10 @@ namespace Metal_Code.Utils
 
             var skipPatterns = new[]
             {
-                "прайс-лист", "от ", ".", ":", "2026",
+                "прайс-лист", "от ", "2026",
                 "цветной прокат", "чёрный прокат", "черный прокат",
                 "http", "www", "@", "(812)", "+7", "333-20", "600-70",
-                "|", "-", "_"
+                "|", "_"
             };
 
             var lower = text.ToLowerInvariant();
@@ -159,15 +160,52 @@ namespace Metal_Code.Utils
 
         /// <summary>
         /// Парсит строку данных и добавляет в список.
+        /// 🔥 Умеет пересчитывать цену трубы из погонных метров в кг.
         /// </summary>
         private static void ProcessDataLine(string category, string name, string dim, string unit, string priceStr, List<PriceListItem> list)
         {
             if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(priceStr)) return;
-
-            // Дополнительно проверяем, что unit содержит "т" или "шт" или "м2", чтобы избежать мусора
-            // Но для надежности оставим только проверку цены, так как в прайсе бывают разные единицы
-
             if (!TryExtractPrice(priceStr, out decimal price)) return;
+
+            decimal pricePerKg = 0;
+            string cleanUnit = unit?.Trim().ToLowerInvariant() ?? "";
+
+            // 🔥 1. Трубы в погонных метрах
+            if (cleanUnit.Contains("м") && !cleanUnit.Contains("м2"))
+            {
+                string cleanName = name?.Trim() ?? "";
+                // Извлекаем наружный диаметр из начала строки (например: "6.0 AISI...", "219.1 AISI...")
+                var diameterMatch = Regex.Match(cleanName, @"^([\d.,]+)");
+
+                if (diameterMatch.Success)
+                {
+                    var diameterStr = diameterMatch.Groups[1].Value.Replace(",", ".");
+                    if (decimal.TryParse(diameterStr, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal diameter) && diameter > 0)
+                    {
+                        // Извлекаем толщину стенки из колонки Dimensions (берем первое значение, если указан диапазон)
+                        var thicknessRaw = dim?.Split(new[] { ';', ',', '|' }, StringSplitOptions.RemoveEmptyEntries)
+                            .FirstOrDefault()?.Trim().Replace(",", ".");
+
+                        if (!string.IsNullOrEmpty(thicknessRaw) &&
+                            decimal.TryParse(thicknessRaw, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal thickness) &&
+                            thickness > 0 && diameter > thickness)
+                        {
+                            // Формула теоретического веса 1 м.п. трубы из нержавеющей стали: (D - t) * t * 0.0249
+                            decimal weightPerMeter = (diameter - thickness) * thickness * 0.0249m;
+
+                            if (weightPerMeter > 0)
+                            {
+                                pricePerKg = price / weightPerMeter;
+                            }
+                        }
+                    }
+                }
+            }
+            //  2. Товары в тоннах (листы, круг, бесшовные трубы и т.д.)
+            else if (cleanUnit.Contains("т"))
+            {
+                pricePerKg = price / 1000m;
+            }
 
             list.Add(new PriceListItem
             {
@@ -176,7 +214,7 @@ namespace Metal_Code.Utils
                 Dimensions = dim,
                 Unit = unit,
                 Price = price,
-                PricePerKg = unit.Contains('т', StringComparison.OrdinalIgnoreCase) ? price / 1000m : 0m
+                PricePerKg = pricePerKg // Теперь будет > 0 для труб в метрах
             });
         }
 
@@ -231,9 +269,7 @@ namespace Metal_Code.Utils
         public decimal PriceWithMarkup { get; set; }
     }
 
-
-
-public class MatchedPriceItem
+    public class MatchedPriceItem
     {
         public string CategoryName { get; set; } = string.Empty;
         public string Grade { get; set; } = string.Empty;
@@ -244,11 +280,10 @@ public class MatchedPriceItem
         public decimal PriceWithMarkup { get; set; }
     }
 
-public static class PriceAggregator
+    public static class PriceAggregator
     {
         /// <summary>
         /// Агрегирует сырые данные в средние цены.
-        /// Теперь БЕЗ фильтрации — все категории из парсера попадут в результат.
         /// </summary>
         public static List<CategoryAveragePrice> AggregateToAverages(List<PriceListItem> rawItems)
         {
@@ -264,6 +299,7 @@ public static class PriceAggregator
                     i.Category,
                     Grade = NormalizeGrade(ExtractGrade(i.ProductName, i.Category))
                 })
+                .Where(g => g.Key.Grade != null)
                 // Считаем статистику
                 .Select(g => new CategoryAveragePrice
                 {
@@ -299,6 +335,7 @@ public static class PriceAggregator
             if (string.IsNullOrWhiteSpace(category)) return 0;
             var c = category.ToUpperInvariant();
 
+            if (c.Contains("ТРУБ") && c.Contains("НЕРЖ")) return 95;
             if (c.Contains("ЛИСТ") && !c.Contains("АЛЮМИНИЕВЫЙ") && !c.Contains("МЕДНЫЙ") && !c.Contains("ЛАТУННЫЙ") && !c.Contains("ДЮРАЛЕВЫЙ")) return 100;
             if (c.Contains("ТРУБЫ") && (c.Contains("КВАДРАТ") || c.Contains("ПРЯМОУГ"))) return 90;
             if (c.Contains("ТРУБЫ") && !c.Contains("КВАДРАТ") && !c.Contains("ПРЯМОУГ")) return 80;
@@ -326,14 +363,21 @@ public static class PriceAggregator
         private static string ExtractGrade(string productName, string category = "")
         {
             if (string.IsNullOrWhiteSpace(productName))
-            {
-                // 🔥 Если ProductName пустой, пробуем извлечь марку из категории
                 return ExtractGradeFromCategory(category);
-            }
 
-            var cleaned = productName.Trim();
+            var cleaned = productName.Trim().ToUpperInvariant();
+
+            // 🔥 1. Сначала ищем модификаторы поверхности в исходной строке
+            string surfaceModifier = "";
+            if (cleaned.Contains("ШЛИФ") || cleaned.Contains("4N") || cleaned.Contains("NO1"))
+                surfaceModifier = "шлиф";
+            else if (cleaned.Contains("ЗЕРК") || cleaned.Contains("BA") || cleaned.Contains("ЗЕРКАЛЬН"))
+                surfaceModifier = "зерк";
+            else if (cleaned.Contains("МАТ") || cleaned.Contains("2B"))
+                surfaceModifier = "матовый";
+
+            // Удаляем префиксы
             var prefixesToRemove = new[] { "н/обр", "н/обр ", "ОБР", "ОБР ", "неконд", "неконд ", "уценка", "уценка ", "импорт", "импорт ", "сертификат", "сертификат " };
-
             foreach (var prefix in prefixesToRemove)
             {
                 if (cleaned.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
@@ -344,57 +388,67 @@ public static class PriceAggregator
             }
 
             if (string.IsNullOrWhiteSpace(cleaned))
-                return ExtractGradeFromCategory(category);
+                return ExtractGradeFromCategory(category) + surfaceModifier;
 
-            // Обработка оцинковки: "Zn140 М пас" → "Zn140"
-            if (cleaned.StartsWith("Zn", StringComparison.OrdinalIgnoreCase))
+            // Обработка оцинковки
+            if (cleaned.StartsWith("ZN", StringComparison.OrdinalIgnoreCase))
             {
                 var parts = cleaned.Split(new[] { ' ', ';', ',', '|' }, StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length > 0 && parts[0].StartsWith("Zn", StringComparison.OrdinalIgnoreCase))
-                    return parts[0].ToUpper();
+                if (parts.Length > 0 && parts[0].StartsWith("ZN", StringComparison.OrdinalIgnoreCase))
+                    return parts[0].ToUpperInvariant() + surfaceModifier;
             }
 
+            //  2. Regex для извлечения AISI XXX (ловит и с префиксом, и без)
+            var aisiMatch = Regex.Match(cleaned, @"(?:AISI\s*)?(\d{3}[A-Z]*)", RegexOptions.IgnoreCase);
+            if (aisiMatch.Success)
+            {
+                var aisiNum = aisiMatch.Groups[1].Value.ToUpperInvariant();
+                return aisiNum + surfaceModifier;
+            }
+
+            // 🔥 3. ПРОВЕРКА РАЗМЕРНЫХ ПАТТЕРНОВ (вызывает ваши методы!)
+            // Проверяем, является ли строка размером (например, "100х100", "60x40", "25х3")
+            if (IsDimensionPattern(cleaned))
+            {
+                // Если категория сортовая (уголок, швеллер, труба и т.д.) → ст3
+                if (IsStructuralCategory(category))
+                    return "ст3" + surfaceModifier;
+
+                // Иначе извлекаем марку из названия категории
+                return ExtractGradeFromCategory(category) + surfaceModifier;
+            }
+
+            // Стандартная логика для остальных марок
             var gradeParts = cleaned.Split(new[] { ' ', ';', ',', '|', '\t' }, StringSplitOptions.RemoveEmptyEntries);
             if (gradeParts.Length == 0)
-                return ExtractGradeFromCategory(category);
+                return ExtractGradeFromCategory(category) + surfaceModifier;
 
-            var first = gradeParts[0].Trim().ToUpper();
+            var skipWords = new[] {
+        "Г/К", "Х/К", "ТАГМЕТ", "ПЕЧНАЯ", "СВАРКА", "ФАСКА", "РЕЗ", "ОЦИНК", "М", "ПАС", "КР", "ПРОМ", "КЛАСС", "ГОСТ", "ТУ", "ИМП", "СЕРТ",
+        "СТАЛЬ", "ЛИСТ", "ЛИСТОВАЯ", "ПРОКАТ", "КРУГ", "ТРУБА", "ТРУБЫ", "УГОЛОК", "ШВЕЛЛЕР", "БАЛКИ", "ДВУТАВР", "ПЛИТА", "ШИНА", "ЛЕНТА",
+        "ШЕСТИГРАННИК", "ПРОФИЛЬ", "АРМАТУРА", "ПРОВОЛОКА", "СЕТКА", "ЭЛЕКТРОДЫ", "ПЕРЕХОДЫ", "КАЛИБРОВКА", "ФАСОН", "СОРТ", "КОНСТР",
+        "НИЗКОЛЕГ", "НИЗКОЛЕГИР", "ОБЫЧ", "КАЧЕСТВА", "ОЦИНКОВАННАЯ", "РИФЛЕНЫЙ", "ПРОСЕЧНО", "ВЫТЯЖНОЙ", "ВОДОГАЗОПРОВ", "ЭЛЕКТРОСВАРНЫЕ",
+        "КВАДРАТ", "ПРЯМОУГ", "КВАДРАТНЫЕ", "ПРЯМОУГОЛЬНЫЕ", "КРУГЛЫЕ", "ГНУТЫЙ", "ДВУТАВРОВЫЕ", "АЛЮМИНИЕВЫЙ", "АЛЮМИНИЕВАЯ", "МЕДНЫЙ",
+        "МЕДНАЯ", "ЛАТУННЫЙ", "ЛАТУННАЯ", "БРОНЗОВЫЙ", "БРОНЗОВАЯ", "ДЮРАЛЕВЫЙ", "ДЮРАЛЕВАЯ", "ЦВЕТНОЙ", "ЧЁРНЫЙ", "ЧЕРНЫЙ", "ПРОДОЛЖЕНИЕ",
+    };
 
-            // 🔥 Проверяем, не является ли это просто размером/толщиной (число)
-            if (decimal.TryParse(first.Replace(".", ","), out _))
+            string? candidate = null;
+            foreach (var part in gradeParts)
             {
-                // Это число (размер), а не марка → извлекаем из категории
-                return ExtractGradeFromCategory(category);
+                var trimmed = part.Trim().ToUpperInvariant();
+                if (skipWords.Any(kw => trimmed.Equals(kw, StringComparison.OrdinalIgnoreCase))) continue;
+                if (decimal.TryParse(trimmed.Replace(".", ","), out _)) continue;
+                candidate = trimmed;
+                break;
             }
 
-            // 🔥 Проверяем паттерны размеров: "100х100", "60x40", "20x20x3" и т.п.
-            if (IsDimensionPattern(first))
-            {
-                // Для сортовых категорий (уголок, швеллер, труба и т.д.) → ст3
-                if (IsStructuralCategory(category))
-                    return "ст3";
+            if (string.IsNullOrWhiteSpace(candidate))
+                return ExtractGradeFromCategory(category) + surfaceModifier;
 
-                // Иначе извлекаем из категории
-                return ExtractGradeFromCategory(category);
-            }
-
-            var skipWords = new[] { "Г/К", "Х/К", "ТАГМЕТ", "ПЕЧНАЯ", "СВАРКА", "ФАСКА", "РЕЗ", "ОЦИНК", "М", "ПАС", "КР", "ПРОМ", "КЛАСС", "ГОСТ", "ТУ", "ИМП", "СЕРТ", "СТАЛЬ", "ЛИСТ", "ЛИСТОВАЯ", "ПРОКАТ", "КРУГ", "ТРУБА", "ТРУБЫ", "УГОЛОК", "ШВЕЛЛЕР", "БАЛКИ", "ДВУТАВР", "ПЛИТА", "ШИНА", "ЛЕНТА", "ШЕСТИГРАННИК", "ПРОФИЛЬ", "АРМАТУРА", "ПРОВОЛОКА", "СЕТКА", "ЭЛЕКТРОДЫ", "ПЕРЕХОДЫ", "КАЛИБРОВКА", "ФАСОН", "СОРТ", "КОНСТР", "НИЗКОЛЕГ", "НИЗКОЛЕГИР", "ОБЫЧ", "КАЧЕСТВА", "ОЦИНКОВАННАЯ", "РИФЛЕНЫЙ", "ПРОСЕЧНО", "ВЫТЯЖНОЙ", "ВОДОГАЗОПРОВ", "ЭЛЕКТРОСВАРНЫЕ", "КВАДРАТ", "ПРЯМОУГ", "КВАДРАТНЫЕ", "ПРЯМОУГОЛЬНЫЕ", "КРУГЛЫЕ", "ГНУТЫЙ", "ДВУТАВРОВЫЕ", "АЛЮМИНИЕВЫЙ", "АЛЮМИНИЕВАЯ", "МЕДНЫЙ", "МЕДНАЯ", "ЛАТУННЫЙ", "ЛАТУННАЯ", "БРОНЗОВЫЙ", "БРОНЗОВАЯ", "ДЮРАЛЕВЫЙ", "ДЮРАЛЕВАЯ", "ЦВЕТНОЙ", "ЧЁРНЫЙ", "ЧЕРНЫЙ", "ПРОДОЛЖЕНИЕ" };
-
-            if (skipWords.Any(kw => first.Equals(kw, StringComparison.OrdinalIgnoreCase)))
-            {
-                if (gradeParts.Length > 1)
-                    first = gradeParts[1].Trim().ToUpper();
-                else
-                    return ExtractGradeFromCategory(category);
-            }
-
-            var grade = new string(first.Where(c => char.IsLetterOrDigit(c) || "ГСХТМНРАБДЛЮЦЧШЩЪЫЬЭЯЁ".Contains(c)).ToArray());
-            return string.IsNullOrWhiteSpace(grade) ? ExtractGradeFromCategory(category) : grade;
+            var grade = new string(candidate.Where(c => char.IsLetterOrDigit(c) || "ГСХТМНРАБДЛЮЦЧШЩЪЫЬЭЯЁ".Contains(c)).ToArray());
+            return (string.IsNullOrWhiteSpace(grade) ? ExtractGradeFromCategory(category) : grade) + surfaceModifier;
         }
 
-        /// <summary>
-        /// Проверяет, является ли текст паттерном размера (например, "100х100", "60x40", "20x20x3")
-        /// </summary>
         private static bool IsDimensionPattern(string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return false;
@@ -416,9 +470,6 @@ public static class PriceAggregator
             return parts.Length >= 2 && parts.All(p => decimal.TryParse(p.Trim().Replace(".", ","), out _));
         }
 
-        /// <summary>
-        /// Проверяет, является ли категория сортовой (уголок, швеллер, труба и т.д.)
-        /// </summary>
         private static bool IsStructuralCategory(string category)
         {
             if (string.IsNullOrWhiteSpace(category)) return false;
@@ -435,10 +486,6 @@ public static class PriceAggregator
             return structuralKeywords.Any(kw => cat.Contains(kw));
         }
 
-        /// <summary>
-        /// Извлекает марку/материал из названия категории.
-        /// Используется когда ProductName не содержит явной марки.
-        /// </summary>
         private static string ExtractGradeFromCategory(string category)
         {
             if (string.IsNullOrWhiteSpace(category)) return "Не указана";
@@ -482,89 +529,120 @@ public static class PriceAggregator
             return "ст3";
         }
 
-        private static string NormalizeGrade(string rawGrade)
+        private static string? NormalizeGrade(string rawGrade)
         {
             if (string.IsNullOrWhiteSpace(rawGrade)) return rawGrade;
 
-            var grade = rawGrade.Trim().ToUpperInvariant();
+            // 🔥 Разделяем марку и модификатор
+            var parts = rawGrade.Trim().ToLowerInvariant().Split(new[] { "шлиф", "зерк", "матовый" }, StringSplitOptions.None);
+            var baseGrade = parts[0].ToUpperInvariant();
+            var modifier = rawGrade.Length > baseGrade.Length ? rawGrade.Substring(baseGrade.Length).ToLowerInvariant() : "";
 
-            // === АЛЮМИНИЕВЫЕ СПЛАВЫ ===
-            // АМГ2, АМГ3, АМГ5, АМГ6
+            var grade = baseGrade;
+
+            // === НЕРЖАВЕЮЩИЕ СТАЛИ AISI ===
+
+            // Русские марки → AISI
+            if (grade.Contains("08Х18Н10") || grade.Contains("08Х18Н9"))
+            {
+                if (modifier == "шлиф") return "aisi304шлиф";
+                if (modifier == "зерк") return "aisi304зерк";
+                return "aisi304";
+            }
+
+            if (grade.Contains("12Х18Н10Т") || grade.Contains("12Х18Н9Т") || grade.Contains("08Х18Н10Т"))
+            {
+                if (modifier == "шлиф") return "aisi321шлиф";
+                if (modifier == "зерк") return "aisi321зерк";
+                return "aisi321";
+            }
+
+            if (grade.Contains("10Х17Н13М2Т") || grade.Contains("08Х17Н13М2Т") || grade.Contains("03Х17Н14М3"))
+                return "aisi316";
+
+            if (grade.Contains("03Х18Н11") || grade.Contains("03Х18Н10"))
+                return "aisi304l";
+
+            if (grade.Contains("20Х23Н18") || grade.Contains("10Х23Н18"))
+                return "aisi310s";
+
+            if (grade.Contains("08Х17") || grade.Contains("12Х17"))
+            {
+                if (modifier == "шлиф") return "aisi430шлиф";
+                if (modifier == "зерк") return "aisi430зерк";
+                return "aisi430";
+            }
+
+            // Regex для AISI XXX
+            var aisiMatch = Regex.Match(grade, @"(?:AISI\s*)?(\d{3}[A-Z]*)", RegexOptions.IgnoreCase);
+            if (aisiMatch.Success)
+            {
+                var aisiNum = aisiMatch.Groups[1].Value.ToUpperInvariant();
+
+                if (aisiNum == "316L") return "aisi316";
+
+                if (aisiNum == "304" || aisiNum == "304L")
+                {
+                    if (modifier == "шлиф") return "aisi304шлиф";
+                    if (modifier == "зерк") return "aisi304зерк";
+                    return aisiNum == "304L" ? "aisi304l" : "aisi304";
+                }
+
+                if (aisiNum == "316" || aisiNum == "316TI")
+                    return "aisi316";
+
+                if (aisiNum == "321")
+                {
+                    if (modifier == "шлиф") return "aisi321шлиф";
+                    if (modifier == "зерк") return "aisi321зерк";
+                    return "aisi321";
+                }
+
+                if (aisiNum == "430" || aisiNum == "430F")
+                {
+                    if (modifier == "шлиф") return "aisi430шлиф";
+                    if (modifier == "зерк") return "aisi430зерк";
+                    return "aisi430";
+                }
+
+                if (aisiNum == "201") return "aisi201";
+                if (aisiNum == "310S" || aisiNum == "310") return "aisi310s";
+                if (aisiNum == "410") return "aisi410";
+                if (aisiNum == "431") return "aisi431";
+                if (aisiNum == "904L") return "aisi904l";
+            }
+
+            // === ОСТАЛЬНЫЕ МАТЕРИАЛЫ ===
             if (grade.StartsWith("АМГ2")) return "амг2";
             if (grade.StartsWith("АМГ3")) return "амг3";
             if (grade.StartsWith("АМГ5")) return "амг5";
             if (grade.StartsWith("АМГ6")) return "амг6";
-            if (grade.StartsWith("АМЦ")) return "амг6"; // АМЦМ, АМЦН2 → амг6
-
-            // АД31Т, АД31Т1
+            if (grade.StartsWith("АМЦ")) return "амг6";
             if (grade.StartsWith("АД31Т")) return "ад31т";
 
-            // Д16АМ, Д16АТ, Д16Т, Д16М
             if (grade.StartsWith("Д16АМ") || grade.Contains("Д16АМ")) return "д16ам";
             if (grade.StartsWith("Д16АТ") || grade.Contains("Д16АТ")) return "д16ат";
-            if (grade.StartsWith("Д16Т") || grade.Contains("Д16Т")) return "д16ат"; // Д16Т → д16ат
-            if (grade.StartsWith("Д16М")) return "д16ам"; // Д16М → д16ам
-            if (grade.StartsWith("Д16") && !grade.Contains("А")) return "д16ат"; // Д16 → д16ат
-            if (grade.Contains("2024") && grade.Contains("Д16")) return "д16ат"; // 2024 T351 (Д16т)
+            if (grade.StartsWith("Д16Т") || grade.Contains("Д16Т")) return "д16ат";
+            if (grade.StartsWith("Д16М")) return "д16ам";
+            if (grade.StartsWith("Д16") && !grade.Contains("А")) return "д16ат";
+            if (grade.Contains("2024") && grade.Contains("Д16")) return "д16ат";
 
-            // === ЛАТУНЬ ===
             if (grade.StartsWith("Л63") || grade.StartsWith("Л 63")) return "латунь";
             if (grade.StartsWith("ЛС59")) return "латунь";
 
-            // === МЕДЬ ===
-            if (grade.StartsWith("М1") || grade.StartsWith("М 1") ||
-                grade.StartsWith("М2") || grade.StartsWith("М3"))
+            if (grade.StartsWith("М1") || grade.StartsWith("М 1") || grade.StartsWith("М2") || grade.StartsWith("М3"))
                 return "медь";
 
-            // === СТАЛИ ===
-            // Х/К (холоднокатаная сталь)
-            if (grade.Contains("Х/К") || grade.Contains("ХК") ||
-                grade.Contains("СТ08"))
-                return "хк";
+            if (grade.Contains("Х/К") || grade.Contains("ХК") || grade.Contains("СТ08")) return "хк";
+            if (grade.Contains("09Г2С") || grade.Contains("09Г2С-")) return "09г2с";
+            if (grade.Contains("ОЦИНК") || grade.Contains("ZN") || grade.StartsWith("ZN")) return "цинк";
+            if (grade.Contains("РИФЛ") || grade.Contains("РОМБ") || grade.Contains("ЧЕЧЕВ")) return "рифл";
 
-            // 09Г2С
-            if (grade.Contains("09Г2С") || grade.Contains("09Г2С-"))
-                return "09г2с";
+            // 🔥 Фильтр электродов и нецелевых позиций
+            if (grade.StartsWith("ER") || grade.StartsWith("Э") || grade.Contains("ЭЛЕКТРОД"))
+                return null; // Вернёт null → отфильтруется в агрегаторе
 
-            // ОЦИНКОВКА
-            if (grade.Contains("ОЦИНК") || grade.Contains("ZN") || grade.StartsWith("ZN"))
-                return "цинк";
-
-            // РИФЛЕНЫЙ ЛИСТ
-            if (grade.Contains("РИФЛ") || grade.Contains("РОМБ") || grade.Contains("ЧЕЧЕВ"))
-                return "рифл";
-
-            // === НЕРЖАВЕЮЩИЕ СТАЛИ AISI ===
-            if (grade.Contains("AISI304") || grade.Contains("AISI 304") ||
-                grade.Contains("304") && !grade.Contains("304L") && !grade.Contains("304H"))
-            {
-                if (grade.Contains("ШЛИФ")) return "aisi304шлиф";
-                if (grade.Contains("ЗЕРК")) return "aisi304зерк";
-                return "aisi304";
-            }
-
-            if (grade.Contains("AISI316") || grade.Contains("AISI 316") ||
-                grade.Contains("316") && !grade.Contains("316L"))
-                return "aisi316";
-
-            if (grade.Contains("AISI321") || grade.Contains("AISI 321") ||
-                grade.Contains("321"))
-                return "aisi321";
-
-            if (grade.Contains("AISI430") || grade.Contains("AISI 430") ||
-                grade.Contains("430"))
-            {
-                if (grade.Contains("ШЛИФ")) return "aisi430шлиф";
-                if (grade.Contains("ЗЕРК")) return "aisi430зерк";
-                return "aisi430";
-            }
-
-            if (grade.Contains("AISI201") || grade.Contains("AISI 201") ||
-                grade.Contains("201"))
-                return "aisi201";
-
-            // Если ничего не подошло — возвращаем как есть (в нижнем регистре)
-            return grade.ToLowerInvariant();
+            return (grade.ToLowerInvariant() + modifier).Trim();
         }
     }
 }

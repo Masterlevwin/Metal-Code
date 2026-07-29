@@ -444,9 +444,11 @@ namespace Metal_Code
             if (metal.Name is not null && type.Name is not null
                 && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
             {
-                float basePrice = (type.Name.Contains("Труба") || type.Name == "Лист металла")
-                    ? metal.MassPrice
-                    : metal.MassPrice * 1.3f;
+                float basePrice = metal.MassPrice;
+
+                if (type.Name == "Лист металла") basePrice = metal.MassPrice;
+                else if (type.Name.Contains("Труба")) basePrice *= 1.1f;
+                else basePrice *= 1.3f;
 
                 //float thicknessMultiplier = S switch
                 //{
@@ -596,9 +598,11 @@ namespace Metal_Code
             if (metal.Name is not null && type.Name is not null
                 && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
             {
-                float basePrice = (type.Name.Contains("Труба") || type.Name == "Лист металла")
-                    ? metal.MassPrice
-                    : metal.MassPrice * 1.3f;
+                float basePrice = metal.MassPrice;
+
+                if (type.Name == "Лист металла") basePrice = metal.MassPrice;
+                else if (type.Name.Contains("Труба")) basePrice *= 1.1f;
+                else basePrice *= 1.3f;
 
                 //float thicknessMultiplier = S switch
                 //{

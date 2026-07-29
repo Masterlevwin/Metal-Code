@@ -287,7 +287,7 @@ namespace Metal_Code
                                     {
                                         column.Item().Row(r =>
                                         {
-                                            r.ConstantItem(40).Image(GetImageStream("Metal_Code.Images.signature1.jpg")).FitWidth();
+                                            r.ConstantItem(40).Image(GetImageStream("Metal_Code.Images.signature3.jpg")).FitWidth();
                                             r.RelativeItem();
                                             r.RelativeItem().AlignBottom().Text("/ Мешеронова М.С.");
                                         });

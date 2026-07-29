@@ -97,6 +97,7 @@
     <None Remove="Images\signature.jpg" />
     <None Remove="Images\signature1.jpg" />
     <None Remove="Images\signature2.jpg" />
+    <None Remove="Images\signature3.jpg" />
     <None Remove="Images\standard.png" />
     <None Remove="Images\tableofbends.jpg" />
     <None Remove="Images\tot.png" />
@@ -271,6 +272,9 @@
     <Resource Include="Images\signature2.jpg">
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </Resource>
+    <EmbeddedResource Include="Images\signature3.jpg">
+      <CopyToOutputDirectory></CopyToOutputDirectory>
+    </EmbeddedResource>
     <Resource Include="Images\standard.png" />
     <Resource Include="Images\tableofbends.jpg" />
     <Resource Include="Images\tot.png" />

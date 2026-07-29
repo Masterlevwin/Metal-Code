@@ -58,7 +58,7 @@ namespace Metal_Code
                         $"{table.Rows[i].ItemArray[7]}",        //маршрут
                         $"{table.Rows[i].ItemArray[8]}",        //давальческий материал      
                         $"{table.Rows[i].ItemArray[9]}",        //оригинальное наименование от заказчика
-                        $"{table.Rows[i].ItemArray[10]}",        //путь к файлу модели
+                        $"{table.Rows[i].ItemArray[10]}",       //путь к файлу модели
                         $"{table.Rows[i].ItemArray[11]}",       //сгенерирован ли номер чертежа
                         $"{table.Rows[i].ItemArray[12]}");      //гравировка
                     TechItems.Add(techItem);
@@ -154,6 +154,8 @@ namespace Metal_Code
 
                 Create_DirectoriesForCut();     //создаем директории для резки
 
+                CopyReferenceModels();          // НОВОЕ: создаем папку "Справка" и копируем 3D-модели
+
                 ClearDirectories();             //очищаем пустые папки
 
                 //создаем папку "КП" в директории заявки
@@ -207,7 +209,7 @@ namespace Metal_Code
                                             + $"{techItem.NumberName} n{techItem.Count}" + $".{extension}";
 
                                         int count = 0;
-                                        
+
                                         while (File.Exists(destination))    //проверяем, существует ли уже такой файл
                                         {
                                             count++;
@@ -257,7 +259,7 @@ namespace Metal_Code
                             string dirMain = string.Empty;
 
                             if (extension == ".dxf") dirMain = dirLaser + "\\" + $"{item}".Trim() + "\\";
-                            else if (extension == ".igs") dirMain= dirPipe + "\\" + $"{item}".Trim() + "\\";
+                            else if (extension == ".igs") dirMain = dirPipe + "\\" + $"{item}".Trim() + "\\";
 
                             string destination = $"{techItem.Route}" == "" ?
                                 dirMain + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count}{extension}"
@@ -284,6 +286,76 @@ namespace Metal_Code
                             break;
                         }
                     }
+            }
+        }
+
+        /// <summary>
+        /// Создает папку "Справка" и копирует в нее файлы .m3d и .step из папки "ТЗ"
+        /// </summary>
+        private void CopyReferenceModels()
+        {
+            string? baseDir = Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile));
+            if (string.IsNullOrEmpty(baseDir)) return;
+
+            // Определяем исходную папку "ТЗ". 
+            // Это либо папка, в которой лежит Excel, либо явная папка "ТЗ" в корневой директории заявки.
+            string? sourceDir = Path.GetDirectoryName(ExcelFile);
+            string explicitTzDir = Path.Combine(baseDir, "ТЗ");
+
+            if (Directory.Exists(explicitTzDir))
+            {
+                sourceDir = explicitTzDir;
+            }
+            else if (sourceDir != null && !sourceDir.EndsWith("ТЗ", StringComparison.OrdinalIgnoreCase))
+            {
+                // Если мы не нашли явную папку "ТЗ" и текущая папка не называется "ТЗ", 
+                // предполагаем, что файлы лежат прямо в папке с Excel-файлом. Оставляем sourceDir как есть.
+            }
+
+            if (!Directory.Exists(sourceDir)) return;
+
+            string destDir = Path.Combine(baseDir, "Справка");
+            Directory.CreateDirectory(destDir);
+
+            string[] extensions = { "*.m3d", "*.step", "*.stp", "*.SLDDRW" };
+
+            foreach (string ext in extensions)
+            {
+                string[] files = Directory.GetFiles(sourceDir, ext, SearchOption.TopDirectoryOnly);
+                foreach (string file in files)
+                {
+                    string fileName = Path.GetFileName(file);
+                    string destFile = Path.Combine(destDir, fileName);
+
+                    if (File.Exists(destFile))
+                    {
+                        // Если файл уже существует, проверяем его идентичность (используем ваш существующий метод)
+                        if (AreFilesTheSame(file, destFile))
+                            continue; // Файл уже есть и он идентичен, пропускаем
+
+                        // Если файлы разные, добавляем числовой суффикс, чтобы не потерять ни один из вариантов
+                        int count = 1;
+                        string nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+                        string extensionOnly = Path.GetExtension(fileName);
+
+                        while (File.Exists(destFile))
+                        {
+                            destFile = Path.Combine(destDir, $"{nameWithoutExt}_{count}{extensionOnly}");
+                            count++;
+                        }
+                    }
+
+                    try
+                    {
+                        File.Copy(file, destFile);
+                    }
+                    catch (IOException)
+                    {
+                        // Игнорируем ошибки копирования (например, файл занят другим процессом), 
+                        // чтобы не прерывать весь процесс обработки заявки. 
+                        // При необходимости здесь можно добавить логирование.
+                    }
+                }
             }
         }
 
@@ -375,6 +447,7 @@ namespace Metal_Code
             }
         }
     }
+
 
     public class TechItem : INotifyPropertyChanged
     {

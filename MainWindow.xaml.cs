@@ -3630,7 +3630,8 @@ namespace Metal_Code
             worksheet.Cells[row + 4, 2, row + 4, 8].Merge = true;
 
             worksheet.Cells[row + 5, 1].Value = "Точность:";
-            worksheet.Cells[row + 5, 2].Value = "H14/h14 +-IT 14/2";
+            worksheet.Cells[row + 5, 2].Value = "H14/h14 +-IT 14/2 (резка осуществляется воздухом).";
+            worksheet.Cells[row + 5, 2, row + 5, 5].Merge = true;
 
             //в случае с нарезанными деталями, оформляем расшифровку работ
             if (Parts.Count > 0)
@@ -8435,8 +8436,8 @@ namespace Metal_Code
                             if (!string.IsNullOrEmpty(calcNumber))
                             {
                                 // Ищем номер в начале строки, или после пробела/подчеркивания/дефиса
-                                string pattern = $@"(?:^|[\s_\-]){System.Text.RegularExpressions.Regex.Escape(calcNumber)}(?:[\s_\-]|$)";
-                                hasNumber = System.Text.RegularExpressions.Regex.IsMatch(dirName, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                                string pattern = $@"(?:^|[\s_\-]){Regex.Escape(calcNumber)}(?:[\s_\-]|$)";
+                                hasNumber = Regex.IsMatch(dirName, pattern, RegexOptions.IgnoreCase);
 
                                 // Дополнительная страховка: если имя папки просто начинается с номера
                                 if (!hasNumber && dirName.StartsWith(calcNumber, StringComparison.OrdinalIgnoreCase))
@@ -8513,7 +8514,7 @@ namespace Metal_Code
                 foreach (string dirPath in directoriesWork)
                 {
                     string dirName = Path.GetFileName(dirPath);
-                    var match = System.Text.RegularExpressions.Regex.Match(dirName, orderPattern);
+                    var match = Regex.Match(dirName, orderPattern);
                     if (match.Success && int.TryParse(match.Value, out int orderNum))
                     {
                         if (orderNum >= lastIssued && orderNum <= windowEnd)
@@ -8598,7 +8599,7 @@ namespace Metal_Code
                     foreach (FileInfo file in dir.GetFiles())
                     {
                         string pattern = @"счет[ё]?(?:\s+\S+)*\s+№\s*(\d+)";
-                        var match = System.Text.RegularExpressions.Regex.Match(file.Name, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                        var match = Regex.Match(file.Name, pattern, RegexOptions.IgnoreCase);
                         if (match.Success)
                         {
                             offer.Invoice = $"№ {match.Groups[1].Value}";
@@ -8618,7 +8619,7 @@ namespace Metal_Code
                     string invoiceNumber = "без_счёта";
                     if (!string.IsNullOrEmpty(offer.Invoice))
                     {
-                        var match = System.Text.RegularExpressions.Regex.Match(offer.Invoice, @"\d+");
+                        var match = Regex.Match(offer.Invoice, @"\d+");
                         if (match.Success)
                             invoiceNumber = match.Value;
                     }

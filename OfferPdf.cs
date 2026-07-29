@@ -340,7 +340,7 @@ namespace Metal_Code
                                 else left.Item().PaddingVertical(5).Text("Порядок отгрузки: самовывоз со склада Исполнителя по адресу: Ленинградская область, Всеволожский район, " +
                                                 "Колтуши, деревня Мяглово, ул. Дорожная, уч. 4Б.");
 
-                                left.Item().PaddingVertical(5).Text("Точность: H14/h14 ±IT14/2");
+                                left.Item().PaddingVertical(5).Text("Точность: H14/h14 ±IT14/2 (резка осуществляется воздухом).");
 
                                 left.Item().PaddingVertical(5).Text($"Расшифровка работ: {descriptionWorks}");
 

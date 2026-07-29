@@ -726,10 +726,8 @@
                 Background="{DynamicResource RegionBrush}"
                 CornerRadius="{DynamicResource DefaultCornerRadius}">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Margin="10,0,0,0" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}">Материал -</TextBlock>
-                                                        <TextBlock Margin="5,0,0,0" Text="{Binding Material, Converter={StaticResource CostConverter}}" Foreground="{DynamicResource PrimaryTextBrush}"/>
-                                                        <TextBlock Margin="10,0,0,0" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}">Создан -</TextBlock>
-                                                        <TextBlock Margin="5,0,0,0" Text="{Binding CreatedDate, StringFormat=d.MM.y}" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                                        <TextBlock Margin="10,0,0,0" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}">Путь к КП -</TextBlock>
+                                                        <TextBlock Margin="5,0,0,0" Text="{Binding Act}" Foreground="{DynamicResource PrimaryTextBrush}"/>
                                                         <TextBlock Margin="10,0,0,0" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}">Автор -</TextBlock>
                                                         <TextBlock Margin="5,0,0,0" Text="{Binding Autor}" Foreground="{DynamicResource PrimaryTextBrush}"/>
                                                         <Ellipse Width="10" Height="10" Margin="10,0,0,0">
