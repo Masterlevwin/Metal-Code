@@ -726,15 +726,15 @@
                 Background="{DynamicResource RegionBrush}"
                 CornerRadius="{DynamicResource DefaultCornerRadius}">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Margin="10,0,0,0" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}">Путь к КП -</TextBlock>
-                                                        <TextBlock Margin="5,0,0,0" Text="{Binding Act}" Foreground="{DynamicResource PrimaryTextBrush}"/>
-                                                        <TextBlock Margin="10,0,0,0" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}">Автор -</TextBlock>
-                                                        <TextBlock Margin="5,0,0,0" Text="{Binding Autor}" Foreground="{DynamicResource PrimaryTextBrush}"/>
                                                         <Ellipse Width="10" Height="10" Margin="10,0,0,0">
                                                             <Ellipse.Fill>
                                                                 <SolidColorBrush Color="{Binding IsLocalOffer, Converter={StaticResource LocalOfferColorConverter}}"/>
                                                             </Ellipse.Fill>
                                                         </Ellipse>
+                                                        <TextBlock Margin="10,0,0,0" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}">Автор -</TextBlock>
+                                                        <TextBlock Margin="5,0,0,0" Text="{Binding Autor}" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                                                        <TextBlock Margin="10,0,0,0" FontWeight="Bold" Foreground="{DynamicResource PrimaryTextBrush}">Путь к КП -</TextBlock>
+                                                        <TextBlock Margin="5,0,0,0" Text="{Binding Act}" Foreground="{DynamicResource PrimaryTextBrush}"/>
                                                     </StackPanel>
                                                 </Border>
                                             </DataTemplate>

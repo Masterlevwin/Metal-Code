@@ -336,7 +336,7 @@ namespace Metal_Code.Utils
             part.DisplayGeometry = geometry;
         }
 
-        public static PathGeometry? CloneGeometry(PathGeometry source)
+        public static PathGeometry? CloneGeometry(PathGeometry? source)
         {
             if (source == null) return null;
 

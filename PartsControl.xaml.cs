@@ -346,7 +346,7 @@ namespace Metal_Code
         /// </summary>
         public void RefreshNestingPreview()
         {
-            if (owner is not CutControl cut || cut.Items is null)
+            if (owner is not ICut cut || cut.Items is null)
             {
                 imagesStack.Children.Clear();
                 return;
@@ -945,15 +945,16 @@ namespace Metal_Code
         /// <summary>
         /// Пересчет общих итогов (WayTotal, MassTotal, Way, Pinholes, Mass) после изменения раскладок.
         /// </summary>
-        private void RecalculateTotals(CutControl cut)
+        private void RecalculateTotals(ICut cut)
         {
-            if (cut.PartDetails is null) return;
+            if (cut is CutControl _cut && _cut.PartDetails is not null)
+            {
+                _cut.WayTotal = _cut.PartDetails.Sum(p => p.Way * p.Count);
+                _cut.MassTotal = _cut.PartDetails.Sum(p => p.Mass * p.Count);
 
-            cut.WayTotal = cut.PartDetails.Sum(p => p.Way * p.Count);
-            cut.MassTotal = cut.PartDetails.Sum(p => p.Mass * p.Count);
-
-            cut.SumProperties(cut.Items ?? new());
-            cut.work.type.CreateSort();
+                _cut.SumProperties(_cut.Items ?? new());
+                _cut.work.type.CreateSort();
+            }
         }
         #endregion
 
@@ -1407,16 +1408,16 @@ namespace Metal_Code
 
             // Устанавливаем базовые размеры
             if (partType == PartType.Round || partType == PartType.Rectangle || partType == PartType.Triangle)
-                part.Width = part.Height = 50;
+                part.Width = part.Height = 100;
             else if (partType == PartType.RoundTube)
             {
-                part.Width = part.Height = type != null ? type.A : 50;
+                part.Width = part.Height = type != null ? type.A : 100;
                 part.Length = 1000; // базовая длина 1 метр
             }
             else
             {
-                part.Width = type != null ? type.A : 50;
-                part.Height = type != null ? type.B : 50;
+                part.Width = type != null ? type.A : 100;
+                part.Height = type != null ? type.B : 100;
                 part.Length = 1000; // базовая длина 1 метр
             }
 
@@ -1429,7 +1430,8 @@ namespace Metal_Code
 
             bool isSheetPart = part.PartType == PartType.Round ||
                                part.PartType == PartType.Rectangle ||
-                               part.PartType == PartType.Triangle;
+                               part.PartType == PartType.Triangle ||
+                               part.PartType == PartType.Custom;
 
             int pinholes = 0;
             double cuttingLength = 0;
@@ -1437,11 +1439,14 @@ namespace Metal_Code
             // === ШАГ 1: Генерация геометрии, если ее нет ===
             if (!isOriginal)
             {
-                part.DisplayGeometry = null;
-                if (isSheetPart)
-                    PartPreviewGenerator.EnsureDisplayGeometryWithHoles(part);
-                else
-                    PartPreviewGenerator.EnsureDisplayGeometry(part);
+                if (part.PartType != PartType.Custom || part.DisplayGeometry == null)
+                {
+                    part.DisplayGeometry = null;
+                    if (isSheetPart)
+                        PartPreviewGenerator.EnsureDisplayGeometryWithHoles(part);
+                    else
+                        PartPreviewGenerator.EnsureDisplayGeometry(part);
+                }
             }
 
             // === ШАГ 2: Расчёт длины реза и проколов ===
@@ -1580,14 +1585,7 @@ namespace Metal_Code
             }
 
             // Обновляем итоговые значения
-            cut.WayTotal += parts.Sum(p => p.Way * p.Count);
-            cut.MassTotal += parts.Sum(p => p.Mass * p.Count);
-
-            if (cut.Items?.Count > 0)
-            {
-                cut.SumProperties(cut.Items);
-                cut.work.type.CreateSort();
-            }
+            RecalculateTotals(cut);
         }
 
         /// <summary>
@@ -1900,7 +1898,7 @@ namespace Metal_Code
             {
                 // === ЛИСТОВЫЕ И ПРОСТЫЕ СЕЧЕНИЯ ===
                 PartType.Round => Math.PI * Math.Pow(width / 2, 2),
-                PartType.Rectangle or PartType.SquareBar => width * height,
+                PartType.Rectangle or PartType.SquareBar or PartType.Custom => width * height,
                 PartType.Triangle => width * height / 2.0,
 
                 // === ТРУБЫ ===

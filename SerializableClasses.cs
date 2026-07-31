@@ -257,6 +257,14 @@ namespace Metal_Code
         }
 
         [OptionalField]
+        public ObservableCollection<PlacedHole> _placedHoles = new();
+        public ObservableCollection<PlacedHole> PlacedHoles
+        {
+            get => _placedHoles;
+            set => _placedHoles = value;
+        }
+
+        [OptionalField]
         public ObservableCollection<HoleGroup> _holeGroups = new();
         public ObservableCollection<HoleGroup> HoleGroups
         {
@@ -323,6 +331,13 @@ namespace Metal_Code
         }
     }
 
+    public class PlacedHole
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Diameter { get; set; }
+    }
+
     public enum PartType
     {
         Unknown,          // Не определено
@@ -335,6 +350,7 @@ namespace Metal_Code
         Channel,          // Швеллер
         IBeam,            // Двутавр
         Triangle,         // Треугольник
+        Custom            // Произвольная форма
     }
 
     [Serializable]

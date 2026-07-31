@@ -1017,24 +1017,27 @@ namespace Metal_Code.Services
                     _isOnline = false;
                 }
             }
-
-            try
+            else
             {
-                using var localCtx = new ManagerContext(_connections[0]);
-                localCtx.Database.SetCommandTimeout(10);
-                var localOffer = await localCtx.Offers.FirstOrDefaultAsync(o => o.Id == offerId);
-                if (localOffer != null)
+                try
                 {
-                    localCtx.Offers.Remove(localOffer);
-                    await localCtx.SaveChangesAsync();
-                    localRemoved = true;
-                    Trace.WriteLine($"✅ Расчёт Id={offerId} удалён из локальной SQLite");
+                    using var localCtx = new ManagerContext(_connections[0]);
+                    localCtx.Database.SetCommandTimeout(10);
+                    var localOffer = await localCtx.Offers.FirstOrDefaultAsync(o => o.Id == offerId);
+                    if (localOffer != null)
+                    {
+                        localCtx.Offers.Remove(localOffer);
+                        await localCtx.SaveChangesAsync();
+                        localRemoved = true;
+                        Trace.WriteLine($"✅ Расчёт Id={offerId} удалён из локальной SQLite");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine($"[DB] Ошибка SQLite: {ex.Message}");
                 }
             }
-            catch (Exception ex)
-            {
-                Trace.WriteLine($"[DB] Ошибка SQLite: {ex.Message}");
-            }
+
 
             return pgRemoved || localRemoved;
         }

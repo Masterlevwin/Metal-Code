@@ -441,8 +441,9 @@ namespace Metal_Code
                         foreach (string dm in dirMaterials)
                             if (Directory.GetFileSystemEntries(dm).Length == 0) Directory.Delete(dm);
 
-                        if (Directory.GetFileSystemEntries(dir).Length == 0 && (dir.Contains("Лазер") ||
-                            dir.Contains("Труборез") || dir.Contains("Архив"))) Directory.Delete(dir);
+                        if (Directory.GetFileSystemEntries(dir).Length == 0
+                            && (dir.Contains("Лазер") || dir.Contains("Труборез")
+                            || dir.Contains("Архив") || dir.Contains("Справка"))) Directory.Delete(dir);
                     }
             }
         }
