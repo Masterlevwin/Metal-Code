@@ -128,7 +128,7 @@ namespace Metal_Code
 
         private void InitializeView()
         {
-            double fitScale = Math.Min(DrawingAreaBorder.ActualWidth / SheetWidthMm, DrawingAreaBorder.ActualHeight / SheetHeightMm) * 0.90;
+            double fitScale = Math.Min(DrawingAreaBorder.ActualWidth / SheetWidthMm, DrawingAreaBorder.ActualHeight / SheetHeightMm) * 0.80;
             CanvasScale.ScaleX = fitScale;
             CanvasScale.ScaleY = fitScale;
 

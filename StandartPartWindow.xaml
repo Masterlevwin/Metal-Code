@@ -3,8 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:hc="https://handyorg.github.io/handycontrol"
         xmlns:converters="clr-namespace:Metal_Code.Converters"
-        Title="Стандартные детали" WindowStartupLocation="CenterScreen" 
-        Width="1100" Height="750" MinWidth="900" MinHeight="600">
+        Title="Стандартные детали" WindowStartupLocation="CenterScreen" MinWidth="900" MinHeight="600">
 
     <Window.Resources>
         <converters:PartTypeToVisibilityConverter x:Key="PartTypeToVisibilityConverter"/>
@@ -13,14 +12,18 @@
         <converters:PartTypeToReadOnlyConverter x:Key="PartTypeToReadOnlyConverter"/>
     </Window.Resources>
 
+    <!-- 🔥 ДОБАВЛЕНЫ RowDefinitions, чтобы ScrollViewer реально работал и не обрезал низ -->
     <Grid Margin="10">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="320"/>
         </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-        <!-- ЛЕВАЯ КОЛОНКА: Ввод данных (со скроллом для гарантии видимости всех кнопок) -->
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <!-- ЛЕВАЯ КОЛОНКА: Ввод данных -->
+        <ScrollViewer Grid.Column="0" Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel Margin="0,0,10,0">
 
                 <!-- 1. Выбор формы -->
@@ -67,7 +70,7 @@
                 </Border>
 
                 <!-- 2. Общий холст визуализации -->
-                <Border x:Name="DrawingAreaBorder" Background="White" CornerRadius="4" BorderBrush="LightGray" BorderThickness="1" Margin="0,0,0,10" Height="250" ClipToBounds="True" SizeChanged="DrawingArea_SizeChanged">
+                <Border x:Name="DrawingAreaBorder" Background="White" CornerRadius="4" BorderBrush="LightGray" BorderThickness="1" Margin="0,0,0,10" Height="300" ClipToBounds="True" SizeChanged="DrawingArea_SizeChanged">
                     <Grid x:Name="DrawingAreaGrid" Background="Transparent"
                           PreviewMouseLeftButtonDown="Grid_PreviewMouseLeftButtonDown"
                           PreviewMouseLeftButtonUp="Grid_PreviewMouseLeftButtonUp"
@@ -85,8 +88,8 @@
                     </Grid>
                 </Border>
 
-                <!-- Панель управления (видна только для Custom) -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Custom'}">
+                <!-- 🔥 Панель управления: заменена на WrapPanel, чтобы кнопки переносились, а не уезжали за экран -->
+                <WrapPanel HorizontalAlignment="Center" Margin="0,0,0,10" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Custom'}">
 
                     <!-- Режим рисования -->
                     <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
@@ -96,38 +99,45 @@
                         <Separator Width="1" Margin="10,0" Height="20" VerticalAlignment="Center"/>
                         <Button Content="↩ Отменить" Click="UndoPoint_Click" Margin="3" Style="{StaticResource ButtonDashed}" Padding="8,4"/>
                         <Button Content="✖ Очистить" Click="ClearDrawing_Click" Margin="3" Style="{StaticResource ButtonDashedDanger}" Padding="8,4"/>
-                        <Button x:Name="FinishDrawingButton" Content="✓ Завершить контур" Click="FinishDrawing_Click" Margin="3" Style="{StaticResource ButtonPrimary}" Padding="10,4" FontWeight="SemiBold"/>
+
+                        <!-- 🔥 Стиль изменен на ButtonDefault с акцентом, чтобы отличаться от главных кнопок -->
+                        <Button x:Name="FinishDrawingButton" Content="✓ Завершить контур" Click="FinishDrawing_Click" Margin="3" 
+                                Style="{StaticResource ButtonDefault}" BorderBrush="{DynamicResource PrimaryBrush}" Foreground="{DynamicResource PrimaryBrush}" 
+                                Padding="10,4" FontWeight="SemiBold"/>
                     </StackPanel>
 
-                    <Separator Width="1" Margin="10,0" Height="20" VerticalAlignment="Center"/>
+                    <!-- 🔥 Режим редактирования размеров -->
+                    <StackPanel x:Name="EditModePanel" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,10,0">
+                        <Separator Width="1" Margin="10,0" Height="20" VerticalAlignment="Center"/>
 
-                    <!-- 🔥 Режим редактирования размеров (активируется после завершения контура) -->
-                    <StackPanel Orientation="Horizontal" x:Name="EditModePanel" Visibility="Collapsed">
-                        <ToggleButton x:Name="EditModeToggle" Content="📏 Режим размеров" Click="EditModeToggle_Click" Margin="3" Style="{StaticResource ToggleButtonPrimary}" Padding="10,4"/>
+                        <!-- 🔥 Стиль изменен на ToggleButtonDefault -->
+                        <ToggleButton x:Name="EditModeToggle" Content="📏 Режим размеров" Click="EditModeToggle_Click" Margin="3" 
+                                      Style="{StaticResource ToggleButtonDefault}" Padding="10,4"/>
+
                         <TextBlock Text="Размер:" VerticalAlignment="Center" Margin="10,0,5,0" FontWeight="SemiBold"/>
                         <TextBox x:Name="SegmentSizeInput" Width="80" Style="{StaticResource TextBoxExtend}" TextChanged="SegmentSizeInput_TextChanged" KeyDown="SegmentSizeInput_KeyDown"/>
                         <TextBlock x:Name="CurrentSizeText" Text="—" VerticalAlignment="Center" Margin="5,0,0,0" Foreground="Gray"/>
-                        <Button Content="✓ Применить" Click="ApplySize_Click" Margin="5,0,0,0" Style="{StaticResource ButtonSuccess}" Padding="8,4"/>
+
+                        <!-- 🔥 Стиль изменен на ButtonInfo (промежуточное действие) -->
+                        <Button Content="✓ Применить" Click="ApplySize_Click" Margin="5,0,0,0" Style="{StaticResource ButtonInfo}" Padding="8,4"/>
                     </StackPanel>
-                </StackPanel>
-                
+                </WrapPanel>
+
                 <TextBlock Text="Ctrl+Колесо: зум | Alt+ЛКМ: перемещение | Линии привязываются к 90°" FontSize="11" Foreground="Gray" TextAlignment="Center" Margin="0,0,0,10"/>
 
-                <!-- Панель размещения отверстий (видна только для Custom) -->
-                <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1" 
-        CornerRadius="4" Background="{DynamicResource SecondaryRegionBrush}" Padding="10" Margin="0,0,0,10"
-        Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Custom'}">
+                <!-- Панель размещения отверстий -->
+                <Border BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1" CornerRadius="4" Background="{DynamicResource SecondaryRegionBrush}" Padding="10" Margin="0,0,0,10"
+                        Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Custom'}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
-                            <ToggleButton x:Name="HoleModeToggle" Content="⭕ Режим отверстий" Click="HoleModeToggle_Click" 
-                          Style="{StaticResource ToggleButtonPrimary}" Padding="10,4" Margin="0,0,15,0"/>
+                            <ToggleButton x:Name="HoleModeToggle" Content="⭕ Режим отверстий" Click="HoleModeToggle_Click" Style="{StaticResource ToggleButtonDefault}" Padding="10,4" Margin="0,0,15,0"/>
                             <TextBlock Text="⌀" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,5,0"/>
                             <TextBox x:Name="HoleDiameterInput" Text="10" Width="60" Style="{StaticResource TextBoxExtend}" VerticalContentAlignment="Center"/>
                             <TextBlock Text="мм" VerticalAlignment="Center" Margin="5,0,0,0"/>
                             <TextBlock Text="(Кликните по детали)" VerticalAlignment="Center" Margin="15,0,0,0" Foreground="Gray" FontStyle="Italic"/>
                         </StackPanel>
 
-                        <!-- Список размещённых отверстий -->
+                        <!-- Список размещённых отверстий (MaxHeight ограничивает рост, не ломая скролл окна) -->
                         <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="100">
                             <ItemsControl ItemsSource="{Binding PlacedHoles}">
                                 <ItemsControl.ItemTemplate>
@@ -137,8 +147,7 @@
                                                 <TextBlock Text="{Binding Diameter, StringFormat=⌀{0:F1} мм}" FontWeight="Bold" VerticalAlignment="Center" Width="60"/>
                                                 <TextBlock Text="{Binding X, StringFormat=X: {0:0}}" Foreground="DimGray" VerticalAlignment="Center" Width="70"/>
                                                 <TextBlock Text="{Binding Y, StringFormat=Y: {0:0}}" Foreground="DimGray" VerticalAlignment="Center" Width="70"/>
-                                                <Button Content="×" Foreground="Red" Cursor="Hand" CommandParameter="{Binding}" 
-                                        Click="RemovePlacedHole_Click" Margin="10,0,0,0" Padding="5,0" Background="Transparent" BorderThickness="0"/>
+                                                <Button Content="×" Foreground="Red" Cursor="Hand" CommandParameter="{Binding}" Click="RemovePlacedHole_Click" Margin="10,0,0,0" Padding="5,0" Background="Transparent" BorderThickness="0"/>
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>
@@ -147,8 +156,8 @@
                         </ScrollViewer>
                     </StackPanel>
                 </Border>
-                
-                <!-- 4. Блок отверстий -->
+
+                <!-- 4. Блок отверстий (стандартный) -->
                 <Border BorderBrush="{DynamicResource SecondaryTextBrush}" BorderThickness="1" CornerRadius="4" Margin="0,0,0,10" Padding="10" Background="{DynamicResource RegionBrush}">
                     <Expander Header="Отверстия (необязательно)" IsExpanded="False">
                         <StackPanel Margin="0,10,0,0">
@@ -182,13 +191,13 @@
                     </Expander>
                 </Border>
 
-                <!-- 5. Кнопка добавления -->
+                <!-- 5. Кнопка добавления (всегда видна благодаря рабочему ScrollViewer) -->
                 <Button Content="Добавить в список" Click="AddToBatch_Click" Margin="0,0,0,10" Height="45" Style="{StaticResource ButtonPrimary}" FontSize="14"/>
             </StackPanel>
         </ScrollViewer>
 
         <!-- ПРАВАЯ КОЛОНКА: Список деталей -->
-        <Border Grid.Column="1" BorderBrush="{DynamicResource SecondaryTextBrush}" BorderThickness="1" CornerRadius="4" Padding="10" Background="{DynamicResource RegionBrush}">
+        <Border Grid.Column="1" Grid.Row="0" BorderBrush="{DynamicResource SecondaryTextBrush}" BorderThickness="1" CornerRadius="4" Padding="10" Background="{DynamicResource RegionBrush}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -216,6 +225,28 @@
                                                     <TextBlock Text="{Binding Width, StringFormat={}{0:0}×}" Foreground="DimGray" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Rectangle'}"/>
                                                     <TextBlock Text="{Binding Height, StringFormat={}{0:0}}" Foreground="DimGray" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Rectangle'}"/>
                                                     <TextBlock Text="{Binding Width, StringFormat=Ø{0:0}}" Foreground="DimGray" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round'}"/>
+
+                                                    <!-- Expander с отверстиями -->
+                                                    <Expander Margin="10,0,0,0" Visibility="{Binding HoleGroups.Count, Converter={StaticResource IntToVisibilityConverter}, ConverterParameter='0'}" Width="100" VerticalAlignment="Center">
+                                                        <Expander.Header>
+                                                            <TextBlock Text="с отв" FontWeight="Bold" FontSize="11" Foreground="#007ACC"/>
+                                                        </Expander.Header>
+                                                        <StackPanel Margin="5,0,0,5">
+                                                            <ItemsControl ItemsSource="{Binding HoleGroups}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <StackPanel Orientation="Horizontal" Margin="0,2">
+                                                                            <TextBlock Text="⌀" FontWeight="Bold" Foreground="DimGray"/>
+                                                                            <TextBlock Text="{Binding Diameter, StringFormat={}{0:F1}}" FontWeight="Bold" Margin="2,0"/>
+                                                                            <TextBlock Text="мм × " Foreground="DimGray"/>
+                                                                            <TextBlock Text="{Binding Count}" FontWeight="Bold"/>
+                                                                            <TextBlock Text=" шт." Foreground="DimGray"/>
+                                                                        </StackPanel>
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </Expander>
                                                 </StackPanel>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">

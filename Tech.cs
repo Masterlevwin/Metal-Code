@@ -314,7 +314,7 @@ namespace Metal_Code
 
             if (!Directory.Exists(sourceDir)) return;
 
-            string destDir = Path.Combine(baseDir, "Справка");
+            string destDir = Path.Combine(baseDir, "Модели для справок");
             Directory.CreateDirectory(destDir);
 
             string[] extensions = { "*.m3d", "*.step", "*.stp", "*.SLDDRW" };
@@ -443,7 +443,7 @@ namespace Metal_Code
 
                         if (Directory.GetFileSystemEntries(dir).Length == 0
                             && (dir.Contains("Лазер") || dir.Contains("Труборез")
-                            || dir.Contains("Архив") || dir.Contains("Справка"))) Directory.Delete(dir);
+                            || dir.Contains("Архив") || dir.Contains("Модели для справок"))) Directory.Delete(dir);
                     }
             }
         }

@@ -1454,7 +1454,7 @@ namespace Metal_Code
             {
                 cuttingLength = TechItemCalculator.CalculateCuttingLength(part.DisplayGeometry);
 
-                if (part.HoleGroups?.Count > 0)
+                if (!isSheetPart && part.HoleGroups?.Count > 0)
                 {
                     foreach (var group in part.HoleGroups)
                     {

@@ -296,10 +296,39 @@ namespace Metal_Code.Utils
         {
             if (part == null) return;
 
-            // Сохраняем оригинальную геометрию для восстановления в случае ошибки
+            // 🔥 СПЕЦИАЛЬНАЯ ОБРАБОТКА ДЛЯ ПРОИЗВОЛЬНЫХ ФОРМ
+            if (part.PartType == PartType.Custom)
+            {
+                // Если геометрии нет, нам нечего улучшать
+                if (part.DisplayGeometry == null) return;
+
+                // Если отверстий нет, оставляем геометрию как есть (она уже правильная)
+                bool hasHoleGroups = part.HoleGroups != null && part.HoleGroups.Count > 0;
+                bool hasPlacedHoles = part.PlacedHoles != null && part.PlacedHoles.Count > 0;
+
+                if (!hasHoleGroups && !hasPlacedHoles)
+                {
+                    return;
+                }
+
+                // Клонируем существующую геометрию, нарисованную пользователем
+                var geometry = CloneGeometry(part.DisplayGeometry);
+                if (geometry == null) return;
+
+                // Добавляем отверстия как НЕзаполненные контуры (полости)
+                var holePositions = CalculateHolePositions(part);
+                foreach (var (position, hole) in holePositions)
+                {
+                    geometry.Figures.Add(CreateHoleFigure(position.X, position.Y, hole.Diameter / 2));
+                }
+
+                part.DisplayGeometry = geometry;
+                return; // 🔥 ВАЖНО: выходим, не выполняя стандартную логику ниже
+            }
+
+            // === СТАНДАРТНАЯ ЛОГИКА ДЛЯ ШАБЛОННЫХ ДЕТАЛЕЙ ===
             var originalGeometry = part.DisplayGeometry;
 
-            // Генерируем базовую геометрию (без отверстий)
             part.DisplayGeometry = null;
             EnsureDisplayGeometry(part);
 
@@ -309,7 +338,6 @@ namespace Metal_Code.Utils
                 return;
             }
 
-            // Валидация размещения отверстий
             var (isValid, error) = ValidateHolesPlacement(part);
             if (error != null) MainWindow.M.StatusBegin(error, MainWindow.StatusMessageType.Error);
             if (!isValid)
@@ -318,22 +346,20 @@ namespace Metal_Code.Utils
                 return;
             }
 
-            // Клонируем геометрию через сериализацию
-            var geometry = CloneGeometry(part.DisplayGeometry);
-            if (geometry == null)
+            var geometryStandard = CloneGeometry(part.DisplayGeometry);
+            if (geometryStandard == null)
             {
                 part.DisplayGeometry = originalGeometry ?? part.DisplayGeometry;
                 return;
             }
 
-            // Добавляем отверстия как НЕзаполненные контуры (как полости в трубах)
-            var holePositions = CalculateHolePositions(part);
-            foreach (var (position, hole) in holePositions)
+            var positionsStandard = CalculateHolePositions(part);
+            foreach (var (position, hole) in positionsStandard)
             {
-                geometry.Figures.Add(CreateHoleFigure(position.X, position.Y, hole.Diameter / 2));
+                geometryStandard.Figures.Add(CreateHoleFigure(position.X, position.Y, hole.Diameter / 2));
             }
 
-            part.DisplayGeometry = geometry;
+            part.DisplayGeometry = geometryStandard;
         }
 
         public static PathGeometry? CloneGeometry(PathGeometry? source)
@@ -360,7 +386,8 @@ namespace Metal_Code.Utils
             if (part.HoleGroups == null || part.HoleGroups.Count == 0)
                 return (true, null);
 
-            bool isSheetPart = part.PartType == PartType.Round || part.PartType == PartType.Rectangle;
+            bool isSheetPart = part.PartType == PartType.Round || part.PartType == PartType.Rectangle
+                            || part.PartType == PartType.Triangle;
             bool isPipePart = part.PartType == PartType.RoundTube || part.PartType == PartType.RectangularTube;
 
             if (isSheetPart)
@@ -489,21 +516,30 @@ namespace Metal_Code.Utils
         }
 
         /// <summary>
-        /// Рассчитывает позиции отверстий с учётом их диаметров
-        /// </summary>
-        /// <summary>
-        /// Рассчитывает позиции отверстий ДЛЯ ВИЗУАЛИЗАЦИИ в сечении.
+        /// Рассчитывает позиции отверстий.
+        /// Для произвольных форм использует координаты, заданные пользователем вручную.
         /// Для труб возвращает пустой список (отверстия не отображаются в сечении).
         /// </summary>
         private static List<(Point Position, Hole Hole)> CalculateHolePositions(Part part)
         {
             var positions = new List<(Point Position, Hole Hole)>();
 
+            // 🔥 ДЛЯ ПРОИЗВОЛЬНЫХ ФОРМ: используем точные координаты из PlacedHoles
+            if (part.PartType == PartType.Custom && part.PlacedHoles != null && part.PlacedHoles.Count > 0)
+            {
+                foreach (var placed in part.PlacedHoles)
+                {
+                    // Создаем объект Hole только с диаметром, так как координаты уже есть в placed.X/Y
+                    positions.Add((new Point(placed.X, placed.Y), new Hole(placed.Diameter)));
+                }
+                return positions;
+            }
+
             // Для труб НЕ визуализируем отверстия в сечении
             if (part.PartType == PartType.RoundTube || part.PartType == PartType.RectangularTube)
                 return positions;
 
-            // Для листов — текущая логика распределения
+            // === СТАНДАРТНАЯ ЛОГИКА ДЛЯ ЛИСТОВЫХ ДЕТАЛЕЙ ===
             var allHoles = part.HoleGroups
                 .SelectMany(g => Enumerable.Repeat(new Hole(g.Diameter), g.Count))
                 .ToList();
@@ -537,32 +573,21 @@ namespace Metal_Code.Utils
             else if (part.PartType == PartType.Triangle)
             {
                 double maxDiameter = allHoles.Max(h => h.Diameter);
-                double pitch = maxDiameter + 5; // Минимальное расстояние между центрами
+                double pitch = maxDiameter + 5;
 
                 int rows = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(count * 1.5)));
                 double spacingY = rows > 1 ? (part.Height - 2 * minMargin) / (rows - 1) : 0;
 
                 int index = 0;
 
-                // Идем снизу вверх (от широкого основания к узкой вершине)
                 for (int row = 0; row < rows && index < count; row++)
                 {
-                    // Y координата: часть.Height / 2 - это низ (катет), -part.Height / 2 - это верх (острый угол)
                     double y = (part.Height / 2) - minMargin - row * spacingY;
-                    if (rows == 1) y = 0; // Если ряд всего один, центрируем по вертикали
+                    if (rows == 1) y = 0;
 
-                    // Левая граница (вертикальный катет) всегда фиксирована
                     double xLeft = -part.Width / 2;
-
-                    // Правая граница (гипотенуза) рассчитывается линейной интерполяцией:
-                    // При y = part.Height/2 (низ) -> xRight = part.Width/2
-                    // При y = -part.Height/2 (верх) -> xRight = -part.Width/2
                     double xRight = -part.Width / 2 + (part.Width / part.Height) * (y + part.Height / 2);
-
-                    // Текущая ширина сегмента на этой высоте
                     double currentWidth = xRight - xLeft;
-
-                    // Доступная ширина для центров отверстий (с учетом отступов от обоих краев)
                     double availableWidth = currentWidth - 2 * minMargin;
 
                     int holesInThisRow = 0;
@@ -580,18 +605,14 @@ namespace Metal_Code.Utils
                     }
                     else
                     {
-                        // Если доступная ширина отрицательная, но сама ширина сегмента все еще позволяет 
-                        // разместить одно отверстие по центру с минимальными полями
                         if (currentWidth > maxDiameter + 10)
                         {
                             holesInThisRow = 1;
                         }
                     }
 
-                    // Размещаем отверстия в текущем ряду
                     for (int col = 0; col < holesInThisRow && index < count; col++)
                     {
-                        // Если отверстие одно, центрируем его в доступном сегменте. Иначе распределяем от левого края.
                         double x = (holesInThisRow == 1)
                             ? (xLeft + currentWidth / 2)
                             : (xLeft + minMargin + col * currentSpacingX);

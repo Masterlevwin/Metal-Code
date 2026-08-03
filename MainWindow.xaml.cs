@@ -117,7 +117,7 @@ namespace Metal_Code
 
         //----------Свойства и их основные методы---------//
         #region
-        private string version = "2.7.1";
+        private string version = "2.7.2";
         public string Version
         {
             get => version;
