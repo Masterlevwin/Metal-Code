@@ -60,7 +60,9 @@ namespace Metal_Code
             _currentPart.PropertyChanged += (s, e) =>
             {
                 if (_currentPart.PartType != PartType.Custom &&
-                    (e.PropertyName == nameof(Part.Width) || e.PropertyName == nameof(Part.Height)))
+                    (e.PropertyName == nameof(Part.Width) ||
+                    e.PropertyName == nameof(Part.Height) ||
+                    e.PropertyName == nameof(Part.Length)))
                 {
                     // Защита от пустых полей при вводе
                     if (_currentPart.Width > 0 && _currentPart.Height > 0)
@@ -199,6 +201,12 @@ namespace Metal_Code
             BackgroundCanvas.Children.Add(lbl);
         }
 
+        private bool IsPipePart(PartType type)
+        {
+            return type == PartType.RoundTube || type == PartType.RectangularTube ||
+                   type == PartType.Angle || type == PartType.Channel || type == PartType.IBeam;
+        }
+
         // ==========================================
         // ОТРИСОВКА ДЕТАЛЕЙ
         // ==========================================
@@ -206,6 +214,13 @@ namespace Metal_Code
         private void RedrawCanvas(Point? previewPoint = null)
         {
             DrawingCanvas.Children.Clear();
+
+            // Для трубных деталей — отдельный режим визуализации
+            if (IsPipePart(_currentPart.PartType))
+            {
+                DrawPipeView();
+                return;
+            }
 
             // 🔥 ОБЪЯВЛЕНИЕ ПЕРЕМЕННЫХ (этого не хватало в фрагменте)
             double strokeThickness = 2 / CanvasScale.ScaleX;
@@ -429,6 +444,166 @@ namespace Metal_Code
 
             RedrawCanvas();
         }
+
+        // ==========================================
+        // ВИЗУАЛИЗАЦИЯ ТРУБНЫХ ДЕТАЛЕЙ
+        // ==========================================
+        private void DrawPipeView()
+        {
+            if (_currentPart.DisplayGeometry == null) return;
+
+            var bounds = _currentPart.DisplayGeometry.Bounds;
+            if (bounds.IsEmpty || bounds.Width < 0.1) return;
+
+            double canvasW = 3000;
+            double canvasH = 1500;
+
+            // --- Масштаб сечения: целевой размер ~25% ширины Canvas ---
+            double targetSectionPx = canvasW * 0.22;
+            double maxDim = Math.Max(bounds.Width, bounds.Height);
+            double sScale = targetSectionPx / maxDim;
+
+            // Центр области сечения (левая часть)
+            double secCX = canvasW * 0.2;
+            double secCY = canvasH * 0.48;
+
+            // Рисуем масштабированное сечение
+            var sectionPath = new Path
+            {
+                Data = _currentPart.DisplayGeometry,
+                Stroke = Brushes.Black,
+                StrokeThickness = 2.0 / sScale,
+                Fill = new SolidColorBrush(Color.FromArgb(50, 0, 120, 215)),
+                RenderTransform = new TransformGroup
+                {
+                    Children = new TransformCollection
+            {
+                new ScaleTransform(sScale, sScale),
+                new TranslateTransform(
+                    secCX - (bounds.X + bounds.Width / 2) * sScale,
+                    secCY - (bounds.Y + bounds.Height / 2) * sScale)
+            }
+                }
+            };
+            DrawingCanvas.Children.Add(sectionPath);
+
+            // --- Вид сбоку (справа) ---
+            double targetSidePx = canvasW * 0.35;
+            double sideLength = Math.Max(_currentPart.Length, 1);
+            double sideScale = targetSidePx / sideLength;
+            double sideW = sideLength * sideScale;
+            double sideH = bounds.Height * sScale;
+            double sideX = canvasW * 0.52;
+            double sideY = secCY - sideH / 2;
+
+            var sideRect = new Rectangle
+            {
+                Width = sideW,
+                Height = Math.Max(sideH, 4), // Минимальная высота для видимости
+                Stroke = Brushes.Black,
+                StrokeThickness = 2,
+                Fill = new SolidColorBrush(Color.FromArgb(25, 0, 120, 215))
+            };
+            Canvas.SetLeft(sideRect, sideX);
+            Canvas.SetTop(sideRect, sideY);
+            DrawingCanvas.Children.Add(sideRect);
+
+            // --- Размерные линии ---
+            double dimOffset = 30;
+            double dimFontSize = 35;
+
+            // Размер ширины сечения (снизу)
+            double secLeft = secCX - bounds.Width * sScale / 2;
+            double secRight = secCX + bounds.Width * sScale / 2;
+            double secBottom = secCY + bounds.Height * sScale / 2;
+            DrawDimLine(secLeft, secBottom + dimOffset, secRight, secBottom + dimOffset,
+                        $"{bounds.Width:0}", dimFontSize, true);
+
+            // Размер высоты сечения (справа от сечения)
+            double secTop = secCY - bounds.Height * sScale / 2;
+            DrawDimLine(secRight + dimOffset, secTop, secRight + dimOffset, secBottom,
+                        $"{bounds.Height:0}", dimFontSize, false);
+
+            // Размер длины (снизу от вида сбоку)
+            DrawDimLine(sideX, sideY + sideH + dimOffset, sideX + sideW, sideY + sideH + dimOffset,
+                        $"L = {_currentPart.Length:0}", dimFontSize, true);
+
+            // Подпись типа сечения
+            DrawCanvasLabel(GetPipeTypeName(_currentPart.PartType),
+                            secCX, secTop - dimOffset * 2, dimFontSize, Brushes.DarkBlue);
+        }
+
+        // ==========================================
+        // РАЗМЕРНЫЕ ЛИНИИ СО СТРЕЛКАМИ
+        // ==========================================
+        private void DrawDimLine(double x1, double y1, double x2, double y2,
+                                 string text, double fontSize, bool horizontal)
+        {
+            double arrowSize = 12;
+            var dimBrush = Brushes.DarkSlateGray;
+            double stroke = 1.5;
+
+            // Основная линия
+            DrawingCanvas.Children.Add(new Line
+            {
+                X1 = x1,
+                Y1 = y1,
+                X2 = x2,
+                Y2 = y2,
+                Stroke = dimBrush,
+                StrokeThickness = stroke
+            });
+
+            if (horizontal)
+            {
+                // Стрелки слева и справа
+                DrawingCanvas.Children.Add(new Line { X1 = x1, Y1 = y1 - arrowSize / 2, X2 = x1, Y2 = y1 + arrowSize / 2, Stroke = dimBrush, StrokeThickness = stroke });
+                DrawingCanvas.Children.Add(new Line { X1 = x2, Y1 = y2 - arrowSize / 2, X2 = x2, Y2 = y2 + arrowSize / 2, Stroke = dimBrush, StrokeThickness = stroke });
+
+                var label = new TextBlock { Text = text, FontSize = fontSize, Foreground = dimBrush, FontWeight = FontWeights.Bold };
+                label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                Canvas.SetLeft(label, (x1 + x2) / 2 - label.DesiredSize.Width / 2);
+                Canvas.SetTop(label, y1 + 5);
+                DrawingCanvas.Children.Add(label);
+            }
+            else
+            {
+                // Стрелки сверху и снизу
+                DrawingCanvas.Children.Add(new Line { X1 = x1 - arrowSize / 2, Y1 = y1, X2 = x1 + arrowSize / 2, Y2 = y1, Stroke = dimBrush, StrokeThickness = stroke });
+                DrawingCanvas.Children.Add(new Line { X1 = x2 - arrowSize / 2, Y1 = y2, X2 = x2 + arrowSize / 2, Y2 = y2, Stroke = dimBrush, StrokeThickness = stroke });
+
+                var label = new TextBlock { Text = text, FontSize = fontSize, Foreground = dimBrush, FontWeight = FontWeights.Bold };
+                label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                Canvas.SetLeft(label, x1 + 5);
+                Canvas.SetTop(label, (y1 + y2) / 2 - label.DesiredSize.Height / 2);
+                DrawingCanvas.Children.Add(label);
+            }
+        }
+
+        private void DrawCanvasLabel(string text, double x, double y, double fontSize, Brush color)
+        {
+            var label = new TextBlock
+            {
+                Text = text,
+                FontSize = fontSize,
+                Foreground = color,
+                FontWeight = FontWeights.Bold
+            };
+            label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            Canvas.SetLeft(label, x - label.DesiredSize.Width / 2);
+            Canvas.SetTop(label, y);
+            DrawingCanvas.Children.Add(label);
+        }
+
+        private string GetPipeTypeName(PartType type) => type switch
+        {
+            PartType.RoundTube => "Круглая труба",
+            PartType.RectangularTube => "Профильная труба",
+            PartType.Angle => "Уголок",
+            PartType.Channel => "Швеллер",
+            PartType.IBeam => "Двутавр",
+            _ => "Труба"
+        };
 
         // ==========================================
         // ОБРАБОТЧИКИ МЫШИ И РИСОВАНИЯ

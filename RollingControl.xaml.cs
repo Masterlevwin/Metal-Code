@@ -1,5 +1,4 @@
 ﻿using Metal_Code.Models;
-using NPOI.SS.Formula.Functions;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -182,8 +181,8 @@ namespace Metal_Code
         {
             if (isSaved)
             {
-                if (MainWindow.M.Log is null || !MainWindow.M.Log.Contains($"Не забудьте создать шаблон для вальцовки,\nесли это необходимо!"))
-                    MainWindow.M.Log += $"Не забудьте создать шаблон для вальцовки,\nесли это необходимо!\n";
+                if (MainWindow.M.Log is null || !MainWindow.M.Log.Contains($"Проверьте выбранные стороны вальцовки!\nНе забудьте создать шаблон для вальцовки,\nесли это необходимо!"))
+                    MainWindow.M.Log += $"Проверьте выбранные стороны вальцовки!\nНе забудьте создать шаблон для вальцовки,\nесли это необходимо!\n";
 
                 if (uc is WorkControl w)
                 {

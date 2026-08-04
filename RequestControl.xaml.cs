@@ -184,7 +184,6 @@ namespace Metal_Code
             if (Paths.Count == 1 && (Paths[0].Contains("Заявка") || Paths[0].Contains("Ведомость"))) Load_Request(Paths[0]);
         }
 
-
         //-----загрузка данных заявки для редактирования-----//
         public void Load_Request(string path)
         {
@@ -213,6 +212,9 @@ namespace Metal_Code
                         startRow = 1;
                 }
 
+                // 🔥 НОВОЕ: Список для сбора имен файлов, которые не удалось прочитать
+                List<string> failedDxfFiles = new List<string>();
+
                 // перебираем строки таблицы и заполняем список объектами TechItem
                 for (int i = startRow; i < table.Rows.Count; i++)
                 {
@@ -233,6 +235,35 @@ namespace Metal_Code
                         $"{table.Rows[i].ItemArray[12]}");      // гравировка
 
                     if (!string.IsNullOrWhiteSpace(techItem.Profile)) ProfileParser.ParseToTechItem(techItem);
+
+                    // 🔥 НОВОЕ: определяем размеры (чтение DXF)
+                    if (!string.IsNullOrWhiteSpace(techItem.PathToModel) &&
+                        File.Exists(techItem.PathToModel) &&
+                        string.Equals(Path.GetExtension(techItem.PathToModel), ".dxf", StringComparison.OrdinalIgnoreCase))
+                    {
+                        try
+                        {
+                            var doc = DxfDocument.Load(techItem.PathToModel);
+                            var displayGeometry = DxfToWpfConverter.ConvertToPathGeometryAsIs(doc);
+
+                            if (displayGeometry == null || displayGeometry.IsEmpty())
+                                throw new InvalidOperationException("DXF не содержит распознаваемых контуров.");
+
+                            var calculationGeometry = DxfToWpfConverter.ConvertToPathGeometryWithClosedContours(doc);
+
+                            techItem.DisplayGeometry = displayGeometry;
+                            if (techItem.DisplayGeometry.CanFreeze)
+                                techItem.DisplayGeometry.Freeze();
+                            techItem.CalculationGeometry = calculationGeometry;
+
+                            TechItemCalculator.UpdateFromGeometry(techItem);
+                        }
+                        catch
+                        {
+                            failedDxfFiles.Add(Path.GetFileName(techItem.PathToModel));
+                        }
+                    }
+
                     TechItems.Add(techItem);
                 }
 
@@ -257,6 +288,23 @@ namespace Metal_Code
                             }
                 }
                 stream.Close();
+
+                // 🔥 НОВОЕ: Показываем ОДНО сводное сообщение после завершения цикла
+                if (failedDxfFiles.Count > 0)
+                {
+                    int maxToShow = 10;
+                    string fileList = string.Join("\n", failedDxfFiles.Take(maxToShow));
+                    string moreText = failedDxfFiles.Count > maxToShow ? $"\n...и ещё {failedDxfFiles.Count - maxToShow} файлов." : "";
+
+                    MessageBox.Show(
+                        $"Не удалось прочитать следующие DXF-файлы ({failedDxfFiles.Count} шт.):\n\n" +
+                        $"{fileList}{moreText}\n\n" +
+                        "Пересохраните их в CAD-программе (например, КОМПАС) и попробуйте снова.\n" +
+                        "Остальные файлы были успешно добавлены в список.",
+                        "Ошибка импорта DXF",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
 
                 if (TechItems.Count > 0)
                     MainWindow.M.StatusBegin("Заявка загружена", MainWindow.StatusMessageType.Success);
@@ -486,13 +534,10 @@ namespace Metal_Code
 
                         TechItemCalculator.UpdateFromGeometry(techItem);
                     }
-                    catch (Exception ex)
+                    catch
                     {
                         // 🔥 ИЗМЕНЕНО: Вместо MessageBox добавляем имя файла в список ошибок
                         failedDxfFiles.Add(Path.GetFileName(path));
-
-                        // Логируем ошибку для отладки
-                        System.Diagnostics.Trace.WriteLine($"Ошибка чтения DXF {path}: {ex.Message}");
                     }
                 }
 

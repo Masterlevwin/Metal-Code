@@ -8668,7 +8668,6 @@ namespace Metal_Code
                                     string relativePath = Path.GetRelativePath(sourceDir, offer.Act);
                                     offer.Act = Path.Combine(newKpPath, relativePath);
                                 }
-                                UpdateOffer(offer);
                             }
                         }
                     }
