@@ -1,5 +1,8 @@
 ﻿using Metal_Code.Models;
 using Metal_Code.Utils;
+using NPOI.SS.Formula.Functions;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -10,6 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Controls;
 using IContainer = QuestPDF.Infrastructure.IContainer;
 
 namespace Metal_Code
@@ -50,6 +54,36 @@ namespace Metal_Code
             Delivery.Text = MainWindow.M.HasDelivery is not false ?
                 $"Доставка производится силами Поставщика до склада Покупателя, расположенного по адресу: {TargetCustomer.Address}."
                 : "Cамовывоз со склада Поставщика по адресу: Ленинградская область, Всеволожский район, Колтуши, деревня Мяглово, ул. Дорожная, уч. 4Б.";
+
+            // 1. Защита от NullReferenceException при нажатии кнопки "Добавить"
+            // Если в БД у старого клиента в JSON не было CustomFields, создаем пустую коллекцию
+            if (CurrentTemplate.CustomFields == null)
+            {
+                CurrentTemplate.CustomFields = new ObservableCollection<CustomSpecField>();
+            }
+
+            // 2. Хак для принудительного обновления всех привязок в окне
+            // Сбрасываем и возвращаем DataContext, заставляя WPF заново вычитать данные из актуальных объектов
+            var tempDataContext = DataContext;
+            DataContext = null;
+            DataContext = tempDataContext;
+        }
+
+        private void AddCustomField_Click(object sender, RoutedEventArgs e)
+        {
+            CurrentTemplate.CustomFields.Add(new CustomSpecField
+            {
+                Name = "Новое условие",
+                Value = ""
+            });
+        }
+
+        private void RemoveCustomField_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is CustomSpecField field)
+            {
+                CurrentTemplate.CustomFields.Remove(field);
+            }
         }
 
         private void Create_Spec(object sender, RoutedEventArgs e) { Create_Spec(OutputPath); }
@@ -258,6 +292,19 @@ namespace Metal_Code
                                 center.Item().PaddingTop(15).Text("Срок поставки: " + EndDate.Text);
                                 center.Item().PaddingTop(5).Text(Delivery.Text);
                                 center.Item().PaddingVertical(5).Text($"Условия оплаты: {CurrentTemplate.Terms}");
+
+                                // Вывод пользовательских полей
+                                if (CurrentTemplate.CustomFields != null && CurrentTemplate.CustomFields.Count > 0)
+                                {
+                                    foreach (var field in CurrentTemplate.CustomFields)
+                                    {
+                                        // Проверяем, что поле не пустое, чтобы не выводить лишние строки
+                                        if (!string.IsNullOrWhiteSpace(field.Name) || !string.IsNullOrWhiteSpace(field.Value))
+                                        {
+                                            center.Item().PaddingTop(5).Text($"{field.Name}: {field.Value}");
+                                        }
+                                    }
+                                }
                             });
                         });
 
@@ -317,6 +364,9 @@ namespace Metal_Code
                 });
             }).GeneratePdf(outputPath);
 
+            // 4. Создаём Excel
+            ExportSpecToExcel(OutputPath);
+
             // Сохранение шаблона в БД
             using ManagerContext db = new(MainWindow.M.connections[0]);
             Customer? _customer = db.Customers.FirstOrDefault(x => x.Id == TargetCustomer.Id);
@@ -328,6 +378,276 @@ namespace Metal_Code
 
             MainWindow.M.StatusBegin($"Создана спецификация для текущего расчета: {MainWindow.M.Order.Text} {TargetCustomer.Name}");
             Close();
+        }
+
+        public void ExportSpecToExcel(string outputPath)
+        {
+            // Генерируем имя файла
+            string specFileName = $"{MainWindow.M.Order.Text} {MainWindow.M.CustomerDrop.Text} - спецификация № {CurrentTemplate.Number}.xlsx";
+            outputPath = $"{Path.GetDirectoryName(outputPath)}\\{specFileName}";
+            outputPath = GetAvailableFilePath(outputPath);
+
+            // Лицензия EPPlus (измените на Commercial при наличии лицензии)
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            using var package = new ExcelPackage();
+            var ws = package.Workbook.Worksheets.Add("Спецификация");
+
+            // Ширина колонок
+            ws.Column(1).Width = 6;    // №
+            ws.Column(2).Width = 50;   // Наименование
+            ws.Column(3).Width = 14;   // Количество
+            ws.Column(4).Width = 22;   // Стоимость
+
+            int row = 1;
+
+            // === ЗАГОЛОВОК ===
+            ws.Cells[row, 1, row, 4].Merge = true;
+            ws.Cells[row, 1].Value = CurrentTemplate.Header;
+            ws.Cells[row, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            ws.Cells[row, 1].Style.Font.Bold = true;
+            row += 2;
+
+            // === НОМЕР И ДАТА ===
+            ws.Cells[row, 1, row, 4].Merge = true;
+            ws.Cells[row, 1].Value = $"СПЕЦИФИКАЦИЯ № {CurrentTemplate.Number} от {DateTime.Now:dd MMMM yyyy} г.";
+            ws.Cells[row, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            ws.Cells[row, 1].Style.Font.Bold = true;
+            ws.Cells[row, 1].Style.Font.Size = 12;
+            row += 2;
+
+            // === ШАПКА ТАБЛИЦЫ ===
+            ws.Cells[row, 1].Value = "№";
+            ws.Cells[row, 2].Value = "Наименование товара";
+            ws.Cells[row, 3].Value = "Количество, шт";
+            ws.Cells[row, 4].Value = "Стоимость в руб., в т.ч. НДС 22%";
+
+            for (int col = 1; col <= 4; col++)
+            {
+                ws.Cells[row, col].Style.Font.Bold = true;
+                ws.Cells[row, col].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+                ws.Cells[row, col].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                ws.Cells[row, col].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                ws.Cells[row, col].Style.WrapText = true;
+            }
+            row++;
+
+            // === ДАННЫЕ ТАБЛИЦЫ ===
+            float totalSum = 0;
+            int rowIndex = 1;
+
+            if (!MainWindow.M.isAssemblyOffer)
+            {
+                // --- Обычное КП ---
+                var visiblePartsForExport = OfferCalculator.PrepareVisiblePartsForOffer(
+                    MainWindow.M.Parts,
+                    (float)MainWindow.M.Ratio,
+                    MainWindow.M.BonusRatio,
+                    applyMarkup: false);
+
+                if (visiblePartsForExport.Count > 0)
+                {
+                    foreach (var part in visiblePartsForExport)
+                    {
+                        totalSum += part.Total;
+                        WriteTableRow(ws, row++, rowIndex++, Prefix(part.Title ?? ""), part.Count, part.Total);
+                    }
+                }
+
+                var details = MainWindow.M.ProductModel.Product.Details.Where(d => !d.IsComplect).ToList();
+                foreach (var detail in details)
+                {
+                    totalSum += detail.Total;
+                    WriteTableRow(ws, row++, rowIndex++, Prefix(detail.Title ?? ""), detail.Count, detail.Total);
+                }
+
+                if (MainWindow.M.ProductModel.Product.Baskets?.Count > 0)
+                {
+                    foreach (Part basket in MainWindow.M.ProductModel.Product.Baskets)
+                    {
+                        float basketTotal = basket.Count * (float)Math.Ceiling(
+                            basket.Price * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
+                        totalSum += basketTotal;
+                        WriteTableRow(ws, row++, rowIndex++, basket.Title != null ? basket.Title : "", basket.Count, basketTotal);
+                    }
+                }
+            }
+            else
+            {
+                // --- Сборочное КП ---
+                if (AssemblyWindow.A.Assemblies is null) return;
+
+                if (AssemblyWindow.A.Assemblies.Count > 0)
+                {
+                    foreach (var assembly in AssemblyWindow.A.Assemblies)
+                    {
+                        if (assembly.Count <= 0) continue;
+                        totalSum += assembly.Total;
+                        WriteTableRow(ws, row, rowIndex++, $"Сборочная единица: {assembly.Title}",
+                            assembly.Count, assembly.Total, bold: true);
+                        row++;
+                    }
+                }
+
+                var assemblyParticleTitles = AssemblyWindow.A.Assemblies
+                    .SelectMany(a => a.Particles)
+                    .Select(p => p.Title)
+                    .ToHashSet();
+
+                var looseParts = MainWindow.M.Parts.Where(p => !assemblyParticleTitles.Contains(p.Title)).ToList();
+
+                if (looseParts.Count > 0)
+                {
+                    // Заголовок группы
+                    ws.Cells[row, 1, row, 4].Merge = true;
+                    ws.Cells[row, 1].Value = "Дополнительные детали:";
+                    ws.Cells[row, 1].Style.Font.Bold = true;
+                    for (int col = 1; col <= 4; col++)
+                        ws.Cells[row, col].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+                    row++;
+
+                    foreach (var lp in looseParts)
+                    {
+                        float lpPrice = (float)Math.Ceiling(lp.Price * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
+                        lpPrice = lpPrice < lp.FixedPrice ? lp.FixedPrice : lpPrice;
+                        float lpTotal = lpPrice * lp.Count;
+                        totalSum += lpTotal;
+                        WriteTableRow(ws, row++, rowIndex++, Prefix(lp.Title ?? ""), lp.Count, lpTotal);
+                    }
+                }
+            }
+
+            // === ДОСТАВКА ===
+            if (MainWindow.M.HasDelivery is true)
+            {
+                float deliveryTotal = (float)(MainWindow.M.Delivery * MainWindow.M.DeliveryRatio * MainWindow.M.Ratio);
+                totalSum += deliveryTotal;
+
+                ws.Cells[row, 1].Value = "";
+                ws.Cells[row, 2].Value = "Доставка";
+                ws.Cells[row, 2].Style.Font.Bold = true;
+                ws.Cells[row, 3].Value = MainWindow.M.DeliveryRatio;
+                ws.Cells[row, 4].Value = deliveryTotal;
+                ws.Cells[row, 4].Style.Numberformat.Format = "#,##0.00";
+
+                for (int col = 1; col <= 4; col++)
+                {
+                    ws.Cells[row, col].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+                    ws.Cells[row, col].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                }
+                row++;
+            }
+
+            // === ИТОГО ===
+            ws.Cells[row, 1, row, 3].Merge = true;
+            ws.Cells[row, 1].Value = "ИТОГО:";
+            ws.Cells[row, 1].Style.Font.Bold = true;
+            ws.Cells[row, 4].Value = totalSum;
+            ws.Cells[row, 4].Style.Numberformat.Format = "#,##0.00";
+            ws.Cells[row, 4].Style.Font.Bold = true;
+            for (int col = 1; col <= 4; col++)
+                ws.Cells[row, col].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+            row += 2;
+
+            // === СУММА ПРОПИСЬЮ ===
+            string totalLine = NumberToWordsHelper.NumberToWords(totalSum);
+            int rubIndex = totalLine.IndexOf("рублей");
+            string rubText = rubIndex > 0 ? totalLine[..rubIndex].Trim() : totalLine;
+            int kopStart = totalLine.IndexOf("копеек");
+            string kopValue = "00";
+            if (kopStart > 0)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(totalLine.Substring(kopStart), @"\d+");
+                kopValue = match.Success ? match.Value.PadLeft(2, '0') : "00";
+            }
+
+            ws.Cells[row, 1, row, 4].Merge = true;
+            ws.Cells[row, 1].Value = $"ИТОГО: {totalSum:N0} ({rubText}) рублей {kopValue} коп., в т.ч. НДС 22%";
+            ws.Cells[row, 1].Style.Font.Bold = true;
+            row += 2;
+
+            // === УСЛОВИЯ ===
+            ws.Cells[row, 1, row, 4].Merge = true;
+            ws.Cells[row, 1].Value = "Срок поставки: " + EndDate.Text;
+            row++;
+
+            ws.Cells[row, 1, row, 4].Merge = true;
+            ws.Cells[row, 1].Value = Delivery.Text;
+            ws.Cells[row, 1].Style.WrapText = true;
+            row++;
+
+            ws.Cells[row, 1, row, 4].Merge = true;
+            ws.Cells[row, 1].Value = $"Условия оплаты: {CurrentTemplate.Terms}";
+            row++;
+
+            // Пользовательские поля
+            if (CurrentTemplate.CustomFields != null)
+            {
+                foreach (var field in CurrentTemplate.CustomFields)
+                {
+                    if (!string.IsNullOrWhiteSpace(field.Name) || !string.IsNullOrWhiteSpace(field.Value))
+                    {
+                        ws.Cells[row, 1, row, 4].Merge = true;
+                        ws.Cells[row, 1].Value = $"{field.Name}: {field.Value}";
+                        ws.Cells[row, 1].Style.WrapText = true;
+                        row++;
+                    }
+                }
+            }
+
+            row += 2;
+
+            // === ПОДПИСИ ===
+            ws.Cells[row, 1, row, 2].Merge = true;
+            ws.Cells[row, 1].Value = "ПОСТАВЩИК";
+            ws.Cells[row, 1].Style.Font.Bold = true;
+
+            ws.Cells[row, 3, row, 4].Merge = true;
+            ws.Cells[row, 3].Value = "ПОКУПАТЕЛЬ";
+            ws.Cells[row, 3].Style.Font.Bold = true;
+            row++;
+
+            ws.Cells[row, 1, row, 2].Merge = true;
+            ws.Cells[row, 1].Value = CurrentTemplate.Provider;
+
+            ws.Cells[row, 3, row, 4].Merge = true;
+            ws.Cells[row, 3].Value = $"{Agent.Text} {TargetCustomer.Name}";
+            row += 3;
+
+            ws.Cells[row, 1, row, 2].Merge = true;
+            ws.Cells[row, 1].Value = "___________________ / Мешеронова М.С.";
+
+            ws.Cells[row, 3, row, 4].Merge = true;
+            ws.Cells[row, 3].Value = $"___________________ / {CurrentTemplate.Buyer}";
+
+            // === СОХРАНЕНИЕ ===
+            package.SaveAs(new FileInfo(outputPath));
+        }
+
+        // Вспомогательный метод для записи строки таблицы
+        private static void WriteTableRow(
+        ExcelWorksheet ws, int row, int num, string name, int count, float total, bool bold = false)
+        {
+            ws.Cells[row, 1].Value = num;
+            ws.Cells[row, 2].Value = name;
+            ws.Cells[row, 3].Value = count;
+            ws.Cells[row, 4].Value = total;
+            ws.Cells[row, 4].Style.Numberformat.Format = "#,##0.00";
+
+            if (bold)
+            {
+                ws.Cells[row, 2].Style.Font.Bold = true;
+            }
+
+            for (int col = 1; col <= 4; col++)
+            {
+                ws.Cells[row, col].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+                ws.Cells[row, col].Style.WrapText = true;
+            }
+
+            ws.Cells[row, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            ws.Cells[row, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            ws.Cells[row, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
         }
 
         // метод для стилизации заголовка таблицы
@@ -372,10 +692,10 @@ namespace Metal_Code
         // метод создания безопасного пути файла
         public static string GetAvailableFilePath(string filePath)
         {
-            if (string.IsNullOrEmpty(filePath) || Path.GetExtension(filePath).ToLower() != ".pdf")
-                throw new ArgumentException("Путь должен вести к PDF-файлу.");
+            if (string.IsNullOrEmpty(filePath))
+                throw new ArgumentException("Путь к файлу не может быть пустым.");
 
-            string? directory = Path.GetDirectoryName(filePath) ?? throw new ArgumentException("Путь должен вести к PDF-файлу.");
+            string? directory = Path.GetDirectoryName(filePath) ?? throw new ArgumentException("Некорректный путь к файлу.");
             string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
             string extension = Path.GetExtension(filePath);
             string newFilePath = filePath;
@@ -386,15 +706,12 @@ namespace Metal_Code
             {
                 try
                 {
-                    // Пытаемся открыть файл на запись в режиме исключения
                     using FileStream fs = new(newFilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
-                    
-                    fs.Close();     // Закрываем, если получилось открыть
-                    break;          // Успех — файл доступен
+                    fs.Close();
+                    break;
                 }
                 catch (IOException)
                 {
-                    // Файл занят — пробуем следующее имя
                     newFilePath = Path.Combine(directory, $"{fileNameWithoutExtension}_{counter}{extension}");
                     counter++;
                 }

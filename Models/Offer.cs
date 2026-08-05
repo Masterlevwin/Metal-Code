@@ -282,6 +282,32 @@ namespace Metal_Code.Models
             set { if (buyer != value) { buyer = value; OnPropertyChanged(nameof(Buyer)); } }
         }
 
+        [NotMapped]
+        public ObservableCollection<CustomSpecField> CustomFields { get; set; } = new();
+
         public SpecTemplate() { }
+    }
+
+    [NotMapped]
+    public class CustomSpecField : INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+
+        private string _name = "Условие";
+        public string Name
+        {
+            get => _name;
+            set { if (_name != value) { _name = value; OnPropertyChanged(nameof(Name)); } }
+        }
+
+        private string _value = string.Empty;
+        public string Value
+        {
+            get => _value;
+            set { if (_value != value) { _value = value; OnPropertyChanged(nameof(Value)); } }
+        }
+
+        public CustomSpecField() { }
     }
 }

@@ -4573,7 +4573,7 @@ namespace Metal_Code
 
             for (int i = 0; i < row; i++)
             {
-                if (float.TryParse($"{scoresheet.Cells[i + 2, 3].Value}", out float p)) scoresheet.Cells[i + 2, 4].Value = Math.Round(p / 1.2f, 2);
+                if (float.TryParse($"{scoresheet.Cells[i + 2, 3].Value}", out float p)) scoresheet.Cells[i + 2, 4].Value = Math.Round(p / 1.22f, 2);
                 scoresheet.Cells[i + 2, 5].Value = "шт";
             }
 
