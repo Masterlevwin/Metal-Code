@@ -254,8 +254,12 @@
     <Resource Include="Images\preview.png" />
     <Resource Include="Images\preview2.png" />
     <Resource Include="Images\preview3.png" />
-    <Resource Include="Images\print.jpg" />
-    <Resource Include="Images\print2.png" />
+    <EmbeddedResource Include="Images\print.jpg">
+      <CopyToOutputDirectory></CopyToOutputDirectory>
+    </EmbeddedResource>
+    <Resource Include="Images\print2.png">
+      <CopyToOutputDirectory></CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Images\question.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
@@ -268,7 +272,9 @@
     <Resource Include="Images\save4.png" />
     <Resource Include="Images\scissors.png" />
     <Resource Include="Images\screen.png" />
-    <Resource Include="Images\signature.jpg" />
+    <EmbeddedResource Include="Images\signature.jpg">
+      <CopyToOutputDirectory></CopyToOutputDirectory>
+    </EmbeddedResource>
     <Resource Include="Images\signature2.jpg">
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </Resource>

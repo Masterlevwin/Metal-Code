@@ -121,19 +121,36 @@
 
                     <!-- Поставщик и Покупатель -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
+
                         <!-- Поставщик -->
                         <StackPanel Margin="10">
                             <TextBlock Text="ПОСТАВЩИК" Margin="0,0,0,5"/>
-                            <ComboBox SelectedItem="{Binding Provider}"
-                          ItemsSource="{Binding DataContext.Providers,
-                            RelativeSource={RelativeSource AncestorType=Window}}"
-                          Margin="0,0,0,5" HorizontalAlignment="Left" Width="150"/>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" MinHeight="32">
-                                <Border BorderBrush="Black" BorderThickness="0,0,0,1" Width="80" Margin="5,0"/>
-                                <TextBlock Text="Мешеронова М.С." VerticalAlignment="Bottom"/>
+
+                            <ComboBox SelectedItem="{Binding DataContext.SelectedProvider, Mode=TwoWay, 
+                RelativeSource={RelativeSource AncestorType=Window}}"
+              ItemsSource="{Binding Source={x:Static self:ProviderRegistry.Providers}}"
+              DisplayMemberPath="Name"
+              Margin="0,0,0,10" HorizontalAlignment="Left" Width="200"/>
+
+                            <!-- Превью печати и подписи -->
+                            <StackPanel Orientation="Horizontal">
+                                <Border BorderBrush="LightGray" BorderThickness="1" Padding="5" Margin="0,0,10,0">
+                                    <Image Source="{Binding DataContext.CurrentPrintImage, 
+                     RelativeSource={RelativeSource AncestorType=Window}}" 
+                   Width="70" Height="70" Stretch="Uniform"/>
+                                </Border>
+
+                                <StackPanel VerticalAlignment="Center">
+                                    <Image Source="{Binding DataContext.CurrentSignatureImage, 
+                     RelativeSource={RelativeSource AncestorType=Window}}" 
+                   Width="100" Height="40" Stretch="Uniform" HorizontalAlignment="Left"/>
+                                    <TextBlock Text="{Binding DataContext.SelectedProvider.DirectorName, StringFormat=/ {0}, 
+                         RelativeSource={RelativeSource AncestorType=Window}}" 
+                       Margin="0,5,0,0" FontSize="11" Foreground="Gray"/>
+                                </StackPanel>
                             </StackPanel>
                         </StackPanel>
-
+                        
                         <!-- Покупатель -->
                         <StackPanel Margin="10">
                             <TextBlock Text="ПОКУПАТЕЛЬ" Margin="0,0,0,5"/>

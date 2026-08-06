@@ -1,6 +1,5 @@
 ﻿using Metal_Code.Models;
 using Metal_Code.Utils;
-using NPOI.SS.Formula.Functions;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using QuestPDF.Fluent;
@@ -28,8 +27,29 @@ namespace Metal_Code
 
         public readonly string OutputPath = string.Empty;
 
-        public ObservableCollection<string> Providers { get; } = new() {
-            "ООО ЛАЗЕРФЛЕКС","ООО ПРОВЭЛД","ООО ПК ЛАЗЕРФЛЕКС","ИП МЕШЕРОНОВА" };
+        private ProviderInfo? _selectedProvider;
+        public ProviderInfo? SelectedProvider
+        {
+            get => _selectedProvider;
+            set
+            {
+                if (_selectedProvider != value)
+                {
+                    _selectedProvider = value;
+                    OnPropertyChanged(nameof(SelectedProvider));
+                    OnPropertyChanged(nameof(CurrentPrintImage));
+                    OnPropertyChanged(nameof(CurrentSignatureImage));
+
+                    // Синхронизируем строковое значение с CurrentTemplate для сохранения в БД
+                    if (CurrentTemplate != null)
+                        CurrentTemplate.Provider = value?.Name ?? string.Empty;
+                }
+            }
+        }
+
+        // Свойства для превью в UI
+        public System.Windows.Media.ImageSource? CurrentPrintImage => GetWpfImage(SelectedProvider?.PrintResource);
+        public System.Windows.Media.ImageSource? CurrentSignatureImage => GetWpfImage(SelectedProvider?.SignatureResource);
 
         public SpecTemplate CurrentTemplate { get; set; } = new();
         public Customer TargetCustomer { get; set; } = new();
@@ -49,21 +69,18 @@ namespace Metal_Code
             TargetCustomer = MainWindow.M.TargetCustomer;
             CurrentTemplate = TargetCustomer.SpecTemplate;
 
+            SelectedProvider = ProviderRegistry.GetByName(CurrentTemplate.Provider)
+                            ?? ProviderRegistry.Providers.FirstOrDefault();
+
             Agent.Text = TargetCustomer.Agent ? "ИП" : "ООО";
             EndDate.Text = $"до {MainWindow.M.EndDate()?.ToString("d")}";
             Delivery.Text = MainWindow.M.HasDelivery is not false ?
                 $"Доставка производится силами Поставщика до склада Покупателя, расположенного по адресу: {TargetCustomer.Address}."
                 : "Cамовывоз со склада Поставщика по адресу: Ленинградская область, Всеволожский район, Колтуши, деревня Мяглово, ул. Дорожная, уч. 4Б.";
 
-            // 1. Защита от NullReferenceException при нажатии кнопки "Добавить"
-            // Если в БД у старого клиента в JSON не было CustomFields, создаем пустую коллекцию
             if (CurrentTemplate.CustomFields == null)
-            {
                 CurrentTemplate.CustomFields = new ObservableCollection<CustomSpecField>();
-            }
 
-            // 2. Хак для принудительного обновления всех привязок в окне
-            // Сбрасываем и возвращаем DataContext, заставляя WPF заново вычитать данные из актуальных объектов
             var tempDataContext = DataContext;
             DataContext = null;
             DataContext = tempDataContext;
@@ -317,6 +334,11 @@ namespace Metal_Code
                                 left.Item().Text("ПОСТАВЩИК").Bold();
                                 left.Item().Text(CurrentTemplate.Provider);
 
+                                var provider = ProviderRegistry.GetByName(CurrentTemplate.Provider);
+                                string directorName = provider?.DirectorName ?? "Мешеронова М.С.";
+                                string printRes = provider?.PrintResource ?? "Metal_Code.Images.print1.jpg";
+                                string sigRes = provider?.SignatureResource ?? "Metal_Code.Images.signature3.jpg";
+
                                 left.Item().Layers(layers =>
                                 {
                                     layers.PrimaryLayer().Height(120);
@@ -326,7 +348,7 @@ namespace Metal_Code
                                         column.Item().Row(r =>
                                         {
                                             r.ConstantItem(30);
-                                            r.ConstantItem(120).Image(GetImageStream("Metal_Code.Images.print1.jpg")).FitWidth();
+                                            r.ConstantItem(120).Image(GetImageStream(printRes)).FitWidth();
                                         });
                                     });
 
@@ -334,9 +356,9 @@ namespace Metal_Code
                                     {
                                         column.Item().Row(r =>
                                         {
-                                            r.ConstantItem(40).Image(GetImageStream("Metal_Code.Images.signature3.jpg")).FitWidth();
+                                            r.ConstantItem(40).Image(GetImageStream(sigRes)).FitWidth();
                                             r.RelativeItem();
-                                            r.RelativeItem().AlignBottom().Text("/ Мешеронова М.С.");
+                                            r.RelativeItem().AlignBottom().Text($"/ {directorName}");
                                         });
 
                                         column.Item().Row(r =>
@@ -598,6 +620,8 @@ namespace Metal_Code
             row += 2;
 
             // === ПОДПИСИ ===
+            int signatureRow = row;
+
             ws.Cells[row, 1, row, 2].Merge = true;
             ws.Cells[row, 1].Value = "ПОСТАВЩИК";
             ws.Cells[row, 1].Style.Font.Bold = true;
@@ -612,14 +636,57 @@ namespace Metal_Code
 
             ws.Cells[row, 3, row, 4].Merge = true;
             ws.Cells[row, 3].Value = $"{Agent.Text} {TargetCustomer.Name}";
-            row += 3;
 
+            // Получаем информацию о провайдере
+            var provider = ProviderRegistry.GetByName(CurrentTemplate.Provider);
+            string directorName = provider?.DirectorName ?? "Мешеронова М.С.";
+
+            // Устанавливаем высоту строк для размещения изображений
+            ws.Row(row + 1).Height = 60;
+            ws.Row(row + 2).Height = 15;
+            ws.Row(row + 3).Height = 20;
+            row += 2;
+
+            // Вставка изображений поставщика (ПЕЧАТЬ ПЕРВОЙ, чтобы подпись была поверх)
+            if (provider != null)
+            {
+                // 1. СНАЧАЛА ПЕЧАТЬ (стандартный размер ~110x110 px)
+                try
+                {
+                    using var printStream = GetImageStream(provider.PrintResource);
+                    if (printStream != null)
+                    {
+                        var printPic = ws.Drawings.AddPicture("Print", printStream);
+                        // Размещаем печать чуть ниже — на строке signatureRow + 2
+                        // Колонка 0 (A), со сдвигом вправо
+                        printPic.SetPosition(signatureRow + 1, 0, 0, 10);
+                        printPic.SetSize(115, 115); // Стандартный размер печати
+                    }
+                }
+                catch { /* Изображение не найдено */ }
+
+                // 2. ПОТОМ ПОДПИСЬ (чтобы она была поверх печати в z-order)
+                try
+                {
+                    using var sigStream = GetImageStream(provider.SignatureResource);
+                    if (sigStream != null)
+                    {
+                        var sigPic = ws.Drawings.AddPicture("Signature", sigStream);
+                        // Размещаем подпись на строке signatureRow + 2 (над линией подписи)
+                        // Колонка 1 (B) — справа от названия "ПОСТАВЩИК"
+                        sigPic.SetPosition(signatureRow + 1, 2, 1, 20);
+                        sigPic.SetSize(120, 45); // Более естественные пропорции подписи
+                    }
+                }
+                catch { /* Изображение не найдено */ }
+            }
+
+            // Строки для подписей
             ws.Cells[row, 1, row, 2].Merge = true;
-            ws.Cells[row, 1].Value = "___________________ / Мешеронова М.С.";
+            ws.Cells[row, 1].Value = $"___________________ / {directorName}";
 
             ws.Cells[row, 3, row, 4].Merge = true;
             ws.Cells[row, 3].Value = $"___________________ / {CurrentTemplate.Buyer}";
-
             // === СОХРАНЕНИЕ ===
             package.SaveAs(new FileInfo(outputPath));
         }
@@ -730,6 +797,34 @@ namespace Metal_Code
             var stream = assembly.GetManifestResourceStream(resourceName);
 
             return stream ?? throw new InvalidOperationException($"Ресурс '{resourceName}' не найден. Проверьте имя и действие при сборке.");
+        }
+
+        private System.Windows.Media.ImageSource? GetWpfImage(string? resourceName)
+        {
+            if (string.IsNullOrEmpty(resourceName)) return null;
+
+            try
+            {
+                using var originalStream = GetImageStream(resourceName);
+                if (originalStream == null) return null;
+
+                using var memoryStream = new MemoryStream();
+                originalStream.CopyTo(memoryStream);
+                memoryStream.Position = 0;
+
+                var bitmap = new System.Windows.Media.Imaging.BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                bitmap.StreamSource = memoryStream;
+                bitmap.EndInit();
+                bitmap.Freeze();
+
+                return bitmap;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 
@@ -920,5 +1015,62 @@ namespace Metal_Code
             n %= 10;
             return n == 1 ? "копейка" : (n >= 2 && n <= 4) ? "копейки" : "копеек";
         }
+    }
+
+    // ==================== ProviderInfo ====================
+    public class ProviderInfo
+    {
+        public string Name { get; set; } = string.Empty;
+        public string DirectorName { get; set; } = string.Empty;
+        public string PrintResource { get; set; } = string.Empty;     // Имя embedded resource для печати
+        public string SignatureResource { get; set; } = string.Empty; // Имя embedded resource для подписи
+
+        public override string ToString() => Name;
+    }
+
+    // ==================== ProviderRegistry ====================
+    public static class ProviderRegistry
+    {
+        public static ObservableCollection<ProviderInfo> Providers { get; } = new()
+    {
+        new ProviderInfo {
+            Name = "ООО ЛАЗЕРФЛЕКС",
+            DirectorName = "Мешеронова М.С.",
+            PrintResource = "Metal_Code.Images.print1.jpg",
+            SignatureResource = "Metal_Code.Images.signature3.jpg"
+        },
+        new ProviderInfo {
+            Name = "ООО ПРОВЭЛД",
+            DirectorName = "Сергеев Ю.А.",
+            PrintResource = "Metal_Code.Images.print.jpg",
+            SignatureResource = "Metal_Code.Images.signature.jpg"
+        },
+        new ProviderInfo {
+            Name = "ООО ПК ЛАЗЕРФЛЕКС",
+            DirectorName = "Сергеев Ю.А.",
+            PrintResource = "Metal_Code.Images.print.jpg",
+            SignatureResource = "Metal_Code.Images.signature.jpg"
+        },
+        new ProviderInfo {
+            Name = "ИП МЕШЕРОНОВА",
+            DirectorName = "Мешеронова М.С.",
+            PrintResource = "Metal_Code.Images.print1.jpg",
+            SignatureResource = "Metal_Code.Images.signature3.jpg"
+        }
+    };
+
+        public static ProviderInfo? GetByName(string? name)
+        {
+            return string.IsNullOrEmpty(name) ? null : Providers.FirstOrDefault(p => p.Name == name);
+        }
+
+
+        public static bool ResourceExists(string resourceName)
+        {
+            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+            var names = assembly.GetManifestResourceNames();
+            return names.Contains(resourceName);
+        }
+
     }
 }
