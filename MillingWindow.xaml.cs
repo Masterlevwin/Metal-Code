@@ -171,7 +171,7 @@ namespace Metal_Code
         private void RefreshWay(object sender, RoutedEventArgs e) { RefreshWay(); }
         private void RefreshWay()                                           //метод установки периметра детали
         {
-            if (owner.owner is PartControl part) Way = part.Part.Way;
+            if (owner.owner is PartControl part) Way = part.Part.Way * 1000;
             else if (owner.owner is WorkControl work)
             {
                 bool wayIsInitialized = false;

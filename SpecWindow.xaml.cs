@@ -70,6 +70,7 @@ namespace Metal_Code
             CurrentTemplate = TargetCustomer.SpecTemplate;
 
             SelectedProvider = ProviderRegistry.GetByName(CurrentTemplate.Provider)
+                            ?? ProviderRegistry.GetByFlags(MainWindow.M.IsLaser, MainWindow.M.IsAgent)
                             ?? ProviderRegistry.Providers.FirstOrDefault();
 
             Agent.Text = TargetCustomer.Agent ? "ИП" : "ООО";
@@ -336,8 +337,8 @@ namespace Metal_Code
 
                                 var provider = ProviderRegistry.GetByName(CurrentTemplate.Provider);
                                 string directorName = provider?.DirectorName ?? "Мешеронова М.С.";
-                                string printRes = provider?.PrintResource ?? "Metal_Code.Images.print1.jpg";
-                                string sigRes = provider?.SignatureResource ?? "Metal_Code.Images.signature3.jpg";
+                                string printRes = provider?.PrintResource ?? "Metal_Code.Images.ooo_laserflex.jpg";
+                                string sigRes = provider?.SignatureResource ?? "Metal_Code.Images.signature_mesheronova.jpg";
 
                                 left.Item().Layers(layers =>
                                 {
@@ -345,26 +346,48 @@ namespace Metal_Code
 
                                     layers.Layer().Column(column =>
                                     {
-                                        column.Item().Row(r =>
+                                        using var printStream = WpfImageHelper.GetStream(printRes);
+                                        if (printStream != null)
                                         {
-                                            r.ConstantItem(30);
-                                            r.ConstantItem(120).Image(GetImageStream(printRes)).FitWidth();
-                                        });
+                                            column.Item().Row(r =>
+                                            {
+                                                r.ConstantItem(30);
+                                                r.ConstantItem(120).Image(printStream).FitWidth();
+                                            });
+                                        }
                                     });
 
                                     layers.Layer().Column(column =>
                                     {
-                                        column.Item().Row(r =>
+                                        using var sigStream = WpfImageHelper.GetStream(sigRes);
+                                        if (sigStream != null)
                                         {
-                                            r.ConstantItem(40).Image(GetImageStream(sigRes)).FitWidth();
-                                            r.RelativeItem();
-                                            r.RelativeItem().AlignBottom().Text($"/ {directorName}");
-                                        });
+                                            column.Item().Row(r =>
+                                            {
+                                                r.ConstantItem(40).Image(sigStream).FitWidth();
+                                                r.RelativeItem();
+                                                r.RelativeItem().AlignBottom().Text($"/ {directorName}");
+                                            });
 
-                                        column.Item().Row(r =>
+                                            column.Item().Row(r =>
+                                            {
+                                                r.RelativeItem().AlignTop().LineHorizontal(1).LineColor(Colors.Black);
+                                            });
+                                        }
+                                        else
                                         {
-                                            r.RelativeItem().AlignTop().LineHorizontal(1).LineColor(Colors.Black);
-                                        });
+                                            // Если изображение не найдено, рисуем только ФИО и линию
+                                            column.Item().Row(r =>
+                                            {
+                                                r.RelativeItem();
+                                                r.RelativeItem().AlignBottom().Text($"/ {directorName}");
+                                            });
+
+                                            column.Item().Row(r =>
+                                            {
+                                                r.RelativeItem().AlignTop().LineHorizontal(1).LineColor(Colors.Black);
+                                            });
+                                        }
                                     });
                                 });
                             });
@@ -650,17 +673,17 @@ namespace Metal_Code
             // Вставка изображений поставщика (ПЕЧАТЬ ПЕРВОЙ, чтобы подпись была поверх)
             if (provider != null)
             {
-                // 1. СНАЧАЛА ПЕЧАТЬ (стандартный размер ~110x110 px)
+                // 1. СНАЧАЛА ПЕЧАТЬ
                 try
                 {
-                    using var printStream = GetImageStream(provider.PrintResource);
+                    using var printStream = WpfImageHelper.GetStream(provider.PrintResource);
                     if (printStream != null)
                     {
                         var printPic = ws.Drawings.AddPicture("Print", printStream);
                         // Размещаем печать чуть ниже — на строке signatureRow + 2
                         // Колонка 0 (A), со сдвигом вправо
                         printPic.SetPosition(signatureRow + 1, 0, 0, 10);
-                        printPic.SetSize(115, 115); // Стандартный размер печати
+                        printPic.SetSize(120, 120); // Стандартный размер печати
                     }
                 }
                 catch { /* Изображение не найдено */ }
@@ -668,14 +691,14 @@ namespace Metal_Code
                 // 2. ПОТОМ ПОДПИСЬ (чтобы она была поверх печати в z-order)
                 try
                 {
-                    using var sigStream = GetImageStream(provider.SignatureResource);
+                    using var sigStream = WpfImageHelper.GetStream(provider.SignatureResource);
                     if (sigStream != null)
                     {
                         var sigPic = ws.Drawings.AddPicture("Signature", sigStream);
                         // Размещаем подпись на строке signatureRow + 2 (над линией подписи)
                         // Колонка 1 (B) — справа от названия "ПОСТАВЩИК"
                         sigPic.SetPosition(signatureRow + 1, 2, 1, 20);
-                        sigPic.SetSize(120, 45); // Более естественные пропорции подписи
+                        sigPic.SetSize(120, 50);
                     }
                 }
                 catch { /* Изображение не найдено */ }
@@ -791,21 +814,13 @@ namespace Metal_Code
             return newFilePath;
         }
 
-        private static Stream GetImageStream(string resourceName)
-        {
-            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-            var stream = assembly.GetManifestResourceStream(resourceName);
-
-            return stream ?? throw new InvalidOperationException($"Ресурс '{resourceName}' не найден. Проверьте имя и действие при сборке.");
-        }
-
         private System.Windows.Media.ImageSource? GetWpfImage(string? resourceName)
         {
             if (string.IsNullOrEmpty(resourceName)) return null;
 
             try
             {
-                using var originalStream = GetImageStream(resourceName);
+                using var originalStream = WpfImageHelper.GetStream(resourceName);
                 if (originalStream == null) return null;
 
                 using var memoryStream = new MemoryStream();
@@ -1028,7 +1043,6 @@ namespace Metal_Code
         public override string ToString() => Name;
     }
 
-    // ==================== ProviderRegistry ====================
     public static class ProviderRegistry
     {
         public static ObservableCollection<ProviderInfo> Providers { get; } = new()
@@ -1036,26 +1050,26 @@ namespace Metal_Code
         new ProviderInfo {
             Name = "ООО ЛАЗЕРФЛЕКС",
             DirectorName = "Мешеронова М.С.",
-            PrintResource = "Metal_Code.Images.print1.jpg",
-            SignatureResource = "Metal_Code.Images.signature3.jpg"
+            PrintResource = "Metal_Code.Images.ooo_laserflex.jpg",
+            SignatureResource = "Metal_Code.Images.signature_mesheronova.jpg"
         },
         new ProviderInfo {
             Name = "ООО ПРОВЭЛД",
             DirectorName = "Сергеев Ю.А.",
-            PrintResource = "Metal_Code.Images.print.jpg",
-            SignatureResource = "Metal_Code.Images.signature.jpg"
+            PrintResource = "Metal_Code.Images.ooo_pk_laserflex.jpg",
+            SignatureResource = "Metal_Code.Images.signature_sergeev.jpg"
         },
         new ProviderInfo {
             Name = "ООО ПК ЛАЗЕРФЛЕКС",
             DirectorName = "Сергеев Ю.А.",
-            PrintResource = "Metal_Code.Images.print.jpg",
-            SignatureResource = "Metal_Code.Images.signature.jpg"
+            PrintResource = "Metal_Code.Images.ooo_pk_laserflex.jpg",
+            SignatureResource = "Metal_Code.Images.signature_sergeev.jpg"
         },
         new ProviderInfo {
             Name = "ИП МЕШЕРОНОВА",
             DirectorName = "Мешеронова М.С.",
-            PrintResource = "Metal_Code.Images.print1.jpg",
-            SignatureResource = "Metal_Code.Images.signature3.jpg"
+            PrintResource = "Metal_Code.Images.ip_mesheronova.jpg",
+            SignatureResource = "Metal_Code.Images.signature_mesheronova.jpg"
         }
     };
 
@@ -1064,13 +1078,23 @@ namespace Metal_Code
             return string.IsNullOrEmpty(name) ? null : Providers.FirstOrDefault(p => p.Name == name);
         }
 
-
-        public static bool ResourceExists(string resourceName)
+        /// <summary>
+        /// Определяет провайдера по комбинации флагов IsLaser и IsAgent.
+        /// </summary>
+        /// <param name="isLaser">Признак подписанта</param>
+        /// <param name="isAgent">Признак НДС (5% или 22%)</param>
+        /// <returns>Соответствующий провайдер из реестра</returns>
+        public static ProviderInfo? GetByFlags(bool isLaser, bool isAgent)
         {
-            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-            var names = assembly.GetManifestResourceNames();
-            return names.Contains(resourceName);
-        }
+            string targetName = (isLaser, isAgent) switch
+            {
+                (true, true) => "ИП МЕШЕРОНОВА",
+                (true, false) => "ООО ЛАЗЕРФЛЕКС",
+                (false, true) => "ООО ПК ЛАЗЕРФЛЕКС",
+                (false, false) => "ООО ПРОВЭЛД",
+            };
 
+            return GetByName(targetName);
+        }
     }
 }

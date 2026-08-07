@@ -80,8 +80,6 @@
     <None Remove="Images\preview.png" />
     <None Remove="Images\preview2.png" />
     <None Remove="Images\preview3.png" />
-    <None Remove="Images\print.jpg" />
-    <None Remove="Images\print1.jpg" />
     <None Remove="Images\print1.png" />
     <None Remove="Images\print2.png" />
     <None Remove="Images\question.png" />
@@ -94,10 +92,8 @@
     <None Remove="Images\save4.png" />
     <None Remove="Images\scissors.png" />
     <None Remove="Images\screen.png" />
-    <None Remove="Images\signature.jpg" />
     <None Remove="Images\signature1.jpg" />
     <None Remove="Images\signature2.jpg" />
-    <None Remove="Images\signature3.jpg" />
     <None Remove="Images\standard.png" />
     <None Remove="Images\tableofbends.jpg" />
     <None Remove="Images\tot.png" />
@@ -152,10 +148,8 @@
     <Content Include="laser_logo.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <EmbeddedResource Include="Images\print1.jpg">
-      <CopyToOutputDirectory></CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Images\signature1.jpg">
+    <EmbeddedResource Include="Images\ip_mesheronova.jpg" />
+    <EmbeddedResource Include="Images\ooo_laserflex.jpg">
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </EmbeddedResource>
     <Content Include="Metal-Code.Updater.exe">
@@ -254,12 +248,9 @@
     <Resource Include="Images\preview.png" />
     <Resource Include="Images\preview2.png" />
     <Resource Include="Images\preview3.png" />
-    <EmbeddedResource Include="Images\print.jpg">
+    <EmbeddedResource Include="Images\ooo_pk_laserflex.jpg">
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </EmbeddedResource>
-    <Resource Include="Images\print2.png">
-      <CopyToOutputDirectory></CopyToOutputDirectory>
-    </Resource>
     <Resource Include="Images\question.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
@@ -272,13 +263,10 @@
     <Resource Include="Images\save4.png" />
     <Resource Include="Images\scissors.png" />
     <Resource Include="Images\screen.png" />
-    <EmbeddedResource Include="Images\signature.jpg">
+    <EmbeddedResource Include="Images\signature_sergeev.jpg">
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </EmbeddedResource>
-    <Resource Include="Images\signature2.jpg">
-      <CopyToOutputDirectory></CopyToOutputDirectory>
-    </Resource>
-    <EmbeddedResource Include="Images\signature3.jpg">
+    <EmbeddedResource Include="Images\signature_mesheronova.jpg">
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </EmbeddedResource>
     <Resource Include="Images\standard.png" />
