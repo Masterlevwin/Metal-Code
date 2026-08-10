@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -734,7 +735,7 @@ namespace Metal_Code
         }
 
         /// <summary>
-        /// Открывает диалог выбора DXF-файлов и добавляет их как новые детали.
+        /// Открывает диалог выбора DXF-файлов, парсит количество из имени и добавляет их как новые детали.
         /// </summary>
         private void AddPartsFromDxf_Click(object sender, RoutedEventArgs e)
         {
@@ -753,33 +754,57 @@ namespace Metal_Code
             if (openFileDialog.ShowDialog() == true)
             {
                 int addedCount = 0;
+                int parsedCount = 0;
                 var failedFiles = new List<string>();
+                var zeroQuantityFiles = new List<string>();
                 var (metal, thickness, metalName) = GetMetalAndThickness(owner);
+
+                Regex countRegex = new Regex(@"(?i)n(\d+)|(\d+)\s*шт");
 
                 foreach (var filePath in openFileDialog.FileNames)
                 {
                     try
                     {
+                        string fileName = Path.GetFileNameWithoutExtension(filePath);
+                        int detectedCount = 0;
+
+                        Match countMatch = countRegex.Match(fileName);
+                        if (countMatch.Success)
+                        {
+                            string numStr = countMatch.Groups[1].Success ? countMatch.Groups[1].Value : countMatch.Groups[2].Value;
+
+                            if (int.TryParse(numStr, out int qty) && qty > 0)
+                            {
+                                detectedCount = qty;
+                                parsedCount++;
+                            }
+                            else
+                            {
+                                zeroQuantityFiles.Add(fileName);
+                            }
+                        }
+                        else
+                        {
+                            zeroQuantityFiles.Add(fileName);
+                        }
+
                         var doc = DxfDocument.Load(filePath);
                         var calculationGeometry = DxfToWpfConverter.ConvertToPathGeometryWithClosedContours(doc);
 
                         if (calculationGeometry == null || calculationGeometry.IsEmpty())
                             throw new InvalidOperationException("DXF не содержит распознаваемых замкнутых контуров.");
 
-                        // 🔥 АВТОМАТИЧЕСКОЕ ОПРЕДЕЛЕНИЕ ТИПА ДЕТАЛИ
                         PartType detectedType = GeometryAnalyzer.DetectPartType(calculationGeometry);
-
                         var bounds = calculationGeometry.Bounds;
 
-                        var part = new Part(Path.GetFileNameWithoutExtension(filePath))
+                        var part = new Part(fileName)
                         {
-                            Count = 0,
+                            Count = detectedCount,
                             Metal = metalName,
                             Destiny = thickness,
-                            // Используем реальные габариты из геометрии
                             Width = Math.Ceiling(bounds.Width),
                             Height = Math.Ceiling(bounds.Height),
-                            PartType = detectedType, // <-- Присваиваем определенный тип!
+                            PartType = detectedType,
                             DisplayGeometry = calculationGeometry,
                         };
 
@@ -809,7 +834,28 @@ namespace Metal_Code
 
                 if (addedCount > 0)
                 {
-                    MainWindow.M.StatusBegin($"Успешно добавлено деталей: {addedCount}", MainWindow.StatusMessageType.Success);
+                    if (parsedCount > 0 && zeroQuantityFiles.Count > 0)
+                    {
+                        string zeroFilesList = string.Join("\n", zeroQuantityFiles.Take(5));
+                        string moreText = zeroQuantityFiles.Count > 5 ? $"\n...и ещё {zeroQuantityFiles.Count - 5} файлов." : "";
+
+                        MessageBox.Show(
+                            $"Успешно добавлено деталей: {addedCount}.\n\n" +
+                            $"✅ Количество распознано для {parsedCount} шт.\n" +
+                            $"⚠️ Для следующих деталей количество не найдено (установлено 0):\n{zeroFilesList}{moreText}\n\n" +
+                            $"Пожалуйста, проверьте и установите количество вручную.",
+                            "Импорт завершен с предупреждением",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
+                    }
+                    else if (parsedCount > 0)
+                    {
+                        MainWindow.M.StatusBegin($"Успешно добавлено деталей: {addedCount}. Количество распознано.", MainWindow.StatusMessageType.Success);
+                    }
+                    else
+                    {
+                        MainWindow.M.StatusBegin($"Успешно добавлено деталей: {addedCount}. Количество не распознано, установите его вручную.", MainWindow.StatusMessageType.Warning);
+                    }
                 }
 
                 if (failedFiles.Count > 0)
@@ -1051,7 +1097,7 @@ namespace Metal_Code
                 float thickness = cut.work.type.S;
 
                 var sheetData = new List<(
-                    byte[] ImageBytes, string Title, int SheetCount, string? SheetSize, int PartsCount, List<PartTableData> PartsTable)>();
+                    byte[] ImageBytes, string Title, int SheetCount, string? SheetSize, double Spacing, int PartsCount, List<PartTableData> PartsTable)>();
 
                 int index = 1;
                 foreach (var item in sheetsToExport)
@@ -1076,7 +1122,7 @@ namespace Metal_Code
                         .OrderByDescending(p => p.TotalQty)
                         .ToList();
 
-                    sheetData.Add((pngBytes, $"Лист {index} из {sheetsToExport.Count}", item.sheets, item.sheetSize, item.NestingSheet.Parts.Count, partsTable));
+                    sheetData.Add((pngBytes, $"Лист {index} из {sheetsToExport.Count}", item.sheets, item.sheetSize, item.NestingSheet.Spacing, item.NestingSheet.Parts.Count, partsTable));
                     index++;
                 }
 
@@ -1160,7 +1206,7 @@ namespace Metal_Code
                                     row.RelativeItem().Text(data.Title).FontSize(14).Bold().FontColor(Colors.Blue.Darken2);
                                     row.RelativeItem().AlignRight().Text(x =>
                                     {
-                                        x.Span($"Размер: {data.SheetSize} мм | Деталей: {data.PartsCount} | Листов в группе: ")
+                                        x.Span($"Размер: {data.SheetSize} мм | Отступы: {data.Spacing:0} мм | Деталей: {data.PartsCount} | Листов в группе: ")
                                             .FontSize(10).FontColor(Colors.Grey.Darken1);
                                         x.Span(data.SheetCount.ToString()).FontSize(11).Bold().FontColor(Colors.Blue.Darken2);
                                     });

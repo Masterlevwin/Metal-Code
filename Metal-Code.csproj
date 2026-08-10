@@ -17,8 +17,11 @@
     <None Remove="Images\add.png" />
     <None Remove="Images\address.png" />
     <None Remove="Images\add_models.png" />
+    <None Remove="Images\add_models_2.png" />
+    <None Remove="Images\add_models_3.png" />
     <None Remove="Images\assembly.png" />
     <None Remove="Images\autonest.png" />
+    <None Remove="Images\autonest_2.png" />
     <None Remove="Images\basket.png" />
     <None Remove="Images\basket2.png" />
     <None Remove="Images\bends.png" />
@@ -188,8 +191,10 @@
     <Resource Include="Images\add.png" />
     <Resource Include="Images\address.png" />
     <Resource Include="Images\add_models.png" />
+    <Resource Include="Images\add_models_2.png" />
     <Resource Include="Images\assembly.png" />
     <Resource Include="Images\autonest.png" />
+    <Resource Include="Images\autonest_2.png" />
     <Resource Include="Images\basket.png" />
     <Resource Include="Images\basket2.png" />
     <Resource Include="Images\bends.png" />

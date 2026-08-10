@@ -10,6 +10,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Net.Security;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -127,6 +128,11 @@ namespace Metal_Code
             outputPath = $"{Path.GetDirectoryName(outputPath)}\\{specFileName}";
             outputPath = GetAvailableFilePath(outputPath);
 
+            // Получаем провайдера один раз для всего документа
+            var currentProvider = ProviderRegistry.GetByName(CurrentTemplate.Provider)
+                               ?? ProviderRegistry.Providers.FirstOrDefault();
+            string taxRateText = $"НДС {currentProvider?.TaxRate ?? 22}%";
+
             // 3. СОЗДАЕМ PDF ДОКУМЕНТ
             Document.Create(container =>
             {
@@ -165,7 +171,7 @@ namespace Metal_Code
                                 StyleHeaderCell(header.Cell(), "№");
                                 StyleHeaderCell(header.Cell(), "Наименование товара");
                                 StyleHeaderCell(header.Cell(), "Количество, шт");
-                                StyleHeaderCell(header.Cell(), "Стоимость в руб., в т.ч. НДС 22%");
+                                StyleHeaderCell(header.Cell(), $"Стоимость в руб., в т.ч. {taxRateText}");
                             });
 
                             // === ДАННЫЕ ТАБЛИЦЫ ===
@@ -305,8 +311,8 @@ namespace Metal_Code
                                 }
 
                                 // Формируем итоговую строку
-                                center.Item().Text($"ИТОГО: {totalSum:N0} ({rubText}) рублей {kopValue} коп., в т.ч. НДС 22%").Bold();
-
+                                center.Item().Text($"ИТОГО: {totalSum:N0} ({rubText}) рублей {kopValue} коп., в т.ч. {taxRateText}").Bold();
+                                
                                 center.Item().PaddingTop(15).Text("Срок поставки: " + EndDate.Text);
                                 center.Item().PaddingTop(5).Text(Delivery.Text);
                                 center.Item().PaddingVertical(5).Text($"Условия оплаты: {CurrentTemplate.Terms}");
@@ -393,15 +399,19 @@ namespace Metal_Code
                             });
 
                             // Покупатель
-                            row.RelativeItem().PaddingHorizontal(50).Column(right =>
+                            row.RelativeItem().PaddingLeft(50).Column(right =>
                             {
                                 right.Item().Text("ПОКУПАТЕЛЬ").Bold();
                                 right.Item().Text($"{Agent.Text} {TargetCustomer.Name}");
 
-                                right.Item().PaddingVertical(20).Row(r =>
+                                right.Item().Row(r =>
                                 {
-                                    r.RelativeItem().AlignBottom().LineHorizontal(1).LineColor(Colors.Black);
-                                    r.RelativeItem().AlignBottom().Text($"/ {CurrentTemplate.Buyer}");
+                                    r.RelativeItem().AlignRight().AlignBottom().Text($"/ {CurrentTemplate.Buyer}");
+                                });
+
+                                right.Item().Row(r =>
+                                {
+                                    r.RelativeItem().AlignTop().LineHorizontal(1).LineColor(Colors.Black);
                                 });
                             });
                         });
@@ -431,6 +441,10 @@ namespace Metal_Code
             string specFileName = $"{MainWindow.M.Order.Text} {MainWindow.M.CustomerDrop.Text} - спецификация № {CurrentTemplate.Number}.xlsx";
             outputPath = $"{Path.GetDirectoryName(outputPath)}\\{specFileName}";
             outputPath = GetAvailableFilePath(outputPath);
+
+            var currentProvider = ProviderRegistry.GetByName(CurrentTemplate.Provider)
+                   ?? ProviderRegistry.Providers.FirstOrDefault();
+            string taxRateText = $"НДС {currentProvider?.TaxRate ?? 22}%";
 
             // Лицензия EPPlus (измените на Commercial при наличии лицензии)
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
@@ -465,7 +479,7 @@ namespace Metal_Code
             ws.Cells[row, 1].Value = "№";
             ws.Cells[row, 2].Value = "Наименование товара";
             ws.Cells[row, 3].Value = "Количество, шт";
-            ws.Cells[row, 4].Value = "Стоимость в руб., в т.ч. НДС 22%";
+            ws.Cells[row, 4].Value = $"Стоимость в руб., в т.ч. {taxRateText}";
 
             for (int col = 1; col <= 4; col++)
             {
@@ -607,7 +621,7 @@ namespace Metal_Code
             }
 
             ws.Cells[row, 1, row, 4].Merge = true;
-            ws.Cells[row, 1].Value = $"ИТОГО: {totalSum:N0} ({rubText}) рублей {kopValue} коп., в т.ч. НДС 22%";
+            ws.Cells[row, 1].Value = $"ИТОГО: {totalSum:N0} ({rubText}) рублей {kopValue} коп., в т.ч. {taxRateText}";
             ws.Cells[row, 1].Style.Font.Bold = true;
             row += 2;
 
@@ -665,40 +679,34 @@ namespace Metal_Code
             string directorName = provider?.DirectorName ?? "Мешеронова М.С.";
 
             // Устанавливаем высоту строк для размещения изображений
-            ws.Row(row + 1).Height = 60;
-            ws.Row(row + 2).Height = 15;
-            ws.Row(row + 3).Height = 20;
+            ws.Row(row + 2).Height = 20;
             row += 2;
 
-            // Вставка изображений поставщика (ПЕЧАТЬ ПЕРВОЙ, чтобы подпись была поверх)
+            // Вставка изображений поставщика
             if (provider != null)
             {
-                // 1. СНАЧАЛА ПЕЧАТЬ
-                try
-                {
-                    using var printStream = WpfImageHelper.GetStream(provider.PrintResource);
-                    if (printStream != null)
-                    {
-                        var printPic = ws.Drawings.AddPicture("Print", printStream);
-                        // Размещаем печать чуть ниже — на строке signatureRow + 2
-                        // Колонка 0 (A), со сдвигом вправо
-                        printPic.SetPosition(signatureRow + 1, 0, 0, 10);
-                        printPic.SetSize(120, 120); // Стандартный размер печати
-                    }
-                }
-                catch { /* Изображение не найдено */ }
-
-                // 2. ПОТОМ ПОДПИСЬ (чтобы она была поверх печати в z-order)
+                // 1. СНАЧАЛА ПОДПИСЬ
                 try
                 {
                     using var sigStream = WpfImageHelper.GetStream(provider.SignatureResource);
                     if (sigStream != null)
                     {
                         var sigPic = ws.Drawings.AddPicture("Signature", sigStream);
-                        // Размещаем подпись на строке signatureRow + 2 (над линией подписи)
-                        // Колонка 1 (B) — справа от названия "ПОСТАВЩИК"
-                        sigPic.SetPosition(signatureRow + 1, 2, 1, 20);
-                        sigPic.SetSize(120, 50);
+                        sigPic.SetPosition(signatureRow + 1, 0, 0, 30);
+                        sigPic.SetSize(96, 40);
+                    }
+                }
+                catch { /* Изображение не найдено */ }
+
+                // 2. ПОТОМ ПЕЧАТЬ
+                try
+                {
+                    using var printStream = WpfImageHelper.GetStream(provider.PrintResource);
+                    if (printStream != null)
+                    {
+                        var printPic = ws.Drawings.AddPicture("Print", printStream);
+                        printPic.SetPosition(signatureRow + 3, 0, 0, 20);
+                        printPic.SetSize(120, 120);
                     }
                 }
                 catch { /* Изображение не найдено */ }
@@ -1037,8 +1045,9 @@ namespace Metal_Code
     {
         public string Name { get; set; } = string.Empty;
         public string DirectorName { get; set; } = string.Empty;
-        public string PrintResource { get; set; } = string.Empty;     // Имя embedded resource для печати
-        public string SignatureResource { get; set; } = string.Empty; // Имя embedded resource для подписи
+        public string PrintResource { get; set; } = string.Empty;
+        public string SignatureResource { get; set; } = string.Empty;
+        public int TaxRate { get; set; } = 22;
 
         public override string ToString() => Name;
     }
@@ -1051,25 +1060,29 @@ namespace Metal_Code
             Name = "ООО ЛАЗЕРФЛЕКС",
             DirectorName = "Мешеронова М.С.",
             PrintResource = "Metal_Code.Images.ooo_laserflex.jpg",
-            SignatureResource = "Metal_Code.Images.signature_mesheronova.jpg"
+            SignatureResource = "Metal_Code.Images.signature_mesheronova.jpg",
+            TaxRate = 22
         },
         new ProviderInfo {
             Name = "ООО ПРОВЭЛД",
             DirectorName = "Сергеев Ю.А.",
             PrintResource = "Metal_Code.Images.ooo_pk_laserflex.jpg",
-            SignatureResource = "Metal_Code.Images.signature_sergeev.jpg"
+            SignatureResource = "Metal_Code.Images.signature_sergeev.jpg",
+            TaxRate = 22
         },
         new ProviderInfo {
             Name = "ООО ПК ЛАЗЕРФЛЕКС",
             DirectorName = "Сергеев Ю.А.",
             PrintResource = "Metal_Code.Images.ooo_pk_laserflex.jpg",
-            SignatureResource = "Metal_Code.Images.signature_sergeev.jpg"
+            SignatureResource = "Metal_Code.Images.signature_sergeev.jpg",
+            TaxRate = 5
         },
         new ProviderInfo {
             Name = "ИП МЕШЕРОНОВА",
             DirectorName = "Мешеронова М.С.",
             PrintResource = "Metal_Code.Images.ip_mesheronova.jpg",
-            SignatureResource = "Metal_Code.Images.signature_mesheronova.jpg"
+            SignatureResource = "Metal_Code.Images.signature_mesheronova.jpg",
+            TaxRate = 5
         }
     };
 

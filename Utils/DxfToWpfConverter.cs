@@ -294,15 +294,10 @@ namespace Metal_Code.Utils
     {
         public static PartType DetectPartType(PathGeometry geometry)
         {
-            Trace.WriteLine("[GeoAnalyzer] === Начало анализа геометрии ===");
-
             if (geometry == null || geometry.Figures.Count == 0)
             {
-                Trace.WriteLine("[GeoAnalyzer] Геометрия пуста. Возврат Rectangle.");
                 return PartType.Rectangle;
             }
-
-            Trace.WriteLine($"[GeoAnalyzer] Всего фигур (контуров): {geometry.Figures.Count}");
 
             // Находим самый большой контур (внешнюю границу детали)
             var mainFigure = geometry.Figures
@@ -312,11 +307,8 @@ namespace Metal_Code.Utils
 
             if (mainFigure == null)
             {
-                Trace.WriteLine("[GeoAnalyzer] Не найдено замкнутых фигур. Возврат Rectangle.");
                 return PartType.Rectangle;
             }
-
-            Trace.WriteLine($"[GeoAnalyzer] Выбран главный контур. Сегментов в нем: {mainFigure.Segments.Count}");
 
             int lineCount = 0;
             int arcCount = 0;
@@ -343,47 +335,27 @@ namespace Metal_Code.Utils
                 }
             }
 
-            Trace.WriteLine($"[GeoAnalyzer] Сырые данные: Линий={lineCount}, Дуг={arcCount}, Сырых вершин={rawVertices.Count}");
-
             // Упрощаем полигон
             var uniqueVertices = SimplifyPolygon(rawVertices, sinTolerance: 0.05); // ~3 градуса допуска
-
-            Trace.WriteLine($"[GeoAnalyzer] Вершин после упрощения: {uniqueVertices.Count}");
-            for (int i = 0; i < uniqueVertices.Count; i++)
-            {
-                Trace.WriteLine($"  Вершина {i + 1}: X={uniqueVertices[i].X:F2}, Y={uniqueVertices[i].Y:F2}");
-            }
 
             // 1. Если есть дуги и мало прямых линий - это круг
             if (arcCount > 0 && lineCount <= 2)
             {
-                Trace.WriteLine("[GeoAnalyzer] Результат: Round (круг)");
                 return PartType.Round;
             }
 
             // 2. Если ровно 3 значимые вершины - это треугольник
             if (uniqueVertices.Count == 3)
             {
-                Trace.WriteLine("[GeoAnalyzer] Результат: Triangle (треугольник)");
                 return PartType.Triangle;
             }
 
             // 3. Если 4 вершины, проверяем, является ли он прямоугольником
-            if (uniqueVertices.Count == 4)
+            if (uniqueVertices.Count == 4 && IsRectangle(uniqueVertices))
             {
-                if (IsRectangle(uniqueVertices))
-                {
-                    Trace.WriteLine("[GeoAnalyzer] Результат: Rectangle (прямоугольник)");
-                    return PartType.Rectangle;
-                }
-                else
-                {
-                    Trace.WriteLine("[GeoAnalyzer] Результат: Rectangle (fallback, 4 вершины, но не прямоугольник)");
-                }
+                return PartType.Rectangle;
             }
 
-            // Fallback
-            Trace.WriteLine($"[GeoAnalyzer] Результат: Rectangle (fallback, вершин={uniqueVertices.Count})");
             return PartType.Rectangle;
         }
 

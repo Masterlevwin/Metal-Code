@@ -186,7 +186,7 @@
                     <ToggleButton ToolTip="Добавить детали из DXF-файлов" 
                               Click="AddPartsFromDxf_Click" 
                               Style="{StaticResource SideIconButton}">
-                        <Image Source="/Images/add_models.png" Width="24"/>
+                        <Image Source="/Images/add_models_2.png" Width="24"/>
                     </ToggleButton>
                 </Border>
 
@@ -199,7 +199,7 @@
                     <ToggleButton ToolTip="Переразложить детали с геометрией"
                               Click="AutoNest_Click"
                               Style="{StaticResource SideIconButton}">
-                        <Image Source="/Images/autonest.png" Width="24"/>
+                        <Image Source="/Images/autonest_2.png" Width="24"/>
                     </ToggleButton>
                 </Border>
 

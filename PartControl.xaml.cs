@@ -71,6 +71,7 @@ namespace Metal_Code
             Part = _part;
             DataContext = Part;
 
+            UpdateCountColor();
             SetProperties();        //устанавливаем свойства нарезанной детали
         }
 
@@ -573,6 +574,9 @@ namespace Metal_Code
                 }
             }
         }
+
+        private void CountInput_TextChanged(object sender, TextChangedEventArgs e) => UpdateCountColor();
+        private void UpdateCountColor() => CountInput.Foreground = Part.Count == 0 ? Brushes.Red : Brushes.Blue;
     }
 
     public interface ICut
