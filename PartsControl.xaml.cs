@@ -1519,7 +1519,26 @@ namespace Metal_Code
             // === ШАГ 3: Расчёт массы ===
             if (isSheetPart)
             {
-                double area = CalculateCrossSectionArea(part.PartType, part.Width, part.Height, 1);
+                double area = 0;
+
+                if (part.DisplayGeometry != null)
+                {
+                    try
+                    {
+                        area = CalculateExact2DArea(part.DisplayGeometry);
+                    }
+                    catch
+                    {
+                        area = 0; // Игнорируем исключения, если геометрия "битая"
+                    }
+                }
+
+                // Фоллбэк: если точная площадь не посчиталась, равна 0 или ушла в минус
+                if (area <= 0)
+                {
+                    area = CalculateCrossSectionArea(part.PartType, part.Width, part.Height, 1);
+                }
+
                 part.Mass = (float)Math.Round(area * thickness * metal.Density / 1_000_000, 3);
 
                 string dimensionString = part.PartType switch
@@ -1943,9 +1962,9 @@ namespace Metal_Code
             return partType switch
             {
                 // === ЛИСТОВЫЕ И ПРОСТЫЕ СЕЧЕНИЯ ===
-                PartType.Round => Math.PI * Math.Pow(width / 2, 2),
-                PartType.Rectangle or PartType.SquareBar or PartType.Custom => width * height,
-                PartType.Triangle => width * height / 2.0,
+                //PartType.Round => Math.PI * Math.Pow(width / 2, 2),
+                //PartType.Rectangle or PartType.SquareBar or PartType.Custom => width * height,
+                //PartType.Triangle => width * height / 2.0,
 
                 // === ТРУБЫ ===
                 PartType.RoundTube => Math.PI * (
@@ -1972,6 +1991,85 @@ namespace Metal_Code
         {
             return CalculateCrossSectionArea(part.PartType,
                 part.Width, part.Height, thickness);
+        }
+
+        public static double CalculateExact2DArea(PathGeometry geometry)
+        {
+            if (geometry == null || geometry.Figures.Count == 0) return 0;
+
+            var flattened = geometry.GetFlattenedPathGeometry();
+            var contours = new List<List<Point>>();
+
+            foreach (var figure in flattened.Figures)
+            {
+                if (!figure.IsClosed) continue;
+
+                var points = new List<Point> { figure.StartPoint };
+                foreach (var segment in figure.Segments)
+                {
+                    if (segment is LineSegment line)
+                        points.Add(line.Point);
+                    else if (segment is PolyLineSegment poly)
+                        points.AddRange(poly.Points);
+                }
+
+                // Убираем дублирующую замыкающую точку, если она есть
+                if (points.Count > 1 && (points[0] - points[points.Count - 1]).Length < 1e-7)
+                    points.RemoveAt(points.Count - 1);
+
+                if (points.Count >= 3)
+                    contours.Add(points);
+            }
+
+            if (contours.Count == 0) return 0;
+
+            double totalArea = 0;
+
+            for (int i = 0; i < contours.Count; i++)
+            {
+                double area = Math.Abs(ShoelaceArea(contours[i]));
+
+                // Глубина вложенности: сколько других контуров содержат данный
+                int depth = 0;
+                for (int j = 0; j < contours.Count; j++)
+                {
+                    if (i == j) continue;
+                    if (IsPointInPolygon(contours[i][0], contours[j]))
+                        depth++;
+                }
+
+                // Чётная глубина -> материал (+), нечётная -> отверстие (−).
+                // Это в точности правило EvenOdd, которым WPF заполняет геометрию.
+                totalArea += (depth % 2 == 0) ? area : -area;
+            }
+
+            return Math.Abs(totalArea);
+        }
+
+        private static double ShoelaceArea(List<Point> pts)
+        {
+            double s = 0;
+            for (int i = 0; i < pts.Count; i++)
+            {
+                var p1 = pts[i];
+                var p2 = pts[(i + 1) % pts.Count];
+                s += p1.X * p2.Y - p2.X * p1.Y;
+            }
+            return s / 2.0;
+        }
+
+        private static bool IsPointInPolygon(Point p, List<Point> poly)
+        {
+            bool inside = false;
+            for (int i = 0, j = poly.Count - 1; i < poly.Count; j = i++)
+            {
+                if ((poly[i].Y > p.Y) != (poly[j].Y > p.Y) &&
+                    p.X < (poly[j].X - poly[i].X) * (p.Y - poly[i].Y) / (poly[j].Y - poly[i].Y) + poly[i].X)
+                {
+                    inside = !inside;
+                }
+            }
+            return inside;
         }
 
         /// <summary>

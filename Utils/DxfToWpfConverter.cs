@@ -163,28 +163,36 @@ namespace Metal_Code.Utils
             return figure;
         }
 
-        private static PathFigure ArcToPathFigure(Arc arc, double scale)
+        private static PathFigure? ArcToPathFigure(Arc arc, double scale)
         {
-            var center = new Point(arc.Center.X * scale, -arc.Center.Y * scale);
             double radius = arc.Radius * scale;
-            double startAngleRad = arc.StartAngle * Math.PI / 180.0;
-            double endAngleRad = arc.EndAngle * Math.PI / 180.0;
+            if (radius <= 0) return null;
 
-            var startPoint = new Point(
-                center.X + radius * Math.Cos(startAngleRad),
-                center.Y - radius * Math.Sin(startAngleRad));
-            var endPoint = new Point(
-                center.X + radius * Math.Cos(endAngleRad),
-                center.Y - radius * Math.Sin(endAngleRad));
+            var center = new Point(arc.Center.X * scale, -arc.Center.Y * scale);
 
-            double angleDiff = (endAngleRad - startAngleRad + 2 * Math.PI) % (2 * Math.PI);
-            bool isLargeArc = angleDiff > Math.PI;
+            // Дуги в DXF всегда идут против часовой стрелки от StartAngle к EndAngle
+            double startRad = arc.StartAngle * Math.PI / 180.0;
+            double span = (arc.EndAngle - arc.StartAngle) * Math.PI / 180.0;
+            while (span <= 0) span += 2 * Math.PI;       // разворот через 0°
+            while (span > 2 * Math.PI) span -= 2 * Math.PI;
 
-            var figure = new PathFigure { StartPoint = startPoint, IsClosed = false };
-            figure.Segments.Add(new ArcSegment(
-                endPoint, new Size(radius, radius), 0, isLargeArc,
-                SweepDirection.Counterclockwise, true));
-            return figure;
+            // Подбираем число сегментов так, чтобы стрелка аппроксимации не превышала ~0.01 мм.
+            // Дуга становится ломаной (PolyLine/LineSegment), поэтому неоднозначность
+            // IsLargeArc / SweepDirection (и «рога» на полуокружностях ~180°) исключена полностью.
+            const double tol = 0.01;
+            double maxStep = 2.0 * Math.Acos(Math.Max(-1.0, Math.Min(1.0, 1.0 - tol / radius)));
+            int segments = Math.Max(8, Math.Min(256, (int)Math.Ceiling(span / maxStep)));
+
+            var points = new List<Point>(segments + 1);
+            for (int i = 0; i <= segments; i++)
+            {
+                double t = startRad + span * i / segments;
+                points.Add(new Point(
+                    center.X + radius * Math.Cos(t),
+                    center.Y - radius * Math.Sin(t)));
+            }
+
+            return CreatePathFigureFromPoints(points, isClosed: false);
         }
 
         private static PathFigure? SplineToPathFigure(Spline spline, double scale)
@@ -331,6 +339,7 @@ namespace Metal_Code.Utils
                 else if (seg is ArcSegment arc)
                 {
                     arcCount++;
+                    rawVertices.Add(arc.Point);
                     current = arc.Point;
                 }
             }
