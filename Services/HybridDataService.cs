@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -529,6 +530,100 @@ namespace Metal_Code.Services
             {
                 Trace.WriteLine($"❌ Ошибка очистки локальной БД: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Гарантирует наличие справочников в локальной SQLite.
+        /// Если таблицы пусты (свежая установка без сети) — наполняет из встроенных ресурсов.
+        /// Никогда не перезаписывает уже существующие данные.
+        /// </summary>
+        public async System.Threading.Tasks.Task EnsureLocalReferenceDataAsync()
+        {
+            try
+            {
+                using (var ctx = new MetalContext(_connections[3]))
+                {
+                    await ctx.Database.EnsureCreatedAsync();
+                    if (!await ctx.Metals.AnyAsync())
+                    {
+                        ctx.Metals.AddRange(LoadSeed<List<Metal>>("seed_metals.json"));
+                        await ctx.SaveChangesAsync();
+                        Trace.WriteLine("✅ Металлы засеяны из встроенного эталона");
+                    }
+                }
+
+                using (var ctx = new TypeDetailContext(_connections[1]))
+                {
+                    await ctx.Database.EnsureCreatedAsync();
+                    if (!await ctx.TypeDetails.AnyAsync())
+                    {
+                        ctx.TypeDetails.AddRange(LoadSeed<List<TypeDetail>>("seed_typedetails.json"));
+                        await ctx.SaveChangesAsync();
+                        Trace.WriteLine("✅ Типы деталей засеяны из встроенного эталона");
+                    }
+                }
+
+                using (var ctx = new WorkContext(_connections[2]))
+                {
+                    await ctx.Database.EnsureCreatedAsync();
+                    if (!await ctx.Works.AnyAsync())
+                    {
+                        ctx.Works.AddRange(LoadSeed<List<Work>>("seed_works.json"));
+                        await ctx.SaveChangesAsync();
+                        Trace.WriteLine("✅ Работы засеяны из встроенного эталона");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"⚠️ Ошибка посева справочников: {ex.Message}");
+            }
+        }
+
+        private static T LoadSeed<T>(string fileName)
+        {
+            var asm = System.Reflection.Assembly.GetExecutingAssembly();
+            var name = asm.GetManifestResourceNames()
+                .FirstOrDefault(n => n.EndsWith(fileName, StringComparison.OrdinalIgnoreCase));
+
+            if (name == null)
+                throw new FileNotFoundException(
+                    $"Встроенный ресурс '{fileName}' не найден в сборке. " +
+                    "Убедитесь, что JSON-файлы добавлены в проект с Build Action: Embedded Resource.");
+
+            using var stream = asm.GetManifestResourceStream(name)!;
+            using var reader = new StreamReader(stream);
+            return JsonSerializer.Deserialize<T>(reader.ReadToEnd())!;
+        }
+
+        /// <summary>
+        /// Экспортирует текущие справочники в JSON-файлы для встраивания в сборку как оффлайн-эталон.
+        /// При наличии связи с PG локальные копии предварительно обновляются с сервера.
+        /// Id обнуляются, чтобы при посеве SQLite назначил ключи сам.
+        /// </summary>
+        public async System.Threading.Tasks.Task ExportReferenceDataForSeedAsync(string folder)
+        {
+            if (_isOnline)
+                await SyncReferenceDataAsync();
+
+            var opts = new JsonSerializerOptions { WriteIndented = true };
+
+            var metals = await GetLocalMetalsAsync();
+            metals.ForEach(m => m.Id = 0);
+            await File.WriteAllTextAsync(Path.Combine(folder, "seed_metals.json"),
+                JsonSerializer.Serialize(metals, opts));
+
+            var types = await GetLocalTypeDetailsAsync();
+            types.ForEach(t => t.Id = 0);
+            await File.WriteAllTextAsync(Path.Combine(folder, "seed_typedetails.json"),
+                JsonSerializer.Serialize(types, opts));
+
+            var works = await GetLocalWorksAsync();
+            works.ForEach(w => w.Id = 0);
+            await File.WriteAllTextAsync(Path.Combine(folder, "seed_works.json"),
+                JsonSerializer.Serialize(works, opts));
+
+            Trace.WriteLine($"✅ Эталон справочников экспортирован в {folder}");
         }
 
         public async Task<List<Manager>> GetLocalManagersAsync()

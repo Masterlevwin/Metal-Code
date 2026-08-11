@@ -204,6 +204,35 @@
                 <MenuItem Header="База работ" Click="OpenSettings"/>
                 <MenuItem Header="База менеджеров" Click="OpenSettings"/>
                 <MenuItem Header="База материалов" Click="OpenSettings"/>
+
+                <!-- ⭐ Служебный блок: виден только администратору -->
+                <Separator>
+                    <Separator.Style>
+                        <Style TargetType="Separator">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CurrentManager.IsAdmin,
+                        RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Separator.Style>
+                </Separator>
+                <MenuItem Header="Обновить эталон справочников" Click="ExportReferenceSeed_Click">
+                    <MenuItem.Style>
+                        <Style TargetType="MenuItem" BasedOn="{StaticResource MenuItemBaseStyle}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <!-- Показываем только администратору -->
+                                <DataTrigger Binding="{Binding CurrentManager.IsAdmin,
+                        RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </MenuItem.Style>
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="Инструменты">
                 <MenuItem Header="Таблица гибов" Click="ShowTableOfBends">

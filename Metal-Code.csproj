@@ -116,6 +116,9 @@
     <None Remove="Metal-Code.Updater.exe" />
     <None Remove="Metal-Code.Updater.exe.config" />
     <None Remove="Metal-Code.Updater.pdb" />
+    <None Remove="seed_metals.json" />
+    <None Remove="seed_typedetails.json" />
+    <None Remove="seed_works.json" />
     <None Remove="Themes\template.xlsx" />
     <None Remove="Themes\version.txt" />
     <None Remove="Updates\v2.6.7.4_2025-12-02.png" />
@@ -256,6 +259,9 @@
     <EmbeddedResource Include="Images\ooo_pk_laserflex.jpg">
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="seed_metals.json" />
+    <EmbeddedResource Include="seed_typedetails.json" />
+    <EmbeddedResource Include="seed_works.json" />
     <Resource Include="Images\question.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>

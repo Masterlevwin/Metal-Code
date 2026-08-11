@@ -555,6 +555,10 @@ namespace Metal_Code
                 DataService = new HybridDataService(App.PostgresOptions, connections);
 
                 bool isOnline = await DataService.InitializeAsync();
+
+                // ⭐ Справочники появятся даже при полностью оффлайн-установке
+                await DataService.EnsureLocalReferenceDataAsync();
+
                 UpdateOnlineStatus();
 
                 // ⭐ Очищаем локальную базу от старых расчетов (всегда, даже оффлайн)
@@ -699,6 +703,60 @@ namespace Metal_Code
             catch (Exception ex)
             {
                 Trace.WriteLine($"⚠️ Ошибка проверки новых расчётов: {ex.Message}");
+            }
+        }
+
+        private async void ExportReferenceSeed_Click(object sender, RoutedEventArgs e)
+        {
+            // Дублирующая защита: UI-скрытие — не единственная линия обороны
+            if (CurrentManager == null || !CurrentManager.IsAdmin) return;
+
+            var answer = MessageBox.Show(
+                "Экспортировать текущие справочники (материалы, типовые детали, работы) в JSON-файлы " +
+                "для встраивания в сборку в качестве оффлайн-эталона?\n\n" +
+                (DataService.IsOnline
+                    ? "Локальные копии будут предварительно обновлены из серверной базы PG."
+                    : "⚠ Подключения к PG нет: будет экспортирована локальная копия справочников."),
+                "Обновление эталона справочников",
+                MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (answer != MessageBoxResult.Yes) return;
+
+            try
+            {
+                IsEnabled = false;
+                StatusBegin("Экспорт эталона справочников...", StatusMessageType.Info);
+
+                // Папка рядом с EXE; если туда писать нельзя (Program Files без прав) — в Документы
+                string folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SeedExport");
+                try { Directory.CreateDirectory(folder); }
+                catch (UnauthorizedAccessException)
+                {
+                    folder = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "MetalCodeSeed");
+                    Directory.CreateDirectory(folder);
+                }
+
+                await DataService.ExportReferenceDataForSeedAsync(folder);
+
+                StatusBegin("Эталон справочников экспортирован.", StatusMessageType.Success);
+                MessageBox.Show(
+                    $"Файлы сохранены в папку:\n{folder}\n\n" +
+                    "Скопируйте их в проект в папку Resources (Build Action: Embedded Resource) — " +
+                    "в следующей сборке они станут оффлайн-эталоном.",
+                    "Готово", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                Process.Start(new ProcessStartInfo { FileName = folder, UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                string fullError = ex.InnerException != null ? $"{ex.Message} | Inner: {ex.InnerException.Message}" : ex.Message;
+                Trace.WriteLine($"Ошибка экспорта эталона: {fullError}");
+                MessageBox.Show($"Не удалось экспортировать эталон:\n{fullError}",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            finally
+            {
+                IsEnabled = true;
             }
         }
 
