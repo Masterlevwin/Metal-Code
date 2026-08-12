@@ -342,9 +342,10 @@ namespace Metal_Code
     {
         Unknown,          // Не определено
         Rectangle,        // Прямоугольная листовая деталь
-        Round,            // Круглая листовая деталь или круг (пруток)
+        Round,            // Круглая листовая деталь
         RectangularTube,  // Прямоугольная труба
         RoundTube,        // Круглая труба
+        Circle,           // Круглый пруток
         SquareBar,        // Квадратный пруток 
         Angle,            // Уголок
         Channel,          // Швеллер

@@ -21,15 +21,9 @@ namespace Metal_Code.Utils
                 PartType.Triangle => CreateTriangleSection(part.Width, part.Height),
                 PartType.RectangularTube => CreateRectangularTubeSection(part.Width, part.Height, part.Destiny),
                 PartType.RoundTube => CreateRoundTubeSection(part.Width, part.Destiny),
-
-                // Прутки переиспользуют геометрию профильной трубы
+                PartType.Circle => CreateRoundTubeSection(part.Width, part.Destiny),
                 PartType.SquareBar => CreateRectangularTubeSection(part.Width, part.Width, part.Destiny),
-
-                // Уголки: Width/Height — это полки, Destiny — толщина
-                // Равнополочный: Width == Height, неравнополочный: Width != Height
                 PartType.Angle => CreateAngleSection(part.Width, part.Height, part.Destiny),
-
-                // Швеллер и двутавр: единая толщина для всех элементов
                 PartType.Channel => CreateChannelSection(part.Width, part.Height, part.Destiny),
                 PartType.IBeam => CreateIBeamSection(part.Width, part.Height, part.Destiny),
 
@@ -388,7 +382,9 @@ namespace Metal_Code.Utils
 
             bool isSheetPart = part.PartType == PartType.Round || part.PartType == PartType.Rectangle
                             || part.PartType == PartType.Triangle;
-            bool isPipePart = part.PartType == PartType.RoundTube || part.PartType == PartType.RectangularTube;
+            bool isPipePart = part.PartType == PartType.RoundTube || part.PartType == PartType.RectangularTube
+                            || part.PartType == PartType.Angle || part.PartType == PartType.Channel
+                            || part.PartType == PartType.IBeam;
 
             if (isSheetPart)
             {

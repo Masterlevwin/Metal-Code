@@ -1432,9 +1432,8 @@ namespace Metal_Code
             var partType = title switch
             {
                 "Прямоугольник" => PartType.Rectangle,
-                "Круг" => owner is SawControl saw && saw.Tube == TubeType.circle ? PartType.RoundTube : PartType.Round,
-                "Треугольник" => PartType.Triangle,
-                "Квадрат" => PartType.RectangularTube,
+                "Круг" => PartType.Circle,
+                "Квадрат" => PartType.SquareBar,
                 "Профильная труба" => PartType.RectangularTube,
                 "Круглая труба" => PartType.RoundTube,
                 "Уголок" => PartType.Angle,
@@ -1453,13 +1452,7 @@ namespace Metal_Code
             };
 
             // Устанавливаем базовые размеры
-            if (partType == PartType.Round || partType == PartType.Rectangle || partType == PartType.Triangle)
-                part.Width = part.Height = 100;
-            else if (partType == PartType.RoundTube)
-            {
-                part.Width = part.Height = type != null ? type.A : 100;
-                part.Length = 1000; // базовая длина 1 метр
-            }
+            if (partType == PartType.Rectangle) part.Width = part.Height = 100;
             else
             {
                 part.Width = type != null ? type.A : 100;

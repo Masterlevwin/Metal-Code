@@ -16,8 +16,15 @@ namespace Metal_Code.Converters
             {
                 "Rectangle" => "Прямоугольник",
                 "Round" => "Круг",
+                "Triangle" => "Треугольник",
+                "Custom" => "Произвольная форма",
                 "RectangularTube" => "Профильная труба",
                 "RoundTube" => "Круглая труба",
+                "Angle" => "Уголок",
+                "Channel" => "Швеллер",
+                "IBeam" => "Двутавр",
+                "Circle" => "Круглый прут",
+                "SquareBar" => "Квадратный прут",
                 _ => type // Если тип неизвестен, оставляем как есть
             };
         }

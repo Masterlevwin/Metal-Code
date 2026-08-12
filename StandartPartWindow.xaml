@@ -72,7 +72,7 @@
                                     </StackPanel>
 
                                     <!-- Длина (только для труб/профилей) -->
-                                    <StackPanel Grid.Column="2" Margin="0,0,10,0" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='RoundTube,RectangularTube,Angle,Channel,IBeam'}">
+                                    <StackPanel Grid.Column="2" Margin="0,0,10,0" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='RoundTube,RectangularTube,Angle,Channel,IBeam,Circle,SquareBar'}">
                                         <TextBlock Text="Длина (мм):" Margin="0,0,0,3" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
                                         <TextBox Text="{Binding Length}" hc:InfoElement.Placeholder="1000" Style="{StaticResource TextBoxExtend}" FontSize="14" FontWeight="SemiBold"/>
                                     </StackPanel>
@@ -241,10 +241,12 @@
                                                 <TextBlock Text="{Binding Title}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
                                                 <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
                                                     <TextBlock Text="{Binding PartType, Converter={StaticResource PartTypeToLocalizedNameConverter}}" FontStyle="Italic" Foreground="DimGray" Margin="0,0,6,0"/>
-                                                    <TextBlock Text="{Binding Width, StringFormat={}{0:0}×}" Foreground="DimGray" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Rectangle'}"/>
-                                                    <TextBlock Text="{Binding Height, StringFormat={}{0:0}}" Foreground="DimGray" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Rectangle'}"/>
-                                                    <TextBlock Text="{Binding Width, StringFormat=Ø{0:0}}" Foreground="DimGray" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round'}"/>
-
+                                                    <TextBlock Text="{Binding Width, StringFormat={}{0:0}×}" Foreground="DimGray" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Rectangle,Triangle,Custom,RectangularTube,Angle,Channel,IBeam'}"/>
+                                                    <TextBlock Text="{Binding Height, StringFormat={}{0:0}}" Foreground="DimGray" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Rectangle,Triangle,Custom,RectangularTube,Angle,Channel,IBeam'}"/>
+                                                    <TextBlock Text="{Binding Width, StringFormat=Ø{0:0}}" Foreground="DimGray" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,RoundTube,Circle'}"/>
+                                                    <TextBlock Text="{Binding Height, StringFormat={}{0:0}}" Foreground="DimGray" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='SquareBar'}"/>
+                                                    <TextBlock Text="{Binding Length, StringFormat={}\ L{0:0}}" Foreground="DimGray" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='RoundTube,RectangularTube,Angle,Channel,IBeam,Circle,SquareBar'}"/>
+                                                    
                                                     <!-- Expander с отверстиями -->
                                                     <Expander Margin="10,0,0,0" Visibility="{Binding HoleGroups.Count, Converter={StaticResource IntToVisibilityConverter}, ConverterParameter='0'}" Width="100" VerticalAlignment="Center">
                                                         <Expander.Header>

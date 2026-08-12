@@ -710,9 +710,10 @@ namespace Metal_Code
         {
             // Дублирующая защита: UI-скрытие — не единственная линия обороны
             if (CurrentManager == null || !CurrentManager.IsAdmin) return;
+            if (DataService == null) return;
 
             var answer = MessageBox.Show(
-                "Экспортировать текущие справочники (материалы, типовые детали, работы) в JSON-файлы " +
+                "Экспортировать текущие справочники (материалы, заготовки, работы) в JSON-файлы " +
                 "для встраивания в сборку в качестве оффлайн-эталона?\n\n" +
                 (DataService.IsOnline
                     ? "Локальные копии будут предварительно обновлены из серверной базы PG."
@@ -726,26 +727,28 @@ namespace Metal_Code
                 IsEnabled = false;
                 StatusBegin("Экспорт эталона справочников...", StatusMessageType.Info);
 
-                // Папка рядом с EXE; если туда писать нельзя (Program Files без прав) — в Документы
-                string folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SeedExport");
-                try { Directory.CreateDirectory(folder); }
-                catch (UnauthorizedAccessException)
-                {
-                    folder = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "MetalCodeSeed");
-                    Directory.CreateDirectory(folder);
-                }
+                // Просто в папку с EXE
+                string folder = AppDomain.CurrentDomain.BaseDirectory;
 
                 await DataService.ExportReferenceDataForSeedAsync(folder);
 
                 StatusBegin("Эталон справочников экспортирован.", StatusMessageType.Success);
                 MessageBox.Show(
-                    $"Файлы сохранены в папку:\n{folder}\n\n" +
-                    "Скопируйте их в проект в папку Resources (Build Action: Embedded Resource) — " +
-                    "в следующей сборке они станут оффлайн-эталоном.",
+                    $"✅ Файлы сохранены рядом с программой:\n{folder}\n\n" +
+                    "Добавьте их в проект через Add → Existing Item и установите:\n" +
+                    "• Build Action: Embedded Resource\n" +
+                    "• Copy to Output Directory: Do not copy",
                     "Готово", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                Process.Start(new ProcessStartInfo { FileName = folder, UseShellExecute = true });
+                // Открываем папку и выделяем файлы в проводнике
+                var filesToSelect = new[]
+                {
+            Path.Combine(folder, "seed_metals.json"),
+            Path.Combine(folder, "seed_typedetails.json"),
+            Path.Combine(folder, "seed_works.json")
+        };
+                var args = string.Join(",", filesToSelect.Select(f => $"/select,\"{f}\""));
+                Process.Start("explorer.exe", args);
             }
             catch (Exception ex)
             {
