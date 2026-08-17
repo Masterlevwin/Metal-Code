@@ -117,6 +117,77 @@ namespace Metal_Code
                                 Directory.Move(folderToRename, destinationPath);
                                 string fullPath = Path.Combine(destinationPath, fileName);
 
+                                // 🔥 =====================================================================
+                                // 🔥 АВТОМАТИЧЕСКИЙ ЭКСПОРТ PDF РАСКЛАДОК В ПАПКУ "Лазер" внутри КП
+                                // 🔥 =====================================================================
+                                try
+                                {
+                                    // Проходим по всем деталям и работам, чтобы найти активные CutControl с раскладками
+                                    foreach (var detail in MainWindow.M.DetailControls)
+                                    {
+                                        foreach (var typeDetail in detail.TypeDetailControls)
+                                        {
+                                            foreach (var work in typeDetail.WorkControls)
+                                            {
+                                                if (work.workType is CutControl cut && cut.PartsControl != null && cut.Items != null)
+                                                {
+                                                    var sheetsToExport = cut.Items
+                                                        .Where(i => i.NestingSheet != null && i.NestingSheet.Parts.Count > 0)
+                                                        .ToList();
+
+                                                    if (sheetsToExport.Any())
+                                                    {
+                                                        // Формируем имя файла так же, как в экспресс-расчете
+                                                        string metalName = cut.work.type.MetalDrop.Text;
+                                                        float thickness = cut.work.type.S;
+
+                                                        string description = "";
+                                                        if ((metalName.Contains("ст") && thickness >= 3) || (metalName.Contains("хк") && thickness < 3)) description = $"s{thickness}";
+                                                        else if (metalName.Contains("амг2")) description = $"al{thickness}";
+                                                        else if (metalName.Contains("амг") || metalName.Contains("д16")) description = $"al{thickness} {metalName}";
+                                                        else if (metalName.Contains("латунь")) description = $"br{thickness}";
+                                                        else if (metalName.Contains("медь")) description = $"cu{thickness}";
+                                                        else description = $"s{thickness} {metalName}";
+
+                                                        if (cut.IsGrooved) description += " рифл";
+                                                        if (cut.work.type.CheckMetal.IsChecked is false) description += " Давальч";
+
+                                                        // Очищаем от недопустимых символов
+                                                        foreach (char c in Path.GetInvalidFileNameChars())
+                                                        {
+                                                            description = description.Replace(c, '_');
+                                                        }
+
+                                                        string pdfFileName = $"{description}.pdf";
+
+                                                        // Целевая папка: ...\КП (от ...)\Раскладки
+                                                        string laserFolder = Path.Combine(destinationPath, "Раскладки");
+
+                                                        // Гарантируем существование папки
+                                                        if (!Directory.Exists(laserFolder))
+                                                        {
+                                                            Directory.CreateDirectory(laserFolder);
+                                                        }
+
+                                                        string pdfFullPath = Path.Combine(laserFolder, pdfFileName);
+
+                                                        // Вызываем метод генерации (выполняется в UI-потоке, так как мы еще до первого await)
+                                                        cut.PartsControl.GenerateNestingPdf(pdfFullPath);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                catch (Exception pdfEx)
+                                {
+                                    // Логируем ошибку экспорта PDF, но не прерываем основной процесс сохранения
+                                    Trace.WriteLine($"Ошибка экспорта PDF раскладок: {pdfEx.Message}");
+                                    MainWindow.M.Log += $"\n⚠️ Не удалось сформировать PDF раскладки: {pdfEx.Message}";
+                                }
+                                // 🔥 =====================================================================
+
+
                                 // ⭐ СОХРАНЕНИЕ В БАЗУ ЧЕРЕЗ СЕРВИС
                                 MainWindow.M.StatusBegin("Сохранение расчета в базу...", MainWindow.StatusMessageType.Info);
 

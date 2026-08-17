@@ -3587,7 +3587,6 @@ namespace Metal_Code
                 worksheet.Cells[row, 8].Value = DeliveryRatio * Delivery * Ratio;
                 row++;
                 worksheet.Cells[row + 4, 2].Value = $"Доставка силами Исполнителя по адресу: {Adress.Text}.";
-
             }
             else
             {
@@ -3595,6 +3594,9 @@ namespace Metal_Code
                     "Колтуши, деревня Мяглово, ул. Дорожная, уч. 4Б.";
             }
             worksheet.Cells[row + 4, 2].Style.WrapText = true;
+            worksheet.Cells[row + 4, 7].Value = $"Вес деталей:";
+            worksheet.Cells[row + 4, 8].Value = $"{GetTotalMass()} кг";
+            worksheet.Cells[row + 4, 8].Style.Font.Bold = true;
 
             //приводим float-значения типа 0,699999993 к формату 0,7
             foreach (var cell in worksheet.Cells[8, 2, row, 2])
@@ -3669,6 +3671,81 @@ namespace Metal_Code
                 worksheet.Cells[row + 1, 4].Style.WrapText = true;
             }
 
+            //заодно создаем лист с раскладками
+            ExcelWorksheet itemsheet = workbook.Workbook.Worksheets.Add("Раскладки");
+            int namePic = 0;            //порядковое имя картинки
+
+            foreach (TypeDetailControl type in allTypeDetails)
+                foreach (WorkControl work in type.WorkControls)
+                    if (work.workType is ICut cut && cut.Items?.Count > 0)
+                    {
+                        foreach (LaserItem item in cut.Items)
+                        {
+                            if (item.NestingSheet != null)
+                            {
+                                // 1. Создаём контрол
+                                var preview = new NestingPreviewControl { Margin = new Thickness(0) };
+
+                                // 2. Показываем лист (контрол сам пересчитает внутренние размеры Canvas)
+                                preview.ShowSheet(item.NestingSheet);
+
+                                // 3. ВАЖНО: Получаем реальные размеры всего контрола вместе с подписями
+                                double totalWidth = item.NestingSheet.StockWidth + 50;  // LabelMarginLeft = 50
+                                double totalHeight = item.NestingSheet.StockHeight + 40; // LabelMarginBottom = 40
+
+                                // 4. Принудительно измеряем и располагаем контрол в этих полных размерах
+                                preview.Measure(new Size(totalWidth, totalHeight));
+                                preview.Arrange(new Rect(0, 0, totalWidth, totalHeight));
+                                preview.UpdateLayout();
+
+                                // 5. Задаём целевой размер картинки в пикселях (масштабируем под Excel)
+                                int targetPixelWidth = 800;
+                                // Сохраняем пропорции полного размера (с подписями)
+                                int targetPixelHeight = (int)(totalHeight * targetPixelWidth / totalWidth);
+
+                                // 6. Рендерим в PNG
+                                byte[] pngBytes = WpfImageHelper.RenderVisualToPng(preview, targetPixelWidth, targetPixelHeight);
+
+                                // 7. Вставляем в Excel
+                                string uniqueName = $"Nesting_{item.NestingSheet.Id.ToString("N")[..8]}";
+                                using var stream = new MemoryStream(pngBytes);
+                                ExcelPicture pic = itemsheet.Drawings.AddPicture(uniqueName, stream);
+
+                                // Позиционирование
+                                pic.SetPosition(namePic, 10, 1, 10);
+
+                                // Подпись
+                                itemsheet.Cells[namePic + 1, 1].Value = $"s{type.S} {type.MetalDrop.Text}";
+                                itemsheet.Cells[namePic + 1, 1].Style.TextRotation = 90;
+                                itemsheet.Cells[namePic + 1, 1].Style.Font.Bold = true;
+                                itemsheet.Cells[namePic + 1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                                itemsheet.Cells[namePic + 1, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+
+                                // Высота строки под картинку
+                                itemsheet.Row(namePic + 1).Height = targetPixelHeight / 1.33 + 10;
+
+                                namePic++;
+                            }
+                            else if (item.imageBytes is not null)
+                            {
+                                // Старая логика для byte[] изображений
+                                using var stream = new MemoryStream(item.imageBytes);
+                                string uniqueName = $"Image_{Guid.NewGuid().ToString("N")[..8]}";
+                                ExcelPicture pic = itemsheet.Drawings.AddPicture(uniqueName, stream);
+
+                                itemsheet.Cells[namePic + 1, 1].Value = $"s{type.S} {type.MetalDrop.Text}";
+                                itemsheet.Cells[namePic + 1, 1].Style.TextRotation = 90;
+                                itemsheet.Cells[namePic + 1, 1].Style.Font.Bold = true;
+                                itemsheet.Cells[namePic + 1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                                itemsheet.Cells[namePic + 1, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                                itemsheet.Row(namePic + 1).Height = 400;
+                                pic.SetPosition(namePic, 10, 1, 10);
+                                namePic++;
+                            }
+                        }
+                        break;
+                    }
+
             worksheet.Cells[row + 2, 1].Value = "Срок изготовления:";
             worksheet.Cells[row + 2, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
             worksheet.Cells[row + 2, 2].Value = DateProduction.Text + " раб/дней.";
@@ -3687,8 +3764,8 @@ namespace Metal_Code
             worksheet.Cells[row + 3, 2, row + 3, 5].Merge = true;
 
             worksheet.Cells[row + 4, 1].Value = "Порядок отгрузки:";
-            worksheet.Cells[row + 4, 1, row + 4, 2].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
-            worksheet.Cells[row + 4, 2, row + 4, 8].Merge = true;
+            worksheet.Cells[row + 4, 1, row + 4, 8].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+            worksheet.Cells[row + 4, 2, row + 4, 6].Merge = true;
 
             worksheet.Cells[row + 5, 1].Value = "Точность:";
             worksheet.Cells[row + 5, 2].Value = "H14/h14 +-IT 14/2 (резка осуществляется воздухом).";
@@ -4092,8 +4169,9 @@ namespace Metal_Code
             scoresheet.Cells[extable.Rows + 2, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
             scoresheet.Names.Add("totalDetails", scoresheet.Cells[2, 2, extable.Rows + 1, 2]);
             scoresheet.Cells[extable.Rows + 2, 2].Formula = "=SUM(totalDetails)";
-            scoresheet.Cells[extable.Rows + 2, 2].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-            scoresheet.Cells[extable.Rows + 2, 1].Style.Font.Bold = scoresheet.Cells[extable.Rows + 2, 2].Style.Font.Bold = true;
+            scoresheet.Cells[extable.Rows + 2, 3].Value = $"({GetTotalMass()} кг)";
+            scoresheet.Cells[extable.Rows + 2, 2, extable.Rows + 2, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+            scoresheet.Cells[extable.Rows + 2, 1, extable.Rows + 2, 3].Style.Font.Bold = true;
 
             ExcelRange totals = scoresheet.Cells[rowStat + 2, 5, rowStat + 3, 25];
             totals.Style.Fill.SetBackground(System.Drawing.Color.PowderBlue);
@@ -4160,11 +4238,15 @@ namespace Metal_Code
 
             // ----- таблица стоимости материала, доставки и конструкторских работ (Лист2 - "Реестр") -----
 
-            ExcelRange material = statsheet.Cells[5 + temp, 2, 7 + temp, 3];
+            ExcelRange material = statsheet.Cells[5 + temp, 2, 7 + temp, 5];
             material.Style.Fill.PatternType = ExcelFillStyle.Solid;
             material.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.Lavender);
             statsheet.Cells[5 + temp, 2].Value = "Материал:";
             statsheet.Cells[5 + temp, 3].Value = Math.Round(GetMaterial(), 2);
+            statsheet.Cells[5 + temp, 4].Value = "Вес деталей:";
+            statsheet.Cells[5 + temp, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            statsheet.Cells[5 + temp, 5].Value = $"{GetTotalMass()} кг";
+            statsheet.Cells[5 + temp, 5].Style.Font.Bold = true;
             statsheet.Cells[6 + temp, 2].Value = "Доставка:";
             statsheet.Cells[6 + temp, 3].Value = Delivery * DeliveryRatio;
             statsheet.Cells[7 + temp, 2].Value = "Конструктор:";
@@ -5347,29 +5429,96 @@ namespace Metal_Code
             //устанавливаем колонтитул (в данном случае будет подчеркнутое название файла)            
             complectsheet.HeaderFooter.OddFooter.RightAlignedText = $"&24&U&\"Arial Rounded MT Bold\" {Path.GetFileNameWithoutExtension(ExcelHeaderFooter.FileName)}";
 
-            //сохраняем книгу в файл Excel
-            if (offer is not null && offer.Order is not null && Directory.Exists(_path))    //если в параметре передан расчет, подразумевается, что заказ создан
-            {                                                                               //и файл комплектации нужно сохранить в папке заказа
-                UpdateOffer(offer);                                 //добавляем номер заказа в ячейки реестров
-                string[] dirs = Directory.GetDirectories(_path);    //получаем все подкаталоги в папке Y:\\Производство\\Laser rezka\\В работу"
-                foreach (string s in dirs)
-                {
-                    if (s.Contains(offer.Order.Remove(4)))                    //ищем подкаталог с номером заказа
-                    {
-                        string[] files = Directory.GetFileSystemEntries(s);   //получаем все файлы в папке заказа, чтобы сохранить файл комплектации в директории этих файлов
-                        if (files.Length > 0)
-                        {
-                            workbook.SaveAs($"{Path.GetDirectoryName(files[0])}\\{offer.Order} {CustomerDrop.Text} - комплектация.xlsx");
-                            CreateRegistry(files[0], offer.Order);
+            // Сохраняем книгу в файл Excel
+            if (offer is not null && !string.IsNullOrEmpty(offer.Order) && Directory.Exists(_path))
+            {
+                UpdateOffer(offer); // Добавляем номер заказа в ячейки реестров
 
-                            StatusBegin($"Изменения в базе сохранены. Кроме того созданы файлы комплектации и списка задач в папке {Path.GetDirectoryName(files[0])}", StatusMessageType.Success);
-                            break;
+                bool orderFolderFound = false;
+                string[] dirs = Directory.GetDirectories(_path);
+
+                foreach (string dir in dirs)
+                {
+                    string dirName = Path.GetFileName(dir);
+
+                    // 🔥 НАДЕЖНАЯ ПРОВЕРКА: ищем папку, имя которой начинается с номера заказа 
+                    // (или содержит его, если у вас формат "№1234 Иванов"). 
+                    // Избегаем хрупкого Remove(4).
+                    if (dirName.StartsWith(offer.Order) || dirName.Contains($"-{offer.Order}"))
+                    {
+                        // Очищаем имя клиента от недопустимых символов для имени файла (защита от ошибок SaveAs)
+                        string safeCustomerName = new string(CustomerDrop.Text
+                            .Where(c => !Path.GetInvalidFileNameChars().Contains(c))
+                            .ToArray()).Trim();
+
+                        string fileName = $"{offer.Order} {safeCustomerName} - комплектация.xlsx";
+                        string compilationFilePath = Path.Combine(dir, fileName);
+
+                        try
+                        {
+                            // Сохраняем файл комплектации в папку заказа
+                            workbook.SaveAs(compilationFilePath);
+                            orderFolderFound = true;
+
+                            if (!string.IsNullOrEmpty(offer.Act))
+                            {
+                                var projectRoot = Path.GetDirectoryName(Path.GetDirectoryName(offer.Act));
+
+                                if (!string.IsNullOrEmpty(projectRoot))
+                                {
+                                    string tzDir = Path.Combine(projectRoot, "ТЗ");
+                                    Directory.CreateDirectory(tzDir);
+
+                                    // Создаем реестр задач в гарантированно существующей папке
+                                    CreateRegistry(tzDir, offer.Order);
+                                }
+                                else
+                                {
+                                    StatusBegin("Не удалось определить корень проекта для создания папки 'ТЗ'.", StatusMessageType.Warning);
+                                }
+                            }
+                            else
+                            {
+                                StatusBegin("Путь к расчету (Act) не указан. Реестр задач не создан.", StatusMessageType.Warning);
+                            }
+
+                            StatusBegin("Изменения в базе сохранены. Файлы комплектации и списка задач успешно созданы.", StatusMessageType.Success);
                         }
-                        else StatusBegin($"Изменения в базе сохранены. Но файл комплектации не создан, так как в папке заказа нет файлов.", StatusMessageType.Warning);
+                        catch (Exception ex)
+                        {
+                            StatusBegin($"Ошибка сохранения файлов заказа: {ex.Message}", StatusMessageType.Error);
+                        }
+
+                        break; // Папка найдена и обработана, выходим из цикла
                     }
                 }
+
+                // 🔥 FALLBACK: Если папка с таким номером заказа не найдена среди подкаталогов
+                if (!orderFolderFound)
+                {
+                    string safeCustomerName = new string(CustomerDrop.Text
+                        .Where(c => !Path.GetInvalidFileNameChars().Contains(c))
+                        .ToArray()).Trim();
+
+                    string fallbackDir = Path.GetDirectoryName(_path) ?? _path;
+                    string fallbackPath = Path.Combine(fallbackDir, $"{Order.Text} {safeCustomerName} - комплектация.xlsx");
+
+                    workbook.SaveAs(fallbackPath);
+                    StatusBegin($"Изменения в базе сохранены. Папка заказа не найдена, файл комплектации сохранен в родительскую директорию.", StatusMessageType.Warning);
+                }
             }
-            else workbook.SaveAs($"{Path.GetDirectoryName(_path)}\\{Order.Text} {CustomerDrop.Text} - комплектация.xlsx");
+            else
+            {
+                // 🔥 FALLBACK: Если offer, Order null или _path не существует
+                string safeCustomerName = new string(CustomerDrop.Text
+                    .Where(c => !Path.GetInvalidFileNameChars().Contains(c))
+                    .ToArray()).Trim();
+
+                string fallbackDir = Path.GetDirectoryName(_path) ?? _path;
+                string fallbackPath = Path.Combine(fallbackDir, $"{Order.Text} {safeCustomerName} - комплектация.xlsx");
+
+                workbook.SaveAs(fallbackPath);
+            }
         }
 
         private static string GetDimensionsString(Dictionary<int, List<string>> propsDict)
@@ -5564,7 +5713,7 @@ namespace Metal_Code
         }
 
         //-ЗАДАЧИ
-        private void CreateRegistry(string _path, string _order)
+        private void CreateRegistry(string _tzDir, string _order)
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
@@ -5762,7 +5911,8 @@ namespace Metal_Code
             }
             ExcelRange taskRange = tasksheet.Cells[1, 1, temp - 1, 9];
 
-            var file = new FileInfo($"{Path.GetDirectoryName(_path)}\\{_order} {CustomerDrop.Text} - список задач.csv");
+            var path = Path.Combine(_tzDir, $"{_order} {CustomerDrop.Text} - список задач.csv");
+            var file = new FileInfo(path);
             var format = new ExcelOutputTextFormat
             {
                 Delimiter = ';',
@@ -8736,6 +8886,17 @@ namespace Metal_Code
 
                         if (!Directory.Exists(newKpPath))
                         {
+                            // 🔥 1. КЭШИРУЕМ имя промежуточной папки ДО переименования корня
+                            string kpSubFolderName = "";
+                            if (!string.IsNullOrEmpty(offer.Act))
+                            {
+                                var offerDir = Path.GetDirectoryName(offer.Act);
+
+                                if (!string.IsNullOrEmpty(offerDir))
+                                    kpSubFolderName = Path.GetFileName(offerDir);
+                            }
+
+                            // 2. Переименовываем корневую папку
                             Directory.Move(sourceDir, newKpPath);
 
                             // === Безопасное обновление offer.Act ===
@@ -8743,17 +8904,15 @@ namespace Metal_Code
                             {
                                 string fileName = Path.GetFileName(offer.Act);
 
-                                // Если старый путь невалиден (папку уже переименовали), 
-                                // мы просто собираем новый путь из новой папки и имени файла.
-                                if (!File.Exists(offer.Act))
+                                // 🔥 3. СОБИРАЕМ новый путь, сохраняя промежуточную папку
+                                if (!string.IsNullOrEmpty(kpSubFolderName))
                                 {
-                                    offer.Act = Path.Combine(newKpPath, fileName);
+                                    offer.Act = Path.Combine(newKpPath, kpSubFolderName, fileName);
                                 }
                                 else
                                 {
-                                    // Если файл всё ещё существует по старому пути (на случай, если это была подпапка)
-                                    string relativePath = Path.GetRelativePath(sourceDir, offer.Act);
-                                    offer.Act = Path.Combine(newKpPath, relativePath);
+                                    // Фоллбэк, если по какой-то причине подпапку не удалось определить
+                                    offer.Act = Path.Combine(newKpPath, fileName);
                                 }
                             }
                         }
@@ -9088,6 +9247,9 @@ namespace Metal_Code
             if (ActiveOffer != null && ActiveOffer.Order != null) sb.Append($", №{ActiveOffer.Order}");
             else sb.Append($", №{Order.Text}");
 
+            //если есть номер счета, добавляем его
+            if (ActiveOffer != null && ActiveOffer.Invoice != null) sb.Append($", (по счету {ActiveOffer.Invoice})");
+
             sb.Append($", {CustomerDrop.Text}({ShortManager()})");  //добавляем заказчика и менеджера в сокращенном виде
             sb.Append($", примерно {GetTotalMass()} кг;");          //добавляем массу всех деталей
             sb.Append($" {Adress.Text}");                           //и, наконец, адрес доставки и контакт
@@ -9096,7 +9258,7 @@ namespace Metal_Code
             return $"{sb}";
         }
 
-        private float GetTotalMass()        //метод расчета общей массы ВСЕХ деталей
+        public float GetTotalMass()        //метод расчета общей массы ВСЕХ деталей
         {
             float total = 0;
 

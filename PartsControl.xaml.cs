@@ -1339,14 +1339,12 @@ namespace Metal_Code
         private void Add_StandartPart_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not ToggleButton btn) return;
-
             btn.IsChecked = true;
 
             try
             {
                 (Metal? metal, float thickness, string? metalName) = GetMetalAndThickness(owner);
-                if (metal == null || string.IsNullOrEmpty(metalName))
-                    return;
+                if (metal == null || string.IsNullOrEmpty(metalName)) return;
 
                 var templatePart = CreateStandardPart(metalName, thickness, 0);
                 if (templatePart == null) return;
@@ -1357,6 +1355,7 @@ namespace Metal_Code
                 if (window.ShowDialog() == true)
                 {
                     var batchedParts = window.GetBatchedParts();
+                    var bendsInfo = window.GetBendsInfoForBatch();
 
                     if (batchedParts.Count > 0)
                     {
@@ -1367,8 +1366,7 @@ namespace Metal_Code
 
                         if (owner is CutControl cut)
                         {
-                            // 🔥 ПЕРЕДАЕМ ОТСТУП В МЕТОД
-                            AddBatchToCutControl(cut, batchedParts, metal, window.UseAutoNesting, window.CustomSpacing);
+                            AddBatchToCutControl(cut, batchedParts, metal, window.UseAutoNesting, window.CustomSpacing, bendsInfo);
                         }
                         else if (owner is PipeControl pipe)
                         {
@@ -1565,7 +1563,8 @@ namespace Metal_Code
         /// <summary>
         /// Добавляет КОЛЛЕКЦИЮ деталей с общим нестингом на минимальное количество листов
         /// </summary>
-        public void AddBatchToCutControl(CutControl cut, List<Part> parts, Metal metal, bool isAutoSheet = true, double customSpacing = 0)
+        public void AddBatchToCutControl(CutControl cut, List<Part> parts, Metal metal, bool isAutoSheet = true,
+            double customSpacing = 0, Dictionary<Part, Dictionary<double, (int Count, double BendLength)>>? bendsInfo = null)
         {
             if (parts == null || parts.Count == 0)
                 return;
@@ -1639,7 +1638,23 @@ namespace Metal_Code
                 if (!cut.Parts.Contains(partControl)) cut.Parts.Add(partControl);
 
                 cut.PartDetails ??= new();
-                if (!cut.PartDetails.Contains(part)) cut.PartDetails.Add(part);  
+                if (!cut.PartDetails.Contains(part)) cut.PartDetails.Add(part);
+
+                // 🔥 АВТОМАТИЧЕСКОЕ СОЗДАНИЕ БЛОКОВ ГИБКИ
+                if (bendsInfo != null && bendsInfo.TryGetValue(part, out var partBends))
+                {
+                    foreach (var bendData in partBends.Values)
+                    {
+                        var bendControl = new BendControl(partControl);
+                        partControl.AddControl(bendControl);
+
+                        // Устанавливаем количество гибов
+                        bendControl.SetBend(bendData.Count.ToString());
+
+                        // Устанавливаем диапазон длины гиба (полку)
+                        bendControl.SetShelf(GetShelfIndex(bendData.BendLength));
+                    }
+                }
             }
 
             // Обновляем итоговые значения
@@ -1674,6 +1689,18 @@ namespace Metal_Code
             }
 
             return groups;
+        }
+
+        /// <summary>
+        /// Определяет индекс диапазона длины гиба для ComboBox (ShelfDrop) на основе длины в мм.
+        /// Диапазоны в BendDict: "до 0.5" (<500), "0.5-1" (<1000), "1-1.3" (<1300), "1.3-2.55" (<2550)
+        /// </summary>
+        private int GetShelfIndex(double bendLengthMm)
+        {
+            if (bendLengthMm < 500) return 0;      // "до 0.5"
+            if (bendLengthMm < 1000) return 1;     // "0.5-1"
+            if (bendLengthMm < 1300) return 2;     // "1-1.3"
+            return 3;                               // "1.3-2.55"
         }
 
         /// <summary>
@@ -1901,40 +1928,59 @@ namespace Metal_Code
         // Расчет площади окрашивания детали
         private double SquareToPaint(Part part)
         {
-            if (owner is PipeControl pipe)
+            // 1. Извлекаем общие данные через pattern matching, чтобы избежать дублирования switch
+            var (tubeType, length, way, mass, a, b, s, selectedIndex, typeDetailText, channelsSquare, beamDict) = owner switch
             {
-                return pipe.Tube switch
-                {
-                    TubeType.rect => part.Length * (pipe.work.type.A + pipe.work.type.B) * 2 / 1000000,
-                    TubeType.round => (float)(part.Length * pipe.work.type.A * Math.PI / 1000000),
-                    TubeType.circle => (float)(2 * part.Length * pipe.work.type.A * Math.PI / 1000000),
-                    TubeType.square => part.Length * (pipe.work.type.A + pipe.work.type.B) * 2 / 1000000,
-                    TubeType.rod => 2 * (part.Length * pipe.work.type.A + part.Way * pipe.work.type.B + pipe.work.type.A * pipe.work.type.B) / 1000000,
-                    TubeType.channel => pipe.work.type.ChannelsSquare[pipe.work.type.SortDrop.SelectedIndex] * part.Mass / 1000,
-                    TubeType.corner => part.Length * pipe.work.type.S * (pipe.work.type.A + pipe.work.type.A - pipe.work.type.S) / 1000000,
-                    TubeType.freeform => part.Length * pipe.work.type.S * (pipe.work.type.A + pipe.work.type.B - pipe.work.type.S) / 1000000,
-                    TubeType.ibeam => pipe.work.type.BeamDict[pipe.work.type.TypeDetailDrop.Text][pipe.work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000,
-                    _ => 0,
-                };
-            }
-            else if (owner is SawControl saw)
-            {
-                return saw.Tube switch
-                {
-                    TubeType.rect => part.Length * (saw.work.type.A + saw.work.type.B) * 2 / 1000000,
-                    TubeType.round => (float)(part.Length * saw.work.type.A * Math.PI / 1000000),
-                    TubeType.circle => (float)(2 * part.Length * saw.work.type.A * Math.PI / 1000000),
-                    TubeType.square => part.Length * (saw.work.type.A + saw.work.type.B) * 2 / 1000000,
-                    TubeType.rod => 2 * (part.Length * saw.work.type.A + part.Way * saw.work.type.B + saw.work.type.A * saw.work.type.B) / 1000000,
-                    TubeType.channel => saw.work.type.ChannelsSquare[saw.work.type.SortDrop.SelectedIndex] * part.Mass / 1000,
-                    TubeType.corner => part.Length * saw.work.type.S * (saw.work.type.A + saw.work.type.A - saw.work.type.S) / 1000000,
-                    TubeType.freeform => part.Length * saw.work.type.S * (saw.work.type.A + saw.work.type.B - saw.work.type.S) / 1000000,
-                    TubeType.ibeam => saw.work.type.BeamDict[saw.work.type.TypeDetailDrop.Text][saw.work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000,
-                    _ => 0,
-                };
-            }
+                PipeControl pipe => (
+                    pipe.Tube,
+                    part.Length,
+                    part.Way,
+                    part.Mass,
+                    (double)pipe.work.type.A,
+                    (double)pipe.work.type.B,
+                    (double)pipe.work.type.S,
+                    pipe.work.type.SortDrop.SelectedIndex,
+                    pipe.work.type.TypeDetailDrop.Text,
+                    pipe.work.type.ChannelsSquare,
+                    pipe.work.type.BeamDict
+                ),
+                SawControl saw => (
+                    saw.Tube,
+                    part.Length,
+                    part.Way,
+                    part.Mass,
+                    (double)saw.work.type.A,
+                    (double)saw.work.type.B,
+                    (double)saw.work.type.S,
+                    saw.work.type.SortDrop.SelectedIndex,
+                    saw.work.type.TypeDetailDrop.Text,
+                    saw.work.type.ChannelsSquare,
+                    saw.work.type.BeamDict
+                ),
+                _ => throw new InvalidOperationException("Неподдерживаемый тип владельца (owner)")
+            };
 
-            return 0;
+            // 2. Единый расчет площади (мм² переводим в м² делением на 1_000_000.0)
+            return tubeType switch
+            {
+                // Стандартные профили
+                TubeType.rect => length * (a + b) * 2 / 1_000_000.0,
+                TubeType.square => length * (a + b) * 2 / 1_000_000.0,
+                TubeType.round => length * a * Math.PI / 1_000_000.0,
+                TubeType.circle => 2 * length * a * Math.PI / 1_000_000.0,
+                TubeType.rod => 2 * (length * a + way * b + a * b) / 1_000_000.0,
+
+                // Упрощенные формулы развертки для уголков и фасонных профилей
+                TubeType.corner => length * s * (a + a - s) / 1_000_000.0,
+                TubeType.freeform => length * s * (a + b - s) / 1_000_000.0,
+
+                // Справочные данные для швеллеров и двутавров 
+                // (масса в кг делится на 1000.0 для перевода в тонны, так как справочник дает м²/т)
+                TubeType.channel => channelsSquare[selectedIndex] * (mass / 1000.0),
+                TubeType.ibeam => beamDict[typeDetailText][selectedIndex].Item2 * (mass / 1000.0),
+
+                _ => 0
+            };
         }
 
         /// <summary>
@@ -1942,24 +1988,22 @@ namespace Metal_Code
         /// </summary>
         /// <param name="partType">Тип профиля</param>
         /// <param name="width">Ширина/диаметр/полка (мм)</param>
-        /// <param name="height">Высота/вторая полка (мм), для круглых — не используется</param>
-        /// <param name="thickness">Толщина стенки/полки (мм)</param>
+        /// <param name="height">Высота/вторая полка (мм), для круглых и квадратных прутков — не используется</param>
+        /// <param name="thickness">Толщина стенки/полки (мм), для сплошных прутков — игнорируется</param>
         /// <returns>Площадь сечения в мм²</returns>
         public static double CalculateCrossSectionArea(PartType partType,
             double width, double height, double thickness)
         {
+            // Защита от отрицательных и нулевых размеров
+            if (width <= 0) return 0;
+
             // Валидация: толщина не должна превышать 1/3 от меньшего линейного размера
+            // (применяется только к полым и профильным сечениям, на сплошные прутки не влияет)
             double minDim = Math.Min(width, height > 0 ? height : width);
             double t = thickness >= minDim / 3 ? Math.Max(0.1, minDim / 3 - 0.1) : thickness;
 
             return partType switch
             {
-                // === ЛИСТОВЫЕ И ПРОСТЫЕ СЕЧЕНИЯ ===
-                //PartType.Round => Math.PI * Math.Pow(width / 2, 2),
-                //PartType.Rectangle or PartType.SquareBar or PartType.Custom => width * height,
-                //PartType.Triangle => width * height / 2.0,
-
-                // === ТРУБЫ ===
                 PartType.RoundTube => Math.PI * (
                     Math.Pow(width / 2, 2) -
                     Math.Pow(Math.Max(0, width / 2 - t), 2)),
@@ -1968,10 +2012,12 @@ namespace Metal_Code
                     width * height -
                     Math.Max(0, width - 2 * t) * Math.Max(0, height - 2 * t),
 
-                // === ПРОКАТ ===
                 PartType.Angle => t * (width + height - t),
                 PartType.Channel => t * (width + 2 * height - 2 * t),
                 PartType.IBeam => t * (2 * width + height - 2 * t),
+
+                PartType.Circle => Math.PI * Math.Pow(width / 2.0, 2),
+                PartType.SquareBar => width * width,
 
                 _ => 0
             };

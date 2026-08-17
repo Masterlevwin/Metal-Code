@@ -118,12 +118,68 @@ namespace Metal_Code
             OnPriceChanged();
         }
 
+        public const float MaxRollingSide = 1250f;
+        private float _prevA = -1;
+        private float _prevB = -1;
+
         private void SetSide(int ndx = 0)       //метод определения стороны вальцовки
         {
+            float a = 0, b = 0;
+            bool hasSize = false;
+
+            // Получаем текущие габариты
             if (owner is WorkControl w && (Parts == null || Parts.Count == 0))
-                Side = ndx == 0 ? w.type.A : w.type.B;
+            {
+                a = w.type.A;
+                b = w.type.B;
+                hasSize = true;
+            }
             else if (owner is PartControl p && p.Part.PropsDict.ContainsKey(100))
-                Side = ndx == 0 ? MainWindow.Parser(p.Part.PropsDict[100][0]) : MainWindow.Parser(p.Part.PropsDict[100][1]);
+            {
+                a = MainWindow.Parser(p.Part.PropsDict[100][0]);
+                b = MainWindow.Parser(p.Part.PropsDict[100][1]);
+                hasSize = true;
+            }
+
+            if (hasSize && a > 0 && b > 0)
+            {
+                // Автоподбор срабатывает ТОЛЬКО если изменились габариты (или это первый запуск)
+                if (a != _prevA || b != _prevB || _prevA == -1)
+                {
+                    bool aValid = a <= MaxRollingSide;
+                    bool bValid = b <= MaxRollingSide;
+
+                    if (aValid && !bValid) ndx = 0; // Подходит только А
+                    else if (bValid && !aValid) ndx = 1; // Подходит только В
+                    else if (aValid && bValid)
+                    {
+                        ndx = a <= b ? 0 : 1; // Обе подходят -> выбираем минимальную
+
+                        // Добавляем уведомление для пользователя
+                        string logMsg = "\nВнимание: для вальцовки автоматически выбрана минимальная сторона.\nПроверьте, не требуется ли вальцевать большую сторону!\n";
+                        if (string.IsNullOrEmpty(MainWindow.M.Log) || !MainWindow.M.Log.Contains(logMsg))
+                            MainWindow.M.Log += logMsg;
+                    }
+                    else
+                    {
+                        ndx = a <= b ? 0 : 1; // Обе > MaxRollingSide (большие вальцы) -> минимальная
+                    }
+
+                    _prevA = a;
+                    _prevB = b;
+
+                    // Обновляем ComboBox визуально без вызова рекурсии
+                    if (TypeDrop.Items.Count > 0 && TypeDrop.SelectedIndex != ndx)
+                    {
+                        TypeDrop.SelectionChanged -= SetType;
+                        TypeDrop.SelectedIndex = ndx;
+                        TypeDrop.SelectionChanged += SetType;
+                    }
+                }
+            }
+
+            // Устанавливаем значение стороны
+            Side = ndx == 0 ? a : b;
         }
 
         public void OnPriceChanged()
@@ -230,7 +286,7 @@ namespace Metal_Code
             PopupRoll.IsOpen = true;
             Manual.Text = $"Максимальная толщина для малых вальцов – 2,5 мм, для больших - 20 мм." +
                 $"\r\nМинимальный диаметр для малых – 150 мм, для больших - 700 мм." +
-                $"\r\nМаксимальный размер вальцуемой стороны для малых – 1250 мм, для больщих - 2000 мм." +
+                $"\r\nМаксимальный размер вальцуемой стороны для малых – {MaxRollingSide} мм, для больших - 2000 мм." +
                 $"\r\nВальцовка в кольцо сопровождается сваркой прихватками – по умолчанию." +
                 $"\r\nЕсли требуется сварка сплошным швом – добавлять сварку в расчете." +
                 $"\r\nПо требованию производства – создать шаблон на лазер.";

@@ -17,7 +17,8 @@ namespace Metal_Code
     {
         private readonly Part _currentPart;
         private readonly ObservableCollection<Part> _batchBuffer = new();
-
+        private readonly Dictionary<Part, Dictionary<double, (int Count, double BendLength)>> _batchBendsInfo = new();
+        
         // Состояние рисования
         private readonly PointCollection _customPoints = new();
         private bool _isDrawingActive = false;
@@ -50,29 +51,44 @@ namespace Metal_Code
             _currentPart = templatePart;
             DataContext = _currentPart;
             BatchItemsControl.ItemsSource = _batchBuffer;
+            UpdateWindowTitle();
+
+            // Подписываемся на изменение материала/толщины (если они могут меняться)
+            _currentPart.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(Part.Metal) || e.PropertyName == nameof(Part.Destiny))
+                    UpdateWindowTitle();
+
+                if (_currentPart.PartType != PartType.Custom &&
+                    (e.PropertyName == nameof(Part.Width) ||
+                    e.PropertyName == nameof(Part.Height) ||
+                    e.PropertyName == nameof(Part.Length)))
+                {
+                    if (_currentPart.Width > 0 && _currentPart.Height > 0)
+                        UpdatePreview();
+                }
+            };
 
             if (_currentPart.PartType == PartType.Rectangle) RectangleRadio.IsChecked = true;
 
             if (_currentPart.HoleGroups is INotifyCollectionChanged incc)
                 incc.CollectionChanged += (s, e) => UpdatePreview();
 
-            // Подписка на изменение размеров для мгновенной перерисовки шаблонов
-            _currentPart.PropertyChanged += (s, e) =>
-            {
-                if (_currentPart.PartType != PartType.Custom &&
-                    (e.PropertyName == nameof(Part.Width) ||
-                    e.PropertyName == nameof(Part.Height) ||
-                    e.PropertyName == nameof(Part.Length)))
-                {
-                    // Защита от пустых полей при вводе
-                    if (_currentPart.Width > 0 && _currentPart.Height > 0)
-                    {
-                        UpdatePreview();
-                    }
-                }
-            };
-
             UpdatePreview();
+        }
+
+        /// <summary>
+        /// Обновляет заголовок окна и информационную панель с данными о материале
+        /// </summary>
+        private void UpdateWindowTitle()
+        {
+            string metal = _currentPart.Metal ?? "Не выбран";
+            string thickness = _currentPart.Destiny > 0 ? $"{_currentPart.Destiny:0.#} мм" : "—";
+
+            Title = $"Стандартные детали | {metal} | {thickness}";
+
+            if (MaterialInfoText != null)
+                MaterialInfoText.Text = $"📋 Материал: {metal} | Толщина: {thickness}";
         }
 
         private void OnShapeTypeChanged(object sender, RoutedEventArgs e)
@@ -83,6 +99,8 @@ namespace Metal_Code
                 _isContourFinished = false;
                 _customPoints.Clear();
                 DrawingCanvas.Children.Clear();
+
+                ResetBendParameters();
 
                 switch (shapeType)
                 {
@@ -231,6 +249,7 @@ namespace Metal_Code
             if (_currentPart.PartType != PartType.Custom)
             {
                 DrawTemplateGeometry(strokeThickness);
+                DrawBendLines(strokeThickness);
                 return;
             }
 
@@ -1083,6 +1102,15 @@ namespace Metal_Code
 
         public List<Part> GetBatchedParts() => new(_batchBuffer);
 
+        /// <summary>
+        /// Возвращает информацию о гибах для всех деталей в буфере.
+        /// Используется для автоматического заполнения карточек гибки.
+        /// </summary>
+        public Dictionary<Part, Dictionary<double, (int Count, double BendLength)>> GetBendsInfoForBatch()
+        {
+            return new Dictionary<Part, Dictionary<double, (int Count, double BendLength)>>(_batchBendsInfo);
+        }
+
         private void AddHoleGroup_Click(object sender, RoutedEventArgs e)
         {
             if (_currentPart.PartType == PartType.Custom) { MessageBox.Show("Отверстия для произвольных форм пока не поддерживаются.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information); return; }
@@ -1196,19 +1224,15 @@ namespace Metal_Code
                 if (!isValid) _currentPart.HoleGroups.Clear();
             }
 
-            // 🔥 Синхронизация PlacedHoles -> HoleGroups для совместимости с расчётами
+            // Синхронизация PlacedHoles -> HoleGroups для Custom
             if (_currentPart.PartType == PartType.Custom && _currentPart.PlacedHoles.Count > 0)
             {
                 _currentPart.HoleGroups.Clear();
-
-                // Группируем отверстия по диаметру
                 var grouped = _currentPart.PlacedHoles.GroupBy(h => h.Diameter);
                 foreach (var group in grouped)
                 {
                     _currentPart.HoleGroups.Add(new HoleGroup(group.Key, group.Count()));
                 }
-
-                // Обновляем геометрию с учётом отверстий для превью и расчётов
                 PartPreviewGenerator.EnsureDisplayGeometryWithHoles(_currentPart);
             }
 
@@ -1216,6 +1240,14 @@ namespace Metal_Code
             if (clone != null)
             {
                 _batchBuffer.Add(clone);
+
+                // 🔥 ДОБАВЛЕНО: Сохраняем информацию о гибах для этой детали
+                var bendsInfo = CalculateBendsInfo();
+                if (bendsInfo.Count > 0)
+                {
+                    _batchBendsInfo[clone] = bendsInfo;
+                }
+
                 _currentPart.HoleGroups.Clear();
                 if (_currentPart.PartType == PartType.Custom) ClearDrawing_Click(sender, e);
                 else UpdatePreview();
@@ -1227,12 +1259,19 @@ namespace Metal_Code
             if (_batchBuffer.Count == 0) { MessageBox.Show("Список пуст", "Ошибка"); return; }
             UseAutoNesting = AutoNestingCheck.IsChecked ?? true;
             CustomSpacing = double.TryParse(SpacingInput.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double s) && s >= 0 ? s : 0;
-            DialogResult = true; Close();
+            DialogResult = true;
+            Close();
         }
 
         private void RemoveFromBatch_Click(object sender, RoutedEventArgs e)
         {
-            if (e.OriginalSource is Button btn && btn.Tag is Part part) _batchBuffer.Remove(part);
+            if (e.OriginalSource is Button btn && btn.Tag is Part part)
+            {
+                _batchBuffer.Remove(part);
+
+                // 🔥 ДОБАВЛЕНО: Удаляем информацию о гибах
+                _batchBendsInfo.Remove(part);
+            }
         }
 
         private static Part? ClonePart(Part s) => s.DisplayGeometry == null && s.PartType != PartType.Custom ? null : new Part
@@ -1249,5 +1288,254 @@ namespace Metal_Code
             DisplayGeometry = s.PartType == PartType.Custom ? PartPreviewGenerator.CloneGeometry(s.DisplayGeometry) : s.DisplayGeometry,
             PropsDict = new Dictionary<int, List<string>>(s.PropsDict)
         };
+
+        // ==========================================
+        // РАЗВЕРТКА ДЛЯ ГИБКИ
+        // ==========================================
+
+        // Параметры гибки
+        private double _bendAngle = 90.0;
+        private int _bendsCountX = 0;
+        private int _bendsCountY = 0;
+        private const double BendKFactor = 0.4;
+
+        // Храним исходные (внешние) размеры, которые ввел пользователь
+        private double _originalWidth = 0;
+        private double _originalHeight = 0;
+        private bool _isUpdatingFromBend = false;
+        private bool _isResettingBends = false;
+
+        /// <summary>
+        /// Вычисляет компенсацию на один гиб для произвольного угла.
+        /// BD = 2(R + T) × tan(α/2) − (π × α / 180) × (R + K × T)
+        /// </summary>
+        private double BendCompensation
+        {
+            get
+            {
+                double T = _currentPart.Destiny;
+                double R = T; // Радиус равен толщине
+
+                double angleRad = Math.PI * _bendAngle / 180.0;  // Угол в радианах
+                double halfAngleTan = Math.Tan(angleRad / 2.0);   // tan(α/2)
+
+                double bendAllowance = angleRad * (R + BendKFactor * T);  // BA
+                double bendDeduction = 2 * (R + T) * halfAngleTan - bendAllowance;  // BD
+
+                return bendDeduction;
+            }
+        }
+
+        private void BendParameters_Changed(object sender, TextChangedEventArgs e)
+        {
+            if (_isResettingBends) return;
+            if (BendsCountXInput == null || BendsCountYInput == null ||
+                BendInfoText == null || BendAngleInput == null) return;
+
+            if (int.TryParse(BendsCountXInput.Text, out int bx) && bx >= 0)
+                _bendsCountX = bx;
+            if (int.TryParse(BendsCountYInput.Text, out int by) && by >= 0)
+                _bendsCountY = by;
+
+            // 🔥 Читаем угол гиба
+            if (double.TryParse(BendAngleInput.Text, out double angle) && angle > 0 && angle < 180)
+                _bendAngle = angle;
+
+            UpdateBendInfo();
+            RecalculatePartDimensions();
+            RedrawCanvas();
+        }
+
+        /// <summary>
+        /// Сбрасывает параметры гибки без запуска пересчёта
+        /// </summary>
+        private void ResetBendParameters()
+        {
+            _isResettingBends = true;
+            try
+            {
+                _bendAngle = 90.0;
+                _bendsCountX = 0;
+                _bendsCountY = 0;
+                _originalWidth = 0;
+                _originalHeight = 0;
+
+                if (BendAngleInput != null) BendAngleInput.Text = "90";
+                if (BendsCountXInput != null) BendsCountXInput.Text = "0";
+                if (BendsCountYInput != null) BendsCountYInput.Text = "0";
+                if (BendInfoText != null) BendInfoText.Text = "Линии сгиба не заданы";
+            }
+            finally
+            {
+                _isResettingBends = false;
+            }
+        }
+
+        /// <summary>
+        /// Обновляет информационную строку о гибке
+        /// </summary>
+        private void UpdateBendInfo()
+        {
+            if (BendInfoText == null) return;
+
+            if (_bendsCountX == 0 && _bendsCountY == 0)
+            {
+                BendInfoText.Text = "Линии гиба не заданы";
+                return;
+            }
+
+            BendInfoText.Text = $"Вычет на 1 гиб: {BendCompensation:F2} мм";
+        }
+
+        /// <summary>
+        /// Пересчитывает размеры детали (развертки) с учетом компенсации на гибку
+        /// </summary>
+        private void RecalculatePartDimensions()
+        {
+            if (_currentPart == null || _isUpdatingFromBend) return;
+
+            _isUpdatingFromBend = true;
+
+            try
+            {
+                // Сохраняем исходные размеры при первом расчете
+                if (_originalWidth == 0 && _originalHeight == 0)
+                {
+                    _originalWidth = _currentPart.Width;
+                    _originalHeight = _currentPart.Height;
+                }
+
+                double compensation = BendCompensation;
+
+                // Рассчитываем новые размеры развертки
+                double newWidth = _bendsCountX == 0
+                    ? _originalWidth
+                    : _originalWidth - (_bendsCountX * compensation);
+
+                double newHeight = _bendsCountY == 0
+                    ? _originalHeight
+                    : _originalHeight - (_bendsCountY * compensation);
+
+                _currentPart.Width = Math.Max(0.1, Math.Ceiling(newWidth));
+                _currentPart.Height = Math.Max(0.1, Math.Ceiling(newHeight));
+
+                UpdatePreview();
+            }
+            finally
+            {
+                _isUpdatingFromBend = false;
+            }
+        }
+
+        /// <summary>
+        /// Рисует линии гибов на Canvas
+        /// </summary>
+        private void DrawBendLines(double strokeThickness)
+        {
+            if (DrawingCanvas == null || _currentPart == null) return;
+            if (_currentPart.PartType != PartType.Rectangle) return;
+            if (_bendsCountX == 0 && _bendsCountY == 0) return;
+
+            // Используем ИСХОДНЫЕ размеры для расчета позиций линий сгиба
+            double width = _originalWidth > 0 ? _originalWidth : _currentPart.Width;
+            double height = _originalHeight > 0 ? _originalHeight : _currentPart.Height;
+
+            if (width <= 0 || height <= 0) return;
+
+            double offsetX = (SheetWidthMm / 2) - (width / 2);
+            double offsetY = (SheetHeightMm / 2) - (height / 2);
+
+            var bendBrush = Brushes.DarkOrange;
+            var dashArray = new DoubleCollection { 5, 3 };
+            double lineThickness = strokeThickness * 0.8;
+
+            // Вертикальные линии сгиба
+            if (_bendsCountX > 0)
+            {
+                double segmentWidth = width / (_bendsCountX + 1);
+                for (int i = 1; i <= _bendsCountX; i++)
+                {
+                    double x = offsetX + (segmentWidth * i);
+                    DrawingCanvas.Children.Add(new Line
+                    {
+                        X1 = x,
+                        Y1 = offsetY,
+                        X2 = x,
+                        Y2 = offsetY + height,
+                        Stroke = bendBrush,
+                        StrokeThickness = lineThickness,
+                        StrokeDashArray = dashArray
+                    });
+                }
+            }
+
+            // Горизонтальные линии сгиба
+            if (_bendsCountY > 0)
+            {
+                double segmentHeight = height / (_bendsCountY + 1);
+                for (int i = 1; i <= _bendsCountY; i++)
+                {
+                    double y = offsetY + (segmentHeight * i);
+                    DrawingCanvas.Children.Add(new Line
+                    {
+                        X1 = offsetX,
+                        Y1 = y,
+                        X2 = offsetX + width,
+                        Y2 = y,
+                        Stroke = bendBrush,
+                        StrokeThickness = lineThickness,
+                        StrokeDashArray = dashArray
+                    });
+                }
+            }
+        }
+
+        /// <summary>
+        /// Вычисляет информацию о гибах для текущей детали.
+        /// Ключ — размер полки гиба (мм), однозначно определяющий однотипные гибы.
+        /// Значение — кортеж (количество однотипных гибов, длина гиба в мм).
+        /// 
+        /// ВАЖНО: Длина гиба берется из размеров РАЗВЕРТКИ, а не из исходных размеров,
+        /// так как линии сгиба на развертке имеют увеличенную длину с учетом компенсации.
+        /// </summary>
+        private Dictionary<double, (int Count, double BendLength)> CalculateBendsInfo()
+        {
+            var result = new Dictionary<double, (int Count, double BendLength)>();
+
+            if (_originalWidth <= 0 || _originalHeight <= 0)
+                return result;
+
+            // 🔥 ИСПРАВЛЕНО: Используем размеры РАЗВЕРТКИ, а не исходные размеры
+            double unfoldedWidth = _currentPart.Width;
+            double unfoldedHeight = _currentPart.Height;
+
+            // Горизонтальные гибы (вертикальные линии сгиба, полка вдоль X)
+            if (_bendsCountX > 0)
+            {
+                double shelfSize = Math.Round(_originalWidth / (_bendsCountX + 1), 1);
+                double bendLength = Math.Round(unfoldedHeight, 1); // 🔥 Длина гиба = высота РАЗВЕРТКИ
+                result[shelfSize] = (_bendsCountX, bendLength);
+            }
+
+            // Вертикальные гибы (горизонтальные линии сгиба, полка вдоль Y)
+            if (_bendsCountY > 0)
+            {
+                double shelfSize = Math.Round(_originalHeight / (_bendsCountY + 1), 1);
+                double bendLength = Math.Round(unfoldedWidth, 1); // 🔥 Длина гиба = ширина РАЗВЕРТКИ
+
+                // Если полка совпадает с горизонтальной (редкий случай), объединяем
+                if (result.ContainsKey(shelfSize))
+                {
+                    var existing = result[shelfSize];
+                    result[shelfSize] = (existing.Count + _bendsCountY, bendLength);
+                }
+                else
+                {
+                    result[shelfSize] = (_bendsCountY, bendLength);
+                }
+            }
+
+            return result;
+        }
     }
 }

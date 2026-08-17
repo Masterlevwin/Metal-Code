@@ -335,11 +335,29 @@ namespace Metal_Code
 
                                 left.Item().PaddingVertical(5).Text("Условия оплаты: предоплата 100% по счету Исполнителя.");
 
-                                if (MainWindow.M.HasDelivery is true)
-                                    left.Item().PaddingVertical(5).Text($"Порядок отгрузки: доставка силами Исполнителя по адресу: {MainWindow.M.Adress.Text}.");
-                                else left.Item().PaddingVertical(5).Text("Порядок отгрузки: самовывоз со склада Исполнителя по адресу: Ленинградская область, Всеволожский район, " +
-                                                "Колтуши, деревня Мяглово, ул. Дорожная, уч. 4Б.");
+                                float totalWeight = MainWindow.M.GetTotalMass();
 
+                                if (MainWindow.M.HasDelivery is true)
+                                {
+
+                                    left.Item().PaddingVertical(5).Text(textBlock =>
+                                    {
+                                        textBlock.Span("Порядок отгрузки: доставка силами Исполнителя по адресу: " +
+                                                      $"{MainWindow.M.Adress.Text}. Вес деталей - примерно ");
+                                        textBlock.Span($"{totalWeight:N0} кг").Bold();
+                                        textBlock.Span(".");
+                                    });
+                                }
+                                else
+                                {
+                                    left.Item().PaddingVertical(5).Text(textBlock =>
+                                    {
+                                        textBlock.Span("Порядок отгрузки: самовывоз со склада Исполнителя по адресу: Ленинградская область, Всеволожский район, " +
+                                                      "Колтуши, деревня Мяглово, ул. Дорожная, уч. 4Б. Вес деталей - примерно ");
+                                        textBlock.Span($"{totalWeight:N0} кг").Bold();
+                                        textBlock.Span(".");
+                                    });
+                                }
                                 left.Item().PaddingVertical(5).Text("Точность: H14/h14 ±IT14/2 (резка осуществляется воздухом).");
 
                                 left.Item().PaddingVertical(5).Text($"Расшифровка работ: {descriptionWorks}");
