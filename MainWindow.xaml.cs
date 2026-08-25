@@ -2465,13 +2465,7 @@ namespace Metal_Code
                 {
                     // Находим актуальный объект в коллекции по Id
                     var actualOffer = CurrentOffers.FirstOrDefault(o => o.Id == offer.Id);
-                    if (actualOffer == null)
-                    {
-                        Trace.WriteLine($"⚠️ Расчёт Id={offer.Id} не найден в коллекции CurrentOffers");
-                        return;
-                    }
-
-                    Trace.WriteLine($"🔍 Прокрутка к расчёту: Id={actualOffer.Id}, N={actualOffer.N}, ParentQuoteNumber={actualOffer.ParentQuoteNumber}");
+                    if (actualOffer == null) return;
 
                     // ⭐ Ждём завершения рендеринга
                     await System.Threading.Tasks.Task.Delay(150);
@@ -2493,14 +2487,12 @@ namespace Metal_Code
 
                     // 3. Подсвечиваем строку
                     HighlightOfferRow(actualOffer);
-
-                    Trace.WriteLine($"✅ Прокрутка и подсветка выполнены для Id={actualOffer.Id}");
                 }
                 catch (Exception ex)
                 {
                     Trace.WriteLine($"Ошибка прокрутки к расчёту: {ex.Message}");
                 }
-            }), DispatcherPriority.Input); // ⭐ Input вместо Loaded
+            }), DispatcherPriority.Input);
         }
 
         /// <summary>
@@ -2532,7 +2524,7 @@ namespace Metal_Code
                             var retryRow = OffersGrid.ItemContainerGenerator.ContainerFromItem(actualOffer) as DataGridRow;
                             if (retryRow != null) ApplyHighlight(retryRow);
                             else Trace.WriteLine($"⚠️ Строка не найдена после повторной попытки для Id={actualOffer.Id}");
-                        }), DispatcherPriority.Input); // ⭐ Input вместо Background
+                        }), DispatcherPriority.Input);
                         return;
                     }
 
@@ -2542,7 +2534,7 @@ namespace Metal_Code
                 {
                     Trace.WriteLine($"Ошибка подсветки строки: {ex.Message}");
                 }
-            }), DispatcherPriority.Input); // ⭐ Input вместо Loaded
+            }), DispatcherPriority.Input);
         }
 
         private void ApplyHighlight(DataGridRow row)

@@ -44,6 +44,8 @@ namespace Metal_Code
 
         public bool UseAutoNesting { get; private set; } = true;
         public double CustomSpacing { get; private set; } = 0;
+        public double CustomClampZone { get; private set; } = 340;
+        public double CustomCutLoss { get; private set; } = 10;
 
         public StandartPartWindow(Part templatePart)
         {
@@ -1257,8 +1259,12 @@ namespace Metal_Code
         private void FinishBatch_Click(object sender, RoutedEventArgs e)
         {
             if (_batchBuffer.Count == 0) { MessageBox.Show("Список пуст", "Ошибка"); return; }
+
             UseAutoNesting = AutoNestingCheck.IsChecked ?? true;
             CustomSpacing = double.TryParse(SpacingInput.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double s) && s >= 0 ? s : 0;
+            CustomClampZone = double.TryParse(ClampZoneInput.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double cz) && cz >= 0 ? cz : 340;
+            CustomCutLoss = double.TryParse(CutLossInput.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double cl) && cl >= 0 ? cl : 10;
+
             DialogResult = true;
             Close();
         }

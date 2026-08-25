@@ -1370,11 +1370,11 @@ namespace Metal_Code
                         }
                         else if (owner is PipeControl pipe)
                         {
-                            AddBatchToPipeControl(pipe, batchedParts, metal);
+                            AddBatchToPipeControl(pipe, batchedParts, metal, window.CustomClampZone, window.CustomCutLoss);
                         }
                         else if (owner is SawControl saw)
                         {
-                            AddBatchToSawControl(saw, batchedParts, metal);
+                            AddBatchToSawControl(saw, batchedParts, metal, window.CustomClampZone, window.CustomCutLoss);
                         }
                     }
                 }
@@ -1706,13 +1706,13 @@ namespace Metal_Code
         /// <summary>
         /// Добавляет КОЛЛЕКЦИЮ трубных деталей с оптимальным нестингом и группировкой одинаковых хлыстов
         /// </summary>
-        public void AddBatchToPipeControl(PipeControl pipe, List<Part> parts, Metal metal)
+        public void AddBatchToPipeControl(PipeControl pipe, List<Part> parts, Metal metal, double clampZone = 340, double cutLoss = 10)
         {
             if (parts == null || parts.Count == 0 || pipe.work?.type == null)
                 return;
 
             // Создаём раскладку по хлыстам
-            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, pipe.work.type.L);
+            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, pipe.work.type.L, clampZone, cutLoss);
 
             if (pipeStocks == null || pipeStocks.Count == 0)
             {
@@ -1791,13 +1791,13 @@ namespace Metal_Code
         /// <summary>
         /// Добавляет КОЛЛЕКЦИЮ трубных деталей для ЛЕНТОПИЛА
         /// </summary>
-        private void AddBatchToSawControl(SawControl saw, List<Part> parts, Metal metal)
+        private void AddBatchToSawControl(SawControl saw, List<Part> parts, Metal metal, double clampZone = 340, double cutLoss = 10)
         {
             if (parts == null || parts.Count == 0 || saw.work?.type == null)
                 return;
 
             // Создаём раскладку по хлыстам
-            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, saw.work.type.L);
+            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, saw.work.type.L, clampZone, cutLoss);
 
             if (pipeStocks == null || pipeStocks.Count == 0)
             {

@@ -431,7 +431,7 @@ namespace Metal_Code.Utils
             return placedCount;
         }
 
-        public static List<PipeStock> CreateNestingForPipeBatch(List<Part> parts, double stockLength = 6000, double clampZone = 340)
+        public static List<PipeStock> CreateNestingForPipeBatch(List<Part> parts, double stockLength = 6000, double clampZone = 340, double cutLoss = 10)
         {
             var stocks = new List<PipeStock>();
             var allParts = parts.SelectMany(p => Enumerable.Repeat(p, p.Count)).OrderByDescending(p => p.Length).ToList();
@@ -439,9 +439,10 @@ namespace Metal_Code.Utils
             foreach (var part in allParts)
             {
                 bool placed = false;
-                foreach (var stock in stocks.OrderBy(s => s.TotalRequiredLength))
+
+                foreach (var stock in stocks.OrderByDescending(s => s.TotalRequiredLength))
                 {
-                    if (stock.StockLength >= stock.TotalRequiredLength + part.Length + Spacing)
+                    if (stock.StockLength >= stock.TotalRequiredLength + part.Length + stock.CutLoss)
                     {
                         double startPosition = stock.ClampZone + stock.UsedLengthWithCutLoss;
                         stock.Placements.Add(new PipePlacement { Part = part, StartPosition = startPosition });
@@ -452,7 +453,13 @@ namespace Metal_Code.Utils
 
                 if (!placed)
                 {
-                    var newStock = new PipeStock { StockLength = stockLength, ClampZone = clampZone };
+                    var newStock = new PipeStock
+                    {
+                        StockLength = stockLength,
+                        ClampZone = clampZone,
+                        CutLoss = cutLoss
+                    };
+
                     if (part.Length <= stockLength - clampZone)
                     {
                         newStock.Placements.Add(new PipePlacement { Part = part, StartPosition = clampZone });
@@ -460,7 +467,12 @@ namespace Metal_Code.Utils
                     }
                 }
             }
-            foreach (var stock in stocks) OptimizeStockLength(stock);
+
+            foreach (var stock in stocks)
+            {
+                OptimizeStockLength(stock);
+            }
+
             return stocks;
         }
 
@@ -568,7 +580,7 @@ namespace Metal_Code.Utils
         // Округлена вверх до удобного значения (например, до 100 мм или до целого метра).
         public double OptimizedLength { get; set; }
 
-        private const double CutLoss = 10; // Отступ между деталями (пропил)
+        public double CutLoss { get; set; } = 10; // Отступ между деталями (пропил)
 
         /// <summary>
         /// Занятая длина с учётом отступов между деталями (сумма длин + пропилы)
