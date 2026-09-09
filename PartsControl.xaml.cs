@@ -52,6 +52,8 @@ namespace Metal_Code
             RollingControl Roll = new(owner);
             // формирование списка сторон расчета вальцовки
             foreach (string s in Roll.Sides) RollDrop.Items.Add(s);
+
+            UpdateEmptyState();
         }
 
         //-------------Работы--------------//
@@ -343,20 +345,25 @@ namespace Metal_Code
         }
 
         /// <summary>
-        /// Принудительно перерисовывает все раскладки, добавляя элементы управления для каждого листа.
+        /// Принудительно перерисовывает все раскладки, разделяя листы и трубы на разные зоны.
         /// </summary>
         public void RefreshNestingPreview()
         {
             if (owner is not ICut cut || cut.Items is null)
             {
-                imagesStack.Children.Clear();
+                SheetImagesStack.Children.Clear();
+                PipeImagesStack.Children.Clear();
                 return;
             }
 
-            imagesStack.Children.Clear();
+            SheetImagesStack.Children.Clear();
+            PipeImagesStack.Children.Clear();
 
             foreach (LaserItem item in cut.Items)
             {
+                // ==========================================
+                // 1. ЛИСТОВОЙ МЕТАЛЛ
+                // ==========================================
                 if (item.NestingSheet is not null)
                 {
                     var preview = new NestingPreviewControl { Height = 320 };
@@ -381,7 +388,6 @@ namespace Metal_Code
                     };
                     stack.Children.Add(border);
 
-                    // Панель управления: NumericUpDown + Текст + Удалить
                     var controlPanel = new StackPanel
                     {
                         Orientation = Orientation.Horizontal,
@@ -389,7 +395,6 @@ namespace Metal_Code
                         Margin = new Thickness(0, 5, 0, 0)
                     };
 
-                    // 1. NumericUpDown для количества
                     var qtyControl = new HandyControl.Controls.NumericUpDown
                     {
                         Value = item.sheets,
@@ -399,30 +404,21 @@ namespace Metal_Code
                         Height = 28,
                         Margin = new Thickness(0, 0, 10, 0),
                         ToolTip = "Количество одинаковых листов",
-                        Tag = item.sheets // Сохраняем старое значение для вычисления delta
+                        Tag = item.sheets
                     };
 
-                    // 2. Текстовый блок с размерами (будем обновлять его вручную)
-                    var infoText = new TextBlock
-                    {
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Margin = new Thickness(0, 0, 10, 0)
-                    };
+                    var infoText = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
 
-                    // 🔥 ЛОКАЛЬНАЯ ФУНКЦИЯ: Мгновенно обновляет текст и стиль без INPC
                     void UpdateInfoText()
                     {
                         infoText.Text = $"{item.sheets} шт ({item.sheetSize} мм)";
                         infoText.FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal;
                         infoText.Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.DimGray;
                     }
+                    UpdateInfoText();
 
-                    UpdateInfoText(); // Первичная инициализация
-
-                    // Обработчик изменения количества
                     qtyControl.ValueChanged += (s, e) =>
                     {
-
                         var nud = s as HandyControl.Controls.NumericUpDown;
                         if (nud is null) return;
 
@@ -432,35 +428,27 @@ namespace Metal_Code
                         if (newQty != oldQty && item.NestingSheet != null)
                         {
                             int delta = newQty - oldQty;
-
-                            // 1. Обновляем модель листа
                             item.sheets = newQty;
 
-                            // 2. Корректируем количество деталей с учетом множителя
                             foreach (var placement in item.NestingSheet.Parts)
                             {
                                 placement.Part.Count += delta;
                                 placement.Part.NotifyTotalChanged();
                             }
 
-                            // 3. Пересчитываем итоги и обновляем UI
-                            RecalculateTotals(cut);
-
-                            // 4. МГНОВЕННО обновляем визуальный текст
+                            RecalculateTotalsUniversal(cut);
                             UpdateInfoText();
-
-                            // Обновляем Tag для следующих изменений
                             nud.Tag = newQty;
 
                             string action = delta > 0 ? "добавлен" : "удален";
                             MainWindow.M.StatusBegin($"Количество листов {item.sheetSize} изменено. {Math.Abs(delta)} лист {action}.", MainWindow.StatusMessageType.Success);
                         }
                     };
-                    // 3. Кнопка удаления
+
                     var deleteBtn = new Button
                     {
                         Content = "🗑",
-                        ToolTip = "Удалить этот лист (детали вернутся в общий список)",
+                        ToolTip = "Удалить этот лист",
                         Foreground = Brushes.Red,
                         Background = Brushes.Transparent,
                         BorderThickness = new Thickness(0),
@@ -472,14 +460,24 @@ namespace Metal_Code
                     controlPanel.Children.Add(qtyControl);
                     controlPanel.Children.Add(infoText);
                     controlPanel.Children.Add(deleteBtn);
-
                     stack.Children.Add(controlPanel);
-                    imagesStack.Children.Add(stack);
+
+                    // 🔥 ДОБАВЛЯЕМ В ГОРИЗОНТАЛЬНЫЙ СТЕК ЛИСТОВ
+                    SheetImagesStack.Children.Add(stack);
                 }
+                // ==========================================
+                // 2. ТРУБНЫЙ ПРОКАТ (ХЛЫСТЫ)
+                // ==========================================
                 else if (item.PipeStocks != null && item.PipeStocks.Count > 0)
                 {
                     var stock = item.PipeStocks[0];
-                    var preview = new PipeStockVisualizationControl { Stock = stock, Width = 820, Height = 70, Margin = new Thickness(5) };
+                    var preview = new PipeStockVisualizationControl
+                    {
+                        Stock = stock,
+                        Width = 820,
+                        Height = 70,
+                        Margin = new Thickness(5)
+                    };
 
                     var border = new Border
                     {
@@ -498,20 +496,28 @@ namespace Metal_Code
                     };
                     stack.Children.Add(border);
 
-                    string stockInfo = $"{item.sheets} шт ({stock.OptimizedLength:0} мм)";
+                    // 🔥 УЛУЧШЕННАЯ ИНФОРМАЦИОННАЯ СТРОКА: количество, оптимизированная длина, зажим и пропил
+                    string stockInfo = $"{item.sheets} шт (опт. {stock.OptimizedLength:0} мм | зажим: {stock.ClampZone:0} мм, пропил: {stock.CutLoss:0} мм)";
+
                     var infoText = new TextBlock
                     {
                         Text = stockInfo,
-                        FontSize = 10,
+                        FontSize = 11, // Чуть увеличили шрифт для лучшей читаемости деталей
                         FontWeight = item.sheets > 1 ? FontWeights.Bold : FontWeights.Normal,
-                        Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.Gray,
+                        Foreground = item.sheets > 1 ? Brushes.OrangeRed : Brushes.DimGray,
                         HorizontalAlignment = HorizontalAlignment.Center,
                         Margin = new Thickness(0, 5, 0, 0),
-                        TextAlignment = TextAlignment.Center
+                        TextAlignment = TextAlignment.Center,
+                        TextWrapping = TextWrapping.Wrap // 🔥 Гарантирует, что текст перенесется, а не обрежется
                     };
                     stack.Children.Add(infoText);
-                    imagesStack.Children.Add(stack);
+
+                    // Добавляем в вертикальный WrapPanel труб
+                    PipeImagesStack.Children.Add(stack);
                 }
+                // ==========================================
+                // 3. ИЗОБРАЖЕНИЯ (если есть)
+                // ==========================================
                 else if (item.imageBytes is not null)
                 {
                     var img = new Image
@@ -537,7 +543,9 @@ namespace Metal_Code
                         Margin = new Thickness(5)
                     };
                     stack.Children.Add(border);
-                    imagesStack.Children.Add(stack);
+
+                    // 🔥 ДОБАВЛЯЕМ В ГОРИЗОНТАЛЬНЫЙ СТЕК ЛИСТОВ
+                    SheetImagesStack.Children.Add(stack);
                 }
             }
         }
@@ -728,7 +736,7 @@ namespace Metal_Code
             cut.Items?.Remove(itemToRemove);
 
             // 3. Пересчитываем итоги и обновляем UI
-            RecalculateTotals(cut);
+            RecalculateTotalsUniversal(cut);
             RefreshNestingPreview();
 
             MainWindow.M.StatusBegin("Лист удалён, детали возвращены в общий список", MainWindow.StatusMessageType.Success);
@@ -739,9 +747,10 @@ namespace Metal_Code
         /// </summary>
         private void AddPartsFromDxf_Click(object sender, RoutedEventArgs e)
         {
-            if (owner is not CutControl cut || sender is not ToggleButton btn) return;
+            if (owner is not CutControl cut) return;
 
-            btn.IsChecked = true;
+            // Подсвечиваем соответствующую кнопку в сайдбаре
+            DxfToggle.IsChecked = true;
 
             var openFileDialog = new OpenFileDialog
             {
@@ -868,468 +877,333 @@ namespace Metal_Code
                 }
             }
 
-            btn.IsChecked = false;
+            // Сбрасываем подсветку кнопки в сайдбаре
+            DxfToggle.IsChecked = false;
+            UpdateEmptyState();
         }
 
         /// <summary>
-        /// Пересчитывает раскладку (автонестинг) только для деталей, имеющих геометрию.
-        /// Игнорирует детали, загруженные как изображения (imageBytes).
+        /// Пересчитывает раскладку (автонестинг) для листового металла или труб.
         /// </summary>
         private async void AutoNest_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not ToggleButton btn) return;
 
-            // 🔥 ВКЛЮЧАЕМ оранжевую подсветку
+            // 🔥 1. ПОДГОТОВКА ДАННЫХ И ВЫЗОВ ДИАЛОГА
+            if (owner is not ICut cut || cut.Items == null || cut.PartDetails == null)
+            {
+                btn.IsChecked = false;
+                MainWindow.M.StatusBegin("Нет данных для пересчета раскладки", MainWindow.StatusMessageType.Warning);
+                return;
+            }
+
+            var (metal, thickness, metalName) = GetMetalAndThickness(owner);
+            if (metal == null || string.IsNullOrEmpty(metalName) || thickness <= 0)
+            {
+                btn.IsChecked = false;
+                MessageBox.Show("Не указан материал или толщина заготовки в настройках.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var partsToNest = cut.PartDetails.Where(p => p.Count > 0).ToList();
+            if (!partsToNest.Any())
+            {
+                btn.IsChecked = false;
+                MessageBox.Show("В расчете нет деталей для автоматической раскладки.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // 🔥 ПОДГОТОВКА ЗНАЧЕНИЙ ПО УМОЛЧАНИЮ ИЗ НАСТРОЕК
+            bool isSheet = cut is CutControl;
+            double defWidth = isSheet ? (cut as CutControl)?.work.type.A ?? 3000 : 0;
+            double defHeight = isSheet ? (cut as CutControl)?.work.type.B ?? 1500 : 0;
+            double defSpacing = isSheet ? 10 : 0; // Значение по умолчанию
+
+            double defLength = !isSheet ? (cut as PipeControl)?.work.type.L ?? 6000 : 0;
+            double defClamp = !isSheet ? 340 : 0;
+            double defLoss = !isSheet ? 10 : 0;
+
+            // 🔥 ВЫЗОВ ДИАЛОГОВОГО ОКНА
+            var settingsDialog = new AutoNestSettingsWindow(
+                isSheetMode: isSheet,
+                defaultWidth: defWidth, defaultHeight: defHeight, defaultSpacing: defSpacing,
+                defaultLength: defLength, defaultClamp: defClamp, defaultLoss: defLoss)
+            {
+                Owner = Window.GetWindow(this)
+            };
+
+            if (settingsDialog.ShowDialog() != true || !settingsDialog.IsConfirmed)
+            {
+                // Пользователь нажал "Отмена"
+                btn.IsChecked = false;
+                return;
+            }
+
+            // 🔥 2. ВКЛЮЧАЕМ оранжевую подсветку и курсор ожидания
             btn.IsChecked = true;
             Mouse.OverrideCursor = Cursors.Wait;
 
             try
             {
-                if (owner is not CutControl cut || cut.Items == null || cut.PartDetails == null)
-                {
-                    MainWindow.M.StatusBegin("Нет данных для пересчета раскладки", MainWindow.StatusMessageType.Warning);
-                    return;
-                }
-
-                // 1. СБОР ДАННЫХ В UI-ПОТОКЕ (обращение к UI-элементам безопасно только здесь)
-                var partsToNest = cut.PartDetails
-                    .Where(p => p.DisplayGeometry != null && p.Count > 0)
-                    .ToList();
-
-                if (!partsToNest.Any())
-                {
-                    MessageBox.Show("В расчете нет деталей с геометрией для автоматической раскладки.\n(Детали, загруженные как изображения, игнорируются)",
-                        "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
-
-                string metalName = cut.work.type.MetalDrop.Text;
-                float thickness = cut.work.type.S;
-
-                if (string.IsNullOrEmpty(metalName) || thickness <= 0)
-                {
-                    MessageBox.Show("Не указан материал или толщина листа в настройках.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-
                 MainWindow.M.StatusBegin("Выполняется автоматическая раскладка...", MainWindow.StatusMessageType.Info);
 
-                // 🔥 2. ТЯЖЕЛЫЕ ВЫЧИСЛЕНИЯ В ФОНОВОМ ПОТОКЕ
-                // UI-поток освобождается и отрисовывает оранжевую кнопку
-                var result = await System.Threading.Tasks.Task.Run(() =>
-                {
-                    // SkylineNestingHelper работает с замороженными Geometry, это безопасно
-                    return SkylineNestingHelper.CreateNestingSkylineAutoSheet(partsToNest, metalName, thickness, 0);
-                });
+                object? result = null;
 
-                // 🔥 3. МЫ СНОВА В UI-ПОТОКЕ (после await)
-                if (result == null || !result.Any())
+                if (cut is CutControl)
                 {
-                    MessageBox.Show("Алгоритму не удалось разместить детали на доступных листах.", "Ошибка раскладки", MessageBoxButton.OK, MessageBoxImage.Error);
+                    var sheetParts = partsToNest.Where(p => p.DisplayGeometry != null).ToList();
+                    if (!sheetParts.Any())
+                    {
+                        MessageBox.Show("Нет деталей с геометрией для листовой раскладки.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+
+                    result = await System.Threading.Tasks.Task.Run(() =>
+                    {
+                        //  Проверяем UseAutoNesting из диалога
+                        if (settingsDialog.UseAutoNesting)
+                        {
+                            // Алгоритм сам подберет размеры листов
+                            return SkylineNestingHelper.CreateNestingSkylineAutoSheet(
+                                sheetParts,
+                                metalName,
+                                thickness,
+                                settingsDialog.Spacing);
+                        }
+                        else
+                        {
+                            // Используем размеры, заданные пользователем вручную
+                            return SkylineNestingHelper.CreateNestingSkyline(
+                                sheetParts,
+                                sheetWidth: settingsDialog.SheetWidth,
+                                sheetHeight: settingsDialog.SheetHeight,
+                                spacing: settingsDialog.Spacing);
+                        }
+                    });
+                }
+                else if (cut is PipeControl or SawControl)
+                {
+                    result = await System.Threading.Tasks.Task.Run(() =>
+                    {
+                        return NestingHelper.CreateNestingForPipeBatch(
+                            partsToNest,
+                            settingsDialog.PipeLength,
+                            settingsDialog.ClampZone,
+                            settingsDialog.CutLoss);
+                    });
+                }
+
+                if (result == null)
+                {
+                    MessageBox.Show("Алгоритму не удалось выполнить раскладку.", "Ошибка раскладки", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                // 4. ОЧИСТКА СТАРЫХ РАСКЛАДОК
-                var oldNestingItems = cut.Items.OfType<LaserItem>().Where(i => i.NestingSheet != null).ToList();
-                foreach (var item in oldNestingItems)
+                if (cut is CutControl cc)
                 {
-                    cut.Items.Remove(item);
+                    var oldNestingItems = cc.Items!.OfType<LaserItem>().Where(i => i.NestingSheet != null).ToList();
+                    foreach (var item in oldNestingItems) cc.Items!.Remove(item);
+                }
+                else if (cut is PipeControl pc)
+                {
+                    var oldPipeItems = pc.Items!.OfType<LaserItem>().Where(i => i.PipeStocks != null && i.PipeStocks.Count > 0).ToList();
+                    foreach (var item in oldPipeItems) pc.Items!.Remove(item);
+                }
+                else if (cut is SawControl sc)
+                {
+                    var oldPipeItems = sc.Items!.OfType<LaserItem>().Where(i => i.PipeStocks != null && i.PipeStocks.Count > 0).ToList();
+                    foreach (var item in oldPipeItems) sc.Items!.Remove(item);
                 }
 
-                // 5. ГРУППИРОВКА И СОЗДАНИЕ НОВЫХ LaserItem
-                var groupedSheets = GroupIdenticalSheets(result);
-
-                foreach (var group in groupedSheets)
+                if (cut is CutControl cc2 && result is List<NestingSheet> sheets)
                 {
-                    var sheet = group.Key;
-                    int sheetCount = group.Value;
+                    var groupedSheets = GroupIdenticalSheets(sheets); // Ваш существующий метод для листов
 
-                    if (sheet.Parts.Count == 0) continue;
-
-                    double sheetArea = sheet.OptimizedWidth * sheet.OptimizedHeight;
-                    var metal = MainWindow.M.Metals?.FirstOrDefault(m => m.Name == metalName);
-                    double density = metal?.Density ?? 0;
-                    double sheetMass = sheetArea * thickness * density / 1_000_000;
-
-                    double sheetWay = sheet.Parts.Sum(p => p.Part.Way);
-                    int sheetPinholes = sheet.Parts.Sum(p => int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var val) ? val : 0);
-
-                    var newItem = new LaserItem
+                    foreach (var group in groupedSheets)
                     {
-                        sheets = sheetCount,
-                        sheetSize = $"{sheet.OptimizedWidth:0}x{sheet.OptimizedHeight:0}",
-                        way = (float)sheetWay,
-                        pinholes = sheetPinholes,
-                        mass = (float)sheetMass,
-                        metal = metalName,
-                        destiny = thickness.ToString(),
-                        NestingSheet = sheet
-                    };
+                        var sheet = group.Key;
+                        int sheetCount = group.Value;
+                        if (sheet.Parts.Count == 0) continue;
 
-                    cut.Items.Add(newItem);
+                        double sheetArea = sheet.OptimizedWidth * sheet.OptimizedHeight;
+                        double density = metal?.Density ?? 0;
+                        double sheetMass = sheetArea * thickness * density / 1_000_000;
+
+                        double sheetWay = sheet.Parts.Sum(p => p.Part.Way);
+                        int sheetPinholes = sheet.Parts.Sum(p => int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var val) ? val : 0);
+
+                        cc2.Items?.Add(new LaserItem
+                        {
+                            sheets = sheetCount,
+                            sheetSize = $"{sheet.OptimizedWidth:0}x{sheet.OptimizedHeight:0}",
+                            way = (float)sheetWay,
+                            pinholes = sheetPinholes,
+                            mass = (float)sheetMass,
+                            metal = metalName,
+                            destiny = thickness.ToString(),
+                            NestingSheet = sheet
+                        });
+                    }
+                }
+                else if ((cut is PipeControl pc2 || cut is SawControl sc2) && result is List<PipeStock> pipeStocks)
+                {
+                    if (pipeStocks.Count > 0)
+                    {
+                        var groupedStocks = GroupIdenticalStocks(pipeStocks);
+
+                        foreach (var group in groupedStocks)
+                        {
+                            var stock = group.Key;
+                            int stockCount = group.Value;
+                            if (stock.Placements.Count == 0) continue;
+
+                            double stockMass = CalculatePipeStockMass(stock, metal, thickness);
+                            double stockWay = stock.Placements.Sum(p => p.Part.Way);
+                            int stockPinholes = stock.Placements.Sum(p => int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var pin) ? pin : 0);
+
+                            var newItem = new LaserItem
+                            {
+                                sheets = stockCount,
+                                sheetSize = $"{stock.OptimizedLength:0}",
+                                way = (float)stockWay,
+                                pinholes = stockPinholes,
+                                mass = (float)stockMass,
+                                metal = metalName,
+                                destiny = thickness.ToString(),
+                                PipeStocks = new List<PipeStock> { stock }
+                            };
+
+                            // Добавляем в нужный контрол в зависимости от типа
+                            if (cut is PipeControl p) p.Items?.Add(newItem);
+                            else if (cut is SawControl s) s.Items?.Add(newItem);
+                        }
+                    }
                 }
 
-                // 6. ОБНОВЛЕНИЕ ИТОГОВ И UI
-                RecalculateTotals(cut);
+                RecalculateTotalsUniversal(cut);
                 RefreshNestingPreview();
 
-                MainWindow.M.StatusBegin($"Авто-раскладка завершена. Создано листов: {result.Count}", MainWindow.StatusMessageType.Success);
+                MainWindow.M.StatusBegin("Авто-раскладка завершена.", MainWindow.StatusMessageType.Success);
             }
             catch (Exception ex)
             {
                 MainWindow.M.StatusBegin($"Ошибка при авто-раскладке: {ex.Message}", MainWindow.StatusMessageType.Error);
-                System.Diagnostics.Trace.WriteLine($"AutoNest Error: {ex}");
             }
             finally
             {
-                // 🔥 ГАРАНТИРОВАННО ВОЗВРАЩАЕМ кнопку в исходное состояние
                 btn.IsChecked = false;
                 Mouse.OverrideCursor = null;
             }
         }
 
         /// <summary>
-        /// Пересчет общих итогов (WayTotal, MassTotal, Way, Pinholes, Mass) после изменения раскладок.
+        /// Универсальный пересчет итогов для CutControl и PipeControl после автонестинга
         /// </summary>
-        private void RecalculateTotals(ICut cut)
+        private static void RecalculateTotalsUniversal(object controller)
         {
-            if (cut is CutControl _cut && _cut.PartDetails is not null)
+            if (controller is CutControl cut)
             {
-                _cut.WayTotal = _cut.PartDetails.Sum(p => p.Way * p.Count);
-                _cut.MassTotal = _cut.PartDetails.Sum(p => p.Mass * p.Count);
+                if (cut.PartDetails is null) return;
 
-                _cut.SumProperties(_cut.Items ?? new());
-                _cut.work.type.CreateSort();
+                cut.WayTotal = cut.PartDetails.Sum(p => p.Way * p.Count);
+                cut.MassTotal = cut.PartDetails.Sum(p => p.Mass * p.Count);
+
+                cut.SumProperties(cut.Items!);
+                cut.work.type.CreateSort();
             }
-        }
-        #endregion
-
-        //-------------Экспорт-------------//
-        #region
-        /// <summary>
-        /// Экспортирует все листы раскладки в PDF-файл: общая сводка, материал/толщина, 
-        /// затем каждый лист с картинкой и компактной таблицей деталей справа.
-        /// </summary>
-        private void ExportNestingToPdf_Click(object sender, RoutedEventArgs e)
-        {
-            if (owner is not CutControl cut || cut.Items == null || sender is not ToggleButton btn)
+            else if (controller is PipeControl pipe)
             {
-                MainWindow.M.StatusBegin("Нет данных для экспорта", MainWindow.StatusMessageType.Warning);
-                return;
-            }
+                if (pipe.PartDetails is null) return;
 
-            btn.IsChecked = true;
+                pipe.WayTotal = pipe.PartDetails.Sum(p => p.Way * p.Count);
+                pipe.MassTotal = pipe.PartDetails.Sum(p => p.Mass * p.Count);
 
-            var sheetsToExport = cut.Items
-                .Where(i => i.NestingSheet != null && i.NestingSheet.Parts.Count > 0)
-                .ToList();
+                double totalWay = 0;
+                int totalPinholes = 0;
+                int totalStocks = 0;
+                double stockLength = pipe.work.type.L; // Значение по умолчанию
 
-            if (!sheetsToExport.Any())
-            {
-                MessageBox.Show("Нет листов раскладки для экспорта.", "Информация",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
-                btn.IsChecked = false;
-                return;
-            }
+                var pipeItems = pipe.Items?.OfType<LaserItem>()
+                    .Where(i => i.PipeStocks != null && i.PipeStocks.Count > 0)
+                    .ToList() ?? new List<LaserItem>();
 
-            // Получаем материал и толщину из настроек типа работ
-            string metalName = cut.work.type.MetalDrop.Text;
-            float thickness = cut.work.type.S;
-
-            //"Описание материала"
-            string description = "";
-            if ((metalName.Contains("ст") && thickness >= 3) || (metalName.Contains("хк") && thickness < 3)) description = $"s{thickness}";
-            else if (metalName.Contains("амг2")) description = $"al{thickness}";
-            else if (metalName.Contains("амг") || metalName.Contains("д16")) description = $"al{thickness} {metalName}";
-            else if (metalName.Contains("латунь")) description = $"br{thickness}";
-            else if (metalName.Contains("медь")) description = $"cu{thickness}";
-            else description = $"s{thickness} {metalName}";
-
-            //добавляем тэг рифленки при необходимости
-            if (cut.IsGrooved) description += " рифл";
-
-            //добавляем тэг давальческого материала
-            if (cut.work.type.CheckMetal.IsChecked is false) description += " Давальч";
-
-            var saveDialog = new SaveFileDialog
-            {
-                Filter = "PDF файлы (*.pdf)|*.pdf",
-                FileName = $"{description}.pdf",
-                InitialDirectory = MainWindow.M.lastInputDirectory
-            };
-
-            if (saveDialog.ShowDialog() != true)
-            {
-                btn.IsChecked = false;
-                return;
-            }
-
-            MainWindow.M.StatusBegin("Генерация PDF...", MainWindow.StatusMessageType.Info);
-
-            // 🔥 Вызываем вынесенный метод генерации
-            GenerateNestingPdf(saveDialog.FileName);
-
-            MainWindow.M.StatusBegin(
-                $"PDF успешно сохранен: {Path.GetFileName(saveDialog.FileName)}",
-                MainWindow.StatusMessageType.Success);
-            btn.IsChecked = false;
-        }
-
-        /// <summary>
-        /// Генерирует PDF-файл раскладки по указанному пути (без диалоговых окон).
-        /// Обновленная структура: Сводка сверху -> Листы (картинка во всю ширину + таблица под ней) -> Общая спецификация в конце.
-        /// </summary>
-        public void GenerateNestingPdf(string filePath)
-        {
-            if (owner is not CutControl cut || cut.Items == null) return;
-
-            var sheetsToExport = cut.Items
-                .Where(i => i.NestingSheet != null && i.NestingSheet.Parts.Count > 0)
-                .ToList();
-
-            if (!sheetsToExport.Any()) return;
-
-            try
-            {
-                QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
-
-                string metalName = cut.work.type.MetalDrop.Text;
-                float thickness = cut.work.type.S;
-
-                var sheetData = new List<(
-                    byte[] ImageBytes, string Title, int SheetCount, string? SheetSize, double Spacing, int PartsCount, List<PartTableData> PartsTable)>();
-
-                int index = 1;
-                foreach (var item in sheetsToExport)
+                foreach (var item in pipeItems)
                 {
-                    if (item.NestingSheet is null) continue;
+                    totalWay += item.way * item.sheets;
+                    totalPinholes += item.pinholes * item.sheets;
+                    totalStocks += item.sheets;
 
-                    var preview = new NestingPreviewControl();
-                    preview.ShowSheet(item.NestingSheet);
-
-                    byte[] pngBytes = WpfImageHelper.RenderVisualToPng(preview, 1920, 1080);
-
-                    var partsTable = item.NestingSheet.Parts
-                        .GroupBy(p => new { p.Part.Title, p.Part.Width, p.Part.Height, p.Part.PartType })
-                        .Select(g => new PartTableData
-                        {
-                            Name = g.Key.Title,
-                            Dimensions = $"{g.Key.Width:0} × {g.Key.Height:0}",
-                            QtyOnSheet = g.Count(),
-                            TotalQty = g.Count() * item.sheets,
-                            WeightKg = g.Sum(p => (double)p.Part.Mass)
-                        })
-                        .OrderByDescending(p => p.TotalQty)
-                        .ToList();
-
-                    sheetData.Add((pngBytes, $"Лист {index} из {sheetsToExport.Count}", item.sheets, item.sheetSize, item.NestingSheet.Spacing, item.NestingSheet.Parts.Count, partsTable));
-                    index++;
+                    if (double.TryParse(item.sheetSize, out double len))
+                    {
+                        stockLength = len;
+                    }
                 }
 
-                // 🔥 1. ФОРМИРУЕМ ВЕРХНЮЮ СВОДКУ ПО ЛИСТАМ
-                var sheetSummary = sheetData
-                    .GroupBy(s => new { s.SheetSize, s.SheetCount })
-                    .Select(g => new
-                    {
-                        Size = g.Key.SheetSize,
-                        TotalSheets = g.Sum(x => x.SheetCount) // Суммируем физическое количество листов этого размера
-                    })
-                    .OrderByDescending(x => x.TotalSheets)
-                    .ToList();
+                // Обновляем значения по аналогии с AddBatchToPipeControl
+                pipe.Way = (float)totalWay;
+                pipe.Pinhole = totalPinholes;
+                pipe.work.type.Count = totalStocks;
 
-                string totalSheetsText = string.Join(", ", sheetSummary.Select(g => $"{g.TotalSheets} шт. {g.Size}"));
-                int totalPhysicalSheets = sheetSummary.Sum(x => x.TotalSheets);
+                // Пересчет длины заготовки (Mold)
+                pipe.Mold = (float)Math.Round(stockLength * totalStocks * 0.95f / 1000, 1);
 
-                // 🔥 2. ФОРМИРУЕМ ОБЩУЮ СВОДНУЮ ТАБЛИЦУ (для размещения в конце)
-                var masterPartsList = sheetData
-                    .SelectMany(s => s.PartsTable)
-                    .GroupBy(p => new { p.Name, p.Dimensions })
-                    .Select(g => new PartTableData
-                    {
-                        Name = g.Key.Name,
-                        Dimensions = g.Key.Dimensions,
-                        TotalQty = g.Sum(p => p.TotalQty),
-                        WeightKg = g.Sum(p => p.WeightKg)
-                    })
-                    .OrderByDescending(p => p.TotalQty)
-                    .ToList();
-
-                // 🔥 3. ГЕНЕРАЦИЯ PDF С НОВОЙ СТРУКТУРОЙ
-                Document.Create(container =>
-                {
-                    container.Page(page =>
-                    {
-                        page.Size(PageSizes.A4.Landscape());
-                        page.Margin(20, QuestPDF.Infrastructure.Unit.Millimetre);
-                        page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
-
-                        page.Header().Row(row =>
-                        {
-                            row.RelativeItem().Text("Карта раскроя материала").FontSize(16).Bold().FontColor(Colors.Black);
-                            row.RelativeItem().AlignRight().Text($"Дата: {DateTime.Now:dd.MM.yyyy}").FontSize(10).FontColor(Colors.Grey.Darken1);
-                        });
-
-                        page.Content().Column(column =>
-                        {
-                            // ==========================================
-                            // ЧАСТЬ А: МАТЕРИАЛ, ТОЛЩИНА И ОБЩАЯ СВОДКА ПО ЛИСТАМ (ВВЕРХУ)
-                            // ==========================================
-                            column.Item().Border(1).BorderColor(Colors.Blue.Lighten2).Background(Colors.Blue.Lighten4).Padding(10).Row(row =>
-                            {
-                                row.RelativeItem().Text(x =>
-                                {
-                                    x.Span("Материал: ").FontSize(11);
-                                    x.Span(metalName).Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
-                                    x.Span("  |  Толщина: ").FontSize(11);
-                                    x.Span($"{thickness} мм").Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
-                                });
-
-                                row.RelativeItem().AlignRight().Text(x =>
-                                {
-                                    x.Span("Всего листов: ").FontSize(11);
-                                    x.Span(totalPhysicalSheets.ToString()).Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
-                                    x.Span($" ({totalSheetsText})").FontSize(11);
-                                });
-                            });
-                            column.Item().PaddingVertical(10);
-
-                            // ==========================================
-                            // ЧАСТЬ Б: ЛИСТЫ РАСКЛАДКИ (КАРТИНКА ВО ВСЮ ШИРИНУ + ТАБЛИЦА ПОД НЕЙ)
-                            // ==========================================
-                            for (int i = 0; i < sheetData.Count; i++)
-                            {
-                                var data = sheetData[i];
-
-                                // Заголовок листа
-                                column.Item().Row(row =>
-                                {
-                                    row.RelativeItem().Text(data.Title).FontSize(14).Bold().FontColor(Colors.Blue.Darken2);
-                                    row.RelativeItem().AlignRight().Text(x =>
-                                    {
-                                        x.Span($"Размер: {data.SheetSize} мм | Отступы: {data.Spacing:0} мм | Деталей: {data.PartsCount} | Листов в группе: ")
-                                            .FontSize(10).FontColor(Colors.Grey.Darken1);
-                                        x.Span(data.SheetCount.ToString()).FontSize(11).Bold().FontColor(Colors.Blue.Darken2);
-                                    });
-                                });
-                                column.Item().PaddingVertical(5);
-
-                                // 🔥 КАРТИНКА ВО ВСЮ ШИРИНУ (максимально крупно и четко)
-                                column.Item()
-                                    .Border(1)
-                                    .BorderColor(Colors.Grey.Lighten2)
-                                    .Image(data.ImageBytes)
-                                    .FitArea();
-
-                                column.Item().PaddingVertical(10);
-
-                                // 🔥 ТАБЛИЦА СПЕЦИФИКАЦИИ ПОД КАРТИНКОЙ
-                                column.Item().Text($"Спецификация деталей на листе:").FontSize(11).Bold().FontColor(Colors.Grey.Darken2);
-                                column.Item().PaddingVertical(3);
-
-                                column.Item().Table(sheetTable =>
-                                {
-                                    // Поскольку таблица теперь во всю ширину, делаем колонки пропорционально шире для читаемости
-                                    sheetTable.ColumnsDefinition(columns =>
-                                    {
-                                        columns.RelativeColumn(4);   // Деталь (широкая)
-                                        columns.RelativeColumn(2);   // Размер
-                                        columns.RelativeColumn(1.5f); // Вес, кг
-                                        columns.RelativeColumn(1);   // На листе
-                                    });
-
-                                    sheetTable.Header(header =>
-                                    {
-                                        header.Cell().Element(TableHeaderStyle).Text("Наименование детали");
-                                        header.Cell().Element(TableHeaderStyle).Text("Габариты (мм)");
-                                        header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Вес, кг");
-                                        header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Кол-во на листе");
-                                    });
-
-                                    foreach (var part in data.PartsTable)
-                                    {
-                                        sheetTable.Cell().Element(TableRowStyle).Text(part.Name);
-                                        sheetTable.Cell().Element(TableRowStyle).Text(part.Dimensions);
-                                        sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.WeightKg.ToString("0.###"));
-                                        sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.QtyOnSheet.ToString());
-                                    }
-                                });
-
-                                // Разрыв страницы между листами (кроме последнего)
-                                if (i < sheetData.Count - 1)
-                                {
-                                    column.Item().PageBreak();
-                                }
-                            }
-
-                            // ==========================================
-                            // ЧАСТЬ В: ОБЩАЯ СПЕЦИФИКАЦИЯ (В САМОМ КОНЦЕ ДОКУМЕНТА)
-                            // ==========================================
-                            column.Item().PageBreak(); // Гарантируем, что общая сводка начинается с новой страницы
-
-                            column.Item().Text("Общая спецификация деталей по всему заказу")
-                                .FontSize(14).Bold().FontColor(Colors.Black);
-                            column.Item().PaddingVertical(5);
-
-                            column.Item().Table(masterTable =>
-                            {
-                                masterTable.ColumnsDefinition(columns =>
-                                {
-                                    columns.RelativeColumn(3);   // Наименование
-                                    columns.RelativeColumn(2);   // Габариты
-                                    columns.RelativeColumn(1.5f); // Вес, кг
-                                    columns.RelativeColumn(1);   // Общее кол-во
-                                });
-
-                                masterTable.Header(header =>
-                                {
-                                    header.Cell().Element(TableHeaderStyle).Text("Наименование");
-                                    header.Cell().Element(TableHeaderStyle).Text("Габариты (мм)");
-                                    header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Общий вес, кг");
-                                    header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Общее кол-во");
-                                });
-
-                                foreach (var part in masterPartsList)
-                                {
-                                    masterTable.Cell().Element(TableRowStyle).Text(part.Name);
-                                    masterTable.Cell().Element(TableRowStyle).Text(part.Dimensions);
-                                    masterTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.WeightKg.ToString("0.###"));
-                                    masterTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.TotalQty.ToString()).Bold();
-                                }
-                            });
-                        });
-
-                        page.Footer().AlignCenter().Text(x =>
-                        {
-                            x.Span("Страница ").FontSize(8);
-                            x.CurrentPageNumber().FontSize(8);
-                            x.Span(" из ").FontSize(8);
-                            x.TotalPages().FontSize(8);
-                        });
-                    });
-                }).GeneratePdf(filePath);
+                pipe.SetTotalProperties();
             }
-            catch (Exception ex)
+            // 🔥 НОВАЯ ВЕТКА: Полная аналогия с PipeControl для лентопила
+            else if (controller is SawControl saw)
             {
-                System.Diagnostics.Trace.WriteLine($"Auto PDF Export Error: {ex.Message}");
+                if (saw.PartDetails is null) return;
+
+                double totalWay = 0;
+                int totalPinholes = 0;
+                int totalStocks = 0;
+                double stockLength = saw.work.type.L; // Значение по умолчанию для лентопила
+
+                var sawItems = saw.Items?.OfType<LaserItem>()
+                    .Where(i => i.PipeStocks != null && i.PipeStocks.Count > 0)
+                    .ToList() ?? new List<LaserItem>();
+
+                foreach (var item in sawItems)
+                {
+                    totalWay += item.way * item.sheets;
+                    totalPinholes += item.pinholes * item.sheets;
+                    totalStocks += item.sheets;
+
+                    if (double.TryParse(item.sheetSize, out double len))
+                    {
+                        stockLength = len;
+                    }
+                }
+
+                // Обновляем значения
+                saw.Way = (float)totalWay;
+                saw.Pinhole = totalPinholes;
+                saw.work.type.Count = totalStocks;
+
+                saw.SetTotalProperties();
             }
         }
 
-        private static QuestPDF.Infrastructure.IContainer TableHeaderStyle(QuestPDF.Infrastructure.IContainer container) => container
-            .BorderBottom(1).BorderColor(Colors.Grey.Darken2)
-            .Background(Colors.Grey.Lighten3)
-            .PaddingVertical(4).PaddingHorizontal(4);
-
-        private static QuestPDF.Infrastructure.IContainer TableRowStyle(QuestPDF.Infrastructure.IContainer container) => container
-            .BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
-            .PaddingVertical(3).PaddingHorizontal(4);
-
-        private class PartTableData
+        /// <summary>
+        /// Показывает большие кнопки добавления деталей, если список пуст.
+        /// Скрывает кнопки, если в списке есть детали.
+        /// </summary>
+        public void UpdateEmptyState()
         {
-            public string Name { get; set; } = string.Empty;
-            public string Dimensions { get; set; } = string.Empty;
-            public int QtyOnSheet { get; set; }
-            public int TotalQty { get; set; }
-            public double WeightKg { get; set; }
+            if (partsList == null || partsList.Items == null) return;
+
+            bool hasParts = partsList.Items.Count > 0;
+
+            if (hasParts)
+            {
+                EmptyStateGrid.Visibility = Visibility.Collapsed;
+                partsScroll.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                EmptyStateGrid.Visibility = Visibility.Visible;
+                partsScroll.Visibility = Visibility.Collapsed;
+            }
         }
         #endregion
 
@@ -1338,8 +1212,8 @@ namespace Metal_Code
         // Добавить стандартную деталь
         private void Add_StandartPart_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not ToggleButton btn) return;
-            btn.IsChecked = true;
+            // Подсвечиваем соответствующую кнопку в сайдбаре
+            StandardPartsToggle.IsChecked = true;
 
             try
             {
@@ -1381,7 +1255,9 @@ namespace Metal_Code
             }
             finally
             {
-                btn.IsChecked = false;
+                // Сбрасываем подсветку кнопки в сайдбаре
+                StandardPartsToggle.IsChecked = false;
+                UpdateEmptyState();
             }
         }
 
@@ -1658,7 +1534,7 @@ namespace Metal_Code
             }
 
             // Обновляем итоговые значения
-            RecalculateTotals(cut);
+            RecalculateTotalsUniversal(cut);
         }
 
         /// <summary>
@@ -2135,6 +2011,638 @@ namespace Metal_Code
 
             // Масса = площадь сечения × длина хлыста × плотность / 1_000_000 (мм³ → см³)
             return crossSectionArea * stock.StockLength * metal.Density / 1_000_000;
+        }
+        #endregion
+
+        //-------------Экспорт-------------//
+        #region
+        /// <summary>
+        /// Экспортирует все листы раскладки в PDF-файл: общая сводка, материал/толщина, 
+        /// затем каждый лист с картинкой и компактной таблицей деталей справа.
+        /// </summary>
+        private void ExportNestingToPdf_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ToggleButton btn) return;
+            btn.IsChecked = true;
+
+            try
+            {
+                if (owner is CutControl cut && cut.Items != null)
+                {
+                    // === ВАШ СУЩЕСТВУЮЩИЙ КОД ДЛЯ ЛИСТОВ ===
+                    var sheetsToExport = cut.Items.Where(i => i.NestingSheet != null && i.NestingSheet.Parts.Count > 0).ToList();
+                    if (!sheetsToExport.Any())
+                    {
+                        MessageBox.Show("Нет листов раскладки для экспорта.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+
+                    string metalName = cut.work.type.MetalDrop.Text;
+                    float thickness = cut.work.type.S;
+                    string description = "";
+                    if ((metalName.Contains("ст") && thickness >= 3) || (metalName.Contains("хк") && thickness < 3)) description = $"s{thickness}";
+                    else if (metalName.Contains("амг2")) description = $"al{thickness}";
+                    else if (metalName.Contains("амг") || metalName.Contains("д16")) description = $"al{thickness} {metalName}";
+                    else if (metalName.Contains("латунь")) description = $"br{thickness}";
+                    else if (metalName.Contains("медь")) description = $"cu{thickness}";
+                    else description = $"s{thickness} {metalName}";
+
+                    if (cut.IsGrooved) description += " рифл";
+                    if (cut.work.type.CheckMetal.IsChecked is false) description += " Давальч";
+
+                    var saveDialog = new SaveFileDialog { Filter = "PDF файлы (*.pdf)|*.pdf", FileName = $"{description}.pdf", InitialDirectory = MainWindow.M.lastInputDirectory };
+                    if (saveDialog.ShowDialog() != true) return;
+
+                    MainWindow.M.StatusBegin("Генерация PDF...", MainWindow.StatusMessageType.Info);
+                    GenerateNestingPdf(saveDialog.FileName);
+                    MainWindow.M.StatusBegin($"PDF успешно сохранен: {Path.GetFileName(saveDialog.FileName)}", MainWindow.StatusMessageType.Success);
+                }
+                else if (owner is PipeControl pipe && pipe.Items != null)
+                {
+                    ExportPipeOrSaw(pipe, isSaw: false);
+                }
+                else if (owner is SawControl saw && saw.Items != null)
+                {
+                    ExportPipeOrSaw(saw, isSaw: true);
+                }
+                else
+                {
+                    MainWindow.M.StatusBegin("Нет данных для экспорта", MainWindow.StatusMessageType.Warning);
+                }
+            }
+            finally
+            {
+                btn.IsChecked = false;
+            }
+        }
+
+        private void ExportPipeOrSaw(ICut cut, bool isSaw)
+        {
+            var stocks = cut.Items!.OfType<LaserItem>().Where(i => i.PipeStocks != null && i.PipeStocks.Count > 0).ToList();
+            if (!stocks.Any())
+            {
+                MessageBox.Show("Нет раскладок хлыстов для экспорта.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            string fileName = GetPipeNestingFileName(isSaw);
+
+            var saveDialog = new SaveFileDialog
+            {
+                Filter = "PDF файлы (*.pdf)|*.pdf",
+                FileName = fileName,
+                InitialDirectory = MainWindow.M.lastInputDirectory
+            };
+
+            if (saveDialog.ShowDialog() == true)
+            {
+                MainWindow.M.StatusBegin("Генерация PDF...", MainWindow.StatusMessageType.Info);
+                GeneratePipeNestingPdf(saveDialog.FileName, isSaw);
+                MainWindow.M.StatusBegin($"PDF успешно сохранен: {Path.GetFileName(saveDialog.FileName)}", MainWindow.StatusMessageType.Success);
+            }
+        }
+
+        /// <summary>
+        /// Генерирует PDF-файл раскладки по указанному пути (без диалоговых окон).
+        /// Обновленная структура: Сводка сверху -> Листы (картинка во всю ширину + таблица под ней) -> Общая спецификация в конце.
+        /// </summary>
+        public void GenerateNestingPdf(string filePath)
+        {
+            if (owner is not CutControl cut || cut.Items == null) return;
+
+            var sheetsToExport = cut.Items
+                .Where(i => i.NestingSheet != null && i.NestingSheet.Parts.Count > 0)
+                .ToList();
+
+            if (!sheetsToExport.Any()) return;
+
+            try
+            {
+                QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
+                string metalName = cut.work.type.MetalDrop.Text;
+                float thickness = cut.work.type.S;
+
+                var sheetData = new List<(
+                    byte[] ImageBytes, string Title, int SheetCount, string? SheetSize, double Spacing, int PartsCount, List<PartTableData> PartsTable)>();
+
+                int index = 1;
+                foreach (var item in sheetsToExport)
+                {
+                    if (item.NestingSheet is null) continue;
+
+                    var preview = new NestingPreviewControl();
+                    preview.ShowSheet(item.NestingSheet);
+
+                    byte[] pngBytes = WpfImageHelper.RenderVisualToPng(preview, 1920, 1080);
+
+                    var partsTable = item.NestingSheet.Parts
+                        .GroupBy(p => new { p.Part.Title, p.Part.Width, p.Part.Height, p.Part.PartType })
+                        .Select(g => new PartTableData
+                        {
+                            Name = g.Key.Title,
+                            Dimensions = $"{g.Key.Width:0} × {g.Key.Height:0}",
+                            QtyOnSheet = g.Count(),
+                            TotalQty = g.Count() * item.sheets,
+                            WeightKg = g.Sum(p => (double)p.Part.Mass)
+                        })
+                        .OrderByDescending(p => p.TotalQty)
+                        .ToList();
+
+                    sheetData.Add((pngBytes, $"Лист {index} из {sheetsToExport.Count}", item.sheets, item.sheetSize, item.NestingSheet.Spacing, item.NestingSheet.Parts.Count, partsTable));
+                    index++;
+                }
+
+                // 🔥 1. ФОРМИРУЕМ ВЕРХНЮЮ СВОДКУ ПО ЛИСТАМ
+                var sheetSummary = sheetData
+                    .GroupBy(s => new { s.SheetSize, s.SheetCount })
+                    .Select(g => new
+                    {
+                        Size = g.Key.SheetSize,
+                        TotalSheets = g.Sum(x => x.SheetCount) // Суммируем физическое количество листов этого размера
+                    })
+                    .OrderByDescending(x => x.TotalSheets)
+                    .ToList();
+
+                string totalSheetsText = string.Join(", ", sheetSummary.Select(g => $"{g.TotalSheets} шт. {g.Size}"));
+                int totalPhysicalSheets = sheetSummary.Sum(x => x.TotalSheets);
+
+                // 🔥 2. ФОРМИРУЕМ ОБЩУЮ СВОДНУЮ ТАБЛИЦУ (для размещения в конце)
+                var masterPartsList = sheetData
+                    .SelectMany(s => s.PartsTable)
+                    .GroupBy(p => new { p.Name, p.Dimensions })
+                    .Select(g => new PartTableData
+                    {
+                        Name = g.Key.Name,
+                        Dimensions = g.Key.Dimensions,
+                        TotalQty = g.Sum(p => p.TotalQty),
+                        WeightKg = g.Sum(p => p.WeightKg)
+                    })
+                    .OrderByDescending(p => p.TotalQty)
+                    .ToList();
+
+                // 🔥 3. ГЕНЕРАЦИЯ PDF С НОВОЙ СТРУКТУРОЙ
+                Document.Create(container =>
+                {
+                    container.Page(page =>
+                    {
+                        page.Size(PageSizes.A4.Landscape());
+                        page.Margin(20, QuestPDF.Infrastructure.Unit.Millimetre);
+                        page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
+
+                        page.Header().Row(row =>
+                        {
+                            row.RelativeItem().Text("Карта раскроя материала").FontSize(16).Bold().FontColor(Colors.Black);
+                            row.RelativeItem().AlignRight().Text($"Дата: {DateTime.Now:dd.MM.yyyy}").FontSize(10).FontColor(Colors.Grey.Darken1);
+                        });
+
+                        page.Content().Column(column =>
+                        {
+                            // ==========================================
+                            // ЧАСТЬ А: МАТЕРИАЛ, ТОЛЩИНА И ОБЩАЯ СВОДКА ПО ЛИСТАМ (ВВЕРХУ)
+                            // ==========================================
+                            column.Item().Border(1).BorderColor(Colors.Blue.Lighten2).Background(Colors.Blue.Lighten4).Padding(10).Row(row =>
+                            {
+                                row.RelativeItem().Text(x =>
+                                {
+                                    x.Span("Материал: ").FontSize(11);
+                                    x.Span(metalName).Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
+                                    x.Span("  |  Толщина: ").FontSize(11);
+                                    x.Span($"{thickness} мм").Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
+                                });
+
+                                row.RelativeItem().AlignRight().Text(x =>
+                                {
+                                    x.Span("Всего листов: ").FontSize(11);
+                                    x.Span(totalPhysicalSheets.ToString()).Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
+                                    x.Span($" ({totalSheetsText})").FontSize(11);
+                                });
+                            });
+                            column.Item().PaddingVertical(10);
+
+                            // ==========================================
+                            // ЧАСТЬ Б: ЛИСТЫ РАСКЛАДКИ (КАРТИНКА ВО ВСЮ ШИРИНУ + ТАБЛИЦА ПОД НЕЙ)
+                            // ==========================================
+                            for (int i = 0; i < sheetData.Count; i++)
+                            {
+                                var data = sheetData[i];
+
+                                // Заголовок листа
+                                column.Item().Row(row =>
+                                {
+                                    row.RelativeItem().Text(data.Title).FontSize(14).Bold().FontColor(Colors.Blue.Darken2);
+                                    row.RelativeItem().AlignRight().Text(x =>
+                                    {
+                                        x.Span($"Размер: {data.SheetSize} мм | Отступы: {data.Spacing:0} мм | Деталей: {data.PartsCount} | Листов в группе: ")
+                                            .FontSize(10).FontColor(Colors.Grey.Darken1);
+                                        x.Span(data.SheetCount.ToString()).FontSize(11).Bold().FontColor(Colors.Blue.Darken2);
+                                    });
+                                });
+                                column.Item().PaddingVertical(5);
+
+                                // 🔥 КАРТИНКА ВО ВСЮ ШИРИНУ (максимально крупно и четко)
+                                column.Item()
+                                    .Border(1)
+                                    .BorderColor(Colors.Grey.Lighten2)
+                                    .Image(data.ImageBytes)
+                                    .FitArea();
+
+                                column.Item().PaddingVertical(10);
+
+                                // 🔥 ТАБЛИЦА СПЕЦИФИКАЦИИ ПОД КАРТИНКОЙ
+                                column.Item().Text($"Спецификация деталей на листе:").FontSize(11).Bold().FontColor(Colors.Grey.Darken2);
+                                column.Item().PaddingVertical(3);
+
+                                column.Item().Table(sheetTable =>
+                                {
+                                    // Поскольку таблица теперь во всю ширину, делаем колонки пропорционально шире для читаемости
+                                    sheetTable.ColumnsDefinition(columns =>
+                                    {
+                                        columns.RelativeColumn(4);   // Деталь (широкая)
+                                        columns.RelativeColumn(2);   // Размер
+                                        columns.RelativeColumn(1.5f); // Вес, кг
+                                        columns.RelativeColumn(1);   // На листе
+                                    });
+
+                                    sheetTable.Header(header =>
+                                    {
+                                        header.Cell().Element(TableHeaderStyle).Text("Наименование детали");
+                                        header.Cell().Element(TableHeaderStyle).Text("Габариты (мм)");
+                                        header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Вес, кг");
+                                        header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Кол-во на листе");
+                                    });
+
+                                    foreach (var part in data.PartsTable)
+                                    {
+                                        sheetTable.Cell().Element(TableRowStyle).Text(part.Name);
+                                        sheetTable.Cell().Element(TableRowStyle).Text(part.Dimensions);
+                                        sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.WeightKg.ToString("0.###"));
+                                        sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.QtyOnSheet.ToString());
+                                    }
+                                });
+
+                                // Разрыв страницы между листами (кроме последнего)
+                                if (i < sheetData.Count - 1)
+                                {
+                                    column.Item().PageBreak();
+                                }
+                            }
+
+                            // ==========================================
+                            // ЧАСТЬ В: ОБЩАЯ СПЕЦИФИКАЦИЯ (В САМОМ КОНЦЕ ДОКУМЕНТА)
+                            // ==========================================
+                            column.Item().PageBreak(); // Гарантируем, что общая сводка начинается с новой страницы
+
+                            column.Item().Text("Общая спецификация деталей по всему заказу")
+                                .FontSize(14).Bold().FontColor(Colors.Black);
+                            column.Item().PaddingVertical(5);
+
+                            column.Item().Table(masterTable =>
+                            {
+                                masterTable.ColumnsDefinition(columns =>
+                                {
+                                    columns.RelativeColumn(3);   // Наименование
+                                    columns.RelativeColumn(2);   // Габариты
+                                    columns.RelativeColumn(1.5f); // Вес, кг
+                                    columns.RelativeColumn(1);   // Общее кол-во
+                                });
+
+                                masterTable.Header(header =>
+                                {
+                                    header.Cell().Element(TableHeaderStyle).Text("Наименование");
+                                    header.Cell().Element(TableHeaderStyle).Text("Габариты (мм)");
+                                    header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Общий вес, кг");
+                                    header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Общее кол-во");
+                                });
+
+                                foreach (var part in masterPartsList)
+                                {
+                                    masterTable.Cell().Element(TableRowStyle).Text(part.Name);
+                                    masterTable.Cell().Element(TableRowStyle).Text(part.Dimensions);
+                                    masterTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.WeightKg.ToString("0.###"));
+                                    masterTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.TotalQty.ToString()).Bold();
+                                }
+                            });
+                        });
+
+                        page.Footer().AlignCenter().Text(x =>
+                        {
+                            x.Span("Страница ").FontSize(8);
+                            x.CurrentPageNumber().FontSize(8);
+                            x.Span(" из ").FontSize(8);
+                            x.TotalPages().FontSize(8);
+                        });
+                    });
+                }).GeneratePdf(filePath);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.WriteLine($"Auto PDF Export Error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Генерирует PDF-файл раскладки труб или лентопила по указанному пути.
+        /// </summary>
+        public void GeneratePipeNestingPdf(string filePath, bool isSaw = false)
+        {
+            ICut? cut = isSaw ? (owner as SawControl) : (owner as PipeControl);
+            if (cut == null || cut.Items == null) return;
+
+            var allStocks = cut.Items
+                .Where(i => i.PipeStocks != null && i.PipeStocks.Count > 0)
+                .ToList();
+
+            if (!allStocks.Any()) return;
+
+            try
+            {
+                QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
+                var (metal, thickness, metalName) = GetMetalAndThickness(owner);
+
+                string processName = isSaw ? "Лентопил" : "Труборез";
+
+                // 🔥 1. ИЗВЛЕЧЕНИЕ ТИПА И СЕЧЕНИЯ ПРОФИЛЯ
+                string pipeType = "Профиль";
+                string section = "";
+
+                if (cut is PipeControl pc && pc.work.type != null)
+                {
+                    pipeType = pc.work.type.TypeDetailDrop?.Text ?? "Труба";
+                    if (pipeType.Contains("Круглая") || pipeType.Contains("Круг"))
+                        section = $"Ø{pc.work.type.A:0} × {pc.work.type.S:0} мм";
+                    else
+                        section = $"{pc.work.type.A:0} × {pc.work.type.B:0} × {pc.work.type.S:0} мм";
+                }
+
+                var stockData = new List<(byte[] ImageBytes, string Title, double Length, int StockCount, List<PartTableData> PartsTable)>();
+                int index = 1;
+
+                foreach (var item in allStocks)
+                {
+                    if (item.PipeStocks is null) continue;
+
+                    var stock = item.PipeStocks[0];
+
+                    var preview = new PipeStockVisualizationControl
+                    {
+                        Stock = stock,
+                        Width = 820,
+                        Height = 70
+                    };
+
+                    byte[] pngBytes = WpfImageHelper.RenderVisualToPng(preview, 850, 100);
+
+                    // 🔥 2. РАСЧЕТ КОЛИЧЕСТВ И ВЕСА
+                    var partsTable = stock.Placements
+                        .GroupBy(p => new { p.Part.Title, p.Part.Length })
+                        .Select(g => new PartTableData
+                        {
+                            Name = g.Key.Title,
+                            Dimensions = $"{g.Key.Length:0} мм",
+                            QtyOnSheet = g.Count(), // Количество на ОДНОМ хлысте
+                            TotalQty = g.Count() * item.sheets, // Общее количество с учетом повторов хлыста
+                            WeightKg = g.Sum(p => (double)p.Part.Mass) // 🔥 Вес ОДНОГО хлыста (не умножаем на sheets)
+                        })
+                        .OrderByDescending(p => p.TotalQty)
+                        .ToList();
+
+                    stockData.Add((pngBytes, $"Хлыст {index} из {allStocks.Count} (повторов: {item.sheets})", stock.StockLength, item.sheets, partsTable));
+                    index++;
+                }
+
+                // Общая сводка по всем хлыстам
+                var masterPartsList = stockData
+                    .SelectMany(s => s.PartsTable)
+                    .GroupBy(p => new { p.Name, p.Dimensions })
+                    .Select(g => new PartTableData
+                    {
+                        Name = g.Key.Name,
+                        Dimensions = g.Key.Dimensions,
+                        TotalQty = g.Sum(p => p.TotalQty),
+                        WeightKg = g.Sum(p => p.WeightKg * p.TotalQty / p.QtyOnSheet) // 🔥 Пересчитываем общий вес
+                    })
+                    .OrderByDescending(p => p.TotalQty)
+                    .ToList();
+
+                // 🔥 3. ИСПРАВЛЕНИЕ: УМНОЖАЕМ НА sheets ДЛЯ ОБЩЕЙ ДЛИНЫ
+                double exactTotalLengthMm = allStocks.Sum(s => s.PipeStocks![0].StockLength * s.sheets);
+                double exactTotalLengthM = exactTotalLengthMm / 1000.0;
+                int totalStocksCount = allStocks.Sum(g => g.sheets);
+
+                double clampZone = allStocks.FirstOrDefault()?.PipeStocks![0].ClampZone ?? 0;
+                double cutLoss = allStocks.FirstOrDefault()?.PipeStocks![0].CutLoss ?? 10;
+
+                Document.Create(container =>
+                {
+                    container.Page(page =>
+                    {
+                        page.Size(PageSizes.A4.Landscape());
+                        page.Margin(20, QuestPDF.Infrastructure.Unit.Millimetre);
+                        page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
+
+                        page.Header().Row(row =>
+                        {
+                            row.RelativeItem().Text($"Карта раскроя: {processName}").FontSize(16).Bold().FontColor(Colors.Black);
+                            row.RelativeItem().AlignRight().Text($"Дата: {DateTime.Now:dd.MM.yyyy}").FontSize(10).FontColor(Colors.Grey.Darken1);
+                        });
+
+                        page.Content().Column(column =>
+                        {
+                            column.Item().Border(1).BorderColor(Colors.Green.Lighten2).Background(Colors.Green.Lighten4).Padding(10).Column(headerCol =>
+                            {
+                                headerCol.Item().Row(row =>
+                                {
+                                    row.RelativeItem().Text(x =>
+                                    {
+                                        x.Span("Материал: ").FontSize(11);
+                                        x.Span(metalName).Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
+                                        x.Span("  |  Тип: ").FontSize(11);
+                                        x.Span(pipeType).Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
+                                        x.Span("  |  Сечение: ").FontSize(11);
+                                        x.Span(section).Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
+                                    });
+                                });
+
+                                headerCol.Item().PaddingVertical(5);
+
+                                headerCol.Item().Row(row =>
+                                {
+                                    row.RelativeItem().Text(x =>
+                                    {
+                                        x.Span("Всего хлыстов: ").FontSize(11);
+                                        x.Span(totalStocksCount.ToString()).Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
+                                        x.Span($" (зажим: {clampZone:0} мм, пропил: {cutLoss:0} мм)").FontSize(11);
+                                    });
+                                    row.RelativeItem().AlignRight().Text(x =>
+                                    {
+                                        x.Span("Общая длина: ").FontSize(11);
+                                        x.Span($"{exactTotalLengthM:0.00} м").Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
+                                    });
+                                });
+                            });
+                            column.Item().PaddingVertical(10);
+
+                            for (int i = 0; i < stockData.Count; i++)
+                            {
+                                var data = stockData[i];
+
+                                column.Item().Row(row =>
+                                {
+                                    row.RelativeItem().Text(data.Title).FontSize(14).Bold().FontColor(Colors.Blue.Darken2);
+                                    row.RelativeItem().AlignRight().Text($"Длина заготовки: {data.Length:0} мм").FontSize(10).FontColor(Colors.Grey.Darken1);
+                                });
+                                column.Item().PaddingVertical(5);
+
+                                column.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Image(data.ImageBytes).FitArea();
+                                column.Item().PaddingVertical(10);
+
+                                column.Item().Text($"Детали на данном типе хлыста:").FontSize(11).Bold().FontColor(Colors.Grey.Darken2);
+                                column.Item().PaddingVertical(3);
+
+                                column.Item().Table(sheetTable =>
+                                {
+                                    sheetTable.ColumnsDefinition(columns =>
+                                    {
+                                        columns.RelativeColumn(3);
+                                        columns.RelativeColumn(2);
+                                        columns.RelativeColumn(1.5f);
+                                        columns.RelativeColumn(1);
+                                        columns.RelativeColumn(1);
+                                    });
+
+                                    sheetTable.Header(header =>
+                                    {
+                                        header.Cell().Element(TableHeaderStyle).Text("Наименование");
+                                        header.Cell().Element(TableHeaderStyle).Text("Длина");
+                                        header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Вес 1 хлыста, кг");
+                                        header.Cell().Element(TableHeaderStyle).AlignCenter().Text("На 1 хлыст");
+                                        header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Всего (с повт.)");
+                                    });
+
+                                    foreach (var part in data.PartsTable)
+                                    {
+                                        sheetTable.Cell().Element(TableRowStyle).Text(part.Name);
+                                        sheetTable.Cell().Element(TableRowStyle).Text(part.Dimensions);
+                                        sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.WeightKg.ToString("0.###"));
+                                        // 🔥 Используем сохраненное значение вместо деления
+                                        sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.QtyOnSheet.ToString());
+                                        sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.TotalQty.ToString()).Bold();
+                                    }
+                                });
+
+                                if (i < stockData.Count - 1) column.Item().PageBreak();
+                            }
+
+                            column.Item().PageBreak();
+                            column.Item().Text("Общая спецификация деталей по всему заказу").FontSize(14).Bold().FontColor(Colors.Black);
+                            column.Item().PaddingVertical(5);
+
+                            column.Item().Table(masterTable =>
+                            {
+                                masterTable.ColumnsDefinition(columns =>
+                                {
+                                    columns.RelativeColumn(3);
+                                    columns.RelativeColumn(2);
+                                    columns.RelativeColumn(1.5f);
+                                    columns.RelativeColumn(1);
+                                });
+
+                                masterTable.Header(header =>
+                                {
+                                    header.Cell().Element(TableHeaderStyle).Text("Наименование");
+                                    header.Cell().Element(TableHeaderStyle).Text("Длина (мм)");
+                                    header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Общий вес, кг");
+                                    header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Общее кол-во");
+                                });
+
+                                foreach (var part in masterPartsList)
+                                {
+                                    masterTable.Cell().Element(TableRowStyle).Text(part.Name);
+                                    masterTable.Cell().Element(TableRowStyle).Text(part.Dimensions);
+                                    masterTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.WeightKg.ToString("0.###"));
+                                    masterTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.TotalQty.ToString()).Bold();
+                                }
+                            });
+                        });
+
+                        page.Footer().AlignCenter().Text(x =>
+                        {
+                            x.Span("Страница ").FontSize(8);
+                            x.CurrentPageNumber().FontSize(8);
+                            x.Span(" из ").FontSize(8);
+                            x.TotalPages().FontSize(8);
+                        });
+                    });
+                }).GeneratePdf(filePath);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.WriteLine($"Auto Pipe PDF Export Error: {ex.Message}");
+            }
+        }
+
+        private static QuestPDF.Infrastructure.IContainer TableHeaderStyle(QuestPDF.Infrastructure.IContainer container) => container
+            .BorderBottom(1).BorderColor(Colors.Grey.Darken2)
+            .Background(Colors.Grey.Lighten3)
+            .PaddingVertical(4).PaddingHorizontal(4);
+
+        private static QuestPDF.Infrastructure.IContainer TableRowStyle(QuestPDF.Infrastructure.IContainer container) => container
+            .BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
+            .PaddingVertical(3).PaddingHorizontal(4);
+
+        /// <summary>
+        /// Формирует корректное имя файла для раскладки труб/профиля на основе параметров заготовки.
+        /// Пример: "Профильная труба 80x40x3_ст3.pdf" или "Уголок равнополочный 50x50x3_aisi430.pdf"
+        /// </summary>
+        public string GetPipeNestingFileName(bool isSaw = false)
+        {
+            ICut? cut = isSaw ? (owner as SawControl) : (owner as PipeControl);
+            if (cut == null) return $"Раскладка_Профиль.pdf";
+
+            var (metal, thickness, metalName) = GetMetalAndThickness(owner);
+            string pipeType = "Профиль";
+            string section = "";
+
+            if (cut is PipeControl pc && pc.work.type != null)
+            {
+                pipeType = pc.work.type.TypeDetailDrop?.Text ?? "Труба";
+                if (pipeType.Contains("Круг", StringComparison.OrdinalIgnoreCase))
+                    section = $"{pc.work.type.A:0}x{pc.work.type.S:0}";
+                else
+                    section = $"{pc.work.type.A:0}x{pc.work.type.B:0}x{pc.work.type.S:0}";
+            }
+            else if (cut is SawControl sc)
+            {
+                pipeType = sc.work.type.TypeDetailDrop?.Text?.Trim() ?? "Профиль";
+
+                if (pipeType.Contains("Круг", StringComparison.OrdinalIgnoreCase))
+                    section = $"{sc.work.type.A:0}x{sc.work.type.S:0}";
+                else
+                    section = $"{sc.work.type.A:0}x{sc.work.type.B:0}x{sc.work.type.S:0}";
+            }
+
+            // 🔥 Безопасная очистка: удаляем только строго недопустимые символы (\, /, :, *, ?, ", <, >, |)
+            // Пробелы оставляем для красоты, как в примере "Уголок равнополочный 50x50x3"
+            char[] invalidChars = Path.GetInvalidFileNameChars();
+            string cleanType = string.Concat(pipeType.Split(invalidChars)).Trim();
+            string cleanMetal = string.Concat(metalName!.Split(invalidChars)).Trim().Replace(" ", "_"); // В металле пробелы лучше заменить на _
+
+            // Если это лентопил, можно добавить префикс, чтобы файлы не путались, 
+            // но если хотите строго как в примере, уберите "Лентопил_"
+            string prefix = isSaw ? "Лентопил " : "";
+
+            return $"{prefix}{cleanType} {section}_{cleanMetal}.pdf";
+        }
+
+        private class PartTableData
+        {
+            public string Name { get; set; } = string.Empty;
+            public string Dimensions { get; set; } = string.Empty;
+            public int QtyOnSheet { get; set; }
+            public int TotalQty { get; set; }
+            public double WeightKg { get; set; }
         }
         #endregion
     }

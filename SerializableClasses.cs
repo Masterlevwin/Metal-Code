@@ -37,6 +37,18 @@ namespace Metal_Code
         public ObservableCollection<Assembly> Assemblies = new();
 
         [OptionalField]
+        public string LooseWeld = "";
+
+        [OptionalField]
+        public string LooseWeldType = "одн";
+
+        [OptionalField]
+        public string LooseRal = "";
+
+        [OptionalField]
+        public string LooseStructure = "глян";
+
+        [OptionalField]
         public float BonusRatio;
 
         [OptionalField]

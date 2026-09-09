@@ -4,6 +4,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Linq;
@@ -80,10 +81,10 @@ namespace Metal_Code
                                 columns.RelativeColumn(35);  // Размеры
                                 columns.RelativeColumn(30);  // Работы
                                 columns.RelativeColumn(20);  // №
-                                columns.RelativeColumn(80);  // Наименование
+                                columns.RelativeColumn(70);  // Наименование
                                 columns.RelativeColumn(25);  // Кол-во
-                                columns.RelativeColumn(30);  // Цена
-                                columns.RelativeColumn(40);  // Стоимость
+                                columns.RelativeColumn(35);  // Цена
+                                columns.RelativeColumn(45);  // Стоимость
                             });
 
                             // Заголовок таблицы
@@ -120,8 +121,8 @@ namespace Metal_Code
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}").Bold();
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(assembly.Title ?? "")).Bold();
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{assembly.Count}").Bold();
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{assembly.Price}").Bold();
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{assembly.Total}").Bold();
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(assembly.Price.ToString("N2")).Bold();
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(assembly.Total.ToString("N2")).Bold();
                                         row++;
 
                                         for (int p = 0; p < assembly.Particles.Count; p++)
@@ -157,8 +158,8 @@ namespace Metal_Code
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}");
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(loosePart.Title ?? ""));
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{loosePart.Count}");
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{loosePart.Price}");
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{loosePart.Total}");
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Price.ToString("N2"));
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Total.ToString("N2"));
                                         row++;
                                     }
                                 }
@@ -166,7 +167,7 @@ namespace Metal_Code
                             // Иначе если есть нарезанные детали, вычисляем их общую стоимость, и оформляем их в КП
                             else if (MainWindow.M.Parts.Count > 0)
                             {
-                                var visiblePartsForExport = OfferCalculator.PrepareVisiblePartsForOffer(MainWindow.M.Parts, (float)MainWindow.M.Ratio, MainWindow.M.BonusRatio);
+                                var visiblePartsForExport = OfferCalculator.PrepareVisiblePartsForOffer(MainWindow.M.Parts);
                                 for (int i = 0; i < visiblePartsForExport.Count; i++)
                                 {
                                     var part = visiblePartsForExport[i];
@@ -187,12 +188,13 @@ namespace Metal_Code
 
                             ObservableCollection<Detail> details = new(MainWindow.M.ProductModel.Product.Details.Where(d => !d.IsComplect));
                             if (details.Count > 0)
+                            {
                                 for (int i = 0; i < details.Count; i++)
                                 {
                                     Detail detail = details[i];
                                     totalSum += detail.Total;
 
-                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Metal);
+                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Metal ?? "");
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(MainWindow.Parser(detail.Destiny) > 0 ? detail.Destiny.ToString() : "");
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Accuracy ?? "");
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Description ?? "");
@@ -203,48 +205,108 @@ namespace Metal_Code
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Total.ToString("N2"));
                                     row++;
                                 }
+                            }
 
-                            //добавляем покупные издели
-                            if (!MainWindow.M.isAssemblyOffer && MainWindow.M.ProductModel.Product.Baskets?.Count > 0)
+                            // Добавляем покупные изделия
+                            if (MainWindow.M.isAssemblyOffer)
                             {
-                                var basketsWithWork = MainWindow.M.ProductModel.Product.Baskets
-                                                                .Where(b => !string.IsNullOrEmpty(b.Description));
-                                if (basketsWithWork != null)
-                                    foreach (Part basketWithWork in basketsWithWork)
+                                // Режим со сборками: используем CurrentBaskets
+                                if (AssemblyWindow.A.CurrentBaskets?.Count > 0)
+                                {
+                                    var basketsWithWork = AssemblyWindow.A.CurrentBaskets.Where(b => b.Count > 0 && !string.IsNullOrEmpty(b.Description)).ToList();
+                                    if (basketsWithWork.Count > 0)
                                     {
-                                        float price = (float)Math.Ceiling(basketWithWork.Price * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
-                                        float total = basketWithWork.Count * price;
-                                        totalSum += total;
+                                        foreach (Part basketWithWork in basketsWithWork)
+                                        {
+                                            float total = basketWithWork.Price * basketWithWork.Count;
+                                            totalSum += total;
 
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Metal);
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Destiny > 0 ? basketWithWork.Destiny.ToString() : "");
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Accuracy ?? "");
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Description ?? "");
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}");
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(Prefix(basketWithWork.Title ?? ""));
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Count.ToString());
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(price.ToString("N2"));
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(total.ToString("N2"));
-                                        row++;
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Metal ?? "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Destiny > 0 ? basketWithWork.Destiny.ToString() : "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Accuracy ?? "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Description ?? "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(basketWithWork.Title ?? ""));
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Count.ToString());
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Price.ToString("N2"));
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(total.ToString("N2"));
+                                            row++;
+                                        }
                                     }
 
-                                var basketsExtra = basketsWithWork?.Count() > 0 ? MainWindow.M.ProductModel.Product.Baskets.Except(basketsWithWork) : MainWindow.M.ProductModel.Product.Baskets;
+                                    var basketsExtra = basketsWithWork.Count > 0
+                                        ? AssemblyWindow.A.CurrentBaskets.Where(b => b.Count > 0 && !basketsWithWork.Any(bw => bw.Title == b.Title)).ToList()
+                                        : AssemblyWindow.A.CurrentBaskets.Where(b => b.Count > 0).ToList();
 
-                                table.Cell().ColumnSpan(9).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("Покупные изделия:").Bold();
+                                    if (basketsExtra.Count > 0)
+                                    {
+                                        table.Cell().ColumnSpan(9).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("Покупные изделия:").Bold();
 
-                                foreach (Part basket in basketsExtra)
+                                        foreach (Part basket in basketsExtra)
+                                        {
+                                            float total = basket.Price * basket.Count;
+                                            totalSum += total;
+
+                                            table.Cell().ColumnSpan(4).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Title ?? "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Count.ToString());
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Price.ToString("N2"));
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(total.ToString("N2"));
+                                            row++;
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                // Режим без сборок: используем оригинальные данные
+                                var allBaskets = MainWindow.M.BasketControls.Select(b => b.Basket).ToList();
+                                if (allBaskets.Count > 0)
                                 {
-                                    float price = (float)Math.Ceiling(basket.Price * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
-                                    float total = basket.Count * price;
-                                    totalSum += total;
+                                    var basketsWithWork = allBaskets.Where(b => b.Count > 0 && !string.IsNullOrEmpty(b.Description)).ToList();
+                                    if (basketsWithWork.Count > 0)
+                                    {
+                                        foreach (Part basketWithWork in basketsWithWork)
+                                        {
+                                            float total = basketWithWork.Price * basketWithWork.Count;
+                                            totalSum += total;
 
-                                    table.Cell().ColumnSpan(4).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
-                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}");
-                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Title);
-                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Count.ToString());
-                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(price.ToString("N2"));
-                                    table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(total.ToString("N2"));
-                                    row++;
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Metal ?? "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Destiny > 0 ? basketWithWork.Destiny.ToString() : "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Accuracy ?? "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Description ?? "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(basketWithWork.Title ?? ""));
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Count.ToString());
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketWithWork.Price.ToString("N2"));
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(total.ToString("N2"));
+                                            row++;
+                                        }
+                                    }
+
+                                    var basketsExtra = basketsWithWork.Count > 0
+                                        ? allBaskets.Where(b => b.Count > 0 && !basketsWithWork.Any(bw => bw.Title == b.Title)).ToList()
+                                        : allBaskets.Where(b => b.Count > 0).ToList();
+
+                                    if (basketsExtra.Count > 0)
+                                    {
+                                        table.Cell().ColumnSpan(9).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("Покупные изделия:").Bold();
+
+                                        foreach (Part basket in basketsExtra)
+                                        {
+                                            float total = basket.Price * basket.Count;
+                                            totalSum += total;
+
+                                            table.Cell().ColumnSpan(4).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Title ?? "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Count.ToString());
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Price.ToString("N2"));
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(total.ToString("N2"));
+                                            row++;
+                                        }
+                                    }
                                 }
                             }
 
@@ -364,10 +426,28 @@ namespace Metal_Code
 
                                 string disclaimer = "Изделия изготавливаются строго по предоставленным Заказчиком чертежам. " +
                                                     "Исполнитель не несёт ответственности за корректность конструкторской документации.";
+
+                                // Проверяем, есть ли хотя бы один хлыст с нестандартной зоной зажима
+                                bool hasNonDefaultClamp = MainWindow.M.DetailControls
+                                    .SelectMany(dc => dc.TypeDetailControls)
+                                    .SelectMany(tc => tc.WorkControls)
+                                    .Where(wc => wc.workType is PipeControl)              // Фильтруем по свойству workType
+                                    .Select(wc => (PipeControl)wc.workType!)              // Приводим к PipeControl
+                                    .Where(pc => pc.Items?.Count > 0)                     // Только с заполненными Items
+                                    .SelectMany(pc => pc.Items!)
+                                    .SelectMany(item => item.PipeStocks!)
+                                    .Any(stock => stock.ClampZone < 340);                 // Меньше 340
+
+                                string clampWarning = hasNonDefaultClamp
+                                    ? "\nДля сортового проката применен уменьшенный зажим, поэтому возможен провис деталей с погрешностью в размерах."
+                                    : string.Empty;
+
+                                string baseNote = disclaimer + clampWarning;
                                 var userComment = MainWindow.M.Comment.Text?.Trim();
+
                                 string finalNote = string.IsNullOrEmpty(userComment)
-                                    ? disclaimer
-                                    : $"{disclaimer}\n\n{userComment}";
+                                    ? baseNote
+                                    : $"{baseNote}\n{userComment}";
                                 left.Item().PaddingVertical(5).Text($"Примечание: {finalNote}").SemiBold();
 
                                 left.Item().PaddingVertical(5).Text($"Ваш менеджер: {MainWindow.M.ManagerDrop.Text}");

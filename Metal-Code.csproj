@@ -136,6 +136,8 @@
     <None Remove="Updates\v2.7.0.5_2026-05-22.png" />
     <None Remove="Updates\v2.7.0.6_2026-05-22.png" />
     <None Remove="Updates\v2.7.1.5_2026-07-20.png" />
+    <None Remove="Updates\v2.7.2.8_2026-09-09.png" />
+    <None Remove="Updates\v2.7.2.9_2026-09-09.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -318,6 +320,8 @@
     <Resource Include="Updates\v2.7.0.5_2026-05-22.png" />
     <Resource Include="Updates\v2.7.0.6_2026-05-22.png" />
     <Resource Include="Updates\v2.7.1.5_2026-07-20.png" />
+    <Resource Include="Updates\v2.7.2.8_2026-09-09.png" />
+    <Resource Include="Updates\v2.7.2.9_2026-09-09.png" />
   </ItemGroup>
 
   <ItemGroup>

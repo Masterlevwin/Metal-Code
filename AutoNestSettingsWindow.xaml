@@ -1,0 +1,62 @@
+﻿<Window x:Class="Metal_Code.AutoNestSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:hc="https://handyorg.github.io/handycontrol"
+        Title="Параметры автонестинга"
+        WindowStartupLocation="CenterOwner"
+        Width="300" Height="360"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Настройте параметры раскладки:"
+                   FontSize="14" FontWeight="Bold" Margin="0,0,0,15"/>
+
+        <!-- Панель для ЛИСТОВОГО металла -->
+        <StackPanel x:Name="SheetPanel" Visibility="Collapsed" Grid.Row="1">
+            <ToggleButton x:Name="AutoNestingCheck" 
+                          Content="Автоподбор размеров листа" 
+                          FontWeight="Bold"
+                          Style="{StaticResource ToggleButtonSwitch.Small}" 
+                          IsChecked="True" 
+                          Margin="0,0,0,15" 
+                          HorizontalAlignment="Center"/>
+
+            <TextBlock Text="Ширина листа (мм):" Margin="0,0,0,5"/>
+            <hc:TextBox x:Name="TxtWidth" Margin="0,0,0,10" TextAlignment="Center"/>
+
+            <TextBlock Text="Высота листа (мм):" Margin="0,0,0,5"/>
+            <hc:TextBox x:Name="TxtHeight" Margin="0,0,0,10" TextAlignment="Center"/>
+
+            <TextBlock Text="Отступы (мм):" Margin="0,0,0,5"/>
+            <hc:TextBox x:Name="TxtSpacing" Margin="0,0,0,10" TextAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Панель для ТРУБ -->
+        <StackPanel x:Name="PipePanel" Visibility="Collapsed" Grid.Row="1">
+            <TextBlock Text="Длина хлыста (мм):" Margin="0,0,0,5"/>
+            <hc:TextBox x:Name="TxtLength" Margin="0,0,0,15" TextAlignment="Center"/>
+
+            <TextBlock Text="Зона зажима (мм):" FontWeight="Bold" Margin="0,0,0,8" HorizontalAlignment="Center"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,15">
+                <RadioButton x:Name="Clamp340Radio" Content="340" GroupName="ClampZone" Margin="0,0,15,0"/>
+                <RadioButton x:Name="Clamp160Radio" Content="160" GroupName="ClampZone" Margin="0,0,15,0"/>
+                <RadioButton x:Name="Clamp0Radio" Content="0 (нет)" GroupName="ClampZone"/>
+            </StackPanel>
+
+            <TextBlock Text="Пропил (мм):" Margin="0,0,0,5"/>
+            <hc:TextBox x:Name="TxtLoss" Margin="0,0,0,10" TextAlignment="Center"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Отмена" Width="90" Height="32" Margin="0,0,10,0" Click="Cancel_Click"/>
+            <Button Content="Применить" Width="90" Height="32" Style="{StaticResource ButtonPrimary}" Click="Ok_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

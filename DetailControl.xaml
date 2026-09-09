@@ -12,7 +12,7 @@
         <GroupBox.Header>
             <StackPanel Orientation="Horizontal" Margin="5">
                 <TextBox x:Name="Counter" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsReadOnly="True" MinWidth="28"/>
-                <hc:TextBox hc:InfoElement.Placeholder="Наименование детали" ToolTip="Введите наименование детали" Text="{Binding Title}" TextChanged="SetName" x:Name="DetailName" MinWidth="150" MaxWidth="150" MaxLines="1" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                <hc:TextBox hc:InfoElement.Placeholder="Наименование детали" ToolTip="Введите наименование детали" Text="{Binding Title}" TextChanged="SetName" x:Name="DetailName" MinWidth="150" MaxWidth="150" MaxLines="1" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" FontWeight="SemiBold"/>
                 
                 <TextBlock Text="N" VerticalAlignment="Top" FontSize="10" Margin="10,0,0,0" MinWidth="8"/>
                 <TextBox ToolTip="Введите количество деталей" Text="{Binding Count}" TextChanged="SetCount" x:Name="Count" MaxWidth="40" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" Foreground="Blue"/>
@@ -29,13 +29,51 @@
             </StackPanel>
         </GroupBox.Header>
 
-        <StackPanel hc:PanelElement.FluidMoveBehavior="{StaticResource BehaviorXY200}" x:Name="BilletsStack" Margin="0,3,0,0" HorizontalAlignment="Left">
-            <Button Click="AddTypeDetail" HorizontalAlignment="Left" Margin="10,5,0,0">
-                <StackPanel Orientation="Horizontal">
-                    <Image Source="Images/plus.png" Width="12" Height="12"/>
-                    <TextBlock Text="Добавить заготовку" VerticalAlignment="Center" Margin="3,0,0,0" Padding="2"/>
-                </StackPanel>
-            </Button>
+        <StackPanel>
+            <!-- Блок выбора типа заготовки (виден только для пустой детали) -->
+            <Grid x:Name="SelectionGrid" HorizontalAlignment="Center" Margin="0,20,0,20" Visibility="Visible">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="30"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Кнопка: Лист металла -->
+                <Button x:Name="BtnSheet" Click="SelectSheet" Grid.Column="0" 
+        MinWidth="180" MinHeight="100" Padding="20,10"
+        ToolTip="Создать заготовку: Лист металла">
+                    <StackPanel HorizontalAlignment="Center">
+                        <Image Source="{StaticResource SheetMetalIcon}" 
+               Width="48" Height="48" 
+               HorizontalAlignment="Center"/>
+                        <TextBlock Text="Лист металла" FontSize="20" FontWeight="Bold" 
+                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Кнопка: Труба -->
+                <Button x:Name="BtnPipe" Click="SelectPipe" Grid.Column="2"
+        MinWidth="180" MinHeight="100" Padding="20,10"
+        ToolTip="Создать заготовку: Труба профильная">
+                    <StackPanel HorizontalAlignment="Center">
+                        <Image Source="{StaticResource PipeIcon}" 
+               Width="48" Height="48" 
+               HorizontalAlignment="Center"/>
+                        <TextBlock Text="Труба (прокат)" FontSize="20" FontWeight="Bold" 
+                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+            
+            <StackPanel hc:PanelElement.FluidMoveBehavior="{StaticResource BehaviorXY200}" 
+                    x:Name="BilletsStack" Margin="0,3,0,0" HorizontalAlignment="Left">
+                <Button Click="AddTypeDetail" HorizontalAlignment="Left" Margin="10,5,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="Images/plus.png" Width="12" Height="12"/>
+                        <TextBlock Text="Добавить заготовку" VerticalAlignment="Center" Margin="3,0,0,0" Padding="2"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
         </StackPanel>
     </GroupBox>
 </UserControl>

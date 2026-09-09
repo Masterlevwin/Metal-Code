@@ -9,7 +9,7 @@
         Background="{DynamicResource {x:Static SystemColors.InactiveCaptionBrushKey}}">
     <Window.Resources>
         <self:CostConverter x:Key="CostConverter"/>
-        
+
         <!-- Цвета -->
         <SolidColorBrush x:Key="ButtonBackground" Color="#FFFFFFE1"/>
         <SolidColorBrush x:Key="BorderColor" Color="#D1D9E0"/>
@@ -28,7 +28,7 @@
             <Setter Property="HasDropShadow" Value="True"/>
             <Setter Property="MaxWidth" Value="280"/>
         </Style>
-        
+
         <!-- Стиль для Button -->
         <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="{StaticResource ButtonBackground}" />
@@ -62,218 +62,298 @@
         </Style>
 
     </Window.Resources>
-    
+
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="400"/>
+            <ColumnDefinition Width="420"/>
             <!-- Кнопки и список деталей -->
             <ColumnDefinition/>
             <!-- TreeView со сборками -->
         </Grid.ColumnDefinitions>
 
         <StackPanel Margin="5">
-            <Expander Margin="10">
+            <Expander Margin="10" IsExpanded="True">
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal">
                         <Image Source="/Images/question.png" Width="16">
                             <Image.ToolTip>
                                 <ToolTip Style="{StaticResource InfoToolTipStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="Список деталей" 
-                                       FontWeight="Bold" 
-                                       FontSize="13"
-                                       Foreground="#CC3300"
-                                       TextAlignment="Center"
-                                       Margin="0,0,0,8"/>
+                                        <TextBlock Text="Детали и ПКИ" 
+                                                   FontWeight="Bold" 
+                                                   FontSize="13"
+                                                   Foreground="#CC3300"
+                                                   TextAlignment="Center"
+                                                   Margin="0,0,0,8"/>
                                         <TextBlock TextWrapping="Wrap" 
-                                       TextAlignment="Center"
-                                       FontSize="12"
-                                       Foreground="#333333"
-                                       LineHeight="16">
-                                В данном списке находятся только нарезанные детали, и только они могут быть распределены по сборкам. Создайте одну или несколько сборок, назовите каждую, укажите их количество, и распределите эти детали. Проверьте целостность сборок кнопкой «Проверить сборки».
+                                                   TextAlignment="Center"
+                                                   FontSize="12"
+                                                   Foreground="#333333"
+                                                   LineHeight="16">
+                                В данном списке находятся нарезанные детали и покупные изделия (ПКИ). 
+                                Перетащите их в сборки или используйте кнопку «Добавить». 
+                                Элементы с количеством 0 станут неактивными.
                                         </TextBlock>
                                     </StackPanel>
                                 </ToolTip>
                             </Image.ToolTip>
                         </Image>
-                        <TextBlock Text="Список деталей" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                        <TextBlock Text="Список доступных деталей" VerticalAlignment="Center" Margin="5,0,0,0"/>
                     </StackPanel>
                 </Expander.Header>
 
-                <ListView ItemsSource="{Binding CurrentParts}" Padding="3" MaxHeight="200"
-                          Style="{StaticResource ListView.Small}"
-                          AllowDrop="False" MouseMove="ListView_MouseMove"
-                          PreviewMouseLeftButtonDown="ListView_PreviewMouseLeftButtonDown">
-                <ListView.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal">
-                                <Image Loaded="SetPicture" Width="20"/>
-                                <TextBlock Text="{Binding Title}" Margin="5,0,0,0"/>
-                                <TextBlock Text=" (" Foreground="Blue" Margin="5,0,0,0" />
-                                <TextBlock Text="{Binding Count}" Foreground="Blue"/>
-                                <TextBlock Text=" шт)" Foreground="Blue"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView >
-            </Expander>
-
-            <Expander Margin="10">
-                <Expander.Header>
-                    <StackPanel Orientation="Horizontal">
-                        <Image Source="/Images/question.png" Width="16">
-                            <Image.ToolTip>
-                                <ToolTip Style="{StaticResource InfoToolTipStyle}">
-                                    <StackPanel>
-                                        <TextBlock Text="Покупные изделия" 
-                                       FontWeight="Bold" 
-                                       FontSize="13"
-                                       Foreground="#CC3300"
-                                       TextAlignment="Center"
-                                       Margin="0,0,0,8"/>
-                                        <TextBlock TextWrapping="Wrap" 
-                                       TextAlignment="Center"
-                                       FontSize="12"
-                                       Foreground="#333333"
-                                       LineHeight="16">
-                                В данном списке находятся покупные изделия, добавленные в главном окне программы. Если каких-то изделий не хватает, добавьте их в главном окне через кнопку «ПКИ».
-                                        </TextBlock>
-                                    </StackPanel>
-                                </ToolTip>
-                            </Image.ToolTip>
-                        </Image>
-                        <TextBlock Text="Покупные изделия" VerticalAlignment="Center" Margin="5,0,0,0"/>
-                    </StackPanel>
-                </Expander.Header>
-
-                <ListView ItemsSource="{Binding CurrentBaskets}" Padding="3" MaxHeight="160"
+                <ListView ItemsSource="{Binding CurrentParts}" Padding="3" MaxHeight="300"
                           Style="{StaticResource ListView.Small}"
                           AllowDrop="False" MouseMove="ListView_MouseMove"
                           PreviewMouseLeftButtonDown="ListView_PreviewMouseLeftButtonDown">
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal">
+                            <StackPanel x:Name="PartPanel" Orientation="Horizontal">
                                 <Image Loaded="SetPicture" Width="20"/>
                                 <TextBlock Text="{Binding Title}" Margin="5,0,0,0"/>
                                 <TextBlock Text=" (" Foreground="Blue" Margin="5,0,0,0" />
-                                <TextBlock Text="{Binding Count}" Foreground="Blue"/>
+                                <TextBlock Text="{Binding Count}" Foreground="Blue" FontWeight="Bold"/>
                                 <TextBlock Text=" шт)" Foreground="Blue"/>
                             </StackPanel>
+
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Count}" Value="0">
+                                    <Setter TargetName="PartPanel" Property="Opacity" Value="0.4"/>
+                                    <Setter TargetName="PartPanel" Property="IsEnabled" Value="False"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
                         </DataTemplate>
                     </ListView.ItemTemplate>
-                </ListView >
+                </ListView>
             </Expander>
 
-            <StackPanel Grid.Column="1" Margin="10" HorizontalAlignment="Center">
-                <!-- Глобальная сварка -->
-                <StackPanel Orientation="Horizontal" Margin="3">
-                    <Image Source="/Images/works2.png" Width="16"/>
-                    <TextBlock Text="Сварка (общ.):" VerticalAlignment="Center" Margin="10,0,0,0" Width="90"/>
-                    <TextBox x:Name="GlobalWeldBox" Width="60" Margin="5,0,0,0"
-                 ToolTip="Общая длина сварного шва для всех сборок" HorizontalContentAlignment="Center"/>
-                    <ComboBox x:Name="GlobalWeldTypeBox" SelectedIndex="0" Width="60" Margin="5,0,0,0"
-                  ItemsSource="{Binding DataContext.Types, RelativeSource={RelativeSource AncestorType=Window}}"
-                  ToolTip="Тип сварки по умолчанию"/>
-                </StackPanel>
+            <!-- Expander для Покупных Изделий (ПКИ) -->
+            <Expander Margin="10" IsExpanded="True">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="/Images/question.png" Width="16">
+                            <Image.ToolTip>
+                                <ToolTip Style="{StaticResource InfoToolTipStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="Покупные изделия (ПКИ)" 
+                                                   FontWeight="Bold" 
+                                                   FontSize="13"
+                                                   Foreground="#CC3300"
+                                                   TextAlignment="Center"
+                                                   Margin="0,0,0,8"/>
+                                        <TextBlock TextWrapping="Wrap" 
+                                                   TextAlignment="Center"
+                                                   FontSize="12"
+                                                   Foreground="#333333"
+                                                   LineHeight="16">
+                                            В данном списке находятся покупные изделия. 
+                                            Вы можете перетащить их в сборки, если они входят в состав узлов.
+                                            <LineBreak/>
+                                            <Run FontWeight="Bold">Важно:</Run> Если ПКИ не добавлены в сборки, они <Run FontWeight="Bold">не участвуют</Run> в расчете сварки и окраски, так как поставляются готовыми.
+                                        </TextBlock>
+                                    </StackPanel>
+                                </ToolTip>
+                            </Image.ToolTip>
+                        </Image>
+                        <TextBlock Text="Покупные изделия (ПКИ)" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </Expander.Header>
 
-                <!-- Глобальная окраска -->
-                <StackPanel Orientation="Horizontal" Margin="3">
-                    <Image Source="/Images/works2.png" Width="16"/>
-                    <TextBlock Text="Окраска (общ.):" VerticalAlignment="Center" Margin="10,0,0,0" Width="90"/>
-                    <TextBox x:Name="GlobalRalBox" Width="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
-                 ToolTip="Цвет RAL по умолчанию" Margin="5,0,0,0"/>
-                    <ComboBox x:Name="GlobalStructureBox" SelectedIndex="0" Width="70" Margin="5,0,0,0"
-                  ItemsSource="{Binding DataContext.Structures, RelativeSource={RelativeSource AncestorType=Window}}"
-                  ToolTip="Структура покрытия по умолчанию"/>
+                <ListView ItemsSource="{Binding CurrentBaskets}" Padding="3" MaxHeight="150"
+                          Style="{StaticResource ListView.Small}"
+                          AllowDrop="False" MouseMove="ListView_MouseMove"
+                          PreviewMouseLeftButtonDown="ListView_PreviewMouseLeftButtonDown">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel x:Name="BasketPanel" Orientation="Horizontal">
+                                <Image Loaded="SetPicture" Width="20"/>
+                                <TextBlock Text="{Binding Title}" Margin="5,0,0,0"/>
+                                <TextBlock Text=" (" Foreground="Blue" Margin="5,0,0,0" />
+                                <TextBlock Text="{Binding Count}" Foreground="Blue" FontWeight="Bold"/>
+                                <TextBlock Text=" шт)" Foreground="Blue"/>
+                            </StackPanel>
 
-                    <Button Content="→ Применить" Click="ApplyGlobalToAllAssemblies"
-                        ToolTip="Применить значения ко всем сборкам" Margin="20,0,0,0"/>
-
-                </StackPanel>
-            </StackPanel>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Count}" Value="0">
+                                    <Setter TargetName="BasketPanel" Property="Opacity" Value="0.4"/>
+                                    <Setter TargetName="BasketPanel" Property="IsEnabled" Value="False"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Expander>
             
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
+                <Button Click="ResetDistribution" ToolTip="Очистить все сборки и вернуть детали в исходное состояние">
+                    <StackPanel Orientation="Horizontal">
+                        <Viewbox Width="16" Height="16" Margin="0,0,5,0">
+                            <Path Fill="Black" Data="M16.24,3.56L21.19,8.5C21.97,9.29 21.97,10.55 21.19,11.34L12,20.53C10.44,22.09 7.91,22.09 6.34,20.53L2.81,17C2.03,16.21 2.03,14.95 2.81,14.16L13.41,3.56C14.2,2.78 15.46,2.78 16.24,3.56M4.22,15.58L7.76,19.11C8.54,19.9 9.8,19.9 10.59,19.11L14.12,15.58L9.17,10.63L4.22,15.58Z"/>
+                        </Viewbox>
+                        <TextBlock Text="Сбросить распределение" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+
+            <!-- Сварка и окраска для нераспределенных деталей -->
+            <Border BorderBrush="Gray" CornerRadius="6" BorderThickness="1" Margin="10" Background="White">
+                <StackPanel Margin="5" HorizontalAlignment="Center">
+                    <!-- Сварка для нераспределенных деталей -->
+                    <StackPanel Orientation="Horizontal" Margin="3">
+                        <Image Source="/Images/works2.png" Width="16"/>
+                        <TextBlock Text="Сварка (общ):" VerticalAlignment="Center" Margin="5,0,0,0" Width="90"/>
+                        <TextBox Text="{Binding LooseWeld, UpdateSourceTrigger=PropertyChanged}"
+                             Width="60" Margin="5,0,0,0"
+                             ToolTip="Длина сварного шва для всех нераспределенных деталей" 
+                             HorizontalContentAlignment="Center"/>
+                        <ComboBox SelectedItem="{Binding LooseWeldType, UpdateSourceTrigger=PropertyChanged}" 
+                              Width="60" Margin="5,0,0,0"
+                              ItemsSource="{Binding DataContext.Types, RelativeSource={RelativeSource AncestorType=Window}}"
+                              ToolTip="Тип сварки для нераспределенных деталей"/>
+                        <TextBlock Text="{Binding LooseMass, StringFormat={}{0:0} кг}" 
+                               VerticalAlignment="Center" Margin="5,0,0,0" Width="50" 
+                               ToolTip="Общий вес нераспределенных деталей"/>
+                        <TextBlock Text="{Binding LooseWeldPrice, Converter={StaticResource CostConverter}}" 
+                               Margin="10,0,0,0" Foreground="Blue" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Окраска для нераспределенных деталей -->
+                    <StackPanel Orientation="Horizontal" Margin="3">
+                        <Image Source="/Images/works2.png" Width="16"/>
+                        <TextBlock Text="Окраска (общ):" VerticalAlignment="Center" Margin="5,0,0,0" Width="90"/>
+                        <TextBox Text="{Binding LooseRal, UpdateSourceTrigger=PropertyChanged}" 
+                             Width="50" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                             ToolTip="Цвет RAL для нераспределенных деталей" Margin="5,0,0,0"/>
+                        <ComboBox SelectedItem="{Binding LooseStructure, UpdateSourceTrigger=PropertyChanged}" 
+                              Width="70" Margin="5,0,0,0"
+                              ItemsSource="{Binding DataContext.Structures, RelativeSource={RelativeSource AncestorType=Window}}"
+                              ToolTip="Структура покрытия для нераспределенных деталей"/>
+                        <TextBlock Text="{Binding LooseSquare, StringFormat={}{0:0} кв.м}" 
+                               VerticalAlignment="Center" Margin="5,0,0,0" Width="50" 
+                               ToolTip="Общая площадь покрытия нераспределенных деталей"/>
+                        <TextBlock Text="{Binding LoosePaintPrice, Converter={StaticResource CostConverter}}" 
+                               Margin="10,0,0,0" Foreground="Blue" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <Button Click="ApplyGlobalToAllAssemblies" Margin="0,10,0,0" HorizontalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <!-- Иконка с подсказкой, как в заголовках списков -->
+                            <Image Source="/Images/question.png" Width="16" VerticalAlignment="Center">
+                                <Image.ToolTip>
+                                    <ToolTip Style="{StaticResource InfoToolTipStyle}">
+                                        <StackPanel>
+                                            <TextBlock Text="Назначение полей сварки и окраски" 
+                                   FontWeight="Bold" 
+                                   FontSize="13"
+                                   Foreground="#CC3300"
+                                   TextAlignment="Center"
+                                   Margin="0,0,0,8"/>
+                                            <TextBlock TextWrapping="Wrap" 
+                                   TextAlignment="Center"
+                                   FontSize="12"
+                                   Foreground="#333333"
+                                   LineHeight="16">
+                            Эти поля в первую очередь рассчитывают стоимость работ для <Run FontWeight="Bold">нераспределенных деталей</Run>.
+                            <LineBreak/>
+                            <LineBreak/>
+                            Нажатие этой кнопки также скопирует указанные значения (цвет, структуру, тип сварки) во <Run FontWeight="Bold">все созданные сборки</Run>, чтобы упростить массовое назначение параметров.
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </ToolTip>
+                                </Image.ToolTip>
+                            </Image>
+
+                            <!-- Текст кнопки со стрелочкой -->
+                            <TextBlock Text="→ Применить ко всем сборкам" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Панель управления сборками (над TreeView) -->
+        <DockPanel Grid.Column="1" Margin="5">
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="10" HorizontalAlignment="Left">
                 <Button Click="AddAssembly">
                     <StackPanel Orientation="Horizontal">
-                        <Image Source="/Images/greenplus.png"/>
+                        <Image Source="/Images/greenplus.png" Width="16"/>
                         <TextBlock Text="Создать сборку" Margin="5,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
 
-                <Button Click="CheckAssemblies" Margin="50,0,0,0">
+                <Button Click="CheckAssemblies" Margin="20,0,0,0">
                     <StackPanel Orientation="Horizontal">
-                        <Image Source="/Images/check.png"/>
+                        <Image Source="/Images/check.png" Width="16"/>
                         <TextBlock Text="Проверить сборки" Margin="5,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
             </StackPanel>
-        </StackPanel>
 
-        <TreeView x:Name="ParticleStack" Grid.Column="1" Margin="10" ItemsSource="{Binding Assemblies}"
+            <TreeView x:Name="ParticleStack" ItemsSource="{Binding Assemblies}" Margin="10"
                   BorderThickness="0" AllowDrop="True" DragOver="TreeView_DragOver" Drop="TreeView_Drop">
-            <TreeView.Resources>
-                <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
-                    <Setter Property="HorizontalContentAlignment" Value="Left"/>
-                    <Setter Property="HorizontalAlignment" Value="Left"/>
-                    <Setter Property="AllowDrop" Value="True"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="TreeViewItem">
-                                <StackPanel Background="{TemplateBinding Background}">
-                                    
-                                    <!-- Заголовок с раскрывающейся стрелкой -->
-                                    <Grid x:Name="HeaderGrid" Background="Transparent">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
+                <TreeView.Resources>
+                    <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                        <Setter Property="HorizontalAlignment" Value="Left"/>
+                        <Setter Property="AllowDrop" Value="True"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="TreeViewItem">
+                                    <StackPanel Background="{TemplateBinding Background}">
 
-                                        <ToggleButton x:Name="Expander" ClickMode="Press"
+                                        <!-- Заголовок с раскрывающейся стрелкой -->
+                                        <Grid x:Name="HeaderGrid" Background="Transparent">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <ToggleButton x:Name="Expander" ClickMode="Press"
               IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
               Width="24" Height="24" Cursor="Hand"
               HorizontalAlignment="Left" VerticalAlignment="Center">
-                                            <ToggleButton.Template>
-                                                <ControlTemplate TargetType="ToggleButton">
-                                                    <Grid Background="Transparent">
-                                                        
-                                                        <!-- Стрелка-шеврон -->
-                                                        <Path x:Name="Arrow" Fill="#555555" Data="M 3 1 L 9 7 L 3 13 Z"
+                                                <ToggleButton.Template>
+                                                    <ControlTemplate TargetType="ToggleButton">
+                                                        <Grid Background="Transparent">
+
+                                                            <!-- Стрелка-шеврон -->
+                                                            <Path x:Name="Arrow" Fill="#555555" Data="M 3 1 L 9 7 L 3 13 Z"
                       HorizontalAlignment="Center" VerticalAlignment="Center"
                       RenderTransformOrigin="0.5,0.5">
-                                                            <Path.RenderTransform>
-                                                                <RotateTransform Angle="0"/>
-                                                            </Path.RenderTransform>
-                                                        </Path>
-                                                    </Grid>
-                                                    <ControlTemplate.Triggers>
-                                                        <!-- Раскрытие -->
-                                                        <Trigger Property="IsChecked" Value="True">
-                                                            <Setter TargetName="Arrow" Property="RenderTransform">
-                                                                <Setter.Value>
-                                                                    <RotateTransform Angle="90"/>
-                                                                </Setter.Value>
-                                                            </Setter>
-                                                        </Trigger>
-                                                        <!-- Наведение -->
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="Arrow" Property="Fill" Value="#1A73E8"/>
-                                                        </Trigger>
-                                                    </ControlTemplate.Triggers>
-                                                </ControlTemplate>
-                                            </ToggleButton.Template>
-                                        </ToggleButton>
-                                        
-                                        <!-- Содержимое заголовка (ваш шаблон) -->
-                                        <ContentPresenter x:Name="PART_Header"
+                                                                <Path.RenderTransform>
+                                                                    <RotateTransform Angle="0"/>
+                                                                </Path.RenderTransform>
+                                                            </Path>
+                                                        </Grid>
+                                                        <ControlTemplate.Triggers>
+                                                            <!-- Раскрытие -->
+                                                            <Trigger Property="IsChecked" Value="True">
+                                                                <Setter TargetName="Arrow" Property="RenderTransform">
+                                                                    <Setter.Value>
+                                                                        <RotateTransform Angle="90"/>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </Trigger>
+                                                            <!-- Наведение -->
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="Arrow" Property="Fill" Value="#1A73E8"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </ToggleButton.Template>
+                                            </ToggleButton>
+
+                                            <!-- Содержимое заголовка (ваш шаблон) -->
+                                            <ContentPresenter x:Name="PART_Header"
                                               Grid.Column="1"
                                               ContentSource="Header"
                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                                               Margin="4,0,0,0"/>
-                                    </Grid>
+                                        </Grid>
 
-                                    <!-- Контейнер для дочерних элементов -->
-                                    <Border x:Name="ItemsHostBorder"
+                                        <!-- Контейнер для дочерних элементов -->
+                                        <Border x:Name="ItemsHostBorder"
                                 Visibility="Collapsed"
                                 BorderThickness="1"
                                 BorderBrush="#FFCCCCCC"
@@ -281,89 +361,88 @@
                                 Margin="30,5,10,10"
                                             Padding="5"
                                 Background="#08000000">
-                                        <ItemsPresenter x:Name="ItemsHost"/>
-                                    </Border>
+                                            <ItemsPresenter x:Name="ItemsHost"/>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsExpanded" Value="True">
+                                            <Setter TargetName="ItemsHostBorder" Property="Visibility" Value="Visible"/>
+                                        </Trigger>
+                                        <Trigger Property="HasItems" Value="False">
+                                            <Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
+                                            <Setter TargetName="ItemsHostBorder" Property="Visibility" Value="Collapsed"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                    <HierarchicalDataTemplate DataType="{x:Type self:Assembly}" ItemsSource="{Binding Particles}">
+                        <Border BorderBrush="Gray" CornerRadius="6" BorderThickness="1" Margin="5">
+                            <StackPanel Margin="5">
+                                <StackPanel Orientation="Horizontal" Margin="3">
+                                    <Button Click="AddCurrentParts">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Source="/Images/assembly.png"/>
+                                            <TextBlock Text="Добавить в эту сборку" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBox Text="{Binding Title}" ToolTip="Введите наименование сборки" Margin="15,0,0,0" Width="160" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontWeight="Bold"/>
+                                    <TextBox Text="{Binding Count}" Margin="15,0,0,0" Width="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите количество сборок" LostFocus="SetAssemblyCount" FontWeight="Bold"/>
+                                    <Button Content="Х" Click="Remove" Margin="15,0,0,0" ToolTip="Удалить сборку"/>
                                 </StackPanel>
 
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsExpanded" Value="True">
-                                        <Setter TargetName="ItemsHostBorder" Property="Visibility" Value="Visible"/>
-                                    </Trigger>
-                                    <Trigger Property="HasItems" Value="False">
-                                        <Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
-                                        <Setter TargetName="ItemsHostBorder" Property="Visibility" Value="Collapsed"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
+                                <StackPanel Orientation="Horizontal" Margin="3">
+                                    <Image Source="/Images/works2.png" Width="16"/>
+                                    <TextBlock Text="Свар" FontWeight="Bold" Margin="5,0,0,0" Width="36" VerticalAlignment="Center"/>
+                                    <TextBox Text="{Binding Weld}" ToolTip="Введите длину свариваемой поверхности, мм" MaxLines="1" Width="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                                    <ComboBox SelectedItem="{Binding Type}" ItemsSource="{Binding DataContext.Types, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,0,0,0" Width="60" ToolTip="Выберите тип расчета"/>
+                                    <TextBlock Text="{Binding Mass, StringFormat={}{0:0} кг}" VerticalAlignment="Center" Margin="5,0,0,0" Width="50" ToolTip="Вес 1-ой сборки"/>
+                                    <TextBlock Text="{Binding WeldPrice, Converter={StaticResource CostConverter}}" Margin="10,0,0,0" Foreground="Blue" VerticalAlignment="Center"/>
+                                </StackPanel>
 
-                <HierarchicalDataTemplate DataType="{x:Type self:Assembly}" ItemsSource="{Binding Particles}">
-                    <Border BorderBrush="Gray" CornerRadius="6" BorderThickness="1">
-                        <StackPanel Margin="10">
+                                <StackPanel Orientation="Horizontal" Margin="3">
+                                    <Image Source="/Images/works2.png" Width="16"/>
+                                    <TextBlock Text="Окр" FontWeight="Bold" Margin="5,0,0,0" Width="36" VerticalAlignment="Center"/>
+                                    <TextBox Text="{Binding Ral}" ToolTip="Введите цвет RAL" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="50" MaxLines="1"/>
+                                    <ComboBox SelectedItem="{Binding Structure}" ItemsSource="{Binding DataContext.Structures, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,0,0,0" Width="70" ToolTip="Выберите структуру покрытия"/>
+                                    <TextBlock Text="{Binding Square, StringFormat={}{0:0} кв.м}" VerticalAlignment="Center" Margin="5,0,0,0" Width="50" ToolTip="Площаль покрытия 1-ой сборки"/>
+                                    <TextBlock Text="{Binding PaintPrice, Converter={StaticResource CostConverter}}" Margin="10,0,0,0" Foreground="Blue" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </HierarchicalDataTemplate>
+
+                    <DataTemplate DataType="{x:Type self:Particle}">
+                        <!-- Оборачиваем все в Border, чтобы иметь возможность менять его свойства -->
+                        <Border x:Name="ParticleBorder" CornerRadius="6">
                             <StackPanel Orientation="Horizontal" Margin="3">
-                                <Button Click="AddCurrentParts">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Image Source="/Images/assembly.png"/>
-                                        <TextBlock Text="Добавить в эту сборку" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                                <TextBox Text="{Binding Title}" ToolTip="Введите наименование сборки" Margin="15,0,0,0" Width="160" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontWeight="Bold"/>
-                                <TextBox Text="{Binding Count}" Margin="15,0,0,0" Width="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Введите количество сборок" LostFocus="SetAssemblyCount" FontWeight="Bold"/>
-                                <Button Content="Х" Click="Remove" Margin="15,0,0,0" ToolTip="Удалить сборку"/>
+                                <Image Loaded="SetPicture" Width="20"/>
+                                <TextBlock Text="{Binding Title}" Width="300" Margin="5,0,0,0" VerticalAlignment="Center" Tag="ParticleTitle"/>
+                                <TextBox Text="{Binding Count}" Foreground="Blue" Width="40" Margin="5,0,0,0" 
+                                     VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                                     LostFocus="ParticleCount_LostFocus"/>
+                                <Button x:Name="BtnRemove" Content="Х" Click="Remove"
+                                    ToolTip="Убрать деталь из сборки" Margin="15,0,0,0"/>
                             </StackPanel>
 
-                            <StackPanel Orientation="Horizontal" Margin="3">
-                                <Image Source="/Images/works2.png" Width="16"/>
-                                <TextBlock Text="Свар" FontWeight="Bold" Margin="10,0,0,0" Width="36" VerticalAlignment="Center"/>
-                                <TextBox Text="{Binding Weld}" ToolTip="Введите длину свариваемой поверхности, мм" MaxLines="1" Width="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                                <ComboBox SelectedItem="{Binding Type}" ItemsSource="{Binding DataContext.Types, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,0,0,0" Width="60" ToolTip="Выберите тип расчета"/>
-                                <TextBlock Text="{Binding Mass}" VerticalAlignment="Center" Margin="5,0,0,0" Width="30" ToolTip="Вес 1-ой сборки"/>
-                                <TextBlock Text="кг" VerticalAlignment="Center" Margin="5,0,0,0" Width="25" ToolTip="Вес 1-ой сборки"/>
-                                <TextBlock Text="{Binding WeldPrice, Converter={StaticResource CostConverter}}" Margin="10,0,0,0" Foreground="Blue" VerticalAlignment="Center"/>
-                            </StackPanel>
-
-                            <StackPanel Orientation="Horizontal" Margin="3">
-                                <Image Source="/Images/works2.png" Width="16"/>
-                                <TextBlock Text="Окр" FontWeight="Bold" Margin="10,0,0,0" Width="36" VerticalAlignment="Center"/>
-                                <TextBox Text="{Binding Ral}" ToolTip="Введите цвет RAL" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="50" MaxLines="1"/>
-                                <ComboBox SelectedItem="{Binding Structure}" ItemsSource="{Binding DataContext.Structures, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,0,0,0" Width="70" ToolTip="Выберите структуру покрытия"/>
-                                <TextBlock Text="{Binding Square}" VerticalAlignment="Center" Margin="5,0,0,0" Width="30" ToolTip="Площаль покрытия 1-ой сборки"/>
-                                <TextBlock Text="кв м" VerticalAlignment="Center" Margin="5,0,0,0" Width="25" ToolTip="Площаль покрытия 1-ой сборки"/>
-                                <TextBlock Text="{Binding PaintPrice, Converter={StaticResource CostConverter}}" Margin="10,0,0,0" Foreground="Blue" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-                </HierarchicalDataTemplate>
-                
-                <DataTemplate DataType="{x:Type self:Particle}">
-                    <!-- Оборачиваем все в Border, чтобы иметь возможность менять его свойства -->
-                    <Border x:Name="ParticleBorder" CornerRadius="6">
-                        <StackPanel Orientation="Horizontal" Margin="3">
-                            <Image Loaded="SetPicture" Width="20"/>
-                            <TextBlock Text="{Binding Title}" Width="300" Margin="5,0,0,0" VerticalAlignment="Center" Tag="ParticleTitle"/>
-                            <TextBox Text="{Binding Count}" Foreground="Blue" Width="40" Margin="5,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                            <Button x:Name="BtnRemove" Content="Х" Click="Remove"
-                                    ToolTip="Убрать деталь из сборки" Margin="20,0,0,0"/>
-                        </StackPanel>
-
-                        <!-- Стиль для изменения вида Border при наведении на кнопку -->
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Style.Triggers>
-                                    <!-- Триггер: когда мышь над кнопкой BtnRemove -->
-                                    <DataTrigger Binding="{Binding IsMouseOver, ElementName=BtnRemove}" Value="True">
-                                        <Setter Property="Background" Value="#FFFFE0E0"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                    </Border>
-                </DataTemplate>
-
-            </TreeView.Resources>
-        </TreeView>
-
+                            <!-- Стиль для изменения вида Border при наведении на кнопку -->
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <!-- Триггер: когда мышь над кнопкой BtnRemove -->
+                                        <DataTrigger Binding="{Binding IsMouseOver, ElementName=BtnRemove}" Value="True">
+                                            <Setter Property="Background" Value="#FFFFE0E0"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                        </Border>
+                    </DataTemplate>
+                </TreeView.Resources>
+            </TreeView>
+        </DockPanel>
     </Grid>
 </Window>

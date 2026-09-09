@@ -434,35 +434,106 @@ namespace Metal_Code.Utils
         public static List<PipeStock> CreateNestingForPipeBatch(List<Part> parts, double stockLength = 6000, double clampZone = 340, double cutLoss = 10)
         {
             var stocks = new List<PipeStock>();
-            var allParts = parts.SelectMany(p => Enumerable.Repeat(p, p.Count)).OrderByDescending(p => p.Length).ToList();
 
-            foreach (var part in allParts)
+            // Размножаем детали согласно количеству и сортируем по убыванию длины
+            var allParts = parts
+                .SelectMany(p => Enumerable.Repeat(p, p.Count))
+                .OrderByDescending(p => p.Length)
+                .ToList();
+
+            // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем p.Title в ключ группировки
+            // Это сохраняет индивидуальность детали, не мешая алгоритму Best Fit упаковывать их вместе
+            var groupedParts = allParts
+                .GroupBy(p => new {
+                    Title = p.Title ?? "Без имени", // Защита от null
+                    p.Length,
+                    p.PartType,
+                    p.Width,
+                    p.Height
+                })
+                .OrderByDescending(g => g.Key.Length)
+                .ToList();
+
+            foreach (var group in groupedParts)
             {
-                bool placed = false;
+                var partsInGroup = group.ToList();
+                int remainingCount = partsInGroup.Count;
+                int index = 0;
 
-                foreach (var stock in stocks.OrderByDescending(s => s.TotalRequiredLength))
+                // 🔥 Пытаемся разместить детали из группы в существующие хлысты (Best Fit)
+                // Это гарантирует, что Деталь А и Деталь Б одинаковой длины всё равно могут попасть в один хлыст,
+                // но при этом сохранят свои правильные имена в Placements.
+                while (remainingCount > 0 && index < partsInGroup.Count)
                 {
-                    if (stock.StockLength >= stock.TotalRequiredLength + part.Length + stock.CutLoss)
+                    var part = partsInGroup[index];
+
+                    // Ищем все хлысты, куда деталь влезает
+                    var suitableStocks = stocks
+                        .Where(s => s.StockLength >= s.TotalRequiredLength + part.Length + s.CutLoss)
+                        .ToList();
+
+                    if (suitableStocks.Any())
                     {
-                        double startPosition = stock.ClampZone + stock.UsedLengthWithCutLoss;
-                        stock.Placements.Add(new PipePlacement { Part = part, StartPosition = startPosition });
-                        placed = true;
+                        // 🔥 Best Fit: выбираем хлыст, где после размещения останется минимальный остаток
+                        var bestStock = suitableStocks
+                            .OrderBy(s => s.StockLength - s.TotalRequiredLength - part.Length - s.CutLoss)
+                            .First();
+
+                        double startPosition = bestStock.ClampZone + bestStock.UsedLengthWithCutLoss;
+                        bestStock.Placements.Add(new PipePlacement { Part = part, StartPosition = startPosition });
+                        remainingCount--;
+                        index++;
+                    }
+                    else
+                    {
+                        // Не влезло ни в один существующий хлыст, переходим к созданию новых
                         break;
                     }
                 }
 
-                if (!placed)
+                // 🔥 Если остались неразмещенные детали, создаем новые хлысты с пакетным заполнением
+                if (remainingCount > 0)
                 {
-                    var newStock = new PipeStock
-                    {
-                        StockLength = stockLength,
-                        ClampZone = clampZone,
-                        CutLoss = cutLoss
-                    };
+                    var part = partsInGroup[index]; // Теперь это конкретная деталь с правильным Title
 
-                    if (part.Length <= stockLength - clampZone)
+                    // Проверяем, что деталь вообще может поместиться в хлыст
+                    if (part.Length > stockLength - clampZone)
                     {
+                        // Деталь слишком длинная, пропускаем (или можно выбросить исключение/лог)
+                        remainingCount = 0;
+                        continue;
+                    }
+
+                    // Создаем новые хлысты и заполняем их максимально возможным количеством деталей
+                    while (remainingCount > 0)
+                    {
+                        var newStock = new PipeStock
+                        {
+                            StockLength = stockLength,
+                            ClampZone = clampZone,
+                            CutLoss = cutLoss
+                        };
+
+                        // Добавляем первую деталь
                         newStock.Placements.Add(new PipePlacement { Part = part, StartPosition = clampZone });
+                        remainingCount--;
+
+                        // Пытаемся добавить еще детали из той же группы (пакетная резка)
+                        while (remainingCount > 0)
+                        {
+                            double requiredSpace = part.Length + newStock.CutLoss;
+                            if (newStock.StockLength >= newStock.TotalRequiredLength + requiredSpace)
+                            {
+                                double startPosition = newStock.ClampZone + newStock.UsedLengthWithCutLoss;
+                                newStock.Placements.Add(new PipePlacement { Part = part, StartPosition = startPosition });
+                                remainingCount--;
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+
                         stocks.Add(newStock);
                     }
                 }
@@ -491,18 +562,54 @@ namespace Metal_Code.Utils
             if (Math.Abs(stock1.ClampZone - stock2.ClampZone) > 0.1) return false;
             if (stock1.Placements.Count != stock2.Placements.Count) return false;
 
-            var parts1 = stock1.Placements.GroupBy(p => new { p.Part.Width, p.Part.Height, p.Part.Length, p.Part.PartType })
-                .Select(g => new { g.Key, Count = g.Count() }).OrderBy(x => x.Key.Width).ThenBy(x => x.Key.Height).ThenBy(x => x.Key.Length).ToList();
-            var parts2 = stock2.Placements.GroupBy(p => new { p.Part.Width, p.Part.Height, p.Part.Length, p.Part.PartType })
-                .Select(g => new { g.Key, Count = g.Count() }).OrderBy(x => x.Key.Width).ThenBy(x => x.Key.Height).ThenBy(x => x.Key.Length).ToList();
+            // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем p.Part.Title в ключ группировки
+            var parts1 = stock1.Placements
+                .GroupBy(p => new {
+                    p.Part.Title,       // <-- Теперь имя детали учитывается
+                    p.Part.Width,
+                    p.Part.Height,
+                    p.Part.Length,
+                    p.Part.PartType
+                })
+                .Select(g => new { g.Key, Count = g.Count() })
+                // 🔥 Сортируем по всем полям для гарантированно стабильного сравнения
+                .OrderBy(x => x.Key.Title)
+                .ThenBy(x => x.Key.Length)
+                .ThenBy(x => x.Key.Width)
+                .ThenBy(x => x.Key.Height)
+                .ToList();
+
+            var parts2 = stock2.Placements
+                .GroupBy(p => new {
+                    p.Part.Title,       // <-- Теперь имя детали учитывается
+                    p.Part.Width,
+                    p.Part.Height,
+                    p.Part.Length,
+                    p.Part.PartType
+                })
+                .Select(g => new { g.Key, Count = g.Count() })
+                .OrderBy(x => x.Key.Title)
+                .ThenBy(x => x.Key.Length)
+                .ThenBy(x => x.Key.Width)
+                .ThenBy(x => x.Key.Height)
+                .ToList();
 
             if (parts1.Count != parts2.Count) return false;
+
             for (int i = 0; i < parts1.Count; i++)
             {
-                if (Math.Abs(parts1[i].Key.Width - parts2[i].Key.Width) > 0.1 || Math.Abs(parts1[i].Key.Height - parts2[i].Key.Height) > 0.1 ||
-                    Math.Abs(parts1[i].Key.Length - parts2[i].Key.Length) > 0.1 || parts1[i].Key.PartType != parts2[i].Key.PartType || parts1[i].Count != parts2[i].Count)
+                // 🔥 ЯВНАЯ ПРОВЕРКА СОВПАДЕНИЯ ИМЕНИ
+                if (parts1[i].Key.Title != parts2[i].Key.Title ||
+                    Math.Abs(parts1[i].Key.Width - parts2[i].Key.Width) > 0.1 ||
+                    Math.Abs(parts1[i].Key.Height - parts2[i].Key.Height) > 0.1 ||
+                    Math.Abs(parts1[i].Key.Length - parts2[i].Key.Length) > 0.1 ||
+                    parts1[i].Key.PartType != parts2[i].Key.PartType ||
+                    parts1[i].Count != parts2[i].Count)
+                {
                     return false;
+                }
             }
+
             return true;
         }
     }

@@ -316,7 +316,7 @@
                 <StackPanel Grid.Row="2" Margin="0,15,0,0">
                     <!-- 🔥 НАСТРОЙКИ ДЛЯ ЛИСТОВЫХ ДЕТАЛЕЙ -->
                     <StackPanel Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Rectangle,Round,Triangle,Custom'}">
-                        <ToggleButton x:Name="AutoNestingCheck" Content="Автоподбор листов" Style="{StaticResource ToggleButtonSwitch.Small}" IsChecked="True" Margin="0,0,0,10" HorizontalAlignment="Center"/>
+                        <ToggleButton x:Name="AutoNestingCheck" Content="Автоподбор листов" FontWeight="Bold" Style="{StaticResource ToggleButtonSwitch.Small}" IsChecked="True" Margin="0,0,0,10" HorizontalAlignment="Center"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,15">
                             <TextBlock Text="Отступы" VerticalAlignment="Center" Margin="5,0" FontSize="12"/>
                             <TextBox x:Name="SpacingInput" Style="{StaticResource TextBoxExtend}" hc:InfoElement.Placeholder="0 = авто" Width="80" TextAlignment="Center"/>
@@ -325,9 +325,11 @@
 
                     <!-- 🔥 НАСТРОЙКИ ДЛЯ ТРУБНЫХ ДЕТАЛЕЙ -->
                     <StackPanel Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='RoundTube,RectangularTube,Angle,Channel,IBeam,Circle,SquareBar'}">
+                        <TextBlock Text="Зона зажима (мм)" FontWeight="Bold" Margin="0,0,0,8" HorizontalAlignment="Center"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
-                            <TextBlock Text="Зажим (мм)" VerticalAlignment="Center" Margin="5,0" FontSize="12"/>
-                            <TextBox x:Name="ClampZoneInput" Text="340" Style="{StaticResource TextBoxExtend}" Width="80" TextAlignment="Center"/>
+                            <RadioButton x:Name="Clamp340Radio" Content="340" GroupName="ClampZone" IsChecked="True" Margin="0,0,15,0"/>
+                            <RadioButton x:Name="Clamp160Radio" Content="160" GroupName="ClampZone" Margin="0,0,15,0"/>
+                            <RadioButton x:Name="Clamp0Radio" Content="0 (нет)" GroupName="ClampZone"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,15">
                             <TextBlock Text="Пропил (мм)" VerticalAlignment="Center" Margin="5,0" FontSize="12"/>

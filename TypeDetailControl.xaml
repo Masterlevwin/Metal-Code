@@ -48,6 +48,29 @@
                 <DiscreteObjectKeyFrame KeyTime="0:0:0.3" Value="{x:Static Visibility.Collapsed}"/>
             </ObjectAnimationUsingKeyFrames>
         </Storyboard>
+        
+        <!-- Мигание красного бордера для привлечения внимания -->
+        <Storyboard x:Key="HighlightToggle" RepeatBehavior="Forever" AutoReverse="True">
+            <ColorAnimation 
+            Storyboard.TargetName="PartsToggle" 
+            Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
+            From="Transparent" 
+            To="#FFFF3B30" 
+            Duration="0:0:0.8">
+                <ColorAnimation.EasingFunction>
+                    <SineEase EasingMode="EaseInOut"/>
+                </ColorAnimation.EasingFunction>
+            </ColorAnimation>
+        </Storyboard>
+
+        <!-- Плавное выключение мигания -->
+        <Storyboard x:Key="StopHighlightToggle">
+            <ColorAnimation 
+            Storyboard.TargetName="PartsToggle" 
+            Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
+            To="Transparent" 
+            Duration="0:0:0.3"/>
+        </Storyboard>
 
         <!-- Цвета -->
         <SolidColorBrush x:Key="ButtonBackground" Color="#FFFFFFE1"/>
@@ -61,7 +84,7 @@
         <Style x:Key="ExpandToggleButtonStyle" TargetType="ToggleButton">
             <Setter Property="Background" Value="{StaticResource ButtonBackground}"/>
             <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
-            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderThickness" Value="2"/>
             <Setter Property="Padding" Value="8,4"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
@@ -117,7 +140,23 @@
         
         <GroupBox.Header>
             <StackPanel Orientation="Horizontal" Margin="5">
-                <hc:ComboBox hc:InfoElement.Placeholder="Выбор заготовки" x:Name="TypeDetailDrop" DisplayMemberPath="Name" SelectedIndex="0" ToolTip="Выберите заготовку" SelectionChanged="CreateSort" Width="150"/>
+                <!-- Динамическая иконка типа заготовки -->
+                <Image Width="20" Margin="0,0,5,0">
+                    <Image.Style>
+                        <Style TargetType="Image">
+                            <!-- По умолчанию показываем трубу (для всех не-листовых заготовок) -->
+                            <Setter Property="Source" Value="{StaticResource PipeIcon}"/>
+                            <Style.Triggers>
+                                <!-- Для листа металла показываем иконку листа -->
+                                <DataTrigger Binding="{Binding SelectedItem.Name, ElementName=TypeDetailDrop}" 
+                                 Value="Лист металла">
+                                    <Setter Property="Source" Value="{StaticResource SheetMetalIcon}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+                <hc:ComboBox hc:InfoElement.Placeholder="Выбор заготовки" x:Name="TypeDetailDrop" DisplayMemberPath="Name" SelectedIndex="0" ToolTip="Выберите заготовку" SelectionChanged="CreateSort" Width="130"/>
                 <hc:ComboBox hc:InfoElement.Placeholder="Тип" x:Name="SortDrop" ToolTip="Выберите вид детали" SelectionChanged="ChangeSort" Margin="10,0,0,0" Width="80"/>
                 <TextBlock Text="A" VerticalAlignment="Top" FontSize="10" Margin="7,0,0,0" MinWidth="8"/>
                 <TextBox x:Name="A_prop" Text="{Binding A, RelativeSource={RelativeSource AncestorType={x:Type local:TypeDetailControl}, Mode=FindAncestor}}" MaxLines="1" ToolTip="Высота, мм" TextChanged="SetProperty" Margin="3,0,0,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Width="40"/>

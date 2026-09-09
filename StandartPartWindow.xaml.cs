@@ -1262,7 +1262,8 @@ namespace Metal_Code
 
             UseAutoNesting = AutoNestingCheck.IsChecked ?? true;
             CustomSpacing = double.TryParse(SpacingInput.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double s) && s >= 0 ? s : 0;
-            CustomClampZone = double.TryParse(ClampZoneInput.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double cz) && cz >= 0 ? cz : 340;
+            CustomClampZone = Clamp340Radio.IsChecked == true ? 340 :
+                              Clamp160Radio.IsChecked == true ? 160 : 0;
             CustomCutLoss = double.TryParse(CutLossInput.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double cl) && cl >= 0 ? cl : 10;
 
             DialogResult = true;

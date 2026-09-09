@@ -267,7 +267,6 @@ namespace Metal_Code
                 TotalPipe = Items.Sum(i => i.PipeCost);
                 TotalProduction = Items.Sum(i => i.ProductionCost);
 
-                // ⭐ Итоговая сумма всех расчётов
                 TotalAmountSum = Items.Sum(i => i.TotalAmount);
 
                 // ⭐ Сводка по менеджерам
@@ -279,15 +278,17 @@ namespace Metal_Code
                     .Select(g =>
                     {
                         float totalWorks = g.Sum(i => i.TotalWorks);
-                        float totalAmount = g.Sum(i => i.TotalAmount); // ⭐ НОВОЕ
+                        float totalAmount = g.Sum(i => i.TotalAmount);
                         float percent = totalWorks / planTarget * 100f;
-                        float bonus = planBonus * Math.Min(percent, 100f) / 100f;
+
+                        // ✅ ИСПРАВЛЕНО: убран Math.Min, теперь премия растет пропорционально при перевыполнении
+                        float bonus = planBonus * percent / 100f;
 
                         return new
                         {
                             ManagerName = g.Key,
                             TotalWorks = totalWorks,
-                            TotalAmount = totalAmount, // ⭐ НОВОЕ
+                            TotalAmount = totalAmount,
                             Percent = percent,
                             Bonus = bonus
                         };
@@ -299,7 +300,9 @@ namespace Metal_Code
 
                 TotalWorksSum = Items.Sum(i => i.TotalWorks);
                 TotalPercent = TotalWorksSum / planTarget * 100f;
-                TotalBonus = planBonus * Math.Min(TotalPercent, 100f) / 100f;
+
+                // ✅ ИСПРАВЛЕНО: убран Math.Min для общей суммы премии
+                TotalBonus = planBonus * TotalPercent / 100f;
             }
 
             OnPropertyChanged(nameof(TotalMaterial));
@@ -607,7 +610,7 @@ namespace Metal_Code
                 {
                     float totalWorks = g.Sum(i => i.TotalWorks);
                     float percent = totalWorks / planTarget * 100f;
-                    float bonus = planBonus * Math.Min(percent, 100f) / 100f;
+                    float bonus = planBonus * percent / 100f;
                     return new
                     {
                         Name = g.Key,
@@ -650,7 +653,7 @@ namespace Metal_Code
 
             float totalWorksAll = managersSummary.Sum(m => m.TotalWorks);
             float totalPercentAll = totalWorksAll / planTarget * 100f;
-            float totalBonusAll = planBonus * Math.Min(totalPercentAll, 100f) / 100f;
+            float totalBonusAll = planBonus * totalPercentAll / 100f;
 
             ws.Cells[row, 1].Value = "ИТОГО:";
             ws.Cells[row, 1].Style.Font.Bold = true;

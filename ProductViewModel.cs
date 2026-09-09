@@ -187,7 +187,62 @@ namespace Metal_Code
                                 }
                                 // 🔥 =====================================================================
 
+                                // 🔥 =====================================================================
+                                // 🔥 АВТОМАТИЧЕСКИЙ ЭКСПОРТ PDF РАСКЛАДОК ТРУБ И ЛЕНТОПИЛА
+                                // 🔥 =====================================================================
+                                try
+                                {
+                                    foreach (var detail in MainWindow.M.DetailControls)
+                                    {
+                                        foreach (var typeDetail in detail.TypeDetailControls)
+                                        {
+                                            foreach (var work in typeDetail.WorkControls)
+                                            {
+                                                // Обработка труб
+                                                if (work.workType is PipeControl pipe && pipe.PartsControl != null && pipe.Items != null)
+                                                {
+                                                    var hasStocks = pipe.Items.OfType<LaserItem>().Any(i => i.PipeStocks != null && i.PipeStocks.Count > 0);
+                                                    if (hasStocks)
+                                                    {
+                                                        string folderName = "Труборез";
+                                                        string targetFolder = Path.Combine(destinationPath, folderName);
+                                                        if (!Directory.Exists(targetFolder)) Directory.CreateDirectory(targetFolder);
 
+                                                        string _fileName = pipe.PartsControl.GetPipeNestingFileName(isSaw: false);
+                                                        string pdfFullPath = Path.Combine(targetFolder, _fileName);
+
+                                                        pipe.PartsControl.GeneratePipeNestingPdf(pdfFullPath, isSaw: false);
+                                                    }
+                                                }
+
+                                                // Обработка лентопила
+                                                if (work.workType is SawControl saw && saw.PartsControl != null && saw.Items != null)
+                                                {
+                                                    var hasStocks = saw.Items.OfType<LaserItem>().Any(i => i.PipeStocks != null && i.PipeStocks.Count > 0);
+                                                    if (hasStocks)
+                                                    {
+                                                        string folderName = "Лентопил";
+                                                        string targetFolder = Path.Combine(destinationPath, folderName);
+                                                        if (!Directory.Exists(targetFolder)) Directory.CreateDirectory(targetFolder);
+
+                                                        string _fileName = saw.PartsControl.GetPipeNestingFileName(isSaw: true);
+                                                        string pdfFullPath = Path.Combine(targetFolder, _fileName);
+
+                                                        saw.PartsControl.GeneratePipeNestingPdf(pdfFullPath, isSaw: true);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                catch (Exception pipePdfEx)
+                                {
+                                    Trace.WriteLine($"Ошибка экспорта PDF труб/лентопила: {pipePdfEx.Message}");
+                                    MainWindow.M.Log += $"\n⚠️ Не удалось сформировать PDF раскладки труб: {pipePdfEx.Message}";
+                                }
+                                // 🔥 =====================================================================
+                                
+                                
                                 // ⭐ СОХРАНЕНИЕ В БАЗУ ЧЕРЕЗ СЕРВИС
                                 MainWindow.M.StatusBegin("Сохранение расчета в базу...", MainWindow.StatusMessageType.Info);
 
@@ -208,6 +263,8 @@ namespace Metal_Code
                                     autor = $"{MainWindow.M.ActiveOffer?.Autor}\n{currentManager} ({now})";
                                 }
 
+                                Trace.WriteLine($"[DEBUG] HasDelivery ПЕРЕД SaveOfferAsync: {MainWindow.M.HasDelivery}");
+
                                 // Сериализуем данные расчета
                                 string? dataJson = MainWindow.M.SaveOfferData();
 
@@ -225,12 +282,17 @@ namespace Metal_Code
                                     managerId: MainWindow.M.TargetManager.Id
                                 );
 
+                                Trace.WriteLine($"[DEBUG] HasDelivery в returned savedOffer: {MainWindow.M.HasDelivery}");
+
+
                                 // Обновляем ActiveOffer
                                 MainWindow.M.ActiveOffer = savedOffer;
                                 MainWindow.M.LimitCheck.IsChecked = false;
 
                                 // Обновляем список расчетов в UI
                                 await MainWindow.M.LoadManagerDataAsync(MainWindow.M.TargetManager);
+
+                                Trace.WriteLine($"[DEBUG] HasDelivery ПОСЛЕ LoadManagerDataAsync: {MainWindow.M.HasDelivery}");
 
                                 // ⭐ ПРОКРУТКА К НОВОМУ РАСЧЁТУ С ПОДСВЕТКОЙ
                                 MainWindow.M.ScrollToOfferAndHighlight(savedOffer);
@@ -345,8 +407,6 @@ namespace Metal_Code
                             return;
                         }
 
-                        Trace.WriteLine($"📂 Открытие расчета Id={offer.Id}, N={offer.N}");
-
                         // Проверяем, загружены ли полные данные
                         if (string.IsNullOrEmpty(offer.Data))
                         {
@@ -358,7 +418,6 @@ namespace Metal_Code
                             if (fullOffer != null)
                             {
                                 offer.Data = fullOffer.Data;
-                                Trace.WriteLine($"✅ Данные расчета {offer.N} загружены (размер: {offer.Data?.Length ?? 0} байт)");
                             }
                             else
                             {
@@ -380,7 +439,6 @@ namespace Metal_Code
                     }
                     catch (Exception ex)
                     {
-                        Trace.WriteLine($"❌ Ошибка открытия расчета: {ex.Message}");
                         dialogService.ShowMessage(ex.Message);
                     }
                 });
@@ -422,164 +480,131 @@ namespace Metal_Code
             get
             {
                 return loadCommand ??= new RelayCommand(obj =>
-                  {
-                      try
-                      {
-                          MessageBoxResult response = MessageBox.Show(
-                              "Выберите действие:\n\n" +
-                              "• Да — Очистить текущий расчет и загрузить заново\n" +
-                              "• Нет — Добавить раскладки к существующим комплектам\n" +
-                              "• Отмена — Отменить загрузку",
-                              "Загрузка раскладок",
-                              MessageBoxButton.YesNoCancel,
-                              MessageBoxImage.Question);
+                {
+                    try
+                    {
+                        MessageBoxResult response = MessageBox.Show(
+                            "Выберите действие:\n\n" +
+                            "• Да — Очистить текущий расчет и загрузить заново\n" +
+                            "• Нет — Добавить раскладки к существующим комплектам\n" +
+                            "• Отмена — Отменить загрузку",
+                            "Загрузка раскладок",
+                            MessageBoxButton.YesNoCancel,
+                            MessageBoxImage.Question);
 
-                          if (response == MessageBoxResult.Cancel)
-                              return;
+                        if (response == MessageBoxResult.Cancel)
+                            return;
 
-                          bool appendMode = response == MessageBoxResult.No; // "Нет" = добавить к существующим
+                        bool appendMode = response == MessageBoxResult.No;
 
-                          // Очистка расчета при режиме "заново"
-                          if (!appendMode)
-                          {
-                              MainWindow.M.ClearDetails();     // удаляем все детали
-                              MainWindow.M.ClearCalculate();   // очищаем расчет
-                          }
+                        if (!appendMode)
+                        {
+                            MainWindow.M.ClearDetails();
+                            MainWindow.M.ClearCalculate();
+                        }
 
-                          if (MainWindow.M.IsRequest)
-                              MainWindow.M.CloseRequestControl();
+                        if (MainWindow.M.IsRequest)
+                            MainWindow.M.CloseRequestControl();
 
-                          System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 
-                          // Формируем путь на основе lastInputDirectory
-                          string? targetDirectory = null;
-                          if (MainWindow.M.lastInputDirectory != null && Directory.Exists(Path.GetDirectoryName(MainWindow.M.lastInputDirectory)))
-                          {
-                              var _targetDirectory = Path.GetDirectoryName(MainWindow.M.lastInputDirectory);
-                              if (_targetDirectory != null) targetDirectory = Path.Combine(_targetDirectory, "КП");
-                          }
+                        string? targetDirectory = null;
+                        if (MainWindow.M.lastInputDirectory != null && Directory.Exists(Path.GetDirectoryName(MainWindow.M.lastInputDirectory)))
+                        {
+                            var _targetDirectory = Path.GetDirectoryName(MainWindow.M.lastInputDirectory);
+                            if (_targetDirectory != null) targetDirectory = Path.Combine(_targetDirectory, "КП");
+                        }
 
-                          OpenFileDialog openFileDialog = new()
-                          {
-                              InitialDirectory = targetDirectory,
-                              Filter = "Файлы раскладок (*.xlsx;*.xls)|*.xlsx;*.xls|Все файлы (*.*)|*.*",
-                              Multiselect = true,
-                              Title = "Выберите файлы раскладок"
-                          };
+                        OpenFileDialog openFileDialog = new()
+                        {
+                            InitialDirectory = targetDirectory,
+                            Filter = "Файлы раскладок (*.xlsx;*.xls)|*.xlsx;*.xls|Все файлы (*.*)|*.*",
+                            Multiselect = true,
+                            Title = "Выберите файлы раскладок"
+                        };
 
-                          if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames != null)
-                          {
-                              dialogService.LastUsedDirectory = Path.GetDirectoryName(openFileDialog.FileName);
+                        if (openFileDialog.ShowDialog() == true && openFileDialog.FileNames != null)
+                        {
+                            dialogService.LastUsedDirectory = Path.GetDirectoryName(openFileDialog.FileName);
 
-                              List<string> _lasers = new(), _tubes = new(), _metalix = new();
+                            List<string> _lasers = new(), _tubes = new(), _metalix = new();
 
-                              foreach (string path in openFileDialog.FileNames)
-                              {
-                                  using FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read);
-                                  using IExcelDataReader reader = ExcelReaderFactory.CreateReader(stream);
-                                  DataSet result = reader.AsDataSet();
-                                  DataTable table = result.Tables[0];
+                            foreach (string path in openFileDialog.FileNames)
+                            {
+                                using FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read);
+                                using IExcelDataReader reader = ExcelReaderFactory.CreateReader(stream);
+                                DataSet result = reader.AsDataSet();
+                                DataTable table = result.Tables[0];
 
-                                  if ($"{table.Rows[0].ItemArray[0]}".Contains("Заказ")) _metalix.Add(path);
-                                  else if ($"{table.Rows[0].ItemArray[0]}".Contains("Полный список вакансий")) _lasers.Add(path);
-                                  else _tubes.Add(path);
-                              }
+                                if ($"{table.Rows[0].ItemArray[0]}".Contains("Заказ")) _metalix.Add(path);
+                                else if ($"{table.Rows[0].ItemArray[0]}".Contains("Полный список вакансий")) _lasers.Add(path);
+                                else _tubes.Add(path);
+                            }
 
-                              if (_metalix.Count > 0)
-                              {
-                                  Metalix metalix = new(_metalix[0]);
-                                  MainWindow.M.StatusBegin($"{metalix.Run()}", MainWindow.StatusMessageType.Success);
-                              }
+                            if (_metalix.Count > 0)
+                            {
+                                Metalix metalix = new(_metalix[0]);
+                                MainWindow.M.StatusBegin($"{metalix.Run()}", MainWindow.StatusMessageType.Success);
+                            }
 
-                              if (_lasers.Count > 0)
-                              {
-                                  var laserComplect = MainWindow.M.DetailControls.FirstOrDefault(d => d.Detail.Title == "Комплект деталей");
-                                  
-                                  if (appendMode && laserComplect != null)
-                                  {
-                                      laserComplect.AddTypeDetail();
-                                      // устанавливаем "Лазерная резка" в работу по умолчанию
-                                      foreach (Work w in MainWindow.M.Works) if (w.Name == "Лазерная резка")
-                                      {
-                                          laserComplect.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
-                                          break;
-                                      }
-                                      if (laserComplect.TypeDetailControls[^1].WorkControls[^1].workType is CutControl cut)
-                                          cut.LoadExcel(_lasers.ToArray());
-                                  }
-                                  else
-                                  {
-                                      MainWindow.M.AddDetail();
+                            if (_lasers.Count > 0)
+                            {
+                                var laserComplect = MainWindow.M.DetailControls.FirstOrDefault(d => d.Detail.Title == "Комплект деталей");
 
-                                      // устанавливаем "Лазерная резка" в работу по умолчанию
-                                      foreach (Work w in MainWindow.M.Works) if (w.Name == "Лазерная резка")
-                                      {
-                                          MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
-                                          break;
-                                      }
-                                      if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is CutControl cut)
-                                          cut.LoadExcel(_lasers.ToArray());
-                                  }
-                              }
+                                if (appendMode && laserComplect != null)
+                                {
+                                    // Создаём заготовку с предустановленным "Лист металла"
+                                    laserComplect.AddTypeDetail("Лист металла");
+                                    if (laserComplect.TypeDetailControls[^1].WorkControls[^1].workType is CutControl cut)
+                                        cut.LoadExcel(_lasers.ToArray());
+                                }
+                                else
+                                {
+                                    MainWindow.M.AddDetail();
+                                    // Создаём заготовку с предустановленным "Лист металла"
+                                    MainWindow.M.DetailControls[^1].AddTypeDetail("Лист металла");
+                                    if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is CutControl cut)
+                                        cut.LoadExcel(_lasers.ToArray());
+                                }
+                            }
 
-                              if (_tubes.Count > 0)
-                              {
-                                  var tubeComplect = MainWindow.M.DetailControls.FirstOrDefault(d => d.Detail.Title == "Комплект труб");
+                            if (_tubes.Count > 0)
+                            {
+                                var tubeComplect = MainWindow.M.DetailControls.FirstOrDefault(d => d.Detail.Title == "Комплект труб");
 
-                                  if (appendMode && tubeComplect != null)
-                                  {
-                                      tubeComplect.AddTypeDetail();
-                                      // устанавливаем "Труба профильная" в заготовке по умолчанию
-                                      foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба профильная")
-                                      {
-                                          tubeComplect.TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
-                                          foreach (Work w in MainWindow.M.Works) if (w.Name == "Труборез")
-                                          {
-                                              tubeComplect.TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
-                                              break;
-                                          }
-                                          break;
-                                      }
-                                      if (tubeComplect.TypeDetailControls[^1].WorkControls[^1].workType is PipeControl pipe)
-                                          pipe.LoadExcel(_tubes.ToArray());
-                                  }
+                                if (appendMode && tubeComplect != null)
+                                {
+                                    // Создаём заготовку с предустановленным "Труба профильная"
+                                    tubeComplect.AddTypeDetail("Труба профильная");
+                                    if (tubeComplect.TypeDetailControls[^1].WorkControls[^1].workType is PipeControl pipe)
+                                        pipe.LoadExcel(_tubes.ToArray());
+                                }
+                                else
+                                {
+                                    MainWindow.M.AddDetail();
+                                    // Создаём заготовку с предустановленным "Труба профильная"
+                                    MainWindow.M.DetailControls[^1].AddTypeDetail("Труба профильная");
+                                    if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is PipeControl pipe)
+                                        pipe.LoadExcel(_tubes.ToArray());
+                                }
+                            }
+                        }
 
-                                  else
-                                  {
-                                      MainWindow.M.AddDetail();
-
-                                      // устанавливаем "Труба профильная" в заготовке по умолчанию
-                                      foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба профильная")
-                                      {
-                                          MainWindow.M.DetailControls[^1].TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
-                                          foreach (Work w in MainWindow.M.Works) if (w.Name == "Труборез")
-                                          {
-                                              MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
-                                              break;
-                                          }
-                                          break;
-                                      }
-                                      if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is PipeControl pipe)
-                                          pipe.LoadExcel(_tubes.ToArray());
-                                  }
-                              }
-                          }
-
-                          if (MainWindow.M.Log is not null && MainWindow.M.Log != "")
-                          {
-                              MessageBox.Show(MainWindow.M.Log, "Обратите внимание!", MessageBoxButton.OK, MessageBoxImage.Warning);
-                              MainWindow.M.Log = null;
-                          }
-                      }
-                      catch (IOException ex) when ((ex.HResult & 0xFFFF) == 32)
-                      {
-                          dialogService.ShowMessage("Ошибка: Файл используется другим процессом.");
-                      }
-                      catch (Exception ex)
-                      {
-                          dialogService.ShowMessage(ex.Message);
-                      }
-                  });
+                        if (MainWindow.M.Log is not null && MainWindow.M.Log != "")
+                        {
+                            MessageBox.Show(MainWindow.M.Log, "Обратите внимание!", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            MainWindow.M.Log = null;
+                        }
+                    }
+                    catch (IOException ex) when ((ex.HResult & 0xFFFF) == 32)
+                    {
+                        dialogService.ShowMessage("Ошибка: Файл используется другим процессом.");
+                    }
+                    catch (Exception ex)
+                    {
+                        dialogService.ShowMessage(ex.Message);
+                    }
+                });
             }
         }
 
@@ -590,34 +615,33 @@ namespace Metal_Code
             get
             {
                 return loadExcelCommand ??= new RelayCommand(obj =>
-                  {
-                      try
-                      {
-                          MessageBoxResult response = MessageBox.Show(
-                              "Загрузить раскладки?\nЕсли \"Да\", текущий расчет будет очищен!",
-                              "Загрузка раскладок", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+                {
+                    try
+                    {
+                        MessageBoxResult response = MessageBox.Show(
+                            "Загрузить раскладки?\nЕсли \"Да\", текущий расчет будет очищен!",
+                            "Загрузка раскладок", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
 
-                          if (response == MessageBoxResult.No) return;
+                        if (response == MessageBoxResult.No) return;
 
-                          MainWindow.M.NewProject();        // создаем новый расчет
-                          // устанавливаем "Лазерная резка" в работу по умолчанию
-                          foreach (Work w in MainWindow.M.Works) if (w.Name == "Лазерная резка")
-                              {
-                                  MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
-                                  break;
-                              }
-                          if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is CutControl cut)
-                              cut.LoadFiles();
-                      }
-                      catch (IOException ex) when ((ex.HResult & 0xFFFF) == 32)
-                      {
-                          dialogService.ShowMessage("Ошибка: Файл используется другим процессом.");
-                      }
-                      catch (Exception ex)
-                      {
-                          dialogService.ShowMessage(ex.Message);
-                      }
-                  });
+                        MainWindow.M.NewProject();
+
+                        // Создаём заготовку с предустановленным типом "Лист металла"
+                        // SetDefaultWork автоматически установит "Лазерная резка"
+                        MainWindow.M.DetailControls[^1].AddTypeDetail("Лист металла");
+
+                        if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is CutControl cut)
+                            cut.LoadFiles();
+                    }
+                    catch (IOException ex) when ((ex.HResult & 0xFFFF) == 32)
+                    {
+                        dialogService.ShowMessage("Ошибка: Файл используется другим процессом.");
+                    }
+                    catch (Exception ex)
+                    {
+                        dialogService.ShowMessage(ex.Message);
+                    }
+                });
             }
         }
 
@@ -628,39 +652,33 @@ namespace Metal_Code
             get
             {
                 return loadTubeCommand ??= new RelayCommand(obj =>
-                  {
-                      try
-                      {
-                          MessageBoxResult response = MessageBox.Show(
-                              "Загрузить отчеты труб?\nЕсли \"Да\", текущий расчет будет очищен!",
-                              "Загрузка отчетов труб", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
+                {
+                    try
+                    {
+                        MessageBoxResult response = MessageBox.Show(
+                            "Загрузить отчеты труб?\nЕсли \"Да\", текущий расчет будет очищен!",
+                            "Загрузка отчетов труб", MessageBoxButton.YesNo, MessageBoxImage.Exclamation);
 
-                          if (response == MessageBoxResult.No) return;
+                        if (response == MessageBoxResult.No) return;
 
-                          MainWindow.M.NewProject();        // создаем новый расчет
-                          // устанавливаем "Труба профильная" в заготовке по умолчанию
-                          foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба профильная")
-                              {
-                                  MainWindow.M.DetailControls[^1].TypeDetailControls[^1].TypeDetailDrop.SelectedItem = t;
-                                  foreach (Work w in MainWindow.M.Works) if (w.Name == "Труборез")
-                                      {
-                                          MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].WorkDrop.SelectedItem = w;
-                                          break;
-                                      }
-                                  break;
-                              }
-                          if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is PipeControl pipe)
-                              pipe.LoadFiles();
-                      }
-                      catch (IOException ex) when ((ex.HResult & 0xFFFF) == 32)
-                      {
-                          dialogService.ShowMessage("Ошибка: Файл используется другим процессом.");
-                      }
-                      catch (Exception ex)
-                      {
-                          dialogService.ShowMessage(ex.Message);
-                      }
-                  });
+                        MainWindow.M.NewProject();
+
+                        // Создаём заготовку с предустановленным типом "Труба профильная"
+                        // SetDefaultWork автоматически установит "Труборез"
+                        MainWindow.M.DetailControls[^1].AddTypeDetail("Труба профильная");
+
+                        if (MainWindow.M.DetailControls[^1].TypeDetailControls[^1].WorkControls[^1].workType is PipeControl pipe)
+                            pipe.LoadFiles();
+                    }
+                    catch (IOException ex) when ((ex.HResult & 0xFFFF) == 32)
+                    {
+                        dialogService.ShowMessage("Ошибка: Файл используется другим процессом.");
+                    }
+                    catch (Exception ex)
+                    {
+                        dialogService.ShowMessage(ex.Message);
+                    }
+                });
             }
         }
 

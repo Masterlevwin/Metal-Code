@@ -1,7 +1,9 @@
-﻿using System;
+﻿using Metal_Code.Models;
+using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace Metal_Code
 {
@@ -21,27 +23,61 @@ namespace Metal_Code
             DataContext = Detail;
 
             MetalDrop.ItemsSource = MainWindow.M.Metals;
+
+            // При загрузке из БД скрываем блок выбора типа заготовки
+            SelectionGrid.Visibility = MainWindow.M.IsLoadData ? Visibility.Collapsed : Visibility.Visible;
         }
 
-        private void AddDetail(object sender, RoutedEventArgs e)
-        {
-            MainWindow.M.AddDetail();
-        }
+        private void AddTypeDetail(object sender, RoutedEventArgs e) => AddTypeDetail();
 
-        private void AddTypeDetail(object sender, RoutedEventArgs e)
-        {
-            AddTypeDetail();
-        }
-        public void AddTypeDetail()
+        private void SelectSheet(object sender, RoutedEventArgs e) => AddTypeDetail("Лист металла");
+        private void SelectPipe(object sender, RoutedEventArgs e) => AddTypeDetail("Труба профильная");
+
+        public void AddTypeDetail(string presetType = "")
         {
             TypeDetailControl type = new(this);
-
             TypeDetailControls.Add(type);
-            type.Priced += MassCalculate;       // подписка на изменение типовой детали для расчета общей массы детали
-            
-            BilletsStack.Children.Insert(BilletsStack.Children.Count - 1, type);
+            type.Priced += MassCalculate;
 
-            type.AddWork();   // при добавлении дропа типовой детали добавляем дроп работ
+            // Устанавливаем предустановленную заготовку, если указано имя
+            if (!string.IsNullOrEmpty(presetType))
+            {
+                foreach (TypeDetail t in MainWindow.M.TypeDetails)
+                {
+                    if (t.Name == presetType)
+                    {
+                        type.TypeDetailDrop.SelectedItem = t;
+                        break;
+                    }
+                }
+            }
+
+            BilletsStack.Children.Insert(BilletsStack.Children.Count - 1, type);
+            type.AddWork();
+
+            // При программном создании (presetType не пустой) вызываем SetDefaultWork синхронно,
+            // чтобы workType был создан до возврата из метода (нужно для загрузки Excel)
+            // При ручном выборе используем отложенный вызов через Dispatcher
+            if (!MainWindow.M.IsLoadData)
+            {
+                if (!string.IsNullOrEmpty(presetType))
+                {
+                    type.SetDefaultWork();
+                }
+                else
+                {
+                    Dispatcher.InvokeAsync(() => type.SetDefaultWork(),
+                        System.Windows.Threading.DispatcherPriority.Loaded);
+                }
+            }
+
+            // После создания заготовки скрываем блок выбора
+            SelectionGrid.Visibility = Visibility.Collapsed;
+        }
+
+        public void CheckEmptyBillets()
+        {
+            SelectionGrid.Visibility = TypeDetailControls.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void Remove(object sender, RoutedEventArgs e)
@@ -64,22 +100,23 @@ namespace Metal_Code
             MainWindow.M.DetailsStack.Children.Remove(this);
         }
 
+        public void IsComplectChanged(string _complect = "")
+        {
+            Detail.IsComplect = true;
+
+            if (_complect != "")
+                SetName(_complect);
+
+            DetailName.IsReadOnly = Count.IsReadOnly = true;
+        }
+
         private void SetName(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox) SetName(tBox.Text);
         }
-
         public void SetName(string name)
         {
             Detail.Title = DetailName.Text = name;
-        }
-
-        public void IsComplectChanged(string _complect = "")    // метод, в котором эта деталь определяется как Комплект деталей
-                                                                // и устанавливаются ограничения на изменение полей типовых деталей
-        {
-            Detail.IsComplect = true;
-            if (_complect != "") SetName(_complect);
-            DetailName.IsEnabled = Count.IsEnabled = false;
         }
 
         private void SetCount(object sender, TextChangedEventArgs e)

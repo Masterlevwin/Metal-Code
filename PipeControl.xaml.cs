@@ -168,11 +168,26 @@ namespace Metal_Code
             work.PropertiesChanged += SaveOrLoadProperties;     // подписка на сохранение и загрузку файла
             work.type.Priced += OnPriceChanged;                 // подписка на изменение материала типовой детали
 
+            // Подписка на смену типа заготовки
+            work.type.TypeDetailDrop.SelectionChanged += TypeDetail_SelectionChanged;
+
             SetTube();
             SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");      //переносим погонные метры из типовой детали
         }
 
-        private void SetTube()
+        private void TypeDetail_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Обновляем тип трубы при смене заготовки
+            SetTube();
+
+            // Пересчитываем массу и другие параметры
+            if (PartDetails?.Count > 0)
+                SetTotalProperties();
+            else
+                OnPriceChanged();
+        }
+
+        public void SetTube()
         {
             if (work.type.TypeDetailDrop.SelectedItem is TypeDetail type && type.Name != "Лист металла")
                 Tube = type.Name switch
@@ -405,7 +420,8 @@ namespace Metal_Code
 
         public ObservableCollection<PartControl> PartList(DataTableCollection? tables = null, string? path = null)
         {
-            if (tables is not null && $"{tables[0].Rows[0].ItemArray[0]}".Contains("ИН сечения")) return PartList(true, tables, path);
+            if (tables is not null && $"{tables[0].Rows[0].ItemArray[0]}".Contains("ИН сечения"))
+                return PartList(true, tables, path);
 
             ObservableCollection<PartControl> _parts = new();
 
@@ -423,7 +439,8 @@ namespace Metal_Code
                 {
                     if (_tube.Contains("Круглая"))
                     {
-                        foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Труба круглая")
+                        foreach (TypeDetail t in MainWindow.M.TypeDetails)
+                            if (t.Name == "Труба круглая")
                             {
                                 work.type.TypeDetailDrop.SelectedItem = t;
                                 break;
@@ -438,7 +455,8 @@ namespace Metal_Code
                     }
                     else if (_tube.Contains("Швеллер") || _tube.Contains("Труба U"))
                     {
-                        foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Швеллер П")
+                        foreach (TypeDetail t in MainWindow.M.TypeDetails)
+                            if (t.Name == "Швеллер П")
                             {
                                 work.type.TypeDetailDrop.SelectedItem = t;
 
@@ -456,7 +474,8 @@ namespace Metal_Code
                     }
                     else if (_tube.Contains("равнополочный") || _tube.Contains("труба(L)"))
                     {
-                        foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Уголок равнополочный")
+                        foreach (TypeDetail t in MainWindow.M.TypeDetails)
+                            if (t.Name == "Уголок равнополочный")
                             {
                                 work.type.TypeDetailDrop.SelectedItem = t;
 
@@ -474,7 +493,8 @@ namespace Metal_Code
                     }
                     else if (_tube.Contains("неравнополочный"))
                     {
-                        foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Уголок неравнополочный")
+                        foreach (TypeDetail t in MainWindow.M.TypeDetails)
+                            if (t.Name == "Уголок неравнополочный")
                             {
                                 work.type.TypeDetailDrop.SelectedItem = t;
 
@@ -492,17 +512,17 @@ namespace Metal_Code
                     }
                     else if (_tube.Contains("Двутавр"))
                     {
-                        foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Двутавр парал")
+                        foreach (TypeDetail t in MainWindow.M.TypeDetails)
+                            if (t.Name == "Двутавр парал")
                             {
                                 work.type.TypeDetailDrop.SelectedItem = t;
 
-                                //в данном случае берем matchesTube[1].Value за основу для анализа сорта двутавра
                                 string _match = $"{MainWindow.Parser(matchesTube[1].Value)}".Replace(',', '.');
 
                                 foreach (string str in work.type.Kinds.Keys)
                                 {
-                                    if (work.type.Kinds[str].Item1.Contains(_match))    //проверяем первый итем словаря сортов
-                                    {                                                   //если находим совпадение, устанавливаем сорт заготовки
+                                    if (work.type.Kinds[str].Item1.Contains(_match))
+                                    {
                                         foreach (string s in work.type.SortDrop.Items)
                                             if (s == str)
                                             {
@@ -526,22 +546,22 @@ namespace Metal_Code
                 else MainWindow.M.StatusBegin("Не удалось определить размеры трубы");
 
                 int ndx = $"{tables[2].Rows[1].ItemArray[2]}".IndexOf(':');
-                work.type.SetCount((int)MainWindow.Parser($"{tables[2].Rows[1].ItemArray[2]}".Substring(ndx + 1)));             //Кол.сечений
+                work.type.SetCount((int)MainWindow.Parser($"{tables[2].Rows[1].ItemArray[2]}".Substring(ndx + 1)));
                 ndx = $"{tables[2].Rows[1].ItemArray[3]}".IndexOf(':');
-                SetPinhole($"{tables[2].Rows[1].ItemArray[3]}".Substring(ndx + 1));                                             //Контур
+                SetPinhole($"{tables[2].Rows[1].ItemArray[3]}".Substring(ndx + 1));
                 ndx = $"{tables[2].Rows[1].ItemArray[4]}".IndexOf(':');
-                Way = (float)Math.Ceiling(MainWindow.Parser($"{tables[2].Rows[1].ItemArray[4]}".Substring(ndx + 1)) / 1000);    //Длина резки сечения(mm)
+                Way = (float)Math.Ceiling(MainWindow.Parser($"{tables[2].Rows[1].ItemArray[4]}".Substring(ndx + 1)) / 1000);
 
                 if (Items?.Count > 0) Items.Clear();
 
-                for (int j = 3; j < tables[2].Rows.Count; j++)                                  //заполняем список труб
+                for (int j = 3; j < tables[2].Rows.Count; j++)
                 {
                     if (tables[2].Rows[j] == null) break;
 
                     LaserItem? item = new();
-                    item.sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[1]}");  //Кол-во
+                    item.sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[1]}");
 
-                    string lengthTube = $"{tables[2].Rows[j].ItemArray[3]}";                    //Длина трубы(mm)
+                    string lengthTube = $"{tables[2].Rows[j].ItemArray[3]}";
 
                     if (lengthTube.Contains(',')) lengthTube = lengthTube.Remove(lengthTube.IndexOf(','));
                     else if (lengthTube.Contains('.')) lengthTube = lengthTube.Remove(lengthTube.IndexOf('.'));
@@ -551,7 +571,6 @@ namespace Metal_Code
                     Items?.Add(item);
                 }
 
-                //устанавливаем толщину заготовки, если она равна нулю
                 if (work.type.S == 0 && path != null)
                 {
                     Regex _destiny = new(@"x[+-]?((\d+\.?\d*)|(\.\d+))", RegexOptions.IgnoreCase);
@@ -559,7 +578,6 @@ namespace Metal_Code
                     if (matches.Count > 0) work.type.S = MainWindow.Parser(matches[^1].Value.Trim('x'));
                 }
 
-                //устанавливаем материал заготовки
                 foreach (Metal metal in work.type.MetalDrop.Items)
                     if (path != null && metal.Name != null && path.ToLower().Contains(metal.Name))
                         work.type.MetalDrop.SelectedItem = metal;
@@ -568,7 +586,6 @@ namespace Metal_Code
                 {
                     if ($"{tables[0].Rows[j].ItemArray[1]}" == " ") break;
 
-                    //если строка не пуста, инициализируем новую деталь
                     Part part = new()
                     {
                         Title = $"{tables[0].Rows[j].ItemArray[1]}",
@@ -576,17 +593,15 @@ namespace Metal_Code
                         Accuracy = $"H12/h12 +-IT 12/2"
                     };
 
-                    //определяем количество деталей
                     string? _count = tables[0].Rows[j].ItemArray[2]?.ToString();
 
                     if (_count != null && _count.Contains('/')) part.Count = (int)MainWindow.Parser(_count.Split('/')[0]);
 
-                    if (part.Count > 0)     //если количество деталей успешно определено, далее устанавливаем
-                                            //толщину, материал, массу и площадь окрашиваемой поверхности детали
+                    if (part.Count > 0)
                     {
                         part.Destiny = work.type.S;
                         part.Metal = work.type.MetalDrop.Text;
-                        part.Way = (float)Math.Round(MainWindow.Parser($"{tables[0].Rows[j].ItemArray[3]}"), 3);       //Длина нарезанной трубы
+                        part.Way = (float)Math.Round(MainWindow.Parser($"{tables[0].Rows[j].ItemArray[3]}"), 3);
 
                         if (work.type.MetalDrop.SelectedItem is Metal metal && work.type.S > 0)
                             switch (Tube)
@@ -613,32 +628,47 @@ namespace Metal_Code
                                     part.Width = work.type.B;
                                     break;
                                 case TubeType.channel:
-                                    part.Mass = (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * part.Way / 1000, 3);
-                                    part.PropsDict[100] = new() { $"{work.type.ChannelsSquare[work.type.SortDrop.SelectedIndex] * part.Mass / 1000}", "", $"{part.Way}" };     //площадь окрашиваемой поверхности
+                                    if (work.type.SortDrop.SelectedIndex >= 0 && work.type.SortDrop.SelectedIndex < work.type.Channels.Count)
+                                    {
+                                        part.Mass = (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * part.Way / 1000, 3);
+                                        part.PropsDict[100] = new() { $"{work.type.ChannelsSquare[work.type.SortDrop.SelectedIndex] * part.Mass / 1000}", "", $"{part.Way}" };
+                                    }
                                     part.PartType = PartType.Channel;
                                     break;
                                 case TubeType.corner:
-                                    part.Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.A - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
-                                        * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
-                                        * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
-                                    part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.A - work.type.S) / 1000000}", "", $"{part.Way}" };
+                                    if (work.type.SortDrop.SelectedIndex >= 0 && work.type.SortDrop.SelectedIndex < work.type.Corners.Count)
+                                    {
+                                        part.Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.A - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
+                                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
+                                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
+                                        part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.A - work.type.S) / 1000000}", "", $"{part.Way}" };
+                                    }
                                     part.PartType = PartType.Angle;
                                     break;
                                 case TubeType.freeform:
-                                    part.Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.B - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
-                                        * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
-                                        * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
-                                    part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.B - work.type.S) / 1000000}", "", $"{part.Way}" };
+                                    if (work.type.SortDrop.SelectedIndex >= 0 && work.type.SortDrop.SelectedIndex < work.type.Corners.Count)
+                                    {
+                                        part.Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.B - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
+                                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
+                                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
+                                        part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.B - work.type.S) / 1000000}", "", $"{part.Way}" };
+                                    }
                                     part.PartType = PartType.Angle;
                                     part.Height = work.type.A;
                                     part.Width = work.type.B;
                                     break;
                                 case TubeType.ibeam:
-                                    part.Mass = (float)Math.Round(work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item1 * part.Way / 1000, 3);
-                                    part.PropsDict[100] = new() { $"{work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000}", "", $"{part.Way}" };     //площадь окрашиваемой поверхности
+                                    // ИСПРАВЛЕНО: используем имя из SelectedItem и проверяем ContainsKey
+                                    string beamTypeName = work.type.TypeDetailDrop.SelectedItem is TypeDetail td ? td.Name! : work.type.TypeDetailDrop.Text ?? "";
+                                    if (work.type.BeamDict.ContainsKey(beamTypeName) &&
+                                        work.type.SortDrop.SelectedIndex >= 0 &&
+                                        work.type.SortDrop.SelectedIndex < work.type.BeamDict[beamTypeName].Count)
+                                    {
+                                        part.Mass = (float)Math.Round(work.type.BeamDict[beamTypeName][work.type.SortDrop.SelectedIndex].Item1 * part.Way / 1000, 3);
+                                        part.PropsDict[100] = new() { $"{work.type.BeamDict[beamTypeName][work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000}", "", $"{part.Way}" };
+                                    }
                                     part.PartType = PartType.IBeam;
                                     break;
-
                             }
                         else MainWindow.M.StatusBegin("Не удалось определить массу и размеры деталей. Возможно в названии деталей не указана толщина!");
 
@@ -658,8 +688,8 @@ namespace Metal_Code
                     }
                 }
 
-                work.type.L = MainWindow.Parser($"{tables[2].Rows[3].ItemArray[3]}");      //Длина первой трубы(mm)
-                SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");                //переносим погонные метры из типовой детали
+                work.type.L = MainWindow.Parser($"{tables[2].Rows[3].ItemArray[3]}");
+                SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");
             }
             else if (PartDetails?.Count > 0) foreach (Part part in PartDetails) _parts.Add(new(this, work, part));
 
@@ -674,24 +704,23 @@ namespace Metal_Code
             {
                 PartDetails?.Clear();
 
-                work.type.SetCount((int)MainWindow.Parser($"{tables[2].Rows[1].ItemArray[2]}"));                                //Кол.сечений
-                SetPinhole($"{tables[2].Rows[1].ItemArray[3]}");                                                                //Контур
-                if (float.TryParse($"{tables[2].Rows[1].ItemArray[4]}", out float val)) Way = (float)Math.Ceiling(val / 1000);  //Длина резки сечения(mm)
+                work.type.SetCount((int)MainWindow.Parser($"{tables[2].Rows[1].ItemArray[2]}"));
+                SetPinhole($"{tables[2].Rows[1].ItemArray[3]}");
+                if (float.TryParse($"{tables[2].Rows[1].ItemArray[4]}", out float val)) Way = (float)Math.Ceiling(val / 1000);
 
                 if (Items?.Count > 0) Items.Clear();
 
-                //заполняем список труб
                 for (int j = 3; j < tables[2].Rows.Count; j++)
                 {
                     if (tables[2].Rows[j] == null) break;
 
                     LaserItem? item = new()
                     {
-                        sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[2]}")  //Кол-во
+                        sheets = (int)MainWindow.Parser($"{tables[2].Rows[j].ItemArray[2]}")
                     };
 
-                    float lengthTube = MainWindow.Parser($"{tables[2].Rows[j].ItemArray[4]}");  //Длина трубы (mm)
-                    float wastedTube = MainWindow.Parser($"{tables[2].Rows[j].ItemArray[5]}");  //Остаток трубы
+                    float lengthTube = MainWindow.Parser($"{tables[2].Rows[j].ItemArray[4]}");
+                    float wastedTube = MainWindow.Parser($"{tables[2].Rows[j].ItemArray[5]}");
                     float sizeTube = (float)Math.Ceiling((lengthTube - wastedTube) / 500) * 500;
 
                     item.sheetSize = $"{sizeTube}";
@@ -707,7 +736,6 @@ namespace Metal_Code
                     Items?.Add(item);
                 }
 
-                //заполняем список деталей
                 for (int i = 0; i < tables[0].Rows.Count; i++)
                 {
                     if (tables[0].Rows[i] == null) continue;
@@ -749,7 +777,6 @@ namespace Metal_Code
                     }
                 }
 
-                //устанавливаем толщину заготовки, если она равна нулю
                 if (work.type.S == 0 && path != null)
                 {
                     Regex _destiny = new(@"x[+-]?((\d+\.?\d*)|(\.\d+))", RegexOptions.IgnoreCase);
@@ -757,28 +784,23 @@ namespace Metal_Code
                     if (_matches.Count > 0) work.type.S = MainWindow.Parser(_matches[^1].Value.Trim('x'));
                 }
 
-                float destiny = work.type.S;    //кэшируем ссылку на толщину заготовки, потому что в дальнейшем
-                            //при установке сорта заготовки толщина сбрасывается в ноль, и ее нужно установить вновь
+                float destiny = work.type.S;
 
-                //устанавливаем материал заготовки
                 foreach (Metal metal in work.type.MetalDrop.Items)
                     if (path != null && metal.Name != null && path.ToLower().Contains(metal.Name.ToLower()))
                         work.type.MetalDrop.SelectedItem = metal;
 
-                //определяем вид заготовки
                 string _tube = $"{tables[0].Rows[1].ItemArray[1]}";
                 Regex rect = new(@"[+-]?((\d+\,?\d*)|(\,\d+))|((\d+\.?\d*)|(\.\d+))");
                 List<Match> matches = rect.Matches(_tube).ToList();
                 if (matches.Count > 0)
                 {
-                    //профильная труба
                     if (_tube.Contains("Rect tube") || _tube.Contains("Free Form"))
                     {
                         work.type.A = MainWindow.Parser(matches[0].Value);
                         work.type.B = MainWindow.Parser(matches[1].Value);
                         Tube = TubeType.rect;
                     }
-                    //круг или круглая труба
                     else if (_tube.Contains("Round tube"))
                     {
                         if (work.type.S == 0)
@@ -803,7 +825,6 @@ namespace Metal_Code
                         }
                         work.type.A = work.type.B = MainWindow.Parser(matches[0].Value) * 2;
                     }
-                    //квадрат или квадратная труба
                     else if (_tube.Contains("Square tube"))
                     {
                         if (work.type.S == 0)
@@ -828,10 +849,10 @@ namespace Metal_Code
                         }
                         work.type.A = work.type.B = MainWindow.Parser(matches[0].Value);
                     }
-                    //швеллер
                     else if (_tube.Contains("U tube"))
                     {
-                        foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Швеллер П")
+                        foreach (TypeDetail t in MainWindow.M.TypeDetails)
+                            if (t.Name == "Швеллер П")
                             {
                                 work.type.TypeDetailDrop.SelectedItem = t;
 
@@ -853,7 +874,6 @@ namespace Metal_Code
                             }
                         Tube = TubeType.channel;
                     }
-                    //уголки 
                     else if (_tube.Contains("L tube"))
                     {
                         if (matches.Count > 1 && $"{MainWindow.Parser(matches[0].Value)}".Replace(',', '.') == $"{MainWindow.Parser(matches[1].Value)}".Replace(',', '.'))
@@ -895,20 +915,19 @@ namespace Metal_Code
                             Tube = TubeType.freeform;
                         }
                     }
-                    //двутавр парал
                     else if (_tube.Contains("H-beam"))
                     {
-                        foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Двутавр парал")
+                        foreach (TypeDetail t in MainWindow.M.TypeDetails)
+                            if (t.Name == "Двутавр парал")
                             {
                                 work.type.TypeDetailDrop.SelectedItem = t;
 
-                                //в данном случае берем matchesTube[1].Value за основу для анализа сорта двутавра
                                 string _match = $"{MainWindow.Parser(matches[1].Value)}".Replace(',', '.');
 
                                 foreach (string str in work.type.Kinds.Keys)
                                 {
-                                    if (work.type.Kinds[str].Item1.Contains(_match))    //проверяем первый итем словаря сортов
-                                    {                                                   //если находим совпадение, устанавливаем сорт заготовки
+                                    if (work.type.Kinds[str].Item1.Contains(_match))
+                                    {
                                         foreach (string s in work.type.SortDrop.Items)
                                             if (s == str)
                                             {
@@ -923,16 +942,15 @@ namespace Metal_Code
                         Tube = TubeType.ibeam;
                     }
 
-                    SizesValidate();        //проверяем размеры проката
+                    SizesValidate();
                 }
                 else MainWindow.M.StatusBegin("Не удалось определить размеры трубы");
 
-                if (float.TryParse($"{tables[2].Rows[3].ItemArray[4]}", out float l)) work.type.L = l;      //Длина первой трубы(mm)
-                SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");             //переносим погонные метры из типовой детали
+                if (float.TryParse($"{tables[2].Rows[3].ItemArray[4]}", out float l)) work.type.L = l;
+                SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");
 
-                work.type.S = destiny;      //возвращаем сохраненную толщину
+                work.type.S = destiny;
 
-                //дополняем свойства деталей рассчитанными значениями
                 if (PartDetails?.Count > 0)
                     foreach (Part part in PartDetails)
                     {
@@ -979,29 +997,45 @@ namespace Metal_Code
                                     part.Width = work.type.B;
                                     break;
                                 case TubeType.channel:
-                                    part.Mass = (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * part.Way / 1000, 3);
-                                    part.PropsDict[100] = new() { $"{work.type.ChannelsSquare[work.type.SortDrop.SelectedIndex] * part.Mass / 1000}", "", $"{part.Way}" };     //площадь окрашиваемой поверхности
+                                    if (work.type.SortDrop.SelectedIndex >= 0 && work.type.SortDrop.SelectedIndex < work.type.Channels.Count)
+                                    {
+                                        part.Mass = (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * part.Way / 1000, 3);
+                                        part.PropsDict[100] = new() { $"{work.type.ChannelsSquare[work.type.SortDrop.SelectedIndex] * part.Mass / 1000}", "", $"{part.Way}" };
+                                    }
                                     part.PartType = PartType.Channel;
                                     break;
                                 case TubeType.corner:
-                                    part.Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.A - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
-                                        * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
-                                        * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
-                                    part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.A - work.type.S) / 1000000}", "", $"{part.Way}" };
+                                    if (work.type.SortDrop.SelectedIndex >= 0 && work.type.SortDrop.SelectedIndex < work.type.Corners.Count)
+                                    {
+                                        part.Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.A - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
+                                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
+                                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
+                                        part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.A - work.type.S) / 1000000}", "", $"{part.Way}" };
+                                    }
                                     part.PartType = PartType.Angle;
                                     break;
                                 case TubeType.freeform:
-                                    part.Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.B - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
-                                        * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
-                                        * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
-                                    part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.B - work.type.S) / 1000000}", "", $"{part.Way}" };
+                                    if (work.type.SortDrop.SelectedIndex >= 0 && work.type.SortDrop.SelectedIndex < work.type.Corners.Count)
+                                    {
+                                        part.Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.B - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
+                                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
+                                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * part.Way * metal.Density / 1000000, 3);
+                                        part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.B - work.type.S) / 1000000}", "", $"{part.Way}" };
+                                    }
                                     part.PartType = PartType.Angle;
                                     part.Height = work.type.A;
                                     part.Width = work.type.B;
                                     break;
                                 case TubeType.ibeam:
-                                    part.Mass = (float)Math.Round(work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item1 * part.Way / 1000, 3);
-                                    part.PropsDict[100] = new() { $"{work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000}", "", $"{part.Way}" };     //площадь окрашиваемой поверхности
+                                    // ИСПРАВЛЕНО: используем имя из SelectedItem и проверяем ContainsKey
+                                    string beamTypeName = work.type.TypeDetailDrop.SelectedItem is TypeDetail td ? td.Name! : work.type.TypeDetailDrop.Text ?? "";
+                                    if (work.type.BeamDict.ContainsKey(beamTypeName) &&
+                                        work.type.SortDrop.SelectedIndex >= 0 &&
+                                        work.type.SortDrop.SelectedIndex < work.type.BeamDict[beamTypeName].Count)
+                                    {
+                                        part.Mass = (float)Math.Round(work.type.BeamDict[beamTypeName][work.type.SortDrop.SelectedIndex].Item1 * part.Way / 1000, 3);
+                                        part.PropsDict[100] = new() { $"{work.type.BeamDict[beamTypeName][work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000}", "", $"{part.Way}" };
+                                    }
                                     part.PartType = PartType.IBeam;
                                     break;
                             }
@@ -1061,8 +1095,17 @@ namespace Metal_Code
         {
             Mass = MassTotal = WayTotal = 0;
 
-            //если не требуется посчитать массу нарезанных труб, считаем массу полных заготовок
-            if (!IsMassPipe && work.type.MetalDrop.SelectedItem is Metal metal && work.type.S >= 0)
+            // Проверяем, что заготовка выбрана
+            if (work.type.TypeDetailDrop.SelectedItem is not TypeDetail type) return;
+
+            // Проверяем, что металл и толщина доступны
+            if (work.type.MetalDrop.SelectedItem is not Metal metal || work.type.S < 0) return;
+
+            // Проверяем индекс сорта
+            bool hasValidSort = work.type.SortDrop.SelectedIndex >= 0;
+
+            if (!IsMassPipe)
+            {
                 switch (Tube)
                 {
                     case TubeType.rect:
@@ -1081,41 +1124,53 @@ namespace Metal_Code
                         Mass = (float)Math.Round(work.type.A * work.type.A * work.type.L * work.type.Count * metal.Density / 1000000, 3);
                         break;
                     case TubeType.channel:
-                        Mass = (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * work.type.L * work.type.Count / 1000, 3);
+                        // Защитная проверка: индекс валиден и коллекция не пустая
+                        if (hasValidSort && work.type.SortDrop.SelectedIndex < work.type.Channels.Count)
+                            Mass = (float)Math.Round(work.type.Channels[work.type.SortDrop.SelectedIndex] * work.type.L * work.type.Count / 1000, 3);
                         break;
                     case TubeType.corner:
-                        Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.A - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
-                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
-                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * work.type.L * work.type.Count * metal.Density / 1000000, 3);
+                        if (hasValidSort && work.type.SortDrop.SelectedIndex < work.type.Corners.Count)
+                            Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.A - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
+                                * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
+                                * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * work.type.L * work.type.Count * metal.Density / 1000000, 3);
                         break;
                     case TubeType.freeform:
-                        Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.B - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
-                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
-                            * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * work.type.L * work.type.Count * metal.Density / 1000000, 3);
+                        if (hasValidSort && work.type.SortDrop.SelectedIndex < work.type.Corners.Count)
+                            Mass = (float)Math.Round((work.type.S * (work.type.A + work.type.B - work.type.S) + 0.2146f * (work.type.Corners[work.type.SortDrop.SelectedIndex].Item1
+                                * work.type.Corners[work.type.SortDrop.SelectedIndex].Item1 - 2 * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2
+                                * work.type.Corners[work.type.SortDrop.SelectedIndex].Item2)) * work.type.L * work.type.Count * metal.Density / 1000000, 3);
                         break;
                     case TubeType.ibeam:
-                        Mass = (float)Math.Round(work.type.BeamDict[work.type.TypeDetailDrop.Text][work.type.SortDrop.SelectedIndex].Item1 * work.type.L * work.type.Count / 1000, 3);
+                        // ИСПРАВЛЕНО: используем type.Name вместо TypeDetailDrop.Text
+                        // и добавляем проверку ContainsKey
+                        if (hasValidSort
+                            && work.type.BeamDict.ContainsKey(type.Name!)
+                            && work.type.SortDrop.SelectedIndex < work.type.BeamDict[type.Name!].Count)
+                        {
+                            Mass = (float)Math.Round(work.type.BeamDict[type.Name!][work.type.SortDrop.SelectedIndex].Item1 * work.type.L * work.type.Count / 1000, 3);
+                        }
                         break;
-
                 }
-
-            if (PartDetails?.Count > 0) foreach (Part part in PartDetails)
-                {
-                    if (IsMassPipe) Mass += part.Mass * part.Count;     //если требуется рассчитать материал ТОЛЬКО нарезанных труб
-                    MassTotal += part.Mass * part.Count;                //масса всех нарезанных труб
-                    WayTotal += part.Way * part.Count;                  //путь резки всех нарезанных труб
-                }
-
-            //если требуется рассчитать материал ТОЛЬКО нарезанных труб
-            if (IsMassPipe && PartDetails?.Count > 0)
-            {
-                float _ratio = Mass / MassTotal;                        //получаем коэффициент разницы между текущим значением массы и массой нарезанных труб
-                foreach (Part part in PartDetails) part.Mass *= _ratio; //выравниваем массу каждого кусочка согласно коэффициенту
             }
 
-            work.type.MassCalculate();          // обновляем значение массы заготовки
-        }
+            if (PartDetails?.Count > 0)
+            {
+                foreach (Part part in PartDetails)
+                {
+                    if (IsMassPipe) Mass += part.Mass * part.Count;
+                    MassTotal += part.Mass * part.Count;
+                    WayTotal += part.Way * part.Count;
+                }
+            }
 
+            if (IsMassPipe && PartDetails?.Count > 0 && MassTotal > 0)
+            {
+                float _ratio = Mass / MassTotal;
+                foreach (Part part in PartDetails) part.Mass *= _ratio;
+            }
+
+            work.type.MassCalculate();
+        }
 
         private bool _isExpanded = false;
 

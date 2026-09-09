@@ -18,9 +18,6 @@ using System.Windows.Media.Animation;
 
 namespace Metal_Code
 {
-    /// <summary>
-    /// Логика взаимодействия для Billet.xaml
-    /// </summary>
     public partial class TypeDetailControl : UserControl, INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -201,15 +198,50 @@ namespace Metal_Code
             CreateSort();
         }
 
-        private void AddTypeDetail(object sender, RoutedEventArgs e)
+        public void SetDefaultWork()
         {
-            det.AddTypeDetail();
+            if (TypeDetailDrop.SelectedItem is not TypeDetail type) return;
+            if (WorkControls.Count == 0) return;
+
+            string defaultWorkName = type.Name == "Лист металла" ? "Лазерная резка" : "Труборез";
+            WorkControl firstWork = WorkControls[0];
+
+            if (firstWork.WorkDrop.SelectedItem is Work currentWork && currentWork.Name == defaultWorkName)
+            {
+                StartToggleHighlight();
+                return;
+            }
+
+            bool isSlotEmpty = firstWork.WorkDrop.SelectedItem == null || firstWork.WorkDrop.SelectedIndex == -1;
+            bool isCurrentCut = firstWork.workType is ICut;
+
+            if (!isSlotEmpty && !isCurrentCut) return;
+
+            int workIndex = -1;
+            for (int i = 0; i < firstWork.WorkDrop.Items.Count; i++)
+            {
+                if (firstWork.WorkDrop.Items[i] is Work w && w.Name == defaultWorkName)
+                {
+                    workIndex = i;
+                    break;
+                }
+            }
+
+            if (workIndex < 0) return;
+
+            _isAutoSelecting = true;
+            firstWork.WorkDrop.SelectionChanged -= firstWork.CreateWork;
+            firstWork.WorkDrop.SelectedIndex = workIndex;
+            firstWork.WorkDrop.SelectionChanged += firstWork.CreateWork;
+            _isAutoSelecting = false;
+
+            firstWork.CreateWork();
+            StartToggleHighlight();
         }
 
         public void AddWork()
         {
             WorkControl work = new(this);
-
             WorkControls.Add(work);
             WorksStack.Children.Insert(WorksStack.Children.Count - 1, work);
         }
@@ -224,18 +256,23 @@ namespace Metal_Code
             }
             Remove();
         }
+
         public void Remove()
         {
+            StopToggleHighlight();  // ← Останавливаем анимацию перед удалением
             det.TypeDetailControls.Remove(this);
             det.BilletsStack.Children.Remove(this);
+            det.CheckEmptyBillets();
         }
 
         public delegate void Changed();
         public event Changed? Priced;
+
         private void SetCount(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count)) SetCount(count);
         }
+
         public void SetCount(int _count)
         {
             Count = _count;
@@ -247,10 +284,12 @@ namespace Metal_Code
             SetCount(1);
             ResultText.IsReadOnly = false;
         }
+
         private void SetExtraResult(object sender, RoutedEventArgs e)
         {
             if (float.TryParse(ResultText.Text, out float extra)) SetExtraResult(extra);
         }
+
         public void SetExtraResult(float extra)
         {
             ExtraResult = extra;
@@ -262,28 +301,70 @@ namespace Metal_Code
         {
             if (sender is TextBox box) SetComment(box.Text);
         }
+
         public void SetComment(string? _comment)
         {
             Comment = _comment;
             if (Comment != null && Comment != "" && CommentExpander.IsExpanded == false) CommentExpander.IsExpanded = true;
         }
 
+        private bool _isAutoSelecting = false;
+
         public Dictionary<string, (string, string, string)> Kinds = new();
 
         private void CreateSort(object sender, SelectionChangedEventArgs e)
         {
-            if (det.Detail.Title == "Комплект деталей" && TypeDetailDrop.SelectedItem is TypeDetail _c && _c.Name != "Лист металла")
+            if (_isAutoSelecting) return;
+
+            if (det.Detail.Title == "Комплект деталей"
+                && TypeDetailDrop.SelectedItem is TypeDetail _sheet
+                && _sheet.Name != "Лист металла")
             {
-                foreach (TypeDetail t in MainWindow.M.TypeDetails) if (t.Name == "Лист металла")
+                _isAutoSelecting = true;
+                foreach (TypeDetail t in MainWindow.M.TypeDetails)
+                {
+                    if (t.Name == "Лист металла")
                     {
                         TypeDetailDrop.SelectedItem = t;
                         break;
                     }
-                MainWindow.M.StatusBegin($"В \"Комплекте деталей\" могут быть только \"Листы металла\". Чтобы добавить другую заготовку, сначала добавьте новую деталь!");
+                }
+                _isAutoSelecting = false;
+
+                MainWindow.M.StatusBegin(
+                    "В \"Комплекте деталей\" могут быть только \"Листы металла\".\n" +
+                    "Чтобы добавить другую заготовку, сначала добавьте новую деталь!");
+
+                CreateSort();
                 return;
             }
+
+            if (det.Detail.Title == "Комплект труб"
+                && TypeDetailDrop.SelectedItem is TypeDetail _pipe
+                && _pipe.Name == "Лист металла")
+            {
+                _isAutoSelecting = true;
+                foreach (TypeDetail t in MainWindow.M.TypeDetails)
+                {
+                    if (t.Name == "Труба профильная")
+                    {
+                        TypeDetailDrop.SelectedItem = t;
+                        break;
+                    }
+                }
+                _isAutoSelecting = false;
+
+                MainWindow.M.StatusBegin(
+                    "В \"Комплекте труб\" не может быть \"Лист металла\".\n" +
+                    "Чтобы добавить лист, сначала добавьте новую деталь!");
+
+                CreateSort();
+                return;
+            }
+
             CreateSort();
         }
+
         public void CreateSort(int ndx = 0)
         {
             Kinds.Clear();
@@ -304,11 +385,11 @@ namespace Metal_Code
                 {
                     if (w.workType is ICut cut && cut.Items?.Count > 0)
                     {
-                        float squareParts = 0;        //общая площадь нарезанных деталей
+                        float squareParts = 0;
                         if (cut.Parts?.Count > 0) squareParts = (float)Math.Round(cut.Parts.Sum(p => p.Square * p.Part.Count) / 2, 2);
 
-                        float squareItems = 0;        //общая площадь листов раскладки
-                        var _items = cut.Items?.GroupBy(c => c.sheetSize);      //группируем все листы по размеру
+                        float squareItems = 0;
+                        var _items = cut.Items?.GroupBy(c => c.sheetSize);
                         if (_items is not null)
                             foreach (var item in _items)
                             {
@@ -323,7 +404,6 @@ namespace Metal_Code
                                         float a = MainWindow.Parser(props[0]);
                                         float b = MainWindow.Parser(props[1]);
 
-                                        //добавляем общую площадь листов этой группы
                                         squareItems += (float)Math.Round(a * b * item.Sum(s => s.sheets) / 1000000, 2);
 
                                         if ((metal.Name == "хк" || metal.Name == "ст3" || metal.Name == "09г2с" || metal.Name == "цинк")
@@ -340,7 +420,7 @@ namespace Metal_Code
                                     }
                                 }
                             }
-                        //определяем плотность раскладки
+
                         if (squareParts > 0 && squareItems > 0)
                         {
                             float delta = (float)Math.Round(squareParts * 100 / squareItems, 1);
@@ -369,10 +449,8 @@ namespace Metal_Code
             else A_prop.IsReadOnly = B_prop.IsReadOnly = false;
         }
 
-        private void ChangeSort(object sender, SelectionChangedEventArgs e)
-        {
-            ChangeSort();
-        }
+        private void ChangeSort(object sender, SelectionChangedEventArgs e) => ChangeSort();
+
         public void ChangeSort()
         {
             if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
@@ -403,17 +481,19 @@ namespace Metal_Code
             }
         }
 
-        public List<(float, float)> Corners = new()     //размеры полок уголка
+        public List<(float, float)> Corners = new()
         {
             (3.5f, 1.2f), (3.5f, 1.2f), (4, 1.3f), (4, 1.3f), (5, 1.7f), (5.5f, 1.8f), (6, 2), (7, 2.3f),
             (7.5f, 2.5f), (7.5f, 2.5f), (8, 2.7f), (8, 2.7f), (9, 3), (9, 3), (10, 3.3f), (12, 4), (12, 4),
             (14, 4.6f), (14, 4.6f), (16, 5.3f)
         };
-        public List<float> Channels = new()             //масса 1 м типоразмера швеллера
+
+        public List<float> Channels = new()
         {
             4.84f, 5.9f, 7.05f, 8.59f, 10.4f, 12.3f, 14.2f, 15.3f, 16.3f, 17.4f, 18.4f, 21, 24, 27.7f, 31.8f, 36.5f, 41.9f, 48.3f
         };
-        public List<float> ChannelsSquare = new()       //суммарная площадь поверхности со всех сторон 1 тонны горячекатаных  швеллеров, м2
+
+        public List<float> ChannelsSquare = new()
         {
             47.1f, 46.4f, 45.4f, 44.7f, 43.1f, 41.6f, 40.5f, 38.7f, 39.3f, 37.7f, 38.3f, 36.6f, 35, 33.2f, 31, 29.6f, 27.7f, 26.1f
         };
@@ -431,7 +511,6 @@ namespace Metal_Code
             ExtraResult = 0;
             ResultText.IsReadOnly = true;
             MetalDrop.BorderThickness = new Thickness(1);
-
             MassCalculate();
         }
 
@@ -439,7 +518,7 @@ namespace Metal_Code
         {
             if (TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
 
-            float destiny = MainWindow.M.CorrectDestiny(S);    //получаем расчетную толщину
+            float destiny = MainWindow.M.CorrectDestiny(S);
 
             if (metal.Name is not null && type.Name is not null
                 && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
@@ -450,16 +529,9 @@ namespace Metal_Code
                 else if (type.Name.Contains("Труба")) basePrice *= 1.1f;
                 else basePrice *= 1.3f;
 
-                //float thicknessMultiplier = S switch
-                //{
-                //    < 14 => 1.0f,
-                //    < 18 => 1.05f,
-                //    _ => 1.15f
-                //};
-                float thicknessMultiplier = 1;
-                Price = basePrice * thicknessMultiplier;
+                Price = basePrice;
             }
-            else if (S == 0) Price = metal.MassPrice * 1.3f;       //для кругов и квадратов
+            else if (S == 0) Price = metal.MassPrice * 1.3f;
 
             if (det.Detail.IsComplect)
             {
@@ -473,7 +545,6 @@ namespace Metal_Code
                             foreach (PartControl p in cut.PartsControl.Parts)
                                 Square += p.Square * p.Part.Count;
 
-                        //меняем свойство материала у каждой детали при изменении металла, и толщину при изменении толщины
                         if (cut.PartDetails?.Count > 0)
                         {
                             foreach (Part part in cut.PartDetails)
@@ -482,7 +553,6 @@ namespace Metal_Code
                                 if (part.Destiny != S) part.Destiny = S;
                             }
 
-                            // определяем заголовок списка нарезанных деталей
                             PartsToggle.Content = $"{(cut is PipeControl or SawControl ? "(ТР) " : "")}s{S} {metal.Name} ({cut.PartDetails.Sum(x => x.Count)} деталей)";
                         }
                         break;
@@ -497,9 +567,6 @@ namespace Metal_Code
                         Square = L * (A + B) * 2 / 1000000;
                         break;
                     case "Труба круглая":
-                        Mass = (float)Math.PI * S * (A - S) * L * metal.Density / 1000000;
-                        Square = L * A * (float)Math.PI / 1000000;
-                        break;
                     case "Труба круглая ВГП":
                         Mass = (float)Math.PI * S * (A - S) * L * metal.Density / 1000000;
                         Square = L * A * (float)Math.PI / 1000000;
@@ -510,7 +577,7 @@ namespace Metal_Code
                             Mass = (S * (A + B - S) + 0.2146f * (Corners[SortDrop.SelectedIndex].Item1 * Corners[SortDrop.SelectedIndex].Item1
                                 - 2 * Corners[SortDrop.SelectedIndex].Item2 * Corners[SortDrop.SelectedIndex].Item2)) * L * metal.Density / 1000000;
                             Square = L * S * (A + B - S) / 1000000;
-                        }  
+                        }
                         break;
                     case "Уголок равнополочный":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
@@ -529,12 +596,6 @@ namespace Metal_Code
                         Square = 2 * (A * L + B * L + A * B) / 1000000;
                         break;
                     case "Швеллер П":
-                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
-                        {
-                            Mass = Channels[SortDrop.SelectedIndex] * L / 1000;
-                            Square = ChannelsSquare[SortDrop.SelectedIndex] * L / 1000000;
-                        }
-                        break;
                     case "Швеллер У":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
                         {
@@ -543,26 +604,8 @@ namespace Metal_Code
                         }
                         break;
                     case "Двутавр":
-                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
-                        {
-                            Mass = BeamDict[type.Name][SortDrop.SelectedIndex].Item1 * L / 1000;
-                            Square = BeamDict[type.Name][SortDrop.SelectedIndex].Item2 * Mass / 1000;
-                        }
-                        break;
                     case "Двутавр парал":
-                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
-                        {
-                            Mass = BeamDict[type.Name][SortDrop.SelectedIndex].Item1 * L / 1000;
-                            Square = BeamDict[type.Name][SortDrop.SelectedIndex].Item2 * Mass / 1000;
-                        }
-                        break;
                     case "Двутавр широк":
-                        if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
-                        {
-                            Mass = BeamDict[type.Name][SortDrop.SelectedIndex].Item1 * L / 1000;
-                            Square = BeamDict[type.Name][SortDrop.SelectedIndex].Item2 * Mass / 1000;
-                        }
-                        break;
                     case "Двутавр колон":
                         if (Kinds.Count > 0 && SortDrop.SelectedIndex != -1)
                         {
@@ -572,7 +615,7 @@ namespace Metal_Code
                         break;
                     default:
                         Mass = A * B * S * L * metal.Density / 1000000;
-                        Square = L * (A + B) * 2 / 1000;                //для "Лист металла" (при L = 1)
+                        Square = L * (A + B) * 2 / 1000;
                         break;
                 }
             }
@@ -581,9 +624,9 @@ namespace Metal_Code
 
         public void PriceChanged()
         {
-            Result = (float)((HasMetal ? (float)Math.Round(         //проверяем наличие материала
-                (det.Detail.IsComplect ? 1 : Count) *               //проверяем количество заготовок
-                (ExtraResult > 0 ? ExtraResult : Price * Mass)      //проверяем наличие стоимости пользователя
+            Result = (float)((HasMetal ? (float)Math.Round(
+                (det.Detail.IsComplect ? 1 : Count) *
+                (ExtraResult > 0 ? ExtraResult : Price * Mass)
                 , 2) : 0) * MainWindow.M.MaterialFactor);
 
             Priced?.Invoke();
@@ -593,7 +636,7 @@ namespace Metal_Code
         {
             if (sender is not TextBox box || TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
 
-            float destiny = MainWindow.M.CorrectDestiny(S);    //получаем расчетную толщину
+            float destiny = MainWindow.M.CorrectDestiny(S);
 
             if (metal.Name is not null && type.Name is not null
                 && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
@@ -604,17 +647,9 @@ namespace Metal_Code
                 else if (type.Name.Contains("Труба")) basePrice *= 1.1f;
                 else basePrice *= 1.3f;
 
-                //float thicknessMultiplier = S switch
-                //{
-                //    < 14 => 1.0f,
-                //    < 18 => 1.05f,
-                //    _ => 1.15f
-                //};
-                float thicknessMultiplier = 1;
-
-                box.ToolTip = $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(ExtraResult > 0 ? ExtraResult / Mass : basePrice * thicknessMultiplier)} руб)";
+                box.ToolTip = $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(ExtraResult > 0 ? ExtraResult / Mass : basePrice)} руб)";
             }
-            else if (S == 0)       //для кругов и квадратов
+            else if (S == 0)
                 box.ToolTip = $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(ExtraResult > 0 ? ExtraResult / Mass : metal.MassPrice * 1.3f)} руб)";
         }
 
@@ -666,8 +701,11 @@ namespace Metal_Code
                         det.IsComplectChanged("Комплект труб");
                     }
                     break;
-                }  
+                }
                 ((Storyboard)FindResource("ExpandParts")).Begin(this);
+
+                // Выключаем подсветку — пользователь уже нашёл кнопку
+                StopToggleHighlight();
             }
             else
             {
@@ -675,29 +713,64 @@ namespace Metal_Code
             }
         }
 
+        /// <summary>
+        /// Включает пульсирующую подсветку кнопки PartsToggle,
+        /// привлекая внимание пользователя к возможности создания Комплекта деталей.
+        /// </summary>
+        public void StartToggleHighlight()
+        {
+            if (PartsToggle == null) return;
 
-        //-----------ТЭГИ-----------//
+            // Запускаем только если PartsControl ещё не создан
+            foreach (WorkControl w in WorkControls)
+            {
+                if (w.workType is CutControl cut && cut.PartsControl is null)
+                {
+                    ((Storyboard)FindResource("HighlightToggle")).Begin(PartsToggle);
+                    return;
+                }
+                if (w.workType is PipeControl pipe && pipe.PartsControl is null)
+                {
+                    ((Storyboard)FindResource("HighlightToggle")).Begin(PartsToggle);
+                    return;
+                }
+                if (w.workType is SawControl saw && saw.PartsControl is null)
+                {
+                    ((Storyboard)FindResource("HighlightToggle")).Begin(PartsToggle);
+                    return;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Выключает подсветку кнопки PartsToggle.
+        /// </summary>
+        public void StopToggleHighlight()
+        {
+            if (PartsToggle == null) return;
+            ((Storyboard)FindResource("HighlightToggle")).Stop(PartsToggle);
+            ((Storyboard)FindResource("StopHighlightToggle")).Begin(PartsToggle);
+        }
+
+
         public ObservableCollection<CommentTag> CommentTags { get; } = TagManager.LoadTags();
 
         private void TagButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is CommentTag tag)
             {
-                // СПЕЦИАЛЬНАЯ ЛОГИКА ДЛЯ "АЗОТ"
                 if (tag.Name.Equals("азот", StringComparison.OrdinalIgnoreCase))
                 {
                     HandleNitrogen(btn);
                     return;
                 }
 
-                // СПЕЦИАЛЬНАЯ ЛОГИКА ДЛЯ "РИФЛ"
                 if (tag.Name.Equals("рифл", StringComparison.OrdinalIgnoreCase))
                 {
                     HandleGrooved(btn);
                     return;
                 }
 
-                // Переключаемое поведение (как у "кром", "шлиф" и т.д.)
                 if (IsCommentPresent(tag.Text))
                 {
                     HandleCommentRemoval(tag.Text);
@@ -709,7 +782,6 @@ namespace Metal_Code
                     btn.Background = Brushes.PaleGreen;
                 }
 
-                // Авто-раскрытие экспандера при добавлении
                 if (!string.IsNullOrEmpty(Comment) && !CommentExpander.IsExpanded)
                     CommentExpander.IsExpanded = true;
             }
@@ -717,25 +789,17 @@ namespace Metal_Code
 
         private void HandleNitrogen(Button btn)
         {
-            // Ищем работу резки (CutControl) среди добавленных работ
             var work = WorkControls.FirstOrDefault(w => w.workType is CutControl);
 
             if (work != null && work.workType is CutControl cut)
             {
-                // Переключаем состояние
                 cut.HaveNitro = !cut.HaveNitro;
-
-                // Меняем коэффициент (1.5 для азота, 1 для воздуха/кислорода)
                 work.Ratio = cut.HaveNitro ? 1.5f : 1;
 
-                // Визуальная индикация на кнопке
-                // Если включено - зеленый (PaleGreen), если выключено - возвращаем дефолтный серый
                 btn.Background = cut.HaveNitro
                     ? Brushes.PaleGreen
                     : new SolidColorBrush(Color.FromRgb(245, 245, 245));
 
-                // Управление текстом в комментарии
-                // (Важно: используем текст, который был в старом коде, чтобы не ломать совместимость)
                 if (cut.HaveNitro)
                     HandleCommentAddition(" Азот!");
                 else
@@ -743,8 +807,6 @@ namespace Metal_Code
             }
             else
             {
-                // Если резки нет, просто добавляем текст (как обычная кнопка), 
-                // но без изменения коэффициента
                 if (IsCommentPresent(" Азот!"))
                 {
                     HandleCommentRemoval(" Азот!");
@@ -764,15 +826,12 @@ namespace Metal_Code
 
             if (work != null && work.workType is CutControl cut)
             {
-                // Переключаем свойство
                 cut.IsGrooved = !cut.IsGrooved;
 
-                // Визуальная индикация кнопки
                 btn.Background = cut.IsGrooved
                     ? Brushes.PaleGreen
                     : new SolidColorBrush(Color.FromRgb(245, 245, 245));
 
-                // Управление текстом в комментарии
                 if (cut.IsGrooved)
                     HandleCommentAddition(" Рифленка!");
                 else
@@ -782,8 +841,6 @@ namespace Metal_Code
             }
             else
             {
-                // ️ Фоллбэк: если в детали нет операции резки, 
-                // просто переключаем текст комментария без привязки к cut.IsGrooved
                 if (IsCommentPresent(" Рифленка!"))
                 {
                     HandleCommentRemoval(" Рифленка!");
@@ -802,7 +859,6 @@ namespace Metal_Code
             var settingsWindow = new TagSettingsWindow(CommentTags);
             if (settingsWindow.ShowDialog() == true)
             {
-                // Обновляем UI после изменения коллекции
                 TagsPanel.Items.Refresh();
                 TagManager.SaveTags(CommentTags);
             }
@@ -825,23 +881,14 @@ namespace Metal_Code
             return Comment != null && Comment.Contains(textToCheck);
         }
 
-
-        // Уточнить стоимость материала путем загрузки прайсов
         public async void LoadPrices(object sender, RoutedEventArgs e)
         {
             try
             {
-                // 1. Парсим весь прайс
                 var rawItems = await LoadPriceListFromDialogAsync();
-
-                // 2. Агрегируем в средние цены
                 var averages = PriceAggregator.AggregateToAverages(rawItems);
-
-                // 3. Создаём окно и загружаем данные
                 var priceMetalWindow = new PriceMetalWindow(this);
                 priceMetalWindow.LoadData(averages);
-
-                // 4. Показываем окно
                 priceMetalWindow.Show();
             }
             catch (Exception ex)
@@ -857,7 +904,7 @@ namespace Metal_Code
                 Title = "Выберите прайс-лист(ы) металла",
                 Filter = "Excel файлы|*.xls;*.xlsx|Все файлы|*.*",
                 DefaultExt = ".xlsx",
-                Multiselect = true, // 🔥 Ключевое изменение: разрешаем выбор нескольких файлов
+                Multiselect = true,
                 InitialDirectory = MainWindow.M.connections[5]
             };
 
@@ -867,24 +914,20 @@ namespace Metal_Code
                 var allItems = new List<PriceListItem>();
                 var errors = new List<string>();
 
-                // Парсим каждый выбранный файл
                 foreach (var filePath in dialog.FileNames)
                 {
                     try
                     {
                         var parser = new PriceListParserService();
                         var items = await parser.ParseAsync(filePath);
-
                         allItems.AddRange(items);
                     }
                     catch (Exception ex)
                     {
-                        // Логируем ошибку, но продолжаем обработку остальных файлов
                         errors.Add($"{Path.GetFileName(filePath)}: {ex.Message}");
                     }
                 }
 
-                // Если все файлы не распарсились — выбрасываем исключение
                 if (allItems.Count == 0 && errors.Count > 0)
                 {
                     throw new InvalidOperationException(
@@ -894,7 +937,6 @@ namespace Metal_Code
                 return allItems;
             }
 
-            // Пользователь нажал "Отмена"
             return new List<PriceListItem>();
         }
     }

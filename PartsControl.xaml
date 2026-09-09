@@ -149,8 +149,25 @@
               HorizontalScrollBarVisibility="Auto"
               VerticalScrollBarVisibility="Disabled"
               PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
-            <!-- 🔥 Перехватываем колесико -->
-            <StackPanel x:Name="imagesStack" Orientation="Horizontal" Margin="5"/>
+
+            <Grid Margin="5">
+                <Grid.ColumnDefinitions>
+                    <!-- Колонка 1: Листы и изображения (горизонтальная прокрутка) -->
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- Колонка 2: Пустое пространство-разделитель -->
+                    <ColumnDefinition Width="20"/>
+                    <!-- Колонка 3: Трубы (вертикальный стек с переносом в новый столбец) -->
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 🔥 Горизонтальный стек для ЛИСТОВ -->
+                <StackPanel x:Name="SheetImagesStack" Orientation="Horizontal" VerticalAlignment="Top"/>
+
+                <!-- 🔥 Вертикальный WrapPanel для ТРУБ -->
+                <!-- MaxHeight="300" означает, что при высоте элемента ~110px, после 2-го элемента начнется новый столбец -->
+                <WrapPanel x:Name="PipeImagesStack" Grid.Column="2" Orientation="Vertical"
+                           MaxHeight="300" VerticalAlignment="Top"/>
+            </Grid>
         </ScrollViewer>
 
         <!-- ================= СТРОКА 1: СТАНДАРТНЫЕ ДЕТАЛИ + СПИСОК ДЕТАЛЕЙ ================= -->
@@ -179,11 +196,10 @@
 
                 <!-- Кнопка добавления деталей из DXF-файлов -->
                 <Border Background="{DynamicResource RegionBrush}"
-                    BorderBrush="LightGray"
-                    BorderThickness="1"
-                    CornerRadius="6"
-                    VerticalAlignment="Top">
-                    <ToggleButton ToolTip="Добавить детали из DXF-файлов" 
+                        BorderBrush="LightGray" BorderThickness="1"
+                        CornerRadius="6" VerticalAlignment="Top">
+                    <ToggleButton x:Name="DxfToggle"
+                              ToolTip="Добавить детали из DXF-файлов" 
                               Click="AddPartsFromDxf_Click" 
                               Style="{StaticResource SideIconButton}">
                         <Image Source="/Images/add_models_2.png" Width="24"/>
@@ -217,9 +233,60 @@
                 </Border>            
             </StackPanel>
 
+            <!-- Блок пустого состояния (виден только когда деталей нет) -->
+            <Grid x:Name="EmptyStateGrid" 
+      Grid.Column="1" 
+      Visibility="Visible"
+      HorizontalAlignment="Center" 
+      VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+
+                    <!-- Кнопка: Добавить DXF -->
+                    <Button x:Name="EmptyStateAddDxfBtn" 
+                Click="AddPartsFromDxf_Click"
+                MinWidth="200" 
+                MinHeight="100" 
+                Padding="20,10"
+                ToolTip="Добавить детали из DXF-файлов">
+                        <StackPanel HorizontalAlignment="Center">
+                            <Image Source="/Images/add_models_2.png" Width="24" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Добавить DXF" 
+                           FontSize="16" 
+                           FontWeight="Bold" 
+                           HorizontalAlignment="Center"
+                           Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Разделитель "или" -->
+                    <TextBlock Text="или" 
+                   FontSize="14" 
+                   Foreground="Gray" 
+                   VerticalAlignment="Center" 
+                   Margin="25,0,25,0"/>
+
+                    <!-- Кнопка: Стандартные детали -->
+                    <Button x:Name="EmptyStateAddStandardBtn" 
+                Click="Add_StandartPart_Click"
+                MinWidth="200" 
+                MinHeight="100" 
+                Padding="20,10"
+                ToolTip="Добавить стандартную деталь">
+                        <StackPanel HorizontalAlignment="Center">
+                            <Image Source="/Images/standard.png" Width="24" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Стандартные детали" 
+                           FontSize="16" 
+                           FontWeight="Bold" 
+                           HorizontalAlignment="Center"
+                           Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+            
             <!-- Список деталей (в основном контенте) -->
             <ScrollViewer x:Name="partsScroll" 
-              Grid.Column="1"
+              Grid.Column="1" Visibility="Collapsed"
               HorizontalScrollBarVisibility="Auto"
               VerticalScrollBarVisibility="Disabled"
               PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">

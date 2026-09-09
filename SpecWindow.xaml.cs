@@ -6,11 +6,11 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Net.Security;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -175,19 +175,51 @@ namespace Metal_Code
                             });
 
                             // === ДАННЫЕ ТАБЛИЦЫ ===
-                            if (!MainWindow.M.isAssemblyOffer)
+                            if (MainWindow.M.isAssemblyOffer)
+                            {
+                                // 1. Сборочные единицы
+                                if (AssemblyWindow.A.Assemblies != null && AssemblyWindow.A.Assemblies.Count > 0)
+                                {
+                                    foreach (var assembly in AssemblyWindow.A.Assemblies)
+                                    {
+                                        if (assembly.Particles.Count == 0) continue;
+
+                                        totalSum += assembly.Total;
+
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((rowIndex++).ToString());
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text($"{assembly.Title}").Bold();
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(assembly.Count.ToString());
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(assembly.Total.ToString("N2"));
+                                    }
+                                }
+
+                                // 2. Нераспределенные детали (ИСПОЛЬЗУЕМ ГОТОВУЮ КОЛЛЕКЦИЮ LooseParts)
+                                if (MainWindow.M.LooseParts != null && MainWindow.M.LooseParts.Count > 0)
+                                {
+                                    table.Cell().ColumnSpan(4).Border(1).BorderColor(Colors.Black).Padding(4).Text("Дополнительные детали:").Bold();
+
+                                    foreach (var lp in MainWindow.M.LooseParts)
+                                    {
+                                        if (lp.Count <= 0) continue;
+
+                                        totalSum += lp.Total; // Читаем готовую стоимость
+
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((rowIndex++).ToString());
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(lp.Title ?? ""));
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(lp.Count.ToString());
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(lp.Total.ToString("N2"));
+                                    }
+                                }
+                            }
+                            else
                             {
                                 // --- ЛОГИКА ДЛЯ ОБЫЧНОГО КП ---
-                                var visiblePartsForExport = OfferCalculator.PrepareVisiblePartsForOffer(
-                                    MainWindow.M.Parts,
-                                    (float)MainWindow.M.Ratio,
-                                    MainWindow.M.BonusRatio,
-                                    applyMarkup: false); // Цены уже с наценкой, избегаем двойного умножения
-
+                                var visiblePartsForExport = OfferCalculator.PrepareVisiblePartsForOffer(MainWindow.M.Parts);
                                 if (visiblePartsForExport.Count > 0)
                                 {
                                     foreach (var part in visiblePartsForExport)
                                     {
+                                        if (part.Count <= 0) continue;
                                         totalSum += part.Total;
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((rowIndex++).ToString());
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(part.Title ?? ""));
@@ -195,9 +227,11 @@ namespace Metal_Code
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part.Total.ToString("N2"));
                                     }
                                 }
+                            }
 
-                                // Детали (не покупные)
-                                var details = MainWindow.M.ProductModel.Product.Details.Where(d => !d.IsComplect).ToList();
+                            var details = MainWindow.M.ProductModel.Product.Details.Where(d => !d.IsComplect).ToList();
+                            if (details.Count > 0)
+                            {
                                 foreach (var detail in details)
                                 {
                                     totalSum += detail.Total;
@@ -206,80 +240,109 @@ namespace Metal_Code
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Count.ToString());
                                     table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(detail.Total.ToString("N2"));
                                 }
+                            }
 
-                                // Покупные изделия
-                                if (MainWindow.M.ProductModel.Product.Baskets?.Count > 0)
+                            // 3. Покупные изделия
+                            if (MainWindow.M.isAssemblyOffer)
+                            {
+                                // Режим со сборками: используем CurrentBaskets
+                                if (AssemblyWindow.A.CurrentBaskets?.Count > 0)
                                 {
-                                    foreach (Part basket in MainWindow.M.ProductModel.Product.Baskets)
+                                    var basketsWithWork = AssemblyWindow.A.CurrentBaskets.Where(b => b.Count > 0 && !string.IsNullOrEmpty(b.Description)).ToList();
+                                    if (basketsWithWork.Count > 0)
                                     {
-                                        float basketTotal = basket.Count * (float)Math.Ceiling(basket.Price * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
-                                        totalSum += basketTotal;
+                                        foreach (Part basket in basketsWithWork)
+                                        {
+                                            float total = basket.Price * basket.Count;
+                                            totalSum += total;
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((rowIndex++).ToString());
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(basket.Title ?? "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Count.ToString());
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(total.ToString("N2"));
+                                        }
+                                    }
 
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((rowIndex++).ToString());
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(basket.Title);
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Count.ToString());
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basketTotal.ToString("N2"));
+                                    var basketsExtra = basketsWithWork.Count > 0
+                                        ? AssemblyWindow.A.CurrentBaskets.Where(b => b.Count > 0 && !basketsWithWork.Any(bw => bw.Title == b.Title)).ToList()
+                                        : AssemblyWindow.A.CurrentBaskets.Where(b => b.Count > 0).ToList();
+
+                                    if (basketsExtra.Count > 0)
+                                    {
+                                        table.Cell().ColumnSpan(4).Border(1).BorderColor(Colors.Black).Padding(4).Text("Покупные изделия:").Bold();
+                                        foreach (Part basket in basketsExtra)
+                                        {
+                                            float total = basket.Price * basket.Count;
+                                            totalSum += total;
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((rowIndex++).ToString());
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(basket.Title ?? "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Count.ToString());
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(total.ToString("N2"));
+                                        }
                                     }
                                 }
                             }
                             else
                             {
-                                // --- ЛОГИКА ДЛЯ СБОРОЧНОГО КП ---
-                                if (AssemblyWindow.A.Assemblies is null) return;
-
-                                // 1. Сборочные единицы
-                                if (AssemblyWindow.A.Assemblies.Count > 0)
+                                // Режим без сборок: используем оригинальные данные
+                                var allBaskets = MainWindow.M.BasketControls.Select(b => b.Basket).ToList();
+                                if (allBaskets.Count > 0)
                                 {
-                                    foreach (var assembly in AssemblyWindow.A.Assemblies)
+                                    var basketsWithWork = allBaskets.Where(b => b.Count > 0 && !string.IsNullOrEmpty(b.Description)).ToList();
+                                    if (basketsWithWork.Count > 0)
                                     {
-                                        if (assembly.Count <= 0) continue;
-
-                                        totalSum += assembly.Total;
-
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((rowIndex++).ToString());
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text($"Сборочная единица: {assembly.Title}").Bold();
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(assembly.Count.ToString());
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(assembly.Total.ToString("N2"));
+                                        foreach (Part basket in basketsWithWork)
+                                        {
+                                            float total = basket.Price * basket.Count;
+                                            totalSum += total;
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((rowIndex++).ToString());
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(basket.Title ?? "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Count.ToString());
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(total.ToString("N2"));
+                                        }
                                     }
-                                }
 
-                                // 2. Дополнительные (несборочные) детали
-                                var assemblyParticleTitles = AssemblyWindow.A.Assemblies
-                                    .SelectMany(a => a.Particles)
-                                    .Select(p => p.Title)
-                                    .ToHashSet();
+                                    var basketsExtra = basketsWithWork.Count > 0
+                                        ? allBaskets.Where(b => b.Count > 0 && !basketsWithWork.Any(bw => bw.Title == b.Title)).ToList()
+                                        : allBaskets.Where(b => b.Count > 0).ToList();
 
-                                var looseParts = MainWindow.M.Parts.Where(p => !assemblyParticleTitles.Contains(p.Title)).ToList();
-
-                                if (looseParts.Count > 0)
-                                {
-                                    // Заголовок группы
-                                    table.Cell().ColumnSpan(4).Border(1).BorderColor(Colors.Black).Padding(4).Text("Дополнительные детали:").Bold();
-
-                                    foreach (var lp in looseParts)
+                                    if (basketsExtra.Count > 0)
                                     {
-                                        // Применяем ту же логику наценки и проверки FixedPrice, что и в Excel-КП
-                                        float lpPrice = (float)Math.Ceiling(lp.Price * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
-                                        lpPrice = lpPrice < lp.FixedPrice ? lp.FixedPrice : lpPrice;
-                                        float lpTotal = lpPrice * lp.Count;
-
-                                        totalSum += lpTotal;
-
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((rowIndex++).ToString());
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(lp.Title ?? ""));
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(lp.Count.ToString());
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(lpTotal.ToString("N2"));
+                                        table.Cell().ColumnSpan(4).Border(1).BorderColor(Colors.Black).Padding(4).Text("Покупные изделия:").Bold();
+                                        foreach (Part basket in basketsExtra)
+                                        {
+                                            float total = basket.Price * basket.Count;
+                                            totalSum += total;
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text((rowIndex++).ToString());
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(basket.Title ?? "");
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(basket.Count.ToString());
+                                            table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(total.ToString("N2"));
+                                        }
                                     }
                                 }
                             }
 
-                            // 3. Доставка (применима к обоим типам)
+                            // 4. Конструкторские работы (если отдельной строкой)
+                            if (MainWindow.M.CheckConstruct.IsChecked == null)
+                            {
+                                float constructRatio = MainWindow.Parser(MainWindow.M.ConstructRatio.Text);
+                                constructRatio = constructRatio > 1 ? constructRatio : 1;
+                                float constructTotal = (float)(MainWindow.M.Construct * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
+                                totalSum += constructTotal;
+                                float constructPrice = (float)Math.Ceiling(constructTotal / constructRatio);
+
+                                table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(""); // Пустая ячейка №
+                                table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text("Конструкторские работы").Bold();
+                                table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(constructRatio.ToString());
+                                table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(constructTotal.ToString("N2"));
+                            }
+
+                            // 5. Доставка
                             if (MainWindow.M.HasDelivery is true)
                             {
                                 float deliveryTotal = (float)(MainWindow.M.Delivery * MainWindow.M.DeliveryRatio * MainWindow.M.Ratio);
                                 totalSum += deliveryTotal;
 
-                                table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
+                                table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(""); // Пустая ячейка №
                                 table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text("Доставка").Bold();
                                 table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(MainWindow.M.DeliveryRatio.ToString());
                                 table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(deliveryTotal.ToString("N2"));
@@ -446,7 +509,6 @@ namespace Metal_Code
                    ?? ProviderRegistry.Providers.FirstOrDefault();
             string taxRateText = $"НДС {currentProvider?.TaxRate ?? 22}%";
 
-            // Лицензия EPPlus (измените на Commercial при наличии лицензии)
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
             using var package = new ExcelPackage();
@@ -498,64 +560,35 @@ namespace Metal_Code
             if (!MainWindow.M.isAssemblyOffer)
             {
                 // --- Обычное КП ---
-                var visiblePartsForExport = OfferCalculator.PrepareVisiblePartsForOffer(
-                    MainWindow.M.Parts,
-                    (float)MainWindow.M.Ratio,
-                    MainWindow.M.BonusRatio,
-                    applyMarkup: false);
-
+                var visiblePartsForExport = OfferCalculator.PrepareVisiblePartsForOffer(MainWindow.M.Parts);
                 if (visiblePartsForExport.Count > 0)
                 {
                     foreach (var part in visiblePartsForExport)
                     {
+                        if (part.Count <= 0) continue;
                         totalSum += part.Total;
                         WriteTableRow(ws, row++, rowIndex++, Prefix(part.Title ?? ""), part.Count, part.Total);
-                    }
-                }
-
-                var details = MainWindow.M.ProductModel.Product.Details.Where(d => !d.IsComplect).ToList();
-                foreach (var detail in details)
-                {
-                    totalSum += detail.Total;
-                    WriteTableRow(ws, row++, rowIndex++, Prefix(detail.Title ?? ""), detail.Count, detail.Total);
-                }
-
-                if (MainWindow.M.ProductModel.Product.Baskets?.Count > 0)
-                {
-                    foreach (Part basket in MainWindow.M.ProductModel.Product.Baskets)
-                    {
-                        float basketTotal = basket.Count * (float)Math.Ceiling(
-                            basket.Price * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
-                        totalSum += basketTotal;
-                        WriteTableRow(ws, row++, rowIndex++, basket.Title != null ? basket.Title : "", basket.Count, basketTotal);
                     }
                 }
             }
             else
             {
                 // --- Сборочное КП ---
-                if (AssemblyWindow.A.Assemblies is null) return;
-
-                if (AssemblyWindow.A.Assemblies.Count > 0)
+                if (AssemblyWindow.A.Assemblies != null && AssemblyWindow.A.Assemblies.Count > 0)
                 {
                     foreach (var assembly in AssemblyWindow.A.Assemblies)
                     {
-                        if (assembly.Count <= 0) continue;
+                        if (assembly.Particles.Count == 0) continue; // Пропускаем пустые сборки
+
                         totalSum += assembly.Total;
-                        WriteTableRow(ws, row, rowIndex++, $"Сборочная единица: {assembly.Title}",
+                        WriteTableRow(ws, row, rowIndex++, $"{assembly.Title}",
                             assembly.Count, assembly.Total, bold: true);
                         row++;
                     }
                 }
 
-                var assemblyParticleTitles = AssemblyWindow.A.Assemblies
-                    .SelectMany(a => a.Particles)
-                    .Select(p => p.Title)
-                    .ToHashSet();
-
-                var looseParts = MainWindow.M.Parts.Where(p => !assemblyParticleTitles.Contains(p.Title)).ToList();
-
-                if (looseParts.Count > 0)
+                // === ИСПРАВЛЕНИЕ: ИСПОЛЬЗУЕМ ГОТОВУЮ КОЛЛЕКЦИЮ LooseParts ===
+                if (MainWindow.M.LooseParts != null && MainWindow.M.LooseParts.Count > 0)
                 {
                     // Заголовок группы
                     ws.Cells[row, 1, row, 4].Merge = true;
@@ -565,15 +598,80 @@ namespace Metal_Code
                         ws.Cells[row, col].Style.Border.BorderAround(ExcelBorderStyle.Thin);
                     row++;
 
-                    foreach (var lp in looseParts)
+                    foreach (var lp in MainWindow.M.LooseParts)
                     {
-                        float lpPrice = (float)Math.Ceiling(lp.Price * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
-                        lpPrice = lpPrice < lp.FixedPrice ? lp.FixedPrice : lpPrice;
-                        float lpTotal = lpPrice * lp.Count;
-                        totalSum += lpTotal;
-                        WriteTableRow(ws, row++, rowIndex++, Prefix(lp.Title ?? ""), lp.Count, lpTotal);
+                        if (lp.Count <= 0) continue;
+
+                        totalSum += lp.Total; // <-- ЧИТАЕМ ГОТОВУЮ СТОИМОСТЬ
+                        WriteTableRow(ws, row++, rowIndex++, Prefix(lp.Title ?? ""), lp.Count, lp.Total);
                     }
                 }
+            }
+
+            var details = MainWindow.M.ProductModel.Product.Details.Where(d => !d.IsComplect).ToList();
+            if (details.Count > 0)
+            {
+                foreach (var detail in details)
+                {
+                    totalSum += detail.Total;
+                    WriteTableRow(ws, row++, rowIndex++, Prefix(detail.Title ?? ""), detail.Count, detail.Total);
+                }
+            }
+
+            // Покупные изделия
+            if (MainWindow.M.isAssemblyOffer)
+            {
+                // Режим со сборками: используем CurrentBaskets
+                if (AssemblyWindow.A.CurrentBaskets?.Count > 0)
+                {
+                    foreach (Part basket in AssemblyWindow.A.CurrentBaskets.Where(b => b.Count > 0))
+                    {
+                        float total = basket.Price * basket.Count;
+                        totalSum += total;
+                        WriteTableRow(ws, row++, rowIndex++, basket.Title ?? "", basket.Count, total);
+                    }
+                }
+            }
+            else
+            {
+                // Режим без сборок: используем оригинальные данные
+                var allBaskets = MainWindow.M.BasketControls.Select(b => b.Basket).ToList();
+                if (allBaskets.Count > 0)
+                {
+                    foreach (Part basket in allBaskets.Where(b => b.Count > 0))
+                    {
+                        float total = basket.Price * basket.Count;
+                        totalSum += total;
+                        WriteTableRow(ws, row++, rowIndex++, basket.Title ?? "", basket.Count, total);
+                    }
+                }
+            }
+
+            // === КОНСТРУКТОРСКИЕ РАБОТЫ (отдельной строкой) ===
+            if (MainWindow.M.CheckConstruct.IsChecked == null)
+            {
+                float constructRatio = MainWindow.Parser(MainWindow.M.ConstructRatio.Text);
+                constructRatio = constructRatio > 1 ? constructRatio : 1;
+
+                float constructTotal = (float)(MainWindow.M.Construct * MainWindow.M.Ratio * ((100 + MainWindow.M.BonusRatio) / 100));
+                totalSum += constructTotal;
+
+                float constructPrice = (float)Math.Ceiling(constructTotal / constructRatio);
+
+                // Адаптировано под 4-колоночную таблицу Excel спецификации
+                ws.Cells[row, 1].Value = "";
+                ws.Cells[row, 2].Value = "Конструкторские работы";
+                ws.Cells[row, 2].Style.Font.Bold = true;
+                ws.Cells[row, 3].Value = constructRatio;
+                ws.Cells[row, 4].Value = constructTotal;
+                ws.Cells[row, 4].Style.Numberformat.Format = "#,##0.00";
+
+                for (int col = 1; col <= 4; col++)
+                {
+                    ws.Cells[row, col].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+                    ws.Cells[row, col].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                }
+                row++;
             }
 
             // === ДОСТАВКА ===
@@ -674,18 +772,14 @@ namespace Metal_Code
             ws.Cells[row, 3, row, 4].Merge = true;
             ws.Cells[row, 3].Value = $"{Agent.Text} {TargetCustomer.Name}";
 
-            // Получаем информацию о провайдере
             var provider = ProviderRegistry.GetByName(CurrentTemplate.Provider);
             string directorName = provider?.DirectorName ?? "Мешеронова М.С.";
 
-            // Устанавливаем высоту строк для размещения изображений
             ws.Row(row + 2).Height = 20;
             row += 2;
 
-            // Вставка изображений поставщика
             if (provider != null)
             {
-                // 1. СНАЧАЛА ПОДПИСЬ
                 try
                 {
                     using var sigStream = WpfImageHelper.GetStream(provider.SignatureResource);
@@ -696,9 +790,8 @@ namespace Metal_Code
                         sigPic.SetSize(96, 40);
                     }
                 }
-                catch { /* Изображение не найдено */ }
+                catch { }
 
-                // 2. ПОТОМ ПЕЧАТЬ
                 try
                 {
                     using var printStream = WpfImageHelper.GetStream(provider.PrintResource);
@@ -709,15 +802,15 @@ namespace Metal_Code
                         printPic.SetSize(120, 120);
                     }
                 }
-                catch { /* Изображение не найдено */ }
+                catch { }
             }
 
-            // Строки для подписей
             ws.Cells[row, 1, row, 2].Merge = true;
             ws.Cells[row, 1].Value = $"___________________ / {directorName}";
 
             ws.Cells[row, 3, row, 4].Merge = true;
             ws.Cells[row, 3].Value = $"___________________ / {CurrentTemplate.Buyer}";
+
             // === СОХРАНЕНИЕ ===
             package.SaveAs(new FileInfo(outputPath));
         }

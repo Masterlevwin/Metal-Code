@@ -16,6 +16,147 @@
             <databinding:DestinyConverter x:Key="DestinyConverter"/>
             <databinding:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
 
+            <!-- Иконка: Лист металла (изометрический) -->
+            <DrawingImage x:Key="SheetMetalIcon">
+                <DrawingImage.Drawing>
+                    <DrawingGroup>
+                        <!-- Верхняя грань -->
+                        <GeometryDrawing Brush="#5BA3E8">
+                            <GeometryDrawing.Pen>
+                                <Pen Brush="#3A70C2" Thickness="0.5"/>
+                            </GeometryDrawing.Pen>
+                            <GeometryDrawing.Geometry>
+                                <PathGeometry>
+                                    <PathFigure StartPoint="3,30" IsClosed="True">
+                                        <LineSegment Point="21,40"/>
+                                        <LineSegment Point="48,25"/>
+                                        <LineSegment Point="30,15"/>
+                                    </PathFigure>
+                                </PathGeometry>
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+
+                        <!-- Штриховка (40% opacity = #66 в альфа-канале) -->
+                        <GeometryDrawing>
+                            <GeometryDrawing.Pen>
+                                <Pen Brush="#664A90E2" Thickness="0.5"/>
+                            </GeometryDrawing.Pen>
+                            <GeometryDrawing.Geometry>
+                                <GeometryGroup>
+                                    <LineGeometry StartPoint="8,28" EndPoint="26,38"/>
+                                    <LineGeometry StartPoint="12,25" EndPoint="30,35"/>
+                                    <LineGeometry StartPoint="17,23" EndPoint="35,33"/>
+                                    <LineGeometry StartPoint="21,20" EndPoint="39,30"/>
+                                    <LineGeometry StartPoint="26,18" EndPoint="44,28"/>
+                                </GeometryGroup>
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+
+                        <!-- Правая боковая грань -->
+                        <GeometryDrawing Brush="#3A70C2">
+                            <GeometryDrawing.Pen>
+                                <Pen Brush="#2C5F8D" Thickness="0.5"/>
+                            </GeometryDrawing.Pen>
+                            <GeometryDrawing.Geometry>
+                                <PathGeometry>
+                                    <PathFigure StartPoint="21,44" IsClosed="True">
+                                        <LineSegment Point="48,29"/>
+                                        <LineSegment Point="48,25"/>
+                                        <LineSegment Point="21,40"/>
+                                    </PathFigure>
+                                </PathGeometry>
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+
+                        <!-- Передняя грань -->
+                        <GeometryDrawing Brush="#4A90E2">
+                            <GeometryDrawing.Pen>
+                                <Pen Brush="#3A70C2" Thickness="0.5"/>
+                            </GeometryDrawing.Pen>
+                            <GeometryDrawing.Geometry>
+                                <PathGeometry>
+                                    <PathFigure StartPoint="3,34" IsClosed="True">
+                                        <LineSegment Point="21,44"/>
+                                        <LineSegment Point="21,40"/>
+                                        <LineSegment Point="3,30"/>
+                                    </PathFigure>
+                                </PathGeometry>
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                    </DrawingGroup>
+                </DrawingImage.Drawing>
+            </DrawingImage>
+
+            <!-- Иконка: Труба профильная (изометрическая) -->
+            <DrawingImage x:Key="PipeIcon">
+                <DrawingImage.Drawing>
+                    <DrawingGroup>
+                        <!-- Верхняя грань -->
+                        <GeometryDrawing Brush="#FF8888">
+                            <GeometryDrawing.Pen>
+                                <Pen Brush="#CC5555" Thickness="0.5"/>
+                            </GeometryDrawing.Pen>
+                            <GeometryDrawing.Geometry>
+                                <PathGeometry>
+                                    <PathFigure StartPoint="6,28" IsClosed="True">
+                                        <LineSegment Point="18,35"/>
+                                        <LineSegment Point="48,18"/>
+                                        <LineSegment Point="36,11"/>
+                                    </PathFigure>
+                                </PathGeometry>
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+
+                        <!-- Правая боковая грань -->
+                        <GeometryDrawing Brush="#CC5555">
+                            <GeometryDrawing.Pen>
+                                <Pen Brush="#993333" Thickness="0.5"/>
+                            </GeometryDrawing.Pen>
+                            <GeometryDrawing.Geometry>
+                                <PathGeometry>
+                                    <PathFigure StartPoint="18,45" IsClosed="True">
+                                        <LineSegment Point="48,28"/>
+                                        <LineSegment Point="48,18"/>
+                                        <LineSegment Point="18,35"/>
+                                    </PathFigure>
+                                </PathGeometry>
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+
+                        <!-- Передняя грань -->
+                        <GeometryDrawing Brush="#FF6B6B">
+                            <GeometryDrawing.Pen>
+                                <Pen Brush="#CC5555" Thickness="0.5"/>
+                            </GeometryDrawing.Pen>
+                            <GeometryDrawing.Geometry>
+                                <PathGeometry>
+                                    <PathFigure StartPoint="6,38" IsClosed="True">
+                                        <LineSegment Point="18,45"/>
+                                        <LineSegment Point="18,35"/>
+                                        <LineSegment Point="6,28"/>
+                                    </PathFigure>
+                                </PathGeometry>
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+
+                        <!-- Полость трубы -->
+                        <GeometryDrawing Brush="#993333">
+                            <GeometryDrawing.Pen>
+                                <Pen Brush="#661111" Thickness="0.5"/>
+                            </GeometryDrawing.Pen>
+                            <GeometryDrawing.Geometry>
+                                <PathGeometry>
+                                    <PathFigure StartPoint="8,37" IsClosed="True">
+                                        <LineSegment Point="16,42"/>
+                                        <LineSegment Point="16,36"/>
+                                        <LineSegment Point="8,31"/>
+                                    </PathFigure>
+                                </PathGeometry>
+                            </GeometryDrawing.Geometry>
+                        </GeometryDrawing>
+                    </DrawingGroup>
+                </DrawingImage.Drawing>
+            </DrawingImage>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

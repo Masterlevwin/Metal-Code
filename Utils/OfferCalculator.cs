@@ -6,12 +6,11 @@ namespace Metal_Code.Utils
 {
     public static class OfferCalculator
     {
-        // Публичный метод для Part
-        public static List<Part> PrepareVisiblePartsForOffer(
-            IEnumerable<Part> parts,
-            float ratio,
-            float bonusRatio,
-            bool applyMarkup = true)
+        /// <summary>
+        /// Перераспределяет стоимость скрытых деталей на видимые.
+        /// ВАЖНО: Метод ожидает, что цены в коллекции parts УЖЕ содержат все коэффициенты (Ratio, BonusRatio).
+        /// </summary>
+        public static List<Part> PrepareVisiblePartsForOffer(IEnumerable<Part> parts)
         {
             return PrepareVisibleItemsCore(
                 parts,
@@ -27,29 +26,22 @@ namespace Metal_Code.Utils
                     Description = p.Description,
                     Title = p.Title,
                     Count = p.Count,
-                    Price = newPrice,
+                    Price = newPrice, // Новая цена включает долю скрытых деталей
                     Mass = p.Mass,
                     Way = p.Way,
                     FixedPrice = p.FixedPrice,
                     IsFixed = p.IsFixed
-                },
-                ratio,
-                bonusRatio,
-                applyMarkup
+                }
             );
         }
 
-        // Приватное ядро расчёта — работает с любым типом через делегаты
         private static List<TOut> PrepareVisibleItemsCore<TIn, TOut>(
             IEnumerable<TIn> items,
             Func<TIn, bool> getIsHidden,
             Func<TIn, int> getCount,
             Func<TIn, float> getPrice,
             Func<TIn, float> getFixedPrice,
-            Func<TIn, float, TOut> createOutput,
-            float ratio,
-            float bonusRatio,
-            bool applyMarkup)
+            Func<TIn, float, TOut> createOutput)
         {
             var itemList = items.ToList();
             var hiddenItems = itemList.Where(getIsHidden).ToList();
@@ -58,6 +50,8 @@ namespace Metal_Code.Utils
             if (visibleItems.Count == 0)
                 throw new InvalidOperationException("Нет видимых позиций для формирования КП.");
 
+            // getPrice(p) уже возвращает ФИНАЛЬНУЮ цену с наценкой.
+            // Мы просто считаем общую стоимость скрытых позиций и делим её на количество видимых.
             decimal hiddenTotal = hiddenItems.Sum(p => (decimal)(getCount(p) * getPrice(p)));
             int totalVisibleCount = visibleItems.Sum(getCount);
 
@@ -70,18 +64,16 @@ namespace Metal_Code.Utils
 
             foreach (var item in visibleItems)
             {
-                int count = getCount(item);
                 float originalPrice = getPrice(item);
                 float fixedPrice = getFixedPrice(item);
 
                 decimal basePrice = (decimal)originalPrice;
+
+                // Добавляем долю скрытых деталей к уже готовой цене
                 decimal priceWithHidden = basePrice + hiddenCostPerUnit;
 
-                decimal adjustedPrice = applyMarkup
-                    ? priceWithHidden * (decimal)ratio * ((100 + (decimal)bonusRatio) / 100)
-                    : priceWithHidden;
-
-                decimal finalPrice = Math.Ceiling(adjustedPrice);
+                // Округляем вверх и проверяем, не упала ли цена ниже фиксированной
+                decimal finalPrice = Math.Ceiling(priceWithHidden);
 
                 if (finalPrice < (decimal)fixedPrice)
                     finalPrice = (decimal)fixedPrice;

@@ -421,34 +421,37 @@
                         <StackPanel Margin="10,0,0,0" Width="150" VerticalAlignment="Top" HorizontalAlignment="Right">
                             <StackPanel Orientation="Horizontal">
                                 <ToggleButton x:Name="DetailsToggle" Content="{Binding Result, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}"
-                                          Click="OnDetailsToggleClick" Width="150"
-                                          Cursor="Hand" FontSize="14" MouseEnter="UpdateResult"
-                                          Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}"/>
+                  Click="OnDetailsToggleClick" Width="150"
+                  Cursor="Hand" FontSize="14" MouseEnter="UpdateResult"
+                  Background="{DynamicResource {x:Static SystemColors.InfoBrushKey}}"/>
 
                                 <Button ToolTip="Скопировать стоимость" Padding="0" BorderThickness="0" VerticalAlignment="Top" Width="12" Height="12" Margin="-12,0,0,0" Background="Transparent" Click="Copy_Result">
                                     <Image Source="Images/copy.png"/>
                                 </Button>
                             </StackPanel>
+
                             <StackPanel x:Name="DetailsPanel" Visibility="Collapsed" Margin="0,6,0,0">
+                                <!-- Группа: Материалы -->
                                 <StackPanel Orientation="Horizontal" Margin="3">
-                                    <TextBlock Text="Металл - "/>
+                                    <TextBlock Text="Металл — " FontWeight="SemiBold"/>
                                     <TextBlock x:Name="MaterialTotal" Foreground="Blue"/>
                                 </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="10,0,0,3" Opacity="0.7">
+                                    <TextBlock Text="ПКИ: "/>
+                                    <TextBlock x:Name="BasketTotal" Foreground="Blue"/>
+                                </StackPanel>
+                                <!-- Группа: Работы -->
                                 <StackPanel Orientation="Horizontal" Margin="3">
-                                    <TextBlock Text="Услуги - "/>
+                                    <TextBlock Text="Работы — " FontWeight="SemiBold"/>
                                     <TextBlock x:Name="ServicesTotal" Foreground="Blue"/>
                                 </StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="3">
-                                    <TextBlock Text="Сварка СБ - "/>
+                                <StackPanel Orientation="Horizontal" Margin="10,0,0,3" Opacity="0.7">
+                                    <TextBlock Text="Сварка СБ: "/>
                                     <TextBlock x:Name="WeldTotal" Foreground="Blue"/>
                                 </StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="3">
-                                    <TextBlock Text="Окраска СБ - "/>
+                                <StackPanel Orientation="Horizontal" Margin="10,0,0,3" Opacity="0.7">
+                                    <TextBlock Text="Окраска СБ: "/>
                                     <TextBlock x:Name="PaintTotal" Foreground="Blue"/>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="3">
-                                    <TextBlock Text="ПКИ - "/>
-                                    <TextBlock x:Name="BasketTotal" Foreground="Blue"/>
                                 </StackPanel>
                             </StackPanel>
                         </StackPanel>

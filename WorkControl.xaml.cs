@@ -13,9 +13,6 @@ using System.Windows.Media;
 
 namespace Metal_Code
 {
-    /// <summary>
-    /// Логика взаимодействия для WorkControl.xaml
-    /// </summary>
     public partial class WorkControl : UserControl, INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -24,7 +21,7 @@ namespace Metal_Code
         public List<string> propsList = new();
         public delegate void PropsChanged(UserControl w, bool b);
         public PropsChanged? PropertiesChanged;
-        
+
         private float result;
         public float Result
         {
@@ -80,6 +77,7 @@ namespace Metal_Code
         }
 
         public readonly TypeDetailControl type;
+
         public WorkControl(TypeDetailControl t)
         {
             InitializeComponent();
@@ -110,25 +108,25 @@ namespace Metal_Code
                 if (response == MessageBoxResult.No) return;
 
                 if (workType is PaintControl paint)
-                {                                           //удаляем окраску определенного цвета
+                {
                     foreach (PartControl p in _work.Parts)
                         foreach (PaintControl item in p.UserControls.OfType<PaintControl>().Where(p => p.Ral == paint.Ral).ToList())
                             p.RemoveControl(item);
                 }
                 else if (workType is ThreadControl thread)
-                {                                           //удаляем определенную обработку отверстий
+                {
                     foreach (PartControl p in _work.Parts)
                         foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>().Where(p => p.CharName == thread.CharName && p.Wide == thread.Wide).ToList())
                             p.RemoveControl(item);
                 }
                 else if (workType is BendControl bend)
-                {                                           //удаляем группу однотипных гибов
+                {
                     foreach (PartControl p in _work.Parts)
                         foreach (BendControl item in p.UserControls.OfType<BendControl>().Where(p => p.Group == bend.Group).ToList())
                             p.RemoveControl(item);
                 }
                 else
-                {                                           //удаляем работу соответствующего типа
+                {
                     foreach (PartControl p in _work.Parts)
                         foreach (UserControl item in p.UserControls.Where(w => w.GetType() == workType.GetType()).ToList())
                             p.RemoveControl(item);
@@ -149,10 +147,12 @@ namespace Metal_Code
         {
             ResultText.IsReadOnly = false;
         }
+
         private void SetExtraResult(object sender, RoutedEventArgs e)
         {
             if (float.TryParse(ResultText.Text, out float extra)) SetExtraResult(extra);
         }
+
         public void SetExtraResult(float extra)
         {
             ExtraResult = extra;
@@ -175,6 +175,7 @@ namespace Metal_Code
                         break;
                 }
         }
+
         private void SetRatio(string _ratio)
         {
             if (float.TryParse(_ratio, out float r)) Ratio = r;
@@ -182,6 +183,7 @@ namespace Metal_Code
             if (workType != null && workType is IPriceChanged control) control.OnPriceChanged();
             else if (WorkDrop.SelectedItem is Work work) SetResult(work.Price, false);
         }
+
         private void SetTechRatio(string _ratio)
         {
             if (float.TryParse(_ratio, out float r)) TechRatio = r;
@@ -191,16 +193,66 @@ namespace Metal_Code
         }
 
         public UserControl? workType;
+
         public void CreateWork(object sender, SelectionChangedEventArgs e) { CreateWork(); }
+
         public void CreateWork()
         {
             if (WorkDrop.SelectedItem is not Work work) return;
-            if (WorkGrid.Children.Contains(workType)) WorkGrid.Children.Remove(workType);
+
+            if (!MainWindow.M.IsLoadData
+                && type.WorkControls.IndexOf(this) == 0
+                && type.TypeDetailDrop.SelectedIndex >= 0)
+            {
+                TypeDetail typeDetail = MainWindow.M.TypeDetails
+                    .OrderBy(x => x.Id)
+                    .ElementAt(type.TypeDetailDrop.SelectedIndex);
+
+                bool isSheet = typeDetail.Name == "Лист металла";
+                bool isBasicCut = work.Name == "Лазерная резка"
+                               || work.Name == "Труборез"
+                               || work.Name == "Лентопил";
+
+                if (isBasicCut)
+                {
+                    if (isSheet && work.Name != "Лазерная резка")
+                    {
+                        MessageBox.Show(
+                            $"Для заготовки \"{typeDetail.Name}\" базовой работой должна быть \"Лазерная резка\".\n" +
+                            $"Нельзя установить \"{work.Name}\" в первый блок работ!",
+                            "Несоответствие работы и заготовки",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
+
+                        WorkDrop.SelectedIndex = -1;
+                        return;
+                    }
+
+                    if (!isSheet && work.Name == "Лазерная резка")
+                    {
+                        MessageBox.Show(
+                            $"Для заготовки \"{typeDetail.Name}\" нельзя использовать \"Лазерную резку\".\n" +
+                            $"Выберите \"Труборез\" или \"Лентопил\"!",
+                            "Несоответствие работы и заготовки",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
+
+                        WorkDrop.SelectedIndex = -1;
+                        return;
+                    }
+                }
+            }
+
+            if (WorkGrid.Children.Contains(workType))
+            {
+                WorkGrid.Children.Remove(workType);
+                workType = null;
+            }
 
             switch (work.Name)
             {
                 case "Лазерная резка":
-                    var _cut = type.WorkControls.FirstOrDefault(x => x.workType is ICut);
+                    var _cut = type.WorkControls.FirstOrDefault(x => x != this && x.workType is ICut);
                     if (_cut != null)
                     {
                         MessageBox.Show("Нельзя добавить \"Лазерную резку\" повторно,\n" +
@@ -208,6 +260,7 @@ namespace Metal_Code
                         WorkDrop.SelectedIndex = -1;
                         break;
                     }
+
                     CutControl cut = new(this, new ExcelDialogService());
                     WorkGrid.Children.Add(cut);
                     Grid.SetColumn(cut, 1);
@@ -227,7 +280,7 @@ namespace Metal_Code
                     workType = bend;
                     break;
                 case "Труборез":
-                    var _pipe = type.WorkControls.FirstOrDefault(x => x.workType is ICut);
+                    var _pipe = type.WorkControls.FirstOrDefault(x => x != this && x.workType is ICut);
                     if (_pipe != null)
                     {
                         MessageBox.Show("Нельзя добавить \"Труборез\" повторно,\n" +
@@ -235,6 +288,7 @@ namespace Metal_Code
                         WorkDrop.SelectedIndex = -1;
                         break;
                     }
+
                     PipeControl pipe = new(this, new ExcelDialogService());
                     WorkGrid.Children.Add(pipe);
                     Grid.SetColumn(pipe, 1);
@@ -345,10 +399,10 @@ namespace Metal_Code
                     workType = extraL;
                     break;
                 case "Лентопил":
-                    var _saw = type.WorkControls.FirstOrDefault(x => x.workType is SawControl);
+                    var _saw = type.WorkControls.FirstOrDefault(x => x != this && x.workType is ICut);
                     if (_saw != null)
                     {
-                        MessageBox.Show("Нельзя добавить \"Лентопил\" повторно!");
+                        MessageBox.Show("Базовая работа для этой заготовки уже добавлена!");
                         WorkDrop.SelectedIndex = -1;
                         break;
                     }
@@ -441,9 +495,6 @@ namespace Metal_Code
             }
         }
 
-        /// <summary>
-        /// Применяет или снимает состояние "только чтение" с WorkControl.
-        /// </summary>
         public void ApplyReadOnlyState(bool isReadOnly = true)
         {
             if (WorkDrop.SelectedItem is not Work work) return;
@@ -463,12 +514,12 @@ namespace Metal_Code
 
             if (addMin)
             {
-                ResultText.Foreground = Brushes.Blue;       // если добавлена минималка, окрашиваем результат
+                ResultText.Foreground = Brushes.Blue;
                 ResultText.ToolTip = $"Стоимость работы (добавлена минималка), руб\n(время работ - {Math.Ceiling(Result * work.Time / work.Price / Ratio)} мин)";
             }
             else if (ExtraResult > 0)
             {
-                ResultText.Foreground = Brushes.Blue;       // если стоимость установлена вручную, окрашиваем результат
+                ResultText.Foreground = Brushes.Blue;
                 ResultText.ToolTip = $"Стоимость работы установлена вручную, руб\n(время работ - {Math.Ceiling(Result * work.Time / work.Price / Ratio)} мин)";
             }
             else
@@ -477,7 +528,6 @@ namespace Metal_Code
                 ResultText.ToolTip = $"Стоимость работы, руб\n(время работ - {Math.Ceiling(Result * work.Time / work.Price / Ratio)} мин)";
             }
 
-            //запрещаем устанавливать коэффициенты на гибку определенной группы
             RatioText.IsReadOnly = TechRatioText.IsReadOnly = workType is BendControl bend && bend.Group != "-";
 
             type.det.PriceResult();

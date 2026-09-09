@@ -870,14 +870,14 @@ namespace Metal_Code
                     var item = group.FirstOrDefault();
                     if (item is null) continue;
 
-                    string profileType = ProfileParser.GetLocalizedTypeName(item);  //проверить
+                    string profileType = ProfileParser.GetLocalizedTypeName(item);
                     string metalName = group.Key.Material.ToLower() switch
                     {
                         "br" => "латунь",
                         "cu" => "медь",
                         "al" => "амг2",
                         "" => "ст3",
-                        _ => group.Key.Material.ToLower()       //здесь нужна нормализация без пробелов
+                        _ => group.Key.Material.ToLower()
                     };
                     float destiny = item.Thickness > 0 ? (float)item.Thickness : MainWindow.Parser(group.Key.Destiny);
 
@@ -902,12 +902,8 @@ namespace Metal_Code
                                     typeControl.det.IsComplectChanged("Комплект деталей");
                                 }
 
-                                // тип заготовки - "Лист металла" по умолчанию
-
-                                // определяем толщину заготовки
                                 typeControl.S = destiny;
 
-                                // определяем материал заготовки
                                 foreach (Metal met in typeControl.MetalDrop.Items)
                                     if (met.Name?.ToLower() == metalName)
                                     {
@@ -916,7 +912,6 @@ namespace Metal_Code
                                         break;
                                     }
 
-                                // Резка
                                 foreach (Work w in MainWindow.M.Works)
                                     if (w.Name == "Лазерная резка")
                                     {
@@ -932,7 +927,6 @@ namespace Metal_Code
                                     List<Part> parts = new();
                                     foreach (var techItem in group)
                                     {
-                                        // Нормализуем разделитель: русская 'х' (U+0445) → английская 'x' (U+0078)
                                         var normalized = techItem.Sizes.Replace('х', 'x').Trim();
 
                                         if (normalized.Contains('x'))
@@ -975,13 +969,9 @@ namespace Metal_Code
 
                                             if (!string.IsNullOrEmpty(projectRoot))
                                             {
-                                                // 🔥 Целевая папка: ...\Проект\Лазер
                                                 string laserFolder = Path.Combine(projectRoot, "Лазер");
-
-                                                // Гарантируем, что папка "Лазер" существует, чтобы запись не упала с ошибкой
                                                 if (!Directory.Exists(laserFolder)) Directory.CreateDirectory(laserFolder);
 
-                                                // Формируем описание так же, как в PartsControl
                                                 string metalNameForPdf = m.Name ?? "";
                                                 float thicknessForPdf = destiny;
 
@@ -996,7 +986,6 @@ namespace Metal_Code
                                                 if (cut.IsGrooved) description += " рифл";
                                                 if (cut.work.type.CheckMetal.IsChecked is false) description += " Давальч";
 
-                                                // Очищаем имя файла от недопустимых символов для безопасности
                                                 foreach (char c in Path.GetInvalidFileNameChars())
                                                 {
                                                     description = description.Replace(c, '_');
@@ -1005,7 +994,6 @@ namespace Metal_Code
                                                 string pdfFileName = $"{description}.pdf";
                                                 string fullPath = Path.Combine(laserFolder, pdfFileName);
 
-                                                // Вызываем метод генерации (без диалогового окна)
                                                 cut.PartsControl.GenerateNestingPdf(fullPath);
                                             }
                                         }
@@ -1027,7 +1015,6 @@ namespace Metal_Code
                                     typeControl.det.IsComplectChanged("Комплект труб");
                                 }
 
-                                // определяем тип заготовки и сечение
                                 typeControl.TypeDetailDrop.SelectedItem = t;
 
                                 if (t.Name.Contains("Уголок") || t.Name.Contains("Квадрат"))
@@ -1068,10 +1055,8 @@ namespace Metal_Code
                                     typeControl.B = (float)item.Height;
                                 }
 
-                                // определяем толщину заготовки
                                 if (destiny > 0) typeControl.S = destiny;
 
-                                // определяем материал заготовки
                                 foreach (Metal met in typeControl.MetalDrop.Items)
                                     if (met.Name == metalName)
                                     {
@@ -1080,7 +1065,6 @@ namespace Metal_Code
                                         break;
                                     }
 
-                                // Труборез
                                 foreach (Work w in MainWindow.M.Works)
                                     if (w.Name == "Труборез")
                                     {
@@ -1111,7 +1095,34 @@ namespace Metal_Code
                                         parts.Add(part);
                                     }
 
+                                    // 1. Создаем раскладку
                                     pipe.PartsControl?.AddBatchToPipeControl(pipe, parts, m);
+
+                                    // 🔥 2. АВТОМАТИЧЕСКИЙ ЭКСПОРТ PDF В ПАПКУ "Труборез"
+                                    if (pipe.PartsControl != null)
+                                    {
+                                        string? firstModelPath = group.FirstOrDefault()?.PathToModel;
+                                        if (!string.IsNullOrEmpty(firstModelPath))
+                                        {
+                                            string? tzFolder = Path.GetDirectoryName(firstModelPath);
+                                            string? projectRoot = Path.GetDirectoryName(tzFolder);
+
+                                            if (!string.IsNullOrEmpty(projectRoot))
+                                            {
+                                                string pipeFolder = Path.Combine(projectRoot, "Труборез");
+                                                if (!Directory.Exists(pipeFolder))
+                                                {
+                                                    Directory.CreateDirectory(pipeFolder);
+                                                }
+
+                                                // 🔥 ГЕНЕРАЦИЯ ИМЕНИ ЧЕРЕЗ МЕТОД КОНТРОЛА
+                                                string fileName = pipe.PartsControl.GetPipeNestingFileName(isSaw: false);
+                                                string fullPath = Path.Combine(pipeFolder, fileName);
+
+                                                pipe.PartsControl.GeneratePipeNestingPdf(fullPath, isSaw: false);
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
