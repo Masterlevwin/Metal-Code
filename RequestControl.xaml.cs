@@ -892,12 +892,14 @@ namespace Metal_Code
                                 var laserComplect = MainWindow.M.DetailControls.FirstOrDefault(d => d.Detail.Title == "Комплект деталей");
                                 if (laserComplect != null)
                                 {
-                                    laserComplect.AddTypeDetail();
+                                    laserComplect.AddTypeDetail("Лист металла");
                                     typeControl = laserComplect.TypeDetailControls[^1];
                                 }
                                 else
                                 {
                                     MainWindow.M.AddDetail();
+                                    // Создаём заготовку с предустановленным "Лист металла"
+                                    MainWindow.M.DetailControls[^1].AddTypeDetail("Лист металла");
                                     typeControl = MainWindow.M.DetailControls[^1].TypeDetailControls[^1];
                                     typeControl.det.IsComplectChanged("Комплект деталей");
                                 }
@@ -1005,12 +1007,14 @@ namespace Metal_Code
                                 var pipeComplect = MainWindow.M.DetailControls.FirstOrDefault(d => d.Detail.Title == "Комплект труб");
                                 if (pipeComplect != null)
                                 {
-                                    pipeComplect.AddTypeDetail();
+                                    pipeComplect.AddTypeDetail("Труба профильная");
                                     typeControl = pipeComplect.TypeDetailControls[^1];
                                 }
                                 else
                                 {
                                     MainWindow.M.AddDetail();
+                                    // Создаём заготовку с предустановленным "Труба профильная"
+                                    MainWindow.M.DetailControls[^1].AddTypeDetail("Труба профильная");
                                     typeControl = MainWindow.M.DetailControls[^1].TypeDetailControls[^1];
                                     typeControl.det.IsComplectChanged("Комплект труб");
                                 }

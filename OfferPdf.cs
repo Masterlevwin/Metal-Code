@@ -427,16 +427,19 @@ namespace Metal_Code
                                 string disclaimer = "Изделия изготавливаются строго по предоставленным Заказчиком чертежам. " +
                                                     "Исполнитель не несёт ответственности за корректность конструкторской документации.";
 
-                                // Проверяем, есть ли хотя бы один хлыст с нестандартной зоной зажима
+                                // Проверяем, есть ли хотя бы один хлыст с нестандартной зоной зажима (БЕЗОПАСНО)
                                 bool hasNonDefaultClamp = MainWindow.M.DetailControls
+                                    .Where(dc => dc?.TypeDetailControls != null)
                                     .SelectMany(dc => dc.TypeDetailControls)
+                                    .Where(tc => tc?.WorkControls != null)
                                     .SelectMany(tc => tc.WorkControls)
-                                    .Where(wc => wc.workType is PipeControl)              // Фильтруем по свойству workType
-                                    .Select(wc => (PipeControl)wc.workType!)              // Приводим к PipeControl
-                                    .Where(pc => pc.Items?.Count > 0)                     // Только с заполненными Items
+                                    .Where(wc => wc?.workType is PipeControl)
+                                    .Select(wc => (PipeControl)wc.workType!)
+                                    .Where(pc => pc?.Items != null && pc.Items.Count > 0)
                                     .SelectMany(pc => pc.Items!)
+                                    .Where(item => item?.PipeStocks != null)
                                     .SelectMany(item => item.PipeStocks!)
-                                    .Any(stock => stock.ClampZone < 340);                 // Меньше 340
+                                    .Any(stock => stock != null && stock.ClampZone < 340);
 
                                 string clampWarning = hasNonDefaultClamp
                                     ? "\nДля сортового проката применен уменьшенный зажим, поэтому возможен провис деталей с погрешностью в размерах."

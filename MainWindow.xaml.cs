@@ -2436,9 +2436,6 @@ namespace Metal_Code
             return binding?.Path.Path ?? string.Empty;
         }
 
-        /// <summary>
-        /// Сохраняет изменения расчёта в БД и обновляет представление.
-        /// </summary>
         private async System.Threading.Tasks.Task UpdateOfferAsync(Offer offer)
         {
             if (offer == null) return;
@@ -2447,46 +2444,71 @@ namespace Metal_Code
             {
                 StatusBegin($"Сохранение изменений расчёта {offer.N}...", StatusMessageType.Info);
 
-                // ⭐ Сохраняем состояние групп ДО обновления
                 var expandedGroups = GetExpandedGroupNames();
 
-                // ⭐ Сохраняем в БД
+                // 1. СНАЧАЛА синхронизируем имя папки на диске, если у расчета есть базовый номер.
+                // Это сработает даже если offer.Order или offer.Invoice были очищены (стали null).
+                if (!string.IsNullOrEmpty(offer.ParentQuoteNumber))
+                {
+                    await SyncOfferFolderNameAsync(offer);
+                }
+
+                // 2. ТЕПЕРЬ сохраняем все актуальные данные (включая свежий offer.Act) в БД
                 bool success = await DataService.UpdateOfferAsync(offer);
 
                 if (success)
                 {
-                    StatusBegin($"Данные расчёта {offer.N} изменены.", StatusMessageType.Success);
+                    StatusBegin($"Данные расчёта {offer.N} успешно сохранены.", StatusMessageType.Success);
 
-                    // ⭐ ВАЖНО: Refresh через DispatcherPriority.Loaded
-                    // К этому моменту WPF уже завершил режим редактирования
+                    // 3. Обновление UI
                     await Dispatcher.InvokeAsync(() =>
                     {
-                        try
+                        try { OffersView?.Refresh(); }
+                        catch (InvalidOperationException)
                         {
-                            OffersView?.Refresh();
-                        }
-                        catch (InvalidOperationException ex)
-                        {
-                            Trace.WriteLine($"⚠️ Refresh отложен: {ex.Message}");
-                            // Повторная попытка на следующем цикле отрисовки
-                            Dispatcher.BeginInvoke(new Action(() =>
-                            {
-                                try { OffersView?.Refresh(); }
-                                catch { /* игнорируем */ }
-                            }), DispatcherPriority.Loaded);
+                            Dispatcher.BeginInvoke(new Action(() => { try { OffersView?.Refresh(); } catch { } }), DispatcherPriority.Loaded);
                         }
                     }, DispatcherPriority.Loaded);
 
-                    // ⭐ Ждём пересоздания контейнеров
                     await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background);
                     RestoreExpandedGroups(expandedGroups);
-
-                    // ⭐ Подсветка строки
                     HighlightOfferRow(offer);
 
-                    if (ActiveOffer?.Id == offer.Id)
+                    // 4. Проверка необходимости создания комплектации в папке производства
+                    if (ActiveOffer?.Id == offer.Id && !string.IsNullOrEmpty(offer.Order))
                     {
-                        CreateComplect(connections[5], offer);
+                        string productionDir = connections[5];
+                        bool complectExists = false;
+
+                        if (Directory.Exists(productionDir))
+                        {
+                            var dirs = Directory.GetDirectories(productionDir);
+                            foreach (var dir in dirs)
+                            {
+                                string dirName = Path.GetFileName(dir);
+                                if (dirName.StartsWith(offer.Order) || dirName.Contains($"-{offer.Order}"))
+                                {
+                                    string safeCustomerName = new string((offer.Company ?? "")
+                                        .Where(c => !Path.GetInvalidFileNameChars().Contains(c))
+                                        .ToArray()).Trim();
+
+                                    string expectedFileName = $"{offer.Order} {safeCustomerName} - комплектация.xlsx";
+                                    string expectedFilePath = Path.Combine(dir, expectedFileName);
+
+                                    if (File.Exists(expectedFilePath))
+                                    {
+                                        complectExists = true;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!complectExists)
+                        {
+                            System.Diagnostics.Trace.WriteLine($"⚠️ Файл комплектации не найден в производстве для заказа {offer.Order}. Запуск CreateComplect...");
+                            CreateComplect(connections[5], offer);
+                        }
                     }
                 }
                 else
@@ -2497,7 +2519,191 @@ namespace Metal_Code
             catch (Exception ex)
             {
                 StatusBegin($"Ошибка обновления: {ex.Message}", StatusMessageType.Error);
-                Trace.WriteLine($"❌ Ошибка UpdateOfferAsync: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Находит текущую корневую папку расчета и переименовывает её. 
+        /// Включает защиту от временных блокировок и проблем с пробелами в имени.
+        /// </summary>
+        private async System.Threading.Tasks.Task SyncOfferFolderNameAsync(Offer offer)
+        {
+            try
+            {
+                string? currentDir = null;
+                string? kpSubFolderName = null;
+
+                // Шаг А: Берем корневую директорию из offer.Act
+                if (!string.IsNullOrEmpty(offer.Act) && File.Exists(offer.Act))
+                {
+                    currentDir = Path.GetDirectoryName(Path.GetDirectoryName(offer.Act));
+                    kpSubFolderName = Path.GetFileName(Path.GetDirectoryName(offer.Act));
+                }
+                else if (!string.IsNullOrEmpty(offer.Act))
+                {
+                    // Шаг Б: Ищем корень по базовому номеру, если путь "сломан"
+                    string? currentPath = Path.GetDirectoryName(offer.Act);
+                    string? validSearchRoot = null;
+
+                    while (!string.IsNullOrEmpty(currentPath))
+                    {
+                        if (Directory.Exists(currentPath))
+                        {
+                            validSearchRoot = currentPath;
+                            break;
+                        }
+                        currentPath = Path.GetDirectoryName(currentPath);
+                    }
+
+                    if (!string.IsNullOrEmpty(validSearchRoot))
+                    {
+                        var directories = await System.Threading.Tasks.Task.Run(() => Directory.GetDirectories(validSearchRoot));
+                        string searchNumber = (offer.ParentQuoteNumber ?? offer.N ?? "").Trim();
+
+                        foreach (string dirPath in directories)
+                        {
+                            string dirName = Path.GetFileName(dirPath);
+                            bool hasNumber = false;
+
+                            if (!string.IsNullOrEmpty(searchNumber))
+                            {
+                                string pattern = $@"(?:^|[\s_\-]){Regex.Escape(searchNumber)}(?:[\s_\-]|$)";
+                                hasNumber = Regex.IsMatch(dirName, pattern, RegexOptions.IgnoreCase);
+
+                                if (!hasNumber && dirName.StartsWith(searchNumber, StringComparison.OrdinalIgnoreCase))
+                                    hasNumber = true;
+                            }
+
+                            if (hasNumber)
+                            {
+                                currentDir = dirPath;
+                                string? brokenDir = Path.GetDirectoryName(offer.Act);
+                                if (!string.IsNullOrEmpty(brokenDir))
+                                {
+                                    kpSubFolderName = Path.GetFileName(brokenDir);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (string.IsNullOrEmpty(currentDir) || !Directory.Exists(currentDir))
+                {
+                    return;
+                }
+
+                // Шаг В: Формируем ожидаемое имя корневой папки
+                string suffix = "";
+
+                if (!string.IsNullOrEmpty(offer.Invoice) || !string.IsNullOrEmpty(offer.Order))
+                {
+                    string invoiceNumber = "без_счёта";
+                    if (!string.IsNullOrEmpty(offer.Invoice))
+                    {
+                        var match = Regex.Match(offer.Invoice, @"\d+");
+                        if (match.Success) invoiceNumber = match.Value;
+                    }
+
+                    bool isAgent = false;
+                    var agentProp = offer.GetType().GetProperty("IsAgent") ?? offer.GetType().GetProperty("Agent");
+                    if (agentProp != null) isAgent = Convert.ToBoolean(agentProp.GetValue(offer));
+
+                    string invoiceSuffix = isAgent ? $"нал№{invoiceNumber}" : $"сч№{invoiceNumber}";
+                    string orderPart = !string.IsNullOrEmpty(offer.Order) ? offer.Order.Trim() : "без_заказа";
+
+                    string SanitizePart(string input)
+                    {
+                        var invalid = Path.GetInvalidFileNameChars();
+                        return string.Join("_", input.Split(invalid, StringSplitOptions.RemoveEmptyEntries)).Trim('_');
+                    }
+
+                    suffix = $" {SanitizePart(invoiceSuffix)} {SanitizePart(orderPart)}".Trim();
+                }
+
+                string companyName = new string((offer.Company ?? "").Where(c => !Path.GetInvalidFileNameChars().Contains(c)).ToArray()).Trim();
+                string calcNumber = offer.ParentQuoteNumber ?? (offer.N ?? "");
+
+                const int ALIGN_WIDTH = 30;
+                string baseNamePart = $"{calcNumber} {companyName}".Trim();
+                baseNamePart = baseNamePart.Length <= ALIGN_WIDTH ? baseNamePart.PadRight(ALIGN_WIDTH) : baseNamePart;
+
+                // 🔥 КРИТИЧЕСКИ ВАЖНО: Trim() убирает конечные пробелы, которые Windows запрещает при переименовании
+                string expectedFolderName = $"{baseNamePart}{suffix}".Trim();
+                string currentFolderName = Path.GetFileName(currentDir);
+
+                // Шаг Г: Если имя отличается, переименовываем
+                if (!currentFolderName.Equals(expectedFolderName, StringComparison.OrdinalIgnoreCase))
+                {
+                    string parentDir = Path.GetDirectoryName(currentDir)!;
+                    string newDirPath = Path.Combine(parentDir, expectedFolderName);
+
+                    if (!Directory.Exists(newDirPath))
+                    {
+                        int retries = 3;
+                        bool success = false;
+
+                        while (retries > 0 && !success)
+                        {
+                            try
+                            {
+                                // Попытка переименования
+                                Directory.Move(currentDir, newDirPath);
+                                success = true;
+
+                                // Если успешно, обновляем данные в памяти
+                                currentDir = newDirPath;
+                                if (!string.IsNullOrEmpty(offer.Act))
+                                {
+                                    string fileName = Path.GetFileName(offer.Act);
+                                    if (!string.IsNullOrEmpty(kpSubFolderName))
+                                    {
+                                        offer.Act = Path.Combine(newDirPath, kpSubFolderName, fileName);
+                                    }
+                                    else
+                                    {
+                                        offer.Act = Path.Combine(newDirPath, fileName);
+                                    }
+                                }
+                            }
+                            catch (UnauthorizedAccessException) when (retries > 1)
+                            {
+                                retries--;
+                                await System.Threading.Tasks.Task.Delay(500); // Ждем полсекунды и пробуем снова
+                            }
+                            catch (IOException) when (retries > 1)
+                            {
+                                retries--;
+                                await System.Threading.Tasks.Task.Delay(500);
+                            }
+                            catch (Exception ex)
+                            {
+                                // Если это не временная блокировка, или попытки закончились
+                                System.Diagnostics.Trace.WriteLine($"[SyncFolder] Ошибка переименования: {ex.Message}");
+
+                                if (ex is UnauthorizedAccessException || ex is IOException)
+                                {
+                                    StatusBegin(
+                                        "Не удалось переименовать папку расчета.\n" +
+                                        "1. Закройте файлы Excel из этой папки.\n" +
+                                        "2. Закройте окна Проводника, открытые в этой папке (особенно с включенной областью предпросмотра).\n" +
+                                        "3. Попробуйте сохранить еще раз.",
+                                        StatusMessageType.Warning);
+                                }
+                                else
+                                {
+                                    StatusBegin($"Ошибка при обновлении имени папки: {ex.Message}", StatusMessageType.Error);
+                                }
+
+                                return; // Прерываем, чтобы не испортить offer.Act и не сохранить мусор в БД
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.WriteLine($"[SyncFolder] Внешняя ошибка синхронизации: {ex.Message}");
             }
         }
 
@@ -3584,8 +3790,8 @@ namespace Metal_Code
             }
             else
             {
-                // Режим без сборок: используем оригинальные данные из MainWindow.M.Baskets
-                var allBaskets = MainWindow.M.BasketControls.Select(b => b.Basket).ToList();
+                // Режим без сборок: используем оригинальные данные из Baskets
+                var allBaskets = BasketControls.Select(b => b.Basket).ToList();
                 if (allBaskets.Count > 0)
                 {
                     var basketsWithWork = allBaskets.Where(b => b.Count > 0 && !string.IsNullOrEmpty(b.Description)).ToList();
@@ -3798,11 +4004,16 @@ namespace Metal_Code
             int namePic = 0;            //порядковое имя картинки
 
             foreach (TypeDetailControl type in allTypeDetails)
+            {
                 foreach (WorkControl work in type.WorkControls)
+                {
                     if (work.workType is ICut cut && cut.Items?.Count > 0)
                     {
                         foreach (LaserItem item in cut.Items)
                         {
+                            // ==========================================
+                            // 1. ЛИСТОВОЙ МЕТАЛЛ
+                            // ==========================================
                             if (item.NestingSheet != null)
                             {
                                 // 1. Создаём контрол
@@ -3848,6 +4059,66 @@ namespace Metal_Code
 
                                 namePic++;
                             }
+                            // ==========================================
+                            // 2. ТРУБНЫЙ ПРОКАТ (НОВОЕ!)
+                            // ==========================================
+                            else if (item.PipeStocks != null && item.PipeStocks.Count > 0)
+                            {
+                                var stock = item.PipeStocks[0]; // Берем представителя группы (они сгруппированы)
+
+                                // 1. Создаём контрол визуализации и передаем ему хлыст
+                                var preview = new PipeStockVisualizationControl
+                                {
+                                    Margin = new Thickness(0),
+                                    Stock = stock
+                                };
+
+                                // 2. Принудительно измеряем и располагаем
+                                double totalWidth = 850;
+                                double totalHeight = 100;
+
+                                preview.Measure(new Size(totalWidth, totalHeight));
+                                preview.Arrange(new Rect(0, 0, totalWidth, totalHeight));
+                                preview.UpdateLayout();
+
+                                // 3. Рендерим в PNG с сохранением пропорций
+                                int targetPixelWidth = 900;
+                                int targetPixelHeight = (int)(totalHeight * targetPixelWidth / totalWidth);
+
+                                byte[] pngBytes = WpfImageHelper.RenderVisualToPng(preview, targetPixelWidth, targetPixelHeight);
+
+                                // 4. Вставляем в Excel
+                                string uniqueName = $"PipeNesting_{stock.StockLength}_{Guid.NewGuid().ToString("N")[..8]}";
+                                using var stream = new MemoryStream(pngBytes);
+                                ExcelPicture pic = itemsheet.Drawings.AddPicture(uniqueName, stream);
+
+                                // Позиционирование
+                                pic.SetPosition(namePic, 10, 1, 10);
+
+                                // Подпись: используем метод GetPipeNestingFileName и убираем расширение .pdf
+                                string labelTube = $"Труба s{type.S} {type.MetalDrop.Text} ({item.sheets} шт.)";
+
+                                if (work.workType is PipeControl pipe && pipe.PartsControl != null && pipe.Items != null)
+                                    labelTube = $"{Path.GetFileNameWithoutExtension(pipe.PartsControl.GetPipeNestingFileName(isSaw: false))} ({item.sheets} шт.)";
+
+                                if (work.workType is SawControl saw && saw.PartsControl != null && saw.Items != null)
+                                    labelTube = $"{Path.GetFileNameWithoutExtension(saw.PartsControl.GetPipeNestingFileName(isSaw: true))} ({item.sheets} шт.)";
+
+                                itemsheet.Cells[namePic + 1, 1].Value = labelTube;
+                                itemsheet.Cells[namePic + 1, 1].Style.TextRotation = 90;
+                                itemsheet.Cells[namePic + 1, 1].Style.WrapText = true;
+                                itemsheet.Cells[namePic + 1, 1].Style.Font.Bold = true;
+                                itemsheet.Cells[namePic + 1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                                itemsheet.Cells[namePic + 1, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+
+                                // Высота строки под картинку
+                                itemsheet.Row(namePic + 1).Height = targetPixelHeight / 1.33 + 10;
+
+                                namePic++;
+                            }
+                            // ==========================================
+                            // 3. СТАРЫЕ ИЗОБРАЖЕНИЯ (FALLBACK)
+                            // ==========================================
                             else if (item.imageBytes is not null)
                             {
                                 // Старая логика для byte[] изображений
@@ -3865,8 +4136,10 @@ namespace Metal_Code
                                 namePic++;
                             }
                         }
-                        break;
+                        break; // (Оставляем ваш оригинальный break, если он нужен для вашей бизнес-логики)
                     }
+                }
+            }
 
             worksheet.Cells[row + 2, 1].Value = "Срок изготовления:";
             worksheet.Cells[row + 2, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
@@ -3950,16 +4223,19 @@ namespace Metal_Code
             const string disclaimer = "Изделия изготавливаются строго по предоставленным Заказчиком чертежам. " +
                                       "Исполнитель не несёт ответственности за корректность конструкторской документации.";
 
-            // Проверяем, есть ли хотя бы один хлыст с нестандартной зоной зажима
+            // Проверяем, есть ли хотя бы один хлыст с нестандартной зоной зажима (БЕЗОПАСНО)
             bool hasNonDefaultClamp = DetailControls
+                .Where(dc => dc?.TypeDetailControls != null)
                 .SelectMany(dc => dc.TypeDetailControls)
+                .Where(tc => tc?.WorkControls != null)
                 .SelectMany(tc => tc.WorkControls)
-                .Where(wc => wc.workType is PipeControl)              // Фильтруем по свойству workType
-                .Select(wc => (PipeControl)wc.workType!)              // Приводим к PipeControl
-                .Where(pc => pc.Items?.Count > 0)                     // Только с заполненными Items
+                .Where(wc => wc?.workType is PipeControl)
+                .Select(wc => (PipeControl)wc.workType!)
+                .Where(pc => pc?.Items != null && pc.Items.Count > 0)
                 .SelectMany(pc => pc.Items!)
+                .Where(item => item?.PipeStocks != null)
                 .SelectMany(item => item.PipeStocks!)
-                .Any(stock => stock.ClampZone < 340);                 // Меньше 340
+                .Any(stock => stock != null && stock.ClampZone < 340);
 
             string clampWarning = hasNonDefaultClamp
                 ? "\nДля сортового проката применен уменьшенный зажим, поэтому возможен провис деталей с погрешностью в размерах."
@@ -5217,42 +5493,89 @@ namespace Metal_Code
                                 {
                                     foreach (LaserItem item in cut.Items)
                                     {
+                                        // ==========================================
+                                        // 1. ЛИСТОВОЙ МЕТАЛЛ
+                                        // ==========================================
                                         if (item.NestingSheet != null)
                                         {
-                                            // 1. Создаём контрол
                                             var preview = new NestingPreviewControl { Margin = new Thickness(0) };
-
-                                            // 2. Показываем лист (контрол сам пересчитает внутренние размеры Canvas)
                                             preview.ShowSheet(item.NestingSheet);
 
-                                            // 3. ВАЖНО: Получаем реальные размеры всего контрола вместе с подписями
-                                            double totalWidth = item.NestingSheet.StockWidth + 50;  // LabelMarginLeft = 50
-                                            double totalHeight = item.NestingSheet.StockHeight + 40; // LabelMarginBottom = 40
+                                            double totalWidth = item.NestingSheet.StockWidth + 50;
+                                            double totalHeight = item.NestingSheet.StockHeight + 40;
 
-                                            // 4. Принудительно измеряем и располагаем контрол в этих полных размерах
                                             preview.Measure(new Size(totalWidth, totalHeight));
                                             preview.Arrange(new Rect(0, 0, totalWidth, totalHeight));
                                             preview.UpdateLayout();
 
-                                            // 5. Задаём целевой размер картинки в пикселях (масштабируем под Excel)
                                             int targetPixelWidth = 800;
-                                            // Сохраняем пропорции полного размера (с подписями)
                                             int targetPixelHeight = (int)(totalHeight * targetPixelWidth / totalWidth);
 
-                                            // 6. Рендерим в PNG
                                             byte[] pngBytes = WpfImageHelper.RenderVisualToPng(preview, targetPixelWidth, targetPixelHeight);
 
-                                            // 7. Вставляем в Excel
                                             string uniqueName = $"Nesting_{item.NestingSheet.Id.ToString("N")[..8]}";
+                                            using var stream = new MemoryStream(pngBytes);
+                                            ExcelPicture pic = itemsheet.Drawings.AddPicture(uniqueName, stream);
+
+                                            pic.SetPosition(namePic, 10, 1, 10);
+
+                                            itemsheet.Cells[namePic + 1, 1].Value = $"s{type.S} {type.MetalDrop.Text}";
+                                            itemsheet.Cells[namePic + 1, 1].Style.TextRotation = 90;
+                                            itemsheet.Cells[namePic + 1, 1].Style.Font.Bold = true;
+                                            itemsheet.Cells[namePic + 1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                                            itemsheet.Cells[namePic + 1, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+
+                                            itemsheet.Row(namePic + 1).Height = targetPixelHeight / 1.33 + 10;
+
+                                            namePic++;
+                                        }
+                                        // ==========================================
+                                        // 2. ТРУБНЫЙ ПРОКАТ (НОВОЕ!)
+                                        // ==========================================
+                                        else if (item.PipeStocks != null && item.PipeStocks.Count > 0)
+                                        {
+                                            var stock = item.PipeStocks[0]; // Берем представителя группы (они сгруппированы)
+
+                                            // 1. Создаём контрол визуализации и передаем ему хлыст
+                                            var preview = new PipeStockVisualizationControl
+                                            {
+                                                Margin = new Thickness(0),
+                                                Stock = stock
+                                            };
+
+                                            // 2. Принудительно измеряем и располагаем (внутренний размер контрола ~820x70 + небольшие поля)
+                                            double totalWidth = 850;
+                                            double totalHeight = 100;
+
+                                            preview.Measure(new Size(totalWidth, totalHeight));
+                                            preview.Arrange(new Rect(0, 0, totalWidth, totalHeight));
+                                            preview.UpdateLayout();
+
+                                            // 3. Рендерим в PNG с сохранением пропорций
+                                            int targetPixelWidth = 900;
+                                            int targetPixelHeight = (int)(totalHeight * targetPixelWidth / totalWidth);
+
+                                            byte[] pngBytes = WpfImageHelper.RenderVisualToPng(preview, targetPixelWidth, targetPixelHeight);
+
+                                            // 4. Вставляем в Excel
+                                            string uniqueName = $"PipeNesting_{stock.StockLength}_{Guid.NewGuid().ToString("N")[..8]}";
                                             using var stream = new MemoryStream(pngBytes);
                                             ExcelPicture pic = itemsheet.Drawings.AddPicture(uniqueName, stream);
 
                                             // Позиционирование
                                             pic.SetPosition(namePic, 10, 1, 10);
 
-                                            // Подпись
-                                            itemsheet.Cells[namePic + 1, 1].Value = $"s{type.S} {type.MetalDrop.Text}";
+                                            // Подпись: используем метод GetPipeNestingFileName и убираем расширение .pdf
+                                            string labelTube = $"Труба s{type.S} {type.MetalDrop.Text} ({item.sheets} шт.)";
+
+                                            if (work.workType is PipeControl pipe && pipe.PartsControl != null && pipe.Items != null)
+                                                labelTube = $"{Path.GetFileNameWithoutExtension(pipe.PartsControl.GetPipeNestingFileName(isSaw: false))} ({item.sheets} шт.)";
+                                            if (work.workType is SawControl saw && saw.PartsControl != null && saw.Items != null)
+                                                labelTube = $"{Path.GetFileNameWithoutExtension(saw.PartsControl.GetPipeNestingFileName(isSaw: true))} ({item.sheets} шт.)";
+
+                                            itemsheet.Cells[namePic + 1, 1].Value = labelTube;
                                             itemsheet.Cells[namePic + 1, 1].Style.TextRotation = 90;
+                                            itemsheet.Cells[namePic + 1, 1].Style.WrapText = true;
                                             itemsheet.Cells[namePic + 1, 1].Style.Font.Bold = true;
                                             itemsheet.Cells[namePic + 1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                                             itemsheet.Cells[namePic + 1, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
@@ -5262,9 +5585,11 @@ namespace Metal_Code
 
                                             namePic++;
                                         }
+                                        // ==========================================
+                                        // 3. СТАРЫЕ ИЗОБРАЖЕНИЯ (FALLBACK)
+                                        // ==========================================
                                         else if (item.imageBytes is not null)
                                         {
-                                            // Старая логика для byte[] изображений
                                             using var stream = new MemoryStream(item.imageBytes);
                                             string uniqueName = $"Image_{Guid.NewGuid().ToString("N")[..8]}";
                                             ExcelPicture pic = itemsheet.Drawings.AddPicture(uniqueName, stream);
@@ -5274,6 +5599,7 @@ namespace Metal_Code
                                             itemsheet.Cells[namePic + 1, 1].Style.Font.Bold = true;
                                             itemsheet.Cells[namePic + 1, 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                                             itemsheet.Cells[namePic + 1, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+
                                             itemsheet.Row(namePic + 1).Height = 400;
                                             pic.SetPosition(namePic, 10, 1, 10);
                                             namePic++;
@@ -8839,7 +9165,6 @@ namespace Metal_Code
             {
                 if (!string.IsNullOrEmpty(offer.Act))
                 {
-                    // Поднимаемся по дереву каталогов, пока не найдем тот, который реально существует
                     string? currentPath = Path.GetDirectoryName(offer.Act);
                     string? validSearchRoot = null;
 
@@ -8856,23 +9181,18 @@ namespace Metal_Code
                     if (!string.IsNullOrEmpty(validSearchRoot))
                     {
                         string calcNumber = (offer.N ?? "").Trim();
-
-                        // Асинхронное получение списка директорий для поиска
                         var directories = await System.Threading.Tasks.Task.Run(() => Directory.GetDirectories(validSearchRoot));
 
                         foreach (string dirPath in directories)
                         {
                             string dirName = Path.GetFileName(dirPath);
-
-                            // Проверяем наличие номера расчета как отдельного "слова"
                             bool hasNumber = false;
+
                             if (!string.IsNullOrEmpty(calcNumber))
                             {
-                                // Ищем номер в начале строки, или после пробела/подчеркивания/дефиса
                                 string pattern = $@"(?:^|[\s_\-]){Regex.Escape(calcNumber)}(?:[\s_\-]|$)";
                                 hasNumber = Regex.IsMatch(dirName, pattern, RegexOptions.IgnoreCase);
 
-                                // Дополнительная страховка: если имя папки просто начинается с номера
                                 if (!hasNumber && dirName.StartsWith(calcNumber, StringComparison.OrdinalIgnoreCase))
                                 {
                                     hasNumber = true;
@@ -8897,23 +9217,20 @@ namespace Metal_Code
 
             const int MIN_ORDER = 1000;
             const int MAX_ORDER = 9999;
-            const int WINDOW_SIZE = 50; // Максимальное количество "ручных" папок вперёд от последнего номера
+            const int WINDOW_SIZE = 50;
 
             int nextOrder = MIN_ORDER;
             string workingDir = connections[5];
             string logFilePath = Path.Combine(workingDir, "issued_orders.txt");
 
-            // Создаём файл, если он не существует, и делаем его скрытым
             if (!File.Exists(logFilePath))
             {
                 using (File.Create(logFilePath)) { }
                 File.SetAttributes(logFilePath, FileAttributes.Hidden);
             }
 
-            // Открываем файл с эксклюзивной блокировкой
             using (var stream = new FileStream(logFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None, 4096, useAsync: true))
             {
-                // --- 1. Читаем последнюю строку из файла (последний выданный номер программой) ---
                 stream.Position = 0;
                 string? lastLine = null;
                 using (var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true))
@@ -8936,12 +9253,10 @@ namespace Metal_Code
                     lastIssued = parsed;
                 }
 
-                // --- 2. Собираем номера из папок в окне [lastIssued, lastIssued + WINDOW_SIZE] ---
                 int windowEnd = Math.Min(MAX_ORDER, lastIssued + WINDOW_SIZE);
                 HashSet<int> candidateNumbers = new() { lastIssued };
 
                 string orderPattern = @"^\d{4}(?=\D|$)";
-
                 var directoriesWork = await System.Threading.Tasks.Task.Run(() => Directory.GetDirectories(workingDir));
 
                 foreach (string dirPath in directoriesWork)
@@ -8957,7 +9272,6 @@ namespace Metal_Code
                     }
                 }
 
-                // --- 3. Определяем следующий номер как максимум + 1 ---
                 nextOrder = candidateNumbers.Max() + 1;
 
                 if (nextOrder > MAX_ORDER)
@@ -8966,7 +9280,6 @@ namespace Metal_Code
                            $"Достигнут максимальный номер заказа ({MAX_ORDER}). Невозможно назначить новый.";
                 }
 
-                // --- 4. Записываем новый номер в конец файла ---
                 stream.Seek(0, SeekOrigin.End);
 
                 if (stream.Length > 0)
@@ -9042,84 +9355,9 @@ namespace Metal_Code
                 }
             }
 
-            // === Дополнение имени папки КП (сохраняем исходное имя + добавляем счёт и заказ) ===
-            try
-            {
-                if (!string.IsNullOrEmpty(sourceDir) && Directory.Exists(sourceDir))
-                {
-                    string originalName = Path.GetFileName(sourceDir);
-
-                    string invoiceNumber = "без_счёта";
-                    if (!string.IsNullOrEmpty(offer.Invoice))
-                    {
-                        var match = Regex.Match(offer.Invoice, @"\d+");
-                        if (match.Success)
-                            invoiceNumber = match.Value;
-                    }
-                    string invoiceSuffix = offer.Agent ? $"нал№{invoiceNumber}" : $"сч№{invoiceNumber}";
-                    string orderPart = !string.IsNullOrEmpty(offer.Order) ? offer.Order.Trim() : "без_заказа";
-
-                    string SanitizePart(string input)
-                    {
-                        var invalid = Path.GetInvalidFileNameChars();
-                        return string.Join("_", input.Split(invalid, StringSplitOptions.RemoveEmptyEntries)).Trim('_');
-                    }
-
-                    invoiceSuffix = SanitizePart(invoiceSuffix);
-                    orderPart = SanitizePart(orderPart);
-
-                    const int ALIGN_WIDTH = 30;
-                    string baseNamePart = originalName.Length <= ALIGN_WIDTH
-                        ? originalName.PadRight(ALIGN_WIDTH)
-                        : originalName;
-
-                    string newKpFolderName = $"{baseNamePart} {invoiceSuffix} {orderPart}".TrimEnd();
-
-                    if (originalName != newKpFolderName)
-                    {
-                        string parentDir = Path.GetDirectoryName(sourceDir)!;
-                        string newKpPath = Path.Combine(parentDir, newKpFolderName);
-
-                        if (!Directory.Exists(newKpPath))
-                        {
-                            // 🔥 1. КЭШИРУЕМ имя промежуточной папки ДО переименования корня
-                            string kpSubFolderName = "";
-                            if (!string.IsNullOrEmpty(offer.Act))
-                            {
-                                var offerDir = Path.GetDirectoryName(offer.Act);
-
-                                if (!string.IsNullOrEmpty(offerDir))
-                                    kpSubFolderName = Path.GetFileName(offerDir);
-                            }
-
-                            // 2. Переименовываем корневую папку
-                            Directory.Move(sourceDir, newKpPath);
-
-                            // === Безопасное обновление offer.Act ===
-                            if (!string.IsNullOrEmpty(offer.Act))
-                            {
-                                string fileName = Path.GetFileName(offer.Act);
-
-                                // 🔥 3. СОБИРАЕМ новый путь, сохраняя промежуточную папку
-                                if (!string.IsNullOrEmpty(kpSubFolderName))
-                                {
-                                    offer.Act = Path.Combine(newKpPath, kpSubFolderName, fileName);
-                                }
-                                else
-                                {
-                                    // Фоллбэк, если по какой-то причине подпапку не удалось определить
-                                    offer.Act = Path.Combine(newKpPath, fileName);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                StatusBegin($"Ошибка переименования КП: {ex.Message}", StatusMessageType.Error);
-            }
-
+            // 🔥 СОХРАНЕНИЕ В БД:
+            // UpdateOfferAsync сохранит обновленный offer.Act, Order и Invoice в базу данных,
+            // а также обновит интерфейс и (при необходимости) создаст комплектацию, если её еще нет.
             await UpdateOfferAsync(offer);
 
             Process.Start("explorer.exe", destinationDir);
