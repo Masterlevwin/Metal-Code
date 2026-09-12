@@ -7,6 +7,7 @@ using QuestPDF.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -37,22 +38,29 @@ namespace Metal_Code
             Parts = _parts;
             partsList.ItemsSource = Parts;
 
+            // Подписываемся на изменение коллекции, 
+            // чтобы автоматически скрывать EmptyStateGrid при добавлении деталей
+            if (Parts is INotifyCollectionChanged notifyCollection)
+            {
+                notifyCollection.CollectionChanged += (s, e) => UpdateEmptyState();
+            }
+
             // Заполняем ComboBox работами
             WorksDrop.ItemsSource = works;
 
             BendControl Bend = new(owner);
-            // формирование списка длин стороны гиба
             foreach (string s in Bend.BendDict[0.5f].Keys) BendDrop.Items.Add(s);
+
             WeldControl Weld = new(owner);
-            // формирование списка типов расчета сварки
             foreach (string s in Weld.TypeDict.Keys) WeldDrop.Items.Add(s);
+
             PaintControl Paint = new(owner);
-            // формирование списка типов расчета окраски
             foreach (string s in Paint.structures) PaintDrop.Items.Add(s);
+
             RollingControl Roll = new(owner);
-            // формирование списка сторон расчета вальцовки
             foreach (string s in Roll.Sides) RollDrop.Items.Add(s);
 
+            // Первоначальный вызов
             UpdateEmptyState();
         }
 

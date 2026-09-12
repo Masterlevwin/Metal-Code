@@ -2506,7 +2506,7 @@ namespace Metal_Code
 
                         if (!complectExists)
                         {
-                            System.Diagnostics.Trace.WriteLine($"⚠️ Файл комплектации не найден в производстве для заказа {offer.Order}. Запуск CreateComplect...");
+                            Trace.WriteLine($"⚠️ Файл комплектации не найден в производстве для заказа {offer.Order}. Запуск CreateComplect...");
                             CreateComplect(connections[5], offer);
                         }
                     }
@@ -7384,7 +7384,7 @@ namespace Metal_Code
         }
 
 
-        // ⭐ Обработчик кнопки синхронизации
+        // Синхронизация отчетов из Битрикс и приложением
         private async void SyncWithCrm_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -8469,21 +8469,6 @@ namespace Metal_Code
         {
             // Вариант 1: Простой вывод в Debug (для разработки)
             Trace.WriteLine($"[{DateTime.Now:HH:mm:ss}] {context}\n{ex}");
-
-            // Вариант 2: Запись в файл (для продакшена)
-            // try 
-            // {
-            //     File.AppendAllText("error.log", $"{DateTime.Now}: {context}\n{ex}\n\n");
-            // }
-            // catch { /* Игнорируем ошибки логирования, чтобы не зациклить */ }
-
-            // Если ошибка критическая — можно показать диалог или завершить работу
-            //if (isCritical)
-            //{
-            // MessageBox.Show("Критическая ошибка. Приложение будет закрыто.", "Ошибка", 
-            //     MessageBoxButton.OK, MessageBoxImage.Error);
-            // Application.Current.Shutdown(1);
-            //}
         }
 
         //------------Создание папки проекта-----------------//
