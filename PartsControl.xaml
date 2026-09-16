@@ -230,7 +230,20 @@
                                   Style="{StaticResource SideIconButton}">
                         <Image Source="/Images/pdf_generate.png" Width="24"/>
                     </ToggleButton>
-                </Border>            
+                </Border>
+
+                <!-- Кнопка пакетного экспорта всех деталей в DXF -->
+                <Border Background="{DynamicResource RegionBrush}"
+        BorderBrush="LightGray"
+        BorderThickness="1"
+        CornerRadius="6"
+        VerticalAlignment="Top">
+                    <ToggleButton ToolTip="Создать DXF для всех деталей заготовки"
+                  Click="ExportAllToDxf_Click"
+                  Style="{StaticResource SideIconButton}">
+                        <Image Source="/Images/export_models.png" Width="24"/>
+                    </ToggleButton>
+                </Border>
             </StackPanel>
 
             <!-- Блок пустого состояния (виден только когда деталей нет) -->

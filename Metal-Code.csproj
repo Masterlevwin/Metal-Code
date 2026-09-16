@@ -55,6 +55,7 @@
     <None Remove="Images\example7.png" />
     <None Remove="Images\example8.png" />
     <None Remove="Images\exit.png" />
+    <None Remove="Images\export_models.png" />
     <None Remove="Images\express.png" />
     <None Remove="Images\fixed.png" />
     <None Remove="Images\greenplus.png" />
@@ -231,6 +232,7 @@
     <Resource Include="Images\example7.png" />
     <Resource Include="Images\example8.png" />
     <Resource Include="Images\exit.png" />
+    <Resource Include="Images\export_models.png" />
     <Resource Include="Images\express.png" />
     <Resource Include="Images\fixed.png" />
     <Resource Include="Images\greenplus.png" />

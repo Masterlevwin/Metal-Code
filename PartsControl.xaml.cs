@@ -753,7 +753,7 @@ namespace Metal_Code
         /// <summary>
         /// Открывает диалог выбора DXF-файлов, парсит количество из имени и добавляет их как новые детали.
         /// </summary>
-        private void AddPartsFromDxf_Click(object sender, RoutedEventArgs e)
+        private async void AddPartsFromDxf_Click(object sender, RoutedEventArgs e)
         {
             if (owner is not CutControl cut) return;
 
@@ -868,6 +868,12 @@ namespace Metal_Code
                     else if (parsedCount > 0)
                     {
                         MainWindow.M.StatusBegin($"Успешно добавлено деталей: {addedCount}. Количество распознано.", MainWindow.StatusMessageType.Success);
+                        
+                        // Небольшая задержка, чтобы UI успел отрисовать сообщение об успехе импорта
+                        await System.Threading.Tasks.Task.Delay(300);
+
+                        // Запускаем нестинг "молча", с параметрами по умолчанию
+                        await RunAutoNestingAsync(showSettingsDialog: false);
                     }
                     else
                     {
@@ -890,123 +896,122 @@ namespace Metal_Code
             UpdateEmptyState();
         }
 
-        /// <summary>
-        /// Пересчитывает раскладку (автонестинг) для листового металла или труб.
-        /// </summary>
         private async void AutoNest_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not ToggleButton btn) return;
-
-            // 🔥 1. ПОДГОТОВКА ДАННЫХ И ВЫЗОВ ДИАЛОГА
-            if (owner is not ICut cut || cut.Items == null || cut.PartDetails == null)
+            if (sender is ToggleButton btn)
             {
-                btn.IsChecked = false;
-                MainWindow.M.StatusBegin("Нет данных для пересчета раскладки", MainWindow.StatusMessageType.Warning);
-                return;
+                btn.IsChecked = true;
+
+                try
+                {
+                    await RunAutoNestingAsync(showSettingsDialog: true);
+                }
+                finally
+                {
+                    btn.IsChecked = false;
+                }
             }
+        }
+
+        /// <summary>
+        /// Универсальный метод запуска автонестинга.
+        /// Если showSettingsDialog = false, использует параметры по умолчанию без диалогового окна.
+        /// </summary>
+        private async System.Threading.Tasks.Task RunAutoNestingAsync(bool showSettingsDialog = true)
+        {
+            if (owner is not ICut cut || cut.Items == null || cut.PartDetails == null) return;
 
             var (metal, thickness, metalName) = GetMetalAndThickness(owner);
             if (metal == null || string.IsNullOrEmpty(metalName) || thickness <= 0)
             {
-                btn.IsChecked = false;
-                MessageBox.Show("Не указан материал или толщина заготовки в настройках.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                if (showSettingsDialog)
+                    MessageBox.Show("Не указан материал или толщина заготовки в настройках.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
             var partsToNest = cut.PartDetails.Where(p => p.Count > 0).ToList();
             if (!partsToNest.Any())
             {
-                btn.IsChecked = false;
-                MessageBox.Show("В расчете нет деталей для автоматической раскладки.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (showSettingsDialog)
+                    MessageBox.Show("В расчете нет деталей для автоматической раскладки.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            // 🔥 ПОДГОТОВКА ЗНАЧЕНИЙ ПО УМОЛЧАНИЮ ИЗ НАСТРОЕК
+            // Получаем значения по умолчанию
             bool isSheet = cut is CutControl;
             double defWidth = isSheet ? (cut as CutControl)?.work.type.A ?? 3000 : 0;
             double defHeight = isSheet ? (cut as CutControl)?.work.type.B ?? 1500 : 0;
-            double defSpacing = isSheet ? 10 : 0; // Значение по умолчанию
+            double defSpacing = isSheet ? 10 : 0;
 
             double defLength = !isSheet ? (cut as PipeControl)?.work.type.L ?? 6000 : 0;
             double defClamp = !isSheet ? 340 : 0;
             double defLoss = !isSheet ? 10 : 0;
 
-            // 🔥 ВЫЗОВ ДИАЛОГОВОГО ОКНА
-            var settingsDialog = new AutoNestSettingsWindow(
-                isSheetMode: isSheet,
-                defaultWidth: defWidth, defaultHeight: defHeight, defaultSpacing: defSpacing,
-                defaultLength: defLength, defaultClamp: defClamp, defaultLoss: defLoss)
-            {
-                Owner = Window.GetWindow(this)
-            };
+            // Переменные для хранения итоговых настроек
+            double sheetWidth = defWidth, sheetHeight = defHeight, spacing = defSpacing;
+            double pipeLength = defLength, clampZone = defClamp, cutLoss = defLoss;
+            bool useAutoNesting = true;
 
-            if (settingsDialog.ShowDialog() != true || !settingsDialog.IsConfirmed)
+            // 🔥 Показываем диалог ТОЛЬКО если это ручной запуск
+            if (showSettingsDialog)
             {
-                // Пользователь нажал "Отмена"
-                btn.IsChecked = false;
-                return;
+                var settingsDialog = new AutoNestSettingsWindow(
+                    isSheetMode: isSheet,
+                    defaultWidth: defWidth, defaultHeight: defHeight, defaultSpacing: defSpacing,
+                    defaultLength: defLength, defaultClamp: defClamp, defaultLoss: defLoss)
+                {
+                    Owner = Window.GetWindow(this)
+                };
+
+                if (settingsDialog.ShowDialog() != true || !settingsDialog.IsConfirmed)
+                    return; // Пользователь нажал "Отмена"
+
+                sheetWidth = settingsDialog.SheetWidth;
+                sheetHeight = settingsDialog.SheetHeight;
+                spacing = settingsDialog.Spacing;
+                pipeLength = settingsDialog.PipeLength;
+                clampZone = settingsDialog.ClampZone;
+                cutLoss = settingsDialog.CutLoss;
+                useAutoNesting = settingsDialog.UseAutoNesting;
             }
 
-            // 🔥 2. ВКЛЮЧАЕМ оранжевую подсветку и курсор ожидания
-            btn.IsChecked = true;
+            // 🔥 Включаем индикацию загрузки
             Mouse.OverrideCursor = Cursors.Wait;
+            MainWindow.M.StatusBegin("Выполняется автоматическая раскладка...", MainWindow.StatusMessageType.Info);
 
             try
             {
-                MainWindow.M.StatusBegin("Выполняется автоматическая раскладка...", MainWindow.StatusMessageType.Info);
-
                 object? result = null;
 
                 if (cut is CutControl)
                 {
                     var sheetParts = partsToNest.Where(p => p.DisplayGeometry != null).ToList();
-                    if (!sheetParts.Any())
-                    {
-                        MessageBox.Show("Нет деталей с геометрией для листовой раскладки.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
-                        return;
-                    }
+                    if (!sheetParts.Any()) return;
 
                     result = await System.Threading.Tasks.Task.Run(() =>
                     {
-                        //  Проверяем UseAutoNesting из диалога
-                        if (settingsDialog.UseAutoNesting)
-                        {
-                            // Алгоритм сам подберет размеры листов
-                            return SkylineNestingHelper.CreateNestingSkylineAutoSheet(
-                                sheetParts,
-                                metalName,
-                                thickness,
-                                settingsDialog.Spacing);
-                        }
+                        if (useAutoNesting)
+                            return SkylineNestingHelper.CreateNestingSkylineAutoSheet(sheetParts, metalName, thickness, spacing);
                         else
-                        {
-                            // Используем размеры, заданные пользователем вручную
-                            return SkylineNestingHelper.CreateNestingSkyline(
-                                sheetParts,
-                                sheetWidth: settingsDialog.SheetWidth,
-                                sheetHeight: settingsDialog.SheetHeight,
-                                spacing: settingsDialog.Spacing);
-                        }
+                            return SkylineNestingHelper.CreateNestingSkyline(sheetParts, sheetWidth, sheetHeight, spacing);
                     });
                 }
                 else if (cut is PipeControl or SawControl)
                 {
                     result = await System.Threading.Tasks.Task.Run(() =>
                     {
-                        return NestingHelper.CreateNestingForPipeBatch(
-                            partsToNest,
-                            settingsDialog.PipeLength,
-                            settingsDialog.ClampZone,
-                            settingsDialog.CutLoss);
+                        return NestingHelper.CreateNestingForPipeBatch(partsToNest, pipeLength, clampZone, cutLoss);
                     });
                 }
 
                 if (result == null)
                 {
-                    MessageBox.Show("Алгоритму не удалось выполнить раскладку.", "Ошибка раскладки", MessageBoxButton.OK, MessageBoxImage.Error);
+                    if (showSettingsDialog)
+                        MessageBox.Show("Алгоритму не удалось выполнить раскладку.", "Ошибка раскладки", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
+                // Очищаем старые результаты раскладки
                 if (cut is CutControl cc)
                 {
                     var oldNestingItems = cc.Items!.OfType<LaserItem>().Where(i => i.NestingSheet != null).ToList();
@@ -1023,10 +1028,10 @@ namespace Metal_Code
                     foreach (var item in oldPipeItems) sc.Items!.Remove(item);
                 }
 
+                // Добавляем новые результаты
                 if (cut is CutControl cc2 && result is List<NestingSheet> sheets)
                 {
-                    var groupedSheets = GroupIdenticalSheets(sheets); // Ваш существующий метод для листов
-
+                    var groupedSheets = GroupIdenticalSheets(sheets);
                     foreach (var group in groupedSheets)
                     {
                         var sheet = group.Key;
@@ -1058,7 +1063,6 @@ namespace Metal_Code
                     if (pipeStocks.Count > 0)
                     {
                         var groupedStocks = GroupIdenticalStocks(pipeStocks);
-
                         foreach (var group in groupedStocks)
                         {
                             var stock = group.Key;
@@ -1081,7 +1085,6 @@ namespace Metal_Code
                                 PipeStocks = new List<PipeStock> { stock }
                             };
 
-                            // Добавляем в нужный контрол в зависимости от типа
                             if (cut is PipeControl p) p.Items?.Add(newItem);
                             else if (cut is SawControl s) s.Items?.Add(newItem);
                         }
@@ -1090,7 +1093,6 @@ namespace Metal_Code
 
                 RecalculateTotalsUniversal(cut);
                 RefreshNestingPreview();
-
                 MainWindow.M.StatusBegin("Авто-раскладка завершена.", MainWindow.StatusMessageType.Success);
             }
             catch (Exception ex)
@@ -1099,7 +1101,7 @@ namespace Metal_Code
             }
             finally
             {
-                btn.IsChecked = false;
+                // 🔥 Сбрасываем курсор в любом случае
                 Mouse.OverrideCursor = null;
             }
         }
@@ -1357,7 +1359,7 @@ namespace Metal_Code
             int pinholes = 0;
             double cuttingLength = 0;
 
-            // === ШАГ 1: Генерация геометрии, если ее нет ===
+            // === ШАГ 1: Генерация геометрии ===
             if (!isOriginal)
             {
                 if (part.PartType != PartType.Custom || part.DisplayGeometry == null)
@@ -1375,18 +1377,41 @@ namespace Metal_Code
             {
                 cuttingLength = TechItemCalculator.CalculateCuttingLength(part.DisplayGeometry);
 
-                if (!isSheetPart && part.HoleGroups?.Count > 0)
+                // 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Проверяем, попали ли отверстия в DisplayGeometry.
+                // Если хотя бы одна группа > 50 шт, сработал "Режим сводки", и отверстий в геометрии НЕТ.
+                bool holesMissingInGeometry = part.HoleGroups != null && part.HoleGroups.Any(g => g.Count > 50);
+
+                if (holesMissingInGeometry)
                 {
+                    // Добавляем периметр всех отверстий вручную
+                    foreach (var group in part.HoleGroups!)
+                    {
+                        cuttingLength += Math.PI * group.Diameter * group.Count;
+                    }
+                }
+                else if (!isSheetPart && part.HoleGroups?.Count > 0)
+                {
+                    // Старая логика для труб (у них отверстия никогда не попадают в сечение)
                     foreach (var group in part.HoleGroups)
                     {
-                        double holePerimeter = Math.PI * group.Diameter;
-                        cuttingLength += holePerimeter * group.Count;
+                        cuttingLength += Math.PI * group.Diameter * group.Count;
                     }
                 }
 
-                pinholes = isSheetPart
-                    ? TechItemCalculator.CalculatePiercingCount(part.DisplayGeometry)
-                    : (part.HoleGroups?.Sum(g => g.Count) + 2 ?? 0);
+                // Расчёт проколов
+                if (isSheetPart)
+                {
+                    pinholes = TechItemCalculator.CalculatePiercingCount(part.DisplayGeometry);
+                    if (holesMissingInGeometry)
+                    {
+                        // Добавляем проколы для каждого отверстия, так как их нет в геометрии
+                        pinholes += part.HoleGroups!.Sum(g => g.Count);
+                    }
+                }
+                else
+                {
+                    pinholes = part.HoleGroups?.Sum(g => g.Count) + 2 ?? 0;
+                }
             }
 
             part.Way = (float)Math.Round(cuttingLength / 1000, 3);
@@ -1398,20 +1423,21 @@ namespace Metal_Code
 
                 if (part.DisplayGeometry != null)
                 {
-                    try
-                    {
-                        area = CalculateExact2DArea(part.DisplayGeometry);
-                    }
-                    catch
-                    {
-                        area = 0; // Игнорируем исключения, если геометрия "битая"
-                    }
+                    try { area = CalculateExact2DArea(part.DisplayGeometry); }
+                    catch { area = 0; }
                 }
 
-                // Фоллбэк: если точная площадь не посчиталась, равна 0 или ушла в минус
                 if (area <= 0)
                 {
                     area = CalculateCrossSectionArea(part.PartType, part.Width, part.Height, 1);
+                }
+
+                // 🔥 ИСПРАВЛЕНИЕ: Вычитаем площадь отверстий, если они не были вырезаны из геометрии
+                bool holesMissingInGeometry = part.HoleGroups != null && part.HoleGroups.Any(g => g.Count > 50);
+                if (area > 0 && holesMissingInGeometry)
+                {
+                    double holesArea = part.HoleGroups!.Sum(g => g.TotalArea);
+                    area -= holesArea;
                 }
 
                 part.Mass = (float)Math.Round(area * thickness * metal.Density / 1_000_000, 3);
@@ -1422,22 +1448,13 @@ namespace Metal_Code
                     _ => $"{part.Width}x{part.Height}"
                 };
 
-                part.PropsDict[100] = new List<string>
-        {
-            $"{part.Width}",
-            $"{part.Height}",
-            dimensionString
-        };
+                part.PropsDict[100] = new List<string> { $"{part.Width}", $"{part.Height}", dimensionString };
             }
             else
             {
                 double area = CalculateCrossSectionArea(part, thickness);
                 part.Mass = (float)Math.Round(area * part.Length * metal.Density / 1_000_000, 3);
-
-                part.PropsDict[100] = new List<string>
-        {
-            $"{SquareToPaint(part)}", "", $"{part.Length}"
-        };
+                part.PropsDict[100] = new List<string> { $"{SquareToPaint(part)}", "", $"{part.Length}" };
             }
 
             // === ШАГ 4: Сохранение данных об отверстиях ===
@@ -2642,6 +2659,67 @@ namespace Metal_Code
             string prefix = isSaw ? "Лентопил " : "";
 
             return $"{prefix}{cleanType} {section}_{cleanMetal}.pdf";
+        }
+
+        private void ExportAllToDxf_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ToggleButton btn) return;
+            btn.IsChecked = true;
+
+            if (Parts == null || Parts.Count == 0)
+            {
+                MessageBox.Show("Список деталей пуст. Нечего экспортировать.", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                btn.IsChecked = false;
+                return;
+            }
+
+            using var folderDialog = new System.Windows.Forms.FolderBrowserDialog
+            {
+                Description = "Выберите папку для сохранения DXF-файлов деталей",
+                UseDescriptionForTitle = true
+            };
+
+            if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                string exportFolder = folderDialog.SelectedPath;
+                int exportedCount = 0;
+                int errorCount = 0;
+
+                // Группируем по названию, чтобы экспортировать только уникальные типы деталей
+                var uniqueParts = Parts.Select(pc => pc.Part)
+                                       .GroupBy(p => p.Title)
+                                       .Select(g => g.First())
+                                       .ToList();
+
+                foreach (var part in uniqueParts)
+                {
+                    try
+                    {
+                        // Очищаем имя файла от недопустимых символов Windows
+                        string safeTitle = string.Join("_", part.Title!.Split(Path.GetInvalidFileNameChars()));
+                        string fileName = $"{safeTitle}_{part.Metal}_{part.Destiny}мм.dxf";
+                        string fullPath = Path.Combine(exportFolder, fileName);
+
+                        // 🔥 Вызываем тот же универсальный метод
+                        DxfExporter.Export(part, fullPath);
+                        exportedCount++;
+                    }
+                    catch (Exception)
+                    {
+                        errorCount++;
+                    }
+                }
+
+                string resultMsg = $"Пакетный экспорт завершен!\n\nУспешно сохранено: {exportedCount} файлов.";
+                if (errorCount > 0)
+                    resultMsg += $"\nОшибок: {errorCount} (подробности в консоли отладки).";
+
+                MessageBox.Show(resultMsg, "Экспорт DXF", MessageBoxButton.OK,
+                    errorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+            }
+
+            btn.IsChecked = false;
         }
 
         private class PartTableData

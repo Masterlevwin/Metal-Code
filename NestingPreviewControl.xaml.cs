@@ -17,6 +17,8 @@ namespace Metal_Code
     /// </summary>
     public partial class NestingPreviewControl : UserControl
     {
+        //Поля класса
+        #region
         private const double LabelMarginBottom = 40;
         private const double LabelMarginLeft = 50;
         private const double GridStep = 500;
@@ -64,6 +66,7 @@ namespace Metal_Code
         private readonly List<Path> _previewPaths = new();
 
         private Path? _dragOverPreview = null!;
+        #endregion
 
         public NestingPreviewControl() => InitializeUI();
 

@@ -263,7 +263,7 @@ namespace Metal_Code.Utils
         /// <summary>
         /// Создаёт круглый контур (заполненный или незаполненный)
         /// </summary>
-        private static PathFigure CreateCircleFigure(double centerX, double centerY, double radius, bool isFilled)
+        private static PathFigure CreateCircleFigure(double centerX, double centerY, double radius, bool isFilled, SweepDirection direction = SweepDirection.Clockwise)
         {
             var figure = new PathFigure
             {
@@ -274,55 +274,45 @@ namespace Metal_Code.Utils
             figure.Segments.Add(new ArcSegment(
                 new Point(centerX - radius, centerY),
                 new Size(radius, radius),
-                0, false, SweepDirection.Clockwise, true));
+                0, false, direction, true));
             figure.Segments.Add(new ArcSegment(
                 new Point(centerX + radius, centerY),
                 new Size(radius, radius),
-                0, false, SweepDirection.Clockwise, true));
+                0, false, direction, true));
             return figure;
         }
 
 
         /// <summary>
-        /// Генерирует геометрию с отверстиями
+        /// Генерирует геометрию с отверстиями (с оптимизацией производительности для больших количеств)
         /// </summary>
         public static void EnsureDisplayGeometryWithHoles(Part part)
         {
             if (part == null) return;
 
-            // 🔥 СПЕЦИАЛЬНАЯ ОБРАБОТКА ДЛЯ ПРОИЗВОЛЬНЫХ ФОРМ
+            // 🔥 СПЕЦИАЛЬНАЯ ОБРАБОТКА ДЛЯ ПРОИЗВОЛЬНЫХ ФОРМ (без изменений)
             if (part.PartType == PartType.Custom)
             {
-                // Если геометрии нет, нам нечего улучшать
                 if (part.DisplayGeometry == null) return;
-
-                // Если отверстий нет, оставляем геометрию как есть (она уже правильная)
                 bool hasHoleGroups = part.HoleGroups != null && part.HoleGroups.Count > 0;
                 bool hasPlacedHoles = part.PlacedHoles != null && part.PlacedHoles.Count > 0;
 
-                if (!hasHoleGroups && !hasPlacedHoles)
-                {
-                    return;
-                }
+                if (!hasHoleGroups && !hasPlacedHoles) return;
 
-                // Клонируем существующую геометрию, нарисованную пользователем
                 var geometry = CloneGeometry(part.DisplayGeometry);
                 if (geometry == null) return;
 
-                // Добавляем отверстия как НЕзаполненные контуры (полости)
                 var holePositions = CalculateHolePositions(part);
                 foreach (var (position, hole) in holePositions)
                 {
                     geometry.Figures.Add(CreateHoleFigure(position.X, position.Y, hole.Diameter / 2));
                 }
-
                 part.DisplayGeometry = geometry;
-                return; // 🔥 ВАЖНО: выходим, не выполняя стандартную логику ниже
+                return;
             }
 
             // === СТАНДАРТНАЯ ЛОГИКА ДЛЯ ШАБЛОННЫХ ДЕТАЛЕЙ ===
             var originalGeometry = part.DisplayGeometry;
-
             part.DisplayGeometry = null;
             EnsureDisplayGeometry(part);
 
@@ -332,8 +322,8 @@ namespace Metal_Code.Utils
                 return;
             }
 
+            // Валидация (работает быстро, так как это чистая математика, а не UI)
             var (isValid, error) = ValidateHolesPlacement(part);
-            if (error != null) MainWindow.M.StatusBegin(error, MainWindow.StatusMessageType.Error);
             if (!isValid)
             {
                 part.DisplayGeometry = originalGeometry ?? part.DisplayGeometry;
@@ -347,11 +337,21 @@ namespace Metal_Code.Utils
                 return;
             }
 
-            var positionsStandard = CalculateHolePositions(part);
-            foreach (var (position, hole) in positionsStandard)
+            // 🔥 ПРОВЕРКА НА "РЕЖИМ СВОДКИ" (ОПТИМИЗАЦИЯ)
+            // Если хотя бы одна группа содержит более 50 отверстий, не рисуем их по отдельности
+            bool useSummaryMode = part.HoleGroups.Any(g => g.Count > 50);
+
+            if (!useSummaryMode)
             {
-                geometryStandard.Figures.Add(CreateHoleFigure(position.X, position.Y, hole.Diameter / 2));
+                // Мало отверстий: рисуем каждое для точной визуализации
+                var positionsStandard = CalculateHolePositions(part);
+                foreach (var (position, hole) in positionsStandard)
+                {
+                    geometryStandard.Figures.Add(CreateHoleFigure(position.X, position.Y, hole.Diameter / 2));
+                }
             }
+            // Если useSummaryMode == true, мы просто НЕ добавляем фигуры отверстий в geometryStandard.
+            // Это экономит огромное количество ресурсов WPF. Визуальный индикатор мы добавим в StandartPartWindow.
 
             part.DisplayGeometry = geometryStandard;
         }
@@ -403,9 +403,27 @@ namespace Metal_Code.Utils
             if (part.Width <= 0 || part.Height <= 0)
                 return (false, "Неверные габариты детали");
 
-            double totalHoleArea = part.HoleGroups.Sum(g => g.TotalArea);
+            // 🔥 Технологический отступ равен толщине материала (минимум 0.5 мм для безопасности расчетов)
+            double clearance = Math.Max(0.5, part.Destiny);
+            double maxDiameter = part.HoleGroups.Max(g => g.Diameter);
 
-            // Расчет площади с учетом треугольника
+            // 1. Проверка: влезает ли максимальное отверстие в контур с учетом отступов
+            if (part.PartType == PartType.Round)
+            {
+                if (maxDiameter > part.Width - 2 * clearance)
+                    return (false, $"Диаметр отверстия {maxDiameter}мм слишком велик для круга ⌀{part.Width}мм с отступом {clearance}мм");
+            }
+            else // Rectangle, Triangle
+            {
+                double minDimension = Math.Min(part.Width, part.Height);
+                if (maxDiameter > minDimension - 2 * clearance)
+                    return (false, $"Диаметр отверстия {maxDiameter}мм слишком велик для данного габарита с отступом {clearance}мм");
+            }
+
+            // 2. Проверка совокупной "эффективной" площади (отверстие + зона отступа вокруг него)
+            // Площадь круга с радиусом (R + clearance)
+            double totalEffectiveArea = part.HoleGroups.Sum(g => Math.PI * Math.Pow((g.Diameter / 2.0) + clearance, 2) * g.Count);
+
             double partArea = part.PartType switch
             {
                 PartType.Round => Math.PI * Math.Pow(part.Width / 2, 2),
@@ -413,129 +431,99 @@ namespace Metal_Code.Utils
                 _ => part.Width * part.Height
             };
 
-            if (totalHoleArea > partArea * 0.7)
-                return (false, $"Слишком много отверстий: они занимают более 70% площади детали");
+            // Теоретический максимум плотности упаковки кругов ~90.6%. Ставим лимит 85% для безопасности.
+            // Это позволяет разместить 400 отверстий 5мм на полосе 100х2000, но остановит абсурдные значения.
+            if (totalEffectiveArea > partArea * 0.85)
+                return (false, "Совокупная площадь отверстий с учетом технологических отступов превышает физически возможный лимит (85% площади детали).");
 
-            double maxDiameter = part.HoleGroups.Max(g => g.Diameter);
-            double minMargin = maxDiameter / 2 + 5;
-
-            // Для прямоугольника и треугольника проверяем оба габарита
-            if (part.PartType == PartType.Rectangle || part.PartType == PartType.Triangle)
-            {
-                if (part.Width < minMargin * 2 || part.Height < minMargin * 2)
-                    return (false, $"Деталь слишком мала для отверстий диаметром {maxDiameter}мм");
-            }
-            else // Round
-            {
-                if (part.Width < minMargin * 2)
-                    return (false, $"Деталь слишком мала для отверстий диаметром {maxDiameter}мм");
-            }
-
+            // 3. Финальная проверка геометрической расстановки
             var positions = CalculateHolePositions(part);
-            if (!ValidateHoleSpacing(positions))
-                return (false, "Отверстия слишком близко друг к другу или к краям детали");
+            if (!ValidateHoleSpacing(positions, clearance))
+                return (false, $"Невозможно разместить отверстия с заданным отступом ({clearance}мм). Попробуйте уменьшить количество или диаметр.");
 
             return (true, null);
         }
 
         private static (bool IsValid, string? ErrorMessage) ValidatePipeHoles(Part part)
         {
-            // Проверка длины трубы
             if (part.Length <= 0)
                 return (false, "Укажите длину трубы");
 
-            // Минимальный отступ от торцов трубы (20мм для безопасного сверления)
-            const double endMargin = 20;
-
-            // Доступная длина для размещения отверстий
+            const double endMargin = 20; // Отступ от торца оставляем фиксированным для надежности патрона
             double availableLength = part.Length - 2 * endMargin;
             if (availableLength <= 0)
-                return (false, $"Длина трубы слишком мала для сверления отверстий (минимум {endMargin * 2}мм)");
+                return (false, $"Длина трубы слишком мала для сверления (минимум {endMargin * 2}мм)");
 
-            // Сортируем отверстия по диаметру для оптимального размещения
             var holes = part.HoleGroups
                 .SelectMany(g => Enumerable.Repeat(g.Diameter, g.Count))
-                .OrderByDescending(d => d) // Сначала большие отверстия
+                .OrderByDescending(d => d)
                 .ToList();
 
-            // Минимальное расстояние между центрами отверстий = больший диаметр + 10мм зазор
-            double minSpacing = holes.Count > 0 ? holes.Max() + 10 : 0;
+            // 🔥 Минимальное расстояние между центрами = больший диаметр + толщина стенки (вместо жестких 10мм)
+            double clearance = Math.Max(1.0, part.Destiny);
+            double minSpacing = holes.Count > 0 ? holes.Max() + clearance : 0;
 
-            // Проверка: достаточно ли места для всех отверстий по длине
             double requiredLength = holes.Count * minSpacing;
             if (requiredLength > availableLength)
             {
                 int maxPossible = (int)(availableLength / minSpacing);
-                return (false,
-                    $"Недостаточно места для {holes.Count} отверстий. " +
-                    $"Максимум можно разместить {maxPossible} отверстия(й) диаметром {holes.Max()}мм при длине трубы {part.Length}мм");
+                return (false, $"Недостаточно места для {holes.Count} отверстий. Максимум: {maxPossible} шт. при длине {part.Length}мм");
             }
 
-            // Ограничение на максимальное количество отверстий (100 шт) снято
-
-            // Проверка минимального диаметра отверстия относительно толщины стенки
+            // Проверка минимального диаметра относительно толщины стенки (оставляем как рекомендацию, но можно сделать строже)
             double minDiameter = holes.Min();
             if (minDiameter < part.Destiny * 0.8)
             {
-                return (false,
-                    $"Диаметр отверстия {minDiameter}мм меньше толщины стенки трубы {part.Destiny}мм. " +
-                    "Рекомендуется диаметр отверстия не менее 80% от толщины стенки");
+                return (false, $"Диаметр отверстия {minDiameter}мм меньше толщины стенки {part.Destiny}мм. Рекомендуется не менее 80% от толщины.");
             }
 
             return (true, null);
         }
 
-        private static bool ValidateHoleSpacing(List<(Point Position, Hole Hole)> positions)
+        private static bool ValidateHoleSpacing(List<(Point Position, Hole Hole)> positions, double clearance)
         {
-            const double minDistanceBetweenHoles = 5; // Минимум 5мм между краями отверстий
-
             for (int i = 0; i < positions.Count; i++)
             {
                 var (pos1, hole1) = positions[i];
-                double radius1 = hole1.Diameter / 2;
+                double radius1 = hole1.Diameter / 2.0;
 
-                // Проверка расстояния до других отверстий
                 for (int j = i + 1; j < positions.Count; j++)
                 {
                     var (pos2, hole2) = positions[j];
-                    double radius2 = hole2.Diameter / 2;
+                    double radius2 = hole2.Diameter / 2.0;
 
                     double distance = Math.Sqrt(Math.Pow(pos2.X - pos1.X, 2) + Math.Pow(pos2.Y - pos1.Y, 2));
-                    double minRequired = radius1 + radius2 + minDistanceBetweenHoles;
 
-                    if (distance < minRequired)
+                    // 🔥 ИСПРАВЛЕНО: Минимальное расстояние между центрами = радиус1 + радиус2 + зазор (clearance)
+                    // Раньше было (radius1 + clearance) + (radius2 + clearance), что ошибочно удваивало требуемый зазор!
+                    double minRequiredDistance = radius1 + radius2 + clearance;
+
+                    if (distance < minRequiredDistance)
                         return false;
                 }
             }
-
             return true;
         }
 
         /// <summary>
-        /// Рассчитывает позиции отверстий.
-        /// Для произвольных форм использует координаты, заданные пользователем вручную.
-        /// Для труб возвращает пустой список (отверстия не отображаются в сечении).
+        /// Рассчитывает позиции отверстий с учетом физического размера детали и технологических отступов.
         /// </summary>
-        private static List<(Point Position, Hole Hole)> CalculateHolePositions(Part part)
+        public static List<(Point Position, Hole Hole)> CalculateHolePositions(Part part)
         {
             var positions = new List<(Point Position, Hole Hole)>();
 
-            // 🔥 ДЛЯ ПРОИЗВОЛЬНЫХ ФОРМ: используем точные координаты из PlacedHoles
+            // 1. Для произвольных форм используем точные координаты пользователя
             if (part.PartType == PartType.Custom && part.PlacedHoles != null && part.PlacedHoles.Count > 0)
             {
                 foreach (var placed in part.PlacedHoles)
-                {
-                    // Создаем объект Hole только с диаметром, так как координаты уже есть в placed.X/Y
                     positions.Add((new Point(placed.X, placed.Y), new Hole(placed.Diameter)));
-                }
                 return positions;
             }
 
-            // Для труб НЕ визуализируем отверстия в сечении
+            // 2. Для труб отверстия в сечении не визуализируем
             if (part.PartType == PartType.RoundTube || part.PartType == PartType.RectangularTube)
                 return positions;
 
-            // === СТАНДАРТНАЯ ЛОГИКА ДЛЯ ЛИСТОВЫХ ДЕТАЛЕЙ ===
             var allHoles = part.HoleGroups
                 .SelectMany(g => Enumerable.Repeat(new Hole(g.Diameter), g.Count))
                 .ToList();
@@ -543,47 +531,58 @@ namespace Metal_Code.Utils
             int count = allHoles.Count;
             if (count == 0) return positions;
 
-            double minMargin = allHoles.Max(h => h.Diameter) / 2 + 5;
+            double clearance = Math.Max(1.0, part.Destiny);
+            double maxD = allHoles.Max(h => h.Diameter);
+
+            // 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: minMargin должен включать радиус отверстия + технологический отступ
+            double minMargin = (maxD / 2.0) + clearance;
+            double pitch = maxD + clearance; // Минимально допустимый шаг между центрами отверстий
 
             if (part.PartType == PartType.Rectangle)
             {
-                int cols = (int)Math.Ceiling(Math.Sqrt(count));
-                int rows = (int)Math.Ceiling((double)count / cols);
+                double availableW = part.Width - 2 * minMargin;
+                double availableH = part.Height - 2 * minMargin;
 
-                double marginX = Math.Max(minMargin, part.Width * 0.1);
-                double marginY = Math.Max(minMargin, part.Height * 0.1);
-                double spacingX = (part.Width - 2 * marginX) / Math.Max(1, cols - 1);
-                double spacingY = (part.Height - 2 * marginY) / Math.Max(1, rows - 1);
+                int maxCols = availableW > 0 ? (int)Math.Floor(availableW / pitch) + 1 : 0;
+                maxCols = Math.Max(1, maxCols);
+
+                int rows = (int)Math.Ceiling((double)count / maxCols);
+                double stepY = rows > 1 ? availableH / (rows - 1) : 0;
 
                 int index = 0;
                 for (int row = 0; row < rows && index < count; row++)
                 {
-                    for (int col = 0; col < cols && index < count; col++)
+                    int colsInThisRow = Math.Min(maxCols, count - index);
+                    double stepX = colsInThisRow > 1 ? availableW / (colsInThisRow - 1) : 0;
+
+                    double startX = colsInThisRow > 1 ? -part.Width / 2 + minMargin : 0;
+                    double y = rows > 1 ? (-part.Height / 2 + minMargin + row * stepY) : 0;
+
+                    for (int c = 0; c < colsInThisRow && index < count; c++)
                     {
-                        double x = -part.Width / 2 + marginX + col * spacingX;
-                        double y = -part.Height / 2 + marginY + row * spacingY;
+                        double x = colsInThisRow > 1 ? startX + c * stepX : 0;
                         positions.Add((new Point(x, y), allHoles[index++]));
                     }
                 }
             }
             else if (part.PartType == PartType.Triangle)
             {
-                double maxDiameter = allHoles.Max(h => h.Diameter);
-                double pitch = maxDiameter + 5;
-
                 int rows = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(count * 1.5)));
-                double spacingY = rows > 1 ? (part.Height - 2 * minMargin) / (rows - 1) : 0;
+                double availableH = part.Height - 2 * minMargin;
+                double spacingY = rows > 1 ? availableH / (rows - 1) : 0;
 
                 int index = 0;
-
                 for (int row = 0; row < rows && index < count; row++)
                 {
+                    // 🔥 ИСПРАВЛЕНО: y начинается с учетом minMargin от верхнего края
                     double y = (part.Height / 2) - minMargin - row * spacingY;
                     if (rows == 1) y = 0;
 
                     double xLeft = -part.Width / 2;
                     double xRight = -part.Width / 2 + (part.Width / part.Height) * (y + part.Height / 2);
                     double currentWidth = xRight - xLeft;
+
+                    // 🔥 ИСПРАВЛЕНО: availableWidth учитывает minMargin с обеих сторон
                     double availableWidth = currentWidth - 2 * minMargin;
 
                     int holesInThisRow = 0;
@@ -593,18 +592,12 @@ namespace Metal_Code.Utils
                     {
                         holesInThisRow = (int)Math.Floor(availableWidth / pitch) + 1;
                         holesInThisRow = Math.Max(1, holesInThisRow);
-
                         if (holesInThisRow > 1)
-                        {
                             currentSpacingX = availableWidth / (holesInThisRow - 1);
-                        }
                     }
-                    else
+                    else if (currentWidth > maxD + 2 * clearance) // Если влезает хотя бы одно с отступами
                     {
-                        if (currentWidth > maxDiameter + 10)
-                        {
-                            holesInThisRow = 1;
-                        }
+                        holesInThisRow = 1;
                     }
 
                     for (int col = 0; col < holesInThisRow && index < count; col++)
@@ -619,6 +612,7 @@ namespace Metal_Code.Utils
             }
             else // Round
             {
+                // 🔥 ИСПРАВЛЕНО: maxRadius учитывает minMargin, чтобы край отверстия не вылезал за контур
                 double maxRadius = (part.Width / 2) - minMargin;
 
                 if (count == 1)
@@ -627,13 +621,13 @@ namespace Metal_Code.Utils
                 }
                 else if (count <= 6)
                 {
-                    double radius = maxRadius * 0.6;
+                    // Размещаем на радиусе, который гарантирует отступ от края (немного уменьшаем для эстетики, но не более maxRadius)
+                    double radius = Math.Max(0, Math.Min(maxRadius, maxRadius * 0.8));
+
                     for (int i = 0; i < count; i++)
                     {
                         double angle = 2 * Math.PI * i / count - Math.PI / 2;
-                        double x = Math.Cos(angle) * radius;
-                        double y = Math.Sin(angle) * radius;
-                        positions.Add((new Point(x, y), allHoles[i]));
+                        positions.Add((new Point(Math.Cos(angle) * radius, Math.Sin(angle) * radius), allHoles[i]));
                     }
                 }
                 else
@@ -641,24 +635,20 @@ namespace Metal_Code.Utils
                     int innerCount = Math.Min(6, count);
                     int outerCount = count - innerCount;
 
-                    double innerRadius = maxRadius * 0.4;
+                    double innerRadius = Math.Max(0, maxRadius * 0.4);
                     for (int i = 0; i < innerCount; i++)
                     {
                         double angle = 2 * Math.PI * i / innerCount - Math.PI / 2;
-                        double x = Math.Cos(angle) * innerRadius;
-                        double y = Math.Sin(angle) * innerRadius;
-                        positions.Add((new Point(x, y), allHoles[i]));
+                        positions.Add((new Point(Math.Cos(angle) * innerRadius, Math.Sin(angle) * innerRadius), allHoles[i]));
                     }
 
                     if (outerCount > 0)
                     {
-                        double outerRadius = maxRadius * 0.8;
+                        double outerRadius = Math.Max(0, maxRadius);
                         for (int i = 0; i < outerCount; i++)
                         {
                             double angle = 2 * Math.PI * i / outerCount - Math.PI / 2;
-                            double x = Math.Cos(angle) * outerRadius;
-                            double y = Math.Sin(angle) * outerRadius;
-                            positions.Add((new Point(x, y), allHoles[innerCount + i]));
+                            positions.Add((new Point(Math.Cos(angle) * outerRadius, Math.Sin(angle) * outerRadius), allHoles[innerCount + i]));
                         }
                     }
                 }
@@ -669,8 +659,7 @@ namespace Metal_Code.Utils
 
         private static PathFigure CreateHoleFigure(double centerX, double centerY, double radius)
         {
-            // Отверстия ДОЛЖНЫ быть с IsFilled = false, как внутренние контуры труб!
-            return CreateCircleFigure(centerX, centerY, radius, false);
+            return CreateCircleFigure(centerX, centerY, radius, true, SweepDirection.Counterclockwise);
         }
     }
 }

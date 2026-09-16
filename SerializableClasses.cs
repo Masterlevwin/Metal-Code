@@ -318,7 +318,7 @@ namespace Metal_Code
             get => _diameter;
             set
             {
-                _diameter = Math.Max(1, Math.Min(100, value)); // Ограничение: 1-100мм
+                _diameter = Math.Max(0.5, value);
             }
         }
 
@@ -327,14 +327,14 @@ namespace Metal_Code
             get => _count;
             set
             {
-                _count = Math.Max(1, Math.Min(100, value)); // Ограничение: 1-100 шт
+                _count = Math.Max(1, value);
             }
         }
 
         /// <summary>
         /// Общая площадь всех отверстий в группе
         /// </summary>
-        public double TotalArea => Count * Math.PI * Math.Pow(Diameter / 2, 2);
+        public double TotalArea => Count * Math.PI * Math.Pow(Diameter / 2.0, 2);
 
         public HoleGroup(double diameter = 10, int count = 1)
         {

@@ -779,12 +779,8 @@ namespace Metal_Code
                     TargetManager.Id, TargetManager.Name);
 
                 _lastKnownOffersCount = count;
-                Trace.WriteLine($"📊 Счётчик расчётов обновлён из БД: {_lastKnownOffersCount}");
             }
-            catch (Exception ex)
-            {
-                Trace.WriteLine($"⚠️ Ошибка обновления счётчика: {ex.Message}");
-            }
+            catch (Exception) { }
         }
 
         private void ShowNewOffersNotification(int count)
@@ -2917,29 +2913,26 @@ namespace Metal_Code
         /// </summary>
         public void InitializeOffersView()
         {
-            // ⭐ КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Создаем представление ТОЛЬКО если его еще нет.
-            // Повторное создание CollectionViewSource при каждом поиске/обновлении 
-            // разрывает внутренние связи DataGrid и является частой причиной крашей в WPF.
             if (OffersView == null)
             {
                 var viewSource = new CollectionViewSource { Source = CurrentOffers };
                 OffersView = viewSource.View;
-                OffersGrid.ItemsSource = OffersView;
+
+                // Если ItemsSource еще не установлен (например, при самом первом запуске)
+                if (OffersGrid.ItemsSource == null)
+                    OffersGrid.ItemsSource = OffersView;
             }
 
-            // Всегда применяем актуальную сортировку и группировку к существующему представлению
+            // 🔥 Очищаем старые описания групп и сортировок перед применением новых.
+            // Это предотвращает накопление дубликатов и конфликты при повторных поисках.
+            if (OffersView is ICollectionView cv)
+            {
+                cv.GroupDescriptions?.Clear();
+                cv.SortDescriptions?.Clear();
+            }
+
             string sortProp = string.IsNullOrEmpty(_currentSortColumn) ? nameof(Offer.ParentQuoteNumber) : _currentSortColumn;
             ApplySortingAndGrouping(sortProp, _currentSortDirection);
-
-            // ⭐ Безопасное восстановление развернутых групп (только если группы вообще существуют)
-            if (OffersView is ICollectionView view && view.Groups != null && view.Groups.Count > 0)
-            {
-                var expandedGroups = GetExpandedGroupNames();
-                if (expandedGroups.Any())
-                {
-                    Dispatcher.BeginInvoke(new Action(() => RestoreExpandedGroups(expandedGroups)), DispatcherPriority.Background);
-                }
-            }
         }
 
         /// <summary>
@@ -3047,7 +3040,6 @@ namespace Metal_Code
 
             if (string.IsNullOrWhiteSpace(_searchQuery) || TargetManager.Name is null)
             {
-                // Пустой поиск — возвращаем последние 50
                 await LoadManagerDataAsync(TargetManager);
                 return;
             }
@@ -3059,12 +3051,40 @@ namespace Metal_Code
                 var results = await DataService.SearchOffersAsync(
                     TargetManager.Id, TargetManager.Name, _searchQuery.Trim());
 
+                // 1. Запоминаем развернутые группы ДО изменения коллекции
+                var previouslyExpanded = GetExpandedGroupNames();
+
+                // 2. 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Отвязываем DataGrid от источника данных.
+                // Это предотвращает внутренние краши WPF ItemContainerGenerator при массовом Clear/Add 
+                // на сгруппированных данных (особенно после удаления/изменения элементов, как при отгрузке).
+                OffersGrid.ItemsSource = null;
+
                 CurrentOffers.Clear();
                 foreach (var offer in results) CurrentOffers.Add(offer);
 
+                // 3. Возвращаем источник данных
+                OffersGrid.ItemsSource = OffersView;
+
+                // 4. Инициализируем представление (теперь без восстановления групп внутри)
                 InitializeOffersView();
 
-                // ⭐ Показываем РЕЗУЛЬТАТ, а не процесс
+                // 5. Безопасно восстанавливаем группы ПОСЛЕ того, как UI сформировал новое дерево
+                if (previouslyExpanded.Any())
+                {
+                    await Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        try
+                        {
+                            RestoreExpandedGroups(previouslyExpanded);
+                        }
+                        catch
+                        {
+                            // Игнорируем ошибки визуального дерева, чтобы не ронять приложение,
+                            // если пользователь уже начал вводить следующий символ.
+                        }
+                    }), DispatcherPriority.ContextIdle); // ContextIdle гарантирует, что UI завершил отрисовку
+                }
+
                 StatusBegin($"Найдено расчётов: {results.Count}", StatusMessageType.Success);
             }
             catch (Exception ex)

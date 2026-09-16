@@ -1,4 +1,9 @@
 ﻿using Metal_Code.Utils;
+using Microsoft.Win32;
+using netDxf;
+using netDxf.Entities;
+using netDxf.Header;
+using netDxf.Units;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -10,11 +15,17 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using Ellipse = System.Windows.Shapes.Ellipse;
+using Line = System.Windows.Shapes.Line;
+using Point = System.Windows.Point;
+using TextAlignment = System.Windows.TextAlignment;
 
 namespace Metal_Code
 {
     public partial class StandartPartWindow : Window
     {
+        //Поля класса
+        #region
         private readonly Part _currentPart;
         private readonly ObservableCollection<Part> _batchBuffer = new();
         private readonly Dictionary<Part, Dictionary<double, (int Count, double BendLength)>> _batchBendsInfo = new();
@@ -34,18 +45,27 @@ namespace Metal_Code
         private const double SheetHeightMm = 1500;
         private const double Epsilon = 0.5;
         private const double ClosingSnapToleranceMm = 10.0;
-
         private static readonly double[] GridSteps = { 10, 20, 50, 100, 200, 250, 500, 1000 };
 
         // Режим редактирования размеров
         private bool _isEditMode = false;
         private int _selectedSegmentIndex = -1; // Индекс выбранного сегмента (-1 = не выбран)
         private const double SegmentClickTolerancePx = 15; // Допуск клика по линии (в пикселях экрана)
-
         public bool UseAutoNesting { get; private set; } = true;
         public double CustomSpacing { get; private set; } = 0;
         public double CustomClampZone { get; private set; } = 340;
         public double CustomCutLoss { get; private set; } = 10;
+
+        // Поля для режима отверстий
+        private bool _isPlacingHoles = false;
+        private const double MinEdgeDistanceMm = 3.0;
+
+        // Состояние редактирования отверстий
+        private int _selectedHoleIndex = -1;
+        private int _nearestVerticalSegmentIndex = -1;
+        private int _nearestHorizontalSegmentIndex = -1;
+        private const double HoleClickTolerancePx = 15;
+        #endregion
 
         public StandartPartWindow(Part templatePart)
         {
@@ -93,53 +113,10 @@ namespace Metal_Code
                 MaterialInfoText.Text = $"📋 Материал: {metal} | Толщина: {thickness}";
         }
 
-        private void OnShapeTypeChanged(object sender, RoutedEventArgs e)
-        {
-            if (sender is RadioButton rb && rb.Tag is string shapeType)
-            {
-                _isDrawingActive = false;
-                _isContourFinished = false;
-                _customPoints.Clear();
-                DrawingCanvas.Children.Clear();
-
-                ResetBendParameters();
-
-                switch (shapeType)
-                {
-                    case "Round": _currentPart.PartType = PartType.Round; _currentPart.Title = "Круг"; break;
-                    case "Triangle": _currentPart.PartType = PartType.Triangle; _currentPart.Title = "Треугольник"; break;
-                    case "Custom":
-                        _currentPart.PartType = PartType.Custom;
-                        _currentPart.Title = "Произвольная форма";
-                        _isDrawingActive = true;
-                        _currentPart.Width = 0;
-                        _currentPart.Height = 0;
-                        break;
-                    default: _currentPart.PartType = PartType.Rectangle; _currentPart.Title = "Прямоугольник"; break;
-                }
-
-                _currentPart.OnPropertyChanged(nameof(Part.PartType));
-                _currentPart.OnPropertyChanged(nameof(Part.Title));
-                _currentPart.HoleGroups.Clear();
-
-                if (_currentPart.PartType == PartType.Custom)
-                {
-                    _currentPart.DisplayGeometry = null;
-                    _currentPart.OnPropertyChanged(nameof(Part.DisplayGeometry));
-                }
-                else
-                {
-                    if (_currentPart.Width <= 0) _currentPart.Width = 100;
-                    if (_currentPart.Height <= 0) _currentPart.Height = 100;
-                    UpdatePreview();
-                }
-            }
-        }
-
         // ==========================================
         // ЛОГИКА ХОЛСТА И СЕТКИ
         // ==========================================
-
+        #region
         private void DrawingArea_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             if (e.NewSize.Width > 0 && e.NewSize.Height > 0)
@@ -226,11 +203,12 @@ namespace Metal_Code
             return type == PartType.RoundTube || type == PartType.RectangularTube ||
                    type == PartType.Angle || type == PartType.Channel || type == PartType.IBeam;
         }
+        #endregion
 
         // ==========================================
         // ОТРИСОВКА ДЕТАЛЕЙ
         // ==========================================
-
+        #region
         private void RedrawCanvas(Point? previewPoint = null)
         {
             DrawingCanvas.Children.Clear();
@@ -247,12 +225,59 @@ namespace Metal_Code
             double markerSize = 6 / CanvasScale.ScaleX;
             double dashThickness = 1 / CanvasScale.ScaleX;
 
-            // Если это шаблонная деталь — рисуем её и выходим
+            // Если это шаблонная деталь — рисуем её
             if (_currentPart.PartType != PartType.Custom)
             {
                 DrawTemplateGeometry(strokeThickness);
                 DrawBendLines(strokeThickness);
-                return;
+
+                // 🔥 НОВОЕ: Отрисовка индикатора группы отверстий для оптимизации производительности
+                if (_currentPart.HoleGroups != null && _currentPart.HoleGroups.Any(g => g.Count > 50))
+                {
+                    Rect bounds = (Rect)(_currentPart.DisplayGeometry?.Bounds)!;
+                    if (!bounds.IsEmpty)
+                    {
+                        double centerX = bounds.X + (bounds.Width / 2.0);
+                        double centerY = bounds.Y + (bounds.Height / 2.0);
+                        double offset = (SheetWidthMm / 2) - (bounds.X + bounds.Width / 2);
+                        double offsetY = (SheetHeightMm / 2) - (bounds.Y + bounds.Height / 2);
+
+                        double canvasCx = centerX + offset;
+                        double canvasCy = centerY + offsetY;
+
+                        // 1. Пунктирный круг-индикатор
+                        double indicatorSize = 40 / CanvasScale.ScaleX;
+                        DrawingCanvas.Children.Add(new Ellipse
+                        {
+                            Width = indicatorSize,
+                            Height = indicatorSize,
+                            Stroke = Brushes.Magenta,
+                            StrokeThickness = 2 / CanvasScale.ScaleX,
+                            StrokeDashArray = new DoubleCollection { 4, 4 },
+                            Fill = new SolidColorBrush(Color.FromArgb(30, 255, 0, 255)),
+                            RenderTransform = new TranslateTransform(canvasCx - indicatorSize / 2, canvasCy - indicatorSize / 2)
+                        });
+
+                        // 2. Текстовая сводка (например: "⌀5×400, ⌀20×100")
+                        string summaryText = string.Join(", ", _currentPart.HoleGroups.Select(g => $"⌀{g.Diameter:0}×{g.Count}"));
+                        var label = new TextBlock
+                        {
+                            Text = summaryText,
+                            FontSize = 14 / CanvasScale.ScaleX,
+                            Foreground = Brushes.Magenta,
+                            FontWeight = FontWeights.Bold,
+                            Background = Brushes.White,
+                            TextAlignment = TextAlignment.Center
+                        };
+                        label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+
+                        Canvas.SetLeft(label, canvasCx - label.DesiredSize.Width / 2);
+                        Canvas.SetTop(label, canvasCy - label.DesiredSize.Height / 2);
+                        DrawingCanvas.Children.Add(label);
+                    }
+                }
+
+                return; // Выходим, дальше рисуются только Custom детали
             }
 
             // Отрисовка произвольной формы
@@ -401,29 +426,49 @@ namespace Metal_Code
             // 🔥 Отрисовка размещённых отверстий
             if (_currentPart.PartType == PartType.Custom && _currentPart.PlacedHoles.Count > 0)
             {
-                foreach (var hole in _currentPart.PlacedHoles)
+                for (int i = 0; i < _currentPart.PlacedHoles.Count; i++)
                 {
+                    var hole = _currentPart.PlacedHoles[i];
                     double radius = hole.Diameter / 2.0;
+                    bool isSelected = (i == _selectedHoleIndex);
 
-                    // Круг отверстия
                     DrawingCanvas.Children.Add(new Ellipse
                     {
                         Width = radius * 2,
                         Height = radius * 2,
-                        Stroke = Brushes.Red,
-                        StrokeThickness = 2 / CanvasScale.ScaleX,
-                        Fill = new SolidColorBrush(Color.FromArgb(60, 255, 0, 0)), // Полупрозрачный красный
+                        Stroke = isSelected ? Brushes.Yellow : Brushes.Red,
+                        StrokeThickness = (isSelected ? 3 : 2) / CanvasScale.ScaleX,
+                        Fill = new SolidColorBrush(Color.FromArgb((byte)(isSelected ? 100 : 60), 255, 0, 0)),
                         RenderTransform = new TranslateTransform(hole.X - radius, hole.Y - radius)
                     });
 
-                    // Метка с диаметром
+                    // Линии привязки для выбранного отверстия
+                    if (isSelected)
+                    {
+                        var dashArray = new DoubleCollection { 3, 3 };
+                        var lineBrush = Brushes.DarkGreen;
+                        double lineThickness = 1.5 / CanvasScale.ScaleX;
+
+                        if (_nearestVerticalSegmentIndex >= 0 && _nearestVerticalSegmentIndex < _customPoints.Count)
+                        {
+                            Point p1 = _customPoints[_nearestVerticalSegmentIndex];
+                            DrawingCanvas.Children.Add(new Line { X1 = hole.X, Y1 = hole.Y, X2 = p1.X, Y2 = hole.Y, Stroke = lineBrush, StrokeThickness = lineThickness, StrokeDashArray = dashArray });
+                        }
+                        if (_nearestHorizontalSegmentIndex >= 0 && _nearestHorizontalSegmentIndex < _customPoints.Count)
+                        {
+                            Point p1 = _customPoints[_nearestHorizontalSegmentIndex];
+                            DrawingCanvas.Children.Add(new Line { X1 = hole.X, Y1 = hole.Y, X2 = hole.X, Y2 = p1.Y, Stroke = lineBrush, StrokeThickness = lineThickness, StrokeDashArray = dashArray });
+                        }
+                    }
+
                     var label = new TextBlock
                     {
-                        Text = $"⌀{hole.Diameter:0}",
+                        Text = isSelected ? $"⌀{hole.Diameter:0}\nX:{hole.X:0} Y:{hole.Y:0}" : $"⌀{hole.Diameter:0}",
                         FontSize = 12 / CanvasScale.ScaleX,
-                        Foreground = Brushes.DarkRed,
-                        FontWeight = FontWeights.Bold,
-                        Background = Brushes.White
+                        Foreground = isSelected ? Brushes.DarkBlue : Brushes.DarkRed,
+                        FontWeight = isSelected ? FontWeights.Bold : FontWeights.Normal,
+                        Background = Brushes.White,
+                        TextAlignment = TextAlignment.Center
                     };
                     label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                     Canvas.SetLeft(label, hole.X - label.DesiredSize.Width / 2);
@@ -452,6 +497,49 @@ namespace Metal_Code
             DrawingCanvas.Children.Add(path);
         }
 
+        private void OnShapeTypeChanged(object sender, RoutedEventArgs e)
+        {
+            if (sender is RadioButton rb && rb.Tag is string shapeType)
+            {
+                _isDrawingActive = false;
+                _isContourFinished = false;
+                _customPoints.Clear();
+                DrawingCanvas.Children.Clear();
+
+                ResetBendParameters();
+
+                switch (shapeType)
+                {
+                    case "Round": _currentPart.PartType = PartType.Round; _currentPart.Title = "Круг"; break;
+                    case "Triangle": _currentPart.PartType = PartType.Triangle; _currentPart.Title = "Треугольник"; break;
+                    case "Custom":
+                        _currentPart.PartType = PartType.Custom;
+                        _currentPart.Title = "Произвольная форма";
+                        _isDrawingActive = true;
+                        _currentPart.Width = 0;
+                        _currentPart.Height = 0;
+                        break;
+                    default: _currentPart.PartType = PartType.Rectangle; _currentPart.Title = "Прямоугольник"; break;
+                }
+
+                _currentPart.OnPropertyChanged(nameof(Part.PartType));
+                _currentPart.OnPropertyChanged(nameof(Part.Title));
+                _currentPart.HoleGroups.Clear();
+
+                if (_currentPart.PartType == PartType.Custom)
+                {
+                    _currentPart.DisplayGeometry = null;
+                    _currentPart.OnPropertyChanged(nameof(Part.DisplayGeometry));
+                }
+                else
+                {
+                    if (_currentPart.Width <= 0) _currentPart.Width = 100;
+                    if (_currentPart.Height <= 0) _currentPart.Height = 100;
+                    UpdatePreview();
+                }
+            }
+        }
+
         private void UpdatePreview()
         {
             if (_currentPart.PartType == PartType.Custom) return;
@@ -465,10 +553,12 @@ namespace Metal_Code
 
             RedrawCanvas();
         }
+        #endregion
 
         // ==========================================
         // ВИЗУАЛИЗАЦИЯ ТРУБНЫХ ДЕТАЛЕЙ
         // ==========================================
+        #region
         private void DrawPipeView()
         {
             if (_currentPart.DisplayGeometry == null) return;
@@ -553,10 +643,12 @@ namespace Metal_Code
             DrawCanvasLabel(GetPipeTypeName(_currentPart.PartType),
                             secCX, secTop - dimOffset * 2, dimFontSize, Brushes.DarkBlue);
         }
+        #endregion
 
         // ==========================================
         // РАЗМЕРНЫЕ ЛИНИИ СО СТРЕЛКАМИ
         // ==========================================
+        #region
         private void DrawDimLine(double x1, double y1, double x2, double y2,
                                  string text, double fontSize, bool horizontal)
         {
@@ -625,36 +717,51 @@ namespace Metal_Code
             PartType.IBeam => "Двутавр",
             _ => "Труба"
         };
+        #endregion
 
         // ==========================================
         // ОБРАБОТЧИКИ МЫШИ И РИСОВАНИЯ
         // ==========================================
-
+        #region
         private void Grid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // 🔥 1. Режим размещения отверстий
+            var clickPoint = e.GetPosition(DrawingCanvas);
+            clickPoint.X = Math.Clamp(clickPoint.X, 0, SheetWidthMm);
+            clickPoint.Y = Math.Clamp(clickPoint.Y, 0, SheetHeightMm);
+
+            // 0. Проверка клика по существующему отверстию
+            int clickedHoleIndex = GetClickedHole(clickPoint);
+            if (clickedHoleIndex >= 0)
+            {
+                SelectHoleForEditing(clickedHoleIndex);
+                e.Handled = true;
+                return;
+            }
+
+            // Сброс выделения при клике в пустоту
+            if (_selectedHoleIndex >= 0)
+            {
+                _selectedHoleIndex = -1;
+                HoleEditPanel.Visibility = Visibility.Collapsed;
+                RedrawCanvas();
+            }
+
+            // 1. Режим размещения отверстий
             if (_isPlacingHoles && _isContourFinished)
             {
-                var clickPoint = e.GetPosition(DrawingCanvas);
-                clickPoint.X = Math.Clamp(clickPoint.X, 0, SheetWidthMm);
-                clickPoint.Y = Math.Clamp(clickPoint.Y, 0, SheetHeightMm);
-
                 PlaceHole(clickPoint);
                 e.Handled = true;
                 return;
             }
 
-            // 🔥 Режим редактирования размеров
+            // 2. Режим редактирования размеров
             if (_isEditMode && _isContourFinished)
             {
-                var clickPoint = e.GetPosition(DrawingCanvas);
                 int clickedSegment = GetClickedSegment(clickPoint);
-
                 if (clickedSegment >= 0)
                 {
                     _selectedSegmentIndex = clickedSegment;
-                    double length = GetSegmentLength(clickedSegment);
-                    SegmentSizeInput.Text = $"{length:0}";
+                    SegmentSizeInput.Text = $"{GetSegmentLength(clickedSegment):0}";
                     CurrentSizeText.Text = $"Выбрана линия {clickedSegment + 1}";
                     SegmentSizeInput.IsEnabled = true;
                     SegmentSizeInput.Focus();
@@ -667,12 +774,12 @@ namespace Metal_Code
                     CurrentSizeText.Text = "Линия не найдена";
                     SegmentSizeInput.IsEnabled = false;
                 }
-
                 RedrawCanvas();
                 e.Handled = true;
                 return;
             }
 
+            // 3. Панорамирование
             if (Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt))
             {
                 _isPanning = true;
@@ -683,21 +790,17 @@ namespace Metal_Code
                 return;
             }
 
+            // 4. Рисование контура
             if (!_isDrawingActive || _isContourFinished) return;
-
-            var mousePoint = e.GetPosition(DrawingCanvas);
-            mousePoint.X = Math.Clamp(mousePoint.X, 0, SheetWidthMm);
-            mousePoint.Y = Math.Clamp(mousePoint.Y, 0, SheetHeightMm);
 
             if (_customPoints.Count == 0)
             {
-                _customPoints.Add(mousePoint);
+                _customPoints.Add(clickPoint);
             }
             else
             {
-                var candidate = GetSnappedPoint(_customPoints.Last(), mousePoint);
+                var candidate = GetSnappedPoint(_customPoints.Last(), clickPoint);
                 if (candidate == _customPoints.Last()) return;
-
                 if (HasIntersections(_customPoints.Last(), candidate))
                 {
                     MessageBox.Show("Линия пересекает существующий контур!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -705,7 +808,6 @@ namespace Metal_Code
                 }
                 _customPoints.Add(candidate);
             }
-
             RedrawCanvas();
             UpdateCustomGeometry();
             UpdateFinishButtonState();
@@ -759,11 +861,12 @@ namespace Metal_Code
         private void FitView_Click(object sender, RoutedEventArgs e) => InitializeView();
         private void ZoomIn_Click(object sender, RoutedEventArgs e) { CanvasScale.ScaleX *= 1.2; CanvasScale.ScaleY *= 1.2; RedrawBackground(); }
         private void ZoomOut_Click(object sender, RoutedEventArgs e) { CanvasScale.ScaleX /= 1.2; CanvasScale.ScaleY /= 1.2; RedrawBackground(); }
+        #endregion
 
         // ==========================================
         // ГЕОМЕТРИЯ И ВАЛИДАЦИЯ
         // ==========================================
-
+        #region
         private Point GetSnappedPoint(Point prev, Point mouse)
         {
             double dx = Math.Abs(mouse.X - prev.X);
@@ -894,14 +997,21 @@ namespace Metal_Code
 
         private void ClearDrawing_Click(object sender, RoutedEventArgs e)
         {
-            // Сброс режима редактирования
             _isEditMode = false;
             _selectedSegmentIndex = -1;
-            EditModeToggle.IsChecked = false;
-            EditModePanel.Visibility = Visibility.Collapsed;
+            if (EditModeToggle != null) EditModeToggle.IsChecked = false;
+            if (EditModePanel != null) EditModePanel.Visibility = Visibility.Collapsed;
+
+            // Сброс состояния отверстий
+            _selectedHoleIndex = -1;
+            _nearestVerticalSegmentIndex = -1;
+            _nearestHorizontalSegmentIndex = -1;
+            if (HoleEditPanel != null) HoleEditPanel.Visibility = Visibility.Collapsed;
 
             _customPoints.Clear();
             _isContourFinished = false;
+            if (_currentPart.PlacedHoles != null) _currentPart.PlacedHoles.Clear();
+
             RedrawCanvas();
             UpdateCustomGeometry();
             UpdateFinishButtonState();
@@ -915,12 +1025,12 @@ namespace Metal_Code
             // 🔥 Показываем панель редактирования размеров после завершения контура
             EditModePanel.Visibility = Visibility.Visible;
         }
-
+        #endregion
 
         // ==========================================
         // РЕДАКТИРОВАНИЕ РАЗМЕРОВ ЛИНИЙ
         // ==========================================
-
+        #region
         private void EditModeToggle_Click(object sender, RoutedEventArgs e)
         {
             _isEditMode = EditModeToggle.IsChecked ?? false;
@@ -1097,25 +1207,14 @@ namespace Metal_Code
 
             return Math.Sqrt(Math.Pow(p2.X - p1.X, 2) + Math.Pow(p2.Y - p1.Y, 2));
         }
+        #endregion
 
         // ==========================================
-        // СУЩЕСТВУЮЩАЯ БИЗНЕС-ЛОГИКА
+        // ЛОГИКА РЕДАКТИРОВАНИЯ ОТВЕРСТИЙ
         // ==========================================
-
-        public List<Part> GetBatchedParts() => new(_batchBuffer);
-
-        /// <summary>
-        /// Возвращает информацию о гибах для всех деталей в буфере.
-        /// Используется для автоматического заполнения карточек гибки.
-        /// </summary>
-        public Dictionary<Part, Dictionary<double, (int Count, double BendLength)>> GetBendsInfoForBatch()
-        {
-            return new Dictionary<Part, Dictionary<double, (int Count, double BendLength)>>(_batchBendsInfo);
-        }
-
+        #region
         private void AddHoleGroup_Click(object sender, RoutedEventArgs e)
         {
-            if (_currentPart.PartType == PartType.Custom) { MessageBox.Show("Отверстия для произвольных форм пока не поддерживаются.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information); return; }
             if (!double.TryParse(DiameterInput.Text, out double d) || d <= 0) { MessageBox.Show("Некорректный диаметр", "Ошибка"); return; }
             if (!int.TryParse(CountInput.Text, out int c) || c <= 0) { MessageBox.Show("Некорректное количество", "Ошибка"); return; }
 
@@ -1128,10 +1227,6 @@ namespace Metal_Code
         {
             if (e.OriginalSource is Button btn && btn.Tag is HoleGroup group) { _currentPart.HoleGroups.Remove(group); UpdatePreview(); }
         }
-
-        // Поля для режима отверстий
-        private bool _isPlacingHoles = false;
-        private const double MinEdgeDistanceMm = 3.0; // Минимальное расстояние от края отверстия до края детали (мм)
 
         private void HoleModeToggle_Click(object sender, RoutedEventArgs e)
         {
@@ -1154,7 +1249,6 @@ namespace Metal_Code
             }
         }
 
-        // Обработка клика для размещения отверстия
         private void PlaceHole(Point clickPoint)
         {
             if (!double.TryParse(HoleDiameterInput.Text, out double diameter) || diameter <= 0)
@@ -1197,7 +1291,6 @@ namespace Metal_Code
             RedrawCanvas();
         }
 
-        // Алгоритм "Ray Casting" для проверки точки внутри полигона
         private bool IsPointInPolygon(Point p, PointCollection polygon)
         {
             bool isInside = false;
@@ -1213,93 +1306,144 @@ namespace Metal_Code
             return isInside;
         }
 
-        private void AddToBatch_Click(object sender, RoutedEventArgs e)
+        private int GetClickedHole(Point clickPoint)
         {
-            if (string.IsNullOrWhiteSpace(_currentPart.Title)) { MessageBox.Show("Укажите название", "Ошибка"); return; }
-            if (_batchBuffer.Any(p => p.Title == _currentPart.Title)) { MessageBox.Show("Такое название уже есть", "Ошибка"); return; }
-            if (_currentPart.Count <= 0) { MessageBox.Show("Укажите количество", "Ошибка"); return; }
+            if (_currentPart.PlacedHoles == null || _currentPart.PlacedHoles.Count == 0) return -1;
+            double toleranceMm = HoleClickTolerancePx / CanvasScale.ScaleX;
 
-            if (_currentPart.PartType != PartType.Custom)
+            for (int i = 0; i < _currentPart.PlacedHoles.Count; i++)
             {
-                var (isValid, error) = PartPreviewGenerator.ValidateHolesPlacement(_currentPart);
-                if (!isValid && MessageBox.Show($"Проблемы с отверстиями:\n{error}\nПродолжить без них?", "Внимание", MessageBoxButton.YesNo) == MessageBoxResult.No) return;
-                if (!isValid) _currentPart.HoleGroups.Clear();
+                var hole = _currentPart.PlacedHoles[i];
+                double distance = Math.Sqrt(Math.Pow(clickPoint.X - hole.X, 2) + Math.Pow(clickPoint.Y - hole.Y, 2));
+                double clickRadius = Math.Max(hole.Diameter / 2.0, toleranceMm);
+                if (distance <= clickRadius) return i;
+            }
+            return -1;
+        }
+
+        private void FindNearestSegmentsToHole(Point holePoint)
+        {
+            _nearestVerticalSegmentIndex = -1;
+            _nearestHorizontalSegmentIndex = -1;
+            double minVertDist = double.MaxValue, minHorizDist = double.MaxValue;
+
+            for (int i = 0; i < _customPoints.Count; i++)
+            {
+                Point p1 = _customPoints[i];
+                Point p2 = (i < _customPoints.Count - 1) ? _customPoints[i + 1] : _customPoints[0];
+                bool isHorizontal = Math.Abs(p1.Y - p2.Y) < Epsilon;
+                bool isVertical = Math.Abs(p1.X - p2.X) < Epsilon;
+
+                if (isVertical)
+                {
+                    double dist = Math.Abs(holePoint.X - p1.X);
+                    if (dist < minVertDist) { minVertDist = dist; _nearestVerticalSegmentIndex = i; }
+                }
+                else if (isHorizontal)
+                {
+                    double dist = Math.Abs(holePoint.Y - p1.Y);
+                    if (dist < minHorizDist) { minHorizDist = dist; _nearestHorizontalSegmentIndex = i; }
+                }
+            }
+        }
+
+        private double GetDistanceToSegment(Point point, int segmentIndex)
+        {
+            if (segmentIndex < 0 || segmentIndex >= _customPoints.Count) return 0;
+            Point p1 = _customPoints[segmentIndex];
+            bool isVertical = Math.Abs(p1.X - (segmentIndex < _customPoints.Count - 1 ? _customPoints[segmentIndex + 1].X : _customPoints[0].X)) < Epsilon;
+            return isVertical ? Math.Abs(point.X - p1.X) : Math.Abs(point.Y - p1.Y);
+        }
+
+        private void SelectHoleForEditing(int holeIndex)
+        {
+            _selectedHoleIndex = holeIndex;
+            var hole = _currentPart.PlacedHoles[holeIndex];
+            FindNearestSegmentsToHole(new Point(hole.X, hole.Y));
+
+            HoleEditPanel.Visibility = Visibility.Visible;
+
+            if (_nearestVerticalSegmentIndex >= 0)
+            {
+                HoleHorizDistInput.Text = $"{GetDistanceToSegment(new Point(hole.X, hole.Y), _nearestVerticalSegmentIndex):0.##}";
+                HoleHorizLabel.Visibility = Visibility.Visible;
+                HoleHorizDistInput.Visibility = Visibility.Visible;
+            }
+            else { HoleHorizLabel.Visibility = Visibility.Collapsed; HoleHorizDistInput.Visibility = Visibility.Collapsed; }
+
+            if (_nearestHorizontalSegmentIndex >= 0)
+            {
+                HoleVertDistInput.Text = $"{GetDistanceToSegment(new Point(hole.X, hole.Y), _nearestHorizontalSegmentIndex):0.##}";
+                HoleVertLabel.Visibility = Visibility.Visible;
+                HoleVertDistInput.Visibility = Visibility.Visible;
+            }
+            else { HoleVertLabel.Visibility = Visibility.Collapsed; HoleVertDistInput.Visibility = Visibility.Collapsed; }
+
+            _isPlacingHoles = false;
+            if (HoleModeToggle != null) HoleModeToggle.IsChecked = false;
+            RedrawCanvas();
+        }
+
+        private void ApplyHolePosition_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedHoleIndex < 0 || _currentPart.PlacedHoles == null) return;
+            var hole = _currentPart.PlacedHoles[_selectedHoleIndex];
+            double newX = hole.X, newY = hole.Y;
+
+            if (_nearestVerticalSegmentIndex >= 0 && double.TryParse(HoleHorizDistInput.Text.Replace(',', '.'), out double horizDist))
+            {
+                Point p1 = _customPoints[_nearestVerticalSegmentIndex];
+                bool isLeft = hole.X < p1.X;
+                newX = isLeft ? p1.X - horizDist : p1.X + horizDist;
             }
 
-            // Синхронизация PlacedHoles -> HoleGroups для Custom
+            if (_nearestHorizontalSegmentIndex >= 0 && double.TryParse(HoleVertDistInput.Text.Replace(',', '.'), out double vertDist))
+            {
+                Point p1 = _customPoints[_nearestHorizontalSegmentIndex];
+                bool isBelow = hole.Y > p1.Y; // В WPF Y растет вниз
+                newY = isBelow ? p1.Y + vertDist : p1.Y - vertDist;
+            }
+
+            if (!IsPointInPolygon(new Point(newX, newY), _customPoints))
+            {
+                MessageBox.Show("Отверстие выходит за пределы контура детали.", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            hole.X = newX; hole.Y = newY;
+            _selectedHoleIndex = -1;
+            HoleEditPanel.Visibility = Visibility.Collapsed;
+            RedrawCanvas();
+            SyncHolesToGroups();
+        }
+
+        private void CancelHoleEdit_Click(object sender, RoutedEventArgs e)
+        {
+            _selectedHoleIndex = -1;
+            HoleEditPanel.Visibility = Visibility.Collapsed;
+            RedrawCanvas();
+        }
+
+        private void HoleDistInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter) ApplyHolePosition_Click(sender, e);
+        }
+
+        private void SyncHolesToGroups()
+        {
             if (_currentPart.PartType == PartType.Custom && _currentPart.PlacedHoles.Count > 0)
             {
                 _currentPart.HoleGroups.Clear();
-                var grouped = _currentPart.PlacedHoles.GroupBy(h => h.Diameter);
-                foreach (var group in grouped)
-                {
+                foreach (var group in _currentPart.PlacedHoles.GroupBy(h => h.Diameter))
                     _currentPart.HoleGroups.Add(new HoleGroup(group.Key, group.Count()));
-                }
-                PartPreviewGenerator.EnsureDisplayGeometryWithHoles(_currentPart);
-            }
-
-            var clone = ClonePart(_currentPart);
-            if (clone != null)
-            {
-                _batchBuffer.Add(clone);
-
-                // 🔥 ДОБАВЛЕНО: Сохраняем информацию о гибах для этой детали
-                var bendsInfo = CalculateBendsInfo();
-                if (bendsInfo.Count > 0)
-                {
-                    _batchBendsInfo[clone] = bendsInfo;
-                }
-
-                _currentPart.HoleGroups.Clear();
-                if (_currentPart.PartType == PartType.Custom) ClearDrawing_Click(sender, e);
-                else UpdatePreview();
             }
         }
-
-        private void FinishBatch_Click(object sender, RoutedEventArgs e)
-        {
-            if (_batchBuffer.Count == 0) { MessageBox.Show("Список пуст", "Ошибка"); return; }
-
-            UseAutoNesting = AutoNestingCheck.IsChecked ?? true;
-            CustomSpacing = double.TryParse(SpacingInput.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double s) && s >= 0 ? s : 0;
-            CustomClampZone = Clamp340Radio.IsChecked == true ? 340 :
-                              Clamp160Radio.IsChecked == true ? 160 : 0;
-            CustomCutLoss = double.TryParse(CutLossInput.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double cl) && cl >= 0 ? cl : 10;
-
-            DialogResult = true;
-            Close();
-        }
-
-        private void RemoveFromBatch_Click(object sender, RoutedEventArgs e)
-        {
-            if (e.OriginalSource is Button btn && btn.Tag is Part part)
-            {
-                _batchBuffer.Remove(part);
-
-                // 🔥 ДОБАВЛЕНО: Удаляем информацию о гибах
-                _batchBendsInfo.Remove(part);
-            }
-        }
-
-        private static Part? ClonePart(Part s) => s.DisplayGeometry == null && s.PartType != PartType.Custom ? null : new Part
-        {
-            Title = s.Title,
-            Count = s.Count,
-            Metal = s.Metal,
-            Destiny = s.Destiny,
-            Width = s.Width,
-            Height = s.Height,
-            Length = s.Length,
-            PartType = s.PartType,
-            HoleGroups = new ObservableCollection<HoleGroup>(s.HoleGroups),
-            DisplayGeometry = s.PartType == PartType.Custom ? PartPreviewGenerator.CloneGeometry(s.DisplayGeometry) : s.DisplayGeometry,
-            PropsDict = new Dictionary<int, List<string>>(s.PropsDict)
-        };
+        #endregion
 
         // ==========================================
         // РАЗВЕРТКА ДЛЯ ГИБКИ
         // ==========================================
-
+        #region
         // Параметры гибки
         private double _bendAngle = 90.0;
         private int _bendsCountX = 0;
@@ -1544,5 +1688,278 @@ namespace Metal_Code
 
             return result;
         }
+        #endregion
+
+        // ==========================================
+        // ЭКСПОРТ В DXF (netDxf 2023.11.10)
+        // ==========================================
+        #region
+        private void ExportToDxf_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentPart.PartType == PartType.Custom && _customPoints.Count < 3)
+            {
+                MessageBox.Show("Для экспорта произвольной формы необходимо завершить построение контура (минимум 3 точки).",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "Файлы DXF (*.dxf)|*.dxf",
+                FileName = $"{_currentPart.Title ?? "Деталь"}_{_currentPart.Metal}_{_currentPart.Destiny}мм.dxf",
+                DefaultExt = ".dxf",
+                Title = "Сохранить DXF-файл детали"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    CreateDxfFile(saveFileDialog.FileName, _currentPart);
+                    MessageBox.Show("Файл успешно сохранен!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при сохранении DXF: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void CreateDxfFile(string filePath, Part part)
+        {
+            var dxf = new DxfDocument(DxfVersion.AutoCad2010);
+            dxf.DrawingVariables.InsUnits = DrawingUnits.Millimeters;
+
+            if (part.PartType == PartType.Custom)
+            {
+                ExportCustomPart(dxf, part);
+            }
+            else if (part.PartType == PartType.Rectangle || part.PartType == PartType.Round || part.PartType == PartType.Triangle)
+            {
+                ExportSheetPart(dxf, part);
+            }
+            else if (IsPipePart(part.PartType))
+            {
+                ExportPipePart(dxf, part);
+            }
+
+            dxf.Save(filePath);
+        }
+
+        /// <summary>
+        /// Экспорт произвольной формы (Custom)
+        /// </summary>
+        private void ExportCustomPart(DxfDocument dxf, Part part)
+        {
+            double minX = _customPoints.Min(p => p.X);
+            double minY = _customPoints.Min(p => p.Y);
+
+            if (part.PlacedHoles.Count > 0)
+            {
+                minX = Math.Min(minX, part.PlacedHoles.Min(h => h.X - h.Diameter / 2.0));
+                minY = Math.Min(minY, part.PlacedHoles.Min(h => h.Y - h.Diameter / 2.0));
+            }
+
+            var polyline = new Polyline2D { IsClosed = true }; // Убрано: Layer = contourLayer
+            foreach (var pt in _customPoints)
+            {
+                polyline.Vertexes.Add(new Polyline2DVertex(new Vector2(pt.X - minX, pt.Y - minY)));
+            }
+            dxf.Entities.Add(polyline);
+
+            foreach (var hole in part.PlacedHoles)
+            {
+                var circle = new Circle(new Vector2(hole.X - minX, hole.Y - minY), hole.Diameter / 2.0); // Убрано: Layer = holeLayer
+                dxf.Entities.Add(circle);
+            }
+        }
+
+        /// <summary>
+        /// Экспорт стандартных листовых деталей (Rectangle, Round, Triangle)
+        /// </summary>
+        private void ExportSheetPart(DxfDocument dxf, Part part)
+        {
+            double offsetX, offsetY;
+
+            if (part.PartType == PartType.Rectangle)
+            {
+                var rect = new Polyline2D { IsClosed = true };
+                rect.Vertexes.Add(new Polyline2DVertex(new Vector2(0, 0)));
+                rect.Vertexes.Add(new Polyline2DVertex(new Vector2(part.Width, 0)));
+                rect.Vertexes.Add(new Polyline2DVertex(new Vector2(part.Width, part.Height)));
+                rect.Vertexes.Add(new Polyline2DVertex(new Vector2(0, part.Height)));
+                dxf.Entities.Add(rect);
+
+                offsetX = part.Width / 2.0;
+                offsetY = part.Height / 2.0;
+            }
+            else if (part.PartType == PartType.Round)
+            {
+                double radius = part.Width / 2.0;
+                var circle = new Circle(new Vector2(radius, radius), radius);
+                dxf.Entities.Add(circle);
+
+                offsetX = radius;
+                offsetY = radius;
+            }
+            else if (part.PartType == PartType.Triangle)
+            {
+                var triangle = new Polyline2D { IsClosed = true };
+                triangle.Vertexes.Add(new Polyline2DVertex(new Vector2(0, 0)));
+                triangle.Vertexes.Add(new Polyline2DVertex(new Vector2(part.Width, 0)));
+                triangle.Vertexes.Add(new Polyline2DVertex(new Vector2(0, part.Height)));
+                dxf.Entities.Add(triangle);
+
+                offsetX = part.Width / 2.0;
+                offsetY = part.Height / 2.0;
+            }
+            else
+            {
+                return;
+            }
+
+            if (part.HoleGroups != null && part.HoleGroups.Count > 0)
+            {
+                var holePositions = PartPreviewGenerator.CalculateHolePositions(part);
+                foreach (var (position, hole) in holePositions)
+                {
+                    var circle = new Circle(new Vector2(position.X + offsetX, position.Y + offsetY), hole.Diameter / 2.0);
+                    dxf.Entities.Add(circle);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Экспорт трубных деталей (RoundTube, RectangularTube, Angle, Channel, IBeam)
+        /// </summary>
+        private void ExportPipePart(DxfDocument dxf, Part part)
+        {
+            double offsetX = part.Width / 2.0;
+            double offsetY = part.Height / 2.0;
+
+            if (part.DisplayGeometry != null)
+            {
+                foreach (PathFigure figure in part.DisplayGeometry.Figures)
+                {
+                    var points = new List<Vector2>();
+                    points.Add(new Vector2(figure.StartPoint.X + offsetX, figure.StartPoint.Y + offsetY));
+
+                    foreach (PathSegment segment in figure.Segments)
+                    {
+                        if (segment is LineSegment lineSeg)
+                            points.Add(new Vector2(lineSeg.Point.X + offsetX, lineSeg.Point.Y + offsetY));
+                        else if (segment is PolyLineSegment polySeg)
+                            foreach (var pt in polySeg.Points)
+                                points.Add(new Vector2(pt.X + offsetX, pt.Y + offsetY));
+                        else if (segment is ArcSegment arcSeg)
+                            points.Add(new Vector2(arcSeg.Point.X + offsetX, arcSeg.Point.Y + offsetY));
+                    }
+
+                    if (points.Count >= 2)
+                    {
+                        var polyline = new Polyline2D { IsClosed = figure.IsClosed };
+                        foreach (var pt in points)
+                        {
+                            polyline.Vertexes.Add(new Polyline2DVertex(pt));
+                        }
+                        dxf.Entities.Add(polyline);
+                    }
+                }
+            }
+        }
+        #endregion
+
+        // ==========================================
+        // ИТОГОВАЯ БИЗНЕС-ЛОГИКА
+        // ==========================================
+        #region
+        public List<Part> GetBatchedParts() => new(_batchBuffer);
+
+        public Dictionary<Part, Dictionary<double, (int Count, double BendLength)>> GetBendsInfoForBatch()
+        {
+            return new Dictionary<Part, Dictionary<double, (int Count, double BendLength)>>(_batchBendsInfo);
+        }
+
+        private void AddToBatch_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_currentPart.Title)) { MessageBox.Show("Укажите название", "Ошибка"); return; }
+            if (_batchBuffer.Any(p => p.Title == _currentPart.Title)) { MessageBox.Show("Такое название уже есть", "Ошибка"); return; }
+            if (_currentPart.Count <= 0) { MessageBox.Show("Укажите количество", "Ошибка"); return; }
+
+            if (_currentPart.PartType != PartType.Custom)
+            {
+                var (isValid, error) = PartPreviewGenerator.ValidateHolesPlacement(_currentPart);
+                if (!isValid && MessageBox.Show($"Проблемы с отверстиями:\n{error}\nПродолжить без них?", "Внимание", MessageBoxButton.YesNo) == MessageBoxResult.No) return;
+                if (!isValid) _currentPart.HoleGroups.Clear();
+            }
+
+            if (_currentPart.PartType == PartType.Custom && _currentPart.PlacedHoles.Count > 0)
+            {
+                _currentPart.HoleGroups.Clear();
+                var grouped = _currentPart.PlacedHoles.GroupBy(h => h.Diameter);
+                foreach (var group in grouped)
+                {
+                    _currentPart.HoleGroups.Add(new HoleGroup(group.Key, group.Count()));
+                }
+                PartPreviewGenerator.EnsureDisplayGeometryWithHoles(_currentPart);
+            }
+
+            var clone = ClonePart(_currentPart);
+            if (clone != null)
+            {
+                _batchBuffer.Add(clone);
+
+                var bendsInfo = CalculateBendsInfo();
+                if (bendsInfo.Count > 0)
+                {
+                    _batchBendsInfo[clone] = bendsInfo;
+                }
+
+                _currentPart.HoleGroups.Clear();
+                if (_currentPart.PartType == PartType.Custom) ClearDrawing_Click(sender, e);
+                else UpdatePreview();
+            }
+        }
+
+        private void FinishBatch_Click(object sender, RoutedEventArgs e)
+        {
+            if (_batchBuffer.Count == 0) { MessageBox.Show("Список пуст", "Ошибка"); return; }
+
+            UseAutoNesting = AutoNestingCheck.IsChecked ?? true;
+            CustomSpacing = double.TryParse(SpacingInput.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double s) && s >= 0 ? s : 0;
+            CustomClampZone = Clamp340Radio.IsChecked == true ? 340 :
+                              Clamp160Radio.IsChecked == true ? 160 : 0;
+            CustomCutLoss = double.TryParse(CutLossInput.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double cl) && cl >= 0 ? cl : 10;
+
+            DialogResult = true;
+            Close();
+        }
+
+        private void RemoveFromBatch_Click(object sender, RoutedEventArgs e)
+        {
+            if (e.OriginalSource is Button btn && btn.Tag is Part part)
+            {
+                _batchBuffer.Remove(part);
+
+                // 🔥 ДОБАВЛЕНО: Удаляем информацию о гибах
+                _batchBendsInfo.Remove(part);
+            }
+        }
+
+        private static Part? ClonePart(Part s) => s.DisplayGeometry == null && s.PartType != PartType.Custom ? null : new Part
+        {
+            Title = s.Title,
+            Count = s.Count,
+            Metal = s.Metal,
+            Destiny = s.Destiny,
+            Width = s.Width,
+            Height = s.Height,
+            Length = s.Length,
+            PartType = s.PartType,
+            HoleGroups = new ObservableCollection<HoleGroup>(s.HoleGroups),
+            DisplayGeometry = s.PartType == PartType.Custom ? PartPreviewGenerator.CloneGeometry(s.DisplayGeometry) : s.DisplayGeometry,
+            PropsDict = new Dictionary<int, List<string>>(s.PropsDict)
+        };
+        #endregion
     }
 }

@@ -10,6 +10,7 @@
     <UserControl.Resources>
         <local:CostConverter x:Key="CostConverter"/>
         <converters:BoolToEyeIconConverter x:Key="BoolToEyeIconConverter"/>
+        <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter"/>
     </UserControl.Resources>
 
     <Border BorderBrush="Gray" CornerRadius="6" BorderThickness="1">
@@ -93,7 +94,8 @@
                     <Image x:Name="Picture" Loaded="SetPicture" MouseLeftButtonDown="OpenPlan" Height="60" Width="60"/>
                     <Viewbox x:Name="GeometryViewbox" Stretch="Uniform" Loaded="SetPicture" Height="60" Width="60" MouseLeftButtonDown="OpenPlan" Visibility="Collapsed">
                         <Path Data="{Binding DisplayGeometry}" Stroke="Black"
-                              StrokeThickness="{Binding VisualStrokeThickness}" Stretch="Fill"/>
+                              Fill="{DynamicResource RegionBrush}" Stretch="Fill"
+                              StrokeThickness="{Binding VisualStrokeThickness}"/>
                     </Viewbox>
 
                     <Grid.ToolTip>
@@ -108,42 +110,62 @@
                 <Button Margin="5,0,0,0" VerticalAlignment="Top" Content="X" FontWeight="Bold" Padding="0" Click="RemovePart" Width="16" Height="16"/>
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal" Margin="3">
+            <StackPanel Orientation="Horizontal" Margin="3"
+                           ToolTipService.InitialShowDelay="300"
+                           ToolTipService.ShowDuration="20000">
                 <hc:TextBox x:Name="CountInput" 
-            Text="{Binding Count, UpdateSourceTrigger=PropertyChanged}" 
-            LostFocus="CountInput_LostFocus"
-            TextChanged="CountInput_TextChanged" 
-            hc:InfoElement.Placeholder="{Binding TargetCount, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}}}"
-            HorizontalContentAlignment="Center" 
-            VerticalContentAlignment="Center"
-            MaxLines="1" 
-            ToolTip="Количество вырезанных деталей"
-            Width="50" 
-            Margin="5,0,0,0" 
-            VerticalAlignment="Center" 
-            Foreground="Blue" 
-            FontWeight="Bold"/>
+                    Text="{Binding Count, UpdateSourceTrigger=PropertyChanged}" 
+                    LostFocus="CountInput_LostFocus"
+                    TextChanged="CountInput_TextChanged" 
+                    hc:InfoElement.Placeholder="{Binding TargetCount, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}}}"
+                    HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                    VerticalAlignment="Center" Foreground="Blue" FontWeight="Bold"
+                    MaxLines="1" Width="50" Margin="5,0,0,0"
+                    ToolTip="Количество вырезанных деталей"/>
+                
                 <TextBlock Text="шт" Margin="5,0,0,0" VerticalAlignment="Center"/>
-                <TextBlock x:Name="DimensionsText"
-               Text="{Binding Dimensions, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}" 
-               ToolTip="Размеры детали"
-               Margin="30,0,0,0"
-               VerticalAlignment="Center"/>
 
-                <!-- Для TextBlock "мм" -->
-                <TextBlock Text="мм" Margin="5,0,0,0" VerticalAlignment="Center"
-           Tag="{Binding Square, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}}}">
-                    <TextBlock.ToolTip>
-                        <ToolTip Placement="Mouse" Background="Lavender" BorderBrush="#6A5ACD" BorderThickness="2" Padding="10" HasDropShadow="True">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ToolTip}, StringFormat={}{0} кв м}" 
-                           TextAlignment="Center" Padding="3"/>
-                            </StackPanel>
-                        </ToolTip>
-                    </TextBlock.ToolTip>
-                </TextBlock>
+                <TextBlock x:Name="DimensionsText" Margin="15,0,0,0" VerticalAlignment="Center"
+                           Text="{Binding Dimensions, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}"/>
+
+                <TextBlock Text="мм" Margin="5,0,0,0" VerticalAlignment="Center"/>
+
+                <Ellipse Width="8" Height="8" Margin="4,0,0,0" VerticalAlignment="Center" Fill="Transparent" Stroke="OrangeRed"
+                         Visibility="{Binding HoleGroups.Count, Converter={StaticResource IntToVisibilityConverter}}"/>
+
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HoleGroups.Count}" Value="0">
+                                <Setter Property="ToolTipService.IsEnabled" Value="False"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                
+                <StackPanel.ToolTip>
+                    <ToolTip Placement="Mouse" Background="#F5F9FF" BorderBrush="#D0E3FF"
+             BorderThickness="1" Padding="8,6" HasDropShadow="True">
+                        <!-- Список отверстий -->
+                        <ItemsControl ItemsSource="{Binding HoleGroups}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,2">
+                                        <TextBlock Text="⌀" FontSize="12" FontWeight="Bold" Foreground="#333"/>
+                                        <TextBlock Text="{Binding Diameter, StringFormat={}{0:0.#}}"
+                                       FontSize="12" FontWeight="Bold" Foreground="#333"/>
+                                        <TextBlock Text=" × " FontSize="12" Foreground="#666"/>
+                                        <TextBlock Text="{Binding Count}"
+                                       FontSize="12" FontWeight="Bold" Foreground="#0D47A1"/>
+                                        <TextBlock Text=" шт." FontSize="12" Foreground="#666"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ToolTip>
+                </StackPanel.ToolTip>
             </StackPanel>
-
+            
             <StackPanel Orientation="Horizontal" Margin="3">
                 <Image Source="/Images/assembly.png" Width="16"/>
                 <hc:ComboBox hc:InfoElement.Placeholder="Сборки"  x:Name="AssembliesDrop" Margin="4,0,0,0" Width="100">

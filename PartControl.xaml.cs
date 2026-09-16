@@ -181,20 +181,26 @@ namespace Metal_Code
         {
             if (!Part.PropsDict.ContainsKey(100)) return;
 
-            if (owner is PipeControl or SawControl && float.TryParse(Part.PropsDict[100][0], out float l)) Square = (float)Math.Round(l, 3);
+            if (owner is PipeControl or SawControl && float.TryParse(Part.PropsDict[100][0], out float l))
+                Square = (float)Math.Round(l, 3);
             else if (float.TryParse(Part.PropsDict[100][0], out float h) && float.TryParse(Part.PropsDict[100][1], out float w))
                 Square = (float)Math.Round(h * w / 500000, 3);
 
-            if (Part.PropsDict[100].Count > 2) Dimensions = Part.PropsDict[100][2];     //если присутствует строка размеров, показать ее
-            //данной проверкой мы избегаем исключения по индексу в случае, если загружаются старые расчеты (элемент PropsDict[100][2] был добавлен позже)
+            if (Part.PropsDict[100].Count > 2)
+                Dimensions = Part.PropsDict[100][2];     //если присутствует строка размеров, показать ее
 
             if (Part.PropsDict[100].Count > 1 && MainWindow.Parser(Part.PropsDict[100][0]) >= 1500 && MainWindow.Parser(Part.PropsDict[100][1]) >= 1500)
             {
                 DimensionsText.Foreground = Brushes.Red;
+
                 MainWindow.M.Log += $"\nПроверьте габаритные размеры детали\n" +
                     $"{Part.Title}:\n" +
                     $"необходимо предусмотреть отступы от края листа\n" +
                     $"или согласовать их остутствие с производством!\n";
+            }
+            else
+            {
+                DimensionsText.ClearValue(TextBlock.ForegroundProperty);
             }
         }
 
