@@ -549,8 +549,18 @@ namespace Metal_Code
                         {
                             foreach (Part part in cut.PartDetails)
                             {
-                                if (part.Metal != metal.Name) part.Metal = metal.Name;
-                                if (part.Destiny != S) part.Destiny = S;
+                                if (part.Metal != metal.Name)
+                                {
+                                    part.Metal = metal.Name;
+                                    part.OnPropertyChanged(nameof(Part.Metal));
+                                }
+                                if (part.Destiny != S)
+                                {
+                                    part.Destiny = S;
+                                    part.OnPropertyChanged(nameof(Part.Destiny));
+                                }
+                                cut.PartsControl?.UpdatePartAfterEdit(part, metal, S, isOriginal: true);
+                                part.OnPropertyChanged(nameof(Part.Mass));
                             }
 
                             PartsToggle.Content = $"{(cut is PipeControl or SawControl ? "(ТР) " : "")}s{S} {metal.Name} ({cut.PartDetails.Sum(x => x.Count)} деталей)";

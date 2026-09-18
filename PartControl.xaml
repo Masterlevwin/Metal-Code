@@ -11,6 +11,7 @@
         <local:CostConverter x:Key="CostConverter"/>
         <converters:BoolToEyeIconConverter x:Key="BoolToEyeIconConverter"/>
         <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter"/>
+        <converters:MassToDisplayConverter x:Key="MassToDisplayConverter"/>
     </UserControl.Resources>
 
     <Border BorderBrush="Gray" CornerRadius="6" BorderThickness="1">
@@ -183,7 +184,7 @@
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </hc:ComboBox>
-                <TextBlock Text="{Binding Mass}" ToolTip="Масса детали" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Mass, Converter={StaticResource MassToDisplayConverter}}" ToolTip="Масса детали" Margin="10,0,0,0" VerticalAlignment="Center"/>
                 <TextBlock Text="кг" VerticalAlignment="Center" Margin="5,0,0,0"/>
             </StackPanel>
 

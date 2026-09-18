@@ -842,10 +842,9 @@ namespace Metal_Code
 
                         addedCount++;
                     }
-                    catch (Exception ex)
+                    catch
                     {
                         failedFiles.Add(Path.GetFileName(filePath));
-                        System.Diagnostics.Trace.WriteLine($"Ошибка импорта {filePath}: {ex.Message}");
                     }
                 }
 
@@ -1349,7 +1348,7 @@ namespace Metal_Code
 
         public void UpdatePartAfterEdit(Part part, Metal metal, float thickness, bool isOriginal = false)
         {
-            if (part.PropsDict == null) part.PropsDict = new Dictionary<int, List<string>>();
+            part.PropsDict ??= new Dictionary<int, List<string>>();
 
             bool isSheetPart = part.PartType == PartType.Round ||
                                part.PartType == PartType.Rectangle ||
