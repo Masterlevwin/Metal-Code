@@ -320,7 +320,7 @@ namespace Metal_Code
 
         private void RemovePart(object sender, RoutedEventArgs e)
         {
-            if (owner is not CutControl cut || cut.PartsControl == null || !cut.PartsControl.Parts.Contains(this) || cut.Items is null)
+            if (owner is not ICut cut || cut.PartsControl == null || !cut.PartsControl.Parts.Contains(this) || cut.Items is null)
                 return;
 
             if (cut.PartsControl.Parts.Count == 1)
@@ -362,8 +362,11 @@ namespace Metal_Code
             MainWindow.M.Parts?.Remove(Part);
 
             // 5. Пересчитываем общие итоги расчета
-            cut.SumProperties(cut.Items);
-            cut.work.type.MassCalculate();
+            if (cut is CutControl _cut)
+            {
+                _cut.SumProperties(cut.Items);
+                _cut.work.type.MassCalculate();
+            }
 
             MainWindow.M.StatusBegin($"Деталь \"{Part.Title}\" полностью удалена из расчета.", MainWindow.StatusMessageType.Success);
         }

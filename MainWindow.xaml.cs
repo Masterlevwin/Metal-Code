@@ -117,7 +117,7 @@ namespace Metal_Code
 
         //----------Свойства и их основные методы---------//
         #region
-        private string version = "2.7.2";
+        private string version = "2.7.3";
         public string Version
         {
             get => version;
@@ -808,18 +808,10 @@ namespace Metal_Code
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.7.2.8",
-                releaseDate: new DateTime(2026, 09, 09),
-                description: "Улучшен алгоритм раскроя труб с учетом настроек.",
-                screenshotPath: "/Updates/v2.7.2.8_2026-09-09.png"
-            );
-
-            // Добавить новое обновление (если его ещё нет)
-            ctx.AddNewUpdateIfNotExists(
-                version: "v2.7.2.9",
-                releaseDate: new DateTime(2026, 09, 09),
-                description: "Усовершенствовано управление сборками.",
-                screenshotPath: "/Updates/v2.7.2.9_2026-09-09.png"
+                version: "v2.7.3.0",
+                releaseDate: new DateTime(2026, 09, 18),
+                description: "Добавлен экспорт в DXF.",
+                screenshotPath: "/Updates/v2.7.3.0_2026-09-18.png"
             );
 
             // Получаем новые обновления
@@ -6081,6 +6073,271 @@ namespace Metal_Code
             }
 
             return "";
+        }
+
+        private void CreateAct(object sender, RoutedEventArgs e)
+        {
+            if (ActiveOffer is null)
+            {
+                StatusBegin("Для создания акта приема-передачи необходимо загрузить расчет.", StatusMessageType.Error);
+                return;
+            }
+
+            // 2. Формируем безопасное имя файла по умолчанию
+            string orderNum = ActiveOffer != null && ActiveOffer.Order != null ? ActiveOffer.Order : Order.Text;
+            string customer = CustomerDrop.Text;
+
+            // Очищаем имя клиента от недопустимых символов для файловой системы
+            string safeCustomerName = new string(customer.Where(c => !Path.GetInvalidFileNameChars().Contains(c)).ToArray()).Trim();
+            string defaultFileName = $"{orderNum} {safeCustomerName} - Акт приема-передачи.xlsx";
+
+            // 3. Определяем начальную директорию для диалога
+            // Если у расчета уже есть сохраненный путь (Act), открываем диалог в этой же папке
+            string initialDir = lastInputDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            if (!string.IsNullOrEmpty(ActiveOffer?.Act))
+            {
+                initialDir = Path.GetDirectoryName(ActiveOffer.Act) ?? initialDir;
+            }
+
+            var saveFileDialog = new SaveFileDialog
+            {
+                FileName = defaultFileName,
+                DefaultExt = ".xlsx",
+                Filter = "Документы Excel (*.xlsx)|*.xlsx",
+                InitialDirectory = initialDir,
+                Title = "Сохранить Акт приема-передачи"
+            };
+
+            // 5. Если пользователь нажал "Сохранить", вызываем метод генерации
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                CreateAct(saveFileDialog.FileName, ActiveOffer);
+            }
+        }
+        private void CreateAct(string savePath, Offer? offer = null)
+        {
+            ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+            // 1. СОЗДАЕМ НОВЫЙ ДОКУМЕНТ ПОЛНОСТЬЮ В КОДЕ (без шаблона)
+            using var workbook = new ExcelPackage();
+            ExcelWorksheet actSheet = workbook.Workbook.Worksheets.Add("АКТ");
+
+            string orderNumber = offer != null && offer.Order != null ? offer.Order : Order.Text;
+            string customerName = CustomerDrop.Text;
+
+            // 2. НАСТРОЙКА КОЛОНТИТУЛОВ (Шапка и подвал)
+            // --- ВЕРХНИЙ КОЛОНТИТУЛ ---
+            // Попытка добавить логотип в левую часть колонтитула
+            string logoPath = IsLaser ? "laser_logo.jpg" : "app_logo.jpg";
+            if (File.Exists(logoPath))
+            {
+                var logoFileInfo = new FileInfo(logoPath);
+                actSheet.HeaderFooter.OddHeader.InsertPicture(logoFileInfo, PictureAlignment.Left);
+            }
+
+            // Центр: Название компании и контакты
+            actSheet.HeaderFooter.OddHeader.RightAlignedText = "&16&Б ООО \"ЛАЗЕРФЛЕКС\"\n&10 тел. (812) 509-60-11\ninfo@laser-flex.ru\nwww.laser-flex.ru";
+
+            // --- НИЖНИЙ КОЛОНТИТУЛ (равномерное распределение на 3 блока) ---
+            // Используем &8 для уменьшения шрифта, чтобы реквизиты точно поместились в одну строку при печати
+            string footerLeft = "&8&Б ООО \"ЛАЗЕРФЛЕКС\"\nИНН 7811683689 | КПП 781101001";
+            string footerCenter = "&8ОГРН 1187847055560\nв ООО \"Банк Точка\" г. МОСКВА";
+            string footerRight = "&8Р/с 40702810103500008259\nК/с 30101810745374525104 | БИК 044525104";
+
+            actSheet.HeaderFooter.OddFooter.LeftAlignedText = footerLeft;
+            actSheet.HeaderFooter.OddFooter.CenteredText = footerCenter;
+            actSheet.HeaderFooter.OddFooter.RightAlignedText = footerRight;
+
+            // 3. ЗАПОЛНЯЕМ ТЕЛО ДОКУМЕНТА (Информация о заказе)
+            // Право: Название документа
+            actSheet.Cells["A1"].Value = "АКТ ПРИЕМА-ПЕРЕДАЧИ";
+            actSheet.Cells["A1"].Style.Font.Bold = true;
+            actSheet.Cells[1, 1, 1, 8].Merge = true;
+            actSheet.Cells["A1"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+            actSheet.Cells["A3"].Value = $"№ {orderNumber}";
+            actSheet.Cells["A3"].Style.Font.Bold = true;
+
+            actSheet.Cells["C3"].Value = $"{customerName}";
+            actSheet.Cells["C3"].Style.Font.Bold = true;
+
+            actSheet.Cells["H3"].Value = $"Дата: {DateTime.Now:dd.MM.yyyy}";
+            actSheet.Cells["H3"].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+
+            // 4. НАСТРОЙКА ТАБЛИЦЫ
+            int startRow = 5; // Начинаем таблицу с 4-й строки
+            string[] headers = { "№", "Вид", "Название детали", "Кол-во, шт", "Размеры детали", "Металл", "Толщина", "Заключение" };
+
+            // Рисуем заголовки
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var cell = actSheet.Cells[startRow, i + 1];
+                cell.Value = headers[i];
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.Size = 11;
+                cell.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                cell.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                cell.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                cell.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+                cell.Style.Border.BorderAround(ExcelBorderStyle.Thin);
+            }
+            actSheet.Row(startRow).Height = 20;
+
+            // 5. СБОР И ЗАПОЛНЕНИЕ ДАННЫХ ДЕТАЛЕЙ
+            int currentRow = startRow + 1;
+            int itemNumber = 1;
+            int totalCount = 0;
+
+            var actItems = new List<(string? Title, int Count, string? Dimensions, string? Metal, float Destiny, byte[]? ImageBytes)>();
+
+            foreach (DetailControl det in DetailControls)
+            {
+                if (det.Detail.IsComplect)
+                {
+                    foreach (TypeDetailControl type in det.TypeDetailControls)
+                    {
+                        foreach (WorkControl work in type.WorkControls)
+                        {
+                            if (work.workType is ICut cut)
+                            {
+                                if (cut.PartDetails?.Count > 0)
+                                {
+                                    for (int i = 0; i < cut.PartDetails.Count; i++)
+                                    {
+                                        var part = cut.PartDetails[i];
+                                        string dim = "";
+                                        if (part.PropsDict.ContainsKey(100) && part.PropsDict[100].Count > 2)
+                                        {
+                                            dim = cut is CutControl laser ?
+                                                $"{part.PropsDict[100][0].Trim()}x{part.PropsDict[100][1].Trim()}" :
+                                                $"{part.PropsDict[100][2].Trim()} мм";
+                                        }
+                                        actItems.Add((part.Title, part.Count, dim, part.Metal, part.Destiny, part.ImageBytes));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Добавляем покупные изделия
+            if (ProductModel.Product.Baskets?.Count > 0)
+            {
+                foreach (Part basket in ProductModel.Product.Baskets)
+                {
+                    actItems.Add((basket.Title, basket.Count, "", basket.Metal, basket.Destiny, basket.ImageBytes));
+                }
+            }
+
+            // Заполняем строки таблицы
+            foreach (var item in actItems)
+            {
+                actSheet.Cells[currentRow, 1].Value = itemNumber; // №
+                actSheet.Row(currentRow).Height = 32;
+
+                // Обработка изображения (Колонка 2 - "Вид")
+                if (item.ImageBytes != null)
+                {
+                    using var stream = new MemoryStream(item.ImageBytes);
+                    string uniqueName = $"ActImg_{Guid.NewGuid().ToString("N")[..8]}";
+                    var pic = actSheet.Drawings.AddPicture(uniqueName, stream);
+                    pic.SetSize(32, 32);
+                    // Позиция: строка currentRow-1 (0-based), отступ 5px, колонка 1 (0-based для колонки B), отступ 5px
+                    pic.SetPosition(currentRow - 1, 5, 1, 5);
+                }
+
+                actSheet.Cells[currentRow, 3].Value = item.Title;       // Название детали
+                actSheet.Cells[currentRow, 3].Style.WrapText = true;
+                actSheet.Cells[currentRow, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                actSheet.Cells[currentRow, 4].Value = item.Count;       // Кол-во
+                actSheet.Cells[currentRow, 4].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                actSheet.Cells[currentRow, 4].Style.Font.Bold = true;
+                actSheet.Cells[currentRow, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                actSheet.Cells[currentRow, 5].Value = item.Dimensions;  // Размеры
+                actSheet.Cells[currentRow, 5].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                actSheet.Cells[currentRow, 6].Value = item.Metal;       // Металл
+                actSheet.Cells[currentRow, 6].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                actSheet.Cells[currentRow, 7].Value = item.Destiny;     // Толщина
+                actSheet.Cells[currentRow, 7].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                totalCount += item.Count;
+                currentRow++;
+                itemNumber++;
+            }
+
+            // 6. ИТОГОВАЯ СТРОКА "ВСЕГО"
+            actSheet.Cells[currentRow, 3].Value = "Всего:";
+            actSheet.Cells[currentRow, 3].Style.Font.Bold = true;
+            actSheet.Cells[currentRow, 3].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+
+            actSheet.Cells[currentRow, 4].Value = totalCount;
+            actSheet.Cells[currentRow, 4].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+            actSheet.Cells[currentRow, 4].Style.Font.Bold = true;
+            actSheet.Cells[currentRow, 4].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+            // 7. ПОДПИСИ
+            int signRow1 = currentRow + 3;
+            actSheet.Cells[signRow1, 2].Value = "Контроллер ОТК";
+            actSheet.Cells[signRow1, 2].Style.Font.Bold = true;
+            actSheet.Cells[signRow1, 5].Value = "_____________________ / Казамаров Д. В. /";
+
+            int signRow2 = signRow1 + 2;
+            actSheet.Cells[signRow2, 2].Value = "Представитель заказчика";
+            actSheet.Cells[signRow2, 2].Style.Font.Bold = true;
+            actSheet.Cells[signRow2, 5].Value = "_____________________ / ___________________ /";
+
+            // 8. НАСТРОЙКА СТОЛБЦОВ И ГРАНИЦ
+            actSheet.Column(1).Width = 8;   // №
+            actSheet.Column(2).Width = 10;  // Вид (под картинку 32x32)
+            actSheet.Column(3).Width = 30;  // Название детали
+            actSheet.Column(4).Width = 10;  // Кол-во
+            actSheet.Column(5).Width = 16;  // Размеры
+            actSheet.Column(6).Width = 16;  // Металл
+            actSheet.Column(7).Width = 10;  // Толщина
+            actSheet.Column(8).Width = 30;  // Заключение
+
+            // Выравнивание и границы для всей таблицы данных
+            var tableRange = actSheet.Cells[startRow, 1, currentRow, headers.Length];
+            tableRange.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            tableRange.Style.Border.BorderAround(ExcelBorderStyle.Medium); // Внешняя граница потолще
+
+            // Внутренние границы
+            for (int r = startRow; r <= currentRow; r++)
+            {
+                for (int c = 1; c <= headers.Length; c++)
+                {
+                    actSheet.Cells[r, c].Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                    actSheet.Cells[r, c].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+                }
+            }
+
+            // 9. НАСТРОЙКИ ПЕЧАТИ
+            actSheet.PrinterSettings.FitToPage = true;
+            actSheet.PrinterSettings.FitToWidth = 1;
+            actSheet.PrinterSettings.FitToHeight = 0;
+            actSheet.PrinterSettings.HorizontalCentered = true;
+
+            // Поля страницы (чтобы колонтитулы не обрезались принтером)
+            actSheet.PrinterSettings.TopMargin = 1.5m;
+            actSheet.PrinterSettings.BottomMargin = 1.5m;
+            actSheet.PrinterSettings.LeftMargin = 0.5m;
+            actSheet.PrinterSettings.RightMargin = 0.5m;
+
+            // 10. СОХРАНЕНИЕ
+            try
+            {
+                workbook.SaveAs(new FileInfo(savePath));
+                StatusBegin($"Акт приема-передачи успешно создан: {Path.GetFileName(savePath)}", StatusMessageType.Success);
+            }
+            catch (Exception ex)
+            {
+                StatusBegin($"Ошибка сохранения акта: {ex.Message}", StatusMessageType.Error);
+            }
         }
 
         //-ПРОСТЫЕ ЗАДАЧИ

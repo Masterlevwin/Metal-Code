@@ -255,6 +255,11 @@
                         <Image Source="/Images/list.png"/>
                     </MenuItem.Icon>
                 </MenuItem>
+                <MenuItem Header="Акт приема-передачи" Click="CreateAct">
+                    <MenuItem.Icon>
+                        <Image Source="/Images/blueprint.png"/>
+                    </MenuItem.Icon>
+                </MenuItem>
                 <MenuItem Header="Простая комплектация" Click="CreateComplect">
                     <MenuItem.Icon>
                         <Image Source="/Images/complect2.png"/>
