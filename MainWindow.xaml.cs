@@ -49,6 +49,8 @@ namespace Metal_Code
     /// </summary>
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
+        //----------Поля класса---------//
+        #region
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
@@ -102,7 +104,7 @@ namespace Metal_Code
         public ObservableCollection<Metal> Metals { get; set; } = new();
 
         // Представление для группировки/сортировки
-        private ICollectionView OffersView { get; set; } = null!;
+        private ICollectionView? OffersView { get; set; } = null;
 
         // Состояние режимов
         private string _searchQuery = string.Empty;
@@ -114,6 +116,7 @@ namespace Metal_Code
         public Dictionary<string, Dictionary<float, (float, float, float)>> MetalDict = new();                  //словарь материалов
         public Dictionary<double, float> WideDict = new();                                                      //словарь отверстий
         public Dictionary<Metal, float> MetalRatioDict = new();                                                 //словарь коэффициентов за материал
+        #endregion
 
         //----------Свойства и их основные методы---------//
         #region
@@ -421,18 +424,6 @@ namespace Metal_Code
             }
         }
 
-        private string searchDetails = "";
-        public string SearchDetails
-        {
-            get => searchDetails;
-            set
-            {
-                if (searchDetails == value) return;
-                searchDetails = value;
-                OnPropertyChanged(nameof(SearchDetails));
-            }
-        }
-
         private string? log;
         public string? Log
         {
@@ -527,8 +518,7 @@ namespace Metal_Code
             InitializeComponent();
             M = this;
 
-            if (!CheckVersion(out string versionInfo))
-                Restart();
+            if (!CheckVersion(out string versionInfo)) Restart();
 
             // ⭐ Показываем версию + статус подключения
             Title = $"Metal-Code {versionInfo}";
@@ -1252,12 +1242,10 @@ namespace Metal_Code
                 if (manager != null && ManagerDrop.SelectedItem != manager)
                 {
                     ManagerDrop.SelectedItem = manager;
-                    Trace.WriteLine($"🔄 Номер {orderText} → менеджер {manager.Name}");
                     StatusBegin($"Автоматически выбран менеджер: {manager.Name}", StatusMessageType.Info);
                 }
                 else if (manager == null)
                 {
-                    Trace.WriteLine($"⚠️ Менеджер '{managerName}' не найден в списке");
                     StatusBegin($"Менеджер '{managerName}' не найден в списке", StatusMessageType.Warning);
                 }
             }
@@ -1297,7 +1285,6 @@ namespace Metal_Code
                             if (string.IsNullOrEmpty(currentOrder))
                             {
                                 Order.Text = prefix;
-                                Trace.WriteLine($"🔄 Менеджер {man.Name} → префикс {prefix}");
                             }
                             else
                             {
@@ -1305,7 +1292,6 @@ namespace Metal_Code
                                 if (!string.Equals(currentManagerName, man.Name, StringComparison.OrdinalIgnoreCase))
                                 {
                                     Order.Text = prefix;
-                                    Trace.WriteLine($"🔄 Менеджер {man.Name} → префикс {prefix} (был {currentManagerName ?? "не определён"})");
                                 }
                             }
                         }
@@ -1387,10 +1373,7 @@ namespace Metal_Code
                 SummaryInfoTextBlock.Text = $"Показано: {CurrentOffers.Count} из {totalCount} расчётов";
                 StatusBegin($"📅 Загружено {CurrentOffers.Count} из {totalCount} расчётов для '{man.Name}'");
             }
-            catch (Exception ex)
-            {
-                Trace.WriteLine($"Ошибка загрузки данных для {man.Name}: {ex.Message}");
-            }
+            catch { }
             finally
             {
                 _isLoadingManagerData = false;
@@ -1502,13 +1485,11 @@ namespace Metal_Code
                     foreach (var item in dataToDisplay) CurrentOffers.Add(item);
                 }
 
-                Trace.WriteLine($"🔍 ApplyCurrentMode: CurrentOffers содержит {CurrentOffers.Count} элементов");
-                OffersView.Refresh();
+                OffersView?.Refresh();
             }
             catch (Exception ex)
             {
                 StatusBegin($"Ошибка фильтрации: {ex.Message}", StatusMessageType.Error);
-                Trace.WriteLine($"❌ Ошибка ApplyCurrentMode: {ex.Message}");
             }
         }
 
@@ -2911,8 +2892,7 @@ namespace Metal_Code
                 OffersView = viewSource.View;
 
                 // Если ItemsSource еще не установлен (например, при самом первом запуске)
-                if (OffersGrid.ItemsSource == null)
-                    OffersGrid.ItemsSource = OffersView;
+                OffersGrid.ItemsSource ??= OffersView;
             }
 
             // 🔥 Очищаем старые описания групп и сортировок перед применением новых.
@@ -4175,7 +4155,53 @@ namespace Metal_Code
             worksheet.Cells[row + 4, 2, row + 4, 6].Merge = true;
 
             worksheet.Cells[row + 5, 1].Value = "Точность:";
-            worksheet.Cells[row + 5, 2].Value = "H14/h14 +-IT 14/2 (резка осуществляется воздухом).";
+            worksheet.Cells[row + 5, 1].Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+
+            // 🔥 ОПРЕДЕЛЕНИЕ ВСЕХ ИСПОЛЬЗУЕМЫХ ТИПОВ ГАЗА (ПОДДЕРЖКА СМЕШАННЫХ РЕЖИМОВ)
+            var gasesUsed = new HashSet<string>();
+
+            var cutControls = DetailControls
+                .Where(dc => dc?.TypeDetailControls != null)
+                .SelectMany(dc => dc.TypeDetailControls)
+                .Where(tc => tc?.WorkControls != null)
+                .SelectMany(tc => tc.WorkControls)
+                .Select(wc => wc?.workType as CutControl)
+                .Where(c => c != null)
+                .ToList();
+
+            foreach (var c in cutControls)
+            {
+                if (c != null && c.HaveNitro)
+                {
+                    gasesUsed.Add("азотом");
+                }
+                else if (c != null)
+                {
+                    string metal = c.work?.type?.MetalDrop?.Text ?? "";
+                    float thickness = c.work?.type?.S ?? 0f;
+
+                    bool isTargetMetal = metal.Contains("ст3", StringComparison.OrdinalIgnoreCase) ||
+                                         metal.Contains("09г2с", StringComparison.OrdinalIgnoreCase);
+
+                    if (isTargetMetal && thickness >= 3f)
+                    {
+                        gasesUsed.Add("кислородом");
+                    }
+                    else
+                    {
+                        gasesUsed.Add("воздухом");
+                    }
+                }
+            }
+
+            // Формируем грамматически правильную строку: "азотом", "воздухом и азотом", "воздухом, азотом и кислородом"
+            var gasList = gasesUsed.ToList();
+            string cuttingGasText = gasList.Count == 0 ? "воздухом" : // fallback на случай пустого расчета
+                                     gasList.Count == 1 ? gasList[0] :
+                                     string.Join(", ", gasList.Take(gasList.Count - 1)) + " и " + gasList.Last();
+
+            // Формируем итоговую строку с динамическим перечнем газов
+            worksheet.Cells[row + 5, 2].Value = $"H14/h14 +-IT 14/2 (резка осуществляется {cuttingGasText}).";
             worksheet.Cells[row + 5, 2, row + 5, 5].Merge = true;
 
             //в случае с нарезанными деталями, оформляем расшифровку работ
@@ -8416,94 +8442,6 @@ namespace Metal_Code
 
         //-------------Вспомогательные методы----------------------//
         #region
-
-        //-----------Поиск нарезанной детали-----------//
-        private void Search_Details(object sender, FunctionEventArgs<string> e)
-        {
-            //получаем все работы из комплектов деталей
-            var works = DetailControls.Where(d => d.Detail.IsComplect)
-                                .SelectMany(t => t.TypeDetailControls)
-                                .SelectMany(w => w.WorkControls);
-
-            //получаем контроллы всех нарезанных деталей
-            List<PartControl> parts = new();
-
-            foreach (WorkControl work in works)
-                if (work.workType is ICut cut && cut.Parts?.Count > 0) parts.AddRange(cut.Parts);
-
-            //если поле поиска пустое или нарезанных деталей нет, выходим
-            if (SearchDetails.Replace(" ", "") == "")
-            {
-                foreach (PartControl part in parts) part.Background = Brushes.White;
-                return;
-            }
-
-            //ищем детали, совпадающие по имени с введенным тестом пользователя
-            List<PartControl> foundDetails = parts.Where(x => x.Part.Title is not null &&
-                            x.Part.Title.Contains(SearchDetails, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            if (foundDetails.Count > 0)
-            {
-                //окрашиваем зеленым найденные детали
-                foreach (PartControl part in parts)
-                    part.Background = foundDetails.Contains(part) ? Brushes.LightGreen : Brushes.White;
-
-                //и фокусируем пользователя на первой найденной детали
-                var types = DetailControls.Where(d => d.Detail.IsComplect).SelectMany(t => t.TypeDetailControls);
-
-                foreach (var type in types)
-                {
-                    if (IsVisualChild(type.PartsStack, foundDetails[0]))
-                    {
-                        // 1. Обновляем заголовок (вы уже это делаете)
-                        if (type.FindName("PartsToggle") is ToggleButton toggle)
-                        {
-                            // 2. Визуальное выделение (на 2 секунды)
-                            var originalBorder = toggle.BorderBrush;
-                            toggle.BorderBrush = Brushes.OrangeRed;
-                            toggle.BorderThickness = new Thickness(2);
-
-                            // Вернуть обратно через 2 сек
-                            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-                            timer.Tick += (s, e) =>
-                            {
-                                toggle.BorderBrush = originalBorder;
-                                toggle.BorderThickness = new Thickness(1);
-                                timer.Stop();
-                            };
-                            timer.Start();
-
-                            // 3. Прокручиваем к ToggleButton
-                            toggle.BringIntoView();
-
-                            // 4. Устанавливаем фокус на кнопку
-                            toggle.Focus();
-                        }
-
-                        break;
-                    }
-                }
-                if (foundDetails.Count > 1)
-                    StatusBegin($"Деталей по запросу \"{SearchDetails}\" найдено {foundDetails.Count}. " +
-                        $"Все они окрашены зеленым цветом и могут находиться в других заготовках.", StatusMessageType.Warning);
-            }
-            else StatusBegin($"Деталей по запросу \"{SearchDetails}\" не найдено.", StatusMessageType.Warning);
-        }
-        public static bool IsVisualChild(DependencyObject parent, DependencyObject child)
-        {
-            if (child == null || parent == null) return false;
-            if (parent == child) return true;
-
-            int count = VisualTreeHelper.GetChildrenCount(parent);
-            for (int i = 0; i < count; i++)
-            {
-                var descendant = VisualTreeHelper.GetChild(parent, i);
-                if (IsVisualChild(descendant, child))
-                    return true;
-            }
-            return false;
-        }
-
         //-------------Даты-----------//
         public DateTime? EndDate()
         {

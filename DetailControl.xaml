@@ -16,8 +16,11 @@
                 
                 <TextBlock Text="N" VerticalAlignment="Top" FontSize="10" Margin="10,0,0,0" MinWidth="8"/>
                 <TextBox ToolTip="Введите количество деталей" Text="{Binding Count}" TextChanged="SetCount" x:Name="Count" MaxWidth="40" MinWidth="40" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" Foreground="Blue"/>
+
+                <hc:SearchBar hc:InfoElement.Placeholder="Поиск детали" Style="{StaticResource SearchBarExtend}" Margin="25,0,0,0"
+                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="170" SearchStarted="Search_Details"/>
                 
-                <hc:ComboBox hc:InfoElement.Placeholder="Материал" x:Name="MetalDrop" DisplayMemberPath="Name" ToolTip="Выберите материал для ВСЕХ заготовок" SelectionChanged="SetAllMaterial" Width="120" Margin="50,0,0,0"/>
+                <hc:ComboBox hc:InfoElement.Placeholder="Материал" x:Name="MetalDrop" DisplayMemberPath="Name" ToolTip="Выберите материал для ВСЕХ заготовок" SelectionChanged="SetAllMaterial" Width="120" Margin="25,0,0,0"/>
                 <CheckBox ToolTip="Добавить к расчету стоимость материала ВСЕХ заготовок" Click="SetAllMetal" VerticalAlignment="Center" IsChecked="True" Margin="5,0,0,0"/>
                 
                 <Button Click="Remove" Margin="10,0,0,0" local:DeleteHighlight.TargetElement="{Binding ElementName=DetailBox}">

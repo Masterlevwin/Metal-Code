@@ -1,9 +1,12 @@
 ﻿using Metal_Code.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace Metal_Code
 {
@@ -161,6 +164,120 @@ namespace Metal_Code
             if (sender is ComboBox cBox)
                 foreach (TypeDetailControl t in TypeDetailControls) t.MetalDrop.SelectedIndex = cBox.SelectedIndex;
             MainWindow.M.UpdateResult();
+        }
+
+        private async void Search_Details(object sender, HandyControl.Data.FunctionEventArgs<string> e)
+        {
+            string searchText = e.Info;
+
+            // Если это не комплект, поиск не имеет смысла
+            if (!Detail.IsComplect) return;
+
+            // 1. Собираем все PartControl из всех работ текущего комплекта
+            var allParts = new List<PartControl>();
+            foreach (var typeCtrl in TypeDetailControls)
+            {
+                foreach (var workCtrl in typeCtrl.WorkControls)
+                {
+                    if (workCtrl.workType is ICut cut && cut.Parts != null)
+                    {
+                        allParts.AddRange(cut.Parts);
+                    }
+                }
+            }
+
+            // 2. Если строка поиска пустая, сбрасываем цвета и выходим
+            if (string.IsNullOrWhiteSpace(searchText))
+            {
+                foreach (var part in allParts)
+                    part.Background = Brushes.White;
+                return;
+            }
+
+            // 3. Ищем совпадения
+            var foundParts = allParts.Where(p => p.Part?.Title != null &&
+                                p.Part.Title.Contains(searchText, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (foundParts.Count == 0)
+            {
+                MainWindow.M.StatusBegin($"Деталь \"{searchText}\" не найдена в этом комплекте.", MainWindow.StatusMessageType.Warning);
+                return; // Ранний выход, так как подсвечивать и прокручивать нечего
+            }
+
+            // 4. Окрашиваем
+            foreach (var part in allParts)
+            {
+                part.Background = foundParts.Contains(part) ? Brushes.LightGreen : Brushes.White;
+            }
+
+            // 5. Если есть совпадения, раскрываем и прокручиваем
+            if (foundParts.Count > 0)
+            {
+                var firstPart = foundParts[0];
+                TypeDetailControl? parentType = null;
+
+                foreach (var typeCtrl in TypeDetailControls)
+                {
+                    if (IsVisualChild(typeCtrl, firstPart))
+                    {
+                        parentType = typeCtrl;
+                        break;
+                    }
+                }
+
+                if (parentType != null)
+                {
+                    if (parentType.FindName("PartsToggle") is ToggleButton toggle)
+                    {
+                        // ШАГ А: Принудительно раскрываем список, если он свернут
+                        if (toggle.IsChecked != true)
+                        {
+                            toggle.IsChecked = true;
+                            // ВАЖНО: Программный IsChecked не вызывает Click. Вызываем его вручную, 
+                            // чтобы сработал ваш OnPartsToggleClick и создался PartsControl / запустился Storyboard
+                            toggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                        }
+
+                        // ШАГ Б: Ждем, пока WPF обработает создание контролов и начнет анимацию Storyboard.
+                        // 100-150 мс достаточно, чтобы макет начал менять размеры и BringIntoView сработал корректно.
+                        await System.Threading.Tasks.Task.Delay(150);
+
+                        // ШАГ В: Визуальное выделение заголовка (как у вас было)
+                        var originalBorder = toggle.BorderBrush;
+                        toggle.BorderBrush = Brushes.OrangeRed;
+                        toggle.BorderThickness = new Thickness(2);
+
+                        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+                        timer.Tick += (s, ev) =>
+                        {
+                            toggle.BorderBrush = originalBorder;
+                            toggle.BorderThickness = new Thickness(1);
+                            timer.Stop();
+                        };
+                        timer.Start();
+
+                        // ШАГ Г: Прокручиваем экран НЕ к заголовку, а непосредственно к НАЙДЕННОЙ детали!
+                        // Это ключевое улучшение UX.
+                        firstPart.BringIntoView();
+                    }
+                }
+
+            }
+        }
+
+        public static bool IsVisualChild(DependencyObject parent, DependencyObject child)
+        {
+            if (child == null || parent == null) return false;
+            if (parent == child) return true;
+
+            int count = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < count; i++)
+            {
+                var descendant = VisualTreeHelper.GetChild(parent, i);
+                if (IsVisualChild(descendant, child))
+                    return true;
+            }
+            return false;
         }
     }
 }

@@ -559,8 +559,12 @@ namespace Metal_Code
                                     part.Destiny = S;
                                     part.OnPropertyChanged(nameof(Part.Destiny));
                                 }
-                                cut.PartsControl?.UpdatePartAfterEdit(part, metal, S, isOriginal: true);
-                                part.OnPropertyChanged(nameof(Part.Mass));
+
+                                if (part.DisplayGeometry != null)
+                                {
+                                    cut.PartsControl?.UpdatePartAfterEdit(part, metal, S, isOriginal: true);
+                                    part.OnPropertyChanged(nameof(Part.Mass));
+                                }
                             }
 
                             PartsToggle.Content = $"{(cut is PipeControl or SawControl ? "(ТР) " : "")}s{S} {metal.Name} ({cut.PartDetails.Sum(x => x.Count)} деталей)";

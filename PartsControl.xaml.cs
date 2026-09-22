@@ -1106,7 +1106,7 @@ namespace Metal_Code
         }
 
         /// <summary>
-        /// Универсальный пересчет итогов для CutControl и PipeControl после автонестинга
+        /// Универсальный пересчет итогов для CutControl, PipeControl и SawControl после автонестинга
         /// </summary>
         private static void RecalculateTotalsUniversal(object controller)
         {
@@ -1130,7 +1130,9 @@ namespace Metal_Code
                 double totalWay = 0;
                 int totalPinholes = 0;
                 int totalStocks = 0;
-                double stockLength = pipe.work.type.L; // Значение по умолчанию
+
+                // Берем длину хлыста из настроек заготовки по умолчанию
+                double stockLength = pipe.work.type.L;
 
                 var pipeItems = pipe.Items?.OfType<LaserItem>()
                     .Where(i => i.PipeStocks != null && i.PipeStocks.Count > 0)
@@ -1142,9 +1144,9 @@ namespace Metal_Code
                     totalPinholes += item.pinholes * item.sheets;
                     totalStocks += item.sheets;
 
-                    if (double.TryParse(item.sheetSize, out double len))
+                    if (item.PipeStocks != null && item.PipeStocks.Count > 0)
                     {
-                        stockLength = len;
+                        stockLength = item.PipeStocks[0].StockLength;
                     }
                 }
 
@@ -1158,7 +1160,6 @@ namespace Metal_Code
 
                 pipe.SetTotalProperties();
             }
-            // 🔥 НОВАЯ ВЕТКА: Полная аналогия с PipeControl для лентопила
             else if (controller is SawControl saw)
             {
                 if (saw.PartDetails is null) return;
@@ -1166,7 +1167,9 @@ namespace Metal_Code
                 double totalWay = 0;
                 int totalPinholes = 0;
                 int totalStocks = 0;
-                double stockLength = saw.work.type.L; // Значение по умолчанию для лентопила
+
+                // Берем длину хлыста из настроек заготовки по умолчанию
+                double stockLength = saw.work.type.L;
 
                 var sawItems = saw.Items?.OfType<LaserItem>()
                     .Where(i => i.PipeStocks != null && i.PipeStocks.Count > 0)
@@ -1178,9 +1181,9 @@ namespace Metal_Code
                     totalPinholes += item.pinholes * item.sheets;
                     totalStocks += item.sheets;
 
-                    if (double.TryParse(item.sheetSize, out double len))
+                    if (item.PipeStocks != null && item.PipeStocks.Count > 0)
                     {
-                        stockLength = len;
+                        stockLength = item.PipeStocks[0].StockLength;
                     }
                 }
 
@@ -1828,59 +1831,84 @@ namespace Metal_Code
         // Расчет площади окрашивания детали
         private double SquareToPaint(Part part)
         {
-            // 1. Извлекаем общие данные через pattern matching, чтобы избежать дублирования switch
-            var (tubeType, length, way, mass, a, b, s, selectedIndex, typeDetailText, channelsSquare, beamDict) = owner switch
+            // 1. Страховка при загрузке расчета, пока UI не инициализирован
+            if (owner == null) return 0;
+
+            // 2. Явная обработка листового раскроя (CutControl)
+            // Это предотвращает падение, если PartType детали по какой-то причине не попал в isSheetPart 
+            // (например, при импорте DXF определился как Unknown), но владелец всё равно CutControl.
+            if (owner is CutControl)
             {
-                PipeControl pipe => (
-                    pipe.Tube,
-                    part.Length,
-                    part.Way,
-                    part.Mass,
-                    (double)pipe.work.type.A,
-                    (double)pipe.work.type.B,
-                    (double)pipe.work.type.S,
-                    pipe.work.type.SortDrop.SelectedIndex,
-                    pipe.work.type.TypeDetailDrop.Text,
-                    pipe.work.type.ChannelsSquare,
-                    pipe.work.type.BeamDict
-                ),
-                SawControl saw => (
-                    saw.Tube,
-                    part.Length,
-                    part.Way,
-                    part.Mass,
-                    (double)saw.work.type.A,
-                    (double)saw.work.type.B,
-                    (double)saw.work.type.S,
-                    saw.work.type.SortDrop.SelectedIndex,
-                    saw.work.type.TypeDetailDrop.Text,
-                    saw.work.type.ChannelsSquare,
-                    saw.work.type.BeamDict
-                ),
-                _ => throw new InvalidOperationException("Неподдерживаемый тип владельца (owner)")
-            };
+                // Площадь = Ширина * Высота * 2 (обе стороны) / 1_000_000 (перевод в м²)
+                return (part.Width * part.Height * 2.0) / 1_000_000.0;
+            }
 
-            // 2. Единый расчет площади (мм² переводим в м² делением на 1_000_000.0)
-            return tubeType switch
+            // 3. Обработка трубного раскроя
+            if (owner is PipeControl pipe)
             {
-                // Стандартные профили
-                TubeType.rect => length * (a + b) * 2 / 1_000_000.0,
-                TubeType.square => length * (a + b) * 2 / 1_000_000.0,
-                TubeType.round => length * a * Math.PI / 1_000_000.0,
-                TubeType.circle => 2 * length * a * Math.PI / 1_000_000.0,
-                TubeType.rod => 2 * (length * a + way * b + a * b) / 1_000_000.0,
+                double length = part.Length;
+                double way = part.Way;
+                double mass = part.Mass;
+                double a = (double)pipe.work.type.A;
+                double b = (double)pipe.work.type.B;
+                double s = (double)pipe.work.type.S;
+                int selectedIndex = pipe.work.type.SortDrop.SelectedIndex;
+                string typeDetailText = pipe.work.type.TypeDetailDrop.Text;
 
-                // Упрощенные формулы развертки для уголков и фасонных профилей
-                TubeType.corner => length * s * (a + a - s) / 1_000_000.0,
-                TubeType.freeform => length * s * (a + b - s) / 1_000_000.0,
+                return pipe.Tube switch
+                {
+                    TubeType.rect => length * (a + b) * 2 / 1_000_000.0,
+                    TubeType.square => length * (a + b) * 2 / 1_000_000.0,
+                    TubeType.round => length * a * Math.PI / 1_000_000.0,
+                    TubeType.circle => 2 * length * a * Math.PI / 1_000_000.0,
+                    TubeType.rod => 2 * (length * a + way * b + a * b) / 1_000_000.0,
+                    TubeType.corner => length * s * (a + a - s) / 1_000_000.0,
+                    TubeType.freeform => length * s * (a + b - s) / 1_000_000.0,
 
-                // Справочные данные для швеллеров и двутавров 
-                // (масса в кг делится на 1000.0 для перевода в тонны, так как справочник дает м²/т)
-                TubeType.channel => channelsSquare[selectedIndex] * (mass / 1000.0),
-                TubeType.ibeam => beamDict[typeDetailText][selectedIndex].Item2 * (mass / 1000.0),
+                    // 🔥 ДОБАВЛЕНА ЗАЩИТА ОТ IndexOutOfRangeException при selectedIndex == -1
+                    TubeType.channel => (selectedIndex >= 0 && selectedIndex < pipe.work.type.ChannelsSquare.Count)
+                                        ? pipe.work.type.ChannelsSquare[selectedIndex] * (mass / 1000.0) : 0,
 
-                _ => 0
-            };
+                    TubeType.ibeam => (selectedIndex >= 0 && pipe.work.type.BeamDict.ContainsKey(typeDetailText) && selectedIndex < pipe.work.type.BeamDict[typeDetailText].Count)
+                                      ? pipe.work.type.BeamDict[typeDetailText][selectedIndex].Item2 * (mass / 1000.0) : 0,
+                    _ => 0
+                };
+            }
+
+            // 4. Обработка лентопильного станка
+            else if (owner is SawControl saw)
+            {
+                double length = part.Length;
+                double way = part.Way;
+                double mass = part.Mass;
+                double a = (double)saw.work.type.A;
+                double b = (double)saw.work.type.B;
+                double s = (double)saw.work.type.S;
+                int selectedIndex = saw.work.type.SortDrop.SelectedIndex;
+                string typeDetailText = saw.work.type.TypeDetailDrop.Text;
+
+                return saw.Tube switch
+                {
+                    TubeType.rect => length * (a + b) * 2 / 1_000_000.0,
+                    TubeType.square => length * (a + b) * 2 / 1_000_000.0,
+                    TubeType.round => length * a * Math.PI / 1_000_000.0,
+                    TubeType.circle => 2 * length * a * Math.PI / 1_000_000.0,
+                    TubeType.rod => 2 * (length * a + way * b + a * b) / 1_000_000.0,
+                    TubeType.corner => length * s * (a + a - s) / 1_000_000.0,
+                    TubeType.freeform => length * s * (a + b - s) / 1_000_000.0,
+
+                    // 🔥 ДОБАВЛЕНА ЗАЩИТА ОТ IndexOutOfRangeException при selectedIndex == -1
+                    TubeType.channel => (selectedIndex >= 0 && selectedIndex < saw.work.type.ChannelsSquare.Count)
+                                        ? saw.work.type.ChannelsSquare[selectedIndex] * (mass / 1000.0) : 0,
+
+                    TubeType.ibeam => (selectedIndex >= 0 && saw.work.type.BeamDict.ContainsKey(typeDetailText) && selectedIndex < saw.work.type.BeamDict[typeDetailText].Count)
+                                      ? saw.work.type.BeamDict[typeDetailText][selectedIndex].Item2 * (mass / 1000.0) : 0,
+                    _ => 0
+                };
+            }
+
+            // 5. Финальная страховка: если owner оказался чем-то непредвиденным, возвращаем 0, а не выбрасываем исключение.
+            return 0;
         }
 
         /// <summary>
@@ -2147,6 +2175,9 @@ namespace Metal_Code
                 string metalName = cut.work.type.MetalDrop.Text;
                 float thickness = cut.work.type.S;
 
+                // 🔥 1. ПОЛУЧАЕМ ИМЯ АВТОРА
+                string authorName = MainWindow.M?.CurrentManager?.Name ?? "Не указан";
+
                 var sheetData = new List<(
                     byte[] ImageBytes, string Title, int SheetCount, string? SheetSize, double Spacing, int PartsCount, List<PartTableData> PartsTable)>();
 
@@ -2177,21 +2208,15 @@ namespace Metal_Code
                     index++;
                 }
 
-                // 🔥 1. ФОРМИРУЕМ ВЕРХНЮЮ СВОДКУ ПО ЛИСТАМ
                 var sheetSummary = sheetData
                     .GroupBy(s => new { s.SheetSize, s.SheetCount })
-                    .Select(g => new
-                    {
-                        Size = g.Key.SheetSize,
-                        TotalSheets = g.Sum(x => x.SheetCount) // Суммируем физическое количество листов этого размера
-                    })
+                    .Select(g => new { Size = g.Key.SheetSize, TotalSheets = g.Sum(x => x.SheetCount) })
                     .OrderByDescending(x => x.TotalSheets)
                     .ToList();
 
                 string totalSheetsText = string.Join(", ", sheetSummary.Select(g => $"{g.TotalSheets} шт. {g.Size}"));
                 int totalPhysicalSheets = sheetSummary.Sum(x => x.TotalSheets);
 
-                // 🔥 2. ФОРМИРУЕМ ОБЩУЮ СВОДНУЮ ТАБЛИЦУ (для размещения в конце)
                 var masterPartsList = sheetData
                     .SelectMany(s => s.PartsTable)
                     .GroupBy(p => new { p.Name, p.Dimensions })
@@ -2205,7 +2230,6 @@ namespace Metal_Code
                     .OrderByDescending(p => p.TotalQty)
                     .ToList();
 
-                // 🔥 3. ГЕНЕРАЦИЯ PDF С НОВОЙ СТРУКТУРОЙ
                 Document.Create(container =>
                 {
                     container.Page(page =>
@@ -2222,9 +2246,6 @@ namespace Metal_Code
 
                         page.Content().Column(column =>
                         {
-                            // ==========================================
-                            // ЧАСТЬ А: МАТЕРИАЛ, ТОЛЩИНА И ОБЩАЯ СВОДКА ПО ЛИСТАМ (ВВЕРХУ)
-                            // ==========================================
                             column.Item().Border(1).BorderColor(Colors.Blue.Lighten2).Background(Colors.Blue.Lighten4).Padding(10).Row(row =>
                             {
                                 row.RelativeItem().Text(x =>
@@ -2234,7 +2255,6 @@ namespace Metal_Code
                                     x.Span("  |  Толщина: ").FontSize(11);
                                     x.Span($"{thickness} мм").Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
                                 });
-
                                 row.RelativeItem().AlignRight().Text(x =>
                                 {
                                     x.Span("Всего листов: ").FontSize(11);
@@ -2244,14 +2264,9 @@ namespace Metal_Code
                             });
                             column.Item().PaddingVertical(10);
 
-                            // ==========================================
-                            // ЧАСТЬ Б: ЛИСТЫ РАСКЛАДКИ (КАРТИНКА ВО ВСЮ ШИРИНУ + ТАБЛИЦА ПОД НЕЙ)
-                            // ==========================================
                             for (int i = 0; i < sheetData.Count; i++)
                             {
                                 var data = sheetData[i];
-
-                                // Заголовок листа
                                 column.Item().Row(row =>
                                 {
                                     row.RelativeItem().Text(data.Title).FontSize(14).Bold().FontColor(Colors.Blue.Darken2);
@@ -2264,30 +2279,21 @@ namespace Metal_Code
                                 });
                                 column.Item().PaddingVertical(5);
 
-                                // 🔥 КАРТИНКА ВО ВСЮ ШИРИНУ (максимально крупно и четко)
-                                column.Item()
-                                    .Border(1)
-                                    .BorderColor(Colors.Grey.Lighten2)
-                                    .Image(data.ImageBytes)
-                                    .FitArea();
-
+                                column.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Image(data.ImageBytes).FitArea();
                                 column.Item().PaddingVertical(10);
 
-                                // 🔥 ТАБЛИЦА СПЕЦИФИКАЦИИ ПОД КАРТИНКОЙ
                                 column.Item().Text($"Спецификация деталей на листе:").FontSize(11).Bold().FontColor(Colors.Grey.Darken2);
                                 column.Item().PaddingVertical(3);
 
                                 column.Item().Table(sheetTable =>
                                 {
-                                    // Поскольку таблица теперь во всю ширину, делаем колонки пропорционально шире для читаемости
                                     sheetTable.ColumnsDefinition(columns =>
                                     {
-                                        columns.RelativeColumn(4);   // Деталь (широкая)
-                                        columns.RelativeColumn(2);   // Размер
-                                        columns.RelativeColumn(1.5f); // Вес, кг
-                                        columns.RelativeColumn(1);   // На листе
+                                        columns.RelativeColumn(4);
+                                        columns.RelativeColumn(2);
+                                        columns.RelativeColumn(1.5f);
+                                        columns.RelativeColumn(1);
                                     });
-
                                     sheetTable.Header(header =>
                                     {
                                         header.Cell().Element(TableHeaderStyle).Text("Наименование детали");
@@ -2295,7 +2301,6 @@ namespace Metal_Code
                                         header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Вес, кг");
                                         header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Кол-во на листе");
                                     });
-
                                     foreach (var part in data.PartsTable)
                                     {
                                         sheetTable.Cell().Element(TableRowStyle).Text(part.Name);
@@ -2305,32 +2310,16 @@ namespace Metal_Code
                                     }
                                 });
 
-                                // Разрыв страницы между листами (кроме последнего)
-                                if (i < sheetData.Count - 1)
-                                {
-                                    column.Item().PageBreak();
-                                }
+                                if (i < sheetData.Count - 1) column.Item().PageBreak();
                             }
 
-                            // ==========================================
-                            // ЧАСТЬ В: ОБЩАЯ СПЕЦИФИКАЦИЯ (В САМОМ КОНЦЕ ДОКУМЕНТА)
-                            // ==========================================
-                            column.Item().PageBreak(); // Гарантируем, что общая сводка начинается с новой страницы
-
-                            column.Item().Text("Общая спецификация деталей по всему заказу")
-                                .FontSize(14).Bold().FontColor(Colors.Black);
+                            column.Item().PageBreak();
+                            column.Item().Text("Общая спецификация деталей по всему заказу").FontSize(14).Bold().FontColor(Colors.Black);
                             column.Item().PaddingVertical(5);
 
                             column.Item().Table(masterTable =>
                             {
-                                masterTable.ColumnsDefinition(columns =>
-                                {
-                                    columns.RelativeColumn(3);   // Наименование
-                                    columns.RelativeColumn(2);   // Габариты
-                                    columns.RelativeColumn(1.5f); // Вес, кг
-                                    columns.RelativeColumn(1);   // Общее кол-во
-                                });
-
+                                masterTable.ColumnsDefinition(columns => { columns.RelativeColumn(3); columns.RelativeColumn(2); columns.RelativeColumn(1.5f); columns.RelativeColumn(1); });
                                 masterTable.Header(header =>
                                 {
                                     header.Cell().Element(TableHeaderStyle).Text("Наименование");
@@ -2338,7 +2327,6 @@ namespace Metal_Code
                                     header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Общий вес, кг");
                                     header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Общее кол-во");
                                 });
-
                                 foreach (var part in masterPartsList)
                                 {
                                     masterTable.Cell().Element(TableRowStyle).Text(part.Name);
@@ -2349,20 +2337,28 @@ namespace Metal_Code
                             });
                         });
 
-                        page.Footer().AlignCenter().Text(x =>
+                        // 🔥 ОБНОВЛЕННЫЙ ФУТЕР С ОТЧЕТЛИВЫМ ИМЕНЕМ АВТОРА
+                        page.Footer().Row(row =>
                         {
-                            x.Span("Страница ").FontSize(8);
-                            x.CurrentPageNumber().FontSize(8);
-                            x.Span(" из ").FontSize(8);
-                            x.TotalPages().FontSize(8);
+                            row.RelativeItem().Text($"Автор расчета: {authorName}")
+                                .FontSize(12)           // Увеличенный размер
+                                .Bold()                 // Жирный шрифт для лучшей читаемости
+                                .FontColor(Colors.Black); // Стандартный черный цвет
+
+                            row.RelativeItem().AlignCenter().Text(x =>
+                            {
+                                x.Span("Страница ").FontSize(8);
+                                x.CurrentPageNumber().FontSize(8);
+                                x.Span(" из ").FontSize(8);
+                                x.TotalPages().FontSize(8);
+                            });
+
+                            row.RelativeItem().Text(""); // Пустой элемент для сохранения идеального центрирования нумерации
                         });
                     });
                 }).GeneratePdf(filePath);
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Trace.WriteLine($"Auto PDF Export Error: {ex.Message}");
-            }
+            catch { }
         }
 
         /// <summary>
@@ -2384,10 +2380,11 @@ namespace Metal_Code
                 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
                 var (metal, thickness, metalName) = GetMetalAndThickness(owner);
-
                 string processName = isSaw ? "Лентопил" : "Труборез";
 
-                // 🔥 1. ИЗВЛЕЧЕНИЕ ТИПА И СЕЧЕНИЯ ПРОФИЛЯ
+                // 🔥 1. ПОЛУЧАЕМ ИМЯ АВТОРА
+                string authorName = MainWindow.M?.CurrentManager?.Name ?? "Не указан";
+
                 string pipeType = "Профиль";
                 string section = "";
 
@@ -2406,28 +2403,20 @@ namespace Metal_Code
                 foreach (var item in allStocks)
                 {
                     if (item.PipeStocks is null) continue;
-
                     var stock = item.PipeStocks[0];
 
-                    var preview = new PipeStockVisualizationControl
-                    {
-                        Stock = stock,
-                        Width = 820,
-                        Height = 70
-                    };
-
+                    var preview = new PipeStockVisualizationControl { Stock = stock, Width = 820, Height = 70 };
                     byte[] pngBytes = WpfImageHelper.RenderVisualToPng(preview, 850, 100);
 
-                    // 🔥 2. РАСЧЕТ КОЛИЧЕСТВ И ВЕСА
                     var partsTable = stock.Placements
                         .GroupBy(p => new { p.Part.Title, p.Part.Length })
                         .Select(g => new PartTableData
                         {
                             Name = g.Key.Title,
                             Dimensions = $"{g.Key.Length:0} мм",
-                            QtyOnSheet = g.Count(), // Количество на ОДНОМ хлысте
-                            TotalQty = g.Count() * item.sheets, // Общее количество с учетом повторов хлыста
-                            WeightKg = g.Sum(p => (double)p.Part.Mass) // 🔥 Вес ОДНОГО хлыста (не умножаем на sheets)
+                            QtyOnSheet = g.Count(),
+                            TotalQty = g.Count() * item.sheets,
+                            WeightKg = g.Sum(p => (double)p.Part.Mass)
                         })
                         .OrderByDescending(p => p.TotalQty)
                         .ToList();
@@ -2436,7 +2425,6 @@ namespace Metal_Code
                     index++;
                 }
 
-                // Общая сводка по всем хлыстам
                 var masterPartsList = stockData
                     .SelectMany(s => s.PartsTable)
                     .GroupBy(p => new { p.Name, p.Dimensions })
@@ -2445,12 +2433,11 @@ namespace Metal_Code
                         Name = g.Key.Name,
                         Dimensions = g.Key.Dimensions,
                         TotalQty = g.Sum(p => p.TotalQty),
-                        WeightKg = g.Sum(p => p.WeightKg * p.TotalQty / p.QtyOnSheet) // 🔥 Пересчитываем общий вес
+                        WeightKg = g.Sum(p => p.WeightKg * p.TotalQty / p.QtyOnSheet)
                     })
                     .OrderByDescending(p => p.TotalQty)
                     .ToList();
 
-                // 🔥 3. ИСПРАВЛЕНИЕ: УМНОЖАЕМ НА sheets ДЛЯ ОБЩЕЙ ДЛИНЫ
                 double exactTotalLengthMm = allStocks.Sum(s => s.PipeStocks![0].StockLength * s.sheets);
                 double exactTotalLengthM = exactTotalLengthMm / 1000.0;
                 int totalStocksCount = allStocks.Sum(g => g.sheets);
@@ -2488,9 +2475,7 @@ namespace Metal_Code
                                         x.Span(section).Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
                                     });
                                 });
-
                                 headerCol.Item().PaddingVertical(5);
-
                                 headerCol.Item().Row(row =>
                                 {
                                     row.RelativeItem().Text(x =>
@@ -2511,7 +2496,6 @@ namespace Metal_Code
                             for (int i = 0; i < stockData.Count; i++)
                             {
                                 var data = stockData[i];
-
                                 column.Item().Row(row =>
                                 {
                                     row.RelativeItem().Text(data.Title).FontSize(14).Bold().FontColor(Colors.Blue.Darken2);
@@ -2527,15 +2511,7 @@ namespace Metal_Code
 
                                 column.Item().Table(sheetTable =>
                                 {
-                                    sheetTable.ColumnsDefinition(columns =>
-                                    {
-                                        columns.RelativeColumn(3);
-                                        columns.RelativeColumn(2);
-                                        columns.RelativeColumn(1.5f);
-                                        columns.RelativeColumn(1);
-                                        columns.RelativeColumn(1);
-                                    });
-
+                                    sheetTable.ColumnsDefinition(columns => { columns.RelativeColumn(3); columns.RelativeColumn(2); columns.RelativeColumn(1.5f); columns.RelativeColumn(1); columns.RelativeColumn(1); });
                                     sheetTable.Header(header =>
                                     {
                                         header.Cell().Element(TableHeaderStyle).Text("Наименование");
@@ -2544,13 +2520,11 @@ namespace Metal_Code
                                         header.Cell().Element(TableHeaderStyle).AlignCenter().Text("На 1 хлыст");
                                         header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Всего (с повт.)");
                                     });
-
                                     foreach (var part in data.PartsTable)
                                     {
                                         sheetTable.Cell().Element(TableRowStyle).Text(part.Name);
                                         sheetTable.Cell().Element(TableRowStyle).Text(part.Dimensions);
                                         sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.WeightKg.ToString("0.###"));
-                                        // 🔥 Используем сохраненное значение вместо деления
                                         sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.QtyOnSheet.ToString());
                                         sheetTable.Cell().Element(TableRowStyle).AlignCenter().Text(part.TotalQty.ToString()).Bold();
                                     }
@@ -2565,14 +2539,7 @@ namespace Metal_Code
 
                             column.Item().Table(masterTable =>
                             {
-                                masterTable.ColumnsDefinition(columns =>
-                                {
-                                    columns.RelativeColumn(3);
-                                    columns.RelativeColumn(2);
-                                    columns.RelativeColumn(1.5f);
-                                    columns.RelativeColumn(1);
-                                });
-
+                                masterTable.ColumnsDefinition(columns => { columns.RelativeColumn(3); columns.RelativeColumn(2); columns.RelativeColumn(1.5f); columns.RelativeColumn(1); });
                                 masterTable.Header(header =>
                                 {
                                     header.Cell().Element(TableHeaderStyle).Text("Наименование");
@@ -2580,7 +2547,6 @@ namespace Metal_Code
                                     header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Общий вес, кг");
                                     header.Cell().Element(TableHeaderStyle).AlignCenter().Text("Общее кол-во");
                                 });
-
                                 foreach (var part in masterPartsList)
                                 {
                                     masterTable.Cell().Element(TableRowStyle).Text(part.Name);
@@ -2591,20 +2557,28 @@ namespace Metal_Code
                             });
                         });
 
-                        page.Footer().AlignCenter().Text(x =>
+                        // 🔥 ОБНОВЛЕННЫЙ ФУТЕР С ОТЧЕТЛИВЫМ ИМЕНЕМ АВТОРА
+                        page.Footer().Row(row =>
                         {
-                            x.Span("Страница ").FontSize(8);
-                            x.CurrentPageNumber().FontSize(8);
-                            x.Span(" из ").FontSize(8);
-                            x.TotalPages().FontSize(8);
+                            row.RelativeItem().Text($"Автор расчета: {authorName}")
+                                .FontSize(12)           // Увеличенный размер
+                                .Bold()                 // Жирный шрифт для лучшей читаемости
+                                .FontColor(Colors.Black); // Стандартный черный цвет
+
+                            row.RelativeItem().AlignCenter().Text(x =>
+                            {
+                                x.Span("Страница ").FontSize(8);
+                                x.CurrentPageNumber().FontSize(8);
+                                x.Span(" из ").FontSize(8);
+                                x.TotalPages().FontSize(8);
+                            });
+
+                            row.RelativeItem().Text(""); // Пустой элемент для сохранения идеального центрирования нумерации
                         });
                     });
                 }).GeneratePdf(filePath);
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Trace.WriteLine($"Auto Pipe PDF Export Error: {ex.Message}");
-            }
+            catch { }
         }
 
         private static QuestPDF.Infrastructure.IContainer TableHeaderStyle(QuestPDF.Infrastructure.IContainer container) => container

@@ -353,8 +353,8 @@ namespace Metal_Code
                         {
                             row.RelativeItem().Column(left =>
                             {
-                                // Определяем источник материала по всем заготовкам
                                 var allTypeDetails = MainWindow.M.DetailControls
+                                    .Where(dc => dc?.TypeDetailControls != null)
                                     .SelectMany(dc => dc.TypeDetailControls)
                                     .ToList();
 
@@ -362,7 +362,6 @@ namespace Metal_Code
                                 bool allFromCustomer = allTypeDetails.All(t => !t.HasMetal);
                                 bool mixedSituation = !allFromExecutor && !allFromCustomer;
 
-                                // Проверяем наличие алюминиевых листов от исполнителя
                                 bool hasAluminumSheets = allTypeDetails.Any(t =>
                                     t.TypeDetailDrop?.Text == "Лист металла" &&
                                     t.HasMetal &&
@@ -384,7 +383,7 @@ namespace Metal_Code
                                 {
                                     materialText = "Материал: Заказчика (внимание: остатки давальческого материала забираются вместе с заказом, иначе эти остатки утилизируются!)";
                                 }
-                                else // mixedSituation
+                                else
                                 {
                                     materialText = "Материал: Частично исполнителя, частично заказчика" + aluminumWarning +
                                                   " (внимание: остатки давальческого материала забираются вместе с заказом, иначе эти остатки утилизируются!)";
@@ -401,7 +400,6 @@ namespace Metal_Code
 
                                 if (MainWindow.M.HasDelivery is true)
                                 {
-
                                     left.Item().PaddingVertical(5).Text(textBlock =>
                                     {
                                         textBlock.Span("Порядок отгрузки: доставка силами Исполнителя по адресу: " +
@@ -420,7 +418,52 @@ namespace Metal_Code
                                         textBlock.Span(".");
                                     });
                                 }
-                                left.Item().PaddingVertical(5).Text("Точность: H14/h14 ±IT14/2 (резка осуществляется воздухом).");
+
+                                // 🔥 2. ДИНАМИЧЕСКОЕ ОПРЕДЕЛЕНИЕ ВСЕХ ИСПОЛЬЗУЕМЫХ ТИПОВ ГАЗА (СМЕШАННЫЕ РЕЖИМЫ)
+                                var gasesUsed = new HashSet<string>();
+
+                                var cutControls = MainWindow.M.DetailControls
+                                    .Where(dc => dc?.TypeDetailControls != null)
+                                    .SelectMany(dc => dc.TypeDetailControls)
+                                    .Where(tc => tc?.WorkControls != null)
+                                    .SelectMany(tc => tc.WorkControls)
+                                    .Select(wc => wc?.workType as CutControl)
+                                    .Where(c => c != null)
+                                    .ToList();
+
+                                foreach (var c in cutControls)
+                                {
+                                    if (c != null && c.HaveNitro)
+                                    {
+                                        gasesUsed.Add("азотом");
+                                    }
+                                    else if (c != null)
+                                    {
+                                        string metal = c.work?.type?.MetalDrop?.Text ?? "";
+                                        float thickness = c.work?.type?.S ?? 0f;
+
+                                        bool isTargetMetal = metal.Contains("ст3", StringComparison.OrdinalIgnoreCase) ||
+                                                             metal.Contains("09г2с", StringComparison.OrdinalIgnoreCase);
+
+                                        if (isTargetMetal && thickness >= 3f)
+                                        {
+                                            gasesUsed.Add("кислородом");
+                                        }
+                                        else
+                                        {
+                                            gasesUsed.Add("воздухом");
+                                        }
+                                    }
+                                }
+
+                                // Формируем грамматически правильную строку
+                                var gasList = gasesUsed.ToList();
+                                string cuttingGasText = gasList.Count == 0 ? "воздухом" :
+                                                         gasList.Count == 1 ? gasList[0] :
+                                                         string.Join(", ", gasList.Take(gasList.Count - 1)) + " и " + gasList.Last();
+
+                                // Вывод строки с полным перечнем используемых газов
+                                left.Item().PaddingVertical(5).Text($"Точность: H14/h14 ±IT14/2 (резка осуществляется {cuttingGasText}).");
 
                                 left.Item().PaddingVertical(5).Text($"Расшифровка работ: {descriptionWorks}");
 

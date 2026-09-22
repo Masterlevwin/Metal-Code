@@ -15,6 +15,7 @@
         <local:DateToBoolConverter x:Key="DateToBoolConverter"/>
         <local:OrderToBoolConverter x:Key="OrderToBoolConverter"/>
         <converters:GroupCompanyNamesConverter x:Key="GroupCompanyNamesConverter"/>
+        <converters:InverseBooleanConverter x:Key="InverseBoolConverter"/>
         <converters:ShipmentButtonTextConverter x:Key="ShipmentButtonTextConverter"/>
         <converters:LocalOfferColorConverter x:Key="LocalOfferColorConverter"/>
         
@@ -543,7 +544,16 @@
                             <Border x:Name="LimitCheckBorder" Margin="10,0,0,0" Padding="4" CornerRadius="{DynamicResource DefaultCornerRadius}">
                                 <CheckBox x:Name="LimitCheck" VerticalAlignment="Center" Width="140" Click="LimitCheck_Click"/>
                             </Border>
-                            <hc:SearchBar hc:InfoElement.Placeholder="Поиск детали" Style="{StaticResource SearchBarExtend}" Text="{Binding SearchDetails, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="170" SearchStarted="Search_Details"/>
+                                <!-- Основная кнопка выбора папок -->
+                                <Button Content="📁 Папки" Margin="60,0,3,0"
+                                            Click="ShowFolderPresetsDialog"
+                                            ToolTip="Выбрать папки для создания при сохранении"
+                                            Style="{StaticResource ButtonDashed.Small}"/>
+                                <!-- Кнопка настройки шаблонов -->
+                                <Button Content="⚙"
+                                            Click="OpenFolderPresetSettings"
+                                            ToolTip="Добавить, переименовать или удалить шаблоны папок"
+                                            Style="{StaticResource ButtonDashed.Small}"/>
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Margin="5">
@@ -562,17 +572,37 @@
                                     <hc:TextBox x:Name="Comment" hc:InfoElement.Placeholder="Комментарий для клиента" ToolTip="Введите комментарий" TextWrapping="Wrap" Width="250" HorizontalContentAlignment="Center" Height="45"/>
                                     <Image Source="/Images/comment2.png" Margin="-10,-2,0,0" Width="20" VerticalAlignment="Top"/>
                                 </StackPanel>
+                                
                                 <StackPanel Orientation="Horizontal" Margin="5">
-                                    <!-- Основная кнопка выбора папок -->
-                                    <Button Content="📁 Папки" Margin="0,0,5,0"
-                                            Click="ShowFolderPresetsDialog"
-                                            ToolTip="Выбрать папки для создания при сохранении"
-                                            Style="{StaticResource ButtonPrimary.Small}"/>
-                                    <!-- Кнопка настройки шаблонов -->
-                                    <Button Content="⚙ Настроить"
-                                            Click="OpenFolderPresetSettings"
-                                            ToolTip="Добавить, переименовать или удалить шаблоны папок"
-                                            Style="{StaticResource ButtonDashed.Small}"/>
+                                    <RadioButton x:Name="RadioLaser" GroupName="CompanyGroup"
+                                                 IsChecked="{Binding IsLaser, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=Window}}">
+                                        <Image Source="laser_logo.jpg" Width="120" Height="24" Stretch="Uniform"/>
+                                        <RadioButton.Style>
+                                            <Style TargetType="RadioButton">
+                                                <Setter Property="Opacity" Value="0.5"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsChecked" Value="True">
+                                                        <Setter Property="Opacity" Value="1.0"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </RadioButton.Style>
+                                    </RadioButton>
+
+                                    <RadioButton x:Name="RadioApp" GroupName="CompanyGroup" Margin="20,0,0,0"
+                                                 IsChecked="{Binding IsLaser, Converter={StaticResource InverseBoolConverter}, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=Window}}">
+                                        <Image Source="app_logo.jpg" Width="24" Height="24" Stretch="Uniform"/>
+                                        <RadioButton.Style>
+                                        <Style TargetType="RadioButton">
+                                            <Setter Property="Opacity" Value="0.5"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter Property="Opacity" Value="1.0"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </RadioButton.Style>
+                                    </RadioButton>
                                 </StackPanel>
                             </StackPanel>
 
