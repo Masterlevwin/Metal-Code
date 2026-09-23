@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Metal_Code.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -431,21 +432,43 @@ namespace Metal_Code.Utils
             return placedCount;
         }
 
-        public static List<PipeStock> CreateNestingForPipeBatch(List<Part> parts, double stockLength = 6000, double clampZone = 340, double cutLoss = 10)
+        public static List<PipeStock> CreateNestingForPipeBatch(
+            List<Part> parts,
+            double stockLength = 6000,
+            double clampZone = 340,
+            double cutLoss = 10,
+            List<PipeRemnant>? availableRemnants = null)
         {
             var stocks = new List<PipeStock>();
 
-            // Размножаем детали согласно количеству и сортируем по убыванию длины
+            // 🔥 1. ДОБАВЛЯЕМ ОСТАТКИ В ПУЛ ЗАГОТОВОК ПЕРВЫМИ
+            if (availableRemnants != null)
+            {
+                foreach (var remnant in availableRemnants)
+                {
+                    for (int i = 0; i < remnant.Count; i++)
+                    {
+                        stocks.Add(new PipeStock
+                        {
+                            StockLength = remnant.Length,
+                            ClampZone = clampZone,
+                            CutLoss = cutLoss,
+                            IsRemnant = true // 🔥 Явно помечаем как остаток
+                        });
+                    }
+                }
+            }
+
+            // 2. Размножаем детали согласно количеству и сортируем по убыванию длины
             var allParts = parts
                 .SelectMany(p => Enumerable.Repeat(p, p.Count))
                 .OrderByDescending(p => p.Length)
                 .ToList();
 
-            // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Добавляем p.Title в ключ группировки
-            // Это сохраняет индивидуальность детали, не мешая алгоритму Best Fit упаковывать их вместе
+            // 🔥 3. Группируем для сохранения индивидуальности (Title), но позволяем Best Fit упаковывать их
             var groupedParts = allParts
                 .GroupBy(p => new {
-                    Title = p.Title ?? "Без имени", // Защита от null
+                    Title = p.Title ?? "Без имени",
                     p.Length,
                     p.PartType,
                     p.Width,
@@ -460,23 +483,23 @@ namespace Metal_Code.Utils
                 int remainingCount = partsInGroup.Count;
                 int index = 0;
 
-                // 🔥 Пытаемся разместить детали из группы в существующие хлысты (Best Fit)
-                // Это гарантирует, что Деталь А и Деталь Б одинаковой длины всё равно могут попасть в один хлыст,
-                // но при этом сохранят свои правильные имена в Placements.
+                // 🔥 4. Пытаемся разместить детали из группы в существующие хлысты
                 while (remainingCount > 0 && index < partsInGroup.Count)
                 {
                     var part = partsInGroup[index];
 
-                    // Ищем все хлысты, куда деталь влезает
                     var suitableStocks = stocks
                         .Where(s => s.StockLength >= s.TotalRequiredLength + part.Length + s.CutLoss)
                         .ToList();
 
                     if (suitableStocks.Any())
                     {
-                        // 🔥 Best Fit: выбираем хлыст, где после размещения останется минимальный остаток
+                        // 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ:
+                        // 1. Сначала сортируем по IsRemnant: остатки (0) всегда идут перед новыми хлыстами (1).
+                        // 2. Затем применяем Best Fit: среди подходящих выбираем тот, где останется минимальный остаток.
                         var bestStock = suitableStocks
-                            .OrderBy(s => s.StockLength - s.TotalRequiredLength - part.Length - s.CutLoss)
+                            .OrderBy(s => s.IsRemnant ? 0 : 1)
+                            .ThenBy(s => s.StockLength - s.TotalRequiredLength - part.Length - s.CutLoss)
                             .First();
 
                         double startPosition = bestStock.ClampZone + bestStock.UsedLengthWithCutLoss;
@@ -486,39 +509,36 @@ namespace Metal_Code.Utils
                     }
                     else
                     {
-                        // Не влезло ни в один существующий хлыст, переходим к созданию новых
+                        // Не влезло ни в один существующий хлыст
                         break;
                     }
                 }
 
-                // 🔥 Если остались неразмещенные детали, создаем новые хлысты с пакетным заполнением
+                // 🔥 5. Если остались неразмещенные детали, создаем новые хлысты с пакетным заполнением
                 if (remainingCount > 0)
                 {
-                    var part = partsInGroup[index]; // Теперь это конкретная деталь с правильным Title
+                    var part = partsInGroup[index];
 
-                    // Проверяем, что деталь вообще может поместиться в хлыст
                     if (part.Length > stockLength - clampZone)
                     {
-                        // Деталь слишком длинная, пропускаем (или можно выбросить исключение/лог)
                         remainingCount = 0;
                         continue;
                     }
 
-                    // Создаем новые хлысты и заполняем их максимально возможным количеством деталей
                     while (remainingCount > 0)
                     {
                         var newStock = new PipeStock
                         {
                             StockLength = stockLength,
                             ClampZone = clampZone,
-                            CutLoss = cutLoss
+                            CutLoss = cutLoss,
+                            IsRemnant = false // Новый хлыст
                         };
 
-                        // Добавляем первую деталь
                         newStock.Placements.Add(new PipePlacement { Part = part, StartPosition = clampZone });
                         remainingCount--;
 
-                        // Пытаемся добавить еще детали из той же группы (пакетная резка)
+                        // Пакетное заполнение нового хлыста деталями из той же группы
                         while (remainingCount > 0)
                         {
                             double requiredSpace = part.Length + newStock.CutLoss;
@@ -686,6 +706,8 @@ namespace Metal_Code.Utils
         // Рассчитанная минимально необходимая длина хлыста с учетом всех деталей, отступов и зоны зажима.
         // Округлена вверх до удобного значения (например, до 100 мм или до целого метра).
         public double OptimizedLength { get; set; }
+
+        public bool IsRemnant { get; set; }
 
         public double CutLoss { get; set; } = 10; // Отступ между деталями (пропил)
 

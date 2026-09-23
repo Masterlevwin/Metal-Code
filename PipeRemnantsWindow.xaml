@@ -1,0 +1,66 @@
+﻿<Window x:Class="Metal_Code.PipeRemnantsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:hc="https://handyorg.github.io/handycontrol"
+        Title="Управление остатками труб" 
+        WindowStartupLocation="CenterOwner"
+        Width="500" Height="450" ResizeMode="NoResize">
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Список доступных остатков на складе:" FontWeight="Bold" Margin="0,0,0,10"/>
+
+        <!-- Таблица остатков -->
+        <DataGrid x:Name="RemnantsDataGrid" Grid.Row="1" 
+                  AutoGenerateColumns="False" CanUserAddRows="False" 
+                  SelectionMode="Single" Margin="0,0,0,10">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Профиль" Binding="{Binding ProfileName}" Width="*" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Длина (мм)" Binding="{Binding Length, StringFormat={}{0:0}}" Width="100" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Кол-во (шт)" Binding="{Binding Count}" Width="100" IsReadOnly="True"/>
+                <DataGridTemplateColumn Width="60">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="🗑" Foreground="Red" Background="Transparent" BorderThickness="0" 
+                                    Cursor="Hand" ToolTip="Удалить" Click="DeleteRemnant_Click"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Панель добавления нового остатка -->
+        <Border Grid.Row="2" BorderBrush="LightGray" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <hc:TextBox x:Name="TxtProfile" hc:InfoElement.Placeholder="Например: 40x40x3 aisi304" VerticalAlignment="Center"/>
+
+                <hc:NumericUpDown x:Name="NumLength" Grid.Column="1" Value="4000" Minimum="100" Maximum="12000" 
+                                  VerticalAlignment="Center" Margin="5,0,0,0" hc:InfoElement.Title="Длина, мм"/>
+
+                <hc:NumericUpDown x:Name="NumCount" Grid.Column="2" Value="1" Minimum="1" Maximum="999" 
+                                  VerticalAlignment="Center" Margin="5,0,0,0" hc:InfoElement.Title="Кол-во"/>
+
+                <Button Grid.Column="3" Content="➕ Добавить" Style="{StaticResource ButtonPrimary}" Margin="10,0,0,0" Click="AddRemnant_Click"/>
+            </Grid>
+        </Border>
+
+        <!-- Кнопки управления окном -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Отмена" Margin="0,0,10,0" Click="Cancel_Click"/>
+            <Button Content="Сохранить и применить" Style="{StaticResource ButtonSuccess}" Click="Ok_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

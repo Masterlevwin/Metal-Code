@@ -1,4 +1,5 @@
-﻿using Metal_Code.Utils;
+﻿using Metal_Code.Models;
+using Metal_Code.Utils;
 using Microsoft.Win32;
 using netDxf;
 using netDxf.Entities;
@@ -1961,5 +1962,21 @@ namespace Metal_Code
             PropsDict = new Dictionary<int, List<string>>(s.PropsDict)
         };
         #endregion
+
+        public ObservableCollection<PipeRemnant> PipeRemnants { get; set; } = new();
+
+        private void OpenRemnants_Click(object sender, RoutedEventArgs e)
+        {
+            var window = new PipeRemnantsWindow(PipeRemnants) { Owner = GetWindow(this) };
+            if (window.ShowDialog() == true)
+            {
+                PipeRemnants.Clear();
+                foreach (var r in window.Remnants)
+                {
+                    PipeRemnants.Add(r);
+                }
+                MainWindow.M.StatusBegin($"Сохранено остатков: {PipeRemnants.Sum(r => r.Count)} шт.", MainWindow.StatusMessageType.Success);
+            }
+        }
     }
 }

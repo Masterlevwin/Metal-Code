@@ -352,6 +352,7 @@
 
                     <!-- 🔥 НАСТРОЙКИ ДЛЯ ТРУБНЫХ ДЕТАЛЕЙ -->
                     <StackPanel Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='RoundTube,RectangularTube,Angle,Channel,IBeam,Circle,SquareBar'}">
+                        <Button Content="📦 Остатки" Click="OpenRemnants_Click" Margin="5" Style="{StaticResource ButtonDashed}"/>
                         <TextBlock Text="Зона зажима (мм)" FontWeight="Bold" Margin="0,0,0,8" HorizontalAlignment="Center"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
                             <RadioButton x:Name="Clamp340Radio" Content="340" GroupName="ClampZone" IsChecked="True" Margin="0,0,15,0"/>
