@@ -7,13 +7,19 @@ namespace Metal_Code
 {
     public partial class PipeRemnantsWindow : Window
     {
+        private readonly string _baseProfileName;
+
         public ObservableCollection<PipeRemnant> Remnants { get; } = new();
         public bool IsConfirmed { get; private set; }
 
-        // Конструктор принимает текущий список остатков (если он уже где-то хранится)
-        public PipeRemnantsWindow(ObservableCollection<PipeRemnant>? existingRemnants = null)
+        // 🔥 Добавляем параметр currentProfileName
+        public PipeRemnantsWindow(string currentProfileName, ObservableCollection<PipeRemnant> existingRemnants = null)
         {
             InitializeComponent();
+
+            // Защита от null, если по какой-то причине имя не передано
+            _baseProfileName = string.IsNullOrWhiteSpace(currentProfileName) ? "Профиль" : currentProfileName;
+
             RemnantsDataGrid.ItemsSource = Remnants;
 
             if (existingRemnants != null)
@@ -32,31 +38,27 @@ namespace Metal_Code
 
         private void AddRemnant_Click(object sender, RoutedEventArgs e)
         {
-            string profile = TxtProfile.Text.Trim();
-            if (string.IsNullOrEmpty(profile))
-            {
-                MessageBox.Show("Укажите профиль трубы.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
             double length = NumLength.Value;
             int count = (int)NumCount.Value;
 
+            // 🔥 АВТОГЕНЕРАЦИЯ ИМЕНИ: "Профиль_Длина" (например: "40x40x3 aisi304_4000")
+            string generatedProfileName = $"{_baseProfileName}_{length:0}";
+
             // Проверяем, есть ли уже такой остаток, и если да - суммируем количество
-            var existing = Remnants.FirstOrDefault(r => r.ProfileName == profile && r.Length == length);
+            var existing = Remnants.FirstOrDefault(r => r.ProfileName == generatedProfileName && r.Length == length);
             if (existing != null)
             {
                 existing.Count += count;
             }
             else
             {
-                Remnants.Add(new PipeRemnant { ProfileName = profile, Length = length, Count = count });
+                Remnants.Add(new PipeRemnant { ProfileName = generatedProfileName, Length = length, Count = count });
             }
 
-            TxtProfile.Clear();
+            // Сброс полей для быстрого добавления следующего
             NumLength.Value = 4000;
             NumCount.Value = 1;
-            TxtProfile.Focus();
+            NumLength.Focus();
         }
 
         private void DeleteRemnant_Click(object sender, RoutedEventArgs e)

@@ -3,8 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:hc="https://handyorg.github.io/handycontrol"
         Title="Управление остатками труб" 
-        WindowStartupLocation="CenterOwner"
-        Width="500" Height="450" ResizeMode="NoResize">
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Width="500" Height="600">
 
     <Grid Margin="15">
         <Grid.RowDefinitions>
@@ -21,7 +20,8 @@
                   AutoGenerateColumns="False" CanUserAddRows="False" 
                   SelectionMode="Single" Margin="0,0,0,10">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Профиль" Binding="{Binding ProfileName}" Width="*" IsReadOnly="True"/>
+                <!-- Оставляем для информации, но оно будет заполняться автоматически -->
+                <DataGridTextColumn Header="Идентификатор остатка" Binding="{Binding ProfileName}" Width="*" IsReadOnly="True"/>
                 <DataGridTextColumn Header="Длина (мм)" Binding="{Binding Length, StringFormat={}{0:0}}" Width="100" IsReadOnly="True"/>
                 <DataGridTextColumn Header="Кол-во (шт)" Binding="{Binding Count}" Width="100" IsReadOnly="True"/>
                 <DataGridTemplateColumn Width="60">
@@ -35,23 +35,25 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <!-- Панель добавления нового остатка -->
+        <!-- Панель добавления нового остатка (БЕЗ ввода профиля) -->
         <Border Grid.Row="2" BorderBrush="LightGray" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
             <Grid>
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="140"/>
+                    <!-- Длина -->
+                    <ColumnDefinition Width="90"/>
+                    <!-- Кол-во -->
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="80"/>
+                    <!-- Растягиваемое пространство -->
                     <ColumnDefinition Width="Auto"/>
+                    <!-- Кнопка -->
                 </Grid.ColumnDefinitions>
 
-                <hc:TextBox x:Name="TxtProfile" hc:InfoElement.Placeholder="Например: 40x40x3 aisi304" VerticalAlignment="Center"/>
+                <hc:NumericUpDown x:Name="NumLength" Value="4000" Minimum="100" Maximum="12000" 
+                                  VerticalAlignment="Center" hc:InfoElement.Title="Длина, мм"/>
 
-                <hc:NumericUpDown x:Name="NumLength" Grid.Column="1" Value="4000" Minimum="100" Maximum="12000" 
-                                  VerticalAlignment="Center" Margin="5,0,0,0" hc:InfoElement.Title="Длина, мм"/>
-
-                <hc:NumericUpDown x:Name="NumCount" Grid.Column="2" Value="1" Minimum="1" Maximum="999" 
-                                  VerticalAlignment="Center" Margin="5,0,0,0" hc:InfoElement.Title="Кол-во"/>
+                <hc:NumericUpDown x:Name="NumCount" Grid.Column="1" Value="1" Minimum="1" Maximum="999" 
+                                  VerticalAlignment="Center" Margin="10,0,0,0" hc:InfoElement.Title="Кол-во"/>
 
                 <Button Grid.Column="3" Content="➕ Добавить" Style="{StaticResource ButtonPrimary}" Margin="10,0,0,0" Click="AddRemnant_Click"/>
             </Grid>

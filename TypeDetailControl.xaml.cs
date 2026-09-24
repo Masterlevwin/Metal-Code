@@ -559,12 +559,6 @@ namespace Metal_Code
                                     part.Destiny = S;
                                     part.OnPropertyChanged(nameof(Part.Destiny));
                                 }
-
-                                if (part.DisplayGeometry != null)
-                                {
-                                    cut.PartsControl?.UpdatePartAfterEdit(part, metal, S, isOriginal: true);
-                                    part.OnPropertyChanged(nameof(Part.Mass));
-                                }
                             }
 
                             PartsToggle.Content = $"{(cut is PipeControl or SawControl ? "(ТР) " : "")}s{S} {metal.Name} ({cut.PartDetails.Sum(x => x.Count)} деталей)";
@@ -673,6 +667,16 @@ namespace Metal_Code
         {
             if (PartsToggle.IsChecked == true)
             {
+                if (S <= 0)
+                {
+                    MainWindow.M.StatusBegin(
+                        "⚠ Внимание: толщина заготовки не указана. Масса деталей не рассчитана. Пожалуйста, задайте толщину в настройках выше.",
+                        MainWindow.StatusMessageType.Warning);
+
+                    PartsToggle.IsChecked = false;
+                    return;
+                }
+
                 foreach (WorkControl w in WorkControls)
                 {
                     if (w.workType is CutControl cut && cut.PartsControl is null)

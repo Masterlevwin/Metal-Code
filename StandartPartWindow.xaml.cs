@@ -1967,7 +1967,29 @@ namespace Metal_Code
 
         private void OpenRemnants_Click(object sender, RoutedEventArgs e)
         {
-            var window = new PipeRemnantsWindow(PipeRemnants) { Owner = GetWindow(this) };
+            string profile = _currentPart.PartType switch
+            {
+                PartType.Rectangle => "Прямоугольник",
+                PartType.Round => "Круг",
+                PartType.Triangle => "Треугольник",
+                PartType.Custom => "Произвольная форма",
+                PartType.RectangularTube => "Профильная труба",
+                PartType.RoundTube => "Круглая труба",
+                PartType.Angle => "Уголок",
+                PartType.Channel => "Швеллер",
+                PartType.IBeam => "Двутавр",
+                PartType.Circle => "Круглый прут",
+                PartType.SquareBar => "Квадратный прут",
+                _ => "Остаток"
+            };
+
+            string currentProfileName = $"{profile} {_currentPart.Width}x{_currentPart.Height}x{_currentPart.Destiny} {_currentPart.Metal}";
+
+            var window = new PipeRemnantsWindow(currentProfileName, PipeRemnants)
+            {
+                Owner = GetWindow(this)
+            };
+
             if (window.ShowDialog() == true)
             {
                 PipeRemnants.Clear();
