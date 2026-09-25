@@ -354,7 +354,9 @@ namespace Metal_Code
                         {
                             Title = part.Title,
                             Count = part.Count,
-                            ImageBytes = part.ImageBytes
+                            ImageBytes = part.ImageBytes,
+                            Mass = part.Mass,
+                            Square = GetGeometricSquare(part)
                         };
                         assembly.Particles.Add(_particle);
                     }
@@ -549,19 +551,36 @@ namespace Metal_Code
             LooseDescription = string.Empty;
 
             // ==========================================
-            // ЧАСТЬ 1: РАСЧЕТ МАССЫ И ПЛОЩАДИ (для каждой сборки)
+            // ЧАСТЬ 1: РАСЧЕТ МАССЫ И ПЛОЩАДИ
             // ==========================================
             foreach (Assembly assembly in Assemblies)
             {
+                assembly.Mass = 0;
+                assembly.Square = 0;
+                assembly.TotalCostSquare = 0;
+
                 foreach (Particle particle in assembly.Particles)
                 {
                     Part? part = MainWindow.M.Parts.FirstOrDefault(p => p.Title == particle.Title);
                     if (part == null) continue;
 
+                    // Масса одной сборки
                     assembly.Mass += part.Mass * particle.Count;
-                    float partSquare = CalculatePartSquare(part, isDoubleSided: true);
-                    assembly.Square += partSquare * particle.Count * assembly.Count;
+
+                    // Геометрическая площадь (для UI)
+                    float geoSquare = GetGeometricSquare(part);
+                    assembly.Square += geoSquare * particle.Count;
+
+                    // Расчетная площадь с коэффициентами (для цены)
+                    float costSquare = CalculatePartSquare(part, isDoubleSided: true);
+                    assembly.TotalCostSquare += costSquare * particle.Count * assembly.Count;
                 }
+
+                // Общая масса всех экземпляров (для UI)
+                assembly.TotalMass = assembly.Mass * assembly.Count;
+
+                // Общая геометрическая площадь для UI
+                assembly.TotalSquare = assembly.Square * assembly.Count;
             }
 
             // ==========================================
@@ -590,7 +609,7 @@ namespace Metal_Code
             foreach (var (part, count) in loosePartsList)
             {
                 LooseMass += part.Mass * count;
-                LooseSquare += CalculatePartSquare(part, isDoubleSided: true) * count;
+                LooseSquare += GetGeometricSquare(part) * count;
             }
 
             // ==========================================
@@ -691,12 +710,12 @@ namespace Metal_Code
             // ==========================================
             var paintItems = new List<(decimal Area, float ChamberArea, int PieceCount, Assembly? Assembly, bool IsLoose)>();
 
-            // 1. Добавляем сборки
+            // 1. Добавляем сборки (используем TotalCostSquare для честного расчета цены!)
             foreach (var assembly in Assemblies.Where(a => !string.IsNullOrEmpty(a.Ral)))
             {
                 paintItems.Add((
-                    Area: (decimal)assembly.Square,
-                    ChamberArea: assembly.Square / 2f,
+                    Area: (decimal)assembly.TotalCostSquare,      // <-- ИСПОЛЬЗУЕМ ПЛОЩАДЬ С КОЭФФИЦИЕНТАМИ
+                    ChamberArea: (float)assembly.TotalCostSquare / 2f,
                     PieceCount: assembly.Particles.Sum(p => p.Count) * assembly.Count,
                     Assembly: assembly,
                     IsLoose: false
@@ -775,6 +794,32 @@ namespace Metal_Code
                     }
                 }
             }
+        }
+
+        // Рассчитывает чистую геометрическую площадь детали в кв.м. (без коэффициентов стоимости).
+        public static float GetGeometricSquare(Part part)
+        {
+            if (!part.PropsDict.ContainsKey(100) || part.PropsDict[100].Count < 2)
+                return 0;
+
+            float width = MainWindow.Parser(part.PropsDict[100][0]);
+            float height = MainWindow.Parser(part.PropsDict[100][1]);
+
+            if (height == 0)
+            {
+                height = 1;
+                width *= 1000000;
+            }
+
+            float baseAreaMm2 = width * height;
+
+            // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Трубы (Description == "Т") красятся только снаружи.
+            // Для них делитель всегда 1 000 000 (односторонняя).
+            // Для листов и других деталей делитель 500 000 (двусторонняя).
+            bool isPipe = part.Description == "Т";
+            float divisor = isPipe ? 1_000_000f : 500_000f;
+
+            return baseAreaMm2 / divisor;
         }
 
         // Рассчитывает площадь одной детали в кв.м.
@@ -946,7 +991,9 @@ namespace Metal_Code
                         {
                             Title = part.Title,
                             Count = part.Count,
-                            ImageBytes = part.ImageBytes
+                            ImageBytes = part.ImageBytes,
+                            Mass = part.Mass,
+                            Square = GetGeometricSquare(part)
                         };
                         assembly.Particles.Add(_particle);
                         HighlightNewItem(assembly, _particle);

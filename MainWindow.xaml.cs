@@ -25,6 +25,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Text.Json;
@@ -2257,6 +2258,7 @@ namespace Metal_Code
 
                 bool wasSearchActive = !string.IsNullOrWhiteSpace(_searchQuery);
 
+                OffersGrid.ItemsSource = null;
                 ResetFilters();
 
                 int lastOfferIdBefore = CurrentOffers?.Select(o => o.Id).DefaultIfEmpty(0).Max() ?? 0;
@@ -2265,6 +2267,15 @@ namespace Metal_Code
 
                 // Сбрасываем флаг поиска после обновления
                 _searchQuery = string.Empty;
+
+                // Возвращаем источник данных обратно
+                OffersGrid.ItemsSource = OffersView;
+
+                // Принудительно обновляем представление, если используется CollectionViewSource
+                if (OffersView is ICollectionView collectionView)
+                {
+                    collectionView.Refresh();
+                }
 
                 if (wasSearchActive)
                 {
@@ -3026,9 +3037,7 @@ namespace Metal_Code
                 // 1. Запоминаем развернутые группы ДО изменения коллекции
                 var previouslyExpanded = GetExpandedGroupNames();
 
-                // 2. 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Отвязываем DataGrid от источника данных.
-                // Это предотвращает внутренние краши WPF ItemContainerGenerator при массовом Clear/Add 
-                // на сгруппированных данных (особенно после удаления/изменения элементов, как при отгрузке).
+                // 2. Отвязываем DataGrid от источника данных.
                 OffersGrid.ItemsSource = null;
 
                 CurrentOffers.Clear();
@@ -3062,6 +3071,84 @@ namespace Metal_Code
             catch (Exception ex)
             {
                 StatusBegin($"Ошибка поиска: {ex.Message}", StatusMessageType.Error);
+            }
+        }
+
+        private void OffersGrid_RowDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            // Получаем строку, по которой кликнули
+            if (sender is not DataGridRow row || row.DataContext is not Offer offer)
+                return;
+
+            // Определяем, по какой колонке был клик
+            var clickedElement = e.OriginalSource as DependencyObject;
+            if (clickedElement == null)
+                return;
+
+            var cell = FindVisualParent<DataGridCell>(clickedElement);
+            if (cell == null)
+                return;
+
+            // Получаем колонку ячейки
+            var column = cell.Column;
+
+            // Проверяем, что клик был по одним из первых трёх колонок (№, Компания, Итого)
+            // Используем SortMemberPath или Header для идентификации
+            if (column == null ||
+                (column.SortMemberPath != "ParentQuoteNumber" &&
+                 column.SortMemberPath != "Company" &&
+                 column.SortMemberPath != "Amount"))
+            {
+                return; // Клик был по другой колонке - игнорируем
+            }
+
+            // Проверяем, что путь указан
+            if (string.IsNullOrWhiteSpace(offer.Act))
+            {
+                MessageBox.Show("Путь к расчёту не указан.", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Получаем путь к папке из полного пути к файлу
+            string? folderPath = Path.GetDirectoryName(offer.Act);
+
+            if (string.IsNullOrEmpty(folderPath))
+            {
+                MessageBox.Show("Не удалось определить путь к папке.", "Внимание",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!Directory.Exists(folderPath))
+            {
+                MessageBox.Show($"Папка не найдена:\n{folderPath}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // 1. Копируем путь к папке в буфер обмена
+            try
+            {
+                Clipboard.SetText(folderPath);
+            }
+            catch (ExternalException ex)
+            {
+                Trace.WriteLine($"Не удалось скопировать в буфер: {ex.Message}");
+            }
+
+            // 2. Открываем папку в проводнике
+            try
+            {
+                Process.Start(new ProcessStartInfo(folderPath)
+                {
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Не удалось открыть папку:\n{ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

@@ -383,6 +383,18 @@ namespace Metal_Code
             }
         }
 
+        [OptionalField]
+        private float _square;
+        public float Square
+        {
+            get => _square;
+            set
+            {
+                _square = value;
+                OnPropertyChanged(); 
+            }
+        }
+
         public Particle() { }
     }
 
@@ -517,7 +529,23 @@ namespace Metal_Code
                 }
             }
         }
-        
+
+        [OptionalField]
+        private float _totalSquare;
+        public float TotalSquare
+        {
+            get => (float)Math.Round(_totalSquare, 2);
+            set { _totalSquare = value; OnPropertyChanged(); }
+        }
+
+        [OptionalField]
+        private float _totalCostSquare;
+        public float TotalCostSquare
+        {
+            get => _totalCostSquare;
+            set { _totalCostSquare = value; OnPropertyChanged(); }
+        }
+
         [OptionalField]
         private float mass = 0;
         public float Mass
@@ -531,6 +559,14 @@ namespace Metal_Code
                     OnPropertyChanged(nameof(Mass));
                 }
             }
+        }
+
+        [OptionalField]
+        private float _totalMass = 0;
+        public float TotalMass
+        {
+            get => (float)Math.Round(_totalMass, 2);
+            set { _totalMass = value; OnPropertyChanged(); }
         }
 
         [OptionalField]

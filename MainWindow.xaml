@@ -664,6 +664,12 @@
                                               ContextMenuOpening="OffersGrid_ContextMenuOpening"
                                               Sorting="OffersGrid_Sorting">
 
+                                        <DataGrid.RowStyle>
+                                            <Style TargetType="DataGridRow">
+                                                <EventSetter Event="MouseDoubleClick" Handler="OffersGrid_RowDoubleClick"/>
+                                            </Style>
+                                        </DataGrid.RowStyle>
+                                        
                                         <DataGrid.GroupStyle>
                                             <GroupStyle>
                                                 <GroupStyle.ContainerStyle>
