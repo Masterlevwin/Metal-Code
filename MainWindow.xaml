@@ -172,6 +172,9 @@
               Command="{Binding LoadCommand}"/>
         <KeyBinding Key="F5"
               Command="{Binding UpdateCommand}"/>
+        <KeyBinding Key="K"
+              Modifiers="Control"
+              Command="{Binding OpenAssistantCommand}"/>
     </Window.InputBindings>
 
     <DockPanel LastChildFill="True">
@@ -200,11 +203,12 @@
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
+            
             <MenuItem x:Name="Settings" Header="Базы">
-                <MenuItem Header="База типовых деталей" Click="OpenSettings"/>
-                <MenuItem Header="База работ" Click="OpenSettings"/>
-                <MenuItem Header="База менеджеров" Click="OpenSettings"/>
-                <MenuItem Header="База материалов" Click="OpenSettings"/>
+                <MenuItem Header="База заготовок"   Tag="settings.details" Click="OpenSettings"/>
+                <MenuItem Header="База работ"       Tag="settings.works"    Click="OpenSettings"/>
+                <MenuItem Header="База менеджеров"  Tag="settings.managers" Click="OpenSettings"/>
+                <MenuItem Header="База материалов"  Tag="settings.metals"   Click="OpenSettings"/>
 
                 <!-- ⭐ Служебный блок: виден только администратору -->
                 <Separator>
@@ -235,6 +239,7 @@
                     </MenuItem.Style>
                 </MenuItem>
             </MenuItem>
+            
             <MenuItem Header="Инструменты">
                 <MenuItem Header="Таблица гибов" Click="ShowTableOfBends">
                     <MenuItem.Icon>
@@ -282,6 +287,7 @@
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
+            
             <MenuItem Header="Отчеты">
                 <MenuItem Header="📊 По отгруженным заказам за выбранный период" Click="Report_On_Shipped_Orders">
                     <MenuItem.Style>
@@ -311,6 +317,7 @@
                 </MenuItem>
 
             </MenuItem>
+            
             <MenuItem Header="О программе">
                 <MenuItem Header="Руководство" Click="OpenExample">
                     <MenuItem.Icon>
@@ -321,12 +328,26 @@
                 <Separator/>
                 <MenuItem Header="Обновить программу" Click="Restart"/>
             </MenuItem>
+            
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <!-- Индикатор статуса -->
                 <Border x:Name="OnlineIndicator" Width="12" Height="12" CornerRadius="6"
                         Background="Gray" Margin="0,0,5,0" ToolTip="Статус подключения"/>
                 <Button x:Name="Login" Content="Пользователь" ToolTip="Сменить пользователя" Click="ShowLoginWindow"/>
             </StackPanel>
+            
+            <!-- ⭐ Кнопка вызова ассистента -->
+            <Button x:Name="AssistantButton" 
+                    Click="OpenAssistantWindow"
+                    ToolTip="Открыть ассистента (Ctrl+K)"
+                    Margin="15,0,0,0" 
+                    Padding="8,2"
+                    VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🤖" FontSize="14" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <TextBlock Text="Спросить МИШУ" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
         </Menu>
 
         <StatusBar x:Name="Status" DockPanel.Dock="Bottom" Margin="10">

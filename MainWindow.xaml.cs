@@ -583,7 +583,6 @@ namespace Metal_Code
                     catch (Exception ex)
                     {
                         string fullError = ex.InnerException != null ? $"{ex.Message} | Inner: {ex.InnerException.Message}" : ex.Message;
-                        Trace.WriteLine($"Ошибка миграции: {fullError}");
                         StatusBegin("Работа в локальном режиме (ошибка синхронизации).", StatusMessageType.Warning);
                         isOnline = false;
                     }
@@ -613,10 +612,7 @@ namespace Metal_Code
                         bool isEngineerOrAdmin = currentManager.IsEngineer || currentManager.IsAdmin;
                         await DataService.SyncManagersAsync(isEngineerOrAdmin);
                     }
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine($"Ошибка синхронизации менеджеров: {ex.Message}");
-                    }
+                    catch { }
                 }
 
                 // ⭐ ЕДИНЫЙ ВЫЗОВ инициализации менеджеров
@@ -645,7 +641,6 @@ namespace Metal_Code
             catch (Exception ex)
             {
                 string fullError = ex.InnerException != null ? $"{ex.Message} | Inner: {ex.InnerException.Message}" : ex.Message;
-                Trace.WriteLine($"Критическая ошибка запуска: {fullError}");
                 MessageBox.Show($"Ошибка инициализации:\n{fullError}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             finally
@@ -799,10 +794,10 @@ namespace Metal_Code
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.7.3.0",
-                releaseDate: new DateTime(2026, 09, 18),
-                description: "Добавлен экспорт в DXF.",
-                screenshotPath: "/Updates/v2.7.3.0_2026-09-18.png"
+                version: "v2.7.3.6",
+                releaseDate: new DateTime(2026, 09, 30),
+                description: "Добавлен ассистент МИША.",
+                screenshotPath: "/Updates/v2.7.3.6_2026-09-30.png"
             );
 
             // Получаем новые обновления
@@ -1013,28 +1008,50 @@ namespace Metal_Code
             }
         }
 
-        private void OpenSettings(object sender, RoutedEventArgs e)     // пункт меню настройки баз
+        /// <summary>
+        /// Обработчик клика по пунктам меню "Базы".
+        /// Определяет ID базы по Tag (если задан) или по индексу элемента (fallback).
+        /// </summary>
+        private void OpenSettings(object sender, RoutedEventArgs e)
         {
             IsEnabled = false;
-            if (sender == Settings.Items[0])
+            try
             {
-                TypeDetailWindow typeDetailWindow = new();
-                typeDetailWindow.Show();
+                if (sender is FrameworkElement fe && fe.Tag is string baseId)
+                {
+                    OpenSettingsById(baseId);
+                }
             }
-            else if (sender == Settings.Items[1])
+            finally
             {
-                WorkWindow workWindow = new();
-                workWindow.Show();
+                IsEnabled = true;
             }
-            else if (sender == Settings.Items[2])
+        }
+
+        /// <summary>
+        /// ⭐ ЕДИНЫЙ метод открытия окна настроек.
+        /// Вызывается и из меню, и из ассистента, и из любого другого места.
+        /// </summary>
+        public void OpenSettingsById(string baseId)
+        {
+            Window? window = baseId switch
             {
-                ManagerWindow managerWindow = new();
-                managerWindow.Show();
+                "settings.details" => new TypeDetailWindow(),
+                "settings.works" => new WorkWindow(),
+                "settings.managers" => new ManagerWindow(),
+                "settings.metals" => new MetalWindow(),
+                _ => null
+            };
+
+            if (window != null)
+            {
+                window.Owner = this;          // привязываем к главному окну
+                window.Show();
+                StatusBegin($"Открыт справочник: {baseId}", StatusMessageType.Info);
             }
-            else if (sender == Settings.Items[3])
+            else
             {
-                MetalWindow metalWindow = new();
-                metalWindow.Show();
+                StatusBegin($"Неизвестный справочник: {baseId}", StatusMessageType.Warning);
             }
         }
 
@@ -1086,7 +1103,7 @@ namespace Metal_Code
                 }
             }
 
-            ManagerDrop.ItemsSource = managersForDrop;
+            ManagerDrop.ItemsSource = managersForDrop.OrderBy(m => m.Name);
 
             // ⭐ Если список из одного элемента — блокируем дроп
             ManagerDrop.IsEnabled = managersForDrop.Count > 1;
@@ -1770,6 +1787,60 @@ namespace Metal_Code
             Result += Delivery * DeliveryRatio; // Доставка
 
             Parts = PartsSource();
+        }
+
+        /// <summary>
+        /// Раскрывает панель сводки стоимости и подсвечивает её,
+        /// чтобы пользователь сразу увидел, куда смотреть.
+        /// Вызывается из ассистента по команде "view.cost_summary".
+        /// </summary>
+        public void ShowCostSummary()
+        {
+            // 1. Раскрываем панель, если она свёрнута
+            if (DetailsToggle.IsChecked != true)
+            {
+                DetailsToggle.IsChecked = true;
+                OnDetailsToggleClick(DetailsToggle, new RoutedEventArgs());
+            }
+
+            // 2. Обновляем данные (вдруг изменились)
+            UpdateResult();
+
+            // 3. Подсвечиваем панель сводки
+            HighlightCostSummaryPanel();
+        }
+
+        /// <summary>
+        /// Плавная подсветка панели сводки стоимости с затуханием.
+        /// </summary>
+        private void HighlightCostSummaryPanel()
+        {
+            try
+            {
+                var originalBackground = DetailsPanel.Background;
+
+                // Яркий жёлтый для привлечения внимания
+                var highlightBrush = new SolidColorBrush(Color.FromRgb(255, 240, 150));
+                DetailsPanel.Background = highlightBrush;
+
+                var fadeAnimation = new ColorAnimation
+                {
+                    From = Color.FromRgb(255, 240, 150),
+                    To = originalBackground is SolidColorBrush solid
+                        ? solid.Color
+                        : Colors.Transparent,
+                    Duration = TimeSpan.FromMilliseconds(2500),
+                    FillBehavior = FillBehavior.Stop
+                };
+
+                fadeAnimation.Completed += (_, _) =>
+                {
+                    DetailsPanel.Background = originalBackground;
+                };
+
+                highlightBrush.BeginAnimation(SolidColorBrush.ColorProperty, fadeAnimation);
+            }
+            catch { }
         }
 
         private void Copy_Result(object sender, RoutedEventArgs e) { Clipboard.SetText($"{(float)Math.Ceiling(Result)}"); }
@@ -8594,35 +8665,32 @@ namespace Metal_Code
         //------------Таблица гибов-------------------------------//
         private void ShowTableOfBends(object sender, RoutedEventArgs e)
         {
-            if (sender is MenuItem item)
+            string header = $"Таблица гибов";
+            ExtraWindow extraWindow = new(header);
+            Image image = new() { Source = new BitmapImage(new Uri("Images/tableofbends.jpg", UriKind.Relative)), MaxWidth = 800 };
+            extraWindow.ContentStack.Children.Add(image);
+            TextBlock tb = new()
             {
-                string header = $"{item.Header}";
-                ExtraWindow extraWindow = new(header);
-                Image image = new() { Source = new BitmapImage(new Uri("Images/tableofbends.jpg", UriKind.Relative)), MaxWidth = 800 };
-                extraWindow.ContentStack.Children.Add(image);
-                TextBlock tb = new()
-                {
-                    Text = $"Максимальная длина гиба – 2550 мм.\r\n" +
-                    $"Коэффициент для развертки – 0,4 мм.\r\n" +
-                    $"Проверить усилие станка по таблице гибов:\r\n" +
-                    $"1. Определяем № матрицы.\r\n" +
-                    $"2. На пересечении матрицы и толщины металла\r\n" +
-                    $"получаем количество тонн на метр гиба.\r\n" +
-                    $"3. Умножаем это значение на фактический размер гиба.\r\n" +
-                    $"4. Если результат меньше 100 тонн, значит согнём!\r\n" +
-                    $"Проверить размер полки выбранной матрицы:\r\n" +
-                    $"1. Берем половину от № матрицы.\r\n" +
-                    $"2. Добавляем толщину металла и 1 мм на зацеп.\r\n" +
-                    $"3. Полученный результат – минимальная полка гиба.\r\n" +
-                    $"Проверить внутренний размер между гибами:\r\n" +
-                    $"если этот размер меньше полок, второй гиб может не получиться из-за того,\r\n" +
-                    $"что полка первого гиба будет упираться в станок.\r\n" +
-                    $"Этот момент уточняется экспериментальным путем у специалиста - гибщика!",
-                    Margin = new Thickness(20),
-                };
-                extraWindow.ContentStack.Children.Add(tb);
-                extraWindow.Show();
-            }
+                Text = $"Максимальная длина гиба – 2550 мм.\r\n" +
+                $"Коэффициент для развертки – 0,4 мм.\r\n" +
+                $"Проверить усилие станка по таблице гибов:\r\n" +
+                $"1. Определяем № матрицы.\r\n" +
+                $"2. На пересечении матрицы и толщины металла\r\n" +
+                $"получаем количество тонн на метр гиба.\r\n" +
+                $"3. Умножаем это значение на фактический размер гиба.\r\n" +
+                $"4. Если результат меньше 100 тонн, значит согнём!\r\n" +
+                $"Проверить размер полки выбранной матрицы:\r\n" +
+                $"1. Берем половину от № матрицы.\r\n" +
+                $"2. Добавляем толщину металла и 1 мм на зацеп.\r\n" +
+                $"3. Полученный результат – минимальная полка гиба.\r\n" +
+                $"Проверить внутренний размер между гибами:\r\n" +
+                $"если этот размер меньше полок, второй гиб может не получиться из-за того,\r\n" +
+                $"что полка первого гиба будет упираться в станок.\r\n" +
+                $"Этот момент уточняется экспериментальным путем у специалиста - гибщика!",
+                Margin = new Thickness(20),
+            };
+            extraWindow.ContentStack.Children.Add(tb);
+            extraWindow.Show();
         }
 
         //------------Смена темы----------------------------------//
@@ -10193,6 +10261,122 @@ namespace Metal_Code
             if (dialog.ShowDialog() == true)
             {
                 StatusBegin($"Выбрано папок: {CurrentCalculationFolders.Count(p => p.IsEnabled)}");
+            }
+        }
+        #endregion
+
+
+        //-------------Ассистент----------------//
+        #region
+        private AssistantService? _assistantService;
+        private AssistantWindow? _assistantWindow;
+
+        private void OpenAssistantWindow(object sender, RoutedEventArgs e)
+        {
+            if (_assistantWindow is { IsLoaded: true })
+            {
+                _assistantWindow.Activate();
+                _assistantWindow.Focus();
+                return;
+            }
+
+            _assistantService ??= new AssistantService(MetalDict, Destinies, Works, Metals);
+
+            _assistantWindow = new AssistantWindow(_assistantService) { Owner = this };
+            _assistantWindow.ActionRequested += HandleAssistantAction;
+            _assistantWindow.Closed += (_, _) =>
+            {
+                _assistantWindow.ActionRequested -= HandleAssistantAction;
+                _assistantWindow = null;
+            };
+            _assistantWindow.Show();
+        }
+
+        private void HandleAssistantAction(string commandId)
+        {
+            switch (commandId)
+            {
+                case "detail.add":
+                    AddDetail();
+                    break;
+                case "assembly.create":
+                    ShowAssemblyWindow(this, new RoutedEventArgs());
+                    break;
+                case "basket.add":
+                    AddBasket(this, new RoutedEventArgs());
+                    break;
+                case "project.new":
+                    NewProject();
+                    break;
+                case "project.open":
+                    ProductModel.OpenCommand?.Execute(null);
+                    break;
+                case "project.save":
+                    ProductModel.SaveCommand?.Execute(null);
+                    break;
+                case "project.folder":
+                    CreateProjectFolder(this, new RoutedEventArgs());
+                    break;
+                case "request.create":
+                    CreateRequest(this, new RoutedEventArgs());
+                    break;
+                case "layout.load":
+                    ProductModel.LoadCommand?.Execute(null);
+                    break;
+                case "tools.bends":
+                    ShowTableOfBends(this, new RoutedEventArgs());
+                    break;
+                case "tools.route":
+                    ShowRouteWindow(this, new RoutedEventArgs());
+                    break;
+                case "tools.spec":
+                    CreateSpec(this, new RoutedEventArgs());
+                    break;
+                case "tools.passport":
+                    CreatePassport(this, new RoutedEventArgs());
+                    break;
+                case "tools.act":
+                    CreateAct(this, new RoutedEventArgs());
+                    break;
+                case "tools.complect":
+                    CreateComplect(this, new RoutedEventArgs());
+                    break;
+                case "tools.convert":
+                    Convert_dwg_to_dxf(this, new RoutedEventArgs());
+                    break;
+                case "tools.tasks":
+                    CreateRegistryWindow(this, new RoutedEventArgs());
+                    break;
+                case "report.shipped":
+                    Report_On_Shipped_Orders(this, new RoutedEventArgs());
+                    break;
+                case "report.production":
+                    Report_On_Production_Orders(this, new RoutedEventArgs());
+                    break;
+                case "report.manager":
+                    CreateManagerReport(this, new RoutedEventArgs());
+                    break;
+                case "settings.metals":
+                case "settings.works":
+                case "settings.details":
+                case "settings.managers":
+                    OpenSettingsById(commandId);
+                    break;
+                case "view.cost_summary":
+                    ShowCostSummary();
+                    break;
+                case "launch.work":
+                    if (OffersGrid.SelectedItem is Offer offer)
+                        LaunchToWork(this, new RoutedEventArgs());
+                    else
+                        StatusBegin("Сначала выберите расчёт в таблице", StatusMessageType.Warning);
+                    break;
+                case "help.guide":
+                    OpenExample(this, new RoutedEventArgs());
+                    break;
+                default:
+                    StatusBegin($"Команда '{commandId}' пока не реализована", StatusMessageType.Info);
+                    break;
             }
         }
         #endregion

@@ -1004,7 +1004,27 @@ namespace Metal_Code
                         ExpandAssemblyItem(assembly);
                     }
 
+                    // Сохраняем позицию скролла ListView перед обновлением
+                    var listView = FindVisualChild<ListView>(this); // Ищем ListView в окне
+                    double scrollOffset = 0;
+                    if (listView != null)
+                    {
+                        var scrollViewer = GetScrollViewer(listView);
+                        scrollOffset = scrollViewer?.VerticalOffset ?? 0;
+                    }
+
                     RefreshCurrentPartsUI();
+
+                    // Восстанавливаем позицию скролла через Dispatcher (после отрисовки UI)
+                    if (listView != null && scrollOffset > 0)
+                    {
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            var scrollViewer = GetScrollViewer(listView);
+                            scrollViewer?.ScrollToVerticalOffset(scrollOffset);
+                        }), DispatcherPriority.Loaded);
+                    }
+
                     e.Handled = true;
                     return;
                 }
@@ -1042,6 +1062,32 @@ namespace Metal_Code
                 var result = FindVisualChildByDataContext<T>(child, dataContext);
                 if (result != null)
                     return result;
+            }
+            return null;
+        }
+
+        // Вспомогательный метод для поиска ScrollViewer
+        private ScrollViewer? GetScrollViewer(DependencyObject o)
+        {
+            if (o is ScrollViewer) return (ScrollViewer)o;
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(o); i++)
+            {
+                var child = VisualTreeHelper.GetChild(o, i);
+                var result = GetScrollViewer(child);
+                if (result != null) return result;
+            }
+            return null;
+        }
+
+        // Вспомогательный метод для поиска визуального потомка
+        private T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T t) return t;
+                var result = FindVisualChild<T>(child);
+                if (result != null) return result;
             }
             return null;
         }
