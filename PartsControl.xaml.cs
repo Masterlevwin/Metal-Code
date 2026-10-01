@@ -2204,7 +2204,7 @@ namespace Metal_Code
                         .OrderByDescending(p => p.TotalQty)
                         .ToList();
 
-                    sheetData.Add((pngBytes, $"Лист {index} из {sheetsToExport.Count}", item.sheets, item.sheetSize, item.NestingSheet.Spacing, item.NestingSheet.Parts.Count, partsTable));
+                    sheetData.Add((pngBytes, $"Лист {index} (повторов: {item.sheets})", item.sheets, item.sheetSize, item.NestingSheet.Spacing, item.NestingSheet.Parts.Count, partsTable));
                     index++;
                 }
 
@@ -2671,7 +2671,7 @@ namespace Metal_Code
                     {
                         // Очищаем имя файла от недопустимых символов Windows
                         string safeTitle = string.Join("_", part.Title!.Split(Path.GetInvalidFileNameChars()));
-                        string fileName = $"{safeTitle}_{part.Metal}_{part.Destiny}мм.dxf";
+                        string fileName = $"{safeTitle} {part.Metal} s{part.Destiny} n{part.Count}.dxf";
                         string fullPath = Path.Combine(exportFolder, fileName);
 
                         // 🔥 Вызываем тот же универсальный метод

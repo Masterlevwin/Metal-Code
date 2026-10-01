@@ -13,7 +13,7 @@ namespace Metal_Code
         public bool IsConfirmed { get; private set; }
 
         // 🔥 Добавляем параметр currentProfileName
-        public PipeRemnantsWindow(string currentProfileName, ObservableCollection<PipeRemnant> existingRemnants = null)
+        public PipeRemnantsWindow(string currentProfileName, ObservableCollection<PipeRemnant>? existingRemnants = null)
         {
             InitializeComponent();
 

@@ -9,8 +9,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -25,47 +27,42 @@ namespace Metal_Code
 {
     public partial class StandartPartWindow : Window
     {
-        //Поля класса
         #region
         private readonly Part _currentPart;
         private readonly ObservableCollection<Part> _batchBuffer = new();
         private readonly Dictionary<Part, Dictionary<double, (int Count, double BendLength)>> _batchBendsInfo = new();
-        
-        // Состояние рисования
+
         private readonly PointCollection _customPoints = new();
         private bool _isDrawingActive = false;
         private bool _isContourFinished = false;
 
-        // Состояние панорамирования
         private bool _isPanning = false;
         private Point _panStartScreen;
         private Point _panStartOffset;
 
-        // Константы листа и сетки (в мм)
         private const double SheetWidthMm = 3000;
         private const double SheetHeightMm = 1500;
         private const double Epsilon = 0.5;
         private const double ClosingSnapToleranceMm = 10.0;
         private static readonly double[] GridSteps = { 10, 20, 50, 100, 200, 250, 500, 1000 };
 
-        // Режим редактирования размеров
         private bool _isEditMode = false;
-        private int _selectedSegmentIndex = -1; // Индекс выбранного сегмента (-1 = не выбран)
-        private const double SegmentClickTolerancePx = 15; // Допуск клика по линии (в пикселях экрана)
+        private int _selectedSegmentIndex = -1;
+        private const double SegmentClickTolerancePx = 15;
         public bool UseAutoNesting { get; private set; } = true;
         public double CustomSpacing { get; private set; } = 0;
         public double CustomClampZone { get; private set; } = 340;
         public double CustomCutLoss { get; private set; } = 10;
 
-        // Поля для режима отверстий
         private bool _isPlacingHoles = false;
         private const double MinEdgeDistanceMm = 3.0;
 
-        // Состояние редактирования отверстий
         private int _selectedHoleIndex = -1;
         private int _nearestVerticalSegmentIndex = -1;
         private int _nearestHorizontalSegmentIndex = -1;
         private const double HoleClickTolerancePx = 15;
+
+        private readonly ObservableCollection<LengthChipItem> _recentChips = new();
         #endregion
 
         public StandartPartWindow(Part templatePart)
@@ -76,7 +73,8 @@ namespace Metal_Code
             BatchItemsControl.ItemsSource = _batchBuffer;
             UpdateWindowTitle();
 
-            // Подписываемся на изменение материала/толщины (если они могут меняться)
+            InitializePipeInput();
+
             _currentPart.PropertyChanged += (s, e) =>
             {
                 if (e.PropertyName == nameof(Part.Metal) || e.PropertyName == nameof(Part.Destiny))
@@ -84,11 +82,34 @@ namespace Metal_Code
 
                 if (_currentPart.PartType != PartType.Custom &&
                     (e.PropertyName == nameof(Part.Width) ||
-                    e.PropertyName == nameof(Part.Height) ||
-                    e.PropertyName == nameof(Part.Length)))
+                     e.PropertyName == nameof(Part.Height) ||
+                     e.PropertyName == nameof(Part.Length)))
                 {
                     if (_currentPart.Width > 0 && _currentPart.Height > 0)
                         UpdatePreview();
+                }
+
+                // 🔥 НОВОЕ: Автогенерация имени для ЛИСТОВЫХ деталей
+                if (!IsPipePart(_currentPart.PartType) &&
+                    (e.PropertyName == nameof(Part.Width) ||
+                     e.PropertyName == nameof(Part.Height) ||
+                     e.PropertyName == nameof(Part.Destiny)))
+                {
+                    if (AutoTitleCheck?.IsChecked == true && _currentPart.Width > 0 && _currentPart.Height > 0)
+                    {
+                        _currentPart.Title = GenerateSheetTitle();
+                        _currentPart.OnPropertyChanged(nameof(Part.Title));
+                    }
+                }
+
+                // Автогенерация имени для ТРУБНЫХ деталей
+                if (IsPipePart(_currentPart.PartType) && e.PropertyName == nameof(Part.Length))
+                {
+                    if (AutoTitleCheck?.IsChecked == true)
+                    {
+                        _currentPart.Title = GenerateTitle(_currentPart.Length);
+                        _currentPart.OnPropertyChanged(nameof(Part.Title));
+                    }
                 }
             };
 
@@ -100,9 +121,39 @@ namespace Metal_Code
             UpdatePreview();
         }
 
-        /// <summary>
-        /// Обновляет заголовок окна и информационную панель с данными о материале
-        /// </summary>
+        private void InitializePipeInput()
+        {
+            if (RecentLengthsItemsControl != null)
+                RecentLengthsItemsControl.ItemsSource = _recentChips;
+        }
+
+        private void AutoTitleCheck_Changed(object sender, RoutedEventArgs e)
+        {
+            if (AutoTitleCheck == null || _currentPart == null) return;
+
+            if (AutoTitleCheck.IsChecked == true)
+            {
+                if (IsPipePart(_currentPart.PartType))
+                {
+                    _currentPart.Title = GenerateTitle(_currentPart.Length);
+                }
+                else if (_currentPart.Width > 0 && _currentPart.Height > 0)
+                {
+                    _currentPart.Title = GenerateSheetTitle();
+                }
+                _currentPart.OnPropertyChanged(nameof(Part.Title));
+            }
+        }
+
+        private void PipeLengthInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                AddToBatch_Click(sender, e);
+                e.Handled = true;
+            }
+        }
+
         private void UpdateWindowTitle()
         {
             string metal = _currentPart.Metal ?? "Не выбран";
@@ -114,16 +165,10 @@ namespace Metal_Code
                 MaterialInfoText.Text = $"📋 Материал: {metal} | Толщина: {thickness}";
         }
 
-        // ==========================================
-        // ЛОГИКА ХОЛСТА И СЕТКИ
-        // ==========================================
         #region
         private void DrawingArea_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (e.NewSize.Width > 0 && e.NewSize.Height > 0)
-            {
-                InitializeView();
-            }
+            if (e.NewSize.Width > 0 && e.NewSize.Height > 0) InitializeView();
         }
 
         private void InitializeView()
@@ -144,8 +189,7 @@ namespace Metal_Code
         private double GetAdaptiveGridStep()
         {
             double currentScale = DrawingAreaGrid.ActualWidth > 0 ? DrawingAreaGrid.ActualWidth / SheetWidthMm : 1.0;
-            double desiredStepMm = 80 / currentScale; // Целевое расстояние ~80px
-
+            double desiredStepMm = 80 / currentScale;
             return GridSteps.OrderBy(step => Math.Abs(desiredStepMm - step)).First();
         }
 
@@ -156,7 +200,6 @@ namespace Metal_Code
             double offset = 15 / CanvasScale.ScaleX;
             double fontSize = 12 / CanvasScale.ScaleX;
 
-            // 1. Граница листа
             BackgroundCanvas.Children.Add(new Rectangle
             {
                 Width = SheetWidthMm,
@@ -166,24 +209,21 @@ namespace Metal_Code
                 Fill = Brushes.White
             });
 
-            // 2. Ось X (внизу)
             for (double x = gridStep; x < SheetWidthMm; x += gridStep)
             {
                 BackgroundCanvas.Children.Add(new Line { X1 = x, Y1 = 0, X2 = x, Y2 = SheetHeightMm, Stroke = Brushes.LightGray, StrokeThickness = 1 / CanvasScale.ScaleX });
                 AddLabel($"{x:0}", x, SheetHeightMm + offset, fontSize, Brushes.Gray, false, true);
             }
 
-            // 3. Ось Y (слева, инвертированная)
             for (double y = gridStep; y < SheetHeightMm; y += gridStep)
             {
                 BackgroundCanvas.Children.Add(new Line { X1 = 0, Y1 = y, X2 = SheetWidthMm, Y2 = y, Stroke = Brushes.LightGray, StrokeThickness = 1 / CanvasScale.ScaleX });
                 AddLabel($"{SheetHeightMm - y:0}", -offset, y, fontSize, Brushes.Gray, true, false);
             }
 
-            // 4. Угловые метки
-            AddLabel("0", -offset, SheetHeightMm + offset, fontSize * 1.2, Brushes.Red, true, false, true); // Нижний левый (КРАСНЫЙ)
-            AddLabel("3000", SheetWidthMm, SheetHeightMm + offset, fontSize, Brushes.Gray, false, true, true); // Нижний правый
-            AddLabel("1500", -offset, 0, fontSize, Brushes.Gray, true, false, true); // Верхний левый
+            AddLabel("0", -offset, SheetHeightMm + offset, fontSize * 1.2, Brushes.Red, true, false, true);
+            AddLabel("3000", SheetWidthMm, SheetHeightMm + offset, fontSize, Brushes.Gray, false, true, true);
+            AddLabel("1500", -offset, 0, fontSize, Brushes.Gray, true, false, true);
         }
 
         private void AddLabel(string text, double x, double y, double fontSize, Brush color, bool alignRight, bool alignCenterX, bool isBold = false)
@@ -202,37 +242,31 @@ namespace Metal_Code
         private bool IsPipePart(PartType type)
         {
             return type == PartType.RoundTube || type == PartType.RectangularTube ||
-                   type == PartType.Angle || type == PartType.Channel || type == PartType.IBeam;
+                   type == PartType.Angle || type == PartType.Channel || type == PartType.IBeam ||
+                   type == PartType.Circle || type == PartType.SquareBar;
         }
         #endregion
 
-        // ==========================================
-        // ОТРИСОВКА ДЕТАЛЕЙ
-        // ==========================================
         #region
         private void RedrawCanvas(Point? previewPoint = null)
         {
             DrawingCanvas.Children.Clear();
 
-            // Для трубных деталей — отдельный режим визуализации
             if (IsPipePart(_currentPart.PartType))
             {
                 DrawPipeView();
                 return;
             }
 
-            // 🔥 ОБЪЯВЛЕНИЕ ПЕРЕМЕННЫХ (этого не хватало в фрагменте)
             double strokeThickness = 2 / CanvasScale.ScaleX;
             double markerSize = 6 / CanvasScale.ScaleX;
             double dashThickness = 1 / CanvasScale.ScaleX;
 
-            // Если это шаблонная деталь — рисуем её
             if (_currentPart.PartType != PartType.Custom)
             {
                 DrawTemplateGeometry(strokeThickness);
                 DrawBendLines(strokeThickness);
 
-                // 🔥 НОВОЕ: Отрисовка индикатора группы отверстий для оптимизации производительности
                 if (_currentPart.HoleGroups != null && _currentPart.HoleGroups.Any(g => g.Count > 50))
                 {
                     Rect bounds = (Rect)(_currentPart.DisplayGeometry?.Bounds)!;
@@ -246,7 +280,6 @@ namespace Metal_Code
                         double canvasCx = centerX + offset;
                         double canvasCy = centerY + offsetY;
 
-                        // 1. Пунктирный круг-индикатор
                         double indicatorSize = 40 / CanvasScale.ScaleX;
                         DrawingCanvas.Children.Add(new Ellipse
                         {
@@ -259,7 +292,6 @@ namespace Metal_Code
                             RenderTransform = new TranslateTransform(canvasCx - indicatorSize / 2, canvasCy - indicatorSize / 2)
                         });
 
-                        // 2. Текстовая сводка (например: "⌀5×400, ⌀20×100")
                         string summaryText = string.Join(", ", _currentPart.HoleGroups.Select(g => $"⌀{g.Diameter:0}×{g.Count}"));
                         var label = new TextBlock
                         {
@@ -277,11 +309,9 @@ namespace Metal_Code
                         DrawingCanvas.Children.Add(label);
                     }
                 }
-
-                return; // Выходим, дальше рисуются только Custom детали
+                return;
             }
 
-            // Отрисовка произвольной формы
             for (int i = 0; i < _customPoints.Count; i++)
             {
                 var p = _customPoints[i];
@@ -308,7 +338,6 @@ namespace Metal_Code
                 }
             }
 
-            // "Резиновая нить" (превью следующего шага)
             if (previewPoint.HasValue && !_isContourFinished && _customPoints.Count > 0)
             {
                 var last = _customPoints.Last();
@@ -324,15 +353,13 @@ namespace Metal_Code
                 });
             }
 
-            // 🔥 УМНОЕ ЗАМЫКАНИЕ КОНТУРА
             if (_customPoints.Count >= 3)
             {
                 var first = _customPoints[0];
                 var last = _customPoints.Last();
-                var effectiveLast = GetSnappedClosingPoint(first, last); // Применяем выравнивание
+                var effectiveLast = GetSnappedClosingPoint(first, last);
                 bool canClose = CanCloseContour();
 
-                // Основная замыкающая линия
                 DrawingCanvas.Children.Add(new Line
                 {
                     X1 = effectiveLast.X,
@@ -340,12 +367,10 @@ namespace Metal_Code
                     X2 = first.X,
                     Y2 = first.Y,
                     Stroke = _isContourFinished ? Brushes.Black : (canClose ? Brushes.Green : Brushes.Red),
-                    // 🔥 Теперь компилятор найдет эти переменные, так как они объявлены выше
                     StrokeThickness = _isContourFinished ? strokeThickness : dashThickness,
                     StrokeDashArray = _isContourFinished ? null : new DoubleCollection { 4, 4 }
                 });
 
-                // Визуальная подсказка: тонкий пунктир от реального курсора к выровненной точке
                 if (!_isContourFinished && (effectiveLast.X != last.X || effectiveLast.Y != last.Y))
                 {
                     DrawingCanvas.Children.Add(new Line
@@ -361,7 +386,6 @@ namespace Metal_Code
                 }
             }
 
-            // 🔥 Отображение размеров линий (только в режиме редактирования после завершения контура)
             if (_isEditMode && _isContourFinished)
             {
                 double labelFontSize = 14 / CanvasScale.ScaleX;
@@ -372,31 +396,19 @@ namespace Metal_Code
                     Point p2 = (i < _customPoints.Count - 1) ? _customPoints[i + 1] : _customPoints[0];
 
                     double length = Math.Sqrt(Math.Pow(p2.X - p1.X, 2) + Math.Pow(p2.Y - p1.Y, 2));
-
-                    // Средняя точка линии для размещения метки
                     double midX = (p1.X + p2.X) / 2;
                     double midY = (p1.Y + p2.Y) / 2;
 
-                    // Смещение метки перпендикулярно линии
-                    double offsetX = 0;
-                    double offsetY = 0;
+                    double offsetX = 0, offsetY = 0;
                     bool isHorizontal = Math.Abs(p1.Y - p2.Y) < Epsilon;
 
-                    if (isHorizontal)
-                    {
-                        offsetY = -15 / CanvasScale.ScaleX; // Метка сверху от горизонтальной линии
-                    }
-                    else
-                    {
-                        offsetX = 15 / CanvasScale.ScaleX; // Метка справа от вертикальной линии
-                    }
+                    if (isHorizontal) offsetY = -15 / CanvasScale.ScaleX;
+                    else offsetX = 15 / CanvasScale.ScaleX;
 
-                    // Подсветка выбранной линии
                     bool isSelected = (i == _selectedSegmentIndex);
                     var lineColor = isSelected ? Brushes.Red : Brushes.Black;
                     var lineThickness = isSelected ? strokeThickness * 2 : strokeThickness;
 
-                    // Перерисовываем линию с подсветкой (поверх существующей)
                     DrawingCanvas.Children.Add(new Line
                     {
                         X1 = p1.X,
@@ -407,14 +419,13 @@ namespace Metal_Code
                         StrokeThickness = lineThickness
                     });
 
-                    // Метка с размером
                     var label = new TextBlock
                     {
                         Text = $"{length:0} мм",
                         FontSize = labelFontSize,
                         Foreground = isSelected ? Brushes.Red : Brushes.DarkBlue,
                         FontWeight = isSelected ? FontWeights.Bold : FontWeights.Normal,
-                        Background = Brushes.White // Фон для читаемости
+                        Background = Brushes.White
                     };
 
                     label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
@@ -424,7 +435,6 @@ namespace Metal_Code
                 }
             }
 
-            // 🔥 Отрисовка размещённых отверстий
             if (_currentPart.PartType == PartType.Custom && _currentPart.PlacedHoles.Count > 0)
             {
                 for (int i = 0; i < _currentPart.PlacedHoles.Count; i++)
@@ -443,7 +453,6 @@ namespace Metal_Code
                         RenderTransform = new TranslateTransform(hole.X - radius, hole.Y - radius)
                     });
 
-                    // Линии привязки для выбранного отверстия
                     if (isSelected)
                     {
                         var dashArray = new DoubleCollection { 3, 3 };
@@ -556,9 +565,6 @@ namespace Metal_Code
         }
         #endregion
 
-        // ==========================================
-        // ВИЗУАЛИЗАЦИЯ ТРУБНЫХ ДЕТАЛЕЙ
-        // ==========================================
         #region
         private void DrawPipeView()
         {
@@ -570,16 +576,13 @@ namespace Metal_Code
             double canvasW = 3000;
             double canvasH = 1500;
 
-            // --- Масштаб сечения: целевой размер ~25% ширины Canvas ---
             double targetSectionPx = canvasW * 0.22;
             double maxDim = Math.Max(bounds.Width, bounds.Height);
             double sScale = targetSectionPx / maxDim;
 
-            // Центр области сечения (левая часть)
             double secCX = canvasW * 0.2;
             double secCY = canvasH * 0.48;
 
-            // Рисуем масштабированное сечение
             var sectionPath = new Path
             {
                 Data = _currentPart.DisplayGeometry,
@@ -589,17 +592,16 @@ namespace Metal_Code
                 RenderTransform = new TransformGroup
                 {
                     Children = new TransformCollection
-            {
-                new ScaleTransform(sScale, sScale),
-                new TranslateTransform(
-                    secCX - (bounds.X + bounds.Width / 2) * sScale,
-                    secCY - (bounds.Y + bounds.Height / 2) * sScale)
-            }
+                    {
+                        new ScaleTransform(sScale, sScale),
+                        new TranslateTransform(
+                            secCX - (bounds.X + bounds.Width / 2) * sScale,
+                            secCY - (bounds.Y + bounds.Height / 2) * sScale)
+                    }
                 }
             };
             DrawingCanvas.Children.Add(sectionPath);
 
-            // --- Вид сбоку (справа) ---
             double targetSidePx = canvasW * 0.35;
             double sideLength = Math.Max(_currentPart.Length, 1);
             double sideScale = targetSidePx / sideLength;
@@ -611,7 +613,7 @@ namespace Metal_Code
             var sideRect = new Rectangle
             {
                 Width = sideW,
-                Height = Math.Max(sideH, 4), // Минимальная высота для видимости
+                Height = Math.Max(sideH, 4),
                 Stroke = Brushes.Black,
                 StrokeThickness = 2,
                 Fill = new SolidColorBrush(Color.FromArgb(25, 0, 120, 215))
@@ -620,35 +622,27 @@ namespace Metal_Code
             Canvas.SetTop(sideRect, sideY);
             DrawingCanvas.Children.Add(sideRect);
 
-            // --- Размерные линии ---
             double dimOffset = 30;
             double dimFontSize = 35;
 
-            // Размер ширины сечения (снизу)
             double secLeft = secCX - bounds.Width * sScale / 2;
             double secRight = secCX + bounds.Width * sScale / 2;
             double secBottom = secCY + bounds.Height * sScale / 2;
             DrawDimLine(secLeft, secBottom + dimOffset, secRight, secBottom + dimOffset,
                         $"{bounds.Width:0}", dimFontSize, true);
 
-            // Размер высоты сечения (справа от сечения)
             double secTop = secCY - bounds.Height * sScale / 2;
             DrawDimLine(secRight + dimOffset, secTop, secRight + dimOffset, secBottom,
                         $"{bounds.Height:0}", dimFontSize, false);
 
-            // Размер длины (снизу от вида сбоку)
             DrawDimLine(sideX, sideY + sideH + dimOffset, sideX + sideW, sideY + sideH + dimOffset,
                         $"L = {_currentPart.Length:0}", dimFontSize, true);
 
-            // Подпись типа сечения
             DrawCanvasLabel(GetPipeTypeName(_currentPart.PartType),
                             secCX, secTop - dimOffset * 2, dimFontSize, Brushes.DarkBlue);
         }
         #endregion
 
-        // ==========================================
-        // РАЗМЕРНЫЕ ЛИНИИ СО СТРЕЛКАМИ
-        // ==========================================
         #region
         private void DrawDimLine(double x1, double y1, double x2, double y2,
                                  string text, double fontSize, bool horizontal)
@@ -657,20 +651,10 @@ namespace Metal_Code
             var dimBrush = Brushes.DarkSlateGray;
             double stroke = 1.5;
 
-            // Основная линия
-            DrawingCanvas.Children.Add(new Line
-            {
-                X1 = x1,
-                Y1 = y1,
-                X2 = x2,
-                Y2 = y2,
-                Stroke = dimBrush,
-                StrokeThickness = stroke
-            });
+            DrawingCanvas.Children.Add(new Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Stroke = dimBrush, StrokeThickness = stroke });
 
             if (horizontal)
             {
-                // Стрелки слева и справа
                 DrawingCanvas.Children.Add(new Line { X1 = x1, Y1 = y1 - arrowSize / 2, X2 = x1, Y2 = y1 + arrowSize / 2, Stroke = dimBrush, StrokeThickness = stroke });
                 DrawingCanvas.Children.Add(new Line { X1 = x2, Y1 = y2 - arrowSize / 2, X2 = x2, Y2 = y2 + arrowSize / 2, Stroke = dimBrush, StrokeThickness = stroke });
 
@@ -682,7 +666,6 @@ namespace Metal_Code
             }
             else
             {
-                // Стрелки сверху и снизу
                 DrawingCanvas.Children.Add(new Line { X1 = x1 - arrowSize / 2, Y1 = y1, X2 = x1 + arrowSize / 2, Y2 = y1, Stroke = dimBrush, StrokeThickness = stroke });
                 DrawingCanvas.Children.Add(new Line { X1 = x2 - arrowSize / 2, Y1 = y2, X2 = x2 + arrowSize / 2, Y2 = y2, Stroke = dimBrush, StrokeThickness = stroke });
 
@@ -696,13 +679,7 @@ namespace Metal_Code
 
         private void DrawCanvasLabel(string text, double x, double y, double fontSize, Brush color)
         {
-            var label = new TextBlock
-            {
-                Text = text,
-                FontSize = fontSize,
-                Foreground = color,
-                FontWeight = FontWeights.Bold
-            };
+            var label = new TextBlock { Text = text, FontSize = fontSize, Foreground = color, FontWeight = FontWeights.Bold };
             label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             Canvas.SetLeft(label, x - label.DesiredSize.Width / 2);
             Canvas.SetTop(label, y);
@@ -716,13 +693,12 @@ namespace Metal_Code
             PartType.Angle => "Уголок",
             PartType.Channel => "Швеллер",
             PartType.IBeam => "Двутавр",
+            PartType.Circle => "Круглый пруток",
+            PartType.SquareBar => "Квадратный пруток",
             _ => "Труба"
         };
         #endregion
 
-        // ==========================================
-        // ОБРАБОТЧИКИ МЫШИ И РИСОВАНИЯ
-        // ==========================================
         #region
         private void Grid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -730,7 +706,6 @@ namespace Metal_Code
             clickPoint.X = Math.Clamp(clickPoint.X, 0, SheetWidthMm);
             clickPoint.Y = Math.Clamp(clickPoint.Y, 0, SheetHeightMm);
 
-            // 0. Проверка клика по существующему отверстию
             int clickedHoleIndex = GetClickedHole(clickPoint);
             if (clickedHoleIndex >= 0)
             {
@@ -739,7 +714,6 @@ namespace Metal_Code
                 return;
             }
 
-            // Сброс выделения при клике в пустоту
             if (_selectedHoleIndex >= 0)
             {
                 _selectedHoleIndex = -1;
@@ -747,7 +721,6 @@ namespace Metal_Code
                 RedrawCanvas();
             }
 
-            // 1. Режим размещения отверстий
             if (_isPlacingHoles && _isContourFinished)
             {
                 PlaceHole(clickPoint);
@@ -755,7 +728,6 @@ namespace Metal_Code
                 return;
             }
 
-            // 2. Режим редактирования размеров
             if (_isEditMode && _isContourFinished)
             {
                 int clickedSegment = GetClickedSegment(clickPoint);
@@ -780,7 +752,6 @@ namespace Metal_Code
                 return;
             }
 
-            // 3. Панорамирование
             if (Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt))
             {
                 _isPanning = true;
@@ -791,7 +762,6 @@ namespace Metal_Code
                 return;
             }
 
-            // 4. Рисование контура
             if (!_isDrawingActive || _isContourFinished) return;
 
             if (_customPoints.Count == 0)
@@ -864,9 +834,6 @@ namespace Metal_Code
         private void ZoomOut_Click(object sender, RoutedEventArgs e) { CanvasScale.ScaleX /= 1.2; CanvasScale.ScaleY /= 1.2; RedrawBackground(); }
         #endregion
 
-        // ==========================================
-        // ГЕОМЕТРИЯ И ВАЛИДАЦИЯ
-        // ==========================================
         #region
         private Point GetSnappedPoint(Point prev, Point mouse)
         {
@@ -881,23 +848,9 @@ namespace Metal_Code
             double dx = Math.Abs(last.X - first.X);
             double dy = Math.Abs(last.Y - first.Y);
 
-            // Если погрешность по X мала, а по Y велика -> выравниваем по вертикали
-            if (dx <= ClosingSnapToleranceMm && dy > ClosingSnapToleranceMm)
-            {
-                return new Point(first.X, last.Y);
-            }
-            // Если погрешность по Y мала, а по X велика -> выравниваем по горизонтали
-            else if (dy <= ClosingSnapToleranceMm && dx > ClosingSnapToleranceMm)
-            {
-                return new Point(last.X, first.Y);
-            }
-            // Если обе погрешности малы -> точка практически совпадает с начальной
-            else if (dx <= ClosingSnapToleranceMm && dy <= ClosingSnapToleranceMm)
-            {
-                return first;
-            }
-
-            // Если погрешность > 10 мм по обеим осям -> оставляем как есть (косая линия)
+            if (dx <= ClosingSnapToleranceMm && dy > ClosingSnapToleranceMm) return new Point(first.X, last.Y);
+            else if (dy <= ClosingSnapToleranceMm && dx > ClosingSnapToleranceMm) return new Point(last.X, first.Y);
+            else if (dx <= ClosingSnapToleranceMm && dy <= ClosingSnapToleranceMm) return first;
             return last;
         }
 
@@ -932,16 +885,12 @@ namespace Metal_Code
 
             var first = _customPoints[0];
             var last = _customPoints.Last();
-            var effectiveLast = GetSnappedClosingPoint(first, last); // 🔥 Проверяем выровненный вариант
+            var effectiveLast = GetSnappedClosingPoint(first, last);
 
             for (int i = 0; i < _customPoints.Count - 1; i++)
             {
                 if (i == 0 || i == _customPoints.Count - 2) continue;
-
-                if (DoSegmentsIntersect(effectiveLast, first, _customPoints[i], _customPoints[i + 1]))
-                {
-                    return false;
-                }
+                if (DoSegmentsIntersect(effectiveLast, first, _customPoints[i], _customPoints[i + 1])) return false;
             }
             return true;
         }
@@ -964,10 +913,7 @@ namespace Metal_Code
             var effectiveLast = GetSnappedClosingPoint(first, last);
 
             var pointsForSegment = _customPoints.Skip(1).ToList();
-            if (pointsForSegment.Count > 0)
-            {
-                pointsForSegment[pointsForSegment.Count - 1] = effectiveLast;
-            }
+            if (pointsForSegment.Count > 0) pointsForSegment[pointsForSegment.Count - 1] = effectiveLast;
 
             var figure = new PathFigure
             {
@@ -979,7 +925,6 @@ namespace Metal_Code
 
             _currentPart.DisplayGeometry = new PathGeometry { Figures = { figure } };
 
-            // 🔥 Округление до 2 знаков после запятой
             var bounds = _currentPart.DisplayGeometry.Bounds;
             _currentPart.Width = Math.Ceiling(bounds.Width);
             _currentPart.Height = Math.Ceiling(bounds.Height);
@@ -1003,7 +948,6 @@ namespace Metal_Code
             if (EditModeToggle != null) EditModeToggle.IsChecked = false;
             if (EditModePanel != null) EditModePanel.Visibility = Visibility.Collapsed;
 
-            // Сброс состояния отверстий
             _selectedHoleIndex = -1;
             _nearestVerticalSegmentIndex = -1;
             _nearestHorizontalSegmentIndex = -1;
@@ -1022,24 +966,19 @@ namespace Metal_Code
         {
             if (!CanCloseContour()) { MessageBox.Show("Невозможно замкнуть контур без пересечений.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning); return; }
             _isContourFinished = true; RedrawCanvas(); UpdateFinishButtonState();
-
-            // 🔥 Показываем панель редактирования размеров после завершения контура
             EditModePanel.Visibility = Visibility.Visible;
         }
         #endregion
 
-        // ==========================================
-        // РЕДАКТИРОВАНИЕ РАЗМЕРОВ ЛИНИЙ
-        // ==========================================
         #region
         private void EditModeToggle_Click(object sender, RoutedEventArgs e)
         {
             _isEditMode = EditModeToggle.IsChecked ?? false;
-            _selectedSegmentIndex = -1; // Сбрасываем выбор при переключении режима
+            _selectedSegmentIndex = -1;
 
             if (_isEditMode)
             {
-                SegmentSizeInput.IsEnabled = false; // Активируется только после выбора линии
+                SegmentSizeInput.IsEnabled = false;
                 CurrentSizeText.Text = "Кликните по линии";
             }
             else
@@ -1048,20 +987,14 @@ namespace Metal_Code
                 CurrentSizeText.Text = "—";
             }
 
-            RedrawCanvas(); // Перерисовываем, чтобы убрать/добавить метки размеров
+            RedrawCanvas();
         }
 
-        private void SegmentSizeInput_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            // Просто обновляем UI, применение происходит по кнопке или Enter
-        }
+        private void SegmentSizeInput_TextChanged(object sender, TextChangedEventArgs e) { }
 
         private void SegmentSizeInput_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)
-            {
-                ApplySize_Click(sender, e);
-            }
+            if (e.Key == Key.Enter) ApplySize_Click(sender, e);
         }
 
         private void ApplySize_Click(object sender, RoutedEventArgs e)
@@ -1079,68 +1012,52 @@ namespace Metal_Code
             }
 
             ApplyNewSizeToSegment(_selectedSegmentIndex, newSize);
-
-            // Обновляем геометрию и перерисовываем
             UpdateCustomGeometry();
             RedrawCanvas();
 
-            // Сбрасываем выбор
             _selectedSegmentIndex = -1;
             SegmentSizeInput.Text = "";
             CurrentSizeText.Text = "Кликните по линии";
             SegmentSizeInput.IsEnabled = false;
         }
 
-        // Определяет, по какой линии кликнул пользователь
         private int GetClickedSegment(Point clickPoint)
         {
             double minDistance = double.MaxValue;
             int closestSegment = -1;
-
-            // Конвертируем допуск из экранных пикселей в миллиметры
             double toleranceMm = SegmentClickTolerancePx / CanvasScale.ScaleX;
 
-            // Проверяем все сегменты (включая замыкающую линию)
             for (int i = 0; i < _customPoints.Count; i++)
             {
                 Point p1 = _customPoints[i];
-                Point p2 = (i < _customPoints.Count - 1) ? _customPoints[i + 1] : _customPoints[0]; // Замыкающая линия
+                Point p2 = (i < _customPoints.Count - 1) ? _customPoints[i + 1] : _customPoints[0];
 
                 double distance = DistanceFromPointToSegment(clickPoint, p1, p2);
-
                 if (distance < minDistance && distance <= toleranceMm)
                 {
                     minDistance = distance;
                     closestSegment = i;
                 }
             }
-
             return closestSegment;
         }
 
-        // Вычисляет расстояние от точки до отрезка
         private double DistanceFromPointToSegment(Point p, Point a, Point b)
         {
             double dx = b.X - a.X;
             double dy = b.Y - a.Y;
 
-            if (dx == 0 && dy == 0) // Отрезок вырожден в точку
-            {
-                return Math.Sqrt(Math.Pow(p.X - a.X, 2) + Math.Pow(p.Y - a.Y, 2));
-            }
+            if (dx == 0 && dy == 0) return Math.Sqrt(Math.Pow(p.X - a.X, 2) + Math.Pow(p.Y - a.Y, 2));
 
-            // Проекция точки на линию
             double t = ((p.X - a.X) * dx + (p.Y - a.Y) * dy) / (dx * dx + dy * dy);
-            t = Math.Max(0, Math.Min(1, t)); // Ограничиваем пределами отрезка
+            t = Math.Max(0, Math.Min(1, t));
 
-            // Ближайшая точка на отрезке
             double closestX = a.X + t * dx;
             double closestY = a.Y + t * dy;
 
             return Math.Sqrt(Math.Pow(p.X - closestX, 2) + Math.Pow(p.Y - closestY, 2));
         }
 
-        // Применяет новый размер к выбранному сегменту
         private void ApplyNewSizeToSegment(int segmentIndex, double newSize)
         {
             if (segmentIndex < 0 || segmentIndex >= _customPoints.Count) return;
@@ -1149,70 +1066,43 @@ namespace Metal_Code
             Point p2 = (segmentIndex < _customPoints.Count - 1) ? _customPoints[segmentIndex + 1] : _customPoints[0];
 
             double currentLength = Math.Sqrt(Math.Pow(p2.X - p1.X, 2) + Math.Pow(p2.Y - p1.Y, 2));
-            if (currentLength < 0.01) return; // Избегаем деления на ноль
+            if (currentLength < 0.01) return;
 
             double scale = newSize / currentLength;
-
-            // Определяем направление линии
             bool isHorizontal = Math.Abs(p1.Y - p2.Y) < Epsilon;
             bool isVertical = Math.Abs(p1.X - p2.X) < Epsilon;
 
             if (isHorizontal)
             {
-                // Горизонтальная линия: меняем X конечной точки
                 double deltaX = (p2.X - p1.X) * (scale - 1);
-
-                // Сдвигаем конечную точку и все последующие
                 for (int i = segmentIndex + 1; i < _customPoints.Count; i++)
-                {
                     _customPoints[i] = new Point(_customPoints[i].X + deltaX, _customPoints[i].Y);
-                }
-
-                // Если это замыкающая линия (segmentIndex == _customPoints.Count - 1), сдвигаем первую точку
                 if (segmentIndex == _customPoints.Count - 1)
-                {
                     _customPoints[0] = new Point(_customPoints[0].X + deltaX, _customPoints[0].Y);
-                }
             }
             else if (isVertical)
             {
-                // Вертикальная линия: меняем Y конечной точки
                 double deltaY = (p2.Y - p1.Y) * (scale - 1);
-
-                // Сдвигаем конечную точку и все последующие
                 for (int i = segmentIndex + 1; i < _customPoints.Count; i++)
-                {
                     _customPoints[i] = new Point(_customPoints[i].X, _customPoints[i].Y + deltaY);
-                }
-
-                // Если это замыкающая линия, сдвигаем первую точку
                 if (segmentIndex == _customPoints.Count - 1)
-                {
                     _customPoints[0] = new Point(_customPoints[0].X, _customPoints[0].Y + deltaY);
-                }
             }
             else
             {
-                // Косая линия (не должна встречаться при ортогональном рисовании, но на всякий случай)
                 MessageBox.Show("Редактирование косых линий не поддерживается.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
-        // Возвращает длину сегмента
         private double GetSegmentLength(int segmentIndex)
         {
             if (segmentIndex < 0 || segmentIndex >= _customPoints.Count) return 0;
-
             Point p1 = _customPoints[segmentIndex];
             Point p2 = (segmentIndex < _customPoints.Count - 1) ? _customPoints[segmentIndex + 1] : _customPoints[0];
-
             return Math.Sqrt(Math.Pow(p2.X - p1.X, 2) + Math.Pow(p2.Y - p1.Y, 2));
         }
         #endregion
 
-        // ==========================================
-        // ЛОГИКА РЕДАКТИРОВАНИЯ ОТВЕРСТИЙ
-        // ==========================================
         #region
         private void AddHoleGroup_Click(object sender, RoutedEventArgs e)
         {
@@ -1234,7 +1124,6 @@ namespace Metal_Code
             _isPlacingHoles = HoleModeToggle.IsChecked ?? false;
             if (_isPlacingHoles)
             {
-                // Отключаем режим редактирования размеров, если он был включен
                 _isEditMode = false;
                 EditModeToggle.IsChecked = false;
             }
@@ -1258,14 +1147,12 @@ namespace Metal_Code
                 return;
             }
 
-            // 1. Проверка: точка внутри полигона?
             if (!IsPointInPolygon(clickPoint, _customPoints))
             {
                 MessageBox.Show("Отверстие должно располагаться внутри контура детали.", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            // 2. Проверка: расстояние до краёв детали
             double minRequiredDistance = (diameter / 2.0) + MinEdgeDistanceMm;
             bool isTooClose = false;
 
@@ -1287,7 +1174,6 @@ namespace Metal_Code
                 return;
             }
 
-            // Всё хорошо, добавляем отверстие
             _currentPart.PlacedHoles.Add(new PlacedHole { X = clickPoint.X, Y = clickPoint.Y, Diameter = diameter });
             RedrawCanvas();
         }
@@ -1401,7 +1287,7 @@ namespace Metal_Code
             if (_nearestHorizontalSegmentIndex >= 0 && double.TryParse(HoleVertDistInput.Text.Replace(',', '.'), out double vertDist))
             {
                 Point p1 = _customPoints[_nearestHorizontalSegmentIndex];
-                bool isBelow = hole.Y > p1.Y; // В WPF Y растет вниз
+                bool isBelow = hole.Y > p1.Y;
                 newY = isBelow ? p1.Y + vertDist : p1.Y - vertDist;
             }
 
@@ -1441,39 +1327,27 @@ namespace Metal_Code
         }
         #endregion
 
-        // ==========================================
-        // РАЗВЕРТКА ДЛЯ ГИБКИ
-        // ==========================================
         #region
-        // Параметры гибки
         private double _bendAngle = 90.0;
         private int _bendsCountX = 0;
         private int _bendsCountY = 0;
         private const double BendKFactor = 0.4;
 
-        // Храним исходные (внешние) размеры, которые ввел пользователь
         private double _originalWidth = 0;
         private double _originalHeight = 0;
         private bool _isUpdatingFromBend = false;
         private bool _isResettingBends = false;
 
-        /// <summary>
-        /// Вычисляет компенсацию на один гиб для произвольного угла.
-        /// BD = 2(R + T) × tan(α/2) − (π × α / 180) × (R + K × T)
-        /// </summary>
         private double BendCompensation
         {
             get
             {
                 double T = _currentPart.Destiny;
-                double R = T; // Радиус равен толщине
-
-                double angleRad = Math.PI * _bendAngle / 180.0;  // Угол в радианах
-                double halfAngleTan = Math.Tan(angleRad / 2.0);   // tan(α/2)
-
-                double bendAllowance = angleRad * (R + BendKFactor * T);  // BA
-                double bendDeduction = 2 * (R + T) * halfAngleTan - bendAllowance;  // BD
-
+                double R = T;
+                double angleRad = Math.PI * _bendAngle / 180.0;
+                double halfAngleTan = Math.Tan(angleRad / 2.0);
+                double bendAllowance = angleRad * (R + BendKFactor * T);
+                double bendDeduction = 2 * (R + T) * halfAngleTan - bendAllowance;
                 return bendDeduction;
             }
         }
@@ -1484,23 +1358,15 @@ namespace Metal_Code
             if (BendsCountXInput == null || BendsCountYInput == null ||
                 BendInfoText == null || BendAngleInput == null) return;
 
-            if (int.TryParse(BendsCountXInput.Text, out int bx) && bx >= 0)
-                _bendsCountX = bx;
-            if (int.TryParse(BendsCountYInput.Text, out int by) && by >= 0)
-                _bendsCountY = by;
-
-            // 🔥 Читаем угол гиба
-            if (double.TryParse(BendAngleInput.Text, out double angle) && angle > 0 && angle < 180)
-                _bendAngle = angle;
+            if (int.TryParse(BendsCountXInput.Text, out int bx) && bx >= 0) _bendsCountX = bx;
+            if (int.TryParse(BendsCountYInput.Text, out int by) && by >= 0) _bendsCountY = by;
+            if (double.TryParse(BendAngleInput.Text, out double angle) && angle > 0 && angle < 180) _bendAngle = angle;
 
             UpdateBendInfo();
             RecalculatePartDimensions();
             RedrawCanvas();
         }
 
-        /// <summary>
-        /// Сбрасывает параметры гибки без запуска пересчёта
-        /// </summary>
         private void ResetBendParameters()
         {
             _isResettingBends = true;
@@ -1517,40 +1383,23 @@ namespace Metal_Code
                 if (BendsCountYInput != null) BendsCountYInput.Text = "0";
                 if (BendInfoText != null) BendInfoText.Text = "Линии сгиба не заданы";
             }
-            finally
-            {
-                _isResettingBends = false;
-            }
+            finally { _isResettingBends = false; }
         }
 
-        /// <summary>
-        /// Обновляет информационную строку о гибке
-        /// </summary>
         private void UpdateBendInfo()
         {
             if (BendInfoText == null) return;
-
-            if (_bendsCountX == 0 && _bendsCountY == 0)
-            {
-                BendInfoText.Text = "Линии гиба не заданы";
-                return;
-            }
-
+            if (_bendsCountX == 0 && _bendsCountY == 0) { BendInfoText.Text = "Линии гиба не заданы"; return; }
             BendInfoText.Text = $"Вычет на 1 гиб: {BendCompensation:F2} мм";
         }
 
-        /// <summary>
-        /// Пересчитывает размеры детали (развертки) с учетом компенсации на гибку
-        /// </summary>
         private void RecalculatePartDimensions()
         {
             if (_currentPart == null || _isUpdatingFromBend) return;
-
             _isUpdatingFromBend = true;
 
             try
             {
-                // Сохраняем исходные размеры при первом расчете
                 if (_originalWidth == 0 && _originalHeight == 0)
                 {
                     _originalWidth = _currentPart.Width;
@@ -1558,40 +1407,25 @@ namespace Metal_Code
                 }
 
                 double compensation = BendCompensation;
-
-                // Рассчитываем новые размеры развертки
-                double newWidth = _bendsCountX == 0
-                    ? _originalWidth
-                    : _originalWidth - (_bendsCountX * compensation);
-
-                double newHeight = _bendsCountY == 0
-                    ? _originalHeight
-                    : _originalHeight - (_bendsCountY * compensation);
+                double newWidth = _bendsCountX == 0 ? _originalWidth : _originalWidth - (_bendsCountX * compensation);
+                double newHeight = _bendsCountY == 0 ? _originalHeight : _originalHeight - (_bendsCountY * compensation);
 
                 _currentPart.Width = Math.Max(0.1, Math.Ceiling(newWidth));
                 _currentPart.Height = Math.Max(0.1, Math.Ceiling(newHeight));
 
                 UpdatePreview();
             }
-            finally
-            {
-                _isUpdatingFromBend = false;
-            }
+            finally { _isUpdatingFromBend = false; }
         }
 
-        /// <summary>
-        /// Рисует линии гибов на Canvas
-        /// </summary>
         private void DrawBendLines(double strokeThickness)
         {
             if (DrawingCanvas == null || _currentPart == null) return;
             if (_currentPart.PartType != PartType.Rectangle) return;
             if (_bendsCountX == 0 && _bendsCountY == 0) return;
 
-            // Используем ИСХОДНЫЕ размеры для расчета позиций линий сгиба
             double width = _originalWidth > 0 ? _originalWidth : _currentPart.Width;
             double height = _originalHeight > 0 ? _originalHeight : _currentPart.Height;
-
             if (width <= 0 || height <= 0) return;
 
             double offsetX = (SheetWidthMm / 2) - (width / 2);
@@ -1601,99 +1435,59 @@ namespace Metal_Code
             var dashArray = new DoubleCollection { 5, 3 };
             double lineThickness = strokeThickness * 0.8;
 
-            // Вертикальные линии сгиба
             if (_bendsCountX > 0)
             {
                 double segmentWidth = width / (_bendsCountX + 1);
                 for (int i = 1; i <= _bendsCountX; i++)
                 {
                     double x = offsetX + (segmentWidth * i);
-                    DrawingCanvas.Children.Add(new Line
-                    {
-                        X1 = x,
-                        Y1 = offsetY,
-                        X2 = x,
-                        Y2 = offsetY + height,
-                        Stroke = bendBrush,
-                        StrokeThickness = lineThickness,
-                        StrokeDashArray = dashArray
-                    });
+                    DrawingCanvas.Children.Add(new Line { X1 = x, Y1 = offsetY, X2 = x, Y2 = offsetY + height, Stroke = bendBrush, StrokeThickness = lineThickness, StrokeDashArray = dashArray });
                 }
             }
 
-            // Горизонтальные линии сгиба
             if (_bendsCountY > 0)
             {
                 double segmentHeight = height / (_bendsCountY + 1);
                 for (int i = 1; i <= _bendsCountY; i++)
                 {
                     double y = offsetY + (segmentHeight * i);
-                    DrawingCanvas.Children.Add(new Line
-                    {
-                        X1 = offsetX,
-                        Y1 = y,
-                        X2 = offsetX + width,
-                        Y2 = y,
-                        Stroke = bendBrush,
-                        StrokeThickness = lineThickness,
-                        StrokeDashArray = dashArray
-                    });
+                    DrawingCanvas.Children.Add(new Line { X1 = offsetX, Y1 = y, X2 = offsetX + width, Y2 = y, Stroke = bendBrush, StrokeThickness = lineThickness, StrokeDashArray = dashArray });
                 }
             }
         }
 
-        /// <summary>
-        /// Вычисляет информацию о гибах для текущей детали.
-        /// Ключ — размер полки гиба (мм), однозначно определяющий однотипные гибы.
-        /// Значение — кортеж (количество однотипных гибов, длина гиба в мм).
-        /// 
-        /// ВАЖНО: Длина гиба берется из размеров РАЗВЕРТКИ, а не из исходных размеров,
-        /// так как линии сгиба на развертке имеют увеличенную длину с учетом компенсации.
-        /// </summary>
         private Dictionary<double, (int Count, double BendLength)> CalculateBendsInfo()
         {
             var result = new Dictionary<double, (int Count, double BendLength)>();
+            if (_originalWidth <= 0 || _originalHeight <= 0) return result;
 
-            if (_originalWidth <= 0 || _originalHeight <= 0)
-                return result;
-
-            // 🔥 ИСПРАВЛЕНО: Используем размеры РАЗВЕРТКИ, а не исходные размеры
             double unfoldedWidth = _currentPart.Width;
             double unfoldedHeight = _currentPart.Height;
 
-            // Горизонтальные гибы (вертикальные линии сгиба, полка вдоль X)
             if (_bendsCountX > 0)
             {
                 double shelfSize = Math.Round(_originalWidth / (_bendsCountX + 1), 1);
-                double bendLength = Math.Round(unfoldedHeight, 1); // 🔥 Длина гиба = высота РАЗВЕРТКИ
+                double bendLength = Math.Round(unfoldedHeight, 1);
                 result[shelfSize] = (_bendsCountX, bendLength);
             }
 
-            // Вертикальные гибы (горизонтальные линии сгиба, полка вдоль Y)
             if (_bendsCountY > 0)
             {
                 double shelfSize = Math.Round(_originalHeight / (_bendsCountY + 1), 1);
-                double bendLength = Math.Round(unfoldedWidth, 1); // 🔥 Длина гиба = ширина РАЗВЕРТКИ
+                double bendLength = Math.Round(unfoldedWidth, 1);
 
-                // Если полка совпадает с горизонтальной (редкий случай), объединяем
                 if (result.ContainsKey(shelfSize))
                 {
                     var existing = result[shelfSize];
                     result[shelfSize] = (existing.Count + _bendsCountY, bendLength);
                 }
-                else
-                {
-                    result[shelfSize] = (_bendsCountY, bendLength);
-                }
+                else result[shelfSize] = (_bendsCountY, bendLength);
             }
 
             return result;
         }
         #endregion
 
-        // ==========================================
-        // ЭКСПОРТ В DXF (netDxf 2023.11.10)
-        // ==========================================
         #region
         private void ExportToDxf_Click(object sender, RoutedEventArgs e)
         {
@@ -1731,25 +1525,13 @@ namespace Metal_Code
             var dxf = new DxfDocument(DxfVersion.AutoCad2010);
             dxf.DrawingVariables.InsUnits = DrawingUnits.Millimeters;
 
-            if (part.PartType == PartType.Custom)
-            {
-                ExportCustomPart(dxf, part);
-            }
-            else if (part.PartType == PartType.Rectangle || part.PartType == PartType.Round || part.PartType == PartType.Triangle)
-            {
-                ExportSheetPart(dxf, part);
-            }
-            else if (IsPipePart(part.PartType))
-            {
-                ExportPipePart(dxf, part);
-            }
+            if (part.PartType == PartType.Custom) ExportCustomPart(dxf, part);
+            else if (part.PartType == PartType.Rectangle || part.PartType == PartType.Round || part.PartType == PartType.Triangle) ExportSheetPart(dxf, part);
+            else if (IsPipePart(part.PartType)) ExportPipePart(dxf, part);
 
             dxf.Save(filePath);
         }
 
-        /// <summary>
-        /// Экспорт произвольной формы (Custom)
-        /// </summary>
         private void ExportCustomPart(DxfDocument dxf, Part part)
         {
             double minX = _customPoints.Min(p => p.X);
@@ -1761,23 +1543,18 @@ namespace Metal_Code
                 minY = Math.Min(minY, part.PlacedHoles.Min(h => h.Y - h.Diameter / 2.0));
             }
 
-            var polyline = new Polyline2D { IsClosed = true }; // Убрано: Layer = contourLayer
+            var polyline = new Polyline2D { IsClosed = true };
             foreach (var pt in _customPoints)
-            {
                 polyline.Vertexes.Add(new Polyline2DVertex(new Vector2(pt.X - minX, pt.Y - minY)));
-            }
             dxf.Entities.Add(polyline);
 
             foreach (var hole in part.PlacedHoles)
             {
-                var circle = new Circle(new Vector2(hole.X - minX, hole.Y - minY), hole.Diameter / 2.0); // Убрано: Layer = holeLayer
+                var circle = new Circle(new Vector2(hole.X - minX, hole.Y - minY), hole.Diameter / 2.0);
                 dxf.Entities.Add(circle);
             }
         }
 
-        /// <summary>
-        /// Экспорт стандартных листовых деталей (Rectangle, Round, Triangle)
-        /// </summary>
         private void ExportSheetPart(DxfDocument dxf, Part part)
         {
             double offsetX, offsetY;
@@ -1790,18 +1567,14 @@ namespace Metal_Code
                 rect.Vertexes.Add(new Polyline2DVertex(new Vector2(part.Width, part.Height)));
                 rect.Vertexes.Add(new Polyline2DVertex(new Vector2(0, part.Height)));
                 dxf.Entities.Add(rect);
-
-                offsetX = part.Width / 2.0;
-                offsetY = part.Height / 2.0;
+                offsetX = part.Width / 2.0; offsetY = part.Height / 2.0;
             }
             else if (part.PartType == PartType.Round)
             {
                 double radius = part.Width / 2.0;
                 var circle = new Circle(new Vector2(radius, radius), radius);
                 dxf.Entities.Add(circle);
-
-                offsetX = radius;
-                offsetY = radius;
+                offsetX = radius; offsetY = radius;
             }
             else if (part.PartType == PartType.Triangle)
             {
@@ -1810,14 +1583,9 @@ namespace Metal_Code
                 triangle.Vertexes.Add(new Polyline2DVertex(new Vector2(part.Width, 0)));
                 triangle.Vertexes.Add(new Polyline2DVertex(new Vector2(0, part.Height)));
                 dxf.Entities.Add(triangle);
-
-                offsetX = part.Width / 2.0;
-                offsetY = part.Height / 2.0;
+                offsetX = part.Width / 2.0; offsetY = part.Height / 2.0;
             }
-            else
-            {
-                return;
-            }
+            else return;
 
             if (part.HoleGroups != null && part.HoleGroups.Count > 0)
             {
@@ -1830,9 +1598,6 @@ namespace Metal_Code
             }
         }
 
-        /// <summary>
-        /// Экспорт трубных деталей (RoundTube, RectangularTube, Angle, Channel, IBeam)
-        /// </summary>
         private void ExportPipePart(DxfDocument dxf, Part part)
         {
             double offsetX = part.Width / 2.0;
@@ -1847,22 +1612,16 @@ namespace Metal_Code
 
                     foreach (PathSegment segment in figure.Segments)
                     {
-                        if (segment is LineSegment lineSeg)
-                            points.Add(new Vector2(lineSeg.Point.X + offsetX, lineSeg.Point.Y + offsetY));
+                        if (segment is LineSegment lineSeg) points.Add(new Vector2(lineSeg.Point.X + offsetX, lineSeg.Point.Y + offsetY));
                         else if (segment is PolyLineSegment polySeg)
-                            foreach (var pt in polySeg.Points)
-                                points.Add(new Vector2(pt.X + offsetX, pt.Y + offsetY));
-                        else if (segment is ArcSegment arcSeg)
-                            points.Add(new Vector2(arcSeg.Point.X + offsetX, arcSeg.Point.Y + offsetY));
+                            foreach (var pt in polySeg.Points) points.Add(new Vector2(pt.X + offsetX, pt.Y + offsetY));
+                        else if (segment is ArcSegment arcSeg) points.Add(new Vector2(arcSeg.Point.X + offsetX, arcSeg.Point.Y + offsetY));
                     }
 
                     if (points.Count >= 2)
                     {
                         var polyline = new Polyline2D { IsClosed = figure.IsClosed };
-                        foreach (var pt in points)
-                        {
-                            polyline.Vertexes.Add(new Polyline2DVertex(pt));
-                        }
+                        foreach (var pt in points) polyline.Vertexes.Add(new Polyline2DVertex(pt));
                         dxf.Entities.Add(polyline);
                     }
                 }
@@ -1870,11 +1629,220 @@ namespace Metal_Code
         }
         #endregion
 
-        // ==========================================
-        // ИТОГОВАЯ БИЗНЕС-ЛОГИКА
-        // ==========================================
+        #region
+        private string GetProfileDesignation()
+        {
+            var typeName = GetPipeTypeName(_currentPart.PartType);
+            double thickness = _currentPart.Destiny;
+
+            return _currentPart.PartType switch
+            {
+                PartType.RoundTube or PartType.Circle => thickness > 0
+                    ? $"{typeName} ⌀{_currentPart.Width:0.#}×{thickness:0.#}"
+                    : $"{typeName} ⌀{_currentPart.Width:0.#}",
+                PartType.SquareBar => thickness > 0
+                    ? $"{typeName} {_currentPart.Width:0.#}×{thickness:0.#}"
+                    : $"{typeName} {_currentPart.Width:0.#}",
+                _ => thickness > 0
+                    ? $"{typeName} {_currentPart.Width:0.#}×{_currentPart.Height:0.#}×{thickness:0.#}"
+                    : $"{typeName} {_currentPart.Width:0.#}×{_currentPart.Height:0.#}"
+            };
+        }
+
+        private string GenerateTitle(double length)
+        {
+            var profile = GetProfileDesignation();
+            return length > 0 ? $"{profile} L{length:0}" : profile;
+        }
+
+        /// <summary>
+        /// Генерирует автоимя для листовых деталей (прямоугольник, круг, треугольник, произвольная)
+        /// </summary>
+        private string? GenerateSheetTitle()
+        {
+            double thickness = _currentPart.Destiny;
+            string thicknessStr = thickness > 0 ? $"×{thickness:0.#}" : "";
+
+            return _currentPart.PartType switch
+            {
+                PartType.Round => thickness > 0
+                    ? $"Круг ⌀{_currentPart.Width:0}{thicknessStr}"
+                    : $"Круг ⌀{_currentPart.Width:0}",
+                PartType.Rectangle => $"Прямоугольник {_currentPart.Width:0}×{_currentPart.Height:0}{thicknessStr}",
+                PartType.Triangle => $"Треугольник {_currentPart.Width:0}×{_currentPart.Height:0}{thicknessStr}",
+                PartType.Custom => $"Произвольная {_currentPart.Width:0}×{_currentPart.Height:0}{thicknessStr}",
+                _ => _currentPart.Title
+            };
+        }
+
+        private void AddSinglePartToBatch(double length, int count, string? customTitle)
+        {
+            if (length <= 0 || count <= 0) return;
+
+            var title = string.IsNullOrWhiteSpace(customTitle)
+                ? GenerateTitle(length)
+                : customTitle;
+
+            // Автообъединение
+            var existing = _batchBuffer.FirstOrDefault(p =>
+                p.PartType == _currentPart.PartType &&
+                Math.Abs(p.Length - length) < 0.1 &&
+                p.Title == title);
+
+            if (existing != null)
+            {
+                existing.Count += count;
+                BatchItemsControl.Items.Refresh();
+            }
+            else
+            {
+                var clone = new Part
+                {
+                    Title = title,
+                    Count = count,
+                    Metal = _currentPart.Metal,
+                    Destiny = _currentPart.Destiny,
+                    Width = _currentPart.Width,
+                    Height = _currentPart.Height,
+                    Length = length,
+                    PartType = _currentPart.PartType,
+                    HoleGroups = _currentPart.HoleGroups != null
+                        ? new ObservableCollection<HoleGroup>(_currentPart.HoleGroups)
+                        : new ObservableCollection<HoleGroup>(),
+                    DisplayGeometry = _currentPart.DisplayGeometry,
+                    PropsDict = _currentPart.PropsDict != null
+                        ? new Dictionary<int, List<string>>(_currentPart.PropsDict)
+                        : new Dictionary<int, List<string>>()
+                };
+                _batchBuffer.Add(clone);
+            }
+
+            // Обновляем чипс
+            AddOrUpdateChip(length, count);
+        }
+
+        /// <summary>
+        /// Добавляет или обновляет чипс для указанной длины
+        /// </summary>
+        private void AddOrUpdateChip(double length, int delta)
+        {
+            var chip = _recentChips.FirstOrDefault(c => Math.Abs(c.Length - length) < 0.1);
+
+            if (chip != null)
+            {
+                chip.Count += delta;
+                if (chip.Count <= 0)
+                    _recentChips.Remove(chip);
+            }
+            else if (delta > 0)
+            {
+                _recentChips.Insert(0, new LengthChipItem(length, delta));
+                // Ограничиваем количество чипсов
+                while (_recentChips.Count > 8)
+                    _recentChips.RemoveAt(_recentChips.Count - 1);
+            }
+        }
+
+        /// <summary>
+        /// Пересчитывает все чипсы на основе текущего буфера деталей
+        /// </summary>
+        private void RefreshChipsFromBuffer()
+        {
+            _recentChips.Clear();
+
+            var grouped = _batchBuffer
+                .Where(p => IsPipePart(p.PartType))
+                .GroupBy(p => p.Length)
+                .OrderByDescending(g => g.First().Length)
+                .Take(8);
+
+            foreach (var group in grouped)
+            {
+                int totalCount = group.Sum(p => p.Count);
+                if (totalCount > 0)
+                    _recentChips.Add(new LengthChipItem(group.Key, totalCount));
+            }
+        }
+
+        /// <summary>
+        /// Кнопка "+" на чипсе — добавить 1 деталь этой длины
+        /// </summary>
+        private void ChipIncrement_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is LengthChipItem chip)
+            {
+                AddSinglePartToBatch(chip.Length, 1, null);
+            }
+        }
+
+        /// <summary>
+        /// Кнопка "−" на чипсе — убрать 1 деталь этой длины
+        /// </summary>
+        private void ChipDecrement_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is LengthChipItem chip)
+            {
+                RemoveOneFromBuffer(chip.Length);
+                RefreshChipsFromBuffer();
+            }
+        }
+
+        /// <summary>
+        /// Удаляет одну деталь указанной длины из буфера
+        /// </summary>
+        private void RemoveOneFromBuffer(double length)
+        {
+            var part = _batchBuffer.FirstOrDefault(p =>
+                IsPipePart(p.PartType) && Math.Abs(p.Length - length) < 0.1);
+
+            if (part == null) return;
+
+            if (part.Count > 1)
+            {
+                part.Count--;
+                BatchItemsControl.Items.Refresh();
+            }
+            else
+            {
+                _batchBuffer.Remove(part);
+                _batchBendsInfo.Remove(part);
+            }
+        }
+        #endregion
+
         #region
         public List<Part> GetBatchedParts() => new(_batchBuffer);
+        public ObservableCollection<PipeRemnant> PipeRemnants { get; set; } = new();
+
+        private void OpenRemnants_Click(object sender, RoutedEventArgs e)
+        {
+            string profile = _currentPart.PartType switch
+            {
+                PartType.Rectangle => "Прямоугольник",
+                PartType.Round => "Круг",
+                PartType.Triangle => "Треугольник",
+                PartType.Custom => "Произвольная форма",
+                PartType.RectangularTube => "Профильная труба",
+                PartType.RoundTube => "Круглая труба",
+                PartType.Angle => "Уголок",
+                PartType.Channel => "Швеллер",
+                PartType.IBeam => "Двутавр",
+                PartType.Circle => "Круглый прут",
+                PartType.SquareBar => "Квадратный прут",
+                _ => "Остаток"
+            };
+
+            string currentProfileName = $"{profile} {_currentPart.Width}x{_currentPart.Height}x{_currentPart.Destiny} {_currentPart.Metal}";
+
+            var window = new PipeRemnantsWindow(currentProfileName, PipeRemnants) { Owner = GetWindow(this) };
+
+            if (window.ShowDialog() == true)
+            {
+                PipeRemnants.Clear();
+                foreach (var r in window.Remnants) PipeRemnants.Add(r);
+                MainWindow.M.StatusBegin($"Сохранено остатков: {PipeRemnants.Sum(r => r.Count)} шт.", MainWindow.StatusMessageType.Success);
+            }
+        }
 
         public Dictionary<Part, Dictionary<double, (int Count, double BendLength)>> GetBendsInfoForBatch()
         {
@@ -1883,10 +1851,89 @@ namespace Metal_Code
 
         private void AddToBatch_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(_currentPart.Title)) { MessageBox.Show("Укажите название", "Ошибка"); return; }
-            if (_batchBuffer.Any(p => p.Title == _currentPart.Title)) { MessageBox.Show("Такое название уже есть", "Ошибка"); return; }
+            string? title;
+            bool wasAutoTitle = AutoTitleCheck?.IsChecked == true;
+
+            // ===== ТРУБНЫЕ ДЕТАЛИ =====
+            if (IsPipePart(_currentPart.PartType))
+            {
+                if (_currentPart.Length <= 0)
+                {
+                    MessageBox.Show("Укажите длину детали.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                if (_currentPart.Count <= 0)
+                {
+                    MessageBox.Show("Укажите количество.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (wasAutoTitle)
+                {
+                    title = GenerateTitle(_currentPart.Length);
+                    _currentPart.Title = title;
+                    _currentPart.OnPropertyChanged(nameof(Part.Title));
+                }
+                else
+                {
+                    title = _currentPart.Title;
+                    if (string.IsNullOrWhiteSpace(title))
+                    {
+                        MessageBox.Show("Укажите название или включите автогенерацию.", "Ошибка",
+                            MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                }
+
+                AddSinglePartToBatch(_currentPart.Length, _currentPart.Count, title);
+
+                // Временно отключаем чекбокс, чтобы не обновлять автоимя при сбросе длины
+                if (AutoTitleCheck != null)
+                    AutoTitleCheck.IsChecked = false;
+
+                // Устанавливаем дефолтную длину 1000 мм
+                _currentPart.Length = 1000;
+                _currentPart.OnPropertyChanged(nameof(Part.Length));
+
+                // Возвращаем чекбокс в исходное состояние
+                if (AutoTitleCheck != null)
+                    AutoTitleCheck.IsChecked = wasAutoTitle;
+
+                // Возвращаем фокус в поле длины
+                PipeLengthInput?.Focus();
+                PipeLengthInput?.SelectAll();
+                return;
+            }
+
+            // ===== ЛИСТОВЫЕ ДЕТАЛИ =====
             if (_currentPart.Count <= 0) { MessageBox.Show("Укажите количество", "Ошибка"); return; }
 
+            // Определяем название
+            if (wasAutoTitle && _currentPart.Width > 0 && _currentPart.Height > 0)
+            {
+                title = GenerateSheetTitle();
+                _currentPart.Title = title;
+                _currentPart.OnPropertyChanged(nameof(Part.Title));
+            }
+            else
+            {
+                title = _currentPart.Title;
+                if (string.IsNullOrWhiteSpace(title))
+                {
+                    MessageBox.Show("Укажите название или включите автогенерацию.", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+            }
+
+            // Проверка на дубликаты
+            if (_batchBuffer.Any(p => p.Title == title))
+            {
+                MessageBox.Show("Такое название уже есть в списке", "Ошибка");
+                return;
+            }
+
+            // Валидация отверстий
             if (_currentPart.PartType != PartType.Custom)
             {
                 var (isValid, error) = PartPreviewGenerator.ValidateHolesPlacement(_currentPart);
@@ -1897,11 +1944,8 @@ namespace Metal_Code
             if (_currentPart.PartType == PartType.Custom && _currentPart.PlacedHoles.Count > 0)
             {
                 _currentPart.HoleGroups.Clear();
-                var grouped = _currentPart.PlacedHoles.GroupBy(h => h.Diameter);
-                foreach (var group in grouped)
-                {
+                foreach (var group in _currentPart.PlacedHoles.GroupBy(h => h.Diameter))
                     _currentPart.HoleGroups.Add(new HoleGroup(group.Key, group.Count()));
-                }
                 PartPreviewGenerator.EnsureDisplayGeometryWithHoles(_currentPart);
             }
 
@@ -1911,10 +1955,7 @@ namespace Metal_Code
                 _batchBuffer.Add(clone);
 
                 var bendsInfo = CalculateBendsInfo();
-                if (bendsInfo.Count > 0)
-                {
-                    _batchBendsInfo[clone] = bendsInfo;
-                }
+                if (bendsInfo.Count > 0) _batchBendsInfo[clone] = bendsInfo;
 
                 _currentPart.HoleGroups.Clear();
                 if (_currentPart.PartType == PartType.Custom) ClearDrawing_Click(sender, e);
@@ -1941,9 +1982,11 @@ namespace Metal_Code
             if (e.OriginalSource is Button btn && btn.Tag is Part part)
             {
                 _batchBuffer.Remove(part);
-
-                // 🔥 ДОБАВЛЕНО: Удаляем информацию о гибах
                 _batchBendsInfo.Remove(part);
+
+                // Обновляем чипсы
+                if (IsPipePart(part.PartType))
+                    RefreshChipsFromBuffer();
             }
         }
 
@@ -1962,43 +2005,27 @@ namespace Metal_Code
             PropsDict = new Dictionary<int, List<string>>(s.PropsDict)
         };
         #endregion
+    }
 
-        public ObservableCollection<PipeRemnant> PipeRemnants { get; set; } = new();
+    public class LengthChipItem : INotifyPropertyChanged
+    {
+        private int _count;
 
-        private void OpenRemnants_Click(object sender, RoutedEventArgs e)
+        public double Length { get; }
+        public int Count
         {
-            string profile = _currentPart.PartType switch
-            {
-                PartType.Rectangle => "Прямоугольник",
-                PartType.Round => "Круг",
-                PartType.Triangle => "Треугольник",
-                PartType.Custom => "Произвольная форма",
-                PartType.RectangularTube => "Профильная труба",
-                PartType.RoundTube => "Круглая труба",
-                PartType.Angle => "Уголок",
-                PartType.Channel => "Швеллер",
-                PartType.IBeam => "Двутавр",
-                PartType.Circle => "Круглый прут",
-                PartType.SquareBar => "Квадратный прут",
-                _ => "Остаток"
-            };
-
-            string currentProfileName = $"{profile} {_currentPart.Width}x{_currentPart.Height}x{_currentPart.Destiny} {_currentPart.Metal}";
-
-            var window = new PipeRemnantsWindow(currentProfileName, PipeRemnants)
-            {
-                Owner = GetWindow(this)
-            };
-
-            if (window.ShowDialog() == true)
-            {
-                PipeRemnants.Clear();
-                foreach (var r in window.Remnants)
-                {
-                    PipeRemnants.Add(r);
-                }
-                MainWindow.M.StatusBegin($"Сохранено остатков: {PipeRemnants.Sum(r => r.Count)} шт.", MainWindow.StatusMessageType.Success);
-            }
+            get => _count;
+            set { _count = value; OnPropertyChanged(); }
         }
+
+        public LengthChipItem(double length, int count = 1)
+        {
+            Length = length;
+            _count = count;
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }
