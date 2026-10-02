@@ -36,9 +36,9 @@ jobs:
             $content = Get-Content $issFile -Raw
             $content = $content -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"${{ steps.get_version.outputs.version }}`""
             Set-Content $issFile $content
-            Write-Host "Версия в setup.iss обновлена на ${{ steps.get_version.outputs.version }}"
+            Write-Host "Версия в Inno_Metal-Code.iss обновлена на ${{ steps.get_version.outputs.version }}"
         } else {
-            Write-Host "ВНИМАНИЕ: Файл setup.iss не найден в корне репозитория!"
+            Write-Host "ВНИМАНИЕ: Файл Inno_Metal-Code.iss не найден в корне репозитория!"
         }
 
     - name: Публикация приложения (Self-Contained)
