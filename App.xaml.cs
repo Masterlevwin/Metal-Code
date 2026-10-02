@@ -80,7 +80,9 @@ namespace Metal_Code
         {
             try
             {
-                string exePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                // ✅ Правильный способ получения пути к EXE в single-file режиме
+                string exePath = Environment.ProcessPath!;
+
                 string currentVersion = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}";
                 const string progId = "MetalCode.mcmfile";
                 const string registryKeyPath = @"Software\Metal-Code";
