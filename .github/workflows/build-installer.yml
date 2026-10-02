@@ -26,42 +26,44 @@ jobs:
         $tag = "${{ github.ref_name }}"
         $version = $tag -replace '^v', ''
         echo "version=$version" >> $env:GITHUB_OUTPUT
-        echo "Версия: $version"
+        Write-Host "Версия для сборки: $version"
 
     - name: Обновление версии в .iss файле
       shell: pwsh
       run: |
-        $issFile = "setup.iss"
-        $content = Get-Content $issFile -Raw
-        $content = $content -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"${{ steps.get_version.outputs.version }}`""
-        Set-Content $issFile $content
-        Write-Host "Версия в setup.iss обновлена на ${{ steps.get_version.outputs.version }}"
+        $issFile = "Inno_Metal-Code.iss"
+        if (Test-Path $issFile) {
+            $content = Get-Content $issFile -Raw
+            $content = $content -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"${{ steps.get_version.outputs.version }}`""
+            Set-Content $issFile $content
+            Write-Host "Версия в setup.iss обновлена на ${{ steps.get_version.outputs.version }}"
+        } else {
+            Write-Host "ВНИМАНИЕ: Файл setup.iss не найден в корне репозитория!"
+        }
 
     - name: Публикация приложения (Self-Contained)
-      run: dotnet publish "Metal-Code/Metal-Code.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o "publish"
+      run: dotnet publish "Metal-Code.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o "publish"
 
     - name: Очистка ненужных файлов
       shell: pwsh
       run: |
         if (Test-Path "publish\LatoFont") { Remove-Item -Recurse -Force "publish\LatoFont" }
-        if (Test-Path "publish\Metal-Code.pdb") { Remove-Item -Force "publish\Metal-Code.pdb" }
+        # Удаляем все отладочные символы, чтобы уменьшить размер
+        Get-ChildItem -Path "publish" -Filter *.pdb | Remove-Item -Force
 
     - name: Установка Inno Setup
       run: choco install innosetup -y --no-progress
 
     - name: Сборка установщика
       run: |
-        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "setup.iss" /O"C:\installers" /F"Setup_Metal-Code-${{ steps.get_version.outputs.version }}"
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "Inno_Metal-Code.iss" /O"C:\installers" /F"Setup_Metal-Code-${{ steps.get_version.outputs.version }}"
 
     - name: Создание релиза в GitHub
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ github.ref_name }}
         name: Metal-Code ${{ steps.get_version.outputs.version }}
-        body: |
-          ## Изменения в версии ${{ steps.get_version.outputs.version }}
-          
-          <!-- Опишите здесь изменения -->
+        body: "Автоматическая сборка установщика для версии ${{ steps.get_version.outputs.version }}"
         files: |
           C:\installers\Setup_Metal-Code-${{ steps.get_version.outputs.version }}.exe
       env:
