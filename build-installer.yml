@@ -1,0 +1,68 @@
+name: Build Installer
+
+on:
+  push:
+    tags:
+      - 'v*'   # Запуск при создании тега вида v1.0.0, v2.7.4 и т.д.
+  workflow_dispatch:  # Возможность запустить вручную из интерфейса GitHub
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout кода
+      uses: actions/checkout@v4
+
+    - name: Установка .NET 8.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Получение версии из тега
+      id: get_version
+      shell: pwsh
+      run: |
+        $tag = "${{ github.ref_name }}"
+        $version = $tag -replace '^v', ''
+        echo "version=$version" >> $env:GITHUB_OUTPUT
+        echo "Версия: $version"
+
+    - name: Обновление версии в .iss файле
+      shell: pwsh
+      run: |
+        $issFile = "setup.iss"
+        $content = Get-Content $issFile -Raw
+        $content = $content -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"${{ steps.get_version.outputs.version }}`""
+        Set-Content $issFile $content
+        Write-Host "Версия в setup.iss обновлена на ${{ steps.get_version.outputs.version }}"
+
+    - name: Публикация приложения (Self-Contained)
+      run: dotnet publish "Metal-Code/Metal-Code.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o "publish"
+
+    - name: Очистка ненужных файлов
+      shell: pwsh
+      run: |
+        if (Test-Path "publish\LatoFont") { Remove-Item -Recurse -Force "publish\LatoFont" }
+        if (Test-Path "publish\Metal-Code.pdb") { Remove-Item -Force "publish\Metal-Code.pdb" }
+
+    - name: Установка Inno Setup
+      run: choco install innosetup -y --no-progress
+
+    - name: Сборка установщика
+      run: |
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "setup.iss" /O"C:\installers" /F"Setup_Metal-Code-${{ steps.get_version.outputs.version }}"
+
+    - name: Создание релиза в GitHub
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: Metal-Code ${{ steps.get_version.outputs.version }}
+        body: |
+          ## Изменения в версии ${{ steps.get_version.outputs.version }}
+          
+          <!-- Опишите здесь изменения -->
+        files: |
+          C:\installers\Setup_Metal-Code-${{ steps.get_version.outputs.version }}.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
