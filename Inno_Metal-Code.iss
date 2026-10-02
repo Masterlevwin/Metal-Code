@@ -17,6 +17,7 @@ ChangesAssociations=yes
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=installer_output
+OutputBaseFilename=Setup_Metal-Code-{#MyAppVersion}
 SetupIconFile=app_logo.ico
 Password=laserpro
 Encryption=yes
