@@ -81,7 +81,8 @@ namespace Metal_Code
             try
             {
                 // ✅ Правильный способ получения пути к EXE в single-file режиме
-                string exePath = Environment.ProcessPath!;
+                string exePath = Path.Combine(AppContext.BaseDirectory,
+                    Process.GetCurrentProcess().ProcessName + ".exe");
 
                 string currentVersion = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}";
                 const string progId = "MetalCode.mcmfile";
