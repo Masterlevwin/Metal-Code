@@ -163,6 +163,13 @@ namespace Metal_Code
             set => isGrooved = value;
         }
 
+        private bool haveFilm = false;
+        public bool HaveFilm
+        {
+            get => haveFilm;
+            set => haveFilm = value;
+        }
+
         public Guid Id { get; } = Guid.NewGuid();
         public ObservableCollection<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
@@ -277,6 +284,8 @@ namespace Metal_Code
                 w.propsList.Add($"{HaveCut}");
                 w.propsList.Add($"{HaveNitro}");
                 w.propsList.Add($"{Marking}");
+                w.propsList.Add($"{IsGrooved}");
+                w.propsList.Add($"{HaveFilm}");
 
                 if (PartDetails?.Count > 0)
                 {
@@ -304,6 +313,8 @@ namespace Metal_Code
                 if (w.propsList.Count > 4 && bool.TryParse(w.propsList[4], out bool _haveCut)) HaveCut = _haveCut;
                 if (w.propsList.Count > 5 && bool.TryParse(w.propsList[5], out bool _haveNitro)) HaveNitro = _haveNitro;
                 if (w.propsList.Count > 6 && float.TryParse(w.propsList[6], out float _marking)) Marking = _marking;
+                if (w.propsList.Count > 7 && bool.TryParse(w.propsList[7], out bool _isGrooved)) IsGrooved = _isGrooved;
+                if (w.propsList.Count > 8 && bool.TryParse(w.propsList[8], out bool _haveFilm)) HaveFilm = _haveFilm;
 
                 if (Items?.Count > 0) work.type.CreateSort();     //переопределяем содержимое SortDrop, если есть раскладки (List<LaserItem>))
             }

@@ -17,10 +17,10 @@ namespace Metal_Code.Utils
 
         public static ObservableCollection<CommentTag> GetDefaultTags() => new()
         {
-            new("рифл", " Рифленка!", false),
-            new("азот", " Азот!", false),
+            new("азот", " Азот!", true, 1.5f, isProtected: true),
+            new("плен", " Пленку не снимать!", true, 2f, isProtected: true),
+            new("рифл", " Рифленка!", false, 1, destinyOffset: 1, isProtected: true),
             new("шлиф", " Внимание на направление шлифовки!", false),
-            new("плен", " Пленку не снимать!", false),
             new("чист", " Чистый материал! Без царапин!", false)
         };
 
@@ -35,6 +35,11 @@ namespace Metal_Code.Utils
                     var json = File.ReadAllText(TagsPath);
                     var tags = JsonSerializer.Deserialize<ObservableCollection<CommentTag>>(json);
                     _cachedTags = tags ?? GetDefaultTags();
+
+                    if (MigrateLegacyTags(_cachedTags))
+                    {
+                        SaveTags(_cachedTags);
+                    }
                 }
                 else
                 {
@@ -47,6 +52,25 @@ namespace Metal_Code.Utils
                 _cachedTags = GetDefaultTags();
             }
             return _cachedTags;
+        }
+
+        private static bool MigrateLegacyTags(ObservableCollection<CommentTag> tags)
+        {
+            bool hasChanges = false;
+
+            foreach (var tag in tags)
+            {
+                string name = tag.Name?.ToLowerInvariant() ?? "";
+
+                bool shouldBeProtected = name is "азот" or "рифл" or "плен";
+                if (shouldBeProtected && !tag.IsProtected)
+                {
+                    tag.IsProtected = true;
+                    hasChanges = true;
+                }
+            }
+
+            return hasChanges;
         }
 
         public static void SaveTags(ObservableCollection<CommentTag> tags)

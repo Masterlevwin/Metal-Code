@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -1003,6 +1004,8 @@ namespace Metal_Code
                                         part.PropsDict[100] = new() { $"{work.type.ChannelsSquare[work.type.SortDrop.SelectedIndex] * part.Mass / 1000}", "", $"{part.Way}" };
                                     }
                                     part.PartType = PartType.Channel;
+                                    part.Height = work.type.A;
+                                    part.Width = work.type.B;
                                     break;
                                 case TubeType.corner:
                                     if (work.type.SortDrop.SelectedIndex >= 0 && work.type.SortDrop.SelectedIndex < work.type.Corners.Count)
@@ -1013,6 +1016,8 @@ namespace Metal_Code
                                         part.PropsDict[100] = new() { $"{part.Way * work.type.S * (work.type.A + work.type.A - work.type.S) / 1000000}", "", $"{part.Way}" };
                                     }
                                     part.PartType = PartType.Angle;
+                                    part.Height = work.type.A;
+                                    part.Width = work.type.B;
                                     break;
                                 case TubeType.freeform:
                                     if (work.type.SortDrop.SelectedIndex >= 0 && work.type.SortDrop.SelectedIndex < work.type.Corners.Count)
@@ -1037,6 +1042,8 @@ namespace Metal_Code
                                         part.PropsDict[100] = new() { $"{work.type.BeamDict[beamTypeName][work.type.SortDrop.SelectedIndex].Item2 * part.Mass / 1000}", "", $"{part.Way}" };
                                     }
                                     part.PartType = PartType.IBeam;
+                                    part.Height = work.type.A;
+                                    part.Width = work.type.B;
                                     break;
                             }
                             PartPreviewGenerator.EnsureDisplayGeometry(part);

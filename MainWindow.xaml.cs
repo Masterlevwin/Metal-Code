@@ -3723,7 +3723,6 @@ namespace Metal_Code
 
                             if (_cut is CutControl cut)
                             {
-                                cut.IsGrooved = item.IsGrooved;
                                 if (_cut.Items?.Count > 0) cut.SumProperties(_cut.Items);
                                 cut.Parts = cut.PartList();
                                 cut.PartsControl = new(cut, cut.Parts);
@@ -4970,7 +4969,7 @@ namespace Metal_Code
                             if (w.TechRatio > 1) _lpk += w.TechRatio;
                             _lc++;
 
-                            if (type.CheckMetal.IsChecked is not null)     //если материал давальческий, добавляем его в накладную
+                            if (type.CheckMetal.IsChecked is not null)     //добавляем материал в накладную
                             {
                                 if (cut.Items?.Count > 0)
                                 {
@@ -5009,8 +5008,18 @@ namespace Metal_Code
                         }
                         else if (w.workType is PipeControl pipe)
                         {
+                            // Определяем, круглая ли труба (по названию типа или если высота B равна 0 или равна ширине A)
+                            string pipeType = type.TypeDetailDrop.Text ?? "Труба";
+                            bool isRoundPipe = pipeType.Contains("кругл", StringComparison.OrdinalIgnoreCase)
+                                               || type.B == 0
+                                               || Math.Abs(type.A - type.B) < 0.01f;
+
+                            // Формируем строку размера: для круглой "A x S", для профильной "A x B x S"
+                            string sizeStr = isRoundPipe ? $"{type.A}x{type.S}" : $"{type.A}x{type.B}x{type.S}";
+                            string baseDesc = $"{pipeType} {sizeStr} {type.MetalDrop.Text}";
+
                             //"Толщина и марка металла"                             //"Труборез"
-                            statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + rowTask, 12].Value = $"(ТР) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+                            statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + rowTask, 12].Value = $"(ТР) {baseDesc}";
                             if (HasAssembly) statsheet.Cells[i + rowTask, 12].Value += " (ЭКСПРЕСС)";
                             if (type.Comment != null && type.Comment != "") statsheet.Cells[i + rowTask, 12].Value += " (комментарий)";
 
@@ -5025,14 +5034,14 @@ namespace Metal_Code
                                     if (_items is not null)
                                         foreach (var item in _items)    //каждую группу труб одного размера и их количество записываем в одну строку
                                         {
-                                            notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({item.Key})";
+                                            notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{baseDesc} ({item.Key})";
                                             notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = item.Sum(s => s.sheets);
                                             tempNote++;
                                         }
                                 }
                                 else
                                 {
-                                    notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({type.L})";
+                                    notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{baseDesc} ({type.L})";
                                     notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
                                     tempNote++;
                                 }
@@ -5040,12 +5049,21 @@ namespace Metal_Code
                         }
                         else if (w.workType is SawControl _saw)         //для лентопила указываем вид заготовки по аналогии с труборезом
                         {
+                            string sawType = type.TypeDetailDrop.Text ?? "Труба";
+                            bool isRoundSaw = sawType.Contains("кругл", StringComparison.OrdinalIgnoreCase)
+                                              || type.B == 0
+                                              || Math.Abs(type.A - type.B) < 0.01f;
+
+                            string sawSizeStr = isRoundSaw ? $"{type.A}x{type.S}" : $"{type.A}x{type.B}x{type.S}";
+                            string sawBaseDesc = $"{sawType} {sawSizeStr} {type.MetalDrop.Text}";
+
                             //"Толщина и марка металла"                             //"Труборез"
-                            statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + rowTask, 12].Value = $"(ЛП) {type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
+                            statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + rowTask, 12].Value = $"(ЛП) {sawBaseDesc}";
+
                             //"Лазер (время работ)"                                 //"Время лазерных работ"
                             statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + rowTask, 14].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
 
-                            notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({type.L})";
+                            notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{sawBaseDesc} ({type.L})";
                             notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
                             tempNote++;
                         }
@@ -6789,14 +6807,20 @@ namespace Metal_Code
                         }
                         else if (w.workType is PipeControl pipe)
                         {
-                            description = $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text}";
-
-                            //добавляем тег срочности и коментария
-                            if (HasAssembly) description += " (ЭКСПРЕСС)";
-                            if (type.Comment != null && type.Comment != "") description += " (комментарий)";
+                            string pipeType = type.TypeDetailDrop.Text ?? "Труба";
+                            bool isRoundPipe = pipeType.Contains("кругл", StringComparison.OrdinalIgnoreCase)
+                                               || type.B == 0
+                                               || Math.Abs(type.A - type.B) < 0.01f;
+                            string sizeStr = isRoundPipe ? $"{type.A}x{type.S}" : $"{type.A}x{type.B}x{type.S}";
+                            string baseDesc = $"{pipeType} {sizeStr} {type.MetalDrop.Text}";
 
                             //"Название"
-                            tasksheet.Cells[temp, 1].Value += $"{description}";
+                            tasksheet.Cells[temp, 1].Value += $"{baseDesc}";
+
+                            //добавляем тег срочности и коментария
+                            if (HasAssembly) tasksheet.Cells[temp, 1].Value += " (ЭКСПРЕСС)";
+                            if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 1].Value += " (комментарий)";
+
                             //"Описание"
                             tasksheet.Cells[temp, 2].Value = $"Заказчик: {CustomerDrop.Text}, Количество материала: {_mass}, Комментарий: ";
                             if (type.CheckMetal.IsChecked == false) tasksheet.Cells[temp, 2].Value += "Давальч. ";
@@ -6804,14 +6828,15 @@ namespace Metal_Code
                             {   //если требуется закупить материал, заполняем строку для задачи в снабжение
                                 if (pipe.Items?.Count > 0)
                                 {
-                                    var _items = pipe.Items?.GroupBy(c => c.sheetSize);      //группируем все листы по размеру
+                                    var _items = pipe.Items?.GroupBy(c => c.sheetSize);
                                     if (_items is not null)
-                                        foreach (var item in _items)    //каждую группу листов одного размера и их количество записываем в одну строку
-                                            material += $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({item.Key}) - {item.Sum(s => s.sheets)} шт, ";
+                                        foreach (var item in _items)
+                                            material += $"{baseDesc} ({item.Key}) - {item.Sum(s => s.sheets)} шт, ";
                                 }
-                                else material += $"{type.TypeDetailDrop.Text} {type.A}x{type.B}x{type.S} {type.MetalDrop.Text} ({type.L}) - {type.Count} шт, ";
+                                else material += $"{baseDesc} ({type.L}) - {type.Count} шт, ";
                             }
                             if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 2].Value += $"{type.Comment}";
+
                             //"Крайний срок"
                             tasksheet.Cells[temp, 3].Value = DateTime.UtcNow.AddDays(3).ToString("g");
                             //"Исполнитель"
@@ -6820,7 +6845,48 @@ namespace Metal_Code
                             tasksheet.Cells[temp, 5].Value = "Труборез";
                             //"Время на выполнение задачи в секундах"
                             tasksheet.Cells[temp, 6].Value = Math.Ceiling(w.Result * 0.012f * 60) / w.Ratio;
+                            temp++;
+                        }
+                        else if (w.workType is SawControl _saw)
+                        {
+                            string sawType = type.TypeDetailDrop.Text ?? "Труба";
+                            bool isRoundSaw = sawType.Contains("кругл", StringComparison.OrdinalIgnoreCase)
+                                              || type.B == 0
+                                              || Math.Abs(type.A - type.B) < 0.01f;
+                            string sawSizeStr = isRoundSaw ? $"{type.A}x{type.S}" : $"{type.A}x{type.B}x{type.S}";
+                            string sawBaseDesc = $"{sawType} {sawSizeStr} {type.MetalDrop.Text}";
 
+                            //"Название"
+                            tasksheet.Cells[temp, 1].Value += $"{sawBaseDesc}";
+
+                            //добавляем тег срочности и коментария
+                            if (HasAssembly) tasksheet.Cells[temp, 1].Value += " (ЭКСПРЕСС)";
+                            if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 1].Value += " (комментарий)";
+
+                            //"Описание"
+                            tasksheet.Cells[temp, 2].Value = $"Заказчик: {CustomerDrop.Text}, Количество материала: {_mass}, Комментарий: ";
+                            if (type.CheckMetal.IsChecked == false) tasksheet.Cells[temp, 2].Value += "Давальч. ";
+                            else
+                            {
+                                if (_saw.Items?.Count > 0)
+                                {
+                                    var _items = _saw.Items?.GroupBy(c => c.sheetSize);
+                                    if (_items is not null)
+                                        foreach (var item in _items)
+                                            material += $"{sawBaseDesc} ({item.Key}) - {item.Sum(s => s.sheets)} шт, ";
+                                }
+                                else material += $"{sawBaseDesc} ({type.L}) - {type.Count} шт, ";
+                            }
+                            if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 2].Value += $"{type.Comment}";
+
+                            //"Крайний срок"
+                            tasksheet.Cells[temp, 3].Value = DateTime.UtcNow.AddDays(3).ToString("g");
+                            //"Исполнитель"
+                            tasksheet.Cells[temp, 4].Value = $"Руслан Ломакин";
+                            //"Проект"
+                            tasksheet.Cells[temp, 5].Value = "Лентопил"; // Или "Труборез", в зависимости от вашей логики
+                                                                         //"Время на выполнение задачи в секундах"
+                            tasksheet.Cells[temp, 6].Value = Math.Ceiling(w.Result * 0.018f * 60) / w.Ratio;
                             temp++;
                         }
                         else if (w.WorkDrop.SelectedItem is Work work)

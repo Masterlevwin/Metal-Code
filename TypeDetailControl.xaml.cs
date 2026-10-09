@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -305,7 +306,53 @@ namespace Metal_Code
         public void SetComment(string? _comment)
         {
             Comment = _comment;
-            if (Comment != null && Comment != "" && CommentExpander.IsExpanded == false) CommentExpander.IsExpanded = true;
+            if (Comment != null && Comment != "" && CommentExpander.IsExpanded == false)
+                CommentExpander.IsExpanded = true;
+
+            // ⭐ Обновляем визуальное состояние кнопок тегов
+            UpdateTagButtonsState();
+        }
+
+        private void UpdateTagButtonsState()
+        {
+            // ⭐ Отложенный вызов, чтобы ItemContainerGenerator успел создать контейнеры
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (CommentTags == null || TagsPanel == null) return;
+
+                foreach (CommentTag tag in CommentTags)
+                {
+                    var container = TagsPanel.ItemContainerGenerator.ContainerFromItem(tag);
+                    if (container is ContentPresenter cp)
+                    {
+                        var button = FindVisualChild<Button>(cp);
+                        if (button != null)
+                        {
+                            // Проверяем, присутствует ли текст тега в комментарии
+                            bool isActive = !string.IsNullOrEmpty(Comment)
+                                         && !string.IsNullOrEmpty(tag.Text)
+                                         && Comment.Contains(tag.Text);
+
+                            button.Background = isActive
+                                ? Brushes.PaleGreen
+                                : new SolidColorBrush(Color.FromRgb(245, 245, 245));
+                        }
+                    }
+                }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        private T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            if (parent == null) return null;
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T found) return found;
+                var result = FindVisualChild<T>(child);
+                if (result != null) return result;
+            }
+            return null;
         }
 
         private bool _isAutoSelecting = false;
@@ -637,6 +684,14 @@ namespace Metal_Code
                 (ExtraResult > 0 ? ExtraResult : Price * Mass)
                 , 2) : 0) * MainWindow.M.MaterialFactor);
 
+
+            var work = WorkControls.FirstOrDefault(w => w.workType is CutControl);
+            if (work != null && work.workType is CutControl cut)
+            {
+                CheckBorderlineDimensions(cut);
+                CheckBendingMachine(cut);
+            }
+
             Priced?.Invoke();
         }
 
@@ -770,39 +825,34 @@ namespace Metal_Code
             ((Storyboard)FindResource("StopHighlightToggle")).Begin(PartsToggle);
         }
 
-
+        //Тэги комментария
+        #region
         public ObservableCollection<CommentTag> CommentTags { get; } = TagManager.LoadTags();
 
         private void TagButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button btn && btn.Tag is CommentTag tag)
+            if (sender is not Button btn || btn.Tag is not CommentTag tag) return;
+
+            // 1. Специфичная логика для системных тегов
+            if (tag.Name.Equals("азот", StringComparison.OrdinalIgnoreCase)) { HandleNitrogen(btn); return; }
+            if (tag.Name.Equals("рифл", StringComparison.OrdinalIgnoreCase)) { HandleGrooved(btn); return; }
+            if (tag.Name.Equals("плен", StringComparison.OrdinalIgnoreCase)) { HandleFilm(btn); return; }
+
+            // 2. Стандартная логика для пользовательских (информационных) тегов
+            // Они всегда имеют PriceRatio = 1.0f и не влияют на Ratio напрямую
+            if (IsCommentPresent(tag.Text))
             {
-                if (tag.Name.Equals("азот", StringComparison.OrdinalIgnoreCase))
-                {
-                    HandleNitrogen(btn);
-                    return;
-                }
-
-                if (tag.Name.Equals("рифл", StringComparison.OrdinalIgnoreCase))
-                {
-                    HandleGrooved(btn);
-                    return;
-                }
-
-                if (IsCommentPresent(tag.Text))
-                {
-                    HandleCommentRemoval(tag.Text);
-                    btn.Background = new SolidColorBrush(Color.FromRgb(245, 245, 245));
-                }
-                else
-                {
-                    HandleCommentAddition(tag.Text);
-                    btn.Background = Brushes.PaleGreen;
-                }
-
-                if (!string.IsNullOrEmpty(Comment) && !CommentExpander.IsExpanded)
-                    CommentExpander.IsExpanded = true;
+                HandleCommentRemoval(tag.Text);
+                btn.Background = new SolidColorBrush(Color.FromRgb(245, 245, 245));
             }
+            else
+            {
+                HandleCommentAddition(tag.Text);
+                btn.Background = Brushes.PaleGreen;
+            }
+
+            if (!string.IsNullOrEmpty(Comment) && !CommentExpander.IsExpanded)
+                CommentExpander.IsExpanded = true;
         }
 
         private void HandleNitrogen(Button btn)
@@ -812,7 +862,12 @@ namespace Metal_Code
             if (work != null && work.workType is CutControl cut)
             {
                 cut.HaveNitro = !cut.HaveNitro;
-                work.Ratio = cut.HaveNitro ? 1.5f : 1;
+
+                var nitrogenTag = CommentTags.FirstOrDefault(t => t.Name.Equals("азот", StringComparison.OrdinalIgnoreCase));
+                float ratio = nitrogenTag?.PriceRatio ?? 1.5f;
+
+                if (cut.HaveNitro) work.Ratio *= ratio;
+                else work.Ratio /= ratio;
 
                 btn.Background = cut.HaveNitro
                     ? Brushes.PaleGreen
@@ -872,13 +927,54 @@ namespace Metal_Code
             }
         }
 
+        private void HandleFilm(Button btn)
+        {
+            var work = WorkControls.FirstOrDefault(w => w.workType is CutControl);
+
+            if (work != null && work.workType is CutControl cut)
+            {
+                cut.HaveFilm = !cut.HaveFilm;
+
+                var filmTag = CommentTags.FirstOrDefault(t => t.Name.Equals("плен", StringComparison.OrdinalIgnoreCase));
+                float ratio = filmTag?.PriceRatio ?? 2.0f;
+
+                if (cut.HaveFilm) work.Ratio *= ratio;
+                else work.Ratio /= ratio;
+
+                btn.Background = cut.HaveFilm
+                    ? Brushes.PaleGreen
+                    : new SolidColorBrush(Color.FromRgb(245, 245, 245));
+
+                if (cut.HaveFilm)
+                    HandleCommentAddition(" Пленку не снимать!");
+                else
+                    HandleCommentRemoval(" Пленку не снимать!");
+            }
+            else
+            {
+                if (IsCommentPresent(" Пленку не снимать!"))
+                {
+                    HandleCommentRemoval(" Пленку не снимать!");
+                    btn.Background = new SolidColorBrush(Color.FromRgb(245, 245, 245));
+                }
+                else
+                {
+                    HandleCommentAddition(" Пленку не снимать!");
+                    btn.Background = Brushes.PaleGreen;
+                }
+            }
+        }
+
         private void OpenTagSettings(object sender, RoutedEventArgs e)
         {
             var settingsWindow = new TagSettingsWindow(CommentTags);
             if (settingsWindow.ShowDialog() == true)
             {
+                // 1. Пересоздаем визуальные элементы (кнопки)
                 TagsPanel.Items.Refresh();
-                TagManager.SaveTags(CommentTags);
+
+                // 2. ⭐ ВОССТАНАВЛИВАЕМ зеленый цвет для активных тегов
+                UpdateTagButtonsState();
             }
         }
 
@@ -898,6 +994,196 @@ namespace Metal_Code
         {
             return Comment != null && Comment.Contains(textToCheck);
         }
+        #endregion
+
+        // Проверки для добавления комментариев
+        #region
+        private void CheckBorderlineDimensions(CutControl cut)
+        {
+            if (cut?.Items == null || cut.PartDetails == null) return;
+
+            const float minTotalOffset = 16f; // 8 мм с каждой стороны = 16 мм всего
+
+            // ⭐ Убрали пробел в начале строки, чтобы управлять пробелами централизованно
+            const string warningTag = "ВНИМАНИЕ: Нестандартный отступ!";
+
+            bool hasBorderline = false;
+
+            foreach (var item in cut.Items)
+            {
+                if (string.IsNullOrEmpty(item.sheetSize)) continue;
+
+                string[] sheetProps = item.sheetSize.ToLower().Split('x');
+                if (sheetProps.Length >= 2 &&
+                    float.TryParse(sheetProps[0], out float sheetA) &&
+                    float.TryParse(sheetProps[1], out float sheetB))
+                {
+                    foreach (var part in cut.PartDetails)
+                    {
+                        if (!part.PropsDict.TryGetValue(100, out List<string>? value) || value.Count < 2) continue;
+                        double partLen = MainWindow.Parser(part.PropsDict[100][0]);
+                        double partWid = MainWindow.Parser(part.PropsDict[100][1]);
+
+                        if (partLen <= 0 || partWid <= 0) continue;
+
+                        // Прямая ориентация: зазор строго > 0 и < minTotalOffset
+                        bool isBorderlineDirect =
+                            (sheetA - partLen > 0 && sheetA - partLen < minTotalOffset) ||
+                            (sheetB - partWid > 0 && sheetB - partWid < minTotalOffset);
+
+                        // Повёрнутая ориентация (90°): зазор строго > 0 и < minTotalOffset
+                        bool isBorderlineRotated =
+                            (sheetA - partWid > 0 && sheetA - partWid < minTotalOffset) ||
+                            (sheetB - partLen > 0 && sheetB - partLen < minTotalOffset);
+
+                        if (isBorderlineDirect || isBorderlineRotated)
+                        {
+                            hasBorderline = true;
+                            break;
+                        }
+                    }
+                }
+                if (hasBorderline) break;
+            }
+
+            ApplyBorderlineWarning(hasBorderline, warningTag);
+        }
+
+        private void ApplyBorderlineWarning(bool hasWarning, string warningTag)
+        {
+            string currentComment = Comment ?? "";
+
+            // Регулярное выражение ищет предупреждение с любым количеством пробелов вокруг и внутри
+            // \s* означает "ноль или более пробельных символов"
+            string pattern = @"\s*ВНИМАНИЕ:\s*Нестандартный\s*отступ!";
+
+            if (hasWarning)
+            {
+                // 1. Сначала "обнуляем" поле: удаляем старое предупреждение, если оно там есть в любом виде
+                string cleanedComment = System.Text.RegularExpressions.Regex.Replace(currentComment, pattern, "").Trim();
+
+                // 2. Проверяем, нет ли уже чистого тега (защита от двойного срабатывания)
+                if (!cleanedComment.Contains("ВНИМАНИЕ: Нестандартный отступ!"))
+                {
+                    // 3. Добавляем аккуратно: если комментарий пустой, то просто тег, иначе через один пробел
+                    Comment = string.IsNullOrWhiteSpace(cleanedComment)
+                        ? warningTag
+                        : cleanedComment + " " + warningTag;
+
+                    if (!CommentExpander.IsExpanded)
+                        CommentExpander.IsExpanded = true;
+                }
+            }
+            else
+            {
+                // Если опасности нет, просто вычищаем комментарий от этого тега
+                string cleanedComment = System.Text.RegularExpressions.Regex.Replace(currentComment, pattern, "").Trim();
+
+                // Обновляем свойство только если текст реально изменился (избегаем лишних вызовов OnPropertyChanged)
+                if (cleanedComment != currentComment)
+                {
+                    Comment = cleanedComment;
+                }
+            }
+
+            OnPropertyChanged(nameof(Comment));
+            UpdateTagButtonsState();
+        }
+
+        public void CheckBendingMachine(CutControl cut)
+        {
+            if (cut.Parts == null) return;
+
+            // 1. Ищем все работы "Гибка" в текущей заготовке
+            var bendWorks = cut.Parts
+                .SelectMany(w => w.UserControls.OfType<BendControl>())
+                .ToList();
+
+            if (bendWorks.Count == 0)
+            {
+                ApplyBendingWarning(false, "");
+                return;
+            }
+
+            // 2. Находим максимальную длину гиба среди всех выбранных диапазонов в этой заготовке
+            float maxShelfMm = 0;
+            Regex shelfRegex = new(@"((\d+\.?\d*)|(\.\d+))");
+
+            foreach (var bend in bendWorks)
+            {
+                if (bend is null || bend.ShelfDrop.SelectedItem == null) continue;
+
+                string selected = $"{bend.ShelfDrop.SelectedItem}";
+                var matches = shelfRegex.Matches(selected);
+
+                if (matches.Count > 0)
+                {
+                    // matches[^1] берет последнее число в строке (верхнюю границу диапазона, например, "2.55" из "1.3-2.55")
+                    float maxMeters = MainWindow.Parser(matches[^1].Value);
+                    float shelfMm = maxMeters * 1000f; // Переводим метры в миллиметры
+
+                    if (shelfMm > maxShelfMm)
+                    {
+                        maxShelfMm = shelfMm;
+                    }
+                }
+            }
+
+            // 3. Если длина гиба не определена, убираем предупреждение
+            if (maxShelfMm <= 0)
+            {
+                ApplyBendingWarning(false, "");
+                return;
+            }
+
+            // 4. Определяем рекомендуемый станок на основе длины гиба
+            // Пороги синхронизированы с ключами вашего BendDict (1.3 м и 2.55 м)
+            string machine = "малом (до 1,3 м)";
+            if (maxShelfMm > 1300) machine = "среднем (до 2,5 м)";
+            if (maxShelfMm > 2550) machine = "большом (до 4,2 м)";
+
+            string warningTag = $" Гибка на {machine} станке!";
+
+            // 5. Применяем предупреждение
+            ApplyBendingWarning(true, warningTag);
+        }
+
+        private void ApplyBendingWarning(bool hasBending, string warningTag)
+        {
+            string currentComment = Comment ?? "";
+            string pattern = @"\s*Гибка на (?:малом|среднем|большом) \(до \d+[.,]\d+ м\) станке!";
+
+            if (hasBending)
+            {
+                // 1. Удаляем старое предупреждение, если оно есть (например, при смене длины гиба)
+                string cleanedComment = Regex.Replace(currentComment, pattern, "").Trim();
+
+                // 2. Добавляем актуальное, если его еще нет в очищенной строке
+                if (!cleanedComment.Contains(warningTag.Trim()))
+                {
+                    Comment = string.IsNullOrWhiteSpace(cleanedComment)
+                        ? warningTag.Trim()
+                        : cleanedComment + warningTag;
+
+                    // Разворачиваем экспандер, чтобы оператор увидел предупреждение
+                    if (!CommentExpander.IsExpanded)
+                        CommentExpander.IsExpanded = true;
+                }
+            }
+            else
+            {
+                // 3. Если гибки нет или она удалена, просто чистим комментарий от этого тега
+                string cleanedComment = Regex.Replace(currentComment, pattern, "").Trim();
+                if (cleanedComment != currentComment)
+                {
+                    Comment = cleanedComment;
+                }
+            }
+
+            OnPropertyChanged(nameof(Comment));
+            UpdateTagButtonsState();
+        }
+        #endregion
 
         public async void LoadPrices(object sender, RoutedEventArgs e)
         {

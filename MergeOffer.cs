@@ -458,7 +458,6 @@ namespace Metal_Code
 
                                 if (_cut is CutControl cut)
                                 {
-                                    cut.IsGrooved = workItem.IsGrooved;
                                     if (_cut.Items?.Count > 0) cut.SumProperties(_cut.Items);
                                     cut.Parts = cut.PartList();
                                     cut.PartsControl = new(cut, cut.Parts);

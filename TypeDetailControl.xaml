@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Metal_Code"
+             xmlns:converters="clr-namespace:Metal_Code.Converters"
              mc:Ignorable="d" 
              VerticalAlignment="Top" Padding="4">
     <UserControl.Resources>
@@ -12,6 +13,7 @@
         <local:DestinyConverter x:Key="DestinyConverter"/>
         <local:CostConverter x:Key="CostConverter"/>
         <local:StockMaterialBackgroundConverter x:Key="StockMaterialBackgroundConverter"/>
+        <converters:StringNullOrEmptyToVisibilityConverter x:Key="StringToVisibility"/>
         
         <!-- Плавные функции для анимации -->
         <PowerEase x:Key="EaseOut" EasingMode="EaseOut"/>
@@ -189,46 +191,105 @@
                 <Expander x:Name="CommentExpander" ExpandDirection="Left" IsExpanded="True">
                     <StackPanel>
                         <hc:TextBox Text="{Binding Comment}" hc:InfoElement.Placeholder="Комментарий для производства" TextChanged="SetComment" MinLines="2" Margin="0,0,5,0" TextWrapping="Wrap" Width="260"/>
-                            <!-- Динамические тэги (без цвета) -->
-                            <ItemsControl x:Name="TagsPanel" 
-                  ItemsSource="{Binding CommentTags}" 
-                  Margin="0,5,5,0" Width="260">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal"/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button Content="{Binding Name}" 
-                        Margin="2" 
-                        Padding="6,3" 
-                        FontSize="10"
-                        Tag="{Binding}"
-                        Click="TagButton_Click"
-                        Background="#F5F5F5"
-                        BorderBrush="#D1D9E0"
-                        BorderThickness="1">
-                                            <Button.ToolTip>
-                                                <TextBlock Text="{Binding Text, StringFormat='Добавит: {0}'}"/>
-                                            </Button.ToolTip>
-                                            <Button.Style>
-                                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                                    <Setter Property="Foreground" Value="#333"/>
-                                                    <Style.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Background" Value="#E3F2FD"/>
-                                                            <Setter Property="BorderBrush" Value="#4A90E2"/>
-                                                        </Trigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
 
-                            <!-- Кнопка управления тэгами -->
+                        <!-- Динамические тэги -->
+                        <ItemsControl x:Name="TagsPanel" 
+              ItemsSource="{Binding CommentTags}" 
+              Margin="0,5,5,0" MaxWidth="260">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Margin="2" 
+                    Padding="8,4" 
+                    FontSize="10"
+                    Tag="{Binding}"
+                    Click="TagButton_Click"
+                    Background="#F5F5F5"
+                    BorderBrush="#D1D9E0"
+                    BorderThickness="1">
+
+                                        <Button.ToolTip>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Text, StringFormat='Добавит: {0}'}" FontWeight="Bold"/>
+                                                <TextBlock Text="{Binding PriceBadge, StringFormat='Коэффициент: {0}'}" 
+                                   Foreground="Gray" FontSize="9" Margin="0,4,0,0"
+                                   Visibility="{Binding PriceBadge, Converter={StaticResource StringToVisibility}, FallbackValue=Collapsed}"/>
+                                                <TextBlock Text="{Binding DestinyBadge, StringFormat='Толщина: {0}'}" 
+                                   Foreground="Gray" FontSize="9" Margin="0,2,0,0"
+                                   Visibility="{Binding DestinyBadge, Converter={StaticResource StringToVisibility}, FallbackValue=Collapsed}"/>
+                                            </StackPanel>
+                                        </Button.ToolTip>
+
+                                        <!-- ⭐ ДВЕ КОЛОНКИ: текст + бейджи (не перекрываются) -->
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Основной текст тега (центрируется в своей колонке) -->
+                                            <TextBlock Grid.Column="0"
+                               Text="{Binding Name}" 
+                               HorizontalAlignment="Center" 
+                               VerticalAlignment="Center"
+                               Margin="2,0,2,0"/>
+
+                                            <!-- ⭐ Панель бейджей справа -->
+                                            <StackPanel Grid.Column="1" 
+                                Orientation="Horizontal" 
+                                VerticalAlignment="Center"
+                                Margin="4,0,0,0">
+
+                                                <!-- Бейдж рифленки: "s+1" (приглушённый синий) -->
+                                                <Border Background="#D6EAF8" 
+                                BorderBrush="#85C1E9"
+                                BorderThickness="0.5"
+                                CornerRadius="3" 
+                                Padding="3,1"
+                                Margin="0,0,2,0"
+                                Visibility="{Binding DestinyBadge, Converter={StaticResource StringToVisibility}, FallbackValue=Collapsed}">
+                                                    <TextBlock Text="{Binding DestinyBadge}" 
+                                       Foreground="#1B4F72" 
+                                       FontWeight="SemiBold" 
+                                       FontSize="9"/>
+                                                </Border>
+
+                                                <!-- Бейдж коэффициента: "×1.5" (приглушённый оранжевый) -->
+                                                <Border Background="#FDEBD0" 
+                                BorderBrush="#F0B27A"
+                                BorderThickness="0.5"
+                                CornerRadius="3" 
+                                Padding="3,1"
+                                Visibility="{Binding PriceBadge, Converter={StaticResource StringToVisibility}, FallbackValue=Collapsed}">
+                                                    <TextBlock Text="{Binding PriceBadge}" 
+                                       Foreground="#784212" 
+                                       FontWeight="SemiBold" 
+                                       FontSize="9"/>
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                <Setter Property="Foreground" Value="#333"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#E3F2FD"/>
+                                                        <Setter Property="BorderBrush" Value="#4A90E2"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        
+                        <!-- Кнопка управления тэгами -->
                             <Button Content="⚙ Настроить тэги" 
             FontSize="9" 
             Padding="6,2" 

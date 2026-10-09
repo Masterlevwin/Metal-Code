@@ -1,13 +1,15 @@
 ﻿<Window x:Class="Metal_Code.TagSettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:hc="https://handyorg.github.io/handycontrol"
+        xmlns:hc="https://handyorg.github.io/handycontrol"         
+        xmlns:local="clr-namespace:Metal_Code"
+        xmlns:converters="clr-namespace:Metal_Code.Converters"
         Title="Настройка тэгов" 
         Width="500" Height="450"
         WindowStartupLocation="CenterOwner" 
         ResizeMode="CanResize"
         MinWidth="400" MinHeight="350">
-
+    
     <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -16,8 +18,7 @@
         </Grid.RowDefinitions>
 
         <!-- Заголовок -->
-        <TextBlock Grid.Row="0" 
-                   Text="Настройте кнопки быстрого добавления комментариев"
+        <TextBlock Text="Настройте кнопки быстрого добавления комментариев"
                    TextWrapping="Wrap"
                    Margin="0,0,0,12"
                    Foreground="#666"/>
@@ -26,58 +27,30 @@
         <ScrollViewer Grid.Row="1" 
                       VerticalScrollBarVisibility="Auto" 
                       HorizontalScrollBarVisibility="Disabled">
-            <ListBox x:Name="TagsList" 
-                     BorderThickness="0"
-                     ItemsSource="{Binding Tags}">
+            <ListBox x:Name="TagsList">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Border BorderBrush="#D1D9E0" 
-                                BorderThickness="1" 
-                                CornerRadius="4" 
-                                Padding="10" 
-                                Margin="0,0,0,6"
-                                Background="White">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
+                        <Grid Margin="5">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
 
-                                <StackPanel Margin="0,0,10,0">
-                                    <!-- Название кнопки -->
-                                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" 
-                                             hc:InfoElement.Placeholder="Название кнопки (например: азот)"
-                                             MaxLength="30"
-                                             Margin="0,0,0,6"/>
+                            <!-- Название и текст тега -->
+                            <StackPanel Grid.Column="0">
+                                <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                             FontWeight="Bold" Margin="0,0,5,5" Width="200"
+                             ToolTip="Название тега"/>
+                                <TextBox Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="Текст, добавляемый в комментарий" Width="300" HorizontalAlignment="Left"/>
+                            </StackPanel>
 
-                                    <!-- Текст в комментарий -->
-                                    <TextBox Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" 
-                                             hc:InfoElement.Placeholder="Текст, добавляемый в комментарий"
-                                             MaxLength="100"/>
-
-                                    <!-- 👇 Создание папки -->
-                                    <CheckBox Content="Создавать папку при сохранении"
-                                              IsChecked="{Binding CreatesFolder}"
-                                              Margin="0,8,0,0"
-                                              Foreground="#2E7D32"
-                                              FontWeight="SemiBold">
-                                        <CheckBox.ToolTip>
-                                            <TextBlock Text="При сохранении расчета будет создана папка с этим названием"/>
-                                        </CheckBox.ToolTip>
-                                    </CheckBox>
-                                </StackPanel>
-
-                                <!-- Кнопка удаления -->
-                                <Button Grid.Column="1" 
-                                        Content="✕" 
-                                        Width="28" Height="28"
-                                        Click="RemoveTag_Click" 
-                                        Padding="0"
-                                        VerticalAlignment="Top"
-                                        ToolTip="Удалить тэг"
-                                        Style="{StaticResource ButtonDanger.Small}"/>
-                            </Grid>
-                        </Border>
+                            <!-- Кнопка удаления и чекбокс папки -->
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                                <CheckBox IsChecked="{Binding CreatesFolder}" ToolTip="Создавать папку" Margin="0,0,10,0"/>
+                                <Button Content="❌" Click="RemoveTag_Click" ToolTip="Удалить тэг"/>
+                            </StackPanel>
+                        </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>

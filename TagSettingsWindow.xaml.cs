@@ -1,8 +1,10 @@
 ﻿using Metal_Code.Models;
 using Metal_Code.Utils;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 
 namespace Metal_Code
 {
@@ -10,21 +12,28 @@ namespace Metal_Code
     {
         public ObservableCollection<CommentTag> Tags { get; }
 
+        // ⭐ НОВОЕ: отфильтрованное представление для UI
+        private ICollectionView? _userTagsView;
+
         public TagSettingsWindow(ObservableCollection<CommentTag> tags)
         {
             Tags = tags;
             InitializeComponent();
             DataContext = this;
-            TagsList.ItemsSource = Tags;
+
+            // ⭐ Создаём представление с фильтром: показываем только незащищённые теги
+            _userTagsView = new ListCollectionView(Tags)
+            {
+                Filter = tag => tag is CommentTag ct && !ct.IsProtected
+            };
+
+            TagsList.ItemsSource = _userTagsView;
         }
 
         private void AddTag_Click(object sender, RoutedEventArgs e)
         {
-            Tags.Add(new CommentTag(
-                name: $"тэг{Tags.Count + 1}",
-                text: " Текст комментария"));
+            Tags.Add(new CommentTag("Новый тэг", " Текст комментария", createsFolder: false));
 
-            // Прокрутка к новому элементу
             TagsList.ScrollIntoView(Tags[^1]);
             TagsList.UpdateLayout();
             var container = TagsList.ItemContainerGenerator.ContainerFromItem(Tags[^1]) as ListBoxItem;
@@ -35,6 +44,7 @@ namespace Metal_Code
         {
             if (sender is Button btn && btn.DataContext is CommentTag tag)
             {
+                // ⭐ Проверка IsProtected больше не нужна — защищённые теги не показываются в UI
                 var result = MessageBox.Show(
                     $"Удалить тэг \"{tag.Name}\"?",
                     "Подтверждение",
@@ -49,8 +59,8 @@ namespace Metal_Code
         private void ResetDefaults_Click(object sender, RoutedEventArgs e)
         {
             var result = MessageBox.Show(
-                "Сбросить все тэги к значениям по умолчанию?\n" +
-                "Все ваши настройки будут потеряны.",
+                "Сбросить пользовательские тэги к значениям по умолчанию?\n" +
+                "Все ваши добавленные тэги будут удалены.",
                 "Подтверждение сброса",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
@@ -60,15 +70,16 @@ namespace Metal_Code
                 Tags.Clear();
                 foreach (var tag in TagManager.GetDefaultTags())
                     Tags.Add(tag);
+                // ⭐ Фильтр автоматически скроет защищённые теги
             }
         }
 
         private void DialogOk(object sender, RoutedEventArgs e)
         {
-            // Валидация
+            // ⭐ Валидация только пользовательских тегов (незащищённых)
             if (!ValidateTags()) return;
 
-            // Сохранение
+            // ⭐ Сохраняем ВСЕ теги (включая защищённые)
             TagManager.SaveTags(Tags);
 
             DialogResult = true;
@@ -77,18 +88,16 @@ namespace Metal_Code
 
         private bool ValidateTags()
         {
-            for (int i = 0; i < Tags.Count; i++)
+            int index = 0;
+            foreach (var tag in Tags)
             {
-                var tag = Tags[i];
+                if (tag.IsProtected) continue;
+                index++;
+
                 if (string.IsNullOrWhiteSpace(tag.Name))
                 {
-                    MessageBox.Show(
-                        $"Тэг #{i + 1} не имеет названия!\n" +
-                        "Заполните поле \"Название кнопки\".",
-                        "Ошибка валидации",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Warning);
-
+                    MessageBox.Show($"Тэг #{index} не имеет названия!\nЗаполните поле \"Название кнопки\".",
+                        "Ошибка валидации", MessageBoxButton.OK, MessageBoxImage.Warning);
                     TagsList.ScrollIntoView(tag);
                     return false;
                 }

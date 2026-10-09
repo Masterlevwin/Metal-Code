@@ -12,6 +12,7 @@ namespace Metal_Code.Models
         private string _name = null!;
         private string _text = null!;
         private bool _createsFolder;
+        private bool _isProtected;
 
         public string Name
         {
@@ -31,13 +32,28 @@ namespace Metal_Code.Models
             set { _createsFolder = value; OnPropertyChanged(); }
         }
 
-        public CommentTag() { }
+        public bool IsProtected
+        {
+            get => _isProtected;
+            set { _isProtected = value; OnPropertyChanged(); }
+        }
 
-        public CommentTag(string name, string text, bool createsFolder = false)
+        public float PriceRatio { get; }
+        public int DestinyOffset { get; }
+
+        public string PriceBadge => PriceRatio > 1.0f ? $"×{PriceRatio:g4}" : string.Empty;
+        public string DestinyBadge => DestinyOffset > 0 ? $"s+{DestinyOffset}" : string.Empty;
+        public bool HasAnyBadge => !string.IsNullOrEmpty(PriceBadge) || !string.IsNullOrEmpty(DestinyBadge);
+
+        public CommentTag(string name, string text, bool createsFolder = false,
+                          float priceRatio = 1.0f, int destinyOffset = 0, bool isProtected = false)
         {
             Name = name;
             Text = text;
             CreatesFolder = createsFolder;
+            PriceRatio = priceRatio;
+            DestinyOffset = destinyOffset;
+            IsProtected = isProtected;
         }
     }
 }
