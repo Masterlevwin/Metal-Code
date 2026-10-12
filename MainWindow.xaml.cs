@@ -2764,12 +2764,13 @@ namespace Metal_Code
         private HashSet<string> GetExpandedGroupNames()
         {
             var expanded = new HashSet<string>();
-            if (OffersGrid?.Items.Groups == null) return expanded;
+            if (OffersGrid?.Items?.Groups == null) return expanded;
 
             foreach (var group in OffersGrid.Items.Groups)
             {
                 if (group is CollectionViewGroup cvg && cvg.Name != null)
                 {
+                    // ContainerFromItem вернет null, если группа виртуализирована (не видна на экране)
                     var groupItem = OffersGrid.ItemContainerGenerator.ContainerFromItem(group) as GroupItem;
                     if (groupItem != null)
                     {
@@ -2789,7 +2790,8 @@ namespace Metal_Code
         /// </summary>
         private void RestoreExpandedGroups(HashSet<string> expandedGroups)
         {
-            if (OffersGrid?.Items.Groups == null) return;
+            if (expandedGroups == null || expandedGroups.Count == 0) return;
+            if (OffersGrid?.Items?.Groups == null) return;
 
             foreach (var group in OffersGrid.Items.Groups)
             {
@@ -3038,16 +3040,15 @@ namespace Metal_Code
             // 3. Обновляем визуальные индикаторы
             UpdateColumnSortIndicators(sortProperty, direction);
 
-            // 4. Применяем новое представление к DataGrid
+            // 4. Применяем новое представление к DataGrid (атомарная замена)
             OffersGrid.ItemsSource = null;          // сбрасываем
-            OffersView = newView;                   // сохраняем новое
+            OffersView = newView;                   // сохраняем новое в поле
             OffersGrid.ItemsSource = newView;       // устанавливаем
 
-            // 5. Восстанавливаем развернутые группы (если нужно)
-            if (shouldGroup)
-            {
-                Dispatcher.BeginInvoke(new Action(() => RestoreExpandedGroups(GetExpandedGroupNames())), DispatcherPriority.Background);
-            }
+            // ⭐ УДАЛЕНО: Немедленный вызов RestoreExpandedGroups(GetExpandedGroupNames())
+            // Это вызывало ArgumentOutOfRangeException, так как контейнеры еще не были созданы.
+            // Восстановление групп теперь корректно происходит внутри Search_Offers 
+            // после того, как DispatcherPriority.Loaded гарантировал завершение привязки.
         }
 
         /// <summary>
@@ -3085,8 +3086,12 @@ namespace Metal_Code
         }
 
         //-----------Поиск расчетов по номеру КП, компании, номеру счета или заказа-----------//
+        private int _searchOperationCounter = 0;
         private async void Search_Offers(object sender, FunctionEventArgs<string> e)
         {
+            _searchOperationCounter++;
+            int currentSearchId = _searchOperationCounter; // Фиксируем ID текущего запроса
+
             _searchQuery = e.Info ?? string.Empty;
             _isProductionMode = false;
             if (InProductionFilterToggle.IsChecked == true)
@@ -3102,46 +3107,50 @@ namespace Metal_Code
             {
                 StatusBegin($"Поиск '{_searchQuery}' в базе...", StatusMessageType.Info);
 
+                // 1. Асинхронно получаем данные (не блокируем UI)
                 var results = await DataService.SearchOffersAsync(
                     TargetManager.Id, TargetManager.Name, _searchQuery.Trim());
 
-                // 1. Запоминаем развернутые группы ДО изменения коллекции
-                var previouslyExpanded = GetExpandedGroupNames();
+                // ⭐ КРИТИЧЕСКИ ВАЖНО: Если пользователь уже ввел следующий символ, игнорируем этот результат
+                if (currentSearchId != _searchOperationCounter) return;
 
-                // 2. Отвязываем DataGrid от источника данных.
-                OffersGrid.ItemsSource = null;
-
-                CurrentOffers.Clear();
-                foreach (var offer in results) CurrentOffers.Add(offer);
-
-                // 3. Возвращаем источник данных
-                OffersGrid.ItemsSource = OffersView;
-
-                // 4. Инициализируем представление (теперь без восстановления групп внутри)
-                InitializeOffersView();
-
-                // 5. Безопасно восстанавливаем группы ПОСЛЕ того, как UI сформировал новое дерево
-                if (previouslyExpanded.Any())
+                // 2. Атомарно обновляем UI на главном потоке
+                await Dispatcher.InvokeAsync(() =>
                 {
-                    await Dispatcher.BeginInvoke(new Action(() =>
+                    // Повторная проверка актуальности перед манипуляцией UI
+                    if (currentSearchId != _searchOperationCounter) return;
+
+                    // А. Запоминаем развернутые группы ДО отвязки (безопасным методом)
+                    var previouslyExpanded = GetExpandedGroupNames();
+
+                    // Б. Отвязываем DataGrid. Это заставляет WPF немедленно начать демонтаж визуального дерева
+                    OffersGrid.ItemsSource = null;
+
+                    // В. Очищаем и заполняем коллекцию. Делаем это, пока Grid отвязан, 
+                    // чтобы не триггерить CollectionChanged события во время отрисовки
+                    CurrentOffers.Clear();
+                    foreach (var offer in results)
                     {
-                        try
-                        {
-                            RestoreExpandedGroups(previouslyExpanded);
-                        }
-                        catch
-                        {
-                            // Игнорируем ошибки визуального дерева, чтобы не ронять приложение,
-                            // если пользователь уже начал вводить следующий символ.
-                        }
-                    }), DispatcherPriority.ContextIdle); // ContextIdle гарантирует, что UI завершил отрисовку
-                }
+                        CurrentOffers.Add(offer);
+                    }
+
+                    // Г. Перестраиваем представление (группировку и сортировку)
+                    InitializeOffersView();
+
+                    // Д. Восстанавливаем развернутые группы. 
+                    // Мы делаем это здесь же, но ниже мы убедимся, что ApplySortingAndGrouping не делает этого преждевременно.
+                    RestoreExpandedGroups(previouslyExpanded);
+
+                }, DispatcherPriority.Loaded); // Loaded гарантирует, что WPF завершил базовую инициализацию привязок
 
                 StatusBegin($"Найдено расчётов: {results.Count}", StatusMessageType.Success);
             }
             catch (Exception ex)
             {
-                StatusBegin($"Ошибка поиска: {ex.Message}", StatusMessageType.Error);
+                if (currentSearchId == _searchOperationCounter)
+                {
+                    StatusBegin($"Ошибка поиска: {ex.Message}", StatusMessageType.Error);
+                }
             }
         }
 

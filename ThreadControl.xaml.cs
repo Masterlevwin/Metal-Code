@@ -197,26 +197,41 @@ namespace Metal_Code
 
             if (Parts?.Count > 0)
             {
-                int count = 0;      //счетчик общего количества отверстий
+                int count = 0;          // счетчик общего количества отверстий
+                float totalTimeCost = 0; // накопитель стоимости машинного времени
 
                 foreach (PartControl p in Parts)
-                    foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) if (item.CharName == CharName && item.Holes > 0 && item.Wide == Wide)
-                            count += p.Part.Count * item.Holes;
+                {
+                    foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>())
+                    {
+                        if (item.CharName == CharName && item.Holes > 0 && item.Wide == Wide)
+                        {
+                            int partHoles = p.Part.Count * item.Holes;
+                            count += partHoles;
+                            // Считаем время и сразу переводим в стоимость (2000 руб/час)
+                            totalTimeCost += item.Time(p.Part.Mass, item.Wide, work) * 2000 * partHoles / 60f;
+                        }
+                    }
+                }
 
-                SetRatio(MainWindow.RatioSale(count));
-
-                foreach (PartControl p in Parts)
-                    foreach (ThreadControl item in p.UserControls.OfType<ThreadControl>()) if (item.CharName == CharName && item.Holes > 0 && item.Wide == Wide)
-                            price += (_work.Price + item.Time(p.Part.Mass, item.Wide, work) * 2000 * p.Part.Count * item.Holes / 60) * Ratio;
+                if (count > 0)
+                {
+                    SetRatio(MainWindow.RatioSale(count));
+                    price = (_work.Price + totalTimeCost) * Ratio;
+                }
             }
             else if (work.type.Mass > 0)
             {
                 if (Wide == 0 || Holes == 0) return;
 
-                SetRatio(MainWindow.RatioSale(work.type.det.Detail.Count * Holes));
+                int count = work.type.det.Detail.Count * Holes;
+                SetRatio(MainWindow.RatioSale(count));
 
-                price = (_work.Price + Time(work.type.Mass, Wide, work) * 2000 * work.type.det.Detail.Count * Holes / 60) * Ratio;
+                float totalTimeCost = Time(work.type.Mass, Wide, work) * 2000 * count / 60f;
+
+                price = (_work.Price + totalTimeCost) * Ratio;
             }
+
             work.SetResult(price, false);
         }
 
@@ -224,25 +239,36 @@ namespace Metal_Code
         {
             if (work.WorkDrop.SelectedItem is not Work _work || work.type.MetalDrop.SelectedItem is not Metal metal) return 0;
 
-            if (_wide > 30) return 0;                                       //условие выхода из рекурсии
+            if (_wide > 30) return 0; // условие выхода
 
-            if (!MainWindow.M.WideDict.ContainsKey(Math.Ceiling(_wide)))    //если диаметр отверстия, округленный до большего целого,                                                                
-            {                                                               //не соответствует возможной толщине,
-                _wide++;                                                    //увеличиваем диаметр на единицу
-                Time(_mass, _wide, work);                                   //и запускаем метод заново (рекурсия)
+            float searchWide = _wide;
+            while (searchWide <= 30 && !MainWindow.M.WideDict.ContainsKey(Math.Ceiling(searchWide)))
+            {
+                searchWide++;
             }
 
-            if (CharName == "Зк") return MainWindow.M.WideDict.ContainsKey(Math.Ceiling(_wide)) ?
-                _work.Time * (MainWindow.M.WideDict[Math.Ceiling(_wide)] + MainWindow.MassRatio(_mass) - 1) : 0;
+            // Если так и не нашли подходящий диаметр в словаре
+            if (searchWide > 30 || !MainWindow.M.WideDict.ContainsKey(Math.Ceiling(searchWide)))
+                return 0;
+
+            float ceilWide = (float)Math.Ceiling(searchWide);
+
+            if (CharName == "Зк")
+            {
+                return _work.Time * (MainWindow.M.WideDict[ceilWide] + MainWindow.MassRatio(_mass) - 1);
+            }
 
             float destiny = work.type.S;
-
             var cutWork = work.type.WorkControls.FirstOrDefault(w => w.workType is CutControl);
             if (cutWork != null && cutWork.workType is CutControl cut)
-                destiny = MainWindow.M.CorrectDestiny(work.type.S, cut.IsGrooved);    //получаем расчетную толщину
+                destiny = MainWindow.M.CorrectDestiny(work.type.S, cut.IsGrooved);
 
-            return MainWindow.M.WideDict.ContainsKey(destiny) && MainWindow.M.WideDict.ContainsKey(Math.Ceiling(_wide)) ?
-                _work.Time * (MainWindow.M.WideDict[destiny] + MainWindow.M.WideDict[Math.Ceiling(_wide)] + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass) - 3) : 0;
+            if (MainWindow.M.WideDict.ContainsKey(destiny) && MainWindow.M.WideDict.ContainsKey(ceilWide))
+            {
+                return _work.Time * (MainWindow.M.WideDict[destiny] + MainWindow.M.WideDict[ceilWide] + MainWindow.M.MetalRatioDict[metal] + MainWindow.MassRatio(_mass) - 3);
+            }
+
+            return 0;
         }
 
         public void SaveOrLoadProperties(UserControl uc, bool isSaved)
@@ -290,25 +316,68 @@ namespace Metal_Code
                         key = 65;
                     }
 
-                    int count = 0;      //счетчик общего количества отверстий
+                    int totalCount = 0;
+                    float totalAssemblyTimeCost = 0;
+                    WorkControl? matchingWorkControl = null;
+                    Work? matchingWork = null;
 
-                    if (p.owner is ICut _cut && _cut.PartsControl != null) foreach (PartControl _p in _cut.PartsControl.Parts)
-                            foreach (ThreadControl item in _p.UserControls.OfType<ThreadControl>())
-                                if (item.CharName == CharName && item.Holes > 0 && item.Wide == Wide) count += _p.Part.Count * item.Holes;
-
-                    foreach (WorkControl _w in p.work.type.WorkControls)        // получаем минималку работы
-                        if (_w.workType is ThreadControl thread && thread.CharName == CharName && thread.Wide == Wide && _w.WorkDrop.SelectedItem is Work _work)
+                    // 1. Находим соответствующий WorkControl, чтобы получить _work и _w
+                    foreach (WorkControl _w in p.work.type.WorkControls)
+                    {
+                        if (_w.workType is ThreadControl thread && thread.CharName == CharName && thread.Wide == Wide && _w.WorkDrop.SelectedItem is Work workItem)
                         {
-                            float _send = (_work.Price + Time(p.Part.Mass, Wide, _w) * 2000 * p.Part.Count * Holes/ 60) * MainWindow.RatioSale(count) * _w.Ratio * _w.TechRatio / p.Part.Count;
-                            p.Part.Price += _send;
-
-                            if (p.Part.PropsDict.ContainsKey(key) && float.TryParse(p.Part.PropsDict[key][0], out float value))
-                                p.Part.PropsDict[key][0] = $"{value + _send}";  //блоков может быть несколько
-                            else
-                                p.Part.PropsDict[key] = new() { $"{_send}" };
-
+                            matchingWorkControl = _w;
+                            matchingWork = workItem;
                             break;
                         }
+                    }
+
+                    if (matchingWorkControl != null && matchingWork != null)
+                    {
+                        // 2. Считаем общее кол-во отверстий и время на ВСЮ сборку (или на одну деталь, если это не сборка)
+                        if (p.owner is ICut _cut && _cut.PartsControl != null)
+                        {
+                            foreach (PartControl _p in _cut.PartsControl.Parts)
+                            {
+                                foreach (ThreadControl item in _p.UserControls.OfType<ThreadControl>())
+                                {
+                                    if (item.CharName == CharName && item.Holes > 0 && item.Wide == Wide)
+                                    {
+                                        int partHoles = _p.Part.Count * item.Holes;
+                                        totalCount += partHoles;
+                                        totalAssemblyTimeCost += item.Time(_p.Part.Mass, item.Wide, matchingWorkControl) * 2000 * partHoles / 60f;
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Если это одиночная деталь (не в составе ICut)
+                            totalCount = p.Part.Count * Holes;
+                            totalAssemblyTimeCost = Time(p.Part.Mass, Wide, matchingWorkControl) * 2000 * totalCount / 60f;
+                        }
+                    }
+
+                    // 3. Рассчитываем итоговую стоимость партии и распределяем на ОДНУ ШТУКУ детали
+                    if (totalCount > 0 && matchingWork != null && matchingWorkControl != null)
+                    {
+                        // Полная стоимость операции на всю партию (минималка + время) * скидки
+                        float totalBatchCost = (matchingWork.Price + totalAssemblyTimeCost)
+                                               * MainWindow.RatioSale(totalCount)
+                                               * matchingWorkControl.Ratio
+                                               * matchingWorkControl.TechRatio;
+
+                        // Стоимость для ОДНОЙ ШТУКИ текущей детали.
+                        // Формула: (Общая стоимость) * (Кол-во отверстий в 1 шт) / (Общее кол-во отверстий)
+                        float _send = totalBatchCost * Holes / totalCount;
+
+                        p.Part.Price += _send;
+
+                        if (p.Part.PropsDict.ContainsKey(key) && float.TryParse(p.Part.PropsDict[key][0], out float value))
+                            p.Part.PropsDict[key][0] = $"{value + _send}"; // блоков может быть несколько
+                        else
+                            p.Part.PropsDict[key] = new() { $"{_send}" };
+                    }
                 }
             }
             else

@@ -298,63 +298,6 @@ namespace Metal_Code
             PriceChanged();
         }
 
-        private void SetComment(object sender, TextChangedEventArgs e)
-        {
-            if (sender is TextBox box) SetComment(box.Text);
-        }
-
-        public void SetComment(string? _comment)
-        {
-            Comment = _comment;
-            if (Comment != null && Comment != "" && CommentExpander.IsExpanded == false)
-                CommentExpander.IsExpanded = true;
-
-            // ⭐ Обновляем визуальное состояние кнопок тегов
-            UpdateTagButtonsState();
-        }
-
-        private void UpdateTagButtonsState()
-        {
-            // ⭐ Отложенный вызов, чтобы ItemContainerGenerator успел создать контейнеры
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                if (CommentTags == null || TagsPanel == null) return;
-
-                foreach (CommentTag tag in CommentTags)
-                {
-                    var container = TagsPanel.ItemContainerGenerator.ContainerFromItem(tag);
-                    if (container is ContentPresenter cp)
-                    {
-                        var button = FindVisualChild<Button>(cp);
-                        if (button != null)
-                        {
-                            // Проверяем, присутствует ли текст тега в комментарии
-                            bool isActive = !string.IsNullOrEmpty(Comment)
-                                         && !string.IsNullOrEmpty(tag.Text)
-                                         && Comment.Contains(tag.Text);
-
-                            button.Background = isActive
-                                ? Brushes.PaleGreen
-                                : new SolidColorBrush(Color.FromRgb(245, 245, 245));
-                        }
-                    }
-                }
-            }), System.Windows.Threading.DispatcherPriority.Loaded);
-        }
-
-        private T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
-        {
-            if (parent == null) return null;
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                var child = VisualTreeHelper.GetChild(parent, i);
-                if (child is T found) return found;
-                var result = FindVisualChild<T>(child);
-                if (result != null) return result;
-            }
-            return null;
-        }
-
         private bool _isAutoSelecting = false;
 
         public Dictionary<string, (string, string, string)> Kinds = new();
@@ -825,7 +768,7 @@ namespace Metal_Code
             ((Storyboard)FindResource("StopHighlightToggle")).Begin(PartsToggle);
         }
 
-        //Тэги комментария
+        // Тэги комментария
         #region
         public ObservableCollection<CommentTag> CommentTags { get; } = TagManager.LoadTags();
 
@@ -838,18 +781,15 @@ namespace Metal_Code
             if (tag.Name.Equals("рифл", StringComparison.OrdinalIgnoreCase)) { HandleGrooved(btn); return; }
             if (tag.Name.Equals("плен", StringComparison.OrdinalIgnoreCase)) { HandleFilm(btn); return; }
 
-            // 2. Стандартная логика для пользовательских (информационных) тегов
-            // Они всегда имеют PriceRatio = 1.0f и не влияют на Ratio напрямую
+            // 2. Стандартная логика для пользовательских тегов
+            // Убрана лишняя вложенная проверка if/else, которая была в вашем коде
             if (IsCommentPresent(tag.Text))
-            {
                 HandleCommentRemoval(tag.Text);
-                btn.Background = new SolidColorBrush(Color.FromRgb(245, 245, 245));
-            }
             else
-            {
                 HandleCommentAddition(tag.Text);
-                btn.Background = Brushes.PaleGreen;
-            }
+
+            // Единое место для обновления UI
+            UpdateTagButtonsState();
 
             if (!string.IsNullOrEmpty(Comment) && !CommentExpander.IsExpanded)
                 CommentExpander.IsExpanded = true;
@@ -858,110 +798,65 @@ namespace Metal_Code
         private void HandleNitrogen(Button btn)
         {
             var work = WorkControls.FirstOrDefault(w => w.workType is CutControl);
+            // ⭐ Берем текст напрямую из модели, а не хардкодим
+            var tag = CommentTags.FirstOrDefault(t => t.Name.Equals("азот", StringComparison.OrdinalIgnoreCase));
+            string tagText = tag?.Text ?? "Азот!";
 
             if (work != null && work.workType is CutControl cut)
             {
                 cut.HaveNitro = !cut.HaveNitro;
 
-                var nitrogenTag = CommentTags.FirstOrDefault(t => t.Name.Equals("азот", StringComparison.OrdinalIgnoreCase));
-                float ratio = nitrogenTag?.PriceRatio ?? 1.5f;
+                if (cut.HaveNitro) work.Ratio *= (tag?.PriceRatio ?? 1.5f);
+                else work.Ratio /= (tag?.PriceRatio ?? 1.5f);
 
-                if (cut.HaveNitro) work.Ratio *= ratio;
-                else work.Ratio /= ratio;
+                if (cut.HaveNitro) HandleCommentAddition(tagText);
+                else HandleCommentRemoval(tagText);
 
-                btn.Background = cut.HaveNitro
-                    ? Brushes.PaleGreen
-                    : new SolidColorBrush(Color.FromRgb(245, 245, 245));
-
-                if (cut.HaveNitro)
-                    HandleCommentAddition(" Азот!");
-                else
-                    HandleCommentRemoval(" Азот!");
-            }
-            else
-            {
-                if (IsCommentPresent(" Азот!"))
-                {
-                    HandleCommentRemoval(" Азот!");
-                    btn.Background = new SolidColorBrush(Color.FromRgb(245, 245, 245));
-                }
-                else
-                {
-                    HandleCommentAddition(" Азот!");
-                    btn.Background = Brushes.PaleGreen;
-                }
+                btn.Background = cut.HaveNitro ? Brushes.PaleGreen : new SolidColorBrush(Color.FromRgb(245, 245, 245));
+                UpdateTagButtonsState();
             }
         }
 
         private void HandleGrooved(Button btn)
         {
             var work = WorkControls.FirstOrDefault(w => w.workType is CutControl);
+            // ⭐ Берем текст напрямую из модели
+            var tag = CommentTags.FirstOrDefault(t => t.Name.Equals("рифл", StringComparison.OrdinalIgnoreCase));
+            string tagText = tag?.Text ?? "Рифленка!";
 
             if (work != null && work.workType is CutControl cut)
             {
                 cut.IsGrooved = !cut.IsGrooved;
 
-                btn.Background = cut.IsGrooved
-                    ? Brushes.PaleGreen
-                    : new SolidColorBrush(Color.FromRgb(245, 245, 245));
+                if (cut.IsGrooved) HandleCommentAddition(tagText);
+                else HandleCommentRemoval(tagText);
 
-                if (cut.IsGrooved)
-                    HandleCommentAddition(" Рифленка!");
-                else
-                    HandleCommentRemoval(" Рифленка!");
+                btn.Background = cut.IsGrooved ? Brushes.PaleGreen : new SolidColorBrush(Color.FromRgb(245, 245, 245));
 
                 PriceChanged();
-            }
-            else
-            {
-                if (IsCommentPresent(" Рифленка!"))
-                {
-                    HandleCommentRemoval(" Рифленка!");
-                    btn.Background = new SolidColorBrush(Color.FromRgb(245, 245, 245));
-                }
-                else
-                {
-                    HandleCommentAddition(" Рифленка!");
-                    btn.Background = Brushes.PaleGreen;
-                }
+                UpdateTagButtonsState();
             }
         }
 
         private void HandleFilm(Button btn)
         {
             var work = WorkControls.FirstOrDefault(w => w.workType is CutControl);
+            // ⭐ Берем текст напрямую из модели
+            var tag = CommentTags.FirstOrDefault(t => t.Name.Equals("плен", StringComparison.OrdinalIgnoreCase));
+            string tagText = tag?.Text ?? "Пленку не снимать!";
 
             if (work != null && work.workType is CutControl cut)
             {
                 cut.HaveFilm = !cut.HaveFilm;
 
-                var filmTag = CommentTags.FirstOrDefault(t => t.Name.Equals("плен", StringComparison.OrdinalIgnoreCase));
-                float ratio = filmTag?.PriceRatio ?? 2.0f;
+                if (cut.HaveFilm) work.Ratio *= (tag?.PriceRatio ?? 2.0f);
+                else work.Ratio /= (tag?.PriceRatio ?? 2.0f);
 
-                if (cut.HaveFilm) work.Ratio *= ratio;
-                else work.Ratio /= ratio;
+                if (cut.HaveFilm) HandleCommentAddition(tagText);
+                else HandleCommentRemoval(tagText);
 
-                btn.Background = cut.HaveFilm
-                    ? Brushes.PaleGreen
-                    : new SolidColorBrush(Color.FromRgb(245, 245, 245));
-
-                if (cut.HaveFilm)
-                    HandleCommentAddition(" Пленку не снимать!");
-                else
-                    HandleCommentRemoval(" Пленку не снимать!");
-            }
-            else
-            {
-                if (IsCommentPresent(" Пленку не снимать!"))
-                {
-                    HandleCommentRemoval(" Пленку не снимать!");
-                    btn.Background = new SolidColorBrush(Color.FromRgb(245, 245, 245));
-                }
-                else
-                {
-                    HandleCommentAddition(" Пленку не снимать!");
-                    btn.Background = Brushes.PaleGreen;
-                }
+                btn.Background = cut.HaveFilm ? Brushes.PaleGreen : new SolidColorBrush(Color.FromRgb(245, 245, 245));
+                UpdateTagButtonsState();
             }
         }
 
@@ -970,29 +865,165 @@ namespace Metal_Code
             var settingsWindow = new TagSettingsWindow(CommentTags);
             if (settingsWindow.ShowDialog() == true)
             {
-                // 1. Пересоздаем визуальные элементы (кнопки)
                 TagsPanel.Items.Refresh();
-
-                // 2. ⭐ ВОССТАНАВЛИВАЕМ зеленый цвет для активных тегов
                 UpdateTagButtonsState();
             }
         }
 
-        private void HandleCommentAddition(string textToAdd)
+        /// <summary>
+        /// Принципиально новый механизм: добавляет тег, гарантируя корректные пробелы, 
+        /// даже если пользователь вручную склеил текст (например, "Азот!Рифленка!").
+        /// </summary>
+        private void HandleCommentAddition(string tagText)
         {
-            if (string.IsNullOrEmpty(Comment)) SetComment(textToAdd);
-            else if (!Comment.Contains(textToAdd)) SetComment(Comment + textToAdd);
+            if (string.IsNullOrWhiteSpace(tagText)) return;
+            string core = tagText.Trim(); // Работаем с "чистым" текстом тега
+
+            if (string.IsNullOrWhiteSpace(Comment))
+            {
+                Comment = core;
+                UpdateCommentUI();
+                return;
+            }
+
+            // Проверяем, есть ли уже этот тег (игнорируем регистр и отсутствие пробелов)
+            if (Regex.IsMatch(Comment, Regex.Escape(core), RegexOptions.IgnoreCase))
+            {
+                // Если есть, но без пробелов (например, "Азот!Рифленка!"), нормализуем строку
+                Comment = NormalizeCommentSpaces(Comment, core);
+            }
+            else
+            {
+                // Добавляем с гарантированным пробелом
+                Comment = (Comment.Trim() + " " + core).Trim();
+            }
+
+            UpdateCommentUI();
         }
 
-        private void HandleCommentRemoval(string textToRemove)
+        /// <summary>
+        /// Принципиально новый механизм: удаляет тег, "вырезая" его вместе с окружающими пробелами.
+        /// Работает даже если теги слиплись ("Азот!Рифленка!" -> "Азот!").
+        /// </summary>
+        private void HandleCommentRemoval(string tagText)
         {
-            if (Comment != null && Comment.Contains(textToRemove))
-                SetComment(Comment.Replace(textToRemove, ""));
+            if (string.IsNullOrWhiteSpace(Comment) || string.IsNullOrWhiteSpace(tagText)) return;
+            string core = tagText.Trim();
+
+            // Regex ищет текст тега с любыми пробелами до и после него (или началом/концом строки)
+            string pattern = @"(?i)\s*" + Regex.Escape(core) + @"\s*";
+
+            // Заменяем найденное на один пробел, затем обрезаем края
+            string result = Regex.Replace(Comment, pattern, " ").Trim();
+
+            // Схлопываем множественные пробелы, которые могли остаться после вырезания
+            Comment = Regex.Replace(result, @"\s+", " ").Trim();
+
+            UpdateCommentUI();
         }
 
-        private bool IsCommentPresent(string textToCheck)
+        /// <summary>
+        /// Проверяет наличие тега, игнорируя отсутствие пробелов между словами.
+        /// </summary>
+        private bool IsCommentPresent(string tagText)
         {
-            return Comment != null && Comment.Contains(textToCheck);
+            if (string.IsNullOrWhiteSpace(Comment) || string.IsNullOrWhiteSpace(tagText)) return false;
+            string core = tagText.Trim();
+            return Regex.IsMatch(Comment, Regex.Escape(core), RegexOptions.IgnoreCase);
+        }
+
+        /// <summary>
+        /// Нормализует пробелы в комментарии, если теги слиплись.
+        /// Превращает "Азот!Рифленка!" в "Азот! Рифленка!".
+        /// </summary>
+        private string NormalizeCommentSpaces(string comment, string core)
+        {
+            // Временно обрамляем искомый текст пробелами
+            string temp = Regex.Replace(comment, @"(?i)" + Regex.Escape(core), $" {core} ");
+            // Схлопываем все множественные пробелы в один
+            return Regex.Replace(temp, @"\s+", " ").Trim();
+        }
+
+        private void UpdateCommentUI()
+        {
+            SetComment(Comment); // Это автоматически вызовет UpdateTagButtonsState()
+        }
+
+        private void SetComment(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox box) SetComment(box.Text);
+        }
+
+        public void SetComment(string? _comment)
+        {
+            Comment = _comment;
+            if (Comment != null && Comment != "" && CommentExpander.IsExpanded == false)
+                CommentExpander.IsExpanded = true;
+
+            // ⭐ Обновляем визуальное состояние кнопок тегов
+            UpdateTagButtonsState();
+        }
+
+        /// <summary>
+        /// Синхронизирует цвет ВСЕХ кнопок тегов с актуальным состоянием.
+        /// </summary>
+        private void UpdateTagButtonsState()
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (CommentTags == null || TagsPanel == null) return;
+
+                foreach (CommentTag tag in CommentTags)
+                {
+                    var container = TagsPanel.ItemContainerGenerator.ContainerFromItem(tag);
+                    if (container is ContentPresenter cp)
+                    {
+                        var button = FindVisualChild<Button>(cp);
+                        if (button != null)
+                        {
+                            bool isActive = IsTagActive(tag);
+                            button.Background = isActive
+                                ? Brushes.PaleGreen
+                                : new SolidColorBrush(Color.FromRgb(245, 245, 245));
+                        }
+                    }
+                }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        /// <summary>
+        /// Универсальная проверка активности тега.
+        /// </summary>
+        public bool IsTagActive(CommentTag tag)
+        {
+            if (tag == null) return false;
+
+            var cut = WorkControls.FirstOrDefault(w => w.workType is CutControl)?.workType as CutControl;
+
+            if (tag.Name.Equals("азот", StringComparison.OrdinalIgnoreCase))
+                return cut?.HaveNitro == true;
+
+            if (tag.Name.Equals("рифл", StringComparison.OrdinalIgnoreCase))
+                return cut?.IsGrooved == true;
+
+            if (tag.Name.Equals("плен", StringComparison.OrdinalIgnoreCase))
+                return cut?.HaveFilm == true;
+
+            // Для пользовательских тегов проверяем наличие текста
+            return IsCommentPresent(tag.Text);
+        }
+
+        private T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            if (parent == null) return null;
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T found) return found;
+                var result = FindVisualChild<T>(child);
+                if (result != null) return result;
+            }
+            return null;
         }
         #endregion
 
@@ -1000,38 +1031,38 @@ namespace Metal_Code
         #region
         private void CheckBorderlineDimensions(CutControl cut)
         {
-            if (cut?.Items == null || cut.PartDetails == null) return;
+            if (cut?.PartDetails == null || cut.Items == null) return;
 
             const float minTotalOffset = 16f; // 8 мм с каждой стороны = 16 мм всего
-
-            // ⭐ Убрали пробел в начале строки, чтобы управлять пробелами централизованно
             const string warningTag = "ВНИМАНИЕ: Нестандартный отступ!";
+
+            // Получаем стандартные размеры листа для текущего материала и толщины
+            var standardSheets = GetStandardSheetSizes(MetalDrop.Text, S);
 
             bool hasBorderline = false;
 
-            foreach (var item in cut.Items)
+            foreach (var part in cut.PartDetails)
             {
-                if (string.IsNullOrEmpty(item.sheetSize)) continue;
+                if (!part.PropsDict.TryGetValue(100, out List<string>? value) || value.Count < 2) continue;
+                double partLen = MainWindow.Parser(part.PropsDict[100][0]);
+                double partWid = MainWindow.Parser(part.PropsDict[100][1]);
 
-                string[] sheetProps = item.sheetSize.ToLower().Split('x');
-                if (sheetProps.Length >= 2 &&
-                    float.TryParse(sheetProps[0], out float sheetA) &&
-                    float.TryParse(sheetProps[1], out float sheetB))
+                if (partLen <= 0 || partWid <= 0) continue;
+
+                // --- ОСНОВНАЯ ЛОГИКА: Проверка относительно стандартных листов ---
+                if (standardSheets.Count > 0)
                 {
-                    foreach (var part in cut.PartDetails)
+                    foreach (var sheet in standardSheets)
                     {
-                        if (!part.PropsDict.TryGetValue(100, out List<string>? value) || value.Count < 2) continue;
-                        double partLen = MainWindow.Parser(part.PropsDict[100][0]);
-                        double partWid = MainWindow.Parser(part.PropsDict[100][1]);
+                        float sheetA = sheet.Width;
+                        float sheetB = sheet.Height;
 
-                        if (partLen <= 0 || partWid <= 0) continue;
-
-                        // Прямая ориентация: зазор строго > 0 и < minTotalOffset
+                        // Прямая ориентация
                         bool isBorderlineDirect =
                             (sheetA - partLen > 0 && sheetA - partLen < minTotalOffset) ||
                             (sheetB - partWid > 0 && sheetB - partWid < minTotalOffset);
 
-                        // Повёрнутая ориентация (90°): зазор строго > 0 и < minTotalOffset
+                        // Повёрнутая ориентация (90°)
                         bool isBorderlineRotated =
                             (sheetA - partWid > 0 && sheetA - partWid < minTotalOffset) ||
                             (sheetB - partLen > 0 && sheetB - partLen < minTotalOffset);
@@ -1039,11 +1070,39 @@ namespace Metal_Code
                         if (isBorderlineDirect || isBorderlineRotated)
                         {
                             hasBorderline = true;
-                            break;
+                            break; // Нашли совпадение со стандартным листом, дальше проверять нет смысла
                         }
                     }
                 }
-                if (hasBorderline) break;
+                // --- FALLBACK: Если материал не распознан, проверяем по фактическим размерам из cut.Items ---
+                else
+                {
+                    foreach (var item in cut.Items)
+                    {
+                        if (string.IsNullOrEmpty(item.sheetSize)) continue;
+                        string[] sheetProps = item.sheetSize.ToLower().Split('x');
+                        if (sheetProps.Length >= 2 &&
+                            float.TryParse(sheetProps[0], out float sheetA) &&
+                            float.TryParse(sheetProps[1], out float sheetB))
+                        {
+                            bool isBorderlineDirect =
+                                (sheetA - partLen > 0 && sheetA - partLen < minTotalOffset) ||
+                                (sheetB - partWid > 0 && sheetB - partWid < minTotalOffset);
+
+                            bool isBorderlineRotated =
+                                (sheetA - partWid > 0 && sheetA - partWid < minTotalOffset) ||
+                                (sheetB - partLen > 0 && sheetB - partLen < minTotalOffset);
+
+                            if (isBorderlineDirect || isBorderlineRotated)
+                            {
+                                hasBorderline = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (hasBorderline) break; // Достаточно одной проблемной детали
             }
 
             ApplyBorderlineWarning(hasBorderline, warningTag);
@@ -1088,6 +1147,47 @@ namespace Metal_Code
 
             OnPropertyChanged(nameof(Comment));
             UpdateTagButtonsState();
+        }
+
+        /// <summary>
+        /// Возвращает список стандартных (номинальных) размеров листов для заданного материала и толщины.
+        /// Если материал не распознан, возвращает пустой список (будет использован fallback на фактический размер).
+        /// </summary>
+        private List<(float Width, float Height)> GetStandardSheetSizes(string materialName, float thickness)
+        {
+            var sizes = new List<(float, float)>();
+            if (string.IsNullOrEmpty(materialName)) return sizes;
+
+            string matLower = materialName.ToLower().Trim();
+
+            // Сталь ("ст3", "09г2с", "хк", "цинк", "рифл"...)
+            if (matLower.Contains("ст") || matLower.Contains("хк") || matLower.Contains("09г2с") || matLower.Contains("цинк") || matLower.Contains("рифл"))
+            {
+                if (thickness < 3)
+                    sizes.Add((2500, 1250));
+                else
+                    sizes.Add((3000, 1500));
+            }
+            // Нержавейка
+            else if (matLower.Contains("aisi"))
+            {
+                sizes.Add((3000, 1500));
+                sizes.Add((2500, 1250));
+                sizes.Add((2000, 1000));
+            }
+            // Алюминий
+            else if (matLower.Contains("амг") || matLower.Contains("д16") || matLower.Contains("ад"))
+            {
+                sizes.Add((3000, 1500));
+                sizes.Add((3000, 1200));
+            }
+            // Медь / Латунь
+            else if (matLower.Contains("медь") || matLower.Contains("латунь"))
+            {
+                sizes.Add((1500, 600));
+            }
+
+            return sizes;
         }
 
         public void CheckBendingMachine(CutControl cut)

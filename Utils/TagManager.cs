@@ -17,11 +17,11 @@ namespace Metal_Code.Utils
 
         public static ObservableCollection<CommentTag> GetDefaultTags() => new()
         {
-            new("азот", " Азот!", true, 1.5f, isProtected: true),
-            new("плен", " Пленку не снимать!", true, 2f, isProtected: true),
-            new("рифл", " Рифленка!", false, 1, destinyOffset: 1, isProtected: true),
-            new("шлиф", " Внимание на направление шлифовки!", false),
-            new("чист", " Чистый материал! Без царапин!", false)
+            new("азот", "Азот!", true, 1.5f, isProtected: true),
+            new("плен", "Пленку не снимать!", true, 2f, isProtected: true),
+            new("рифл", "Рифленка!", false, 1, destinyOffset: 1, isProtected: true),
+            new("шлиф", "Внимание на направление шлифовки!", false),
+            new("чист", "Чистый материал! Без царапин!", false)
         };
 
         public static ObservableCollection<CommentTag> LoadTags()
