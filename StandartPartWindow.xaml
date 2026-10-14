@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:hc="https://handyorg.github.io/handycontrol"
         xmlns:converters="clr-namespace:Metal_Code.Converters"
+        xmlns:utils="clr-namespace:Metal_Code.Utils"
         Title="Стандартные детали" MinWidth="900" MinHeight="600" WindowState="Maximized">
 
     <Window.Resources>
@@ -61,15 +62,12 @@
                                     <TextBlock Text="Название:" VerticalAlignment="Center" Margin="0,0,10,0" 
                        FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
 
-                                    <TextBox Grid.Column="1" Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" 
-                     hc:InfoElement.Placeholder="Например: Пластина" 
-                     Style="{StaticResource TextBoxExtend}" FontSize="14" FontWeight="SemiBold"/>
-
-                                    <!-- Чекбокс автогенерации имени -->
-                                    <CheckBox x:Name="AutoTitleCheck" Grid.Column="2" Content="Автоимя" 
-          IsChecked="True" VerticalAlignment="Center" Margin="10,0"
-          Checked="AutoTitleCheck_Changed" Unchecked="AutoTitleCheck_Changed"/>
-                                    
+                                    <TextBox x:Name="TitleTextBox" Grid.Column="1"
+                                             Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                                             hc:InfoElement.Placeholder="Например: Пластина"
+                                             Style="{StaticResource TextBoxExtend}" FontSize="14" FontWeight="SemiBold"
+                                             TextChanged="TitleTextBox_TextChanged"/>
+                                   
                                     <!-- Кнопка DXF (листовые) -->
                                     <Button Grid.Column="3" Click="ExportToDxf_Click" Margin="10,0,0,0"
                     Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, 
@@ -95,20 +93,23 @@
 
                                     <StackPanel Grid.Column="0" Margin="0,0,10,0">
                                         <TextBlock Text="Ширина (мм):" Margin="0,0,0,3" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
-                                        <TextBox Text="{Binding Width, UpdateSourceTrigger=PropertyChanged}" hc:InfoElement.Placeholder="50" Style="{StaticResource TextBoxExtend}" 
-                         FontSize="14" FontWeight="SemiBold" IsReadOnly="{Binding PartType, Converter={StaticResource PartTypeToReadOnlyConverter}}"/>
+                                        <TextBox x:Name="WidthInput" Text="{Binding Width, UpdateSourceTrigger=PropertyChanged}" hc:InfoElement.Placeholder="50" Style="{StaticResource TextBoxExtend}" 
+                         FontSize="14" FontWeight="SemiBold" IsReadOnly="{Binding PartType, Converter={StaticResource PartTypeToReadOnlyConverter}}"
+                         utils:TextBoxHelper.SelectAllOnFocus="True" TextChanged="DimensionTextBox_TextChanged"/>
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="1" Margin="0,0,10,0">
                                         <TextBlock Text="Высота (мм):" Margin="0,0,0,3" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
                                         <TextBox Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}" hc:InfoElement.Placeholder="50" Style="{StaticResource TextBoxExtend}" 
-                         FontSize="14" FontWeight="SemiBold" IsReadOnly="{Binding PartType, Converter={StaticResource PartTypeToReadOnlyConverter}}"/>
+                         FontSize="14" FontWeight="SemiBold" IsReadOnly="{Binding PartType, Converter={StaticResource PartTypeToReadOnlyConverter}}"
+                         utils:TextBoxHelper.SelectAllOnFocus="True" TextChanged="DimensionTextBox_TextChanged"/>
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="3">
                                         <TextBlock Text="Количество (шт):" Margin="0,0,0,3" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
                                         <TextBox Text="{Binding Count}" hc:InfoElement.Placeholder="1" Style="{StaticResource TextBoxExtend}" 
-                         FontSize="14" FontWeight="SemiBold"/>
+                         FontSize="14" FontWeight="SemiBold"
+                         utils:TextBoxHelper.SelectAllOnFocus="True" TextChanged="DimensionTextBox_TextChanged"/>
                                     </StackPanel>
                                 </Grid>
 
@@ -165,19 +166,19 @@
                                     <!-- Длина для трубных -->
                                     <StackPanel Grid.Column="2" Margin="0,0,10,0">
                                         <TextBlock Text="Длина (мм):" Margin="0,0,0,3" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
-                                        <TextBox x:Name="PipeLengthInput" 
-             Text="{Binding Length, UpdateSourceTrigger=PropertyChanged}" 
-             hc:InfoElement.Placeholder="1000" 
-             Style="{StaticResource TextBoxExtend}" 
-             FontSize="14" FontWeight="SemiBold"
-             KeyDown="PipeLengthInput_KeyDown"/>
+                                        <TextBox x:Name="PipeLengthInput" Text="{Binding Length, UpdateSourceTrigger=PropertyChanged}"
+                                                 hc:InfoElement.Placeholder="1000" Style="{StaticResource TextBoxExtend}"
+                                                 FontSize="14" FontWeight="SemiBold"
+                                                 KeyDown="PipeLengthInput_KeyDown"
+                                                 utils:TextBoxHelper.SelectAllOnFocus="True"/>
                                     </StackPanel>
 
                                     <!-- Количество -->
                                     <StackPanel Grid.Column="3">
                                         <TextBlock Text="Количество (шт):" Margin="0,0,0,3" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
-                                        <TextBox Text="{Binding Count}" hc:InfoElement.Placeholder="1" 
-                         Style="{StaticResource TextBoxExtend}" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBox Text="{Binding Count}" hc:InfoElement.Placeholder="1"
+                                                 Style="{StaticResource TextBoxExtend}" FontSize="14" FontWeight="SemiBold"
+                                                 utils:TextBoxHelper.SelectAllOnFocus="True"/>
                                     </StackPanel>
                                 </Grid>
 

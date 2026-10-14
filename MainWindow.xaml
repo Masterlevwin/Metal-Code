@@ -690,7 +690,29 @@
                                                 <EventSetter Event="MouseDoubleClick" Handler="OffersGrid_RowDoubleClick"/>
                                             </Style>
                                         </DataGrid.RowStyle>
-                                        
+
+                                        <DataGrid.CellStyle>
+                                            <Style TargetType="DataGridCell" BasedOn="{StaticResource DataGridCellStyle.Small}">
+                                                <Setter Property="BorderThickness" Value="0"/>
+                                                <Style.Triggers>
+                                                    <!-- ⭐ Выделение строки: мягкий голубой фон -->
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter Property="Background" Value="#D6EAF8"/>
+                                                        <!-- #D6EAF8 = Material Blue 100 — светлый, но заметный -->
+                                                        <Setter Property="BorderBrush" Value="#85C1E9"/>
+                                                        <Setter Property="BorderThickness" Value="0,1,0,1"/>
+                                                        <!-- Тонкие горизонтальные линии для акцента -->
+                                                    </Trigger>
+                                                    <!-- ⭐ Фокус на ячейке (при редактировании) — чуть темнее -->
+                                                    <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                                        <Setter Property="Background" Value="#AED6F1"/>
+                                                        <Setter Property="BorderBrush" Value="#5DADE2"/>
+                                                        <Setter Property="BorderThickness" Value="0,1,0,1"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </DataGrid.CellStyle>
+
                                         <DataGrid.GroupStyle>
                                             <GroupStyle>
                                                 <GroupStyle.ContainerStyle>
@@ -759,36 +781,73 @@
                                         </DataGrid.GroupStyle>
 
                                         <DataGrid.Columns>
-                                            <DataGridTextColumn Header="№" Binding="{Binding N}" SortMemberPath="ParentQuoteNumber" IsReadOnly="True" FontWeight="Bold"/>
-                                            <DataGridTextColumn Header="Компания" Binding="{Binding Company}" SortMemberPath="Company" IsReadOnly="True"/>
-                                            <DataGridTextColumn Header="Итого" Binding="{Binding Amount, Converter={StaticResource CostConverter}}" SortMemberPath="Amount" IsReadOnly="True" Foreground="Blue"/>
-                                            <DataGridCheckBoxColumn Header="Нал" Binding="{Binding Agent}" SortMemberPath="Agent"/>
-                                            <DataGridTextColumn Header="Счёт" Binding="{Binding Invoice}" SortMemberPath="Invoice"/>
-                                            <DataGridTextColumn Header="Заказ" Binding="{Binding Order}" SortMemberPath="Order" Foreground="OrangeRed"/>
+                                            <!-- № -->
+                                            <DataGridTextColumn Header="№" Binding="{Binding N}" SortMemberPath="ParentQuoteNumber" IsReadOnly="True">
+                                                <DataGridTextColumn.ElementStyle>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                        <Setter Property="Foreground" Value="Black"/>
+                                                    </Style>
+                                                </DataGridTextColumn.ElementStyle>
+                                            </DataGridTextColumn>
 
-                                                <DataGridTemplateColumn Header="Дата отгрузки" SortMemberPath="EndDate" CanUserResize="False">
+                                            <!-- Компания -->
+                                            <DataGridTextColumn Header="Компания" Binding="{Binding Company}" SortMemberPath="Company" IsReadOnly="True">
+                                                <DataGridTextColumn.ElementStyle>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="Black"/>
+                                                    </Style>
+                                                </DataGridTextColumn.ElementStyle>
+                                            </DataGridTextColumn>
+
+                                            <!-- Итого (синий) -->
+                                            <DataGridTextColumn Header="Итого" Binding="{Binding Amount, Converter={StaticResource CostConverter}}" SortMemberPath="Amount" IsReadOnly="True">
+                                                <DataGridTextColumn.ElementStyle>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="Blue"/>
+                                                    </Style>
+                                                </DataGridTextColumn.ElementStyle>
+                                            </DataGridTextColumn>
+
+                                            <!-- Нал -->
+                                            <DataGridCheckBoxColumn Header="Нал" Binding="{Binding Agent}" SortMemberPath="Agent"/>
+
+                                            <!-- Счёт -->
+                                            <DataGridTextColumn Header="Счёт" Binding="{Binding Invoice}" SortMemberPath="Invoice">
+                                                <DataGridTextColumn.ElementStyle>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="Black"/>
+                                                    </Style>
+                                                </DataGridTextColumn.ElementStyle>
+                                            </DataGridTextColumn>
+
+                                            <!-- Заказ (оранжевый) -->
+                                            <DataGridTextColumn Header="Заказ" Binding="{Binding Order}" SortMemberPath="Order">
+                                                <DataGridTextColumn.ElementStyle>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="OrangeRed"/>
+                                                    </Style>
+                                                </DataGridTextColumn.ElementStyle>
+                                            </DataGridTextColumn>
+
+                                            <!-- Дата отгрузки (ToggleButton — оставляем как было) -->
+                                            <DataGridTemplateColumn Header="Дата отгрузки" SortMemberPath="EndDate" CanUserResize="False">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <StackPanel Orientation="Horizontal">
                                                             <ToggleButton Click="OnShipmentToggleClick"
-              hc:VisualElement.HighlightBrush="{DynamicResource SuccessBrush}"
-              IsChecked="{Binding EndDate, Converter={StaticResource DateToBoolConverter}}"
-              IsEnabled="{Binding Order, Converter={StaticResource OrderToBoolConverter}}"
-              Content="{Binding EndDate, Converter={StaticResource ShipmentButtonTextConverter}}">
-
+                                  hc:VisualElement.HighlightBrush="{DynamicResource SuccessBrush}"
+                                  IsChecked="{Binding EndDate, Converter={StaticResource DateToBoolConverter}}"
+                                  IsEnabled="{Binding Order, Converter={StaticResource OrderToBoolConverter}}"
+                                  Content="{Binding EndDate, Converter={StaticResource ShipmentButtonTextConverter}}">
                                                                 <ToggleButton.Style>
                                                                     <Style TargetType="ToggleButton" BasedOn="{StaticResource ToggleButtonDefault.Small}">
                                                                         <Style.Triggers>
-                                                                            <!-- ⭐ Если отгружен — зелёный фон -->
                                                                             <DataTrigger Binding="{Binding EndDate, Converter={StaticResource DateToBoolConverter}}" Value="True">
                                                                                 <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
                                                                                 <Setter Property="Foreground" Value="White"/>
                                                                             </DataTrigger>
-
-                                                                            <!-- ⭐ Если редактирование запрещено — скрываем кнопку -->
-                                                                            <DataTrigger Binding="{Binding IsOffersGridReadOnly,
-                                                                                RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}"
-                                                                                         Value="True">
+                                                                            <DataTrigger Binding="{Binding IsOffersGridReadOnly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" Value="True">
                                                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                                                             </DataTrigger>
                                                                         </Style.Triggers>
@@ -799,7 +858,8 @@
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
-                                            
+
+                                            <!-- Ещё -->
                                             <DataGridTemplateColumn Header="Ещё" CanUserResize="False">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
@@ -811,9 +871,7 @@
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
-
                                         </DataGrid.Columns>
-
                                         <DataGrid.RowDetailsTemplate>
                                             <DataTemplate>
                                                 <Border Margin="4" Padding="4"

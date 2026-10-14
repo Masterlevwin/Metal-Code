@@ -2342,12 +2342,6 @@ namespace Metal_Code
                 // Возвращаем источник данных обратно
                 OffersGrid.ItemsSource = OffersView;
 
-                // Принудительно обновляем представление, если используется CollectionViewSource
-                if (OffersView is ICollectionView collectionView)
-                {
-                    collectionView.Refresh();
-                }
-
                 if (wasSearchActive)
                 {
                     // После поиска не считаем «новые» — просто сообщаем об обновлении
@@ -2514,10 +2508,15 @@ namespace Metal_Code
                     // 3. Обновление UI
                     await Dispatcher.InvokeAsync(() =>
                     {
-                        try { OffersView?.Refresh(); }
-                        catch (InvalidOperationException)
+                        try
                         {
-                            Dispatcher.BeginInvoke(new Action(() => { try { OffersView?.Refresh(); } catch { } }), DispatcherPriority.Loaded);
+                            // Безопасное пересоздание представления вместо Refresh()
+                            InitializeOffersView();
+                            OffersGrid.ItemsSource = OffersView;
+                        }
+                        catch (Exception ex)
+                        {
+                            Trace.WriteLine($"⚠️ Ошибка обновления UI: {ex.Message}");
                         }
                     }, DispatcherPriority.Loaded);
 
@@ -8161,20 +8160,17 @@ namespace Metal_Code
                     {
                         successCount++;
                         shippedOffers.Add(offer);
-                        Trace.WriteLine($"✅ Отгружен расчёт {offer.N} (заказ {offer.Order})");
                     }
                     else
                     {
                         failedCount++;
-                        offer.EndDate = null; // ⭐ Откатываем изменение при неудаче
-                        Trace.WriteLine($"⚠️ Не удалось отгрузить расчёт {offer.N}");
+                        offer.EndDate = null;
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
                     failedCount++;
-                    offer.EndDate = null; // ⭐ Откатываем изменение при ошибке
-                    Trace.WriteLine($"❌ Ошибка отгрузки {offer.N}: {ex.Message}");
+                    offer.EndDate = null;
                 }
             }
 
@@ -8185,16 +8181,12 @@ namespace Metal_Code
                 {
                     try
                     {
-                        OffersView?.Refresh();
+                        InitializeOffersView();
+                        OffersGrid.ItemsSource = OffersView;
                     }
                     catch (Exception ex)
                     {
-                        Trace.WriteLine($"⚠️ Refresh отложен: {ex.Message}");
-                        Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            try { OffersView?.Refresh(); }
-                            catch { /* игнорируем */ }
-                        }), DispatcherPriority.Loaded);
+                        Trace.WriteLine($"⚠️ Ошибка обновления UI: {ex.Message}");
                     }
                 }, DispatcherPriority.Loaded);
 

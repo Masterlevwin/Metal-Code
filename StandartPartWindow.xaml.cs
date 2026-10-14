@@ -35,7 +35,7 @@ namespace Metal_Code
         private readonly PointCollection _customPoints = new();
         private bool _isDrawingActive = false;
         private bool _isContourFinished = false;
-
+        private bool _isTitleManual = false;
         private bool _isPanning = false;
         private Point _panStartScreen;
         private Point _panStartOffset;
@@ -65,6 +65,7 @@ namespace Metal_Code
         private readonly ObservableCollection<LengthChipItem> _recentChips = new();
         #endregion
 
+        #region
         public StandartPartWindow(Part templatePart)
         {
             InitializeComponent();
@@ -77,9 +78,11 @@ namespace Metal_Code
 
             _currentPart.PropertyChanged += (s, e) =>
             {
+                // 1. Обновляем заголовок окна при смене материала или толщины
                 if (e.PropertyName == nameof(Part.Metal) || e.PropertyName == nameof(Part.Destiny))
                     UpdateWindowTitle();
 
+                // 2. Обновляем превью только при изменении габаритов (не Custom)
                 if (_currentPart.PartType != PartType.Custom &&
                     (e.PropertyName == nameof(Part.Width) ||
                      e.PropertyName == nameof(Part.Height) ||
@@ -89,27 +92,21 @@ namespace Metal_Code
                         UpdatePreview();
                 }
 
-                // 🔥 НОВОЕ: Автогенерация имени для ЛИСТОВЫХ деталей
+                // Автогенерация имени для ЛИСТОВЫХ деталей
                 if (!IsPipePart(_currentPart.PartType) &&
                     (e.PropertyName == nameof(Part.Width) ||
                      e.PropertyName == nameof(Part.Height) ||
                      e.PropertyName == nameof(Part.Destiny)))
                 {
-                    if (AutoTitleCheck?.IsChecked == true && _currentPart.Width > 0 && _currentPart.Height > 0)
-                    {
-                        _currentPart.Title = GenerateSheetTitle();
-                        _currentPart.OnPropertyChanged(nameof(Part.Title));
-                    }
+                    _currentPart.Title = GenerateSheetTitle();
+                    _currentPart.OnPropertyChanged(nameof(Part.Title));
                 }
 
                 // Автогенерация имени для ТРУБНЫХ деталей
                 if (IsPipePart(_currentPart.PartType) && e.PropertyName == nameof(Part.Length))
                 {
-                    if (AutoTitleCheck?.IsChecked == true)
-                    {
-                        _currentPart.Title = GenerateTitle(_currentPart.Length);
-                        _currentPart.OnPropertyChanged(nameof(Part.Title));
-                    }
+                    _currentPart.Title = GenerateTitle(_currentPart.Length);
+                    _currentPart.OnPropertyChanged(nameof(Part.Title));
                 }
             };
 
@@ -125,24 +122,6 @@ namespace Metal_Code
         {
             if (RecentLengthsItemsControl != null)
                 RecentLengthsItemsControl.ItemsSource = _recentChips;
-        }
-
-        private void AutoTitleCheck_Changed(object sender, RoutedEventArgs e)
-        {
-            if (AutoTitleCheck == null || _currentPart == null) return;
-
-            if (AutoTitleCheck.IsChecked == true)
-            {
-                if (IsPipePart(_currentPart.PartType))
-                {
-                    _currentPart.Title = GenerateTitle(_currentPart.Length);
-                }
-                else if (_currentPart.Width > 0 && _currentPart.Height > 0)
-                {
-                    _currentPart.Title = GenerateSheetTitle();
-                }
-                _currentPart.OnPropertyChanged(nameof(Part.Title));
-            }
         }
 
         private void PipeLengthInput_KeyDown(object sender, KeyEventArgs e)
@@ -164,6 +143,45 @@ namespace Metal_Code
             if (MaterialInfoText != null)
                 MaterialInfoText.Text = $"📋 Материал: {metal} | Толщина: {thickness}";
         }
+
+        private void TitleTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!string.IsNullOrWhiteSpace(TitleTextBox.Text))
+            {
+                _isTitleManual = true;
+            }
+        }
+
+        private void DimensionTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            // Если пользователь уже задал имя вручную, мы его НЕ трогаем
+            if (_isTitleManual) return;
+
+            // Иначе генерируем имя автоматически на основе текущих данных
+            GenerateAutoTitle();
+        }
+
+        private void GenerateAutoTitle()
+        {
+            if (_currentPart == null) return;
+
+            string? newTitle;
+
+            if (IsPipePart(_currentPart.PartType))
+            {
+                newTitle = GenerateTitle(_currentPart.Length);
+            }
+            else
+            {
+                newTitle = GenerateSheetTitle();
+            }
+
+            if (TitleTextBox.Text != newTitle)
+            {
+                TitleTextBox.Text = newTitle;
+            }
+        }
+        #endregion
 
         #region
         private void DrawingArea_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -292,7 +310,7 @@ namespace Metal_Code
                             RenderTransform = new TranslateTransform(canvasCx - indicatorSize / 2, canvasCy - indicatorSize / 2)
                         });
 
-                        string summaryText = string.Join(", ", _currentPart.HoleGroups.Select(g => $"⌀{g.Diameter:0}×{g.Count}"));
+                        string summaryText = string.Join(", ", _currentPart.HoleGroups.Select(g => $"⌀{g.Diameter:0}x{g.Count}"));
                         var label = new TextBlock
                         {
                             Text = summaryText,
@@ -513,6 +531,7 @@ namespace Metal_Code
             {
                 _isDrawingActive = false;
                 _isContourFinished = false;
+                _isTitleManual = false;
                 _customPoints.Clear();
                 DrawingCanvas.Children.Clear();
 
@@ -1638,14 +1657,14 @@ namespace Metal_Code
             return _currentPart.PartType switch
             {
                 PartType.RoundTube or PartType.Circle => thickness > 0
-                    ? $"{typeName} ⌀{_currentPart.Width:0.#}×{thickness:0.#}"
+                    ? $"{typeName} ⌀{_currentPart.Width:0xthickness:0.#}"
                     : $"{typeName} ⌀{_currentPart.Width:0.#}",
                 PartType.SquareBar => thickness > 0
-                    ? $"{typeName} {_currentPart.Width:0.#}×{thickness:0.#}"
+                    ? $"{typeName} {_currentPart.Width:0.#}x{thickness:0.#}"
                     : $"{typeName} {_currentPart.Width:0.#}",
                 _ => thickness > 0
-                    ? $"{typeName} {_currentPart.Width:0.#}×{_currentPart.Height:0.#}×{thickness:0.#}"
-                    : $"{typeName} {_currentPart.Width:0.#}×{_currentPart.Height:0.#}"
+                    ? $"{typeName} {_currentPart.Width:0.#}x{_currentPart.Height:0.#}x{thickness:0.#}"
+                    : $"{typeName} {_currentPart.Width:0.#}x{_currentPart.Height:0.#}"
             };
         }
 
@@ -1661,16 +1680,16 @@ namespace Metal_Code
         private string? GenerateSheetTitle()
         {
             double thickness = _currentPart.Destiny;
-            string thicknessStr = thickness > 0 ? $"×{thickness:0.#}" : "";
+            string thicknessStr = thickness > 0 ? $"x{thickness:0.#}" : "";
 
             return _currentPart.PartType switch
             {
                 PartType.Round => thickness > 0
                     ? $"Круг ⌀{_currentPart.Width:0}{thicknessStr}"
                     : $"Круг ⌀{_currentPart.Width:0}",
-                PartType.Rectangle => $"Прямоугольник {_currentPart.Width:0}×{_currentPart.Height:0}{thicknessStr}",
-                PartType.Triangle => $"Треугольник {_currentPart.Width:0}×{_currentPart.Height:0}{thicknessStr}",
-                PartType.Custom => $"Произвольная {_currentPart.Width:0}×{_currentPart.Height:0}{thicknessStr}",
+                PartType.Rectangle => $"Прямоугольник {_currentPart.Width:0}x{_currentPart.Height:0}{thicknessStr}",
+                PartType.Triangle => $"Треугольник {_currentPart.Width:0}x{_currentPart.Height:0}{thicknessStr}",
+                PartType.Custom => $"Произвольная {_currentPart.Width:0}x{_currentPart.Height:0}{thicknessStr}",
                 _ => _currentPart.Title
             };
         }
@@ -1852,7 +1871,7 @@ namespace Metal_Code
         private void AddToBatch_Click(object sender, RoutedEventArgs e)
         {
             string? title;
-            bool wasAutoTitle = AutoTitleCheck?.IsChecked == true;
+            bool wasAutoTitle = _isTitleManual == false;
 
             // ===== ТРУБНЫЕ ДЕТАЛИ =====
             if (IsPipePart(_currentPart.PartType))
@@ -1887,17 +1906,9 @@ namespace Metal_Code
 
                 AddSinglePartToBatch(_currentPart.Length, _currentPart.Count, title);
 
-                // Временно отключаем чекбокс, чтобы не обновлять автоимя при сбросе длины
-                if (AutoTitleCheck != null)
-                    AutoTitleCheck.IsChecked = false;
-
                 // Устанавливаем дефолтную длину 1000 мм
                 _currentPart.Length = 1000;
                 _currentPart.OnPropertyChanged(nameof(Part.Length));
-
-                // Возвращаем чекбокс в исходное состояние
-                if (AutoTitleCheck != null)
-                    AutoTitleCheck.IsChecked = wasAutoTitle;
 
                 // Возвращаем фокус в поле длины
                 PipeLengthInput?.Focus();
@@ -1943,9 +1954,7 @@ namespace Metal_Code
 
             if (_currentPart.PartType == PartType.Custom && _currentPart.PlacedHoles.Count > 0)
             {
-                _currentPart.HoleGroups.Clear();
-                foreach (var group in _currentPart.PlacedHoles.GroupBy(h => h.Diameter))
-                    _currentPart.HoleGroups.Add(new HoleGroup(group.Key, group.Count()));
+                SyncHolesToGroups();
                 PartPreviewGenerator.EnsureDisplayGeometryWithHoles(_currentPart);
             }
 
@@ -1961,6 +1970,10 @@ namespace Metal_Code
                 if (_currentPart.PartType == PartType.Custom) ClearDrawing_Click(sender, e);
                 else UpdatePreview();
             }
+
+            // Возвращаем фокус на поле ширины и выделяем весь текст
+            WidthInput?.Focus();
+            WidthInput?.SelectAll();
         }
 
         private void FinishBatch_Click(object sender, RoutedEventArgs e)
@@ -1990,20 +2003,23 @@ namespace Metal_Code
             }
         }
 
-        private static Part? ClonePart(Part s) => s.DisplayGeometry == null && s.PartType != PartType.Custom ? null : new Part
+        private static Part ClonePart(Part s)
         {
-            Title = s.Title,
-            Count = s.Count,
-            Metal = s.Metal,
-            Destiny = s.Destiny,
-            Width = s.Width,
-            Height = s.Height,
-            Length = s.Length,
-            PartType = s.PartType,
-            HoleGroups = new ObservableCollection<HoleGroup>(s.HoleGroups),
-            DisplayGeometry = s.PartType == PartType.Custom ? PartPreviewGenerator.CloneGeometry(s.DisplayGeometry) : s.DisplayGeometry,
-            PropsDict = new Dictionary<int, List<string>>(s.PropsDict)
-        };
+            return new Part
+            {
+                Title = s.Title,
+                Count = s.Count,
+                Metal = s.Metal,
+                Destiny = s.Destiny,
+                Width = s.Width,
+                Height = s.Height,
+                Length = s.Length,
+                PartType = s.PartType,
+                HoleGroups = s.HoleGroups != null ? new ObservableCollection<HoleGroup>(s.HoleGroups) : new ObservableCollection<HoleGroup>(),
+                DisplayGeometry = s.PartType == PartType.Custom ? PartPreviewGenerator.CloneGeometry(s.DisplayGeometry) : s.DisplayGeometry,
+                PropsDict = s.PropsDict != null ? new Dictionary<int, List<string>>(s.PropsDict) : new Dictionary<int, List<string>>()
+            };
+        }
         #endregion
     }
 
