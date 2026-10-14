@@ -585,6 +585,21 @@ namespace Metal_Code
         }
 
         [OptionalField]
+        private float _weldPricePerUnit;
+        public float WeldPricePerUnit
+        {
+            get => _weldPricePerUnit;
+            set
+            {
+                if (_weldPricePerUnit != value)
+                {
+                    _weldPricePerUnit = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        [OptionalField]
         private float paintPrice = 0;
         public float PaintPrice
         {

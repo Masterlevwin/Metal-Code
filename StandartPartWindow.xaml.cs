@@ -283,6 +283,7 @@ namespace Metal_Code
             if (_currentPart.PartType != PartType.Custom)
             {
                 DrawTemplateGeometry(strokeThickness);
+                DrawSheetDimensions();
                 DrawBendLines(strokeThickness);
 
                 if (_currentPart.HoleGroups != null && _currentPart.HoleGroups.Any(g => g.Count > 50))
@@ -647,12 +648,10 @@ namespace Metal_Code
             double secLeft = secCX - bounds.Width * sScale / 2;
             double secRight = secCX + bounds.Width * sScale / 2;
             double secBottom = secCY + bounds.Height * sScale / 2;
-            DrawDimLine(secLeft, secBottom + dimOffset, secRight, secBottom + dimOffset,
-                        $"{bounds.Width:0}", dimFontSize, true);
+            DrawDimLine(secLeft, secBottom + dimOffset, secRight, secBottom + dimOffset, $"Ш: {bounds.Width:0}", dimFontSize, true);
 
             double secTop = secCY - bounds.Height * sScale / 2;
-            DrawDimLine(secRight + dimOffset, secTop, secRight + dimOffset, secBottom,
-                        $"{bounds.Height:0}", dimFontSize, false);
+            DrawDimLine(secRight + dimOffset, secTop, secRight + dimOffset, secBottom, $"В: {bounds.Height:0}", dimFontSize, false);
 
             DrawDimLine(sideX, sideY + sideH + dimOffset, sideX + sideW, sideY + sideH + dimOffset,
                         $"L = {_currentPart.Length:0}", dimFontSize, true);
@@ -663,36 +662,107 @@ namespace Metal_Code
         #endregion
 
         #region
-        private void DrawDimLine(double x1, double y1, double x2, double y2,
-                                 string text, double fontSize, bool horizontal)
+        private void DrawDimLine(double x1, double y1, double x2, double y2, string text, double fontSize, bool horizontal)
         {
-            double arrowSize = 12;
+            // ⭐ Масштабируем элементы размерной линии вместе с холстом
+            double scale = 1.0 / CanvasScale.ScaleX;
+            double arrowSize = 12 * scale;
+            double stroke = 1.5 * scale;
             var dimBrush = Brushes.DarkSlateGray;
-            double stroke = 1.5;
 
-            DrawingCanvas.Children.Add(new Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Stroke = dimBrush, StrokeThickness = stroke });
+            // Основная линия
+            DrawingCanvas.Children.Add(new Line
+            {
+                X1 = x1,
+                Y1 = y1,
+                X2 = x2,
+                Y2 = y2,
+                Stroke = dimBrush,
+                StrokeThickness = stroke
+            });
 
             if (horizontal)
             {
-                DrawingCanvas.Children.Add(new Line { X1 = x1, Y1 = y1 - arrowSize / 2, X2 = x1, Y2 = y1 + arrowSize / 2, Stroke = dimBrush, StrokeThickness = stroke });
-                DrawingCanvas.Children.Add(new Line { X1 = x2, Y1 = y2 - arrowSize / 2, X2 = x2, Y2 = y2 + arrowSize / 2, Stroke = dimBrush, StrokeThickness = stroke });
+                // Засечки по краям
+                DrawingCanvas.Children.Add(new Line { X1 = x1, Y1 = y1 - arrowSize, X2 = x1, Y2 = y1 + arrowSize, Stroke = dimBrush, StrokeThickness = stroke });
+                DrawingCanvas.Children.Add(new Line { X1 = x2, Y1 = y2 - arrowSize, X2 = x2, Y2 = y2 + arrowSize, Stroke = dimBrush, StrokeThickness = stroke });
 
-                var label = new TextBlock { Text = text, FontSize = fontSize, Foreground = dimBrush, FontWeight = FontWeights.Bold };
+                // Текст по центру снизу
+                var label = new TextBlock
+                {
+                    Text = text,
+                    FontSize = fontSize,
+                    Foreground = dimBrush,
+                    FontWeight = FontWeights.Bold,
+                    Background = Brushes.White // Чтобы линия не перечеркивала текст
+                };
                 label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                 Canvas.SetLeft(label, (x1 + x2) / 2 - label.DesiredSize.Width / 2);
-                Canvas.SetTop(label, y1 + 5);
+                Canvas.SetTop(label, y1 + (5 * scale));
                 DrawingCanvas.Children.Add(label);
             }
             else
             {
-                DrawingCanvas.Children.Add(new Line { X1 = x1 - arrowSize / 2, Y1 = y1, X2 = x1 + arrowSize / 2, Y2 = y1, Stroke = dimBrush, StrokeThickness = stroke });
-                DrawingCanvas.Children.Add(new Line { X1 = x2 - arrowSize / 2, Y1 = y2, X2 = x2 + arrowSize / 2, Y2 = y2, Stroke = dimBrush, StrokeThickness = stroke });
+                // Засечки по краям
+                DrawingCanvas.Children.Add(new Line { X1 = x1 - arrowSize, Y1 = y1, X2 = x1 + arrowSize, Y2 = y1, Stroke = dimBrush, StrokeThickness = stroke });
+                DrawingCanvas.Children.Add(new Line { X1 = x2 - arrowSize, Y1 = y2, X2 = x2 + arrowSize, Y2 = y2, Stroke = dimBrush, StrokeThickness = stroke });
 
-                var label = new TextBlock { Text = text, FontSize = fontSize, Foreground = dimBrush, FontWeight = FontWeights.Bold };
+                // Текст по центру справа
+                var label = new TextBlock
+                {
+                    Text = text,
+                    FontSize = fontSize,
+                    Foreground = dimBrush,
+                    FontWeight = FontWeights.Bold,
+                    Background = Brushes.White
+                };
                 label.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                Canvas.SetLeft(label, x1 + 5);
+                Canvas.SetLeft(label, x1 + (5 * scale));
                 Canvas.SetTop(label, (y1 + y2) / 2 - label.DesiredSize.Height / 2);
                 DrawingCanvas.Children.Add(label);
+            }
+        }
+
+        private void DrawSheetDimensions()
+        {
+            if (_currentPart.DisplayGeometry == null || _currentPart.Width <= 0 || _currentPart.Height <= 0) return;
+
+            var bounds = _currentPart.DisplayGeometry.Bounds;
+
+            // Те же смещения, что и в DrawTemplateGeometry, чтобы размеры совпадали с фигурой
+            double offsetX = (SheetWidthMm / 2) - (bounds.X + bounds.Width / 2);
+            double offsetY = (SheetHeightMm / 2) - (bounds.Y + bounds.Height / 2);
+
+            double scale = 1.0 / CanvasScale.ScaleX;
+            double dimOffset = 40 * scale; // Отступ размерной линии от детали
+            double fontSize = 22 * scale;  // Размер шрифта, масштабируемый вместе с холстом
+
+            // 1. Размерная линия ШИРИНЫ (внизу)
+            double bottomY = bounds.Y + bounds.Height + offsetY + dimOffset;
+            DrawDimLine(
+                bounds.X + offsetX, bottomY,
+                bounds.X + bounds.Width + offsetX, bottomY,
+                $"Ш: {_currentPart.Width:0}", fontSize, true
+            );
+
+            // 2. Размерная линия ВЫСОТЫ (справа)
+            double rightX = bounds.X + bounds.Width + offsetX + dimOffset;
+            DrawDimLine(
+                rightX, bounds.Y + offsetY,
+                rightX, bounds.Y + bounds.Height + offsetY,
+                $"В: {_currentPart.Height:0}", fontSize, false
+            );
+
+            // 3. Спец. случай для Круга: добавим обозначение диаметра в центре
+            if (_currentPart.PartType == PartType.Round)
+            {
+                DrawCanvasLabel(
+                    $"⌀ {_currentPart.Width:0}",
+                    bounds.X + bounds.Width / 2 + offsetX,
+                    bounds.Y + bounds.Height / 2 + offsetY,
+                    fontSize * 1.2,
+                    Brushes.DarkBlue
+                );
             }
         }
 

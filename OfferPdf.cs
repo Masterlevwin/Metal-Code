@@ -130,6 +130,8 @@ namespace Metal_Code
                                             Particle particle = assembly.Particles[p];
                                             Part? part = parts.FirstOrDefault(p => p.Title == particle.Title);
 
+                                            if (part?.IsHiddenInOffer == true) continue;
+
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part?.Metal ?? "");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part?.Destiny > 0 ? part?.Destiny.ToString() ?? "" : "");
                                             table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(part?.Accuracy ?? "");

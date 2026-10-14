@@ -105,7 +105,8 @@ namespace Metal_Code
         public ObservableCollection<Metal> Metals { get; set; } = new();
 
         // Представление для группировки/сортировки
-        private ICollectionView? OffersView { get; set; } = null;
+        private bool _isUpdatingOffers = false;
+        private CollectionViewSource? _offersViewSource; // ⭐ Единый источник представления
 
         // Состояние режимов
         private string _searchQuery = string.Empty;
@@ -1342,7 +1343,6 @@ namespace Metal_Code
         {
             if (_isLoadingManagerData || man.Name is null) return;
             _isLoadingManagerData = true;
-
             try
             {
                 IsLaser = man.IsLaser;
@@ -1363,16 +1363,19 @@ namespace Metal_Code
                 // 2. ⭐ Загружаем только ПОСЛЕДНИЕ 50 расчётов
                 var offers = await DataService.GetOffersAsync(man.Name, 50);
 
+                // 🔥 БЕЗОПАСНОЕ ОТВЯЗЫВАНИЕ: Делаем это ДО очистки CurrentOffers
+                OffersGrid.ItemsSource = null;
+
                 CurrentOffers.Clear();
                 foreach (var offer in offers) CurrentOffers.Add(offer);
 
                 // 3. Получаем общее количество для статистики
                 int totalCount = await DataService.GetTotalOffersCountAsync(man.Id, man.Name);
 
-                // 4. Перестраиваем представление
+                // 4. Перестраиваем представление (внутри безопасно привяжет ItemsSource обратно)
                 InitializeOffersView();
 
-                // ⭐ ВСЕГДА синхронизируем заказчиков из PG в локалку (не только для инженеров)
+                // ⭐ ВСЕГДА синхронизируем заказчиков из PG в локалку
                 await DataService.SyncCustomersToLocalAsync(man.Name);
                 var refreshedCustomers = await DataService.GetCustomersAsync(man.Id, man.Name);
                 selectedCustomerName = (CustomerDrop.SelectedItem as Customer)?.Name;
@@ -1387,11 +1390,14 @@ namespace Metal_Code
                 }
 
                 await UpdateOffersCountCacheAsync();
-
                 SummaryInfoTextBlock.Text = $"Показано: {CurrentOffers.Count} из {totalCount} расчётов";
                 StatusBegin($"📅 Загружено {CurrentOffers.Count} из {totalCount} расчётов для '{man.Name}'");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"❌ Ошибка LoadManagerDataAsync: {ex.Message}");
+                StatusBegin($"Ошибка загрузки данных: {ex.Message}", StatusMessageType.Error);
+            }
             finally
             {
                 _isLoadingManagerData = false;
@@ -1459,15 +1465,12 @@ namespace Metal_Code
             try
             {
                 List<Offer>? dataToDisplay = null;
-
                 if (_isProductionMode && TargetManager.Name != null)
                 {
-                    // ⭐ Режим "В производстве" — загружаем через сервис
                     StatusBegin("Загрузка расчётов в производстве...", StatusMessageType.Info);
                     var productionOffers = await DataService.GetOffersInProductionAsync(
                         TargetManager.Id, TargetManager.Name);
 
-                    // ⭐ Для смешанного режима нужны ещё отгруженные за текущий месяц
                     List<Offer>? shippedThisMonth = null;
                     if (_forecastMixedMode)
                     {
@@ -1475,35 +1478,41 @@ namespace Metal_Code
                         shippedThisMonth = await DataService.GetShippedOffersAsync(
                             TargetManager.Id, TargetManager.Name, now.Month, now.Year);
                     }
-
                     dataToDisplay = productionOffers;
                     UpdateProductionSummary(productionOffers);
                     UpdateForecastPanel(productionOffers, shippedThisMonth);
-
                     StatusBegin($"В производстве: {productionOffers.Count} расчётов", StatusMessageType.Success);
                 }
                 else if (!string.IsNullOrWhiteSpace(_searchQuery))
                 {
-                    // Режим поиска — данные уже загружены в Search_Offers
                     dataToDisplay = CurrentOffers.ToList();
                 }
                 else if (TargetManager.Name != null)
                 {
-                    // 2. ⭐ Загружаем только ПОСЛЕДНИЕ 50 расчётов
                     var offers = await DataService.GetOffersAsync(TargetManager.Name, 50);
+
+                    // ⭐ Отвязываем DataGrid ДО очистки коллекции
+                    OffersGrid.ItemsSource = null;
 
                     CurrentOffers.Clear();
                     foreach (var offer in offers) CurrentOffers.Add(offer);
+
+                    // ⭐ Привязываем обратно
+                    InitializeOffersView();
+                    return;
                 }
 
-                // Обновляем CurrentOffers (если режим "в производстве")
                 if (_isProductionMode && dataToDisplay != null)
                 {
+                    // ⭐ Отвязываем DataGrid ДО очистки коллекции
+                    OffersGrid.ItemsSource = null;
+
                     CurrentOffers.Clear();
                     foreach (var item in dataToDisplay) CurrentOffers.Add(item);
-                }
 
-                OffersView?.Refresh();
+                    // ⭐ Привязываем обратно
+                    InitializeOffersView();
+                }
             }
             catch (Exception ex)
             {
@@ -2320,31 +2329,26 @@ namespace Metal_Code
         //метод обновления коллекции расчетов
         private async void UpdateOffersCollection(object sender, RoutedEventArgs e)
         {
-            if (TargetManager == null) return;
+            // ⭐ Защита от гонок: если обновление уже идет или идет загрузка менеджера - игнорируем клик
+            if (TargetManager == null || _isUpdatingOffers || _isLoadingManagerData) return;
 
+            _isUpdatingOffers = true;
             try
             {
                 UpdateBtn.IsEnabled = false;
                 StatusBegin("Обновление списка расчётов...", StatusMessageType.Info);
-
                 bool wasSearchActive = !string.IsNullOrWhiteSpace(_searchQuery);
 
-                OffersGrid.ItemsSource = null;
                 ResetFilters();
-
                 int lastOfferIdBefore = CurrentOffers?.Select(o => o.Id).DefaultIfEmpty(0).Max() ?? 0;
 
+                // LoadManagerDataAsync сам безопасно отвяжет ItemsSource, очистит коллекцию и привяжет обратно
                 await LoadManagerDataAsync(TargetManager);
 
-                // Сбрасываем флаг поиска после обновления
                 _searchQuery = string.Empty;
-
-                // Возвращаем источник данных обратно
-                OffersGrid.ItemsSource = OffersView;
 
                 if (wasSearchActive)
                 {
-                    // После поиска не считаем «новые» — просто сообщаем об обновлении
                     StatusBegin("Список расчётов обновлён", StatusMessageType.Success);
                 }
                 else
@@ -2355,7 +2359,6 @@ namespace Metal_Code
                         .ToList() ?? new List<Offer>();
 
                     int newCount = newOffers.Count;
-
                     if (newCount == 0)
                     {
                         StatusBegin("Список расчётов обновлён (новых нет)", StatusMessageType.Success);
@@ -2371,15 +2374,16 @@ namespace Metal_Code
                         StatusBegin($"Обновлено: добавлено {newCount} расчётов", StatusMessageType.Success);
                     }
                 }
-
                 UpdateBtn?.ClearValue(BackgroundProperty);
             }
             catch (Exception ex)
             {
                 StatusBegin($"Ошибка обновления: {ex.Message}", StatusMessageType.Error);
+                Trace.WriteLine($"❌ Ошибка UpdateOffersCollection: {ex}");
             }
             finally
             {
+                _isUpdatingOffers = false;
                 UpdateBtn.IsEnabled = true;
             }
         }
@@ -2512,7 +2516,7 @@ namespace Metal_Code
                         {
                             // Безопасное пересоздание представления вместо Refresh()
                             InitializeOffersView();
-                            OffersGrid.ItemsSource = OffersView;
+                            OffersGrid.ItemsSource = _offersViewSource?.View;
                         }
                         catch (Exception ex)
                         {
@@ -2817,10 +2821,10 @@ namespace Metal_Code
         /// </summary>
         private void ExpandGroupByParentQuoteNumber(string parentQuoteNumber)
         {
-            if (string.IsNullOrEmpty(parentQuoteNumber) || OffersView == null) return;
+            if (string.IsNullOrEmpty(parentQuoteNumber) || _offersViewSource?.View == null) return;
 
             // ⭐ Работаем с OffersView, а не с OffersGrid.Items.Groups
-            var groups = OffersView.Groups;
+            var groups = _offersViewSource?.View.Groups;
             if (groups == null) return;
 
             foreach (var group in groups)
@@ -2964,30 +2968,49 @@ namespace Metal_Code
         private ListSortDirection _currentSortDirection = ListSortDirection.Ascending;
         private string _currentSortColumn = nameof(Offer.ParentQuoteNumber);
 
-        /// <summary>
-        /// Инициализация представления таблицы расчетов с группировкой по умолчанию.
-        /// </summary>
         public void InitializeOffersView()
         {
-            if (OffersView == null)
+            if (_offersViewSource == null)
             {
-                var viewSource = new CollectionViewSource { Source = CurrentOffers };
-                OffersView = viewSource.View;
-
-                // Если ItemsSource еще не установлен (например, при самом первом запуске)
-                OffersGrid.ItemsSource ??= OffersView;
-            }
-
-            // 🔥 Очищаем старые описания групп и сортировок перед применением новых.
-            // Это предотвращает накопление дубликатов и конфликты при повторных поисках.
-            if (OffersView is ICollectionView cv)
-            {
-                cv.GroupDescriptions?.Clear();
-                cv.SortDescriptions?.Clear();
+                _offersViewSource = new CollectionViewSource { Source = CurrentOffers };
             }
 
             string sortProp = string.IsNullOrEmpty(_currentSortColumn) ? nameof(Offer.ParentQuoteNumber) : _currentSortColumn;
             ApplySortingAndGrouping(sortProp, _currentSortDirection);
+        }
+
+        private void ApplySortingAndGrouping(string sortProperty, ListSortDirection direction)
+        {
+            if (_offersViewSource?.View == null)
+            {
+                _offersViewSource = new CollectionViewSource { Source = CurrentOffers };
+            }
+
+            // 🔥 КРИТИЧЕСКИ ВАЖНО: DeferRefresh запрещает WPF перерисовывать таблицу, 
+            // пока мы не закончим настраивать группы и сортировки. Это главное лекарство от ArgumentOutOfRangeException.
+            using (_offersViewSource?.View.DeferRefresh())
+            {
+                _offersViewSource?.View.GroupDescriptions?.Clear();
+                _offersViewSource?.View.SortDescriptions?.Clear();
+
+                bool shouldGroup = sortProperty == nameof(Offer.ParentQuoteNumber);
+                if (shouldGroup)
+                    _offersViewSource?.View.GroupDescriptions.Add(new PropertyGroupDescription(nameof(Offer.ParentQuoteNumber)));
+
+                _offersViewSource?.View.SortDescriptions.Add(new SortDescription(sortProperty, direction));
+            }
+
+            UpdateColumnSortIndicators(sortProperty, direction);
+
+            // Привязываем или обновляем представление
+            if (OffersGrid.ItemsSource != _offersViewSource?.View)
+            {
+                OffersGrid.ItemsSource = _offersViewSource?.View;
+            }
+            else
+            {
+                _offersViewSource?.View.Refresh();
+            }
         }
 
         /// <summary>
@@ -3018,36 +3041,6 @@ namespace Metal_Code
 
             // Применяем новую логику сортировки и группировки
             ApplySortingAndGrouping(propertyName, _currentSortDirection);
-        }
-
-        /// <summary>
-        /// Централизованное применение сортировки и (опционально) группировки.
-        /// </summary>
-        private void ApplySortingAndGrouping(string sortProperty, ListSortDirection direction)
-        {
-            // 1. Создаём НОВОЕ представление на основе CurrentOffers
-            var viewSource = new CollectionViewSource { Source = CurrentOffers };
-            var newView = viewSource.View;
-
-            // 2. Настраиваем группировку и сортировку
-            bool shouldGroup = sortProperty == nameof(Offer.ParentQuoteNumber);
-            if (shouldGroup)
-                newView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(Offer.ParentQuoteNumber)));
-
-            newView.SortDescriptions.Add(new SortDescription(sortProperty, direction));
-
-            // 3. Обновляем визуальные индикаторы
-            UpdateColumnSortIndicators(sortProperty, direction);
-
-            // 4. Применяем новое представление к DataGrid (атомарная замена)
-            OffersGrid.ItemsSource = null;          // сбрасываем
-            OffersView = newView;                   // сохраняем новое в поле
-            OffersGrid.ItemsSource = newView;       // устанавливаем
-
-            // ⭐ УДАЛЕНО: Немедленный вызов RestoreExpandedGroups(GetExpandedGroupNames())
-            // Это вызывало ArgumentOutOfRangeException, так как контейнеры еще не были созданы.
-            // Восстановление групп теперь корректно происходит внутри Search_Offers 
-            // после того, как DispatcherPriority.Loaded гарантировал завершение привязки.
         }
 
         /// <summary>
@@ -3085,12 +3078,8 @@ namespace Metal_Code
         }
 
         //-----------Поиск расчетов по номеру КП, компании, номеру счета или заказа-----------//
-        private int _searchOperationCounter = 0;
         private async void Search_Offers(object sender, FunctionEventArgs<string> e)
         {
-            _searchOperationCounter++;
-            int currentSearchId = _searchOperationCounter; // Фиксируем ID текущего запроса
-
             _searchQuery = e.Info ?? string.Empty;
             _isProductionMode = false;
             if (InProductionFilterToggle.IsChecked == true)
@@ -3105,51 +3094,33 @@ namespace Metal_Code
             try
             {
                 StatusBegin($"Поиск '{_searchQuery}' в базе...", StatusMessageType.Info);
-
-                // 1. Асинхронно получаем данные (не блокируем UI)
                 var results = await DataService.SearchOffersAsync(
                     TargetManager.Id, TargetManager.Name, _searchQuery.Trim());
 
-                // ⭐ КРИТИЧЕСКИ ВАЖНО: Если пользователь уже ввел следующий символ, игнорируем этот результат
-                if (currentSearchId != _searchOperationCounter) return;
+                var previouslyExpanded = GetExpandedGroupNames();
 
-                // 2. Атомарно обновляем UI на главном потоке
-                await Dispatcher.InvokeAsync(() =>
+                // ⭐ Отвязываем DataGrid ДО очистки коллекции
+                OffersGrid.ItemsSource = null;
+
+                CurrentOffers.Clear();
+                foreach (var offer in results) CurrentOffers.Add(offer);
+
+                // ⭐ Привязываем обратно и обновляем
+                InitializeOffersView();
+
+                if (previouslyExpanded.Any())
                 {
-                    // Повторная проверка актуальности перед манипуляцией UI
-                    if (currentSearchId != _searchOperationCounter) return;
-
-                    // А. Запоминаем развернутые группы ДО отвязки (безопасным методом)
-                    var previouslyExpanded = GetExpandedGroupNames();
-
-                    // Б. Отвязываем DataGrid. Это заставляет WPF немедленно начать демонтаж визуального дерева
-                    OffersGrid.ItemsSource = null;
-
-                    // В. Очищаем и заполняем коллекцию. Делаем это, пока Grid отвязан, 
-                    // чтобы не триггерить CollectionChanged события во время отрисовки
-                    CurrentOffers.Clear();
-                    foreach (var offer in results)
+                    await Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        CurrentOffers.Add(offer);
-                    }
-
-                    // Г. Перестраиваем представление (группировку и сортировку)
-                    InitializeOffersView();
-
-                    // Д. Восстанавливаем развернутые группы. 
-                    // Мы делаем это здесь же, но ниже мы убедимся, что ApplySortingAndGrouping не делает этого преждевременно.
-                    RestoreExpandedGroups(previouslyExpanded);
-
-                }, DispatcherPriority.Loaded); // Loaded гарантирует, что WPF завершил базовую инициализацию привязок
-
+                        try { RestoreExpandedGroups(previouslyExpanded); }
+                        catch { }
+                    }), DispatcherPriority.ContextIdle);
+                }
                 StatusBegin($"Найдено расчётов: {results.Count}", StatusMessageType.Success);
             }
             catch (Exception ex)
             {
-                if (currentSearchId == _searchOperationCounter)
-                {
-                    StatusBegin($"Ошибка поиска: {ex.Message}", StatusMessageType.Error);
-                }
+                StatusBegin($"Ошибка поиска: {ex.Message}", StatusMessageType.Error);
             }
         }
 
@@ -3842,6 +3813,8 @@ namespace Metal_Code
 
                             if (part is not null)
                             {
+                                if (part.IsHiddenInOffer) continue;
+
                                 worksheet.Cells[row, 1].Value = part.Metal;
                                 worksheet.Cells[row, 2].Value = part.Destiny > 0 ? part.Destiny : "";
                                 worksheet.Cells[row, 3].Value = part.Accuracy;
@@ -8182,7 +8155,7 @@ namespace Metal_Code
                     try
                     {
                         InitializeOffersView();
-                        OffersGrid.ItemsSource = OffersView;
+                        OffersGrid.ItemsSource = _offersViewSource?.View;
                     }
                     catch (Exception ex)
                     {

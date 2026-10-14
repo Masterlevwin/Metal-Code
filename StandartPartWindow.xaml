@@ -107,7 +107,7 @@
 
                                     <StackPanel Grid.Column="3">
                                         <TextBlock Text="Количество (шт):" Margin="0,0,0,3" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
-                                        <TextBox Text="{Binding Count}" hc:InfoElement.Placeholder="1" Style="{StaticResource TextBoxExtend}" 
+                                        <TextBox Text="{Binding Count, UpdateSourceTrigger=PropertyChanged}" hc:InfoElement.Placeholder="1" Style="{StaticResource TextBoxExtend}" 
                          FontSize="14" FontWeight="SemiBold"
                          utils:TextBoxHelper.SelectAllOnFocus="True" TextChanged="DimensionTextBox_TextChanged"/>
                                     </StackPanel>
@@ -176,7 +176,7 @@
                                     <!-- Количество -->
                                     <StackPanel Grid.Column="3">
                                         <TextBlock Text="Количество (шт):" Margin="0,0,0,3" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
-                                        <TextBox Text="{Binding Count}" hc:InfoElement.Placeholder="1"
+                                        <TextBox Text="{Binding Count, UpdateSourceTrigger=PropertyChanged}" hc:InfoElement.Placeholder="1"
                                                  Style="{StaticResource TextBoxExtend}" FontSize="14" FontWeight="SemiBold"
                                                  utils:TextBoxHelper.SelectAllOnFocus="True"/>
                                     </StackPanel>

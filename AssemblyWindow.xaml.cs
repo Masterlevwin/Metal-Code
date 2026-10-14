@@ -683,7 +683,7 @@ namespace Metal_Code
                 finalWeldCost = minWeldPrice;
             }
 
-            // 4. Распределяем итоговую стоимость пропорционально вкладу каждого блока в "сырую" стоимость
+            // 4. Распределяем итоговую стоимость пропорционально вкладу каждого блока
             foreach (var item in weldItems)
             {
                 decimal itemRawCost = (decimal)(item.MaxPricePerUnit * 1.5f * item.Length * item.Multiplier);
@@ -698,6 +698,12 @@ namespace Metal_Code
                 else if (item.Assembly != null)
                 {
                     item.Assembly.WeldPrice = (float)assignedCost;
+
+                    // Добавляем расчет цены за одну сборку
+                    item.Assembly.WeldPricePerUnit = item.Assembly.Count > 0
+                        ? (float)(assignedCost / item.Assembly.Count)
+                        : 0;
+
                     if (!item.Assembly.Description.Contains("Св"))
                     {
                         item.Assembly.Description = string.IsNullOrEmpty(item.Assembly.Description) ? "Св" : $"{item.Assembly.Description} + Св";

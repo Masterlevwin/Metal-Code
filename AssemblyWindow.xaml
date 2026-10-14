@@ -394,10 +394,10 @@
                                     <Button Content="Х" Click="Remove" Margin="15,0,0,0" ToolTip="Удалить сборку"/>
                                 </StackPanel>
 
-                                <StackPanel Orientation="Horizontal" Margin="3">
+                                <StackPanel Orientation="Horizontal" Margin="5,0,0,0">
                                     <Image Source="/Images/works2.png" Width="16"/>
                                     <TextBlock Text="Свар" FontWeight="Bold" Margin="5,0,0,0" Width="36" VerticalAlignment="Center"/>
-                                    <TextBox Text="{Binding Weld}" ToolTip="Введите длину свариваемой поверхности, мм" MaxLines="1" Width="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                                    <TextBox Text="{Binding Weld}" ToolTip="Введите длину свариваемой поверхности на 1 сборку, мм" MaxLines="1" Width="60" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
                                     <ComboBox SelectedItem="{Binding Type}" ItemsSource="{Binding DataContext.Types, RelativeSource={RelativeSource AncestorType=Window}}" Margin="5,0,0,0" Width="60" ToolTip="Выберите тип расчета"/>
 
                                     <StackPanel Orientation="Horizontal" Margin="5,0,0,0" ToolTip="Масса: (1 сборка) / (Общая для всех сборок этого типа)">
@@ -407,9 +407,14 @@
                                         <TextBlock Text=" кг" VerticalAlignment="Center" Margin="2,0,0,0" Foreground="#666666"/>
                                     </StackPanel>
 
-                                    <TextBlock Text="{Binding WeldPrice, Converter={StaticResource CostConverter}}" Margin="10,0,0,0" Foreground="Blue" VerticalAlignment="Center"/>
+                                    <!-- Обновленный блок отображения стоимости сварки -->
+                                    <StackPanel Orientation="Horizontal" Margin="10,0,0,0" ToolTip="Стоимость сварки: (1 сборка) / (Общая для всех сборок этого типа)">
+                                        <TextBlock Text="{Binding WeldPricePerUnit, Converter={StaticResource CostConverter}}" VerticalAlignment="Center" Foreground="#666666"/>
+                                        <TextBlock Text=" / " VerticalAlignment="Center" Foreground="#666666"/>
+                                        <TextBlock Text="{Binding WeldPrice, Converter={StaticResource CostConverter}}" VerticalAlignment="Center" FontWeight="Bold" Foreground="Blue"/>
+                                    </StackPanel>
                                 </StackPanel>
-
+                                
                                 <StackPanel Orientation="Horizontal" Margin="3">
                                     <Image Source="/Images/works2.png" Width="16"/>
                                     <TextBlock Text="Окр" FontWeight="Bold" Margin="5,0,0,0" Width="36" VerticalAlignment="Center"/>
