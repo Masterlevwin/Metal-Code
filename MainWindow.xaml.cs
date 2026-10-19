@@ -5,6 +5,7 @@ using ACadSharp.Tables;
 using CSMath;
 using HandyControl.Data;
 using HtmlAgilityPack;
+using Metal_Code.Comparison;
 using Metal_Code.Models;
 using Metal_Code.Services;
 using Metal_Code.Utils;
@@ -122,7 +123,7 @@ namespace Metal_Code
 
         //----------Свойства и их основные методы---------//
         #region
-        private string version = "2.7.3";
+        private string version = "2.7.4";
         public string Version
         {
             get => version;
@@ -4922,7 +4923,7 @@ namespace Metal_Code
                             $" ({(type.CheckMetal.IsChecked == true ? (type.ExtraResult > 0 ? Math.Ceiling(type.ExtraResult / _mass) :
                             Math.Ceiling(type.Price)) : 0)}р)";
 
-                        statsheet.Cells[i + rowTask, 10].Value = _mass; //"Количество материала"
+                        statsheet.Cells[i + rowTask, 10].Value = _mass;     //"Количество материала"
                     }
 
                     foreach (WorkControl w in type.WorkControls)            //анализируем работы каждой типовой детали
@@ -4973,7 +4974,8 @@ namespace Metal_Code
 
                             //добавляем тег срочности и коментария
                             if (HasAssembly) description += " (ЭКСПРЕСС)";
-                            if (type.Comment != null && type.Comment != "") description += " (комментарий)";
+                            if (!string.IsNullOrWhiteSpace(type.Comment)
+                                && !IsBendingOnlyComment(type.Comment)) description += " (комментарий)";
 
                             statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + rowTask, 11].Value = description;  //"Лазерные работы"
                         }
@@ -5002,7 +5004,11 @@ namespace Metal_Code
                             //"Толщина и марка металла"                             //"Труборез"
                             statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + rowTask, 12].Value = $"(ТР) {baseDesc}";
                             if (HasAssembly) statsheet.Cells[i + rowTask, 12].Value += " (ЭКСПРЕСС)";
-                            if (type.Comment != null && type.Comment != "") statsheet.Cells[i + rowTask, 12].Value += " (комментарий)";
+
+                            if (!string.IsNullOrWhiteSpace(type.Comment) && !IsBendingOnlyComment(type.Comment))
+                            {
+                                statsheet.Cells[i + rowTask, 12].Value += " (комментарий)";
+                            }
 
                             //"Лазер (время работ)"                                 //"Время лазерных работ"
                             statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + rowTask, 14].Value = Math.Ceiling(w.Result * 0.012f / w.Ratio);
@@ -5040,6 +5046,12 @@ namespace Metal_Code
 
                             //"Толщина и марка металла"                             //"Труборез"
                             statsheet.Cells[i + temp, 4].Value = statsheet.Cells[i + rowTask, 12].Value = $"(ЛП) {sawBaseDesc}";
+                            
+                            if (HasAssembly) statsheet.Cells[i + rowTask, 12].Value += " (ЭКСПРЕСС)";
+                            if (!string.IsNullOrWhiteSpace(type.Comment) && !IsBendingOnlyComment(type.Comment))
+                            {
+                                statsheet.Cells[i + rowTask, 12].Value += " (комментарий)";
+                            }
 
                             //"Лазер (время работ)"                                 //"Время лазерных работ"
                             statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + rowTask, 14].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
@@ -6739,8 +6751,8 @@ namespace Metal_Code
 
                             //добавляем тэг срочности и коментария
                             if (HasAssembly) description += " (ЭКСПРЕСС)";
-                            if (type.Comment != null && type.Comment != "") description += " (комментарий)";
-
+                            if (!string.IsNullOrWhiteSpace(type.Comment) && !IsBendingOnlyComment(type.Comment))
+                                description += " (комментарий)";
                             //"Название"
                             tasksheet.Cells[temp, 1].Value += $"{description}";
                             //"Описание"
@@ -6800,7 +6812,8 @@ namespace Metal_Code
 
                             //добавляем тег срочности и коментария
                             if (HasAssembly) tasksheet.Cells[temp, 1].Value += " (ЭКСПРЕСС)";
-                            if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 1].Value += " (комментарий)";
+                            if (!string.IsNullOrWhiteSpace(type.Comment) && !IsBendingOnlyComment(type.Comment))
+                                tasksheet.Cells[temp, 1].Value += " (комментарий)";
 
                             //"Описание"
                             tasksheet.Cells[temp, 2].Value = $"Заказчик: {CustomerDrop.Text}, Количество материала: {_mass}, Комментарий: ";
@@ -6842,7 +6855,8 @@ namespace Metal_Code
 
                             //добавляем тег срочности и коментария
                             if (HasAssembly) tasksheet.Cells[temp, 1].Value += " (ЭКСПРЕСС)";
-                            if (type.Comment != null && type.Comment != "") tasksheet.Cells[temp, 1].Value += " (комментарий)";
+                            if (!string.IsNullOrWhiteSpace(type.Comment) && !IsBendingOnlyComment(type.Comment))
+                                tasksheet.Cells[temp, 1].Value += " (комментарий)";
 
                             //"Описание"
                             tasksheet.Cells[temp, 2].Value = $"Заказчик: {CustomerDrop.Text}, Количество материала: {_mass}, Комментарий: ";
@@ -6943,6 +6957,22 @@ namespace Metal_Code
                 Encoding = new UTF8Encoding(),
             };
             taskRange.SaveToText(file, format);
+        }
+
+        /// <summary>
+        /// Проверяет, состоит ли комментарий исключительно из автоматически сгенерированного 
+        /// предупреждения о гибочном станке.
+        /// </summary>
+        private bool IsBendingOnlyComment(string comment)
+        {
+            if (string.IsNullOrWhiteSpace(comment)) return false;
+
+            // Регулярное выражение строго проверяет формат: 
+            // "Гибка на (малом|среднем|большом) (до X,X м) станке!"
+            // \s* допускает случайные пробелы в начале и конце
+            string pattern = @"^\s*Гибка\s+на\s+(малом|среднем|большом)\s+\(до\s+\d+[.,]\d+\s+м\)\s+станке!\s*$";
+
+            return System.Text.RegularExpressions.Regex.IsMatch(comment.Trim(), pattern);
         }
 
         //-РЕЕСТР
@@ -8853,6 +8883,78 @@ namespace Metal_Code
             {
                 StatusBegin($"Непредвиденная ошибка при открытии расчета #{selectedOffer.N}", StatusMessageType.Error);
                 LogException(ex, $"OpenOffer.General: Offer #{selectedOffer.N}");
+            }
+        }
+
+        private async void CompareOfferWithCurrent(object sender, RoutedEventArgs e)
+        {
+            if (OffersGrid.SelectedItem is not Offer selected) return;
+
+            try
+            {
+                // 1. Загрузка сохранённого расчёта A
+                string? dataA = selected.Data;
+                if (string.IsNullOrEmpty(dataA))
+                {
+                    StatusBegin($"Загрузка данных расчёта {selected.N}...", StatusMessageType.Info);
+                    dataA = await DataService.GetOfferDataAsync(selected.Id);
+                    if (string.IsNullOrEmpty(dataA))
+                    {
+                        StatusBegin($"Данные расчёта {selected.N} не найдены в БД", StatusMessageType.Warning);
+                        return;
+                    }
+                    selected.Data = dataA;
+                }
+
+                var productA = OpenOfferDataSafe(dataA, out var errA);
+                if (productA == null)
+                {
+                    StatusBegin($"Не удалось десериализовать расчёт {selected.N}: {errA}",
+                                StatusMessageType.Error);
+                    return;
+                }
+
+                // 2. Текущее состояние главного окна
+                string titleB;
+                if (ActiveOffer?.Id == selected.Id)
+                    titleB = $"Расчёт {selected.N} — текущие (несохранённые) изменения";
+                else
+                    titleB = "Текущий расчёт в главном окне";
+
+                // SaveProduct() безопасен: только пересобирает Product в памяти,
+                // ничего не пишет на диск/в БД (это делает Save-кнопка).
+                Product productB;
+                decimal amountB;
+                try
+                {
+                    productB = SaveProduct();
+                    amountB = (decimal)Result;   // текущий итог в главном окне
+                }
+                catch (Exception ex)
+                {
+                    StatusBegin($"Не удалось получить текущий расчёт: {ex.Message}",
+                                StatusMessageType.Error);
+                    return;
+                }
+
+                // 3. Запуск сравнения
+                var service = new OfferComparisonService();
+                var result = service.Compare(
+                    productA, productB,
+                    (decimal)selected.Amount, amountB,
+                    $"Расчёт {selected.N} {selected.Company} ({selected.CreatedDate:dd.MM.yyyy})",
+                    titleB);
+
+                var window = new OfferComparisonWindow(result) { Owner = this };
+                window.Show();
+
+                StatusBegin($"Сравнение завершено: {result.SummaryLine}",
+                            result.HasAnyDifferences ? StatusMessageType.Warning : StatusMessageType.Success);
+            }
+            catch (Exception ex)
+            {
+                StatusBegin($"Ошибка сравнения: {ex.Message}", StatusMessageType.Error);
+                Trace.WriteLine($"❌ CompareOfferWithCurrent: {ex}");
             }
         }
 

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Windows;
 
@@ -33,7 +34,11 @@ namespace Metal_Code.Utils
                 if (File.Exists(TagsPath))
                 {
                     var json = File.ReadAllText(TagsPath);
-                    var tags = JsonSerializer.Deserialize<ObservableCollection<CommentTag>>(json);
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    };
+                    var tags = JsonSerializer.Deserialize<ObservableCollection<CommentTag>>(json, options);
                     _cachedTags = tags ?? GetDefaultTags();
 
                     if (MigrateLegacyTags(_cachedTags))
@@ -57,16 +62,44 @@ namespace Metal_Code.Utils
         private static bool MigrateLegacyTags(ObservableCollection<CommentTag> tags)
         {
             bool hasChanges = false;
+            var defaults = GetDefaultTags();
 
-            foreach (var tag in tags)
+            for (int i = 0; i < tags.Count; i++)
             {
+                var tag = tags[i];
                 string name = tag.Name?.ToLowerInvariant() ?? "";
 
-                bool shouldBeProtected = name is "азот" or "рифл" or "плен";
-                if (shouldBeProtected && !tag.IsProtected)
+                var defaultTag = defaults.FirstOrDefault(d =>
+                    d.Name?.Equals(name, StringComparison.OrdinalIgnoreCase) == true);
+
+                if (defaultTag != null)
                 {
-                    tag.IsProtected = true;
-                    hasChanges = true;
+                    bool needsReplacement = false;
+
+                    if (!tag.IsProtected)
+                        needsReplacement = true;
+
+                    if (defaultTag.PriceRatio > 1.0f && tag.PriceRatio <= 1.0f)
+                        needsReplacement = true;
+
+                    if (defaultTag.DestinyOffset > 0 && tag.DestinyOffset <= 0)
+                        needsReplacement = true;
+
+                    if (tag.Text != defaultTag.Text)
+                        needsReplacement = true;
+
+                    if (needsReplacement)
+                    {
+                        tags[i] = new CommentTag(
+                            name: defaultTag.Name,
+                            text: defaultTag.Text,
+                            createsFolder: defaultTag.CreatesFolder,
+                            priceRatio: defaultTag.PriceRatio,
+                            destinyOffset: defaultTag.DestinyOffset,
+                            isProtected: true
+                        );
+                        hasChanges = true;
+                    }
                 }
             }
 
@@ -81,7 +114,8 @@ namespace Metal_Code.Utils
                 var json = JsonSerializer.Serialize(tags, new JsonSerializerOptions
                 {
                     WriteIndented = true,
-                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                    PropertyNameCaseInsensitive = true
                 });
                 File.WriteAllText(TagsPath, json);
                 _cachedTags = tags;

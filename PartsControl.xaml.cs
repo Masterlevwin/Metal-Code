@@ -997,6 +997,15 @@ namespace Metal_Code
                 }
                 else if (cut is PipeControl or SawControl)
                 {
+                    if (cut is PipeControl pipe)
+                    {
+                        pipe.work.type.L = (float)pipeLength;
+                    }
+                    else if (cut is SawControl saw)
+                    {
+                        saw.work.type.L = (float)pipeLength;
+                    }
+
                     result = await System.Threading.Tasks.Task.Run(() =>
                     {
                         return NestingHelper.CreateNestingForPipeBatch(partsToNest, pipeLength, clampZone, cutLoss);
@@ -1467,7 +1476,9 @@ namespace Metal_Code
         /// Добавляет КОЛЛЕКЦИЮ деталей с общим нестингом на минимальное количество листов
         /// </summary>
         public void AddBatchToCutControl(CutControl cut, List<Part> parts, Metal metal, bool isAutoSheet = true,
-            double customSpacing = 0, Dictionary<Part, Dictionary<double, (int Count, double BendLength)>>? bendsInfo = null)
+            double customSpacing = 0,
+            Dictionary<Part, (Dictionary<double, (int Count, double BendLength)> BendsX,
+                              Dictionary<double, (int Count, double BendLength)> BendsY)>? bendsInfo = null)
         {
             if (parts == null || parts.Count == 0)
                 return;
@@ -1546,15 +1557,29 @@ namespace Metal_Code
                 // 🔥 АВТОМАТИЧЕСКОЕ СОЗДАНИЕ БЛОКОВ ГИБКИ
                 if (bendsInfo != null && bendsInfo.TryGetValue(part, out var partBends))
                 {
-                    foreach (var bendData in partBends.Values)
+                    // Создаём BendControl для профилей по X (вертикальные линии гибки)
+                    foreach (var kvp in partBends.BendsX)
                     {
+                        double shelfSize = kvp.Key;
+                        var bendData = kvp.Value;
+
                         var bendControl = new BendControl(partControl);
                         partControl.AddControl(bendControl);
 
-                        // Устанавливаем количество гибов
                         bendControl.SetBend(bendData.Count.ToString());
+                        bendControl.SetShelf(GetShelfIndex(bendData.BendLength));
+                    }
 
-                        // Устанавливаем диапазон длины гиба (полку)
+                    // Создаём BendControl для профилей по Y (горизонтальные линии гибки)
+                    foreach (var kvp in partBends.BendsY)
+                    {
+                        double shelfSize = kvp.Key;
+                        var bendData = kvp.Value;
+
+                        var bendControl = new BendControl(partControl);
+                        partControl.AddControl(bendControl);
+
+                        bendControl.SetBend(bendData.Count.ToString());
                         bendControl.SetShelf(GetShelfIndex(bendData.BendLength));
                     }
                 }

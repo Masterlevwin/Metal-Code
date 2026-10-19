@@ -4,6 +4,7 @@
         xmlns:hc="https://handyorg.github.io/handycontrol"
         xmlns:converters="clr-namespace:Metal_Code.Converters"
         xmlns:utils="clr-namespace:Metal_Code.Utils"
+        xmlns:controls="clr-namespace:Metal_Code.Controls"
         Title="Стандартные детали" MinWidth="900" MinHeight="600" WindowState="Maximized">
 
     <Window.Resources>
@@ -29,17 +30,9 @@
                 <!-- 1. Параметры детали -->
                 <Border BorderBrush="{DynamicResource SecondaryTextBrush}" BorderThickness="1" CornerRadius="4" Margin="0,0,0,10" Background="{DynamicResource RegionBrush}">
                     <StackPanel Margin="10">
-                        <Border Background="{DynamicResource PrimaryBrush}" CornerRadius="4" Padding="8,4" Margin="0,0,0,10">
-                            <TextBlock x:Name="MaterialInfoText" Foreground="White" FontWeight="SemiBold" FontSize="12">
-                <Run Text="Материал: "/>
-                <Run Text="{Binding Metal, FallbackValue='Не выбран'}" FontWeight="Bold"/>
-                <Run Text=" | Толщина: "/>
-                <Run Text="{Binding Destiny, StringFormat={}{0:0.#} мм, FallbackValue='—'}" FontWeight="Bold"/>
-                            </TextBlock>
-                        </Border>
-                        <TextBlock Text="Параметры детали" FontSize="14" FontWeight="Bold" Margin="0,0,0,10" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                        <TextBlock Text="Параметры детали" FontSize="13" FontWeight="Bold" Margin="0,0,0,10" Foreground="{DynamicResource PrimaryTextBrush}"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Round,Rectangle,Triangle,Custom'}">
-                            <TextBlock Text="Форма:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold"/>
+                            <TextBlock Text="Форма:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
                             <RadioButton x:Name="RectangleRadio" Content="Прямоугольник" Tag="Rectangle" Checked="OnShapeTypeChanged"/>
                             <RadioButton Content="Круг" Tag="Round" Margin="15,0,0,0" Checked="OnShapeTypeChanged"/>
                             <RadioButton Content="Треугольник" Tag="Triangle" Margin="15,0,0,0" Checked="OnShapeTypeChanged"/>
@@ -47,7 +40,7 @@
                         </StackPanel>
 
                         <Border BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="2" CornerRadius="6" 
-        Background="{DynamicResource SecondaryRegionBrush}" Padding="12">
+        Background="{DynamicResource SecondaryRegionBrush}" Padding="8">
                             <StackPanel>
 
                                 <!-- ===== Строка: Название + Автоимя + DXF ===== -->
@@ -67,52 +60,43 @@
                                              hc:InfoElement.Placeholder="Например: Пластина"
                                              Style="{StaticResource TextBoxExtend}" FontSize="14" FontWeight="SemiBold"
                                              TextChanged="TitleTextBox_TextChanged"/>
-                                   
-                                    <!-- Кнопка DXF (листовые) -->
-                                    <Button Grid.Column="3" Click="ExportToDxf_Click" Margin="10,0,0,0"
-                    Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, 
-                                         ConverterParameter='Round,Custom'}"
-                    Style="{StaticResource ButtonDefault}" BorderBrush="{DynamicResource PrimaryBrush}"
-                    Foreground="{DynamicResource PrimaryBrush}" FontWeight="SemiBold">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Image Source="Images/save4.png"/>
-                                            <TextBlock Text="Сохранить в DXF" VerticalAlignment="Center" Margin="5,0,0,0"/>
-                                        </StackPanel>
-                                    </Button>
                                 </Grid>
 
-                                <!-- ===== Поля: ЛИСТОВЫЕ детали ===== -->
-                                <Grid Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, 
-                                    ConverterParameter='Round,Rectangle,Triangle,Custom'}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
+                                <!-- ===== Поля: ЛИСТОВЫЕ детали (горизонтальная компоновка) ===== -->
+                                <StackPanel Orientation="Horizontal"
+            Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, 
+                        ConverterParameter='Round,Rectangle,Triangle,Custom'}">
 
-                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                        <TextBlock Text="Ширина (мм):" Margin="0,0,0,3" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
-                                        <TextBox x:Name="WidthInput" Text="{Binding Width, UpdateSourceTrigger=PropertyChanged}" hc:InfoElement.Placeholder="50" Style="{StaticResource TextBoxExtend}" 
-                         FontSize="14" FontWeight="SemiBold" IsReadOnly="{Binding PartType, Converter={StaticResource PartTypeToReadOnlyConverter}}"
-                         utils:TextBoxHelper.SelectAllOnFocus="True" TextChanged="DimensionTextBox_TextChanged"/>
-                                    </StackPanel>
+                                    <TextBlock Text="Ширина (мм):" VerticalAlignment="Center" Margin="0,0,5,0"
+               FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
+                                    <TextBox x:Name="WidthInput" Width="100"
+             Text="{Binding Width, UpdateSourceTrigger=PropertyChanged}"
+             hc:InfoElement.Placeholder="50" Style="{StaticResource TextBoxExtend}"
+             FontSize="13" FontWeight="SemiBold"
+             IsReadOnly="{Binding PartType, Converter={StaticResource PartTypeToReadOnlyConverter}}"
+             utils:TextBoxHelper.SelectAllOnFocus="True"
+             TextChanged="DimensionTextBox_TextChanged"/>
 
-                                    <StackPanel Grid.Column="1" Margin="0,0,10,0">
-                                        <TextBlock Text="Высота (мм):" Margin="0,0,0,3" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
-                                        <TextBox Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}" hc:InfoElement.Placeholder="50" Style="{StaticResource TextBoxExtend}" 
-                         FontSize="14" FontWeight="SemiBold" IsReadOnly="{Binding PartType, Converter={StaticResource PartTypeToReadOnlyConverter}}"
-                         utils:TextBoxHelper.SelectAllOnFocus="True" TextChanged="DimensionTextBox_TextChanged"/>
-                                    </StackPanel>
+                                    <TextBlock Text="Высота (мм):" VerticalAlignment="Center" Margin="15,0,5,0"
+               FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
+                                    <TextBox x:Name="HeightInput" Width="100"
+             Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}"
+             hc:InfoElement.Placeholder="50" Style="{StaticResource TextBoxExtend}"
+             FontSize="13" FontWeight="SemiBold"
+             IsReadOnly="{Binding PartType, Converter={StaticResource PartTypeToReadOnlyConverter}}"
+             utils:TextBoxHelper.SelectAllOnFocus="True"
+             TextChanged="DimensionTextBox_TextChanged"/>
 
-                                    <StackPanel Grid.Column="3">
-                                        <TextBlock Text="Количество (шт):" Margin="0,0,0,3" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
-                                        <TextBox Text="{Binding Count, UpdateSourceTrigger=PropertyChanged}" hc:InfoElement.Placeholder="1" Style="{StaticResource TextBoxExtend}" 
-                         FontSize="14" FontWeight="SemiBold"
-                         utils:TextBoxHelper.SelectAllOnFocus="True" TextChanged="DimensionTextBox_TextChanged"/>
-                                    </StackPanel>
-                                </Grid>
-
+                                    <TextBlock Text="Количество (шт):" VerticalAlignment="Center" Margin="15,0,5,0"
+               FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
+                                    <TextBox Width="100"
+             Text="{Binding Count, UpdateSourceTrigger=PropertyChanged}"
+             hc:InfoElement.Placeholder="1" Style="{StaticResource TextBoxExtend}"
+             FontSize="13" FontWeight="SemiBold"
+             utils:TextBoxHelper.SelectAllOnFocus="True"
+             TextChanged="DimensionTextBox_TextChanged"/>
+                                </StackPanel>
+                                
                                 <!-- ===== Поля: ТРУБНЫЕ детали ===== -->
                                 <Grid Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, 
                                     ConverterParameter='RoundTube,RectangularTube,Angle,Channel,IBeam,Circle,SquareBar'}">
@@ -187,63 +171,161 @@
                     </StackPanel>
                 </Border>
 
-                <!-- 2. Контейнер: Блок гибки + Холст -->
+                <!-- Блок гибки (раскрывающаяся секция, только для прямоугольных деталей) -->
+                <Border BorderBrush="{DynamicResource SecondaryTextBrush}" BorderThickness="1" CornerRadius="4"
+        Margin="0,0,0,10" Background="{DynamicResource RegionBrush}"
+        Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Rectangle'}">
+                    <Expander x:Name="BendExpander" IsExpanded="False" Expanded="BendExpander_Expanded" Padding="10" Margin="10">
+                        <Expander.Header>
+                            <TextBlock Text="Гибка" FontWeight="Bold" FontSize="13"
+                       Foreground="{DynamicResource PrimaryTextBrush}"/>
+                        </Expander.Header>
+
+                        <StackPanel>
+                            <!-- Угол гиба -->
+                            <Grid Margin="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Угол:" FontWeight="SemiBold" FontSize="12"
+                           Foreground="{DynamicResource PrimaryBrush}" VerticalAlignment="Center" Margin="10,0,4,0"/>
+                                <TextBox Grid.Column="1" x:Name="BendAngleInput" Text="90" Width="40"
+                         Style="{StaticResource TextBoxExtend}" FontSize="12"
+                         VerticalContentAlignment="Center" TextChanged="BendParameters_Changed" Margin="5,0,0,0"/>
+                                <TextBlock Grid.Column="2" Text="°" VerticalAlignment="Center" Margin="2,0,0,0" FontSize="12"/>
+                            </Grid>
+
+                            <!-- Редакторы профилей + изометрия -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <controls:BendProfileEditor Grid.Column="0" x:Name="BendEditorX"
+                                            ProfileTitle="По ширине"
+                                            ProfileChanged="OnBendProfileChanged"
+                                            Margin="0,0,8,0"/>
+
+                                <controls:BendProfileEditor Grid.Column="1" x:Name="BendEditorY"
+                                            ProfileTitle="По высоте"
+                                            ProfileChanged="OnBendProfileChanged"
+                                            Margin="0,0,8,0"/>
+
+                                <Border Grid.Column="2" BorderBrush="LightGray" BorderThickness="1" CornerRadius="4"
+                        Padding="6" Background="#F8F9FA" Width="170" VerticalAlignment="Stretch"
+                        ToolTip="Изометрический вид собранной детали">
+                                    <StackPanel>
+                                        <TextBlock x:Name="BendInfoText" Text="Профили не заданы"
+                                   FontStyle="Italic" Foreground="Gray" FontSize="11"
+                                   TextWrapping="Wrap" Margin="0,0,0,6"
+                                   ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+                                        <Canvas x:Name="IsoPreviewCanvas" Height="120" Background="Transparent"
+                                SizeChanged="IsoPreviewCanvas_SizeChanged"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+                    </Expander>
+                </Border>
+                <!-- 3. Контейнер: Отверстия + Канвас развертки + Кнопка добавления -->
                 <Grid Margin="0,0,0,10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <Border Grid.Column="0" Padding="10" Margin="0,0,10,0"
-                            BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="2" CornerRadius="4" 
-                            Background="{DynamicResource SecondaryRegionBrush}"
-                            Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Rectangle,Custom'}"
-                            VerticalAlignment="Stretch" MinWidth="160">
-                        <StackPanel Orientation="Vertical">
-                            <TextBlock Text="Гибка" FontWeight="Bold" FontSize="14" Margin="0,0,0,15"
-                                       Foreground="{DynamicResource PrimaryBrush}" HorizontalAlignment="Center"/>
+                    <!-- Блок отверстий (слева) -->
+                    <Border Grid.Column="0" BorderBrush="{DynamicResource SecondaryTextBrush}" BorderThickness="1"
+            CornerRadius="4" Padding="10" Background="{DynamicResource RegionBrush}"
+            Width="200" VerticalAlignment="Stretch" Margin="0,0,8,0"
+            Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter},
+                        ConverterParameter='Rectangle,Triangle,Round,RectangularTube,RoundTube,Angle,Channel,IBeam'}">
+                        <StackPanel>
+                                <TextBlock Text="Отверстия" FontWeight="Bold" FontSize="13" Margin="0,0,0,8" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                            
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="⌀ диаметр:" FontWeight="SemiBold" Foreground="DarkBlue" VerticalAlignment="Center" Margin="0,0,4,0" Width="65"/>
+                                <TextBox x:Name="DiameterInput" Text="10" Width="50" Style="{StaticResource TextBoxExtend}"/>
+                                <TextBlock Text="мм" VerticalAlignment="Center" Margin="4,0,8,0"/>
+                            </StackPanel>
 
-                            <TextBlock Text="Угол гиба:" Margin="0,0,0,5" FontWeight="SemiBold"/>
-                            <TextBox x:Name="BendAngleInput" Text="90" Style="{StaticResource TextBoxExtend}"
-                                     Margin="0,0,0,12" TextChanged="BendParameters_Changed"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="Кол-во:" FontWeight="SemiBold" Foreground="DarkBlue" VerticalAlignment="Center" Margin="0,0,4,0" Width="65"/>
+                                <TextBox x:Name="CountInput" Text="1" Width="50" Style="{StaticResource TextBoxExtend}"/>
+                                <TextBlock Text="шт" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                            </StackPanel>
 
-                            <TextBlock Text="Горизонт.:" Margin="0,0,0,5" FontWeight="SemiBold"/>
-                            <TextBox x:Name="BendsCountXInput" Text="0" Style="{StaticResource TextBoxExtend}" 
-                                     Margin="0,0,0,12" TextChanged="BendParameters_Changed"/>
+                            <Button Content="Добавить отверстие" Click="AddHoleGroup_Click"
+                    Style="{StaticResource ButtonDashedPrimary}" Padding="8,4"/>
 
-                            <TextBlock Text="Вертикал.:" Margin="0,0,0,5" FontWeight="SemiBold"/>
-                            <TextBox x:Name="BendsCountYInput" Text="0" Style="{StaticResource TextBoxExtend}" 
-                                     Margin="0,0,0,12" TextChanged="BendParameters_Changed"/>
-
-                            <Separator Margin="0,0,0,12"/>
-
-                            <TextBlock x:Name="BendInfoText" Text="Линии сгиба не заданы" FontStyle="Italic" 
-                                       Foreground="Gray" TextWrapping="Wrap"/>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="120">
+                                <ItemsControl ItemsSource="{Binding HoleGroups}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="LightGray" BorderThickness="0,0,0,1" Padding="3" Margin="0,2">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Diameter, StringFormat=⌀{0:F1}}"
+                                               FontWeight="Bold" VerticalAlignment="Center"/>
+                                                    <TextBlock Text=" × " VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Count}" FontWeight="Bold" VerticalAlignment="Center"/>
+                                                    <Button Content="×" Foreground="Red" Cursor="Hand"
+                                            Click="RemoveHoleGroup_Click" Tag="{Binding}"
+                                            Margin="6,0,0,0" Padding="3,0"
+                                            Background="Transparent" BorderThickness="0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Column="1" x:Name="DrawingAreaBorder" Background="White" CornerRadius="4" 
-                             BorderBrush="{DynamicResource SecondaryTextBrush}" BorderThickness="1" Height="300"
-                             ClipToBounds="True" SizeChanged="DrawingArea_SizeChanged">
-                        <Grid x:Name="DrawingAreaGrid" Background="Transparent"
-                              PreviewMouseLeftButtonDown="Grid_PreviewMouseLeftButtonDown"
-                              PreviewMouseLeftButtonUp="Grid_PreviewMouseLeftButtonUp"
-                              MouseMove="Grid_MouseMove"
-                              MouseLeave="Grid_MouseLeave"
-                              PreviewMouseWheel="Grid_PreviewMouseWheel">
-                            <Grid.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform x:Name="CanvasScale" ScaleX="1" ScaleY="1"/>
-                                    <TranslateTransform x:Name="CanvasTranslate" X="0" Y="0"/>
-                                </TransformGroup>
-                            </Grid.RenderTransform>
-                            <Canvas x:Name="BackgroundCanvas"/>
-                            <Canvas x:Name="DrawingCanvas"/>
-                        </Grid>
-                    </Border>
-                </Grid>
+                        <!-- Канвас развертки (центр) -->
+                        <Border Grid.Column="1" x:Name="DrawingAreaBorder" Background="White" CornerRadius="4"
+        BorderBrush="{DynamicResource SecondaryTextBrush}" BorderThickness="1" Height="220"
+        ClipToBounds="True">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
 
-                <!-- 3. Панель управления произвольным контуром -->
+                                <!-- Заголовок внутри рамки -->
+                                <TextBlock Grid.Row="0" Text="Развертка" FontWeight="Bold" FontSize="13"
+                   Foreground="{DynamicResource PrimaryTextBrush}" Margin="8,6,0,4"/>
+
+                                <!-- Область рисования -->
+                                <Grid Grid.Row="1" x:Name="DrawingAreaGrid" Background="Transparent"
+              PreviewMouseLeftButtonDown="Grid_PreviewMouseLeftButtonDown"
+              PreviewMouseLeftButtonUp="Grid_PreviewMouseLeftButtonUp"
+              MouseMove="Grid_MouseMove"
+              MouseLeave="Grid_MouseLeave"
+              PreviewMouseWheel="Grid_PreviewMouseWheel"
+              SizeChanged="DrawingArea_SizeChanged">
+                                    <Grid.RenderTransform>
+                                        <TransformGroup>
+                                            <ScaleTransform x:Name="CanvasScale" ScaleX="1" ScaleY="1"/>
+                                            <TranslateTransform x:Name="CanvasTranslate" X="0" Y="0"/>
+                                        </TransformGroup>
+                                    </Grid.RenderTransform>
+                                    <Canvas x:Name="BackgroundCanvas"/>
+                                    <Canvas x:Name="DrawingCanvas"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    
+                        <!-- Кнопка «Добавить в список» (справа) -->
+                    <Button Grid.Column="2" Content="-> в список" Click="AddToBatch_Click"
+                            Style="{StaticResource ButtonPrimary}" Margin="5" IsDefault="True"/>
+                </Grid>
+                
+                <!-- 4. Панель управления произвольным контуром -->
                 <WrapPanel HorizontalAlignment="Center" Margin="0,0,0,10" Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Custom'}">
                     <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
                         <Button Content="🔍 Вписать" Click="FitView_Click" Margin="3" Style="{StaticResource ButtonDashed}" Padding="8,4"/>
@@ -270,7 +352,7 @@
 
                 <TextBlock Text="Ctrl+Колесо: зум | Alt+ЛКМ: перемещение | Линии привязываются к 90°" FontSize="11" Foreground="Gray" TextAlignment="Center" Margin="0,0,0,10"/>
 
-                <!-- 4. Блок отверстий (для произвольных форм) -->
+                <!-- 5. Блок отверстий (для произвольных форм) -->
                 <Border BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="1" CornerRadius="4" Background="{DynamicResource SecondaryRegionBrush}" Padding="10" Margin="0,0,0,10"
                         Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Custom'}">
                     <StackPanel>
@@ -314,43 +396,6 @@
                     </StackPanel>
                 </Border>
 
-                <!-- 5. Блок отверстий (стандартный) -->
-                <Border BorderBrush="{DynamicResource SecondaryTextBrush}" BorderThickness="1" CornerRadius="4" Margin="0,0,0,10" Padding="10" Background="{DynamicResource RegionBrush}"
-                        Visibility="{Binding PartType, Converter={StaticResource PartTypeToVisibilityConverter}, ConverterParameter='Rectangle,Triangle,Round,RectangularTube,RoundTube,Angle,Channel,IBeam'}">
-                    <Expander Header="Отверстия (необязательно)" IsExpanded="False">
-                        <StackPanel Margin="0,10,0,0">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                <TextBlock Text="⌀" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,5,0"/>
-                                <TextBox x:Name="DiameterInput" Text="10" Width="60" Style="{StaticResource TextBoxExtend}" Margin="0,0,10,0"/>
-                                <TextBlock Text="мм" VerticalAlignment="Center" Margin="0,0,20,0"/>
-                                <TextBlock Text="Кол-во:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                <TextBox x:Name="CountInput" Text="1" Width="60" Style="{StaticResource TextBoxExtend}" Margin="0,0,10,0"/>
-                                <TextBlock Text="шт" VerticalAlignment="Center" Margin="0,0,20,0"/>
-                                <Button Content="Добавить" Click="AddHoleGroup_Click" Style="{StaticResource ButtonDashedPrimary}" Padding="10,4"/>
-                            </StackPanel>
-                            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="120">
-                                <ItemsControl ItemsSource="{Binding HoleGroups}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border BorderBrush="LightGray" BorderThickness="0,0,0,1" Padding="3" Margin="0,2">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Diameter, StringFormat=⌀{0:F1} мм}" FontWeight="Bold" VerticalAlignment="Center"/>
-                                                    <TextBlock Text=" × " VerticalAlignment="Center" />
-                                                    <TextBlock Text="{Binding Count}" FontWeight="Bold" VerticalAlignment="Center"/>
-                                                    <TextBlock Text=" шт" VerticalAlignment="Center"/>
-                                                    <Button Content="×" Foreground="Red" Cursor="Hand" Click="RemoveHoleGroup_Click" Tag="{Binding}" Margin="10,0,0,0" Padding="5,0" Background="Transparent" BorderThickness="0"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </StackPanel>
-                    </Expander>
-                </Border>
-
-                <!-- 6. Кнопка добавления -->
-                <Button Content="Добавить в список" Click="AddToBatch_Click" Height="45" Style="{StaticResource ButtonPrimary}" FontSize="14" Margin="0,0,0,10" IsDefault="True"/>
             </StackPanel>
         </ScrollViewer>
 
@@ -363,7 +408,7 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Text="Список деталей" FontSize="14" FontWeight="Bold" Margin="0,0,0,10"/>
+                <TextBlock Text="Список деталей" FontSize="13" FontWeight="Bold" Margin="0,0,0,10"/>
 
                 <Border Grid.Row="1" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">

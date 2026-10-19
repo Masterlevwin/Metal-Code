@@ -1,0 +1,106 @@
+﻿<Window x:Class="Metal_Code.Comparison.OfferComparisonWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Сравнение расчётов" Height="820" Width="1250"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Заголовки A / B -->
+        <Border Grid.Row="0" Background="#F0F4F8" BorderBrush="#CCD6E0"
+                BorderThickness="0,0,0,1" Padding="14,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding Result.TitleA}"
+                           FontWeight="Bold" FontSize="14" TextAlignment="Left"/>
+                <TextBlock Grid.Column="1" Text="⇄" FontSize="22" Margin="20,0"
+                           VerticalAlignment="Center" Foreground="#557"/>
+                <TextBlock Grid.Column="2" Text="{Binding Result.TitleB}"
+                           FontWeight="Bold" FontSize="14" TextAlignment="Right"/>
+            </Grid>
+        </Border>
+
+        <!-- Сводка -->
+        <Border Grid.Row="1" Background="#FAFCFF" Padding="14,8"
+                BorderBrush="#E3E8EF" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="A: " FontWeight="Bold"/>
+                <TextBlock Text="{Binding Result.AmountA, StringFormat={}{0:N0} ₽}" Margin="0,0,24,0"/>
+                <TextBlock Text="B: " FontWeight="Bold"/>
+                <TextBlock Text="{Binding Result.AmountB, StringFormat={}{0:N0} ₽}" Margin="0,0,24,0"/>
+                <TextBlock Text="Δ: " FontWeight="Bold"/>
+                <TextBlock Text="{Binding DeltaDisplay}" Margin="0,0,8,0"
+                           FontWeight="Bold" Foreground="{Binding DeltaColor}"/>
+                <TextBlock Text="{Binding Result.SummaryLine}" Foreground="#555" Margin="20,0,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Диагностика -->
+        <Border Grid.Row="2" Background="#FFFDF5" Padding="14,8"
+                BorderBrush="#E3E8EF" BorderThickness="0,0,0,1"
+                MaxHeight="140" Visibility="{Binding DiagnosticsVisibility}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Result.Diagnostics}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                <TextBlock Text="{Binding Icon}" Margin="0,0,6,0"/>
+                                <TextBlock Text="{Binding Text}" Foreground="{Binding SeverityBrush}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Дерево сравнения -->
+        <TreeView Grid.Row="3" ItemsSource="{Binding Result.Items}"
+                  Margin="10" BorderThickness="0" Background="White"
+                  VirtualizingPanel.IsVirtualizing="True">
+            <TreeView.ItemContainerStyle>
+                <Style TargetType="TreeViewItem">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                    <Setter Property="Background" Value="{Binding BackgroundBrush}"/>
+                    <Setter Property="Padding" Value="2,1"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                </Style>
+            </TreeView.ItemContainerStyle>
+            <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="340"/>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
+                                   FontWeight="{Binding NameWeight}" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Grid.Column="1" Text="{Binding ValueA}" HorizontalAlignment="Right"
+                                   Margin="0,0,12,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="{Binding ValueB}" HorizontalAlignment="Right"
+                                   Margin="0,0,12,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="3" Text="{Binding Difference}" HorizontalAlignment="Right"
+                                   Margin="0,0,12,0" FontWeight="Bold"
+                                   Foreground="{Binding DifferenceBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="4" Text="{Binding Note}" FontStyle="Italic"
+                                   Foreground="#777" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"/>
+                    </Grid>
+                </HierarchicalDataTemplate>
+            </TreeView.ItemTemplate>
+        </TreeView>
+    </Grid>
+</Window>

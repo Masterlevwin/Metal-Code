@@ -919,6 +919,11 @@
                                                         <Image Source="/Images/merge.png"/>
                                                     </MenuItem.Icon>
                                                 </MenuItem>
+                                                <MenuItem x:Name="CompareWithCurrentMenuItem"
+          Header="Сравнить с текущим расчётом"
+          Click="CompareOfferWithCurrent"
+          ToolTip="Сравнивает сохранённый расчёт с текущим состоянием главного окна"/>
+                                                <Separator/>
                                             </ContextMenu>
                                         </DataGrid.ContextMenu>
                                     </DataGrid>

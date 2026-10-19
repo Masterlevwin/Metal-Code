@@ -30,8 +30,8 @@ namespace Metal_Code
         #region
         private readonly Part _currentPart;
         private readonly ObservableCollection<Part> _batchBuffer = new();
-        private readonly Dictionary<Part, Dictionary<double, (int Count, double BendLength)>> _batchBendsInfo = new();
-
+        private readonly Dictionary<Part, (Dictionary<double, (int Count, double BendLength)> BendsX,
+                                            Dictionary<double, (int Count, double BendLength)> BendsY)> _batchBendsInfo = new();
         private readonly PointCollection _customPoints = new();
         private bool _isDrawingActive = false;
         private bool _isContourFinished = false;
@@ -73,6 +73,9 @@ namespace Metal_Code
             DataContext = _currentPart;
             BatchItemsControl.ItemsSource = _batchBuffer;
             UpdateWindowTitle();
+
+            BendEditorX.ProfileChanged += RecalculateBends;
+            BendEditorY.ProfileChanged += RecalculateBends;
 
             InitializePipeInput();
 
@@ -139,9 +142,6 @@ namespace Metal_Code
             string thickness = _currentPart.Destiny > 0 ? $"{_currentPart.Destiny:0.#} мм" : "—";
 
             Title = $"Стандартные детали | {metal} | {thickness}";
-
-            if (MaterialInfoText != null)
-                MaterialInfoText.Text = $"📋 Материал: {metal} | Толщина: {thickness}";
         }
 
         private void TitleTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -191,14 +191,20 @@ namespace Metal_Code
 
         private void InitializeView()
         {
-            double fitScale = Math.Min(DrawingAreaBorder.ActualWidth / SheetWidthMm, DrawingAreaBorder.ActualHeight / SheetHeightMm) * 0.80;
+            if (DrawingAreaGrid.ActualWidth <= 0 || DrawingAreaGrid.ActualHeight <= 0) return;
+
+            double fitScale = Math.Min(
+                DrawingAreaGrid.ActualWidth / SheetWidthMm,
+                DrawingAreaGrid.ActualHeight / SheetHeightMm) * 0.80;
+
             CanvasScale.ScaleX = fitScale;
             CanvasScale.ScaleY = fitScale;
 
             double sheetWidthPx = SheetWidthMm * fitScale;
             double sheetHeightPx = SheetHeightMm * fitScale;
-            CanvasTranslate.X = (DrawingAreaBorder.ActualWidth - sheetWidthPx) / 2;
-            CanvasTranslate.Y = (DrawingAreaBorder.ActualHeight - sheetHeightPx) / 2;
+
+            CanvasTranslate.X = (DrawingAreaGrid.ActualWidth - sheetWidthPx) / 2;
+            CanvasTranslate.Y = (DrawingAreaGrid.ActualHeight - sheetHeightPx) / 2;
 
             RedrawBackground();
             RedrawCanvas();
@@ -285,6 +291,7 @@ namespace Metal_Code
                 DrawTemplateGeometry(strokeThickness);
                 DrawSheetDimensions();
                 DrawBendLines(strokeThickness);
+                RedrawIsometricPreview();
 
                 if (_currentPart.HoleGroups != null && _currentPart.HoleGroups.Any(g => g.Count > 50))
                 {
@@ -505,6 +512,26 @@ namespace Metal_Code
                     DrawingCanvas.Children.Add(label);
                 }
             }
+        }
+
+        private void IsoPreviewCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            RedrawIsometricPreview();
+        }
+
+        private void RedrawIsometricPreview()
+        {
+            if (IsoPreviewCanvas == null || _currentPart == null) return;
+            if (_currentPart.PartType != PartType.Rectangle) return;
+            if (_currentPart.Width <= 0 || _currentPart.Height <= 0) return;
+
+            IsometricPreviewRenderer.RenderInto(
+                IsoPreviewCanvas,
+                _currentPart.Width,
+                _currentPart.Height,
+                _currentPart.Destiny,
+                BendEditorX?.Profile,
+                BendEditorY?.Profile);
         }
 
         private void DrawTemplateGeometry(double strokeThickness)
@@ -1418,14 +1445,8 @@ namespace Metal_Code
 
         #region
         private double _bendAngle = 90.0;
-        private int _bendsCountX = 0;
-        private int _bendsCountY = 0;
         private const double BendKFactor = 0.4;
-
-        private double _originalWidth = 0;
-        private double _originalHeight = 0;
         private bool _isUpdatingFromBend = false;
-        private bool _isResettingBends = false;
 
         private double BendCompensation
         {
@@ -1436,85 +1457,109 @@ namespace Metal_Code
                 double angleRad = Math.PI * _bendAngle / 180.0;
                 double halfAngleTan = Math.Tan(angleRad / 2.0);
                 double bendAllowance = angleRad * (R + BendKFactor * T);
-                double bendDeduction = 2 * (R + T) * halfAngleTan - bendAllowance;
-                return bendDeduction;
+                return 2 * (R + T) * halfAngleTan - bendAllowance;
             }
+        }
+
+        private void BendExpander_Expanded(object sender, RoutedEventArgs e)
+        {
+            RedrawIsometricPreview();
         }
 
         private void BendParameters_Changed(object sender, TextChangedEventArgs e)
         {
-            if (_isResettingBends) return;
-            if (BendsCountXInput == null || BendsCountYInput == null ||
-                BendInfoText == null || BendAngleInput == null) return;
-
-            if (int.TryParse(BendsCountXInput.Text, out int bx) && bx >= 0) _bendsCountX = bx;
-            if (int.TryParse(BendsCountYInput.Text, out int by) && by >= 0) _bendsCountY = by;
-            if (double.TryParse(BendAngleInput.Text, out double angle) && angle > 0 && angle < 180) _bendAngle = angle;
-
-            UpdateBendInfo();
-            RecalculatePartDimensions();
-            RedrawCanvas();
+            if (_currentPart == null) return;
+            if (double.TryParse(BendAngleInput.Text, out double angle) && angle > 0 && angle < 180)
+                _bendAngle = angle;
+            RecalculateBends();
         }
 
-        private void ResetBendParameters()
+        private void OnBendProfileChanged()
         {
-            _isResettingBends = true;
-            try
-            {
-                _bendAngle = 90.0;
-                _bendsCountX = 0;
-                _bendsCountY = 0;
-                _originalWidth = 0;
-                _originalHeight = 0;
-
-                if (BendAngleInput != null) BendAngleInput.Text = "90";
-                if (BendsCountXInput != null) BendsCountXInput.Text = "0";
-                if (BendsCountYInput != null) BendsCountYInput.Text = "0";
-                if (BendInfoText != null) BendInfoText.Text = "Линии сгиба не заданы";
-            }
-            finally { _isResettingBends = false; }
+            RecalculateBends();
+            RedrawIsometricPreview();
         }
 
-        private void UpdateBendInfo()
+        private void RecalculateBends()
         {
-            if (BendInfoText == null) return;
-            if (_bendsCountX == 0 && _bendsCountY == 0) { BendInfoText.Text = "Линии гиба не заданы"; return; }
-            BendInfoText.Text = $"Вычет на 1 гиб: {BendCompensation:F2} мм";
-        }
-
-        private void RecalculatePartDimensions()
-        {
-            if (_currentPart == null || _isUpdatingFromBend) return;
+            if (_isUpdatingFromBend || _currentPart == null) return;
+            if (BendEditorX == null || BendEditorY == null) return;
             _isUpdatingFromBend = true;
 
             try
             {
-                if (_originalWidth == 0 && _originalHeight == 0)
+                double bd = BendCompensation;
+                bool hasX = BendEditorX.HasProfile && BendEditorX.Profile.IsFinished;
+                bool hasY = BendEditorY.HasProfile && BendEditorY.Profile.IsFinished;
+
+                if (hasX)
                 {
-                    _originalWidth = _currentPart.Width;
-                    _originalHeight = _currentPart.Height;
+                    double flatWidth = BendEditorX.Profile.CalculateFlatLength(bd);
+                    _currentPart.Width = Math.Max(0.1, Math.Ceiling(flatWidth));
                 }
 
-                double compensation = BendCompensation;
-                double newWidth = _bendsCountX == 0 ? _originalWidth : _originalWidth - (_bendsCountX * compensation);
-                double newHeight = _bendsCountY == 0 ? _originalHeight : _originalHeight - (_bendsCountY * compensation);
+                if (hasY)
+                {
+                    double flatHeight = BendEditorY.Profile.CalculateFlatLength(bd);
+                    _currentPart.Height = Math.Max(0.1, Math.Ceiling(flatHeight));
+                }
 
-                _currentPart.Width = Math.Max(0.1, Math.Ceiling(newWidth));
-                _currentPart.Height = Math.Max(0.1, Math.Ceiling(newHeight));
+                if (hasX || hasY)
+                {
+                    UpdatePreview();
+                    RedrawIsometricPreview();
+                }
 
-                UpdatePreview();
+                UpdateMainDimensionsState(hasX, hasY);
+                UpdateBendInfo(hasX, hasY);
             }
-            finally { _isUpdatingFromBend = false; }
+            finally
+            {
+                _isUpdatingFromBend = false;
+            }
+        }
+
+        private void UpdateMainDimensionsState(bool hasX, bool hasY)
+        {
+            if (WidthInput != null) WidthInput.IsEnabled = !hasX;
+            if (HeightInput != null) HeightInput.IsEnabled = !hasY;
+        }
+
+        private void UpdateBendInfo(bool hasX, bool hasY)
+        {
+            if (BendInfoText == null) return;
+            if (!hasX && !hasY)
+            {
+                BendInfoText.Text = "Профили не заданы";
+                return;
+            }
+
+            double bd = BendCompensation;
+            var lines = new List<string> { $"Вычет на 1 гиб: {bd:F2} мм" };
+
+            if (hasX)
+            {
+                var p = BendEditorX.Profile;
+                lines.Add($"X: сегментов {p.SegmentsCount}, гибов {p.BendsCount}, " +
+                          $"развертка = {_currentPart.Width:0} мм");
+            }
+            if (hasY)
+            {
+                var p = BendEditorY.Profile;
+                lines.Add($"Y: сегментов {p.SegmentsCount}, гибов {p.BendsCount}, " +
+                          $"развертка = {_currentPart.Height:0} мм");
+            }
+
+            BendInfoText.Text = string.Join("\n", lines);
         }
 
         private void DrawBendLines(double strokeThickness)
         {
             if (DrawingCanvas == null || _currentPart == null) return;
             if (_currentPart.PartType != PartType.Rectangle) return;
-            if (_bendsCountX == 0 && _bendsCountY == 0) return;
 
-            double width = _originalWidth > 0 ? _originalWidth : _currentPart.Width;
-            double height = _originalHeight > 0 ? _originalHeight : _currentPart.Height;
+            double width = _currentPart.Width;
+            double height = _currentPart.Height;
             if (width <= 0 || height <= 0) return;
 
             double offsetX = (SheetWidthMm / 2) - (width / 2);
@@ -1523,58 +1568,86 @@ namespace Metal_Code
             var bendBrush = Brushes.DarkOrange;
             var dashArray = new DoubleCollection { 5, 3 };
             double lineThickness = strokeThickness * 0.8;
+            double bd = BendCompensation;
 
-            if (_bendsCountX > 0)
+            // Линии по X (вертикальные)
+            if (BendEditorX?.Profile is { IsFinished: true, Points.Count: >= 3 } profileX)
             {
-                double segmentWidth = width / (_bendsCountX + 1);
-                for (int i = 1; i <= _bendsCountX; i++)
+                foreach (double pos in profileX.GetBendPositions(bd))
                 {
-                    double x = offsetX + (segmentWidth * i);
-                    DrawingCanvas.Children.Add(new Line { X1 = x, Y1 = offsetY, X2 = x, Y2 = offsetY + height, Stroke = bendBrush, StrokeThickness = lineThickness, StrokeDashArray = dashArray });
+                    if (pos <= 0 || pos >= width) continue;
+                    double x = offsetX + pos;
+                    DrawingCanvas.Children.Add(new Line
+                    {
+                        X1 = x,
+                        Y1 = offsetY,
+                        X2 = x,
+                        Y2 = offsetY + height,
+                        Stroke = bendBrush,
+                        StrokeThickness = lineThickness,
+                        StrokeDashArray = dashArray
+                    });
                 }
             }
 
-            if (_bendsCountY > 0)
+            // Линии по Y (горизонтальные)
+            if (BendEditorY?.Profile is { IsFinished: true, Points.Count: >= 3 } profileY)
             {
-                double segmentHeight = height / (_bendsCountY + 1);
-                for (int i = 1; i <= _bendsCountY; i++)
+                foreach (double pos in profileY.GetBendPositions(bd))
                 {
-                    double y = offsetY + (segmentHeight * i);
-                    DrawingCanvas.Children.Add(new Line { X1 = offsetX, Y1 = y, X2 = offsetX + width, Y2 = y, Stroke = bendBrush, StrokeThickness = lineThickness, StrokeDashArray = dashArray });
+                    if (pos <= 0 || pos >= height) continue;
+                    double y = offsetY + pos;
+                    DrawingCanvas.Children.Add(new Line
+                    {
+                        X1 = offsetX,
+                        Y1 = y,
+                        X2 = offsetX + width,
+                        Y2 = y,
+                        Stroke = bendBrush,
+                        StrokeThickness = lineThickness,
+                        StrokeDashArray = dashArray
+                    });
                 }
             }
         }
 
-        private Dictionary<double, (int Count, double BendLength)> CalculateBendsInfo()
+        private (Dictionary<double, (int Count, double BendLength)> BendsX,
+                 Dictionary<double, (int Count, double BendLength)> BendsY) CalculateBendsInfo()
         {
-            var result = new Dictionary<double, (int Count, double BendLength)>();
-            if (_originalWidth <= 0 || _originalHeight <= 0) return result;
+            var bendsX = new Dictionary<double, (int Count, double BendLength)>();
+            var bendsY = new Dictionary<double, (int Count, double BendLength)>();
+            if (_currentPart == null) return (bendsX, bendsY);
 
-            double unfoldedWidth = _currentPart.Width;
-            double unfoldedHeight = _currentPart.Height;
-
-            if (_bendsCountX > 0)
+            void MergeBendInfo(BendProfileDrawing? profile, double crossLength,
+                               Dictionary<double, (int Count, double BendLength)> target)
             {
-                double shelfSize = Math.Round(_originalWidth / (_bendsCountX + 1), 1);
-                double bendLength = Math.Round(unfoldedHeight, 1);
-                result[shelfSize] = (_bendsCountX, bendLength);
-            }
-
-            if (_bendsCountY > 0)
-            {
-                double shelfSize = Math.Round(_originalHeight / (_bendsCountY + 1), 1);
-                double bendLength = Math.Round(unfoldedWidth, 1);
-
-                if (result.ContainsKey(shelfSize))
+                if (profile == null || !profile.IsFinished) return;
+                foreach (var (shelfSize, count, bendLength) in profile.GetBendInfo(crossLength))
                 {
-                    var existing = result[shelfSize];
-                    result[shelfSize] = (existing.Count + _bendsCountY, bendLength);
+                    if (target.ContainsKey(shelfSize))
+                    {
+                        var ex = target[shelfSize];
+                        target[shelfSize] = (ex.Count + count, bendLength);
+                    }
+                    else target[shelfSize] = (count, bendLength);
                 }
-                else result[shelfSize] = (_bendsCountY, bendLength);
             }
 
-            return result;
+            MergeBendInfo(BendEditorX?.Profile, _currentPart.Height, bendsX);
+            MergeBendInfo(BendEditorY?.Profile, _currentPart.Width, bendsY);
+            return (bendsX, bendsY);
         }
+
+        private void ResetBendParameters()
+        {
+            _bendAngle = 90.0;
+            if (BendAngleInput != null) BendAngleInput.Text = "90";
+            BendEditorX?.Profile.Clear();
+            BendEditorY?.Profile.Clear();
+            if (BendInfoText != null) BendInfoText.Text = "Профили не заданы";
+            UpdateMainDimensionsState(false, false);
+        }
+
         #endregion
 
         #region
@@ -1727,7 +1800,7 @@ namespace Metal_Code
             return _currentPart.PartType switch
             {
                 PartType.RoundTube or PartType.Circle => thickness > 0
-                    ? $"{typeName} ⌀{_currentPart.Width:0xthickness:0.#}"
+                    ? $"{typeName} ⌀{_currentPart.Width:0.#}x{thickness:0.#}"
                     : $"{typeName} ⌀{_currentPart.Width:0.#}",
                 PartType.SquareBar => thickness > 0
                     ? $"{typeName} {_currentPart.Width:0.#}x{thickness:0.#}"
@@ -1933,9 +2006,11 @@ namespace Metal_Code
             }
         }
 
-        public Dictionary<Part, Dictionary<double, (int Count, double BendLength)>> GetBendsInfoForBatch()
+        public Dictionary<Part, (Dictionary<double, (int Count, double BendLength)> BendsX,
+                                 Dictionary<double, (int Count, double BendLength)> BendsY)> GetBendsInfoForBatch()
         {
-            return new Dictionary<Part, Dictionary<double, (int Count, double BendLength)>>(_batchBendsInfo);
+            return new Dictionary<Part, (Dictionary<double, (int Count, double BendLength)>,
+                                          Dictionary<double, (int Count, double BendLength)>)>(_batchBendsInfo);
         }
 
         private void AddToBatch_Click(object sender, RoutedEventArgs e)
@@ -2033,8 +2108,12 @@ namespace Metal_Code
             {
                 _batchBuffer.Add(clone);
 
-                var bendsInfo = CalculateBendsInfo();
-                if (bendsInfo.Count > 0) _batchBendsInfo[clone] = bendsInfo;
+                // Собираем информацию о гибах для текущей детали (разделённую по X и Y)
+                var (bendsX, bendsY) = CalculateBendsInfo();
+                if (bendsX.Count > 0 || bendsY.Count > 0)
+                {
+                    _batchBendsInfo[clone] = (bendsX, bendsY);
+                }
 
                 _currentPart.HoleGroups.Clear();
                 if (_currentPart.PartType == PartType.Custom) ClearDrawing_Click(sender, e);
@@ -2091,6 +2170,36 @@ namespace Metal_Code
             };
         }
         #endregion
+    }
+
+    public class BendProfileController
+    {
+        private BendProfileBase _profile;
+
+        public BendProfileBase Profile
+        {
+            get => _profile;
+            set
+            {
+                if (_profile != null) _profile.ParametersChanged -= OnParametersChanged;
+                _profile = value;
+                if (_profile != null) _profile.ParametersChanged += OnParametersChanged;
+                RedrawCallback?.Invoke();
+            }
+        }
+
+        public Action? RedrawCallback { get; set; }
+
+        public BendProfileController(BendProfileBase initialProfile)
+        {
+            _profile = initialProfile;
+            _profile.ParametersChanged += OnParametersChanged;
+        }
+
+        private void OnParametersChanged()
+        {
+            RedrawCallback?.Invoke();
+        }
     }
 
     public class LengthChipItem : INotifyPropertyChanged
