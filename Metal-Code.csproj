@@ -14,6 +14,7 @@
     <None Remove="app_logo.ico" />
     <None Remove="app_logo.jpeg" />
     <None Remove="app_logo.jpg" />
+    <None Remove="bend_table.json" />
     <None Remove="Images\add.png" />
     <None Remove="Images\address.png" />
     <None Remove="Images\add_models.png" />
@@ -151,6 +152,9 @@
   <ItemGroup>
     <Content Include="app_logo.ico" />
     <Content Include="app_logo.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="bend_table.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="laser_logo.jpg">

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Metal_Code.Models;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -14,7 +15,9 @@ namespace Metal_Code.Comparison
         public ComparisonResult Compare(
             Product a, Product b,
             decimal amountA, decimal amountB,
-            string titleA, string titleB)
+            string titleA, string titleB,
+            IReadOnlyList<Metal>? metals = null,
+            IReadOnlyList<TypeDetail>? typeDetails = null)
         {
             var result = new ComparisonResult
             {
@@ -25,7 +28,7 @@ namespace Metal_Code.Comparison
             };
 
             CompareGlobalParams(a, b, result);
-            CompareDetails(a.Details, b.Details, result);
+            CompareDetails(a.Details, b.Details, result, metals, typeDetails);
             CompareBaskets(a.Baskets ?? new(), b.Baskets ?? new(), result);
             CompareAssemblies(a.Assemblies ?? new(), b.Assemblies ?? new(), result);
 
@@ -45,7 +48,9 @@ namespace Metal_Code.Comparison
             AddDecimal(root, "Коэф. материала", (decimal)a.MaterialFactor, (decimal)b.MaterialFactor, "F2");
             AddDecimal(root, "Коэф. услуг", (decimal)a.ServiceFactor, (decimal)b.ServiceFactor, "F2");
             AddDecimal(root, "Бонус, %", (decimal)a.BonusRatio, (decimal)b.BonusRatio, "F1");
-            AddDecimal(root, "Множитель конструктора", (decimal)ParseConstructRatio(a.ConstructRatio), (decimal)ParseConstructRatio(b.ConstructRatio), "F2");
+            AddDecimal(root, "Множитель конструктора",
+                       (decimal)ParseConstructRatio(a.ConstructRatio),
+                       (decimal)ParseConstructRatio(b.ConstructRatio), "F2");
 
             // Количество и доставка
             AddInt(root, "Количество", a.Count, b.Count);
@@ -53,6 +58,7 @@ namespace Metal_Code.Comparison
             AddInt(root, "Множитель доставки", a.DeliveryRatio, b.DeliveryRatio);
 
             // Флаги, включающие/выключающие блоки стоимости
+            AddBool(root, "Агент (ИП) — влияет на НДС", a.IsAgent, b.IsAgent);
             AddBool(root, "Есть доставка", a.HasDelivery, b.HasDelivery);
             AddBool(root, "Есть конструктор", a.HasConstruct, b.HasConstruct);
 
@@ -72,7 +78,9 @@ namespace Metal_Code.Comparison
         private void CompareDetails(
             IEnumerable<Detail> detailsA,
             IEnumerable<Detail> detailsB,
-            ComparisonResult r)
+            ComparisonResult r,
+            IReadOnlyList<Metal>? metals,
+            IReadOnlyList<TypeDetail>? typeDetails)
         {
             var root = new ComparisonItem { Category = "Детали", IsExpanded = false };
             var mapA = IndexDetails(detailsA);
@@ -104,7 +112,7 @@ namespace Metal_Code.Comparison
                     continue;
                 }
 
-                var item = CompareOneDetail(da!, db!);
+                var item = CompareOneDetail(da!, db!, metals, typeDetails);
                 if (item != null) root.Children.Add(item);
             }
 
@@ -133,13 +141,16 @@ namespace Metal_Code.Comparison
             return map;
         }
 
-        private ComparisonItem? CompareOneDetail(Detail da, Detail db)
+        private ComparisonItem? CompareOneDetail(
+            Detail da, Detail db,
+            IReadOnlyList<Metal>? metals,
+            IReadOnlyList<TypeDetail>? typeDetails)
         {
             var item = new ComparisonItem { Category = $"Деталь «{da.Title}»", IsExpanded = false };
 
             AddInt(item, "Количество", da.Count, db.Count);
 
-            CompareTypeDetails(da.TypeDetails, db.TypeDetails, item);
+            CompareTypeDetails(da.TypeDetails, db.TypeDetails, item, metals, typeDetails);
 
             if (!item.Children.Any(c => c.HasDifference)) return null;
             item.Status = item.Children.Any(c =>
@@ -152,7 +163,9 @@ namespace Metal_Code.Comparison
         private void CompareTypeDetails(
             List<SaveTypeDetail> typesA,
             List<SaveTypeDetail> typesB,
-            ComparisonItem parent)
+            ComparisonItem parent,
+            IReadOnlyList<Metal>? metals,
+            IReadOnlyList<TypeDetail>? typeDetails)
         {
             int count = Math.Max(typesA.Count, typesB.Count);
             for (int i = 0; i < count; i++)
@@ -183,8 +196,12 @@ namespace Metal_Code.Comparison
 
                 var tg = new ComparisonItem { Category = $"Заготовка #{i + 1}", IsExpanded = false };
                 AddInt(tg, "Кол-во", ta!.Count, tb!.Count);
-                AddInt(tg, "Тип (лист/труба/…)", ta.Index, tb.Index);
-                AddInt(tg, "Металл", ta.Metal, tb.Metal);
+                AddString(tg, "Тип заготовки",
+                          ResolveTypeDetail(ta.Index, typeDetails),
+                          ResolveTypeDetail(tb.Index, typeDetails));
+                AddString(tg, "Металл",
+                          ResolveMetal(ta.Metal, metals),
+                          ResolveMetal(tb.Metal, metals));
                 AddBool(tg, "Материал от исполнителя", ta.HasMetal, tb.HasMetal);
                 AddFloat(tg, "Толщина S, мм", ta.Tuple.Item4, tb.Tuple.Item4, "F2");
                 AddFloat(tg, "Стоимость материала, ₽", ta.ExtraResult, tb.ExtraResult, "N2");
@@ -255,7 +272,7 @@ namespace Metal_Code.Comparison
 
                 if (part.Children.Any(c => c.HasDifference))
                 {
-                    part.Status = ComparisonStatus.Warning; // цена детали — ключевой показатель
+                    part.Status = ComparisonStatus.Warning;
                     parent.Children.Add(part);
                 }
             }
@@ -335,7 +352,6 @@ namespace Metal_Code.Comparison
         // ============================================================
         private void BuildDiagnostics(ComparisonResult r)
         {
-            // Итог
             if (r.AmountA == 0 && r.AmountB == 0)
             {
                 r.Diagnostics.Add(new DiagnosticMessage
@@ -369,7 +385,6 @@ namespace Metal_Code.Comparison
                     });
             }
 
-            // Собираем «что добавилось/убралось» с именами
             var addedDetails = new List<string>();
             var removedDetails = new List<string>();
             var addedBaskets = new List<string>();
@@ -442,7 +457,6 @@ namespace Metal_Code.Comparison
                     Severity = ComparisonStatus.Warning
                 });
 
-            // Счётчики по дереву
             int onlyA = 0, onlyB = 0, warnings = 0, critical = 0, infos = 0;
             Traverse(r.Items, item =>
             {
@@ -463,7 +477,6 @@ namespace Metal_Code.Comparison
 
         private static string ExtractName(string category)
         {
-            // "Деталь «Фланец Ду50»" → "Фланец Ду50"
             int first = category.IndexOf('«');
             int last = category.LastIndexOf('»');
             return (first >= 0 && last > first)
@@ -490,16 +503,28 @@ namespace Metal_Code.Comparison
             Note = side == "A" ? "отсутствует в B" : "добавлена в B"
         };
 
+        // ❗ ИСПРАВЛЕНО: теперь в "Difference" пишется число со знаком,
+        //   а не литералы "+F1" / "-N2".
         private static void AddDecimal(ComparisonItem p, string prop, decimal a, decimal b, string fmt)
         {
             bool eq = Math.Abs(a - b) <= MoneyTolerance;
-            if (eq && fmt is "F1" or "F2") eq = Math.Abs(a - b) <= (decimal)RatioTolerance;
+            if (eq && fmt is "F1" or "F2")
+                eq = Math.Abs(a - b) <= (decimal)RatioTolerance;
+
+            string diff = "";
+            if (!eq)
+            {
+                decimal delta = b - a;
+                string absText = Math.Abs(delta).ToString(fmt, CultureInfo.CurrentCulture);
+                diff = (delta > 0 ? "+" : "−") + absText;
+            }
+
             p.Children.Add(new ComparisonItem
             {
                 Property = prop,
                 ValueA = a.ToString(fmt, CultureInfo.CurrentCulture),
                 ValueB = b.ToString(fmt, CultureInfo.CurrentCulture),
-                Difference = eq ? "" : (b - a).ToString("+" + fmt + ";-" + fmt + ";0", CultureInfo.CurrentCulture),
+                Difference = diff,
                 Status = eq ? ComparisonStatus.Equal : ComparisonStatus.Different
             });
         }
@@ -507,15 +532,32 @@ namespace Metal_Code.Comparison
         private static void AddFloat(ComparisonItem p, string prop, float a, float b, string fmt) =>
             AddDecimal(p, prop, (decimal)a, (decimal)b, fmt);
 
-        private static void AddInt(ComparisonItem p, string prop, int a, int b) =>
+        private static void AddInt(ComparisonItem p, string prop, int a, int b)
+        {
             p.Children.Add(new ComparisonItem
             {
                 Property = prop,
-                ValueA = a.ToString(),
-                ValueB = b.ToString(),
-                Difference = a == b ? "" : (b - a).ToString("+#;-#;0"),
+                ValueA = a.ToString(CultureInfo.CurrentCulture),
+                ValueB = b.ToString(CultureInfo.CurrentCulture),
+                Difference = a == b ? "" : ((b - a) > 0 ? "+" : "−") +
+                                        Math.Abs(b - a).ToString(CultureInfo.CurrentCulture),
                 Status = a == b ? ComparisonStatus.Equal : ComparisonStatus.Different
             });
+        }
+
+        private static void AddString(ComparisonItem p, string prop, string? a, string? b)
+        {
+            a ??= "";
+            b ??= "";
+            bool eq = string.Equals(a, b, StringComparison.Ordinal);
+            p.Children.Add(new ComparisonItem
+            {
+                Property = prop,
+                ValueA = string.IsNullOrEmpty(a) ? "—" : a,
+                ValueB = string.IsNullOrEmpty(b) ? "—" : b,
+                Status = eq ? ComparisonStatus.Equal : ComparisonStatus.Different
+            });
+        }
 
         private static void AddBool(ComparisonItem p, string prop, bool? a, bool? b)
         {
@@ -538,13 +580,38 @@ namespace Metal_Code.Comparison
         {
             if (string.IsNullOrWhiteSpace(s)) return 1f;
 
-            // Разрешаем и "1,5", и "1.5" — как это делает MainWindow.Parser
             if (!float.TryParse(s.Replace(',', '.'),
                     NumberStyles.Float | NumberStyles.AllowThousands,
                     CultureInfo.InvariantCulture, out var f))
                 return 1f;
 
             return f > 0f ? f : 1f;
+        }
+
+        /// <summary>
+        /// Преобразует индекс металла в его наименование.
+        /// -1 (не выбран) → «не выбран»; выход за границы → «#index».
+        /// </summary>
+        private static string ResolveMetal(int index, IReadOnlyList<Metal>? metals)
+        {
+            if (index < 0) return "не выбран";
+            if (metals == null || index >= metals.Count) return $"#{index}";
+
+            var name = metals[index]?.Name;
+            return string.IsNullOrWhiteSpace(name) ? $"#{index}" : name!;
+        }
+
+        /// <summary>
+        /// Преобразует индекс типа заготовки в его наименование.
+        /// -1 (не выбран) → «не выбран»; выход за границы → «#index».
+        /// </summary>
+        private static string ResolveTypeDetail(int index, IReadOnlyList<TypeDetail>? types)
+        {
+            if (index < 0) return "не выбран";
+            if (types == null || index >= types.Count) return $"#{index}";
+
+            var name = types[index]?.Name;
+            return string.IsNullOrWhiteSpace(name) ? $"#{index}" : name!;
         }
     }
 }

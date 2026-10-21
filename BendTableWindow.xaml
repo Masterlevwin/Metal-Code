@@ -1,0 +1,220 @@
+﻿<Window x:Class="Metal_Code.BendTableWindow"
+        xmlns:hc="https://handyorg.github.io/handycontrol"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Справочник гибки листового металла" 
+        Height="720" Width="1200"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource RegionBrush}">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Заголовок и выбор материала -->
+        <Border Grid.Row="0" Background="{DynamicResource SecondaryRegionBrush}" 
+        CornerRadius="4" Padding="12" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="Таблица гибов" FontSize="18" FontWeight="Bold"
+                       Foreground="{DynamicResource PrimaryTextBrush}" Margin="0,0,0,6"/>
+                    <TextBlock Text="Усилие указано в тоннах на 1 метр длины гиба" 
+                       FontSize="10" Foreground="Gray" FontStyle="Italic"/>
+                </StackPanel>
+
+                <!-- Выбор материала -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Материал:" VerticalAlignment="Center" 
+                       FontWeight="SemiBold" Margin="0,0,8,0"/>
+                    <ComboBox x:Name="MaterialComboBox" Width="240"
+                      SelectionChanged="MaterialComboBox_SelectionChanged"
+                      Style="{StaticResource ComboBoxExtend}"
+                      DisplayMemberPath="Name"
+                      SelectedValuePath="Id"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- ═══ Таблица матриц ═══ -->
+        <DataGrid Grid.Row="1" x:Name="BendDataGrid"
+          AutoGenerateColumns="False"
+          IsReadOnly="True"
+          CanUserAddRows="False"
+          CanUserDeleteRows="False"
+          HeadersVisibility="Column"
+          GridLinesVisibility="All"
+          BorderThickness="1"
+          BorderBrush="{DynamicResource BorderBrush}"
+          Background="White"
+          AlternatingRowBackground="#F5F7FA"
+          RowHeight="30"
+          ColumnHeaderHeight="36"
+          FontSize="12"
+          HorizontalScrollBarVisibility="Auto"
+          VerticalScrollBarVisibility="Auto"
+          SelectionUnit="Cell"
+          SelectionMode="Single"
+          CurrentCellChanged="BendDataGrid_CurrentCellChanged">
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Матрица&#x0a;V, мм" Binding="{Binding MatrixWidth}" Width="70">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="Foreground" Value="#1565C0"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="Мин.&#x0a;полка, мм" Binding="{Binding MinFlange, StringFormat={}{0:0.#}}" Width="75">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="Радиус&#x0a;R, мм" Binding="{Binding InnerRadius, StringFormat={}{0:0.#}}" Width="65">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Setter Property="Foreground" Value="Gray"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="0.8" Binding="{Binding Force_08}" Width="52"/>
+                <DataGridTextColumn Header="1.0" Binding="{Binding Force_10}" Width="52"/>
+                <DataGridTextColumn Header="1.2" Binding="{Binding Force_12}" Width="52"/>
+                <DataGridTextColumn Header="1.5" Binding="{Binding Force_15}" Width="52"/>
+                <DataGridTextColumn Header="2.0" Binding="{Binding Force_20}" Width="52"/>
+                <DataGridTextColumn Header="2.5" Binding="{Binding Force_25}" Width="52"/>
+                <DataGridTextColumn Header="3.0" Binding="{Binding Force_30}" Width="52"/>
+                <DataGridTextColumn Header="4.0" Binding="{Binding Force_40}" Width="52"/>
+                <DataGridTextColumn Header="5.0" Binding="{Binding Force_50}" Width="52"/>
+                <DataGridTextColumn Header="6.0" Binding="{Binding Force_60}" Width="52"/>
+                <DataGridTextColumn Header="8.0" Binding="{Binding Force_80}" Width="52"/>
+                <DataGridTextColumn Header="10.0" Binding="{Binding Force_100}" Width="52"/>
+            </DataGrid.Columns>
+
+            <DataGrid.CellStyle>
+                <Style TargetType="DataGridCell">
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                    <Setter Property="Padding" Value="2"/>
+                    <Setter Property="BorderThickness" Value="0.5"/>
+                    <Setter Property="BorderBrush" Value="#E0E0E0"/>
+                </Style>
+            </DataGrid.CellStyle>
+
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="FontSize" Value="11"/>
+                    <Setter Property="Background" Value="#E3F2FD"/>
+                    <Setter Property="Padding" Value="4,2"/>
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
+        </DataGrid>
+
+        <Border Grid.Row="2" Background="{DynamicResource SecondaryRegionBrush}" 
+        CornerRadius="4" Padding="12" Margin="0,12,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Ввод длины гиба -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Длина гиба, мм:" VerticalAlignment="Center" 
+                       FontWeight="SemiBold" Margin="0,0,8,0"/>
+                    <hc:NumericUpDown x:Name="BendLengthInput" Width="100"
+                              Value="1000" Minimum="1" Maximum="3000"
+                              ValueChanged="BendLengthInput_ValueChanged"/>
+                </StackPanel>
+
+                <!-- Результат для выделенной ячейки -->
+                <Border Grid.Column="1" Margin="20,0" Padding="10,4"
+                Background="#E3F2FD" CornerRadius="4">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Усилие: " VerticalAlignment="Center"/>
+                        <TextBlock x:Name="CalculatedForceText" 
+                           Text="—" FontWeight="Bold" FontSize="14"
+                           Foreground="#1565C0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="CanBendText" 
+                           Text="" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Подсказка -->
+                <TextBlock Grid.Column="2" VerticalAlignment="Center" 
+                   FontSize="11" Foreground="Gray" FontStyle="Italic"
+                   Text="Кликните по ячейке таблицы для расчёта"/>
+            </Grid>
+        </Border>
+
+        <!-- ═══ Нижний блок ═══ -->
+        <Border Grid.Row="3" Background="{DynamicResource SecondaryRegionBrush}" 
+                CornerRadius="4" Padding="12" Margin="0,12,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Формула -->
+                <StackPanel>
+                    <TextBlock Text="Формула расчёта усилия:" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,4"/>
+                    <TextBlock FontFamily="Consolas" FontSize="11" Foreground="#1565C0">
+        <Run Text="F = 1.33 × "/>
+        <Run x:Name="SigmaRun" Text="450" FontWeight="Bold"/>
+        <Run Text=" × S² × L / V"/>
+                    </TextBlock>
+                    <TextBlock x:Name="FormulaDescriptionText" FontSize="10" Foreground="Gray" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <!-- Правило минимальной полки -->
+                <StackPanel Grid.Column="1" Margin="24,0">
+                    <TextBlock Text="Минимальная полка:" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,4"/>
+                    <TextBlock FontSize="11">
+                        <Run Text="1. Половина № матрицы"/>
+                        <LineBreak/>
+                        <Run Text="2. + толщина металла + 1 мм"/>
+                        <LineBreak/>
+                        <Run Text="3. = минимальная полка гиба"/>
+                    </TextBlock>
+                </StackPanel>
+
+                <!-- Легенда -->
+                <StackPanel Grid.Column="2" Margin="24,0,0,0">
+                    <TextBlock Text="Обозначения:" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,4"/>
+                    <TextBlock FontSize="11" Margin="0,0,0,2">
+                        <Run Text="—" FontWeight="Bold" Foreground="Red"/>
+                        <Run Text=" недопустимая комбинация"/>
+                    </TextBlock>
+                    <TextBlock FontSize="11">
+                        <Run Text="т/м" FontWeight="Bold"/>
+                        <Run Text=" тонн на метр гиба"/>
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

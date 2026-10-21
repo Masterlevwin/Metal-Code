@@ -4993,9 +4993,7 @@ namespace Metal_Code
                         {
                             // Определяем, круглая ли труба (по названию типа или если высота B равна 0 или равна ширине A)
                             string pipeType = type.TypeDetailDrop.Text ?? "Труба";
-                            bool isRoundPipe = pipeType.Contains("кругл", StringComparison.OrdinalIgnoreCase)
-                                               || type.B == 0
-                                               || Math.Abs(type.A - type.B) < 0.01f;
+                            bool isRoundPipe = pipeType.Contains("кругл", StringComparison.OrdinalIgnoreCase) || type.B == 0;
 
                             // Формируем строку размера: для круглой "A x S", для профильной "A x B x S"
                             string sizeStr = isRoundPipe ? $"{type.A}x{type.S}" : $"{type.A}x{type.B}x{type.S}";
@@ -5037,9 +5035,7 @@ namespace Metal_Code
                         else if (w.workType is SawControl _saw)         //для лентопила указываем вид заготовки по аналогии с труборезом
                         {
                             string sawType = type.TypeDetailDrop.Text ?? "Труба";
-                            bool isRoundSaw = sawType.Contains("кругл", StringComparison.OrdinalIgnoreCase)
-                                              || type.B == 0
-                                              || Math.Abs(type.A - type.B) < 0.01f;
+                            bool isRoundSaw = sawType.Contains("кругл", StringComparison.OrdinalIgnoreCase) || type.B == 0;
 
                             string sawSizeStr = isRoundSaw ? $"{type.A}x{type.S}" : $"{type.A}x{type.B}x{type.S}";
                             string sawBaseDesc = $"{sawType} {sawSizeStr} {type.MetalDrop.Text}";
@@ -5230,7 +5226,7 @@ namespace Metal_Code
                                 if ($"{key}".Trim() == $"Окраска в {assembly.Ral} {assembly.Structure}".Trim())
                                 {
                                     _count += assembly.Count;
-                                    _square += assembly.Square;
+                                    _square += assembly.TotalSquare;
                                 }
                             }
 
@@ -8735,35 +8731,42 @@ namespace Metal_Code
         //------------Таблица гибов-------------------------------//
         private void ShowTableOfBends(object sender, RoutedEventArgs e)
         {
-            string header = $"Таблица гибов";
-            ExtraWindow extraWindow = new(header);
-            Image image = new() { Source = new BitmapImage(new Uri("Images/tableofbends.jpg", UriKind.Relative)), MaxWidth = 800 };
-            extraWindow.ContentStack.Children.Add(image);
-            TextBlock tb = new()
-            {
-                Text = $"Максимальная длина гиба – 2550 мм.\r\n" +
-                $"Коэффициент для развертки – 0,4 мм.\r\n" +
-                $"Проверить усилие станка по таблице гибов:\r\n" +
-                $"1. Определяем № матрицы.\r\n" +
-                $"2. На пересечении матрицы и толщины металла\r\n" +
-                $"получаем количество тонн на метр гиба.\r\n" +
-                $"3. Умножаем это значение на фактический размер гиба.\r\n" +
-                $"4. Если результат меньше 100 тонн, значит согнём!\r\n" +
-                $"Проверить размер полки выбранной матрицы:\r\n" +
-                $"1. Берем половину от № матрицы.\r\n" +
-                $"2. Добавляем толщину металла и 1 мм на зацеп.\r\n" +
-                $"3. Полученный результат – минимальная полка гиба.\r\n" +
-                $"Проверить внутренний размер между гибами:\r\n" +
-                $"если этот размер меньше полок, второй гиб может не получиться из-за того,\r\n" +
-                $"что полка первого гиба будет упираться в станок.\r\n" +
-                $"Этот момент уточняется экспериментальным путем у специалиста - гибщика!",
-                Margin = new Thickness(20),
-            };
-            extraWindow.ContentStack.Children.Add(tb);
-            extraWindow.Show();
+            var window = new BendTableWindow { Owner = this };
+            window.Show();
         }
 
+        //private void ShowTableOfBends(object sender, RoutedEventArgs e)
+        //{
+        //    string header = $"Таблица гибов";
+        //    ExtraWindow extraWindow = new(header);
+        //    Image image = new() { Source = new BitmapImage(new Uri("Images/tableofbends.jpg", UriKind.Relative)), MaxWidth = 800 };
+        //    extraWindow.ContentStack.Children.Add(image);
+        //    TextBlock tb = new()
+        //    {
+        //        Text = $"Максимальная длина гиба – 2550 мм.\r\n" +
+        //        $"Коэффициент для развертки – 0,4 мм.\r\n" +
+        //        $"Проверить усилие станка по таблице гибов:\r\n" +
+        //        $"1. Определяем № матрицы.\r\n" +
+        //        $"2. На пересечении матрицы и толщины металла\r\n" +
+        //        $"получаем количество тонн на метр гиба.\r\n" +
+        //        $"3. Умножаем это значение на фактический размер гиба.\r\n" +
+        //        $"4. Если результат меньше 100 тонн, значит согнём!\r\n" +
+        //        $"Проверить размер полки выбранной матрицы:\r\n" +
+        //        $"1. Берем половину от № матрицы.\r\n" +
+        //        $"2. Добавляем толщину металла и 1 мм на зацеп.\r\n" +
+        //        $"3. Полученный результат – минимальная полка гиба.\r\n" +
+        //        $"Проверить внутренний размер между гибами:\r\n" +
+        //        $"если этот размер меньше полок, второй гиб может не получиться из-за того,\r\n" +
+        //        $"что полка первого гиба будет упираться в станок.\r\n" +
+        //        $"Этот момент уточняется экспериментальным путем у специалиста - гибщика!",
+        //        Margin = new Thickness(20),
+        //    };
+        //    extraWindow.ContentStack.Children.Add(tb);
+        //    extraWindow.Show();
+        //}
+
         //------------Смена темы----------------------------------//
+
         public static void ThemeChange(string style)
         {
             // определяем путь к файлу ресурсов
@@ -8939,11 +8942,17 @@ namespace Metal_Code
 
                 // 3. Запуск сравнения
                 var service = new OfferComparisonService();
+
+                var firstCtrl = DetailControls.FirstOrDefault()?.TypeDetailControls.FirstOrDefault();
+
+                var typeDetailsSource = firstCtrl?.TypeDetailDrop.ItemsSource as IEnumerable<TypeDetail>;
+                var metalsSource = firstCtrl?.MetalDrop.ItemsSource as IEnumerable<Metal>;
+
                 var result = service.Compare(
                     productA, productB,
                     (decimal)selected.Amount, amountB,
                     $"Расчёт {selected.N} {selected.Company} ({selected.CreatedDate:dd.MM.yyyy})",
-                    titleB);
+                    titleB, metalsSource?.ToList(), typeDetailsSource?.ToList());
 
                 var window = new OfferComparisonWindow(result) { Owner = this };
                 window.Show();
