@@ -1,4 +1,5 @@
 ﻿using Metal_Code.Models;
+using Metal_Code.Services;
 using Metal_Code.Utils;
 using Microsoft.Win32;
 using netDxf;
@@ -63,6 +64,9 @@ namespace Metal_Code
         private const double HoleClickTolerancePx = 15;
 
         private readonly ObservableCollection<LengthChipItem> _recentChips = new();
+
+        public event Action<StandartPartWindow>? PartsAdded;
+
         #endregion
 
         #region
@@ -93,6 +97,19 @@ namespace Metal_Code
                 {
                     if (_currentPart.Width > 0 && _currentPart.Height > 0)
                         UpdatePreview();
+                }
+
+                // 3. Перерасчёт матрицы при изменении длины гиба (ширина/высота)
+                // Защита _isUpdatingFromBend предотвращает дублирующий вызов из RecalculateBends
+                if (!_isUpdatingFromBend &&
+                    (e.PropertyName == nameof(Part.Width) || e.PropertyName == nameof(Part.Height)))
+                {
+                    bool hasX = BendEditorX != null && BendEditorX.HasProfile && BendEditorX.Profile.IsFinished;
+                    bool hasY = BendEditorY != null && BendEditorY.HasProfile && BendEditorY.Profile.IsFinished;
+                    if (hasX || hasY)
+                    {
+                        UpdateMatrixRecommendation();
+                    }
                 }
 
                 // Автогенерация имени для ЛИСТОВЫХ деталей
@@ -1448,6 +1465,234 @@ namespace Metal_Code
         private const double BendKFactor = 0.4;
         private bool _isUpdatingFromBend = false;
 
+        private readonly BendTableService _bendTableService = new();
+
+        /// <summary>
+        /// Определяет идентификатор материала для таблицы гибов по названию металла детали.
+        /// </summary>
+        private string DetermineMaterialId()
+        {
+            string metal = _currentPart.Metal?.ToLowerInvariant() ?? "";
+
+            if (metal.Contains("aisi") || metal.Contains("нерж"))
+                return "stainless";
+            else if (metal.Contains("амг") || metal.Contains("д16") || metal.Contains("алюм"))
+                return "aluminum";
+            else if (metal.Contains("латунь") || metal.Contains("br"))
+                return "brass";
+            else if (metal.Contains("медь") || metal.Contains("cu") || metal.Contains("cu."))
+                return "copper";
+            else
+                return "steel"; // ст3, хк, 09г2с и прочие
+        }
+
+        /// <summary>
+        /// Подбирает оптимальную матрицу для текущих профилей гибки.
+        /// Критерии: минимальная полка, допустимость по толщине, усилие ≤ 100 т.
+        /// </summary>
+        private void UpdateMatrixRecommendation()
+        {
+            if (MatrixRecommendationText == null || MatrixRecommendationBorder == null) return;
+
+            bool hasX = BendEditorX != null && BendEditorX.HasProfile && BendEditorX.Profile.IsFinished;
+            bool hasY = BendEditorY != null && BendEditorY.HasProfile && BendEditorY.Profile.IsFinished;
+
+            if (!hasX && !hasY)
+            {
+                MatrixRecommendationBorder.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            var (bendsX, bendsY) = CalculateBendsInfo();
+
+            double minShelf = double.MaxValue;
+            double maxBendLength = 0;
+            int totalBends = 0;
+
+            foreach (var kvp in bendsX)
+            {
+                minShelf = Math.Min(minShelf, kvp.Key);
+                maxBendLength = Math.Max(maxBendLength, kvp.Value.BendLength);
+                totalBends += kvp.Value.Count;
+            }
+            foreach (var kvp in bendsY)
+            {
+                minShelf = Math.Min(minShelf, kvp.Key);
+                maxBendLength = Math.Max(maxBendLength, kvp.Value.BendLength);
+                totalBends += kvp.Value.Count;
+            }
+
+            if (minShelf == double.MaxValue || maxBendLength <= 0 || totalBends == 0)
+            {
+                MatrixRecommendationBorder.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            string materialId = DetermineMaterialId();
+            double thickness = _currentPart.Destiny;
+            string thicknessKey = thickness.ToString("0.0", CultureInfo.InvariantCulture);
+
+            var candidateMatrices = _bendTableService.GetAllMatrices()
+                .Where(m => m.Forces.ContainsKey(materialId)
+                         && m.Forces[materialId].ContainsKey(thicknessKey))
+                .Where(m => m.MinFlange <= minShelf)
+                .OrderBy(m => m.MatrixWidth)
+                .ToList();
+
+            if (candidateMatrices.Count == 0)
+            {
+                ShowRecommendation(
+                    $"⚠ Гибка недопустима: полка {minShelf:0.#} мм слишком мала для толщины {thickness:0.#} мм.",
+                    Brushes.OrangeRed);
+                return;
+            }
+
+            // Ищем матрицу, подходящую по усилию
+            BendMatrixData? forceMatrix = null;
+            double? bestForce = null;
+
+            foreach (var matrix in candidateMatrices)
+            {
+                double? force = _bendTableService.GetBendingForce(
+                    matrix.MatrixWidth, thickness, materialId, maxBendLength);
+
+                if (force.HasValue && force.Value <= 100)
+                {
+                    forceMatrix = matrix;
+                    bestForce = force;
+                    break;
+                }
+            }
+
+            if (forceMatrix == null || bestForce == null)
+            {
+                var bestMatrix = candidateMatrices.Last();
+                double? lastForce = _bendTableService.GetBendingForce(
+                    bestMatrix.MatrixWidth, thickness, materialId, maxBendLength);
+                double? lastForcePerMeter = _bendTableService.GetBendingForce(
+                    bestMatrix.MatrixWidth, thickness, materialId, 1000);
+
+                ShowRecommendation(
+                    $"✗ Усилие превышает 100 т даже на максимальной матрице: " +
+                    $"V={bestMatrix.MatrixWidth:0} → {lastForcePerMeter:0.#} т/м × {maxBendLength:0} мм = {lastForce:0.#} т.",
+                    Brushes.OrangeRed);
+                return;
+            }
+
+            var profileProblems = new List<string>();
+            bool hasComplexProfile = false;
+
+            if (hasX && BendEditorX != null)
+            {
+                var segmentsX = GetSegmentLengths(BendEditorX.Profile);
+                if (segmentsX.Count <= 3)
+                {
+                    var problemsX = _bendTableService.ValidateProfileForMatrix(
+                        forceMatrix, thickness, segmentsX);
+                    profileProblems.AddRange(problemsX.Select(p => $"X: {p}"));
+                }
+                else
+                {
+                    hasComplexProfile = true;
+                }
+            }
+
+            if (hasY && BendEditorY != null)
+            {
+                var segmentsY = GetSegmentLengths(BendEditorY.Profile);
+                if (segmentsY.Count <= 3)
+                {
+                    var problemsY = _bendTableService.ValidateProfileForMatrix(
+                        forceMatrix, thickness, segmentsY);
+                    profileProblems.AddRange(problemsY.Select(p => $"Y: {p}"));
+                }
+                else
+                {
+                    hasComplexProfile = true;
+                }
+            }
+
+            double? forcePerMeter = _bendTableService.GetBendingForce(
+                forceMatrix.MatrixWidth, thickness, materialId, 1000);
+
+            if (profileProblems.Count > 0)
+            {
+                // Собираем предложения по исправлению
+                var allSuggestions = new List<BendFixSuggestion>();
+
+                if (hasX && BendEditorX != null)
+                {
+                    var segmentsX = GetSegmentLengths(BendEditorX.Profile);
+                    var suggestionsX = _bendTableService.SuggestProfileFixes(
+                        forceMatrix, thickness, segmentsX);
+                    allSuggestions.AddRange(suggestionsX);
+                }
+
+                if (hasY && BendEditorY != null)
+                {
+                    var segmentsY = GetSegmentLengths(BendEditorY.Profile);
+                    var suggestionsY = _bendTableService.SuggestProfileFixes(
+                        forceMatrix, thickness, segmentsY);
+                    allSuggestions.AddRange(suggestionsY);
+                }
+
+                string problemsText = string.Join("\n", profileProblems.Select(p => $"  • {p}"));
+
+                string suggestionsText = allSuggestions.Count > 0
+                    ? "\nВарианты исправления:\n" + string.Join("\n", allSuggestions.Select(s => $"  → {s.Description}"))
+                    : "\nИзмените размеры профиля или подберите другую матрицу.";
+
+                ShowRecommendation(
+                    $"⚠ Матрица V={forceMatrix.MatrixWidth:0} подходит по усилию ({forcePerMeter:0.#} т/м), " +
+                    $"но профиль согнуть невозможно:\n{problemsText}\n{suggestionsText}",
+                    Brushes.OrangeRed);
+            }
+            else if (hasComplexProfile)
+            {
+                ShowRecommendation(
+                    $"⚠ Матрица V={forceMatrix.MatrixWidth:0} мм подходит по усилию " +
+                    $"({forcePerMeter:0.#} т/м × {maxBendLength:0} мм = {bestForce.Value:0.#} т), " +
+                    $"но профиль содержит более 3 гибов.\n" +
+                    $"Автоматическая проверка геометрии невозможна — " +
+                    $"согласуйте возможность гибки и последовательность операций с гибщиком.\n" +
+                    $"Полка от {forceMatrix.MinFlange:0.#} мм | Радиус R={forceMatrix.InnerRadius:0.#} мм | " +
+                    $"Гибов: {totalBends}",
+                    Brushes.DarkOrange);
+            }
+            else
+            {
+                ShowRecommendation(
+                    $"✓ Матрица V={forceMatrix.MatrixWidth:0} мм | " +
+                    $"Усилие: {forcePerMeter:0.#} т/м × {maxBendLength:0} мм = {bestForce.Value:0.#} т | " +
+                    $"Полка от {forceMatrix.MinFlange:0.#} мм | Радиус R={forceMatrix.InnerRadius:0.#} мм | " +
+                    $"Гибов: {totalBends}",
+                    Brushes.Green);
+            }
+        }
+
+        /// <summary>
+        /// Возвращает список длин сегментов профиля.
+        /// </summary>
+        private static List<double> GetSegmentLengths(BendProfileDrawing profile)
+        {
+            var lengths = new List<double>();
+
+            for (int i = 0; i < profile.SegmentsCount; i++)
+            {
+                lengths.Add(profile.GetSegmentLength(i));
+            }
+
+            return lengths;
+        }
+
+        /// <summary>Отображает текст рекомендации с заданным цветом.</summary>
+        private void ShowRecommendation(string text, Brush foreground)
+        {
+            MatrixRecommendationText.Text = text;
+            MatrixRecommendationText.Foreground = foreground;
+            MatrixRecommendationBorder.Visibility = Visibility.Visible;
+        }
+
         private double BendCompensation
         {
             get
@@ -1512,6 +1757,7 @@ namespace Metal_Code
 
                 UpdateMainDimensionsState(hasX, hasY);
                 UpdateBendInfo(hasX, hasY);
+                UpdateMatrixRecommendation();
             }
             finally
             {
@@ -1646,6 +1892,10 @@ namespace Metal_Code
             BendEditorY?.Profile.Clear();
             if (BendInfoText != null) BendInfoText.Text = "Профили не заданы";
             UpdateMainDimensionsState(false, false);
+
+            // Скрываем рекомендацию
+            if (MatrixRecommendationBorder != null)
+                MatrixRecommendationBorder.Visibility = Visibility.Collapsed;
         }
 
         #endregion
@@ -2135,7 +2385,7 @@ namespace Metal_Code
                               Clamp160Radio.IsChecked == true ? 160 : 0;
             CustomCutLoss = double.TryParse(CutLossInput.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double cl) && cl >= 0 ? cl : 10;
 
-            DialogResult = true;
+            PartsAdded?.Invoke(this);
             Close();
         }
 

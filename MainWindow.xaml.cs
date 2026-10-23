@@ -113,8 +113,12 @@ namespace Metal_Code
         private string _searchQuery = string.Empty;
         private bool _isProductionMode = false;
 
-        private readonly Dictionary<string, float> TempWorksDict = new();                                       //временный словарь работ
+        // Для управления немодальным окном стандартных деталей
+        public StandartPartWindow? ActiveStandardPartsWindow { get; set; }
+        public object? ActiveStandardPartsTarget { get; set; } // Ссылка на PartsControl или CutControl, который его открыл
+        public string? ActiveStandardPartsContext { get; set; } // Описание контекста, например: "Ст3, 2мм, Лист"
 
+        private readonly Dictionary<string, float> TempWorksDict = new();                                       //временный словарь работ
         public readonly List<float> Destinies = new() { .5f, .7f, .8f, 1, 1.2f, 1.5f, 2, 2.5f, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 25, 30 };
         public Dictionary<string, Dictionary<float, (float, float, float)>> MetalDict = new();                  //словарь материалов
         public Dictionary<double, float> WideDict = new();                                                      //словарь отверстий

@@ -64,40 +64,231 @@ namespace Metal_Code.Services
             if (matrix == null) return null;
             if (!matrix.Forces.TryGetValue(materialId, out var materialForces)) return null;
 
-            // Используем инвариантную культуру: десятичная точка, а не запятая
-            string key = thickness.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+            string key = thickness.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
             if (!materialForces.TryGetValue(key, out double forcePerMeter)) return null;
 
             return forcePerMeter * (bendLengthMm / 1000.0);
         }
 
-        /// <summary>
-        /// Подобрать оптимальную матрицу для заданных параметров.
-        /// Возвращает наименьшую подходящую матрицу.
-        /// </summary>
-        public BendMatrixData? FindOptimalMatrix(double thickness, double flangeWidth,
-            string materialId = "steel")
-        {
-            if (_tableData == null) return null;
-
-            string thicknessKey = thickness.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
-
-            return _tableData.Matrices
-                .Where(m =>
-                {
-                    bool hasValidForce = m.Forces.TryGetValue(materialId, out var forces)
-                        && forces.ContainsKey(thicknessKey);
-                    return hasValidForce && m.MinFlange <= flangeWidth;
-                })
-                .OrderBy(m => m.MatrixWidth)
-                .FirstOrDefault();
-        }
-
         /// <summary>Получить все доступные матрицы.</summary>
         public List<BendMatrixData> GetAllMatrices() => _tableData?.Matrices ?? new List<BendMatrixData>();
 
-        /// <summary>Получить метаданные таблицы (используется в BendTableWindow).</summary>
-        public BendTableMetadata GetMetadata() => _tableData?.Metadata ?? new BendTableMetadata();
+        /// <summary>
+        /// Проверяет возможность гибки профиля на данной матрице.
+        /// Возвращает список проблем (пустой = всё в порядке).
+        /// </summary>
+        public List<string> ValidateProfileForMatrix(
+            BendMatrixData matrix,
+            double thickness,
+            List<double> segmentLengths)
+        {
+            var problems = new List<string>();
+            double V = matrix.MatrixWidth;
+            double halfV = V / 2.0;
+            double grooveDepth = matrix.GrooveDepth;
+
+            // 1. Проверка минимальной полки (крайние сегменты)
+            double minFlange = segmentLengths.Min();
+            if (minFlange < matrix.MinFlange)
+            {
+                problems.Add(
+                    $"Полка {minFlange:0.#} мм < минимальной полки матрицы {matrix.MinFlange:0.#} мм");
+            }
+
+            // 2. Проверка внутренних сегментов (стенок между гибами)
+            //    и максимальных полок, которые могут мешать
+            for (int i = 1; i < segmentLengths.Count - 1; i++)
+            {
+                double wall = segmentLengths[i];
+
+                // Минимальная стенка (Уровень 1)
+                double minWall = grooveDepth + 2 * thickness;
+                if (wall < minWall)
+                {
+                    problems.Add(
+                        $"Стенка {wall:0.#} мм < минимальной {minWall:0.#} мм " +
+                        $"(паз {grooveDepth:0.#} + 2×{thickness:0.#})");
+                }
+
+                // Максимальная полка, которая не будет мешать (Уровень 2)
+                // Проверяем полку слева от стенки
+                double flangeBefore = segmentLengths[i - 1];
+                double maxFlangeBefore = wall + halfV - thickness;
+                if (flangeBefore > maxFlangeBefore)
+                {
+                    problems.Add(
+                        $"Полка {flangeBefore:0.#} мм перед стенкой {wall:0.#} мм " +
+                        $"превышает максимум {maxFlangeBefore:0.#} мм " +
+                        $"(стенка + V/2 − S = {wall:0.#} + {halfV:0.#} − {thickness:0.#})");
+                }
+
+                // Проверяем полку справа от стенки
+                double flangeAfter = segmentLengths[i + 1];
+                double maxFlangeAfter = wall + halfV - thickness;
+                if (flangeAfter > maxFlangeAfter)
+                {
+                    problems.Add(
+                        $"Полка {flangeAfter:0.#} мм после стенки {wall:0.#} мм " +
+                        $"превышает максимум {maxFlangeAfter:0.#} мм");
+                }
+            }
+
+            return problems;
+        }
+
+        /// <summary>
+        /// Предлагает минимальные изменения размеров профиля для успешной гибки на данной матрице.
+        /// Сегменты из <paramref name="fixedSegmentIndices"/> не предлагается менять — 
+        /// вместо этого предлагаются изменения соседних сегментов.
+        /// </summary>
+        /// <param name="matrix">Подобранная матрица.</param>
+        /// <param name="thickness">Толщина металла, мм.</param>
+        /// <param name="segmentLengths">Длины сегментов профиля по порядку.</param>
+        /// <param name="fixedSegmentIndices">Индексы сегментов, которые нельзя менять (зафиксированы пользователем).</param>
+        public List<BendFixSuggestion> SuggestProfileFixes(
+            BendMatrixData matrix,
+            double thickness,
+            List<double> segmentLengths,
+            HashSet<int>? fixedSegmentIndices = null)
+        {
+            fixedSegmentIndices ??= new HashSet<int>();
+            var suggestions = new List<BendFixSuggestion>();
+
+            double V = matrix.MatrixWidth;
+            double halfV = V / 2.0;
+            double grooveDepth = matrix.GrooveDepth;
+            double minInternalSize = grooveDepth + 2 * thickness;
+
+            for (int i = 1; i < segmentLengths.Count - 1; i++)
+            {
+                double wall = segmentLengths[i];
+                bool wallFixed = fixedSegmentIndices.Contains(i);
+
+                // ═══ Правило 1: минимальная стенка ═══
+                if (wall < minInternalSize)
+                {
+                    if (!wallFixed)
+                    {
+                        suggestions.Add(new BendFixSuggestion
+                        {
+                            SegmentIndex = i,
+                            CurrentValue = wall,
+                            SuggestedValue = Math.Ceiling(minInternalSize),
+                            Description = $"Увеличьте стенку {wall:0.#} → {Math.Ceiling(minInternalSize):0.#} мм"
+                        });
+                    }
+                    else
+                    {
+                        // Стенка зафиксирована и мала → нужна матрица с меньшей глубиной паза
+                        suggestions.Add(new BendFixSuggestion
+                        {
+                            SegmentIndex = i,
+                            CurrentValue = wall,
+                            SuggestedValue = wall, // не меняем
+                            Description = $"Стенка {wall:0.#} мм зафиксирована и меньше минимума {minInternalSize:0.#} мм — требуется матрица с меньшей глубиной паза"
+                        });
+                    }
+                }
+
+                // ═══ Правило 2: максимальная полка слева от стенки ═══
+                double flangeBefore = segmentLengths[i - 1];
+                double maxFlange = wall + halfV - thickness;
+
+                if (flangeBefore > maxFlange)
+                {
+                    bool flangeFixed = fixedSegmentIndices.Contains(i - 1);
+
+                    if (!flangeFixed)
+                    {
+                        // Полка не зафиксирована → предлагаем уменьшить полку
+                        suggestions.Add(new BendFixSuggestion
+                        {
+                            SegmentIndex = i - 1,
+                            CurrentValue = flangeBefore,
+                            SuggestedValue = Math.Floor(maxFlange),
+                            Description = $"Уменьшите полку {flangeBefore:0.#} → {Math.Floor(maxFlange):0.#} мм"
+                        });
+                    }
+
+                    if (!wallFixed)
+                    {
+                        // Стенка не зафиксирована → предлагаем увеличить стенку
+                        // Из формулы: макс_полка = стенка + V/2 − S  →  стенка = полка − V/2 + S
+                        double requiredWall = flangeBefore - halfV + thickness;
+                        if (requiredWall > wall)
+                        {
+                            suggestions.Add(new BendFixSuggestion
+                            {
+                                SegmentIndex = i,
+                                CurrentValue = wall,
+                                SuggestedValue = Math.Ceiling(requiredWall),
+                                Description = flangeFixed
+                                    ? $"Увеличьте стенку {wall:0.#} → {Math.Ceiling(requiredWall):0.#} мм (полка {flangeBefore:0.#} мм сохранится)"
+                                    : $"Или увеличьте стенку {wall:0.#} → {Math.Ceiling(requiredWall):0.#} мм"
+                            });
+                        }
+                    }
+                }
+
+                // ═══ Правило 3: максимальная полка справа от стенки ═══
+                double flangeAfter = segmentLengths[i + 1];
+
+                if (flangeAfter > maxFlange)
+                {
+                    bool flangeFixed = fixedSegmentIndices.Contains(i + 1);
+
+                    if (!flangeFixed)
+                    {
+                        suggestions.Add(new BendFixSuggestion
+                        {
+                            SegmentIndex = i + 1,
+                            CurrentValue = flangeAfter,
+                            SuggestedValue = Math.Floor(maxFlange),
+                            Description = $"Уменьшите полку {flangeAfter:0.#} → {Math.Floor(maxFlange):0.#} мм"
+                        });
+                    }
+
+                    if (!wallFixed)
+                    {
+                        double requiredWall = flangeAfter - halfV + thickness;
+                        if (requiredWall > wall)
+                        {
+                            suggestions.Add(new BendFixSuggestion
+                            {
+                                SegmentIndex = i,
+                                CurrentValue = wall,
+                                SuggestedValue = Math.Ceiling(requiredWall),
+                                Description = flangeFixed
+                                    ? $"Увеличьте стенку {wall:0.#} → {Math.Ceiling(requiredWall):0.#} мм (полка {flangeAfter:0.#} мм сохранится)"
+                                    : $"Или увеличьте стенку {wall:0.#} → {Math.Ceiling(requiredWall):0.#} мм"
+                            });
+                        }
+                    }
+                }
+            }
+
+            // ═══ Правило 4: минимальная полка матрицы ═══
+            for (int i = 0; i < segmentLengths.Count; i++)
+            {
+                if (segmentLengths[i] < matrix.MinFlange && !fixedSegmentIndices.Contains(i))
+                {
+                    suggestions.Add(new BendFixSuggestion
+                    {
+                        SegmentIndex = i,
+                        CurrentValue = segmentLengths[i],
+                        SuggestedValue = Math.Ceiling(matrix.MinFlange),
+                        Description = $"Увеличьте полку {segmentLengths[i]:0.#} → {Math.Ceiling(matrix.MinFlange):0.#} мм (минимум для матрицы)"
+                    });
+                }
+            }
+
+            // Убираем дубликаты предложений по одному сегменту
+            return suggestions
+                .GroupBy(s => new { s.SegmentIndex, s.SuggestedValue })
+                .Select(g => g.First())
+                .OrderBy(s => s.SegmentIndex)
+                .ToList();
+        }
 
         #region Default Data
 
@@ -302,11 +493,33 @@ namespace Metal_Code.Services
         [JsonPropertyName("inner_radius")]
         public double InnerRadius { get; set; }
 
+        [JsonPropertyName("groove_depth")]
+        public double GrooveDepth { get; set; }
+
         /// <summary>
         /// Усилия по материалам: ключ — id материала ("steel", "stainless", ...),
         /// значение — словарь "толщина" → усилие (тонн/метр).
         /// </summary>
         [JsonPropertyName("forces")]
         public Dictionary<string, Dictionary<string, double>> Forces { get; set; } = new();
+    }
+
+    /// <summary>Предложение по изменению размера сегмента профиля для успешной гибки.</summary>
+    public class BendFixSuggestion
+    {
+        /// <summary>Индекс сегмента в профиле, который нужно изменить.</summary>
+        public int SegmentIndex { get; set; }
+
+        /// <summary>Текущий размер сегмента, мм.</summary>
+        public double CurrentValue { get; set; }
+
+        /// <summary>Предлагаемый размер сегмента, мм.</summary>
+        public double SuggestedValue { get; set; }
+
+        /// <summary>Человекочитаемое описание изменения.</summary>
+        public string Description { get; set; } = "";
+
+        /// <summary>Направление изменения: увеличить или уменьшить.</summary>
+        public bool IsIncrease => SuggestedValue > CurrentValue;
     }
 }

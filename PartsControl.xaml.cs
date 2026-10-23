@@ -1233,53 +1233,113 @@ namespace Metal_Code
         // Добавить стандартную деталь
         private void Add_StandartPart_Click(object sender, RoutedEventArgs e)
         {
-            // Подсвечиваем соответствующую кнопку в сайдбаре
-            StandardPartsToggle.IsChecked = true;
-
             try
             {
+                // Подсвечиваем соответствующую кнопку в сайдбаре
+                StandardPartsToggle.IsChecked = true;
+
                 (Metal? metal, float thickness, string? metalName) = GetMetalAndThickness(owner);
                 if (metal == null || string.IsNullOrEmpty(metalName)) return;
+
+                string currentContext = $"Материал: {metal.Name}, Толщина: {thickness}мм, Тип: {owner}";
+
+                if (MainWindow.M.ActiveStandardPartsWindow != null && MainWindow.M.ActiveStandardPartsWindow.IsLoaded)
+                {
+                    // 2а. Если оно открыто для ЭТОЙ ЖЕ заготовки - просто возвращаем ему фокус
+                    if (MainWindow.M.ActiveStandardPartsTarget == this)
+                    {
+                        MainWindow.M.ActiveStandardPartsWindow.Activate();
+                        MainWindow.M.ActiveStandardPartsWindow.Focus();
+                        return;
+                    }
+
+                    // 2б. Если оно открыто для ДРУГОЙ заготовки - блокируем и предупреждаем!
+                    MessageBox.Show(
+                        $"Окно добавления стандартных деталей уже открыто для другой заготовки:\n\n" +
+                        $"«{MainWindow.M.ActiveStandardPartsContext}»\n\n" +
+                        $"Пожалуйста, завершите добавление деталей туда или закройте окно, " +
+                        $"прежде чем работать с текущей заготовкой («{currentContext}»).",
+                        "Окно уже занято",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+
+                    // Переводим фокус на уже открытое окно, чтобы пользователь сразу его увидел
+                    MainWindow.M.ActiveStandardPartsWindow.Activate();
+                    return;
+                }
 
                 var templatePart = CreateStandardPart(metalName, thickness, 0);
                 if (templatePart == null) return;
 
                 PartPreviewGenerator.EnsureDisplayGeometry(templatePart);
 
-                var window = new StandartPartWindow(templatePart);
-                if (window.ShowDialog() == true)
+                var window = new StandartPartWindow(templatePart)
                 {
-                    var batchedParts = window.GetBatchedParts();
-                    var bendsInfo = window.GetBendsInfoForBatch();
+                    Title = $"Стандартные детали: {currentContext}",
+                    Owner = Window.GetWindow(this)
+                };
 
-                    if (batchedParts.Count > 0)
-                    {
-                        foreach (var part in batchedParts)
-                        {
-                            UpdatePartAfterEdit(part, metal, thickness);
-                        }
+                MainWindow.M.ActiveStandardPartsWindow = window;
+                MainWindow.M.ActiveStandardPartsTarget = this;
+                MainWindow.M.ActiveStandardPartsContext = currentContext;
 
-                        if (owner is CutControl cut)
-                        {
-                            AddBatchToCutControl(cut, batchedParts, metal, window.UseAutoNesting, window.CustomSpacing, bendsInfo);
-                        }
-                        else if (owner is PipeControl pipe)
-                        {
-                            AddBatchToPipeControl(pipe, batchedParts, metal, window.CustomClampZone, window.CustomCutLoss, window.PipeRemnants.ToList());
-                        }
-                        else if (owner is SawControl saw)
-                        {
-                            AddBatchToSawControl(saw, batchedParts, metal, window.CustomClampZone, window.CustomCutLoss, window.PipeRemnants.ToList());
-                        }
-                    }
+                window.PartsAdded += OnStandartPartWindow_PartsAdded;
+
+                window.Closed += (s, args) =>
+                {
+                    // Очистка при закрытии
+                    window.PartsAdded -= OnStandartPartWindow_PartsAdded;
+                    MainWindow.M.ActiveStandardPartsWindow = null;
+                    MainWindow.M.ActiveStandardPartsTarget = null;
+                    MainWindow.M.ActiveStandardPartsContext = null;
+
+                    // Сбрасываем подсветку кнопки только при реальном закрытии
+                    StandardPartsToggle.IsChecked = false;
+                    UpdateEmptyState();
+                };
+
+                // 7. Открываем немодально и включаем индикацию
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                // Гарантированный сброс кнопки при любой непредвиденной ошибке инициализации
+                StandardPartsToggle.IsChecked = false;
+                MainWindow.M.StatusBegin($"Ошибка открытия окна стандартных деталей: {ex.Message}", MainWindow.StatusMessageType.Error);
+            }
+        }
+
+        private void OnStandartPartWindow_PartsAdded(StandartPartWindow window)
+        {
+            var batchedParts = window.GetBatchedParts();
+            var bendsInfo = window.GetBendsInfoForBatch();
+
+            if (batchedParts.Count > 0)
+            {
+                // Получаем актуальные данные (на случай изменений в основном окне)
+                (Metal? metal, float thickness, string? metalName) = GetMetalAndThickness(owner);
+                if (metal == null || string.IsNullOrEmpty(metalName)) return;
+
+                foreach (var part in batchedParts)
+                    UpdatePartAfterEdit(part, metal, thickness);
+
+                // Ваша исходная логика добавления в зависимости от типа owner
+                if (owner is CutControl cut)
+                {
+                    AddBatchToCutControl(cut, batchedParts, metal, window.UseAutoNesting, window.CustomSpacing, bendsInfo);
+                }
+                else if (owner is PipeControl pipe)
+                {
+                    AddBatchToPipeControl(pipe, batchedParts, metal, window.CustomClampZone, window.CustomCutLoss, window.PipeRemnants.ToList());
+                }
+                else if (owner is SawControl saw)
+                {
+                    AddBatchToSawControl(saw, batchedParts, metal, window.CustomClampZone, window.CustomCutLoss, window.PipeRemnants.ToList());
                 }
             }
-            finally
-            {
-                // Сбрасываем подсветку кнопки в сайдбаре
-                StandardPartsToggle.IsChecked = false;
-                UpdateEmptyState();
-            }
+
+            // Раскомментируйте, если окно должно закрываться после каждого добавления:
+            window.Close();
         }
 
         private Part? CreateStandardPart(string metalName, float thickness, int countIndex)

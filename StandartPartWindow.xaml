@@ -215,22 +215,38 @@
                                             ProfileChanged="OnBendProfileChanged"
                                             Margin="0,0,8,0"/>
 
+                                <!-- Изометрия: информация о гибах + канвас -->
                                 <Border Grid.Column="2" BorderBrush="LightGray" BorderThickness="1" CornerRadius="4"
-                        Padding="6" Background="#F8F9FA" Width="170" VerticalAlignment="Stretch"
+                        Padding="6" Background="#F8F9FA" Width="170"
+                        VerticalAlignment="Stretch"
                         ToolTip="Изометрический вид собранной детали">
                                     <StackPanel>
+                                        <!-- Информация о гибах (над изометрией) -->
                                         <TextBlock x:Name="BendInfoText" Text="Профили не заданы"
                                    FontStyle="Italic" Foreground="Gray" FontSize="11"
-                                   TextWrapping="Wrap" Margin="0,0,0,6"
-                                   ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+                                   Margin="0,0,0,6" TextWrapping="Wrap"
+                                   VerticalAlignment="Top"/>
+
+                                        <!-- Канвас изометрии -->
                                         <Canvas x:Name="IsoPreviewCanvas" Height="120" Background="Transparent"
                                 SizeChanged="IsoPreviewCanvas_SizeChanged"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>
+
+                            <!-- Рекомендация по выбору матрицы (под редакторами, на всю ширину) -->
+                            <Border x:Name="MatrixRecommendationBorder" 
+                    Background="{DynamicResource SecondaryRegionBrush}"
+                    CornerRadius="4" Padding="8,6" Margin="0,8,0,0"
+                    Visibility="Collapsed">
+                                <TextBlock x:Name="MatrixRecommendationText"
+                           FontSize="11" FontWeight="SemiBold"
+                           TextWrapping="Wrap"/>
+                            </Border>
                         </StackPanel>
                     </Expander>
                 </Border>
+                
                 <!-- 3. Контейнер: Отверстия + Канвас развертки + Кнопка добавления -->
                 <Grid Margin="0,0,0,10">
                     <Grid.ColumnDefinitions>
@@ -491,7 +507,6 @@
                     </StackPanel>
 
                     <Button Content="Завершить и рассчитать" Click="FinishBatch_Click" Margin="0,0,0,10" Height="40" Style="{StaticResource ButtonSuccess}" FontSize="14"/>
-                    <Button Content="Отмена" Height="40" Style="{StaticResource ButtonDashed}"/>
                 </StackPanel>
             </Grid>
         </Border>
