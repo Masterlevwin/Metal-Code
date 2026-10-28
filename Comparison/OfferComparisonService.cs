@@ -167,56 +167,166 @@ namespace Metal_Code.Comparison
             IReadOnlyList<Metal>? metals,
             IReadOnlyList<TypeDetail>? typeDetails)
         {
-            int count = Math.Max(typesA.Count, typesB.Count);
-            for (int i = 0; i < count; i++)
+            const double MatchThreshold = 0.6;
+
+            var remainingA = new List<int>(Enumerable.Range(0, typesA.Count));
+            var remainingB = new List<int>(Enumerable.Range(0, typesB.Count));
+            var pairs = new List<(int A, int B)>();
+
+            // ---- Жадное сопоставление по убыванию сходства ----
+            while (remainingA.Count > 0 && remainingB.Count > 0)
             {
-                var ta = i < typesA.Count ? typesA[i] : null;
-                var tb = i < typesB.Count ? typesB[i] : null;
+                double bestScore = -1;
+                int bestI = -1, bestJ = -1;
 
-                if (ta != null && tb == null)
-                {
-                    parent.Children.Add(new ComparisonItem
+                foreach (var i in remainingA)
+                    foreach (var j in remainingB)
                     {
-                        Category = $"Заготовка #{i + 1}",
-                        Status = ComparisonStatus.OnlyInA,
-                        Note = "отсутствует в B"
-                    });
-                    continue;
-                }
-                if (ta == null && tb != null)
-                {
-                    parent.Children.Add(new ComparisonItem
-                    {
-                        Category = $"Заготовка #{i + 1}",
-                        Status = ComparisonStatus.OnlyInB,
-                        Note = "добавлена в B"
-                    });
-                    continue;
-                }
+                        double score = TypeDetailSimilarity(
+                            typesA[i], typesB[j], metals, typeDetails);
+                        if (score > bestScore)
+                        {
+                            bestScore = score;
+                            bestI = i;
+                            bestJ = j;
+                        }
+                    }
 
-                var tg = new ComparisonItem { Category = $"Заготовка #{i + 1}", IsExpanded = false };
-                AddInt(tg, "Кол-во", ta!.Count, tb!.Count);
-                AddString(tg, "Тип заготовки",
-                          ResolveTypeDetail(ta.Index, typeDetails),
-                          ResolveTypeDetail(tb.Index, typeDetails));
-                AddString(tg, "Металл",
-                          ResolveMetal(ta.Metal, metals),
-                          ResolveMetal(tb.Metal, metals));
-                AddBool(tg, "Материал от исполнителя", ta.HasMetal, tb.HasMetal);
-                AddFloat(tg, "Толщина S, мм", ta.Tuple.Item4, tb.Tuple.Item4, "F2");
-                AddFloat(tg, "Стоимость материала, ₽", ta.ExtraResult, tb.ExtraResult, "N2");
+                if (bestScore < MatchThreshold) break;
 
-                CompareWorks(ta.Works, tb.Works, tg);
+                pairs.Add((bestI, bestJ));
+                remainingA.Remove(bestI);
+                remainingB.Remove(bestJ);
+            }
+
+            // ---- Сравнение сопоставленных пар ----
+            foreach (var (i, j) in pairs)
+            {
+                var tg = BuildTypeDetailComparison(
+                    typesA[i], typesB[j], metals, typeDetails);
 
                 if (tg.Children.Any(c => c.HasDifference))
-                {
-                    tg.Status = tg.Children.Any(c =>
-                        c.Status is ComparisonStatus.Warning or ComparisonStatus.Critical)
-                        ? ComparisonStatus.Warning : ComparisonStatus.Different;
-                    tg.IsExpanded = true;
                     parent.Children.Add(tg);
-                }
             }
+
+            // ---- Остатки: заготовки только в A или только в B ----
+            foreach (var i in remainingA)
+            {
+                string label = BuildTypeDetailLabel(typesA[i], metals, typeDetails);
+                parent.Children.Add(new ComparisonItem
+                {
+                    Category = $"Заготовка «{label}»",
+                    Status = ComparisonStatus.OnlyInA,
+                    Note = "отсутствует в B"
+                });
+            }
+            foreach (var j in remainingB)
+            {
+                string label = BuildTypeDetailLabel(typesB[j], metals, typeDetails);
+                parent.Children.Add(new ComparisonItem
+                {
+                    Category = $"Заготовка «{label}»",
+                    Status = ComparisonStatus.OnlyInB,
+                    Note = "добавлена в B"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Взвешенное сходство двух заготовок (0.0 — разные, 1.0 — идентичны).
+        /// Учитываются атрибуты, которые «делают заготовку этой заготовкой»:
+        /// тип, металл, наличие материала, толщина, габариты.
+        /// </summary>
+        private static double TypeDetailSimilarity(
+            SaveTypeDetail a, SaveTypeDetail b,
+            IReadOnlyList<Metal>? metals,
+            IReadOnlyList<TypeDetail>? typeDetails)
+        {
+            double total = 0, max = 0;
+
+            void Check(bool match, double weight)
+            {
+                max += weight;
+                if (match) total += weight;
+            }
+
+            Check(string.Equals(
+                    ResolveTypeDetail(a.Index, typeDetails),
+                    ResolveTypeDetail(b.Index, typeDetails),
+                    StringComparison.OrdinalIgnoreCase), 30);   // тип заготовки
+
+            Check(string.Equals(
+                    ResolveMetal(a.Metal, metals),
+                    ResolveMetal(b.Metal, metals),
+                    StringComparison.OrdinalIgnoreCase), 30);   // металл
+
+            Check(a.HasMetal == b.HasMetal, 10);
+            Check(a.Tuple.Item1 == b.Tuple.Item1, 5);   // SortDrop (лист/труба/…)
+            Check(Math.Abs(a.Tuple.Item4 - b.Tuple.Item4) < 0.001, 10);   // S (толщина)
+            Check(Math.Abs(a.Tuple.Item2 - b.Tuple.Item2) < 0.001, 5);   // A
+            Check(Math.Abs(a.Tuple.Item3 - b.Tuple.Item3) < 0.001, 5);   // B
+            Check(Math.Abs(a.Tuple.Item5 - b.Tuple.Item5) < 0.001, 5);   // L
+
+            return max > 0 ? total / max : 0;
+        }
+
+        /// <summary>
+        /// Строит сравнение одной пары заготовок по полям, влияющим на стоимость.
+        /// </summary>
+        private ComparisonItem BuildTypeDetailComparison(
+            SaveTypeDetail ta, SaveTypeDetail tb,
+            IReadOnlyList<Metal>? metals,
+            IReadOnlyList<TypeDetail>? typeDetails)
+        {
+            string label = BuildTypeDetailLabel(ta, metals, typeDetails);
+            var tg = new ComparisonItem
+            {
+                Category = $"Заготовка «{label}»",
+                IsExpanded = false
+            };
+
+            AddInt(tg, "Кол-во", ta.Count, tb.Count);
+            AddString(tg, "Тип заготовки",
+                      ResolveTypeDetail(ta.Index, typeDetails),
+                      ResolveTypeDetail(tb.Index, typeDetails));
+            AddString(tg, "Металл",
+                      ResolveMetal(ta.Metal, metals),
+                      ResolveMetal(tb.Metal, metals));
+            AddBool(tg, "Материал от исполнителя", ta.HasMetal, tb.HasMetal);
+            AddFloat(tg, "Толщина S, мм", ta.Tuple.Item4, tb.Tuple.Item4, "F2");
+            AddFloat(tg, "Стоимость материала, ₽", ta.ExtraResult, tb.ExtraResult, "N2");
+
+            CompareWorks(ta.Works, tb.Works, tg);
+
+            if (tg.Children.Any(c => c.HasDifference))
+            {
+                tg.Status = tg.Children.Any(c =>
+                    c.Status is ComparisonStatus.Warning or ComparisonStatus.Critical)
+                    ? ComparisonStatus.Warning : ComparisonStatus.Different;
+                tg.IsExpanded = true;
+            }
+            return tg;
+        }
+
+        /// <summary>
+        /// Короткая подпись заготовки для заголовка узла дерева.
+        /// Пример: «Лист металла · ст3 · S=3».
+        /// </summary>
+        private static string BuildTypeDetailLabel(
+            SaveTypeDetail t,
+            IReadOnlyList<Metal>? metals,
+            IReadOnlyList<TypeDetail>? typeDetails)
+        {
+            var parts = new List<string>(3)
+    {
+        ResolveTypeDetail(t.Index, typeDetails),
+        ResolveMetal(t.Metal, metals)
+    };
+
+            if (t.Tuple.Item4 > 0)
+                parts.Add($"S={t.Tuple.Item4.ToString("0.##", CultureInfo.InvariantCulture)}");
+
+            return string.Join(" · ", parts);
         }
 
         private void CompareWorks(List<SaveWork> worksA, List<SaveWork> worksB, ComparisonItem parent)

@@ -628,7 +628,7 @@ namespace Metal_Code
                 return;
             }
 
-            var (metal, thickness, metalName) = GetMetalAndThickness(owner);
+            var (metal, thickness, metalName, typeName) = GetMetalAndThickness(owner);
             if (metal == null || string.IsNullOrEmpty(metalName))
             {
                 MainWindow.M.StatusBegin("Не выбран материал или толщина", MainWindow.StatusMessageType.Warning);
@@ -774,7 +774,7 @@ namespace Metal_Code
                 int parsedCount = 0;
                 var failedFiles = new List<string>();
                 var zeroQuantityFiles = new List<string>();
-                var (metal, thickness, metalName) = GetMetalAndThickness(owner);
+                var (metal, thickness, metalName, typeName) = GetMetalAndThickness(owner);
 
                 Regex countRegex = new Regex(@"(?i)n(\d+)|(\d+)\s*шт");
 
@@ -920,7 +920,7 @@ namespace Metal_Code
         {
             if (owner is not ICut cut || cut.Items == null || cut.PartDetails == null) return;
 
-            var (metal, thickness, metalName) = GetMetalAndThickness(owner);
+            var (metal, thickness, metalName, typeName) = GetMetalAndThickness(owner);
             if (metal == null || string.IsNullOrEmpty(metalName) || thickness <= 0)
             {
                 if (showSettingsDialog)
@@ -1238,33 +1238,51 @@ namespace Metal_Code
                 // Подсвечиваем соответствующую кнопку в сайдбаре
                 StandardPartsToggle.IsChecked = true;
 
-                (Metal? metal, float thickness, string? metalName) = GetMetalAndThickness(owner);
+                (Metal? metal, float thickness, string? metalName, string typeName) = GetMetalAndThickness(owner);
                 if (metal == null || string.IsNullOrEmpty(metalName)) return;
 
-                string currentContext = $"Материал: {metal.Name}, Толщина: {thickness}мм, Тип: {owner}";
+                string currentContext = $"{typeName} - {metal.Name} / {thickness}мм";
 
                 if (MainWindow.M.ActiveStandardPartsWindow != null && MainWindow.M.ActiveStandardPartsWindow.IsLoaded)
                 {
-                    // 2а. Если оно открыто для ЭТОЙ ЖЕ заготовки - просто возвращаем ему фокус
+                    // 2а. Если оно открыто для ЭТОЙ ЖЕ заготовки - разворачиваем и возвращаем фокус
                     if (MainWindow.M.ActiveStandardPartsTarget == this)
                     {
-                        MainWindow.M.ActiveStandardPartsWindow.Activate();
-                        MainWindow.M.ActiveStandardPartsWindow.Focus();
+                        var win = MainWindow.M.ActiveStandardPartsWindow;
+
+                        // 🔥 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Если окно свернуто, принудительно разворачиваем его
+                        if (win.WindowState == WindowState.Minimized)
+                        {
+                            win.WindowState = WindowState.Normal;
+                        }
+
+                        // На всякий случай убеждаемся, что оно видимо
+                        if (win.Visibility != Visibility.Visible)
+                        {
+                            win.Show();
+                        }
+
+                        win.Activate();
+                        win.Focus();
                         return;
                     }
 
-                    // 2б. Если оно открыто для ДРУГОЙ заготовки - блокируем и предупреждаем!
-                    MessageBox.Show(
-                        $"Окно добавления стандартных деталей уже открыто для другой заготовки:\n\n" +
-                        $"«{MainWindow.M.ActiveStandardPartsContext}»\n\n" +
-                        $"Пожалуйста, завершите добавление деталей туда или закройте окно, " +
-                        $"прежде чем работать с текущей заготовкой («{currentContext}»).",
+                    // Переводим фокус на уже открытое окно и разворачиваем его, чтобы пользователь сразу его увидел
+                    MessageBox.Show($"Окно добавления стандартных деталей уже открыто для другой заготовки.",
                         "Окно уже занято",
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning);
 
-                    // Переводим фокус на уже открытое окно, чтобы пользователь сразу его увидел
-                    MainWindow.M.ActiveStandardPartsWindow.Activate();
+                    var activeWin = MainWindow.M.ActiveStandardPartsWindow;
+
+                    if (activeWin.WindowState == WindowState.Minimized)
+                    {
+                        activeWin.WindowState = WindowState.Normal;
+                    }
+
+                    activeWin.Activate();
+                    activeWin.Focus();
+                    StandardPartsToggle.IsChecked = false;
                     return;
                 }
 
@@ -1317,7 +1335,7 @@ namespace Metal_Code
             if (batchedParts.Count > 0)
             {
                 // Получаем актуальные данные (на случай изменений в основном окне)
-                (Metal? metal, float thickness, string? metalName) = GetMetalAndThickness(owner);
+                (Metal? metal, float thickness, string? metalName, string typeName) = GetMetalAndThickness(owner);
                 if (metal == null || string.IsNullOrEmpty(metalName)) return;
 
                 foreach (var part in batchedParts)
@@ -1890,27 +1908,27 @@ namespace Metal_Code
         }
 
         // Возвращает сам металл, толщину и наименование металла родителя
-        public static (Metal?, float, string?) GetMetalAndThickness(object controller)
+        public static (Metal?, float, string?, string) GetMetalAndThickness(object controller)
         {
             if (controller is CutControl cut &&
                 cut.work.type.MetalDrop.SelectedItem is Metal m)
             {
-                return (m, cut.work.type.S, m.Name);
+                return (m, cut.work.type.S, m.Name, cut.work.type.TypeDetailDrop.Text);
             }
 
             if (controller is PipeControl pipe &&
                 pipe.work.type.MetalDrop.SelectedItem is Metal p)
             {
-                return (p, pipe.work.type.S, p.Name);
+                return (p, pipe.work.type.S, p.Name, pipe.work.type.TypeDetailDrop.Text);
             }
 
             if (controller is SawControl saw &&
                 saw.work.type.MetalDrop.SelectedItem is Metal s)
             {
-                return (s, saw.work.type.S, s.Name);
+                return (s, saw.work.type.S, s.Name, saw.work.type.TypeDetailDrop.Text);
             }
 
-            return (null, 0, null);
+            return (null, 0, null, "Заготовка");
         }
 
         // Расчет площади окрашивания детали
@@ -2464,7 +2482,7 @@ namespace Metal_Code
             {
                 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
-                var (metal, thickness, metalName) = GetMetalAndThickness(owner);
+                var (metal, thickness, metalName, typeName) = GetMetalAndThickness(owner);
                 string processName = isSaw ? "Лентопил" : "Труборез";
 
                 // 🔥 1. ПОЛУЧАЕМ ИМЯ АВТОРА
@@ -2684,7 +2702,7 @@ namespace Metal_Code
             ICut? cut = isSaw ? (owner as SawControl) : (owner as PipeControl);
             if (cut == null) return $"Раскладка_Профиль.pdf";
 
-            var (metal, thickness, metalName) = GetMetalAndThickness(owner);
+            var (metal, thickness, metalName, typeName) = GetMetalAndThickness(owner);
             string pipeType = "Профиль";
             string section = "";
 

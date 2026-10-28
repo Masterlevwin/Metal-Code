@@ -920,9 +920,13 @@
                                                     </MenuItem.Icon>
                                                 </MenuItem>
                                                 <MenuItem x:Name="CompareWithCurrentMenuItem"
-          Header="Сравнить с текущим расчётом"
-          Click="CompareOfferWithCurrent"
-          ToolTip="Сравнивает сохранённый расчёт с текущим состоянием главного окна"/>
+                                                          Header="Сравнить с текущим расчётом"
+                                                          Click="CompareOfferWithCurrent"
+                                                          ToolTip="Сравнивает сохранённый расчёт с текущим состоянием главного окна">
+                                                    <MenuItem.Icon>
+                                                        <Image Source="/Images/edit_offer.png"/>
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
                                                 <Separator/>
                                             </ContextMenu>
                                         </DataGrid.ContextMenu>

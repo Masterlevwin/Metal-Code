@@ -67,6 +67,11 @@ namespace Metal_Code
 
         public event Action<StandartPartWindow>? PartsAdded;
 
+        // ─── Константы валидации для трубных деталей ───
+        private const double PipeEdgeMarginMm = 15;       // Минимальный отступ от торца трубы
+        private const double PipeHoleSpacingMm = 5;       // Минимальное расстояние между краями отверстий
+        private const double PipeHoleEdgeOffsetMm = 2;    // Минимальный отступ отверстия от края грани профиля
+
         #endregion
 
         #region
@@ -135,6 +140,14 @@ namespace Metal_Code
             if (_currentPart.HoleGroups is INotifyCollectionChanged incc)
                 incc.CollectionChanged += (s, e) => UpdatePreview();
 
+            // ★ Устанавливаем режим ПОСЛЕ полной инициализации всех элементов
+            Loaded += (s, ev) =>
+            {
+                ViewSheetRadio.IsChecked = true;
+                // Это вызовет ViewMode_Changed, но к этому моменту
+                // все элементы XAML уже инициализированы
+            };
+
             UpdatePreview();
         }
 
@@ -159,6 +172,12 @@ namespace Metal_Code
             string thickness = _currentPart.Destiny > 0 ? $"{_currentPart.Destiny:0.#} мм" : "—";
 
             Title = $"Стандартные детали | {metal} | {thickness}";
+        }
+
+        private void BendExpander_Collapsed(object sender, RoutedEventArgs e)
+        {
+            if (MatrixRecommendationBorder != null)
+                MatrixRecommendationBorder.Visibility = Visibility.Collapsed;
         }
 
         private void TitleTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -203,7 +222,7 @@ namespace Metal_Code
         #region
         private void DrawingArea_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (e.NewSize.Width > 0 && e.NewSize.Height > 0) InitializeView();
+            if (e.NewSize.Width > 0 && e.NewSize.Height > 0) UpdateViewByMode();
         }
 
         private void InitializeView()
@@ -237,6 +256,14 @@ namespace Metal_Code
         private void RedrawBackground()
         {
             BackgroundCanvas.Children.Clear();
+
+            if (_isPartViewMode)
+            {
+                // ★ В режиме «По размеру» — рисуем только лёгкую сетку по размеру детали
+                DrawPartModeBackground();
+                return;
+            }
+
             double gridStep = GetAdaptiveGridStep();
             double offset = 15 / CanvasScale.ScaleX;
             double fontSize = 12 / CanvasScale.ScaleX;
@@ -265,6 +292,43 @@ namespace Metal_Code
             AddLabel("0", -offset, SheetHeightMm + offset, fontSize * 1.2, Brushes.Red, true, false, true);
             AddLabel("3000", SheetWidthMm, SheetHeightMm + offset, fontSize, Brushes.Gray, false, true, true);
             AddLabel("1500", -offset, 0, fontSize, Brushes.Gray, true, false, true);
+        }
+
+        private void DrawPartModeBackground()
+        {
+            double partW = Math.Max(_currentPart.Width, 10) * 1.4;
+            double partH = Math.Max(_currentPart.Height, 10) * 1.4;
+            double gridStep = GetAdaptiveGridStep();
+
+            // Белый фон по размеру видимой области
+            BackgroundCanvas.Children.Add(new Rectangle
+            {
+                Width = partW,
+                Height = partH,
+                Fill = Brushes.White
+            });
+
+            // Сетка
+            for (double x = gridStep; x < partW; x += gridStep)
+                BackgroundCanvas.Children.Add(new Line
+                {
+                    X1 = x,
+                    Y1 = 0,
+                    X2 = x,
+                    Y2 = partH,
+                    Stroke = Brushes.LightGray,
+                    StrokeThickness = 1 / CanvasScale.ScaleX
+                });
+            for (double y = gridStep; y < partH; y += gridStep)
+                BackgroundCanvas.Children.Add(new Line
+                {
+                    X1 = 0,
+                    Y1 = y,
+                    X2 = partW,
+                    Y2 = y,
+                    Stroke = Brushes.LightGray,
+                    StrokeThickness = 1 / CanvasScale.ScaleX
+                });
         }
 
         private void AddLabel(string text, double x, double y, double fontSize, Brush color, bool alignRight, bool alignCenterX, bool isBold = false)
@@ -554,10 +618,22 @@ namespace Metal_Code
         private void DrawTemplateGeometry(double strokeThickness)
         {
             if (_currentPart.DisplayGeometry == null) return;
-
             var bounds = _currentPart.DisplayGeometry.Bounds;
-            double offsetX = (SheetWidthMm / 2) - (bounds.X + bounds.Width / 2);
-            double offsetY = (SheetHeightMm / 2) - (bounds.Y + bounds.Height / 2);
+
+            double offsetX, offsetY;
+
+            if (_isPartViewMode)
+            {
+                // ★ В режиме «По размеру» — деталь рисуется от (0,0)
+                offsetX = -bounds.X;
+                offsetY = -bounds.Y;
+            }
+            else
+            {
+                // В режиме «На листе» — деталь центрируется на листе 3000×1500
+                offsetX = (SheetWidthMm / 2) - (bounds.X + bounds.Width / 2);
+                offsetY = (SheetHeightMm / 2) - (bounds.Y + bounds.Height / 2);
+            }
 
             var path = new Path
             {
@@ -579,7 +655,6 @@ namespace Metal_Code
                 _isTitleManual = false;
                 _customPoints.Clear();
                 DrawingCanvas.Children.Clear();
-
                 ResetBendParameters();
 
                 switch (shapeType)
@@ -592,6 +667,9 @@ namespace Metal_Code
                         _isDrawingActive = true;
                         _currentPart.Width = 0;
                         _currentPart.Height = 0;
+                        // ★ Сбрасываем режим просмотра для Custom
+                        _isPartViewMode = false;
+                        if (ViewSheetRadio != null) ViewSheetRadio.IsChecked = true;
                         break;
                     default: _currentPart.PartType = PartType.Rectangle; _currentPart.Title = "Прямоугольник"; break;
                 }
@@ -599,6 +677,7 @@ namespace Metal_Code
                 _currentPart.OnPropertyChanged(nameof(Part.PartType));
                 _currentPart.OnPropertyChanged(nameof(Part.Title));
                 _currentPart.HoleGroups.Clear();
+                ResetHoleInputs();
 
                 if (_currentPart.PartType == PartType.Custom)
                 {
@@ -620,16 +699,40 @@ namespace Metal_Code
             if (_currentPart.Width <= 0 || _currentPart.Height <= 0) return;
 
             _currentPart.DisplayGeometry = null;
-            if (_currentPart.HoleGroups.Count > 0)
+
+            // ★ ИСПРАВЛЕНИЕ: Для трубных деталей НЕ добавляем отверстия в DisplayGeometry, 
+            // чтобы они не портили вид сечения. Отверстия рисуются отдельно в DrawPipeView.
+            if (!IsPipePart(_currentPart.PartType) && _currentPart.HoleGroups.Count > 0)
+            {
                 PartPreviewGenerator.EnsureDisplayGeometryWithHoles(_currentPart);
+            }
             else
+            {
                 PartPreviewGenerator.EnsureDisplayGeometry(_currentPart);
+            }
 
             RedrawCanvas();
         }
         #endregion
 
         #region
+
+        /// <summary>
+        /// Возвращает количество доступных граней для размещения отверстий в зависимости от типа профиля.
+        /// </summary>
+        private int GetProfileFacesCount()
+        {
+            return _currentPart.PartType switch
+            {
+                PartType.RoundTube => 2,        // Круглая труба — 1 грань (окружность)
+                PartType.RectangularTube => 4,  // Профильная труба — 4 грани
+                PartType.Angle => 2,            // Уголок — 2 полки
+                PartType.Channel => 3,          // Швеллер — 3 грани
+                PartType.IBeam => 5,            // Двутавр — 5 граней
+                _ => 1                          // По умолчанию — 1 грань
+            };
+        }
+
         private void DrawPipeView()
         {
             if (_currentPart.DisplayGeometry == null) return;
@@ -640,6 +743,9 @@ namespace Metal_Code
             double canvasW = 3000;
             double canvasH = 1500;
 
+            // ═══════════════════════════════════════════════════════
+            // 1. Сечение профиля (слева)
+            // ═══════════════════════════════════════════════════════
             double targetSectionPx = canvasW * 0.22;
             double maxDim = Math.Max(bounds.Width, bounds.Height);
             double sScale = targetSectionPx / maxDim;
@@ -656,21 +762,25 @@ namespace Metal_Code
                 RenderTransform = new TransformGroup
                 {
                     Children = new TransformCollection
-                    {
-                        new ScaleTransform(sScale, sScale),
-                        new TranslateTransform(
-                            secCX - (bounds.X + bounds.Width / 2) * sScale,
-                            secCY - (bounds.Y + bounds.Height / 2) * sScale)
-                    }
+            {
+                new ScaleTransform(sScale, sScale),
+                new TranslateTransform(
+                    secCX - (bounds.X + bounds.Width / 2) * sScale,
+                    secCY - (bounds.Y + bounds.Height / 2) * sScale)
+            }
                 }
             };
             DrawingCanvas.Children.Add(sectionPath);
 
+            // ═══════════════════════════════════════════════════════
+            // 2. Боковой вид (справа)
+            // ═══════════════════════════════════════════════════════
             double targetSidePx = canvasW * 0.35;
             double sideLength = Math.Max(_currentPart.Length, 1);
             double sideScale = targetSidePx / sideLength;
+
             double sideW = sideLength * sideScale;
-            double sideH = bounds.Height * sScale;
+            double sideH = bounds.Height * sScale; // Высота соответствует масштабу сечения
             double sideX = canvasW * 0.52;
             double sideY = secCY - sideH / 2;
 
@@ -686,6 +796,61 @@ namespace Metal_Code
             Canvas.SetTop(sideRect, sideY);
             DrawingCanvas.Children.Add(sideRect);
 
+            // ═══════════════════════════════════════════════════════
+            // 3. Отверстия на боковом виде (равномерно по всей длине)
+            // ═══════════════════════════════════════════════════════
+            if (_currentPart.HoleGroups != null && _currentPart.HoleGroups.Count > 0)
+            {
+                var allHoles = new List<(double Diameter, int Count)>();
+                int totalHolesCount = 0;
+
+                foreach (var group in _currentPart.HoleGroups)
+                {
+                    if (group.Count > 0)
+                    {
+                        allHoles.Add((group.Diameter, group.Count));
+                        totalHolesCount += group.Count;
+                    }
+                }
+
+                if (totalHolesCount > 0)
+                {
+                    double centerY = sideY + sideH / 2;
+                    double step = sideW / (totalHolesCount + 1);
+
+                    int currentHoleIndex = 0;
+                    foreach (var holeInfo in allHoles)
+                    {
+                        for (int i = 0; i < holeInfo.Count; i++)
+                        {
+                            double holeX = sideX + step * (currentHoleIndex + 1);
+                            double visualDiameter = Math.Min(holeInfo.Diameter * sScale, sideH * 0.8);
+                            double visualRadius = visualDiameter / 2.0;
+
+                            // ★ ИСПРАВЛЕНИЕ: Явно задаём все свойства
+                            var holeEllipse = new Ellipse
+                            {
+                                Width = visualDiameter,
+                                Height = visualDiameter,
+                                Stroke = Brushes.Magenta,           // ★ Контур
+                                StrokeThickness = 2.0,              // ★ Толщина контура (увеличена)
+                                StrokeDashArray = new DoubleCollection { 4, 4 },
+                                Fill = Brushes.White                // ★ Белое заполнение (пустое)
+                            };
+
+                            Canvas.SetLeft(holeEllipse, holeX - visualRadius);
+                            Canvas.SetTop(holeEllipse, centerY - visualRadius);
+                            DrawingCanvas.Children.Add(holeEllipse);
+
+                            currentHoleIndex++;
+                        }
+                    }
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════
+            // 4. Размерные линии
+            // ═══════════════════════════════════════════════════════
             double dimOffset = 30;
             double dimFontSize = 35;
 
@@ -774,8 +939,20 @@ namespace Metal_Code
             var bounds = _currentPart.DisplayGeometry.Bounds;
 
             // Те же смещения, что и в DrawTemplateGeometry, чтобы размеры совпадали с фигурой
-            double offsetX = (SheetWidthMm / 2) - (bounds.X + bounds.Width / 2);
-            double offsetY = (SheetHeightMm / 2) - (bounds.Y + bounds.Height / 2);
+            double offsetX, offsetY;
+
+            if (_isPartViewMode)
+            {
+                // ★ В режиме «По размеру» — деталь рисуется от (0,0)
+                offsetX = -bounds.X;
+                offsetY = -bounds.Y;
+            }
+            else
+            {
+                // В режиме «На листе» — деталь центрируется на листе 3000×1500
+                offsetX = (SheetWidthMm / 2) - (bounds.X + bounds.Width / 2);
+                offsetY = (SheetHeightMm / 2) - (bounds.Y + bounds.Height / 2);
+            }
 
             double scale = 1.0 / CanvasScale.ScaleX;
             double dimOffset = 40 * scale; // Отступ размерной линии от детали
@@ -796,18 +973,6 @@ namespace Metal_Code
                 rightX, bounds.Y + bounds.Height + offsetY,
                 $"В: {_currentPart.Height:0}", fontSize, false
             );
-
-            // 3. Спец. случай для Круга: добавим обозначение диаметра в центре
-            if (_currentPart.PartType == PartType.Round)
-            {
-                DrawCanvasLabel(
-                    $"⌀ {_currentPart.Width:0}",
-                    bounds.X + bounds.Width / 2 + offsetX,
-                    bounds.Y + bounds.Height / 2 + offsetY,
-                    fontSize * 1.2,
-                    Brushes.DarkBlue
-                );
-            }
         }
 
         private void DrawCanvasLabel(string text, double x, double y, double fontSize, Brush color)
@@ -1239,11 +1404,31 @@ namespace Metal_Code
         #region
         private void AddHoleGroup_Click(object sender, RoutedEventArgs e)
         {
-            if (!double.TryParse(DiameterInput.Text, out double d) || d <= 0) { MessageBox.Show("Некорректный диаметр", "Ошибка"); return; }
-            if (!int.TryParse(CountInput.Text, out int c) || c <= 0) { MessageBox.Show("Некорректное количество", "Ошибка"); return; }
+            if (!double.TryParse(DiameterInput.Text, out double d) || d <= 0)
+            {
+                MessageBox.Show("Некорректный диаметр", "Ошибка");
+                return;
+            }
+            if (!int.TryParse(CountInput.Text, out int c) || c <= 0)
+            {
+                MessageBox.Show("Некорректное количество", "Ошибка");
+                return;
+            }
+
+            // ★ Валидация для трубных деталей
+            if (IsPipePart(_currentPart.PartType))
+            {
+                var (isOk, errorMessage) = ValidatePipeHoleAddition(d, c);
+                if (!isOk)
+                {
+                    MessageBox.Show(errorMessage, "Невозможно добавить отверстие",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+            }
 
             _currentPart.HoleGroups.Add(new HoleGroup(d, c));
-            DiameterInput.Text = "10"; CountInput.Text = "1";
+            ResetHoleInputs();
             UpdatePreview();
         }
 
@@ -1458,6 +1643,176 @@ namespace Metal_Code
                     _currentPart.HoleGroups.Add(new HoleGroup(group.Key, group.Count()));
             }
         }
+
+        private bool _hasPendingHoleInput = false;
+
+        /// <summary>
+        /// Вызывается при изменении текста в полях диаметра/количества.
+        /// Подсвечивает кнопку, если введены валидные значения.
+        /// </summary>
+        private void HoleInput_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            UpdateAddHoleButtonState();
+        }
+
+        /// <summary>
+        /// Добавление отверстия по клавише Enter.
+        /// </summary>
+        private void HoleInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                AddHoleGroup_Click(sender, e);
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// Обновляет визуальное состояние кнопки и подсказки.
+        /// </summary>
+        private void UpdateAddHoleButtonState()
+        {
+            bool hasValidDiameter = double.TryParse(DiameterInput?.Text, out double d) && d > 0;
+            bool hasValidCount = int.TryParse(CountInput?.Text, out int c) && c > 0;
+
+            // Проверяем, не дефолтные ли значения (10 и 1)
+            bool isDefault = hasValidDiameter && hasValidCount &&
+                             Math.Abs(d - 10) < 0.01 && c == 1;
+
+            _hasPendingHoleInput = hasValidDiameter && hasValidCount && !isDefault;
+
+            if (AddHoleButton == null) return;
+
+            if (_hasPendingHoleInput)
+            {
+                // Подсветка: кнопка становится ярче
+                AddHoleButton.Background = new SolidColorBrush(Color.FromRgb(255, 213, 79)); // янтарный
+                AddHoleButton.BorderBrush = new SolidColorBrush(Color.FromRgb(255, 152, 0));
+                AddHoleButton.FontWeight = FontWeights.Bold;
+
+                if (HolePendingHint != null)
+                    HolePendingHint.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                // Возврат к обычному состоянию
+                AddHoleButton.Background = Brushes.Transparent;
+                AddHoleButton.BorderBrush = null; // вернётся к стилю
+                AddHoleButton.FontWeight = FontWeights.Normal;
+
+                if (HolePendingHint != null)
+                    HolePendingHint.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        /// <summary>
+        /// Автоматически добавляет «незавершённое» отверстие, если пользователь
+        /// ввёл значения, но не нажал кнопку. Вызывается перед добавлением детали.
+        /// </summary>
+        /// <returns>true, если отверстие было автодобавлено</returns>
+        private bool TryAutoAddPendingHole()
+        {
+            if (!_hasPendingHoleInput) return false;
+
+            if (double.TryParse(DiameterInput.Text, out double d) && d > 0 &&
+                int.TryParse(CountInput.Text, out int c) && c > 0)
+            {
+                // ★ Валидация для трубных деталей
+                if (IsPipePart(_currentPart.PartType))
+                {
+                    var (isOk, errorMessage) = ValidatePipeHoleAddition(d, c);
+                    if (!isOk)
+                    {
+                        MessageBox.Show(errorMessage, "Невозможно добавить отверстие",
+                            MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return false;
+                    }
+                }
+
+                _currentPart.HoleGroups.Add(new HoleGroup(d, c));
+                ResetHoleInputs();
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Сбрасывает поля отверстий к значениям по умолчанию.
+        /// </summary>
+        private void ResetHoleInputs()
+        {
+            DiameterInput.Text = "10";
+            CountInput.Text = "1";
+            _hasPendingHoleInput = false;
+            UpdateAddHoleButtonState();
+        }
+
+        /// <summary>
+        /// Проверяет, можно ли добавить указанное количество отверстий заданного диаметра на трубу.
+        /// Учитывает количество доступных граней профиля.
+        /// </summary>
+        private (bool IsOk, string? ErrorMessage) ValidatePipeHoleAddition(double diameter, int countToAdd)
+        {
+            if (!IsPipePart(_currentPart.PartType))
+                return (true, null);
+
+            if (_currentPart.DisplayGeometry == null)
+                return (false, "Геометрия профиля не определена.");
+
+            var bounds = _currentPart.DisplayGeometry.Bounds;
+            double length = _currentPart.Length;
+
+            if (length <= 0)
+                return (false, "Длина трубы не задана.");
+
+            double minSide = Math.Min(bounds.Width, bounds.Height);
+            int facesCount = GetProfileFacesCount();  // ★ Количество граней
+
+            // ─── Проверка 1: диаметр отверстия помещается на грани профиля ───
+            double maxHoleDiameter = minSide - 2 * PipeHoleEdgeOffsetMm;
+            if (diameter > maxHoleDiameter)
+            {
+                return (false,
+                    $"Диаметр ⌀{diameter:0.#} мм слишком велик для грани {minSide:0.#} мм.\n" +
+                    $"Максимально допустимый диаметр: {maxHoleDiameter:0.#} мм " +
+                    $"(с отступом {PipeHoleEdgeOffsetMm:0} мм от каждого края).");
+            }
+
+            // ─── Проверка 2: количество отверстий помещается по длине трубы ───
+            int existingCount = _currentPart.HoleGroups?.Sum(g => g.Count) ?? 0;
+            int totalCount = existingCount + countToAdd;
+
+            double usableLength = length - 2 * PipeEdgeMarginMm;
+            if (usableLength <= 0)
+            {
+                return (false,
+                    $"Длина трубы ({length:0} мм) слишком мала для отступов от торцов " +
+                    $"({PipeEdgeMarginMm:0} мм с каждой стороны).");
+            }
+
+            // ★ Максимум отверстий НА ОДНОЙ ГРАНИ
+            int maxCountPerFace = (int)Math.Floor((usableLength + PipeHoleSpacingMm) / (diameter + PipeHoleSpacingMm));
+
+            // ★ Общий максимум с учётом количества граней
+            int maxCountTotal = maxCountPerFace * facesCount;
+
+            if (totalCount > maxCountTotal)
+            {
+                return (false,
+                    $"На трубе длиной {length:0} мм нельзя разместить {totalCount} отверстий ⌀{diameter:0.#} мм.\n" +
+                    $"Максимально допустимое количество: {maxCountTotal} шт " +
+                    $"({maxCountPerFace} шт × {facesCount} граней).\n" +
+                    $"Уже добавлено: {existingCount} шт, пытаетесь добавить: {countToAdd} шт.\n\n" +
+                    $"Параметры расчёта:\n" +
+                    $"• Количество граней: {facesCount}\n" +
+                    $"• Отступ от торца: {PipeEdgeMarginMm:0} мм\n" +
+                    $"• Зазор между отверстиями: {PipeHoleSpacingMm:0} мм\n" +
+                    $"• Полезная длина: {usableLength:0} мм");
+            }
+
+            return (true, null);
+        }
+
         #endregion
 
         #region
@@ -1804,12 +2159,34 @@ namespace Metal_Code
             if (DrawingCanvas == null || _currentPart == null) return;
             if (_currentPart.PartType != PartType.Rectangle) return;
 
+            if (_currentPart.DisplayGeometry == null) return;
+            var bounds = _currentPart.DisplayGeometry.Bounds;
+
             double width = _currentPart.Width;
             double height = _currentPart.Height;
             if (width <= 0 || height <= 0) return;
 
-            double offsetX = (SheetWidthMm / 2) - (width / 2);
-            double offsetY = (SheetHeightMm / 2) - (height / 2);
+            double offsetX, offsetY;
+
+            if (_isPartViewMode)
+            {
+                // ★ В режиме «По размеру» — деталь рисуется от (0,0)
+                offsetX = -bounds.X;
+                offsetY = -bounds.Y;
+            }
+            else
+            {
+                // В режиме «На листе» — деталь центрируется на листе 3000×1500
+                offsetX = (SheetWidthMm / 2) - (bounds.X + bounds.Width / 2);
+                offsetY = (SheetHeightMm / 2) - (bounds.Y + bounds.Height / 2);
+            }
+
+            // ★ КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ:
+            // DisplayGeometry имеет координаты от (bounds.X, bounds.Y).
+            // TranslateTransform на Path смещает всю геометрию на (offsetX, offsetY).
+            // Значит на канвасе левый верхний угол детали находится в:
+            double leftX = offsetX + bounds.X;
+            double topY = offsetY + bounds.Y;
 
             var bendBrush = Brushes.DarkOrange;
             var dashArray = new DoubleCollection { 5, 3 };
@@ -1822,13 +2199,13 @@ namespace Metal_Code
                 foreach (double pos in profileX.GetBendPositions(bd))
                 {
                     if (pos <= 0 || pos >= width) continue;
-                    double x = offsetX + pos;
+                    double x = leftX + pos;
                     DrawingCanvas.Children.Add(new Line
                     {
                         X1 = x,
-                        Y1 = offsetY,
+                        Y1 = topY,
                         X2 = x,
-                        Y2 = offsetY + height,
+                        Y2 = topY + height,
                         Stroke = bendBrush,
                         StrokeThickness = lineThickness,
                         StrokeDashArray = dashArray
@@ -1842,12 +2219,12 @@ namespace Metal_Code
                 foreach (double pos in profileY.GetBendPositions(bd))
                 {
                     if (pos <= 0 || pos >= height) continue;
-                    double y = offsetY + pos;
+                    double y = topY + pos;
                     DrawingCanvas.Children.Add(new Line
                     {
-                        X1 = offsetX,
+                        X1 = leftX,
                         Y1 = y,
-                        X2 = offsetX + width,
+                        X2 = leftX + width,
                         Y2 = y,
                         Stroke = bendBrush,
                         StrokeThickness = lineThickness,
@@ -1901,6 +2278,68 @@ namespace Metal_Code
         #endregion
 
         #region
+        private void ExportToPdf_Click(object sender, RoutedEventArgs e)
+        {
+            // Валидация для произвольной формы
+            if (_currentPart.PartType == PartType.Custom && _customPoints.Count < 3)
+            {
+                MessageBox.Show(
+                    "Для экспорта произвольной формы необходимо завершить построение контура (минимум 3 точки).",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "PDF файлы (*.pdf)|*.pdf",
+                FileName = $"{_currentPart.Title ?? "Деталь"}_{_currentPart.Metal}_{_currentPart.Destiny:0.#}мм.pdf",
+                DefaultExt = ".pdf",
+                Title = "Сохранить чертёж детали в PDF"
+            };
+
+            if (saveFileDialog.ShowDialog() != true) return;
+
+            try
+            {
+                // ─── Собираем данные для экспортёра ───
+                double bd = BendCompensation;
+
+                var data = new PartDrawingData
+                {
+                    Part = _currentPart,
+                    CustomPoints = _customPoints.ToList(),
+                    BendAngle = _bendAngle,
+                    BendCompensation = bd,
+
+                    // Позиции гибов по X
+                    BendPositionsX = BendEditorX?.Profile is { IsFinished: true } px
+                        ? px.GetBendPositions(bd).ToList()
+                        : new List<double>(),
+
+                    // Позиции гибов по Y
+                    BendPositionsY = BendEditorY?.Profile is { IsFinished: true } py
+                        ? py.GetBendPositions(bd).ToList()
+                        : new List<double>(),
+
+                    ProfileX = BendEditorX?.Profile is { IsFinished: true } profX ? profX : null,
+                    ProfileY = BendEditorY?.Profile is { IsFinished: true } profY ? profY : null
+
+                };
+
+                // ─── Генерируем PDF ───
+                var exporter = new PartDrawingPdfExporter(data);
+                exporter.Export(saveFileDialog.FileName);
+
+                MessageBox.Show("Чертёж успешно сохранён в PDF!", "Успех",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при создании PDF:\n{ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void ExportToDxf_Click(object sender, RoutedEventArgs e)
         {
             if (_currentPart.PartType == PartType.Custom && _customPoints.Count < 3)
@@ -2265,6 +2704,13 @@ namespace Metal_Code
 
         private void AddToBatch_Click(object sender, RoutedEventArgs e)
         {
+            // ★ Автодобавление незавершённого отверстия
+            bool autoAdded = TryAutoAddPendingHole();
+            if (autoAdded)
+            {
+                UpdatePreview(); // обновляем геометрию с новым отверстием
+            }
+
             string? title;
             bool wasAutoTitle = _isTitleManual == false;
 
@@ -2420,6 +2866,79 @@ namespace Metal_Code
             };
         }
         #endregion
+
+        // ═══ Новое поле в region полей ═══
+        private bool _isPartViewMode = false;
+
+        // ═══ Новый обработчик переключателя режимов ═══
+        private void ViewMode_Changed(object sender, RoutedEventArgs e)
+        {
+            // ★ Для Custom формы режим "По размеру" недоступен
+            if (_currentPart.PartType == PartType.Custom)
+            {
+                _isPartViewMode = false;
+                // Принудительно сбрасываем радио на "Вид на листе"
+                if (ViewSheetRadio != null && ViewSheetRadio.IsChecked != true)
+                    ViewSheetRadio.IsChecked = true;
+            }
+            else
+            {
+                _isPartViewMode = ViewPartRadio?.IsChecked == true;
+            }
+            UpdateViewByMode();
+        }
+
+        // ═══ Главный метод переключения видов ═══
+        private void UpdateViewByMode()
+        {
+            if (DrawingAreaGrid == null || CanvasScale == null || CanvasTranslate == null) return;
+            if (DrawingAreaGrid.ActualWidth <= 0 || DrawingAreaGrid.ActualHeight <= 0) return;
+
+            // ★ Для Custom и трубных деталей — ВСЕГДА режим "Вид на листе"
+            bool canUsePartMode = _isPartViewMode
+                               && _currentPart.PartType != PartType.Custom
+                               && !IsPipePart(_currentPart.PartType)
+                               && _currentPart.Width > 0
+                               && _currentPart.Height > 0;
+
+            if (canUsePartMode)
+            {
+                // Режим «По размеру детали»
+                double partW = Math.Max(_currentPart.Width, 10);
+                double partH = Math.Max(_currentPart.Height, 10);
+                double scaleX = DrawingAreaGrid.ActualWidth / (partW * 1.4);
+                double scaleY = DrawingAreaGrid.ActualHeight / (partH * 1.4);
+                double scale = Math.Min(scaleX, scaleY);
+
+                CanvasScale.ScaleX = CanvasScale.ScaleY = scale;
+                CanvasTranslate.X = (DrawingAreaGrid.ActualWidth - partW * scale) / 2;
+                CanvasTranslate.Y = (DrawingAreaGrid.ActualHeight - partH * scale) / 2;
+
+                RedrawBackground();
+                RedrawCanvas();
+            }
+            else
+            {
+                // Режим «Вид на листе» — для Custom это единственный режим
+                InitializeView();
+            }
+
+            UpdateScaleIndicator();
+        }
+
+        // ═══ Индикатор масштаба ═══
+        private void UpdateScaleIndicator()
+        {
+            // ★ Защита от null при раннем вызове
+            if (ScaleIndicator == null) return;
+            if (DrawingAreaGrid == null || DrawingAreaGrid.ActualWidth <= 0) return;
+
+            double baseScale = Math.Min(
+                DrawingAreaGrid.ActualWidth / SheetWidthMm,
+                DrawingAreaGrid.ActualHeight / SheetHeightMm) * 0.80;
+            double relativeScale = baseScale > 0 ? CanvasScale.ScaleX / baseScale : 1;
+            ScaleIndicator.Text = $"Масштаб: {relativeScale:P0}";
+        }
     }
 
     public class BendProfileController
