@@ -14,7 +14,7 @@
 
     <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
         <TextBlock Text="Ц" FontWeight="Bold" MinWidth="10" Margin="5,0,0,0"/>
-        <TextBox Text="{Binding Mass, RelativeSource={RelativeSource AncestorType={x:Type local:ZincControl}, Mode=FindAncestor}}" IsReadOnly="True" ToolTip="Текущий вес деталей на оцинковку" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="55,0,0,0" TextAlignment="Center" Width="70"/>
+        <TextBox Text="{Binding Mass, RelativeSource={RelativeSource AncestorType={x:Type local:ZincControl}, Mode=FindAncestor}}" IsReadOnly="True" ToolTip="Вес ВСЕХ таких деталей на цинкование" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="55,0,0,0" TextAlignment="Center" Width="70"/>
         <TextBlock Text="кг" Margin="5,0,0,0" MinWidth="15" VerticalAlignment="Center"/>
 
         <Image Source="/Images/question.png" VerticalAlignment="Top" Margin="2,0,0,0" Width="10" Height="10">

@@ -3800,25 +3800,27 @@ namespace Metal_Code
 
             if (isAssemblyOffer)
             {
+                // ⭐ 1. МАТЕМАТИКА РАЗМАЗЫВАНИЯ СКРЫТЫХ ДЕТАЛЕЙ НА СБОРКИ
+                float hiddenLooseTotal = LooseParts.Where(p => p.IsHiddenInOffer).Sum(p => p.Price * p.Count);
+                int totalAssemblyPieces = AssemblyWindow.A.Assemblies.Sum(a => a.Count);
+                float assemblyAddition = totalAssemblyPieces > 0 ? hiddenLooseTotal / totalAssemblyPieces : 0;
+
                 if (AssemblyWindow.A.Assemblies.Count > 0)
                 {
                     foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
                     {
                         if (assembly.Particles.Count == 0) continue;
-
                         int rowAssembly = row;
                         row++;
 
                         foreach (Particle particle in assembly.Particles)
                         {
                             if (particle.Count <= 0) continue;
-
                             Part? part = Parts.FirstOrDefault(p => p.Title == particle.Title)
                                       ?? BasketControls.Select(b => b.Basket).FirstOrDefault(p => p.Title == particle.Title);
-
                             if (part is not null)
                             {
-                                if (part.IsHiddenInOffer) continue;
+                                if (part.IsHiddenInOffer) continue; // Пропускаем скрытые детали в составе
 
                                 worksheet.Cells[row, 1].Value = part.Metal;
                                 worksheet.Cells[row, 2].Value = part.Destiny > 0 ? part.Destiny : "";
@@ -3830,22 +3832,28 @@ namespace Metal_Code
                             }
                         }
 
+                        // ⭐ 2. ПРИМЕНЯЕМ НАДБАВКУ К ЦЕНЕ СБОРКИ
+                        float adjustedPrice = (float)Math.Ceiling(assembly.Price + assemblyAddition);
+                        float adjustedTotal = adjustedPrice * assembly.Count;
+
                         worksheet.Cells[rowAssembly, 4].Value = assembly.Description;
                         worksheet.Cells[rowAssembly, 5].Value = assembly.Title;
                         worksheet.Cells[rowAssembly, 6].Value = assembly.Count;
-                        worksheet.Cells[rowAssembly, 7].Value = assembly.Price;
-                        worksheet.Cells[rowAssembly, 8].Value = assembly.Total;
+                        worksheet.Cells[rowAssembly, 7].Value = adjustedPrice;
+                        worksheet.Cells[rowAssembly, 8].Value = adjustedTotal;
                         worksheet.Row(rowAssembly).Style.Font.Bold = true;
                     }
                 }
 
-                if (LooseParts.Count > 0)
+                // ⭐ 3. НЕРАСПРЕДЕЛЕННЫЕ ДЕТАЛИ (Только видимые)
+                var visibleLooseParts = LooseParts.Where(p => !p.IsHiddenInOffer).ToList();
+                if (visibleLooseParts.Count > 0)
                 {
                     worksheet.Cells[row, 5].Value = "Дополнительные детали:";
                     worksheet.Cells[row, 5].Style.Font.Bold = true;
                     row++;
 
-                    DataTable loosePartsTable = ToDataTable(LooseParts);
+                    DataTable loosePartsTable = ToDataTable(new ObservableCollection<Part>(visibleLooseParts));
                     worksheet.Cells[row, 1].LoadFromDataTable(loosePartsTable, false);
                     row += loosePartsTable.Rows.Count;
                 }

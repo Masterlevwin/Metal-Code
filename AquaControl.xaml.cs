@@ -140,7 +140,7 @@ namespace Metal_Code
                             foreach (AquaControl item in _p.UserControls.OfType<AquaControl>()) count += _p.Part.Count;
 
                     // стоимость всей работы должна быть не ниже минимальной
-                    foreach (WorkControl _w in p.work.type.WorkControls)            // находим окраску среди работ и получаем её минималку
+                    foreach (WorkControl _w in p.work.type.WorkControls)            // находим аквабластинг среди работ и получаем её минималку
                         if (_w.workType is AquaControl && _w.WorkDrop.SelectedItem is Work _work)
                         {
                             float _send;

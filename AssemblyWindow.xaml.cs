@@ -485,7 +485,8 @@ namespace Metal_Code
                                 ImageBytes = sourceItem.ImageBytes,
                                 PropsDict = new Dictionary<int, List<string>>(sourceItem.PropsDict),
                                 FixedPrice = sourceItem.FixedPrice,
-                                IsFixed = sourceItem.IsFixed
+                                IsFixed = sourceItem.IsFixed,
+                                IsHiddenInOffer = sourceItem.IsHiddenInOffer,
                             };
                             MainWindow.M.LooseParts.Add(loosePart);
                         }

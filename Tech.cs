@@ -188,8 +188,10 @@ namespace Metal_Code
                     //и на основе имени без расширения (заменяем неразрывные пробелы, очищаем и нормализуем, игнорируем регистр)
                     string nameFile = Path.GetFileNameWithoutExtension(file).Replace("\u00A0", " ").Trim().Normalize().ToLower();
 
-                    //находим совпадение TechItem и файла по номеру чертежа (при этом заменяем неразрывные пробелы, очищаем и нормализуем, игнорируем регистр и добавляем пробел во избежании ошибки похожих названий)
-                    if (nameFile.Insert(nameFile.Length, " ").Contains(techItem.NumberName.Replace("\u00A0", " ").Trim().Normalize().ToLower().Insert(techItem.NumberName.Length, " ")))
+                    //находим совпадение TechItem и файла по номеру чертежа (при этом заменяем неразрывные пробелы,
+                    //очищаем и нормализуем, игнорируем регистр и добавляем пробел во избежании ошибки похожих названий)
+                    string cleanTechName = techItem.NumberName.Replace("\u00A0", " ").Trim().Normalize().ToLower();
+                    if ((nameFile + " ").Contains(cleanTechName + " "))
                     {
                         //находим сборочные чертежи на основе метки "СБ" и копируем их в корень директории работы
                         if (techItem.NumberName.Contains("СБ"))
@@ -261,9 +263,11 @@ namespace Metal_Code
                             if (extension == ".dxf") dirMain = dirLaser + "\\" + $"{item}".Trim() + "\\";
                             else if (extension == ".igs") dirMain = dirPipe + "\\" + $"{item}".Trim() + "\\";
 
+                            string cleanName = techItem.NumberName.Trim();
+
                             string destination = $"{techItem.Route}" == "" ?
-                                dirMain + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count}{extension}"
-                                : dirMain + $"{techItem.NumberName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({Regex.Replace(techItem.Route, @"\b\d+", "")}){extension}";
+                                dirMain + $"{cleanName} {techItem.Material} {techItem.Destiny} n{techItem.Count}{extension}"
+                                : dirMain + $"{cleanName} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({Regex.Replace(techItem.Route, @"\b\d+", "")}){extension}";
 
                             //если файла с таким названием еще нет, просто копируем его
                             if (!File.Exists(destination)) File.Copy(techItem.PathToModel, destination);
@@ -277,8 +281,8 @@ namespace Metal_Code
                                 {
                                     count++;
                                     destination = $"{techItem.Route}" == "" ?
-                                    dirMain + $"{techItem.NumberName}_{count} {techItem.Material} {techItem.Destiny} n{techItem.Count}{extension}"
-                                    : dirMain + $"{techItem.NumberName}_{count} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({Regex.Replace(techItem.Route, @"\b\d+", "")}){extension}";
+                                    dirMain + $"{cleanName}_{count} {techItem.Material} {techItem.Destiny} n{techItem.Count}{extension}"
+                                    : dirMain + $"{cleanName}_{count} {techItem.Material} {techItem.Destiny} n{techItem.Count} ({Regex.Replace(techItem.Route, @"\b\d+", "")}){extension}";
                                 }
 
                                 File.Copy(techItem.PathToModel, destination);
@@ -588,7 +592,7 @@ namespace Metal_Code
             string count, string route, string hasMaterial, string originalName,
             string pathToModel, string isGenerated, string textMarking)
         {
-            NumberName = numberName;
+            NumberName = numberName?.Trim() ?? "";
             Profile = profile;
             Sizes = sizes;
             Material = material.ToLower().Contains("ст") ? "" : material;
@@ -596,8 +600,8 @@ namespace Metal_Code
             Count = count;
             Route = route;
             HasMaterial = hasMaterial.ToLower().Contains("дав") ? "Давальч" : "";
-            OriginalName = originalName;
-            PathToModel = pathToModel;
+            OriginalName = originalName?.Trim() ?? "";
+            PathToModel = pathToModel?.Trim() ?? "";
             IsGenerated = isGenerated == "да";
             TextMarking = textMarking;
         }

@@ -70,7 +70,7 @@ namespace Metal_Code
                 else
                 {
                     Dispatcher.InvokeAsync(() => type.SetDefaultWork(),
-                        System.Windows.Threading.DispatcherPriority.Loaded);
+                        DispatcherPriority.Loaded);
                 }
             }
 

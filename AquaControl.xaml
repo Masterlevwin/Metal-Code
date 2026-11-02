@@ -14,7 +14,7 @@
 
     <StackPanel Orientation="Horizontal" VerticalAlignment="Top" MinHeight="20">
         <TextBlock Text="А" FontWeight="Bold" Margin="5,0,0,0" MinWidth="10"/>
-        <TextBox Text="{Binding Square, RelativeSource={RelativeSource AncestorType={x:Type local:AquaControl}, Mode=FindAncestor}}" IsReadOnly="True" ToolTip="Площадь поверхности для обработки" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="55,0,0,0" TextAlignment="Center" Width="60"/>
+        <TextBox Text="{Binding Square, RelativeSource={RelativeSource AncestorType={x:Type local:AquaControl}, Mode=FindAncestor}}" IsReadOnly="True" ToolTip="Площадь обработки ВСЕХ таких деталей" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="55,0,0,0" TextAlignment="Center" Width="60"/>
         <TextBlock Text="кв м" Margin="5,0,0,0" VerticalAlignment="Center" MinWidth="25"/>
 
         <Image Source="/Images/question.png" MaxWidth="10" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="2,0,0,0">

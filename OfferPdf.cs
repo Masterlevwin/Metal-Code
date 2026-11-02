@@ -111,18 +111,31 @@ namespace Metal_Code
                             {
                                 var parts = MainWindow.M.Parts.Union(MainWindow.M.BasketControls.Select(b => b.Basket));
 
+                                // ⭐ 1. СЧИТАЕМ СТОИМОСТЬ СКРЫТЫХ НЕРАСПРЕДЕЛЕННЫХ ДЕТАЛЕЙ (ОБРАЗЦОВ)
+                                float hiddenLooseTotal = MainWindow.M.LooseParts
+                                    .Where(p => p.IsHiddenInOffer)
+                                    .Sum(p => p.Price * p.Count);
+
+                                // ⭐ 2. СЧИТАЕМ ОБЩЕЕ КОЛИЧЕСТВО СБОРОК (В ШТУКАХ)
+                                // Так как LooseParts существуют только при наличии сборок, деления на ноль не будет.
+                                int totalAssemblyPieces = AssemblyWindow.A.Assemblies.Sum(a => a.Count);
+                                float assemblyAddition = totalAssemblyPieces > 0 ? hiddenLooseTotal / totalAssemblyPieces : 0;
+
                                 if (AssemblyWindow.A.Assemblies.Count > 0)
                                     foreach (Assembly assembly in AssemblyWindow.A.Assemblies)
                                     {
-                                        totalSum += assembly.Total;
+                                        // ⭐ 3. ПРИМЕНЯЕМ НАДБАВКУ К ЦЕНЕ СБОРКИ
+                                        float adjustedPrice = (float)Math.Ceiling(assembly.Price + assemblyAddition);
+                                        float adjustedTotal = adjustedPrice * assembly.Count;
+                                        totalSum += adjustedTotal;
 
                                         table.Cell().ColumnSpan(3).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("");
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(assembly.Description ?? "").Bold();
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{row}").Bold();
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).Text(Prefix(assembly.Title ?? "")).Bold();
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text($"{assembly.Count}").Bold();
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(assembly.Price.ToString("N2")).Bold();
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(assembly.Total.ToString("N2")).Bold();
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(adjustedPrice.ToString("N2")).Bold();
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(adjustedTotal.ToString("N2")).Bold();
                                         row++;
 
                                         for (int p = 0; p < assembly.Particles.Count; p++)
@@ -144,16 +157,17 @@ namespace Metal_Code
                                         }
                                     }
 
-                                if (MainWindow.M.LooseParts.Count > 0)
+                                // ⭐ 4. НЕРАСПРЕДЕЛЕННЫЕ ДЕТАЛИ (Выводим только видимые)
+                                var visibleLooseParts = MainWindow.M.LooseParts.Where(p => !p.IsHiddenInOffer).ToList();
+                                if (visibleLooseParts.Count > 0)
                                 {
                                     table.Cell().ColumnSpan(9).Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text("Дополнительные детали:").Bold();
 
-                                    for (int i = 0; i < MainWindow.M.LooseParts.Count; i++)
+                                    foreach (Part loosePart in visibleLooseParts)
                                     {
-                                        Part loosePart = MainWindow.M.LooseParts[i];
-                                        totalSum += loosePart.Total;
+                                        totalSum += loosePart.Total; // Цена видимых деталей не меняется
 
-                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Metal);
+                                        table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Metal ?? "");
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Destiny > 0 ? loosePart.Destiny.ToString() : "");
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Accuracy ?? "");
                                         table.Cell().Border(1).BorderColor(Colors.Black).Padding(4).AlignCenter().Text(loosePart.Description ?? "");
