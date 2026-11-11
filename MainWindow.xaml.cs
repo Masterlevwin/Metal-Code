@@ -637,7 +637,6 @@ namespace Metal_Code
 
                 // Финальная инициализация
                 NewProject();
-                OfferToggle.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
 
                 var filePath = App.StartupFileToOpen;
                 if (!string.IsNullOrEmpty(filePath)) await OpenFileOnStartupAsync(filePath);
@@ -800,10 +799,10 @@ namespace Metal_Code
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.7.3.6",
-                releaseDate: new DateTime(2026, 09, 30),
-                description: "Добавлен ассистент МИША.",
-                screenshotPath: "/Updates/v2.7.3.6_2026-09-30.png"
+                version: "v2.7.4.7",
+                releaseDate: new DateTime(2026, 11, 11),
+                description: "Обновлен интерфейс главного окна. Добавлена функция пометки к КП.",
+                screenshotPath: "/Updates/v2.7.4.7_2026-11-11.png"
             );
 
             // Получаем новые обновления
@@ -862,13 +861,18 @@ namespace Metal_Code
 
                 if (existingOfferId.HasValue)
                 {
-                    // Расчёт уже есть в БД — загружаем его полные данные
-                    StatusBegin("Загрузка расчёта из базы...", StatusMessageType.Info);
-
                     var fullOffer = await DataService.LoadOfferDataAsync(existingOfferId.Value);
                     if (fullOffer != null)
                     {
                         ActiveOffer = fullOffer;
+
+                        // ⭐ НОВОЕ: Синхронизируем Note из БД в Product
+                        if (ProductModel.Product != null && !string.IsNullOrEmpty(fullOffer.Note))
+                        {
+                            ProductModel.Product.Note = fullOffer.Note;
+                            LoadProduct(); // перезагружаем UI с актуальной пометкой
+                        }
+
                         StatusBegin($"Расчёт {fullOffer.N} загружен.", StatusMessageType.Success);
                     }
                 }
@@ -898,7 +902,8 @@ namespace Metal_Code
                         autor: autor,
                         actPath: filePath,
                         dataJson: dataJson,
-                        managerId: TargetManager.Id
+                        managerId: TargetManager.Id,
+                        note: OfferNote.Text
                     );
 
                     ActiveOffer = savedOffer;
@@ -1717,9 +1722,10 @@ namespace Metal_Code
             IsExpressOffer = false;
             HasAssembly = false;
             IsLoadData = false;
-            Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = Comment.Text = ConstructRatio.Text = TotalCount.Text = TotalPrice.Text = "";
+            Order.Text = CustomerDrop.Text = DateProduction.Text = Adress.Text = Comment.Text = ConstructRatio.Text = TotalCount.Text = TotalPrice.Text = OfferNote.Text = "";
             ActiveOffer = null;
             Log = null;
+            SettingsToggle.IsChecked = false;
         }
 
         //-----------Добавление контрола детали----------//
@@ -2500,9 +2506,47 @@ namespace Metal_Code
 
                 var expandedGroups = GetExpandedGroupNames();
 
-                // 1. СНАЧАЛА синхронизируем имя папки на диске, если у расчета есть базовый номер.
-                // Это сработает даже если offer.Order или offer.Invoice были очищены (стали null).
-                if (!string.IsNullOrEmpty(offer.ParentQuoteNumber))
+                // ⭐ УМНАЯ ПРОВЕРКА: нужно ли переименовывать корневую папку?
+                // Загружаем актуальную версию из БД для сравнения
+                bool shouldSyncFolder = false;
+                try
+                {
+                    var currentOffer = await DataService.LoadOfferDataAsync(offer.Id);
+                    if (currentOffer != null)
+                    {
+                        // Сравниваем поля, которые влияют на имя корневой папки в SyncOfferFolderNameAsync
+                        bool invoiceChanged = currentOffer.Invoice != offer.Invoice;
+                        bool numberChanged = currentOffer.N != offer.N;
+                        bool companyChanged = currentOffer.Company != offer.Company;
+                        bool orderChanged = currentOffer.Order != offer.Order;
+
+                        // Note НЕ влияет на корневую папку (только на папку КП через SyncKpFolderNoteAsync)
+                        // EndDate, Agent, Act тоже не влияют
+                        shouldSyncFolder = invoiceChanged || numberChanged || companyChanged || orderChanged;
+
+                        if (shouldSyncFolder)
+                        {
+                            Trace.WriteLine($"[UpdateOffer] Обнаружены изменения, требующие переименования папки: " +
+                                            $"Invoice: {currentOffer.Invoice}→{offer.Invoice}, " +
+                                            $"N: {currentOffer.N}→{offer.N}, " +
+                                            $"Company: {currentOffer.Company}→{offer.Company}, " +
+                                            $"Order: {currentOffer.Order}→{offer.Order}");
+                        }
+                        else
+                        {
+                            Trace.WriteLine($"[UpdateOffer] Изменения не требуют переименования корневой папки");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine($"⚠️ Не удалось загрузить текущую версию расчёта для сравнения: {ex.Message}");
+                    // В случае ошибки — перестрахуемся и всё равно вызовем SyncOfferFolderNameAsync
+                    shouldSyncFolder = !string.IsNullOrEmpty(offer.ParentQuoteNumber);
+                }
+
+                // 1. СНАЧАЛА синхронизируем имя папки на диске, если нужно
+                if (shouldSyncFolder && !string.IsNullOrEmpty(offer.ParentQuoteNumber))
                 {
                     await SyncOfferFolderNameAsync(offer);
                 }
@@ -2581,10 +2625,6 @@ namespace Metal_Code
             }
         }
 
-        /// <summary>
-        /// Находит текущую корневую папку расчета и переименовывает её. 
-        /// Включает защиту от временных блокировок и проблем с пробелами в имени.
-        /// </summary>
         private async System.Threading.Tasks.Task SyncOfferFolderNameAsync(Offer offer)
         {
             try
@@ -2592,11 +2632,27 @@ namespace Metal_Code
                 string? currentDir = null;
                 string? kpSubFolderName = null;
 
-                // Шаг А: Берем корневую директорию из offer.Act
                 if (!string.IsNullOrEmpty(offer.Act) && File.Exists(offer.Act))
                 {
-                    currentDir = Path.GetDirectoryName(Path.GetDirectoryName(offer.Act));
-                    kpSubFolderName = Path.GetFileName(Path.GetDirectoryName(offer.Act));
+                    string fileDir = Path.GetDirectoryName(offer.Act)!;
+                    string fileDirName = Path.GetFileName(fileDir);
+
+                    // ⭐ Проверяем: файл лежит в папке КП или непосредственно в корне проекта?
+                    // Папка КП всегда начинается с "КП" (возможно с пометкой)
+                    bool isInsideKpFolder = fileDirName.StartsWith("КП", StringComparison.OrdinalIgnoreCase);
+
+                    if (isInsideKpFolder)
+                    {
+                        // Файл в папке КП: поднимаемся на 2 уровня
+                        currentDir = Path.GetDirectoryName(fileDir);
+                        kpSubFolderName = fileDirName;
+                    }
+                    else
+                    {
+                        // Файл непосредственно в корне проекта: поднимаемся на 1 уровень
+                        currentDir = fileDir;
+                        kpSubFolderName = null;
+                    }
                 }
                 else if (!string.IsNullOrEmpty(offer.Act))
                 {
@@ -2628,7 +2684,6 @@ namespace Metal_Code
                             {
                                 string pattern = $@"(?:^|[\s_\-]){Regex.Escape(searchNumber)}(?:[\s_\-]|$)";
                                 hasNumber = Regex.IsMatch(dirName, pattern, RegexOptions.IgnoreCase);
-
                                 if (!hasNumber && dirName.StartsWith(searchNumber, StringComparison.OrdinalIgnoreCase))
                                     hasNumber = true;
                             }
@@ -2639,7 +2694,12 @@ namespace Metal_Code
                                 string? brokenDir = Path.GetDirectoryName(offer.Act);
                                 if (!string.IsNullOrEmpty(brokenDir))
                                 {
-                                    kpSubFolderName = Path.GetFileName(brokenDir);
+                                    string brokenDirName = Path.GetFileName(brokenDir);
+                                    // ⭐ Та же проверка: папка КП или корень?
+                                    if (brokenDirName.StartsWith("КП", StringComparison.OrdinalIgnoreCase))
+                                        kpSubFolderName = brokenDirName;
+                                    else
+                                        kpSubFolderName = null;
                                 }
                                 break;
                             }
@@ -2654,7 +2714,6 @@ namespace Metal_Code
 
                 // Шаг В: Формируем ожидаемое имя корневой папки
                 string suffix = "";
-
                 if (!string.IsNullOrEmpty(offer.Invoice) || !string.IsNullOrEmpty(offer.Order))
                 {
                     string invoiceNumber = "без_счёта";
@@ -2682,14 +2741,20 @@ namespace Metal_Code
 
                 string companyName = new string((offer.Company ?? "").Where(c => !Path.GetInvalidFileNameChars().Contains(c)).ToArray()).Trim();
                 string calcNumber = offer.ParentQuoteNumber ?? (offer.N ?? "");
-
                 const int ALIGN_WIDTH = 30;
                 string baseNamePart = $"{calcNumber} {companyName}".Trim();
                 baseNamePart = baseNamePart.Length <= ALIGN_WIDTH ? baseNamePart.PadRight(ALIGN_WIDTH) : baseNamePart;
 
-                // 🔥 КРИТИЧЕСКИ ВАЖНО: Trim() убирает конечные пробелы, которые Windows запрещает при переименовании
                 string expectedFolderName = $"{baseNamePart}{suffix}".Trim();
                 string currentFolderName = Path.GetFileName(currentDir);
+
+                // ⭐ Защита: не переименовываем, если текущее имя уже начинается с "КП"
+                // Это значит, что мы случайно попали в папку КП вместо корневой папки
+                if (currentFolderName.StartsWith("КП", StringComparison.OrdinalIgnoreCase))
+                {
+                    Trace.WriteLine($"[SyncFolder] Пропуск: текущая папка \"{currentFolderName}\" похожа на папку КП, а не на корень проекта");
+                    return;
+                }
 
                 // Шаг Г: Если имя отличается, переименовываем
                 if (!currentFolderName.Equals(expectedFolderName, StringComparison.OrdinalIgnoreCase))
@@ -2706,11 +2771,9 @@ namespace Metal_Code
                         {
                             try
                             {
-                                // Попытка переименования
                                 Directory.Move(currentDir, newDirPath);
                                 success = true;
 
-                                // Если успешно, обновляем данные в памяти
                                 currentDir = newDirPath;
                                 if (!string.IsNullOrEmpty(offer.Act))
                                 {
@@ -2728,7 +2791,7 @@ namespace Metal_Code
                             catch (UnauthorizedAccessException) when (retries > 1)
                             {
                                 retries--;
-                                await System.Threading.Tasks.Task.Delay(500); // Ждем полсекунды и пробуем снова
+                                await System.Threading.Tasks.Task.Delay(500);
                             }
                             catch (IOException) when (retries > 1)
                             {
@@ -2737,7 +2800,6 @@ namespace Metal_Code
                             }
                             catch (Exception ex)
                             {
-                                // Если это не временная блокировка, или попытки закончились
                                 System.Diagnostics.Trace.WriteLine($"[SyncFolder] Ошибка переименования: {ex.Message}");
 
                                 if (ex is UnauthorizedAccessException || ex is IOException)
@@ -2745,7 +2807,7 @@ namespace Metal_Code
                                     StatusBegin(
                                         "Не удалось переименовать папку расчета.\n" +
                                         "1. Закройте файлы Excel из этой папки.\n" +
-                                        "2. Закройте окна Проводника, открытые в этой папке (особенно с включенной областью предпросмотра).\n" +
+                                        "2. Закройте окна Проводника, открытые в этой папке.\n" +
                                         "3. Попробуйте сохранить еще раз.",
                                         StatusMessageType.Warning);
                                 }
@@ -2753,8 +2815,7 @@ namespace Metal_Code
                                 {
                                     StatusBegin($"Ошибка при обновлении имени папки: {ex.Message}", StatusMessageType.Error);
                                 }
-
-                                return; // Прерываем, чтобы не испортить offer.Act и не сохранить мусор в БД
+                                return;
                             }
                         }
                     }
@@ -3425,6 +3486,7 @@ namespace Metal_Code
                 LooseStructure = AssemblyWindow.A.LooseStructure,
 
                 Comment = Comment.Text,
+                Note = OfferNote.Text,
             };
 
             ProductModel.Product = product;
@@ -3592,6 +3654,7 @@ namespace Metal_Code
             CustomerDrop.Text = ProductModel.Product.Company;
             Adress.Text = ProductModel.Product.Manager;
             Comment.Text = ProductModel.Product.Comment;
+            OfferNote.Text = ProductModel.Product.Note;
 
             CheckConstruct.IsChecked = ProductModel.Product.HasConstruct;
             ConstructRatio.Text = ProductModel.Product.ConstructRatio != null
@@ -3628,6 +3691,8 @@ namespace Metal_Code
                     LooseStructure = ProductModel.Product.LooseStructure
                 };
             }
+
+            SettingsToggle.IsChecked = HasDelivery == true;
         }
         public void LoadDetails(ObservableCollection<Detail> details)
         {
@@ -5449,7 +5514,8 @@ namespace Metal_Code
                 autor: CurrentManager.Name,
                 null,
                 null,
-                managerId: TargetManager.Id
+                managerId: TargetManager.Id,
+                note: OfferNote.Text
             );
 
             // Обновляем список расчетов в UI
@@ -8864,6 +8930,11 @@ namespace Metal_Code
                     return;
                 }
 
+                if (!string.IsNullOrEmpty(selectedOffer.Note))
+                {
+                    product.Note = selectedOffer.Note;
+                }
+
                 // 4. Создание и показ окна
                 ProductWindow clon = new(product)
                 {
@@ -9648,9 +9719,10 @@ namespace Metal_Code
             if (OffersGrid.SelectedItem is Offer offer)
             {
                 string result = await LaunchToWork(offer);
-
                 if (result.StartsWith("Не удалось"))
                     MessageBox.Show(result, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                else if (result.EndsWith("отменён."))
+                    StatusBegin(result, StatusMessageType.Warning);
                 else
                     StatusBegin(result, StatusMessageType.Success);
             }
@@ -9669,6 +9741,63 @@ namespace Metal_Code
             if (ActiveOffer is null || ActiveOffer.Data != offer.Data)
                 return $"Не удалось запустить в производство!\n" +
                        $"Расчет {offer.N} не загружен (не является активным).";
+
+            // ⭐═══ ВАРИАНТ В: СОГЛАСОВАНИЕ ПОМЕТКИ ПЕРЕД ЗАПУСКОМ ═══⭐
+            string uiNote = OfferNote.Text.Trim();
+            string savedNote = (ActiveOffer.Note ?? "").Trim();
+
+            Trace.WriteLine($"[DEBUG] UI Note: '{uiNote}', ActiveOffer.Note: '{savedNote}'");
+
+            if (!string.Equals(uiNote, savedNote, StringComparison.Ordinal))
+            {
+                var answer = MessageBox.Show(
+                    $"Пометка расчёта изменена:\n" +
+                    $"«{(savedNote == "" ? "(пусто)" : savedNote)}»  →  «{(uiNote == "" ? "(пусто)" : uiNote)}»\n\n" +
+                    "Да — обновить пометку в базе и переименовать папку КП;\n" +
+                    "Нет — использовать новую пометку ТОЛЬКО в имени рабочей папки\n" +
+                    "(папка КП и запись в базе останутся без изменений);\n" +
+                    "Отмена — не запускать в производство.\n\n" +
+                    "Учтите: если позже сохранить расчёт с новой пометкой,\n" +
+                    "папка КП будет переименована при сохранении.",
+                    "Пометка отличается от сохранённой",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question,
+                    MessageBoxResult.Cancel);
+
+                if (answer == MessageBoxResult.Cancel)
+                    return "Запуск в производство отменён.";
+
+                if (answer == MessageBoxResult.Yes)
+                {
+                    Trace.WriteLine($"[DEBUG] Обновляем Note: '{savedNote}' → '{uiNote}'");
+
+                    ActiveOffer.Note = uiNote;
+                    offer.Note = uiNote;
+
+                    // ⭐ НОВОЕ: Обновляем Product.Note и пересериализуем offer.Data
+                    if (ProductModel.Product != null)
+                    {
+                        ProductModel.Product.Note = uiNote;
+                        offer.Data = SaveOfferData();
+                    }
+
+                    await SyncKpFolderNoteAsync(offer, uiNote);
+
+                    bool persisted = await DataService.UpdateOfferAsync(offer);
+                    Trace.WriteLine($"[DEBUG] UpdateOfferAsync returned: {persisted}");
+
+                    if (!persisted)
+                        Trace.WriteLine($"⚠️ Не удалось сохранить пометку расчёта {offer.N} в БД");
+
+                    StatusBegin($"Пометка обновлена: «{savedNote}» → «{uiNote}»", StatusMessageType.Info);
+                }
+                // MessageBoxResult.No: ничего не сохраняем —
+                // uiNote будет использован только в имени рабочей папки ниже
+            }
+
+            string workNote = SanitizeFolderPart(uiNote);
+            string noteSegment = string.IsNullOrEmpty(workNote) ? "" : $"_{workNote}";
+            // ⭐═══ КОНЕЦ БЛОКА ═══⭐
 
             string? sourceDir = null; // путь к сохраненному расчету на диске (КП)
 
@@ -9845,7 +9974,7 @@ namespace Metal_Code
             string destinationDir = Directory.CreateDirectory(
                 Path.Combine(
                     workingDir,
-                    $"{nextOrder}{(hasPipe ? " (ТР) " : " ")}{offer.Company}({ShortManager()}){(HasAssembly ? " ЭКСПРЕСС" : "")}"
+                    $"{nextOrder}{(hasPipe ? " (ТР) " : " ")}{offer.Company}{noteSegment}({ShortManager()}){(HasAssembly ? " ЭКСПРЕСС" : "")}"
                 )
             ).FullName;
 
@@ -9881,6 +10010,98 @@ namespace Metal_Code
             Process.Start("explorer.exe", destinationDir);
 
             return notify + nextOrder;
+        }
+
+        /// <summary>
+        /// Очищает часть имени папки от недопустимых символов Windows и ограничивает длину.
+        /// Используется для Order, Company, Note при формировании имени папки расчёта.
+        /// </summary>
+        public static string SanitizeFolderPart(string? input, int maxLength = 80)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return "";
+            var invalid = Path.GetInvalidFileNameChars();
+            // Убираем недопустимые символы
+            var cleaned = new string(input.Where(c => !invalid.Contains(c)).ToArray());
+            // Убираем лишние пробелы
+            cleaned = Regex.Replace(cleaned, @"\s+", " ").Trim();
+            // Убираем точки и пробелы с конца (Windows их запрещает)
+            cleaned = cleaned.TrimEnd('.', ' ');
+            // Ограничиваем длину
+            if (cleaned.Length > maxLength)
+                cleaned = cleaned.Substring(0, maxLength).TrimEnd();
+            return cleaned;
+        }
+
+        /// <summary>
+        /// Заменяет сегмент пометки в имени папки КП, сохраняя суффикс "(от дата время)".
+        /// Обновляет offer.Act и ActiveOffer.Act после переименования.
+        /// </summary>
+        private async System.Threading.Tasks.Task SyncKpFolderNoteAsync(Offer offer, string? newNote)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(offer.Act) || !File.Exists(offer.Act))
+                {
+                    Trace.WriteLine($"[SyncKpNote] offer.Act пуст или файл не существует: {offer.Act}");
+                    return;
+                }
+
+                string kpDir = Path.GetDirectoryName(offer.Act)!;
+                string oldName = Path.GetFileName(kpDir);
+                Trace.WriteLine($"[SyncKpNote] Старое имя папки: \"{oldName}\"");
+
+                var match = Regex.Match(oldName, @"^КП(?:_(?<note>.+?))?\s*\(от\s*(?<date>.+)\)$", RegexOptions.IgnoreCase);
+                if (!match.Success)
+                {
+                    Trace.WriteLine($"[SyncKpNote] Имя папки КП не распознано: \"{oldName}\" — переименование пропущено");
+                    return;
+                }
+
+                string datePart = match.Groups["date"].Value;
+                string note = SanitizeFolderPart(newNote);
+                string newName = string.IsNullOrEmpty(note) ? $"КП (от {datePart})" : $"КП_{note} (от {datePart})";
+                Trace.WriteLine($"[SyncKpNote] Новое имя папки: \"{newName}\"");
+
+                if (string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase)) return;
+
+                string parent = Path.GetDirectoryName(kpDir)!;
+                string newDir = Path.Combine(parent, newName);
+                if (Directory.Exists(newDir))
+                {
+                    StatusBegin($"Папка \"{newName}\" уже существует. Пометка в имени папки КП не изменена.", StatusMessageType.Warning);
+                    return;
+                }
+
+                int retries = 3;
+                while (true)
+                {
+                    try
+                    {
+                        Directory.Move(kpDir, newDir);
+                        break;
+                    }
+                    catch (IOException) when (retries > 1) { retries--; await System.Threading.Tasks.Task.Delay(500); }
+                    catch (UnauthorizedAccessException) when (retries > 1) { retries--; await System.Threading.Tasks.Task.Delay(500); }
+                    catch (Exception ex)
+                    {
+                        StatusBegin(
+                            $"Не удалось переименовать папку КП: {ex.Message}\n" +
+                            "Закройте Проводник и файлы Excel из этой папки и повторите запуск.",
+                            StatusMessageType.Warning);
+                        return;
+                    }
+                }
+
+                string fileName = Path.GetFileName(offer.Act);
+                offer.Act = Path.Combine(newDir, fileName);
+                if (ActiveOffer != null) ActiveOffer.Act = offer.Act;
+
+                Trace.WriteLine($"📁 Папка КП переименована: \"{oldName}\" → \"{newName}\"");
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"[SyncKpNote] Ошибка: {ex.Message}");
+            }
         }
 
         private void CopyDirectoryToWork(string sourceDir, string destinationDir, bool recursive, string mainDir)
@@ -10303,39 +10524,6 @@ namespace Metal_Code
         }
 
         private double? _partsStackExpandedHeight = null;
-        private void OnOfferToggleClick(object sender, RoutedEventArgs e)
-        {
-            if (OfferToggle.IsChecked == true)
-            {
-                // Кэшируем высоту при первом раскрытии
-                if (!_partsStackExpandedHeight.HasValue)
-                {
-                    // Сохраняем текущую высоту, чтобы не мигало
-                    var originalHeight = PartsStack.Height;
-                    PartsStack.Height = double.NaN; // сбрасываем ограничение
-
-                    // Измеряем с шириной, равной ActualWidth родителя (OrderGrid)
-                    double width = OrderGrid.ActualWidth - PartsStack.Margin.Left - PartsStack.Margin.Right;
-                    if (width <= 0) width = 600; // fallback
-
-                    PartsStack.Measure(new Size(width, double.PositiveInfinity));
-                    _partsStackExpandedHeight = PartsStack.DesiredSize.Height;
-
-                    // Возвращаем исходную высоту (0), чтобы не отобразилось до анимации
-                    PartsStack.Height = originalHeight;
-                }
-
-                var expand = (Storyboard)FindResource("ExpandParts");
-                var anim = (DoubleAnimation)expand.Children[0];
-                anim.To = _partsStackExpandedHeight.Value;
-                expand.Begin(this);
-            }
-            else
-            {
-                var collapse = (Storyboard)FindResource("CollapseParts");
-                collapse.Begin(this);
-            }
-        }
 
         private void OnDetailsToggleClick(object sender, RoutedEventArgs e)
         {

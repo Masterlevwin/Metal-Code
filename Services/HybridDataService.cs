@@ -250,6 +250,7 @@ namespace Metal_Code.Services
                                 Autor = localOffer.Autor,
                                 Act = localOffer.Act,
                                 ManagerId = pgManager.Id,
+                                Note = localOffer.Note,
                                 Data = localOffer.Data
                             };
                             pgContext.Offers.Add(pgOffer);
@@ -406,6 +407,7 @@ namespace Metal_Code.Services
                                     Autor = o.Autor,
                                     Act = o.Act,
                                     ManagerId = pgManager.Id,
+                                    Note = o.Note,
                                     Data = o.Data
                                 };
                                 pgContext.Offers.Add(pgOffer);
@@ -730,6 +732,7 @@ namespace Metal_Code.Services
                         Autor = o.Autor,
                         Act = o.Act,
                         ManagerId = o.ManagerId,
+                        Note = o.Note,  // ✅ УЖЕ ЕСТЬ
                         IsPendingSync = o.IsPendingSync,
                         IsLocalOffer = true
                     }).ToListAsync();
@@ -772,6 +775,7 @@ namespace Metal_Code.Services
                             Autor = o.Autor,
                             Act = o.Act,
                             ManagerId = localManagerIdForOffers,
+                            Note = o.Note,  // ⭐ ДОБАВЬТЕ ЭТУ СТРОКУ
                             IsPendingSync = false,
                             IsLocalOffer = false
                         }).ToListAsync();
@@ -843,7 +847,7 @@ namespace Metal_Code.Services
 
         public async Task<Offer> SaveOfferAsync(
             string? orderNumber, string? companyName, float amount, float material, float services,
-            bool isAgent, string? autor, string? actPath, string? dataJson, int managerId)
+            bool isAgent, string? autor, string? actPath, string? dataJson, int managerId, string? note = null)
         {
             if (managerId == 0)
             {
@@ -879,6 +883,7 @@ namespace Metal_Code.Services
                 Autor = autor,
                 Act = actPath,
                 Data = dataJson,
+                Note = note,
                 CreatedDate = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc),
                 ManagerId = managerId
             };
@@ -917,6 +922,7 @@ namespace Metal_Code.Services
                         Autor = offer.Autor,
                         Act = offer.Act,
                         ManagerId = pgManagerId,
+                        Note = offer.Note,
                         Data = offer.Data
                     };
 
@@ -952,6 +958,7 @@ namespace Metal_Code.Services
                 Autor = offer.Autor,
                 Act = offer.Act,
                 ManagerId = managerId,
+                Note = offer.Note,
                 Data = offer.Data,
                 IsPendingSync = !isDraftManager
             };
@@ -993,6 +1000,7 @@ namespace Metal_Code.Services
                         localOffer.Order = updatedOffer.Order;
                         localOffer.Act = updatedOffer.Act;
                         localOffer.EndDate = updatedOffer.EndDate;
+                        localOffer.Note = updatedOffer.Note;
                         await localCtx.SaveChangesAsync();
                         Trace.WriteLine($"✅ Расчётный расчёт Id={updatedOffer.Id} обновлён локально");
                         return true;
@@ -1021,6 +1029,7 @@ namespace Metal_Code.Services
                         pgOffer.Order = updatedOffer.Order;
                         pgOffer.Act = updatedOffer.Act;
                         pgOffer.EndDate = updatedOffer.EndDate;
+                        pgOffer.Note = updatedOffer.Note;
                         await pgContext.SaveChangesAsync();
                         Trace.WriteLine($"✅ Расчёт Id={updatedOffer.Id} обновлён в PG");
                         return true;
@@ -1047,6 +1056,7 @@ namespace Metal_Code.Services
                     localOffer.Order = updatedOffer.Order;
                     localOffer.Act = updatedOffer.Act;
                     localOffer.EndDate = updatedOffer.EndDate;
+                    localOffer.Note = updatedOffer.Note;
                     localOffer.IsPendingSync = true;
                     await localCtx.SaveChangesAsync();
                     Trace.WriteLine($"✅ Расчёт Id={updatedOffer.Id} обновлён локально");
@@ -1187,6 +1197,7 @@ namespace Metal_Code.Services
                                 Autor = o.Autor,
                                 Act = o.Act,
                                 ManagerId = finalLocalManagerId,
+                                Note = o.Note,
                                 IsPendingSync = false,
                                 IsLocalOffer = false
                             }).ToListAsync();
@@ -1215,6 +1226,7 @@ namespace Metal_Code.Services
                                 Autor = o.Autor,
                                 Act = o.Act,
                                 ManagerId = o.ManagerId,
+                                Note = o.Note,
                                 IsPendingSync = o.IsPendingSync,
                                 IsLocalOffer = true
                             }).ToListAsync();
@@ -1261,6 +1273,7 @@ namespace Metal_Code.Services
                     Autor = o.Autor,
                     Act = o.Act,
                     ManagerId = o.ManagerId,
+                    Note = o.Note,
                     IsPendingSync = o.IsPendingSync,
                     IsLocalOffer = true
                 }).ToListAsync();
@@ -1373,6 +1386,7 @@ namespace Metal_Code.Services
                                 Autor = o.Autor,
                                 Act = o.Act,
                                 ManagerId = finalLocalManagerId,
+                                Note = o.Note,
                                 IsPendingSync = false
                             }).ToListAsync();
                         offers.Reverse();
@@ -1404,6 +1418,7 @@ namespace Metal_Code.Services
                     Autor = o.Autor,
                     Act = o.Act,
                     ManagerId = o.ManagerId,
+                    Note = o.Note,
                     IsPendingSync = false
                 }).ToListAsync();
             localOffers.Reverse();
@@ -1450,6 +1465,7 @@ namespace Metal_Code.Services
                                 Autor = o.Autor,
                                 Act = o.Act,
                                 ManagerId = finalLocalManagerId,
+                                Note = o.Note,
                                 Data = o.Data,
                                 IsPendingSync = false
                             }).ToListAsync();
@@ -1482,6 +1498,7 @@ namespace Metal_Code.Services
                     Autor = o.Autor,
                     Act = o.Act,
                     ManagerId = o.ManagerId,
+                    Note = o.Note,
                     Data = o.Data,
                     IsPendingSync = false
                 }).ToListAsync();

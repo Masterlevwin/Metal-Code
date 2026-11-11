@@ -11,6 +11,46 @@
     <UserControl.Resources>
         <local:IsNotPlaceholderConverter x:Key="IsNotPlaceholderConverter"/>
 
+        <!-- Цвета -->
+        <SolidColorBrush x:Key="ButtonBackground" Color="#FFFFFFE1"/>
+        <SolidColorBrush x:Key="BorderColor" Color="#D1D9E0"/>
+        <SolidColorBrush x:Key="FocusBorderColor" Color="#4A90E2"/>
+
+        <!-- Общая толщина границы -->
+        <Thickness x:Key="DefaultBorderThickness">1</Thickness>
+
+        <!-- Стиль для Button -->
+        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{StaticResource ButtonBackground}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}" />
+            <Setter Property="BorderThickness" Value="{StaticResource DefaultBorderThickness}" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Foreground" Value="Black" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="4"
+                        Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#FFFFFFFF" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource FocusBorderColor}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#F0F0F0" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Обновлённый стиль: сплошной оранжевый фон при активации -->
         <Style x:Key="SideIconButton" TargetType="ToggleButton">
             <Setter Property="Width" Value="40"/>
@@ -312,19 +352,64 @@
                 </ItemsControl>
             </ScrollViewer>
         </Grid>
-        
-        <!-- ================= СТРОКА 1: МАССОВЫЕ ОПЕРАЦИИ ================= -->
+
+        <!-- ================= СТРОКА 2: МАССОВЫЕ ОПЕРАЦИИ ================= -->
         <Border Grid.Row="2" Grid.Column="1" 
-        Background="{DynamicResource RegionBrush}" 
-        BorderBrush="LightGray" 
-        BorderThickness="1"
+         Background="{DynamicResource BackgroundBrush}"
+        BorderBrush="#FFB74D" 
+        BorderThickness="2"
         CornerRadius="6"
         Margin="5">
-            <StackPanel Orientation="Horizontal" Margin="10,4">
-                <!-- Иконка шестеренки в сайдбаре -->
-                <Image Grid.Row="1" Source="Images/works2.png" Width="20" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            <StackPanel Orientation="Horizontal" Margin="5" >
 
-                <ComboBox x:Name="WorksDrop" SelectedIndex="0" Width="180" SelectionChanged="SelectedWork" Margin="15,0">
+                <!-- Кнопка сортировки по выбранной работе -->
+                <Button x:Name="SortByWorkButton"
+                    Content="⇅"
+                    Click="SortDetails_Click"
+                    Width="32" Height="32"
+                    FontSize="16"
+                    FontWeight="Bold"
+                    Foreground="#0D47A1"
+                    Background="White"
+                    BorderBrush="#0D47A1"
+                    BorderThickness="1"
+                    Cursor="Hand"
+                    VerticalAlignment="Center"
+                    ToolTip="Отсортировать детали: сначала с выбранной работой, затем остальные">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="sortBorder"
+                                            Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="6">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="sortBorder" Property="Background" Value="#E3F2FD"/>
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="sortBorder" Property="Background" Value="#BBDEFB"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <!-- Заголовок -->
+                <TextBlock Text="Массовые операции" 
+                       FontWeight="Bold" FontSize="13" Foreground="#CC8833"
+                       VerticalAlignment="Center" Margin="8,0,0,0"/>
+
+                <!-- Выбор работы (кнопки "+" и ">" удалены из шаблона) -->
+                <ComboBox x:Name="WorksDrop" Width="160" SelectionChanged="SelectedWork" VerticalAlignment="Center" Margin="12,0,0,0" SelectedIndex="1">
                     <ComboBox.ItemContainerStyle>
                         <Style TargetType="ComboBoxItem">
                             <Setter Property="Height" Value="28"/>
@@ -334,55 +419,58 @@
                     </ComboBox.ItemContainerStyle>
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
-                            <Grid x:Name="ItemContainer" Background="Transparent">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding}" VerticalAlignment="Center" Margin="3,0"/>
-                                <StackPanel Orientation="Horizontal" Grid.Column="1" Margin="5,0,0,0">
-                                    <Button Content="+" Width="20" Click="SetVisibleControl" Tag="{Binding}">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <MultiDataTrigger>
-                                                        <MultiDataTrigger.Conditions>
-                                                            <Condition Binding="{Binding IsMouseOver, ElementName=ItemContainer}" Value="True"/>
-                                                            <Condition Binding="{Binding Converter={StaticResource IsNotPlaceholderConverter}}" Value="True"/>
-                                                        </MultiDataTrigger.Conditions>
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </MultiDataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
-                                    <Button Content="&gt;" Width="20" Margin="3,0,0,0" Click="SortDetails" Tag="{Binding}">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <MultiDataTrigger>
-                                                        <MultiDataTrigger.Conditions>
-                                                            <Condition Binding="{Binding IsMouseOver, ElementName=ItemContainer}" Value="True"/>
-                                                            <Condition Binding="{Binding Converter={StaticResource IsNotPlaceholderConverter}}" Value="True"/>
-                                                        </MultiDataTrigger.Conditions>
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </MultiDataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
-                                </StackPanel>
-                            </Grid>
+                            <TextBlock Text="{Binding}" VerticalAlignment="Center" Margin="3,0"/>
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
 
-                <Separator Background="LightGray" Width="1"/>
+                <!-- Иконка подсказки -->
+                <Border Width="20" Height="20" CornerRadius="10" Background="#FFB74D" Margin="8,0"
+                    VerticalAlignment="Center" Cursor="Help" ToolTipService.ShowDuration="30000">
+                    <TextBlock Text="?" FontWeight="Bold" Foreground="White" FontSize="12"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Border.ToolTip>
+                        <ToolTip Placement="Mouse" Background="White" BorderBrush="#FFB74D" BorderThickness="1"
+                             Padding="12" MaxWidth="340" HasDropShadow="True">
+                            <StackPanel>
+                                <TextBlock Text="Порядок работы с массовыми операциями" FontWeight="Bold" FontSize="13"
+                                       Foreground="#CC8833" Margin="0,0,0,8"/>
+                                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#333">
+                                <Bold>Шаг 1.</Bold> Выберите работу из списка и нажмите
+                                <Bold>«Добавить ко всем»</Bold> — работа добавится ко ВСЕМ деталям списка.
+                                </TextBlock>
+                                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#333" Margin="0,8,0,0">
+                                <Bold>Шаг 2.</Bold> Настройте параметры добавленной работы:
+                                </TextBlock>
+                                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#333" Margin="12,4,0,0">
+                                • Гибка, сварка, вальцовка, фрезеровка — значения применяются
+                                <Italic>сразу при вводе</Italic>.
+                                </TextBlock>
+                                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#333" Margin="12,4,0,0">
+                                • Окраска — впишите цвет RAL и <Italic>переведите фокус</Italic>
+                                на другое поле (кликните в пустое место).
+                                </TextBlock>
+                                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#333" Margin="12,4,0,0">
+                                • Отверстия (резьба, зенковка, сверловка, заклёпки) — впишите диаметр
+                                и <Italic>переведите фокус</Italic> на другое поле.
+                                </TextBlock>
+                                <Border BorderBrush="#FFB74D" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,6,0,0">
+                                    <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="#CC8833">
+                                    <Bold>Примечание:</Bold> если нужно добавить работу только к одной конкретной детали,
+                                    найдите кнопку <Bold>«Добавить работы»</Bold> на карточке нужной детали в списке выше.
+                                    </TextBlock>
+                                </Border>
+                            </StackPanel>
+                        </ToolTip>
+                    </Border.ToolTip>
+                </Border>
 
-                <!-- 🔥 ВОЗВРАЩАЕМ WorksGrid. Это StackPanel, содержащий все блоки работ по порядку -->
-                <StackPanel x:Name="WorksGrid" Orientation="Horizontal" Margin="15,0,0,0" VerticalAlignment="Center">
+                <!-- Кнопка применения -->
+                <Button x:Name="ApplyToAllButton" Content="✓ Добавить ко всем" Click="ApplyToAll_Click"
+                        Margin="8,0,0,0" VerticalAlignment="Center" Cursor="Hand"/>
+
+                <!-- Блоки параметров работ (кнопки "Г+", "Св+" и т.д. удалены) -->
+                <StackPanel x:Name="WorksGrid" Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center">
 
                     <!-- Индекс 0: Гибка (видима по умолчанию) -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -390,7 +478,6 @@
                         <TextBox x:Name="Bend" TextChanged="SetProperty" ToolTip="Кол-во однотипных гибов" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" MaxLines="1" Width="30"/>
                         <ComboBox x:Name="BendDrop" SelectedIndex="0" ToolTip="Длина гиба" SelectionChanged="SetType" Margin="5,0,0,0" Width="85"/>
                         <Button Content="-" ToolTip="Сбросить" Margin="5,0,0,0" Click="SetDefaultBends" Width="30"/>
-                        <Button x:Name="BendBtn" Content="Г+" ToolTip="Добавить гибку" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" Width="45"/>
                     </StackPanel>
 
                     <!-- Индекс 1: Сварка -->
@@ -398,78 +485,69 @@
                         <TextBlock Text="Св" FontWeight="Bold" ToolTip="Сварка" Margin="5,0,0,0" VerticalAlignment="Center" Width="30"/>
                         <TextBox x:Name="Weld" TextChanged="SetProperty" ToolTip="Длина, мм" MaxLines="1" Margin="5,0,0,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="50"/>
                         <ComboBox x:Name="WeldDrop" SelectionChanged="SetType" SelectedIndex="0" Margin="5,0,0,0" Width="85"/>
-                        <Button x:Name="WeldBtn" Content="Св+" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" Width="45"/>
                     </StackPanel>
 
                     <!-- Индекс 2: Окраска -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
                         <TextBlock Text="О" FontWeight="Bold" ToolTip="Окраска" Margin="5,0,0,0" VerticalAlignment="Center" Width="30"/>
-                        <TextBox x:Name="Paint" LostFocus="SetProperty" ToolTip="Цвет RAL" Margin="5,0,0,0" Width="50"/>
+                        <TextBox x:Name="Paint" LostFocus="SetProperty" ToolTip="Цвет RAL (переведите фокус после ввода)" Margin="5,0,0,0" Width="50"/>
                         <ComboBox x:Name="PaintDrop" SelectionChanged="SetType" SelectedIndex="0" Margin="5,0,0,0" Width="85"/>
-                        <Button x:Name="PaintBtn" Content="О+" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" Width="45"/>
                     </StackPanel>
 
                     <!-- Индекс 3: Резьба -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
                         <TextBlock Text="Р" FontWeight="Bold" ToolTip="Резьба" Margin="5,0,0,0" VerticalAlignment="Center" Width="30"/>
-                        <TextBlock Text="⌀" Margin="10,0,0,0" Width="10" />
-                        <TextBox x:Name="Wide1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxLines="1" ToolTip="Диаметр" LostFocus="SetPropertyThread" Width="40"/>
+                        <TextBlock Text="⌀" Margin="10,0,0,0" Width="10"/>
+                        <TextBox x:Name="Wide1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxLines="1" ToolTip="Диаметр (переведите фокус после ввода)" LostFocus="SetPropertyThread" Width="40"/>
                         <TextBlock Text="N" Margin="10,0,0,0" Width="10"/>
                         <TextBox x:Name="Holes1" TextChanged="SetProperty" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxLines="1" ToolTip="Кол-во" Width="40"/>
-                        <Button x:Name="ThreadBtn" Content="Р+" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" Width="45"/>
                     </StackPanel>
 
                     <!-- Индекс 4: Зенковка -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
                         <TextBlock Text="З" FontWeight="Bold" ToolTip="Зенковка" Margin="5,0,0,0" VerticalAlignment="Center" Width="30"/>
-                        <TextBlock Text="⌀" Margin="10,0,0,0" Width="10" />
-                        <TextBox x:Name="Wide2" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxLines="1" ToolTip="Диаметр" LostFocus="SetPropertyThread" Width="40"/>
+                        <TextBlock Text="⌀" Margin="10,0,0,0" Width="10"/>
+                        <TextBox x:Name="Wide2" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxLines="1" ToolTip="Диаметр (переведите фокус после ввода)" LostFocus="SetPropertyThread" Width="40"/>
                         <TextBlock Text="N" Margin="10,0,0,0" Width="10"/>
                         <TextBox x:Name="Holes2" TextChanged="SetProperty" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxLines="1" ToolTip="Кол-во" Width="40"/>
-                        <Button x:Name="CountersinkBtn" Content="З+" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" Width="45"/>
                     </StackPanel>
 
                     <!-- Индекс 5: Сверловка -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
                         <TextBlock Text="С" FontWeight="Bold" ToolTip="Сверловка" Margin="5,0,0,0" VerticalAlignment="Center" Width="30"/>
-                        <TextBlock Text="⌀" Margin="10,0,0,0" Width="10" />
-                        <TextBox x:Name="Wide3" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxLines="1" ToolTip="Диаметр" LostFocus="SetPropertyThread" Width="40"/>
+                        <TextBlock Text="⌀" Margin="10,0,0,0" Width="10"/>
+                        <TextBox x:Name="Wide3" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxLines="1" ToolTip="Диаметр (переведите фокус после ввода)" LostFocus="SetPropertyThread" Width="40"/>
                         <TextBlock Text="N" Margin="10,0,0,0" Width="10"/>
                         <TextBox x:Name="Holes3" TextChanged="SetProperty" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxLines="1" ToolTip="Кол-во" Width="40"/>
-                        <Button x:Name="DrillingBtn" Content="С+" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" Width="45"/>
                     </StackPanel>
 
                     <!-- Индекс 6: Вальцовка -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
                         <TextBlock Text="В" FontWeight="Bold" ToolTip="Вальцовка" Margin="5,0,0,0" VerticalAlignment="Center" Width="30"/>
                         <ComboBox x:Name="RollDrop" SelectedIndex="0" ToolTip="Сторона" SelectionChanged="SetType" Margin="5,0,0,0" Width="85"/>
-                        <Button x:Name="RollingBtn" Content="В+" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" Width="45"/>
                     </StackPanel>
 
                     <!-- Индекс 7: Оцинковка -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
                         <TextBlock Text="Ц" FontWeight="Bold" ToolTip="Оцинковка" Margin="5,0,0,0" VerticalAlignment="Center" Width="30"/>
                         <TextBox IsReadOnly="True" ToolTip="Вес" Margin="5,0,0,0" Width="50"/>
-                        <TextBlock Text="кг" Margin="5,0,0,0" Width="25" />
-                        <Button x:Name="ZincBtn" Content="Ц+" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" Width="45"/>
+                        <TextBlock Text="кг" Margin="5,0,0,0" Width="25"/>
                     </StackPanel>
 
                     <!-- Индекс 8: Фрезеровка -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
                         <TextBlock Text="Ф" FontWeight="Bold" ToolTip="Фрезеровка" Margin="5,0,0,0" VerticalAlignment="Center" Width="30"/>
                         <TextBox x:Name="TotalTime" TextChanged="SetProperty" ToolTip="Время" Margin="5,0,0,0" Width="50"/>
-                        <TextBlock Text="мин" Margin="5,0,0,0" Width="25" />
-                        <Button x:Name="MillingBtn" Content="Ф+" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" Width="45"/>
+                        <TextBlock Text="мин" Margin="5,0,0,0" Width="25"/>
                     </StackPanel>
 
                     <!-- Индекс 9: Заклепки -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
                         <TextBlock Text="Зк" FontWeight="Bold" ToolTip="Заклепки" Margin="5,0,0,0" VerticalAlignment="Center" Width="30"/>
-                        <TextBlock Text="⌀" Margin="10,0,0,0" Width="10" />
-                        <TextBox x:Name="Wide4" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxLines="1" ToolTip="Диаметр" LostFocus="SetPropertyThread" Width="40"/>
+                        <TextBlock Text="⌀" Margin="10,0,0,0" Width="10"/>
+                        <TextBox x:Name="Wide4" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxLines="1" ToolTip="Диаметр (переведите фокус после ввода)" LostFocus="SetPropertyThread" Width="40"/>
                         <TextBlock Text="N" Margin="10,0,0,0" Width="10"/>
                         <TextBox x:Name="Holes4" TextChanged="SetProperty" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5,0,0,0" MaxLines="1" ToolTip="Кол-во" Width="40"/>
-                        <Button x:Name="RivetsBtn" Content="Зк+" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" Width="45"/>
                     </StackPanel>
 
                     <!-- Индекс 10: Аквабластинг -->
@@ -477,9 +555,7 @@
                         <TextBlock Text="А" FontWeight="Bold" ToolTip="Аквабластинг" Margin="5,0,0,0" VerticalAlignment="Center" Width="30"/>
                         <TextBox IsReadOnly="True" ToolTip="Площадь" Margin="5,0,0,0" Width="50"/>
                         <TextBlock Text="кв м" Margin="5,0,0,0" Width="25"/>
-                        <Button x:Name="AquaBtn" Content="А+" Click="AddControl" FontWeight="Bold" Margin="5,0,0,0" Width="45"/>
                     </StackPanel>
-
                 </StackPanel>
             </StackPanel>
         </Border>

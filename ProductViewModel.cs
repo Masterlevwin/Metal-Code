@@ -106,7 +106,11 @@ namespace Metal_Code
                             string folderToRename = Path.GetDirectoryName(selectedFilePath)!;
                             string parentDir = Path.GetDirectoryName(folderToRename)!;
 
-                            string newFolderName = $"КП (от {DateTime.Now:dd.MM.yyyy HH-mm})";
+                            string notePart = MainWindow.SanitizeFolderPart(MainWindow.M.OfferNote.Text);
+                            string newFolderName = string.IsNullOrWhiteSpace(notePart)
+                                ? $"КП (от {DateTime.Now:dd.MM.yyyy HH-mm})"
+                                : $"КП_{notePart} (от {DateTime.Now:dd.MM.yyyy HH-mm})";
+
                             string destinationPath = Path.Combine(parentDir, newFolderName);
 
                             MainWindow.M.CreateFolderTagsForCalculation(parentDir);
@@ -279,7 +283,8 @@ namespace Metal_Code
                                     autor: autor,
                                     actPath: fullPath,
                                     dataJson: dataJson,
-                                    managerId: MainWindow.M.TargetManager.Id
+                                    managerId: MainWindow.M.TargetManager.Id,
+                                    note: MainWindow.M.OfferNote.Text
                                 );
 
                                 Trace.WriteLine($"[DEBUG] HasDelivery в returned savedOffer: {MainWindow.M.HasDelivery}");
@@ -430,9 +435,16 @@ namespace Metal_Code
                         {
                             MainWindow.M.ActiveOffer = offer;
                             Product = MainWindow.OpenOfferData(offer.Data);
+
+                            // ⭐ НОВОЕ: Синхронизируем Note из Offer в Product (защита от рассинхронизации)
+                            if (Product != null && !string.IsNullOrEmpty(offer.Note))
+                            {
+                                Product.Note = offer.Note;
+                            }
+
                             MainWindow.M.LoadProduct();
                             MainWindow.M.StatusBegin($"Расчет {MainWindow.M.ActiveOffer.N} загружен.", MainWindow.StatusMessageType.Success);
-                            
+
                             MainWindow.M.HighlightOfferRow(offer);
                             MainWindow.M.CheckAndPromptForUnknownCustomer(MainWindow.M.ActiveOffer);
                         }

@@ -142,6 +142,9 @@ namespace Metal_Code.Models
                 }
             }
         }
+
+        [ConcurrencyCheck]
+        public string? Note { get; set; }
     }
 
     // ==================== Customer ====================

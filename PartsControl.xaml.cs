@@ -38,29 +38,26 @@ namespace Metal_Code
             Parts = _parts;
             partsList.ItemsSource = Parts;
 
-            // Подписываемся на изменение коллекции, 
-            // чтобы автоматически скрывать EmptyStateGrid при добавлении деталей
             if (Parts is INotifyCollectionChanged notifyCollection)
             {
-                notifyCollection.CollectionChanged += (s, e) => UpdateEmptyState();
+                notifyCollection.CollectionChanged += (s, e) =>
+                {
+                    UpdateEmptyState();
+                };
             }
 
-            // Заполняем ComboBox работами
             WorksDrop.ItemsSource = works;
 
+            // Заполнение дропов параметров (без изменений)
             BendControl Bend = new(owner);
             foreach (string s in Bend.BendDict[0.5f].Keys) BendDrop.Items.Add(s);
-
             WeldControl Weld = new(owner);
             foreach (string s in Weld.TypeDict.Keys) WeldDrop.Items.Add(s);
-
             PaintControl Paint = new(owner);
             foreach (string s in Paint.structures) PaintDrop.Items.Add(s);
-
             RollingControl Roll = new(owner);
             foreach (string s in Roll.Sides) RollDrop.Items.Add(s);
 
-            // Первоначальный вызов
             UpdateEmptyState();
         }
 
@@ -93,10 +90,13 @@ namespace Metal_Code
         }
 
         // сортировка по выбранной работе
-        private void SortDetails(object sender, RoutedEventArgs e)
+        private void SortDetails_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button button || button.Tag is not string workName)
+            if (WorksDrop.SelectedItem is not string workName || workName == works[0])
+            {
+                MainWindow.M.StatusBegin("Сначала выберите работу из списка для сортировки", MainWindow.StatusMessageType.Warning);
                 return;
+            }
 
             int index = Array.IndexOf(works, workName);
             if (index < 1) return;
@@ -118,6 +118,7 @@ namespace Metal_Code
             };
 
             partsList.ItemsSource = sortedParts.ToList();
+            MainWindow.M.StatusBegin($"Детали отсортированы по работе «{workName}»", MainWindow.StatusMessageType.Success);
         }
 
         // Вспомогательный метод: сортировка по типу UserControl
@@ -137,52 +138,51 @@ namespace Metal_Code
             return withControl.Concat(withoutControl);
         }
 
-        // сбрасываем выбор работы
-        private void SelectedWork(object sender, SelectionChangedEventArgs e) { WorksDrop.SelectedIndex = 0; }
-
-        // добавляем работу во все детали
-        private void AddControl(object sender, RoutedEventArgs e)
+        private void SelectedWork(object sender, SelectionChangedEventArgs e)
         {
-            foreach (PartControl p in Parts)
+            if (WorksDrop.SelectedItem is string workName)
             {
-                if (sender is Button btn)
-                    switch (btn.Name)
-                    {
-                        case "BendBtn":
-                            p.AddControl(0);
-                            break;
-                        case "WeldBtn":
-                            p.AddControl(1);
-                            break;
-                        case "PaintBtn":
-                            p.AddControl(2);
-                            break;
-                        case "ThreadBtn":
-                            p.AddControl(3);
-                            break;
-                        case "CountersinkBtn":
-                            p.AddControl(4);
-                            break;
-                        case "DrillingBtn":
-                            p.AddControl(5);
-                            break;
-                        case "RollingBtn":
-                            p.AddControl(6);
-                            break;
-                        case "ZincBtn":
-                            p.AddControl(7);
-                            break;
-                        case "MillingBtn":
-                            p.AddControl(8);
-                            break;
-                        case "RivetsBtn":
-                            p.AddControl(9);
-                            break;
-                        case "AquaBtn":
-                            p.AddControl(10);
-                            break;
-                    }
+                int index = Array.IndexOf(works, workName);
+                if (index >= 1 && index - 1 < WorksGrid.Children.Count)
+                {
+                    WorksGrid.Children[index - 1].Visibility = Visibility.Visible;
+                    foreach (StackPanel stack in WorksGrid.Children)
+                        if (stack != WorksGrid.Children[index - 1])
+                            stack.Visibility = Visibility.Collapsed;
+                }
             }
+        }
+
+        private void ApplyToAll_Click(object sender, RoutedEventArgs e)
+        {
+            if (Parts == null || Parts.Count == 0)
+            {
+                MainWindow.M.StatusBegin("Список деталей пуст — нечего применять", MainWindow.StatusMessageType.Warning);
+                return;
+            }
+
+            if (WorksDrop.SelectedItem is not string workName || workName == works[0])
+            {
+                MainWindow.M.StatusBegin("Сначала выберите работу из списка", MainWindow.StatusMessageType.Warning);
+                return;
+            }
+
+            int index = Array.IndexOf(works, workName);
+            if (index < 1) return;
+
+            // Показываем блок параметров выбранной работы
+            WorksGrid.Children[index - 1].Visibility = Visibility.Visible;
+            foreach (StackPanel stack in WorksGrid.Children)
+                if (stack != WorksGrid.Children[index - 1])
+                    stack.Visibility = Visibility.Collapsed;
+
+            // Добавляем работу во все детали
+            foreach (PartControl p in Parts)
+                p.AddControl(index - 1);
+
+            MainWindow.M.StatusBegin(
+                $"Работа «{workName}» добавлена во все детали ({Parts.Count} шт.). Теперь настройте её параметры.",
+                MainWindow.StatusMessageType.Success);
         }
 
         // обработчик события LostFocus для текстовых полей диаметра отверстий
@@ -224,7 +224,7 @@ namespace Metal_Code
                     foreach (PaintControl item in p.UserControls.OfType<PaintControl>()) item.SetRal(tBox.Text);
         }
 
-        // обработчик события TextChangeds для текстовых полей
+        // обработчик события TextChanged для текстовых полей
         private void SetProperty(object sender, TextChangedEventArgs e)
         {
             if (Parts.Count > 0 && sender is TextBox tBox && tBox.Text != "")

@@ -34,6 +34,9 @@ namespace Metal_Code
         public string Comment = "";
 
         [OptionalField]
+        public string? Note = "";
+
+        [OptionalField]
         public ObservableCollection<Assembly> Assemblies = new();
 
         [OptionalField]
@@ -721,6 +724,7 @@ namespace Metal_Code
             Database.EnsureCreated();                   // гарантируем, что база данных создана
             EnsureMachineNameColumnExists();
             EnsurePendingSyncColumnExists();
+            EnsureNoteColumnExists();
 
             Database.SetCommandTimeout(9000);
         }
@@ -749,6 +753,12 @@ namespace Metal_Code
                 .Property(o => o.IsPendingSync)
                 .HasColumnName("IsPendingSync")
                 .HasDefaultValue(true);
+
+            modelBuilder.Entity<Offer>()
+                .Property(o => o.Note)
+                .HasColumnName("Note")
+                .HasColumnType("TEXT")
+                .IsRequired(false);
 
             modelBuilder.Entity<Customer>().Ignore(c => c.SpecTemplateJson);
 
@@ -799,6 +809,23 @@ namespace Metal_Code
             catch (Exception ex)
             {
                 System.Diagnostics.Trace.WriteLine($"Warning: Could not add IsPendingSync column: {ex.Message}");
+            }
+        }
+
+        private void EnsureNoteColumnExists()
+        {
+            try
+            {
+                Database.ExecuteSqlRaw(@"ALTER TABLE Offers ADD COLUMN Note TEXT;");
+            }
+            catch (Microsoft.Data.Sqlite.SqliteException ex)
+            {
+                if (ex.SqliteErrorCode != 1)
+                    System.Diagnostics.Trace.WriteLine($"Unexpected SQLite error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.WriteLine($"Warning: Could not add Note column: {ex.Message}");
             }
         }
     }

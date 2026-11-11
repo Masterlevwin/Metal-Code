@@ -9,8 +9,8 @@
         mc:Ignorable="d" AutomationProperties.Name="" WindowStartupLocation="CenterScreen" Closing="Exit" WindowState="Maximized" Icon="/app_logo.jpeg" Background="{DynamicResource {x:Static SystemColors.GradientInactiveCaptionBrushKey}}" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveCaptionTextBrushKey}}" FontFamily="Century" MinWidth="1280" MinHeight="720" Activated="MainWindow_Activated">
 
     <Window.Resources>
+        <!-- Конвертеры -->
         <local:CostConverter x:Key="CostConverter"/>
-        <local:IsAgentToTextConverter x:Key="IsAgentToTextConverter"/>
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <local:DateToBoolConverter x:Key="DateToBoolConverter"/>
         <local:OrderToBoolConverter x:Key="OrderToBoolConverter"/>
@@ -18,25 +18,6 @@
         <converters:InverseBooleanConverter x:Key="InverseBoolConverter"/>
         <converters:ShipmentButtonTextConverter x:Key="ShipmentButtonTextConverter"/>
         <converters:LocalOfferColorConverter x:Key="LocalOfferColorConverter"/>
-        
-        <!-- Плавные функции для анимации -->
-        <PowerEase x:Key="EaseOut" EasingMode="EaseOut"/>
-        <PowerEase x:Key="EaseIn" EasingMode="EaseIn"/>
-
-        <Storyboard x:Key="ExpandParts">
-            <DoubleAnimation Storyboard.TargetName="PartsStack"
-                     Storyboard.TargetProperty="Height"
-                     Duration="0:0:0.35"
-                     EasingFunction="{StaticResource EaseOut}"/>
-        </Storyboard>
-
-        <Storyboard x:Key="CollapseParts">
-            <DoubleAnimation Storyboard.TargetName="PartsStack"
-                     Storyboard.TargetProperty="Height"
-                     To="0"
-                     Duration="0:0:0.3"
-                     EasingFunction="{StaticResource EaseIn}"/>
-        </Storyboard>
 
         <!-- Цвета -->
         <SolidColorBrush x:Key="ButtonBackground" Color="#FFFFFFE1"/>
@@ -103,47 +84,32 @@
             </Setter>
         </Style>
 
-        <!-- Стиль для ToggleButton -->
-        <Style x:Key="ExpandToggleButtonStyle" TargetType="ToggleButton">
-            <Setter Property="Background" Value="{StaticResource ButtonBackground}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,4"/>
+        <!-- Стиль для TabControl -->
+        <Style x:Key="OffersTabControl" BasedOn="{StaticResource TabControlSliding}" TargetType="TabControl">
+            <Setter Property="ItemContainerStyle" Value="{StaticResource TabItemInLine}"/>
+        </Style>
+
+        <!-- Стиль для выбора компании (Логотипы) -->
+        <Style x:Key="CompanyRadioStyle" TargetType="RadioButton">
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Opacity" Value="0.4"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="4"
-                        Padding="{TemplateBinding Padding}">
-                            <StackPanel Orientation="Horizontal" 
-                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
-                                <!-- Основной текст из Content -->
-                                <ContentPresenter x:Name="ContentPresenter"
-                                          ContentSource="Content"
-                                          RecognizesAccessKey="True"
-                                          VerticalAlignment="Center"/>
-                                <!-- Стрелка-индикатор состояния -->
-                                <TextBlock x:Name="Arrow"
-                                   Text="▼"
-                                   Margin="6,0,0,0"
-                                   VerticalAlignment="Center"
-                                   Foreground="{TemplateBinding Foreground}"/>
-                            </StackPanel>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="border" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}" Background="White">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Arrow" Property="Text" Value="▲"/>
-                                <!-- Опционально: подсветка при раскрытом состоянии -->
-                                <Setter Property="Background" Value="#F0F8FF"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#4A90E2"/>
+                                <Setter TargetName="border" Property="BorderThickness" Value="2"/>
+                                <Setter Property="Opacity" Value="1"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="BorderBrush" Value="{StaticResource FocusBorderColor}"/>
+                                <Setter Property="Opacity" Value="0.8"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -151,30 +117,118 @@
             </Setter>
         </Style>
 
-        <!-- Стиль для TabControl -->
-        <Style x:Key="OffersTabControl" BasedOn="{StaticResource TabControlSliding}" TargetType="TabControl">
-            <Setter Property="ItemContainerStyle" Value="{StaticResource TabItemInLine}"/>
+        <!-- Компактный тоггл-иконка для заголовка -->
+        <Style x:Key="IconToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="5" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#E8F0FE"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#4A90E2"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#4A90E2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
+
+        <!-- Стиль тоггла пометки: подсвечен по умолчанию, гаснет при пустой пометке -->
+        <Style x:Key="NoteToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource IconToggleStyle}">
+            <!-- СОСТОЯНИЕ ПО УМОЛЧАНИЮ: пометка есть → подсветка -->
+            <Setter Property="Background" Value="#E8F0FE"/>
+            <Setter Property="BorderBrush" Value="#4A90E2"/>
+            <Setter Property="ToolTip" Value="{Binding Text, ElementName=OfferNote}"/>
+            <Style.Triggers>
+                <!-- ПОМЕТКИ НЕТ: возвращаем обычный вид -->
+                <DataTrigger Binding="{Binding Text.Length, ElementName=OfferNote, FallbackValue=0}" Value="0">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="BorderBrush" Value="#E5E7EB"/>
+                    <Setter Property="ToolTip" Value="Пометка не задана"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Компактная версия сегмента НДС -->
+        <Style x:Key="SegmentedRadioStyleSmall" TargetType="RadioButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,2"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#4A90E2"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#EBF5FB"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                    <Condition Property="IsChecked" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="border" Property="Background" Value="#357ABD"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Стиль кнопки Экспресс -->
+        <Style x:Key="ExpressToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource ToggleButtonDefault}">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="#F59E0B"/>
+                    <Setter Property="BorderBrush" Value="#D97706"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </Trigger>
+                <MultiTrigger>
+                    <MultiTrigger.Conditions>
+                        <Condition Property="IsMouseOver" Value="True"/>
+                        <Condition Property="IsChecked" Value="True"/>
+                    </MultiTrigger.Conditions>
+                    <Setter Property="Background" Value="#D97706"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </MultiTrigger>
+            </Style.Triggers>
+        </Style>
+
     </Window.Resources>
 
     <Window.InputBindings>
-        <KeyBinding Key="Q"
-              Modifiers="Control" 
-              Command="{Binding NewProjectCommand}"/>
-        <KeyBinding Key="S"
-              Modifiers="Control" 
-              Command="{Binding OpenCommand}"/>
-        <KeyBinding Key="D"
-              Modifiers="Control" 
-              Command="{Binding SaveCommand}"/>
-        <KeyBinding Key="F"
-              Modifiers="Control" 
-              Command="{Binding LoadCommand}"/>
-        <KeyBinding Key="F5"
-              Command="{Binding UpdateCommand}"/>
-        <KeyBinding Key="K"
-              Modifiers="Control"
-              Command="{Binding OpenAssistantCommand}"/>
+        <KeyBinding Key="Q" Modifiers="Control" Command="{Binding NewProjectCommand}"/>
+        <KeyBinding Key="S" Modifiers="Control" Command="{Binding OpenCommand}"/>
+        <KeyBinding Key="D" Modifiers="Control" Command="{Binding SaveCommand}"/>
+        <KeyBinding Key="F" Modifiers="Control" Command="{Binding LoadCommand}"/>
+        <KeyBinding Key="F5" Command="{Binding UpdateCommand}"/>
+        <KeyBinding Key="K" Modifiers="Control" Command="{Binding OpenAssistantCommand}"/>
     </Window.InputBindings>
 
     <DockPanel LastChildFill="True">
@@ -203,21 +257,19 @@
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
-            
-            <MenuItem x:Name="Settings" Header="Базы">
-                <MenuItem Header="База заготовок"   Tag="settings.details" Click="OpenSettings"/>
-                <MenuItem Header="База работ"       Tag="settings.works"    Click="OpenSettings"/>
-                <MenuItem Header="База менеджеров"  Tag="settings.managers" Click="OpenSettings"/>
-                <MenuItem Header="База материалов"  Tag="settings.metals"   Click="OpenSettings"/>
 
-                <!-- ⭐ Служебный блок: виден только администратору -->
+            <MenuItem x:Name="Settings" Header="Базы">
+                <MenuItem Header="База заготовок" Tag="settings.details" Click="OpenSettings"/>
+                <MenuItem Header="База работ" Tag="settings.works" Click="OpenSettings"/>
+                <MenuItem Header="База менеджеров" Tag="settings.managers" Click="OpenSettings"/>
+                <MenuItem Header="База материалов" Tag="settings.metals" Click="OpenSettings"/>
+
                 <Separator>
                     <Separator.Style>
                         <Style TargetType="Separator">
                             <Setter Property="Visibility" Value="Collapsed"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding CurrentManager.IsAdmin,
-                        RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" Value="True">
+                                <DataTrigger Binding="{Binding CurrentManager.IsAdmin, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" Value="True">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
                             </Style.Triggers>
@@ -229,9 +281,7 @@
                         <Style TargetType="MenuItem" BasedOn="{StaticResource MenuItemBaseStyle}">
                             <Setter Property="Visibility" Value="Collapsed"/>
                             <Style.Triggers>
-                                <!-- Показываем только администратору -->
-                                <DataTrigger Binding="{Binding CurrentManager.IsAdmin,
-                        RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" Value="True">
+                                <DataTrigger Binding="{Binding CurrentManager.IsAdmin, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" Value="True">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
                             </Style.Triggers>
@@ -239,7 +289,7 @@
                     </MenuItem.Style>
                 </MenuItem>
             </MenuItem>
-            
+
             <MenuItem Header="Инструменты">
                 <MenuItem Header="Таблица гибов" Click="ShowTableOfBends">
                     <MenuItem.Icon>
@@ -287,15 +337,13 @@
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
-            
+
             <MenuItem Header="Отчеты">
                 <MenuItem Header="📊 По отгруженным заказам за выбранный период" Click="Report_On_Shipped_Orders">
                     <MenuItem.Style>
                         <Style TargetType="MenuItem" BasedOn="{StaticResource MenuItemBaseStyle}">
                             <Style.Triggers>
-                                <!-- Скрываем для инженеров -->
-                                <DataTrigger Binding="{Binding CurrentManager.IsEngineer,
-                                    RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" Value="True">
+                                <DataTrigger Binding="{Binding CurrentManager.IsEngineer, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
                             </Style.Triggers>
@@ -306,18 +354,15 @@
                     <MenuItem.Style>
                         <Style TargetType="MenuItem" BasedOn="{StaticResource MenuItemBaseStyle}">
                             <Style.Triggers>
-                                <!-- Скрываем для инженеров -->
-                                <DataTrigger Binding="{Binding CurrentManager.IsEngineer,
-                                    RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" Value="True">
+                                <DataTrigger Binding="{Binding CurrentManager.IsEngineer, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}}}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </MenuItem.Style>
                 </MenuItem>
-
             </MenuItem>
-            
+
             <MenuItem Header="О программе">
                 <MenuItem Header="Руководство" Click="OpenExample">
                     <MenuItem.Icon>
@@ -328,15 +373,13 @@
                 <Separator/>
                 <MenuItem Header="Обновить программу" Click="Restart"/>
             </MenuItem>
-            
+
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <!-- Индикатор статуса -->
                 <Border x:Name="OnlineIndicator" Width="12" Height="12" CornerRadius="6"
                         Background="Gray" Margin="0,0,5,0" ToolTip="Статус подключения"/>
                 <Button x:Name="Login" Content="Пользователь" ToolTip="Сменить пользователя" Click="ShowLoginWindow"/>
             </StackPanel>
-            
-            <!-- ⭐ Кнопка вызова ассистента -->
+
             <Button x:Name="AssistantButton" 
                     Click="OpenAssistantWindow"
                     ToolTip="Открыть ассистента (Ctrl+K)"
@@ -367,7 +410,6 @@
             <GroupBox x:Name="DetailsBox" Style="{StaticResource GroupBoxOriginal}" Margin="5">
                 <GroupBox.Header>
                     <StackPanel Orientation="Horizontal" Margin="5">
-
                         <Button Click="AddDetail" VerticalAlignment="Top">
                             <StackPanel Orientation="Horizontal">
                                 <Image Source="Images/plus.png"/>
@@ -441,7 +483,6 @@
                                 <hc:NumericUpDown x:Name="ServiceFactorBox" Grid.Row="2" Grid.Column="1"
                           Value="{Binding ServiceFactor, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}, StringFormat='{}{0:F2}'}"
                           Minimum="0" Maximum="10" Increment="0.01" Margin="0,8,0,0" ToolTip="Введите наценку на все услуги"/>
-
                             </Grid>
                         </Expander>
 
@@ -458,7 +499,6 @@
                             </StackPanel>
 
                             <StackPanel x:Name="DetailsPanel" Visibility="Collapsed" Margin="0,6,0,0">
-                                <!-- Группа: Материалы -->
                                 <StackPanel Orientation="Horizontal" Margin="3">
                                     <TextBlock Text="Металл — " FontWeight="SemiBold"/>
                                     <TextBlock x:Name="MaterialTotal" Foreground="Blue"/>
@@ -467,7 +507,6 @@
                                     <TextBlock Text="ПКИ: "/>
                                     <TextBlock x:Name="BasketTotal" Foreground="Blue"/>
                                 </StackPanel>
-                                <!-- Группа: Работы -->
                                 <StackPanel Orientation="Horizontal" Margin="3">
                                     <TextBlock Text="Работы — " FontWeight="SemiBold"/>
                                     <TextBlock x:Name="ServicesTotal" Foreground="Blue"/>
@@ -483,7 +522,6 @@
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
-
                 </GroupBox.Header>
 
                 <hc:ScrollViewer x:Name="DetailsScroll" IsInertiaEnabled="True">
@@ -505,156 +543,321 @@
             <GridSplitter Grid.Column="1" ShowsPreview="False" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" BorderThickness="1"/>
 
             <GroupBox Grid.Column="2" Style="{StaticResource GroupBoxOriginal}" Margin="5">
+
                 <GroupBox.Header>
-                    <StackPanel Orientation="Horizontal" Margin="5">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="КП №" VerticalAlignment="Center" FontWeight="Bold" Width="40"/>
-                        <TextBox x:Name="Order" MaxLines="1" ToolTip="Введите номер предложения" Width="60" Margin="5,0,0,0" HorizontalContentAlignment="Center" LostFocus="Order_LostFocus"/>
-                        <TextBlock Text="{Binding IsAgent, Converter={StaticResource IsAgentToTextConverter}, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="Blue" Width="50"/>
-                        <hc:ComboBox hc:InfoElement.Placeholder="Выбор заказчика" x:Name="CustomerDrop" DisplayMemberPath="Name" IsEditable="True" SelectedIndex="0" SelectionChanged="CustomerChanged" Margin="10,0,0,0" Width="210" ToolTip="Выберите заказчика"/>
-                        <StackPanel Orientation="Horizontal" Margin="20,0,0,0">
-                            <Button ToolTip="Добавить заказчика" Click="AddCustomer" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="0" Padding="5,1" Height="20">
-                                <Image Source="/Images/add.png"/>
-                            </Button>
-                            <Button ToolTip="Изменить данные заказчика" Click="EditCustomer" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="0" Padding="5,1" Margin="10,0,0,0" Height="20">
-                                <Image Source="/Images/edit.png"/>
-                            </Button>
-                            <Button ToolTip="Удалить заказчика" Click="DeleteCustomer" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="0" Padding="5,1" Margin="10,0,0,0" Height="20">
-                                <Image Source="/Images/del.png"/>
-                            </Button>
-                        </StackPanel>
+                        <TextBox x:Name="Order" MaxLines="1" ToolTip="Введите номер предложения"
+                     Width="60" Margin="6,0,0,0" HorizontalContentAlignment="Center"
+                     LostFocus="Order_LostFocus"/>
+
+                        <Grid Margin="10,0,0,0">
+                            <!-- Тоггл пометки с подсветкой -->
+                            <ToggleButton x:Name="NoteToggle" ToolTip="Пометка к КП"
+                  Style="{StaticResource NoteToggleStyle}">
+                                <TextBlock Text="📝"/>
+                            </ToggleButton>
+
+                            <!-- Точка-индикатор: видна только при непустой пометке -->
+                            <Ellipse Width="8" Height="8" Fill="#4A90E2" Stroke="White" StrokeThickness="1.5"
+             VerticalAlignment="Top" Margin="0,-2,-2,0"
+             IsHitTestVisible="False">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Text.Length, ElementName=OfferNote, FallbackValue=0}" Value="0">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                        </Grid>
+
+                        <Popup IsOpen="{Binding IsChecked, ElementName=NoteToggle}"
+                   PlacementTarget="{Binding ElementName=NoteToggle}"
+                   Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
+                   HorizontalOffset="-10" VerticalOffset="6">
+                            <Border Background="#F9FAFB" CornerRadius="8" Padding="10"
+                        BorderBrush="#E5E7EB" BorderThickness="1" MinWidth="260">
+                                <StackPanel>
+                                    <TextBlock Text="ПОМЕТКА К КП" FontWeight="SemiBold" Foreground="#9CA3AF" Margin="0,0,0,6"/>
+                                    <hc:TextBox x:Name="OfferNote" hc:InfoElement.Placeholder="Эта пометка будет добавлена к имени папки КП и папки заказа при запуске в работу"
+                                    TextWrapping="Wrap" Height="35" VerticalContentAlignment="Center" Padding="8"/>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+
+                        <hc:ButtonGroup Margin="10,0,0,0">
+                            <RadioButton x:Name="OOORadioButton" Content="с НДС" GroupName="Invoice"
+                             Checked="IsAgentChanged" Style="{StaticResource SegmentedRadioStyleSmall}"/>
+                            <RadioButton x:Name="IPRadioButton" Content="без НДС" GroupName="Invoice"
+                             Checked="IsAgentChanged" IsChecked="True" Style="{StaticResource SegmentedRadioStyleSmall}"/>
+                        </hc:ButtonGroup>
+
+                        <TextBlock Text="для" VerticalAlignment="Center" Margin="10,0,4,0"/>
+
+                        <hc:ComboBox hc:InfoElement.Placeholder="Выбор заказчика" x:Name="CustomerDrop"
+                         DisplayMemberPath="Name" IsEditable="True" SelectedIndex="0"
+                         SelectionChanged="CustomerChanged" Width="175" ToolTip="Выберите заказчика"/>
+
+                        <ToggleButton x:Name="CustomerCrudToggle" ToolTip="Управление заказчиками"
+                          Margin="8,0,0,0" Style="{StaticResource IconToggleStyle}">
+                            <TextBlock Text="👤"/>
+                        </ToggleButton>
+
+                        <Popup IsOpen="{Binding IsChecked, ElementName=CustomerCrudToggle}"
+                   PlacementTarget="{Binding ElementName=CustomerCrudToggle}"
+                   Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
+                   HorizontalOffset="-60" VerticalOffset="6">
+                            <Border Background="White" CornerRadius="8" Padding="6"
+                        BorderBrush="#E5E7EB" BorderThickness="1">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button ToolTip="Добавить заказчика" Click="AddCustomer" Padding="6,4">
+                                        <Image Source="/Images/add.png" Width="16"/>
+                                    </Button>
+                                    <Button ToolTip="Изменить данные заказчика" Click="EditCustomer" Padding="6,4" Margin="4,0,0,0">
+                                        <Image Source="/Images/edit.png" Width="16"/>
+                                    </Button>
+                                    <Button ToolTip="Удалить заказчика" Click="DeleteCustomer" Padding="6,4" Margin="4,0,0,0">
+                                        <Image Source="/Images/del.png" Width="16"/>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
                     </StackPanel>
                 </GroupBox.Header>
 
                 <Grid x:Name="OrderGrid">
                     <Grid.RowDefinitions>
-                        <!-- Верхняя панель с кнопками -->
                         <RowDefinition Height="Auto"/>
-                        <!-- Раскрывающаяся панель PartsStack -->
                         <RowDefinition Height="Auto"/>
-                        <!-- Основное содержимое: TabControl -->
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
-                        <!-- Занимает всё оставшееся пространство -->
                     </Grid.RowDefinitions>
 
-                    <StackPanel Margin="15,5,5,5" Orientation="Horizontal">
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10,6" VerticalAlignment="Center">
+                        <TextBlock Text="Срок" VerticalAlignment="Center" FontWeight="SemiBold" Width="40"/>
+                        <TextBox x:Name="DateProduction" ToolTip="Введите срок изготовления" FontWeight="Bold"
+             MaxLines="1" Margin="6,0,0,0" Width="60"
+             HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                        <TextBlock Text="раб/дней" Margin="6,0,0,0" VerticalAlignment="Center"/>
 
-                        <TextBlock Text="Срок" VerticalAlignment="Center" Width="40"/>
-                        <TextBox x:Name="DateProduction" ToolTip="Введите срок изготовления" FontWeight="Bold" MaxLines="1" Margin="5,0,0,0" Width="60" HorizontalContentAlignment="Center"/>
-                        <TextBlock Text="раб/дней" Margin="10,0,0,0" VerticalAlignment="Center" Width="55"/>
-                        <CheckBox Content="Экспресс" VerticalAlignment="Center" ToolTip="Добавить наценку за срочность"
-                                    IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Margin="5,0,0,0"/>
-                        <ToggleButton x:Name="OfferToggle"
-                                      Style="{StaticResource ExpandToggleButtonStyle}"
-                                      Content="дополнительно" Width="125" Margin="10,0,0,0"
-                                      ToolTip="Настройки КП — коэффициенты, доставка и прочее"
-                                      Click="OnOfferToggleClick" IsChecked="True" Cursor="Hand"/>
+                        <ToggleButton Content="⚡ Экспресс"
+                  IsChecked="{Binding HasAssembly, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"
+                  Style="{StaticResource ExpressToggleStyle}"
+                  ToolTip="Добавить наценку за срочность" Margin="10,0,0,0"/>
 
-                        <Button Command="{Binding SaveCommand}" ToolTip="Сохранить расчет (Ctrl+D)" Margin="10,0,0,0">
-                            <StackPanel Orientation="Horizontal">
+                        <Button Command="{Binding SaveCommand}" ToolTip="Сохранить расчет (Ctrl+D)" Margin="65,0,0,0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <Image Source="Images/save.png"/>
-                                <TextBlock Text="Сохранить КП" VerticalAlignment="Center" Margin="5,0,0,0" Width="85"/>
+                                <TextBlock Text="Сохранить КП" VerticalAlignment="Center" Margin="12,0,0,0"/>
                             </StackPanel>
                         </Button>
-
                     </StackPanel>
 
-                    <StackPanel Grid.Row="1" x:Name="PartsStack" Margin="5" Height="0">
-                        <StackPanel Orientation="Horizontal" Margin="5">
-                            <RadioButton GroupName="Invoice" x:Name="OOORadioButton" Content="счет с НДС" VerticalAlignment="Center" Checked="IsAgentChanged" ToolTip="К наименованию детали будет добавлено &quot;Деталь&quot;" Margin="5,0,0,0"/>
-                            <RadioButton GroupName="Invoice" x:Name="IPRadioButton" Content="счет без НДС" VerticalAlignment="Center" Checked="IsAgentChanged" IsChecked="True" ToolTip="К наименованию детали будет добавлено &quot;Изготовление детали&quot;" Margin="10,0,0,0"/>
-                            <Border x:Name="LimitCheckBorder" Margin="10,0,0,0" Padding="4" CornerRadius="{DynamicResource DefaultCornerRadius}">
-                                <CheckBox x:Name="LimitCheck" VerticalAlignment="Center" Width="140" Click="LimitCheck_Click"/>
-                            </Border>
-                                <!-- Основная кнопка выбора папок -->
-                                <Button Content="📁 Папки" Margin="60,0,3,0"
-                                            Click="ShowFolderPresetsDialog"
-                                            ToolTip="Выбрать папки для создания при сохранении"
-                                            Style="{StaticResource ButtonDashed.Small}"/>
-                                <!-- Кнопка настройки шаблонов -->
-                                <Button Content="⚙"
-                                            Click="OpenFolderPresetSettings"
-                                            ToolTip="Добавить, переименовать или удалить шаблоны папок"
-                                            Style="{StaticResource ButtonDashed.Small}"/>
+                    <Grid Grid.Row="1" Margin="12,4" VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Параметры и Доставка" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <ToggleButton x:Name="SettingsToggle" Margin="12,0,0,0" Cursor="Hand"
+                                          Style="{StaticResource ToggleButtonSwitch.Small}" ToolTip="Параметры расчета и доставка"/>
                         </StackPanel>
 
-                        <StackPanel Orientation="Horizontal" Margin="5">
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="5">
-                                    <TextBlock Text="Конструктор" VerticalAlignment="Center" Width="75"/>
-                                    <TextBox x:Name="ConstructRatio" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Коэффициент" TextChanged="UpdateResult" Margin="10,0,0,0" Width="40"/>
-                                    <CheckBox x:Name="CheckConstruct" Content="{Binding Construct, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" VerticalAlignment="Center" VerticalContentAlignment="Center" ToolTip="v - работа включена в цены деталей, ■ - отдельной строкой в КП" Click="UpdateResult" IsThreeState="True" IsChecked="False" Margin="10,0,0,0" HorizontalContentAlignment="Center" Width="60"/>
-                                </StackPanel>
-                                <StackPanel x:Name="BonusStack" Orientation="Horizontal" Margin="5">
-                                    <TextBlock Text="Бонус, %" VerticalAlignment="Center" Width="75"/>
-                                    <TextBox Text="{Binding BonusRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Введите процент наценки" TextChanged="SetBonusRatio" Margin="10,0,0,0" Width="40"/>
-                                    <TextBlock Text="{Binding Bonus, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="5">
-                                    <hc:TextBox x:Name="Comment" hc:InfoElement.Placeholder="Комментарий для клиента" ToolTip="Введите комментарий" TextWrapping="Wrap" Width="250" HorizontalContentAlignment="Center" Height="45"/>
-                                    <Image Source="/Images/comment2.png" Margin="-10,-2,0,0" Width="20" VerticalAlignment="Top"/>
-                                </StackPanel>
-                                
-                                <StackPanel Orientation="Horizontal" Margin="5">
-                                    <RadioButton x:Name="RadioLaser" GroupName="CompanyGroup"
-                                                 IsChecked="{Binding IsLaser, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=Window}}">
-                                        <Image Source="laser_logo.jpg" Width="120" Height="24" Stretch="Uniform"/>
-                                        <RadioButton.Style>
-                                            <Style TargetType="RadioButton">
-                                                <Setter Property="Opacity" Value="0.5"/>
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsChecked" Value="True">
-                                                        <Setter Property="Opacity" Value="1.0"/>
-                                                    </Trigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </RadioButton.Style>
-                                    </RadioButton>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" x:Name="BonusStack" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="85,0,0,0">
+                            <TextBlock Text="Бонус, %" VerticalAlignment="Center"/>
+                            <TextBox Text="{Binding BonusRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"
+                 Width="45" Margin="6,0,0,0"
+                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center" TextChanged="SetBonusRatio"/>
+                            <TextBlock Text="{Binding Bonus, Converter={StaticResource CostConverter}, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"
+                   VerticalAlignment="Center" Margin="8,0,0,0" Foreground="Green" FontWeight="SemiBold" MinWidth="50"/>
+                        </StackPanel>
+                    </Grid>
 
-                                    <RadioButton x:Name="RadioApp" GroupName="CompanyGroup" Margin="20,0,0,0"
-                                                 IsChecked="{Binding IsLaser, Converter={StaticResource InverseBoolConverter}, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=Window}}">
-                                        <Image Source="app_logo.jpg" Width="24" Height="24" Stretch="Uniform"/>
-                                        <RadioButton.Style>
-                                        <Style TargetType="RadioButton">
-                                            <Setter Property="Opacity" Value="0.5"/>
+                    <Border Grid.Row="2" Margin="12,0" Background="#F9FAFB" CornerRadius="{DynamicResource DefaultCornerRadius}" Padding="10,6,10,6"
+                BorderBrush="#E5E7EB" BorderThickness="1"
+                Visibility="{Binding IsChecked, ElementName=SettingsToggle, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="54"/>
+                                <RowDefinition Height="8"/>
+                            </Grid.RowDefinitions>
+
+                            <Rectangle Grid.Column="1" Grid.RowSpan="6" Width="1" Fill="#E5E7EB" Margin="10,0"/>
+
+                            <Border Grid.Column="2" Grid.ColumnSpan="3" Grid.RowSpan="6" CornerRadius="6" Margin="3">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                        <Setter Property="BorderThickness" Value="1"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Value="True">
+                                                <Setter Property="Background" Value="#DBEAFE"/>
+                                                <Setter Property="BorderBrush" Value="#93C5FD"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            </Border>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="ПАРАМЕТРЫ РАСЧЕТА" FontWeight="SemiBold"
+                           Foreground="#9CA3AF" FontSize="11" VerticalAlignment="Center"/>
+                            <Grid Grid.Row="1" Grid.Column="3" Margin="0,0,0,6">
+                                <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="ДОСТАВКА"/>
+                                            <Setter Property="FontSize" Value="11"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="Foreground" Value="#9CA3AF"/>
                                             <Style.Triggers>
-                                                <Trigger Property="IsChecked" Value="True">
-                                                    <Setter Property="Opacity" Value="1.0"/>
-                                                </Trigger>
+                                                <DataTrigger Binding="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Value="True">
+                                                    <Setter Property="Foreground" Value="#1D4ED8"/>
+                                                    <Setter Property="FontSize" Value="12"/>
+                                                </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </RadioButton.Style>
-                                    </RadioButton>
-                                </StackPanel>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <ToggleButton HorizontalAlignment="Right" Cursor="Hand"
+                                  Style="{StaticResource ToggleButtonSwitch.Small}"
+                                  IsChecked="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"
+                                  Click="HasDeliveryChanged"
+                                  ToolTip="Включить доставку"/>
+                            </Grid>
+
+                            <Grid Grid.Row="2" Grid.Column="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="78"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Конструктор" VerticalAlignment="Center"/>
+                                <TextBox Grid.Column="1" x:Name="ConstructRatio" Width="60" Height="26"
+                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center" TextChanged="UpdateResult"/>
+                                <CheckBox Grid.Column="3" x:Name="CheckConstruct" Width="72"
+                              Content="{Binding Construct, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}, Converter={StaticResource CostConverter}}"
+                              VerticalAlignment="Center" Click="UpdateResult" IsThreeState="True" IsChecked="False"
+                              ToolTip="v - в ценах, ■ - отдельной строкой"/>
+                            </Grid>
+
+                            <Grid Grid.Row="2" Grid.Column="3"
+                      IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Цена" VerticalAlignment="Center" Foreground="#6B7280"/>
+                                <TextBox Grid.Column="1" x:Name="DeliveryPrice" Margin="4,0,0,0" Height="26"
+                             Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"
+                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center" TextChanged="SetDelivery"/>
+                                <TextBlock Grid.Column="2" Text="Кол-во" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="#6B7280"/>
+                                <TextBox Grid.Column="3" Margin="4,0,0,0" Height="26"
+                             Text="{Binding DeliveryRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}"
+                             HorizontalContentAlignment="Center" VerticalContentAlignment="Center" TextChanged="SetDeliveryRatio"/>
+                                <TextBlock Grid.Column="4" Text="шт" VerticalAlignment="Center" Margin="4,0,0,0" Foreground="#6B7280"/>
+                            </Grid>
+
+                            <Grid Grid.Row="3" Grid.Column="0" x:Name="FoldersRowGrid">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="LimitCheckBorder" Padding="4" CornerRadius="{DynamicResource DefaultCornerRadius}">
+                                    <CheckBox x:Name="LimitCheck" Content="Снять ограничения" VerticalAlignment="Center" Click="LimitCheck_Click"/>
+                                </Border>
+                                <Button Grid.Column="1" Content="📁" Click="ShowFolderPresetsDialog" ToolTip="Выбрать папки"
+                            Style="{StaticResource ButtonDashed.Small}" Margin="8,0,0,0"
+                            Width="28" Height="26" Padding="2" FontSize="13"
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                                <Button Grid.Column="2" Content="⚙" Click="OpenFolderPresetSettings" ToolTip="Настройка шаблонов папок"
+                            Style="{StaticResource ButtonDashed.Small}" Margin="4,0,0,0"
+                            Width="28" Height="26" Padding="2" FontSize="13"
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                            </Grid>
+
+                            <StackPanel Grid.Row="3" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center"
+                            IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}">
+                                <Button Click="OpenMaps" ToolTip="Карта зон доставки" Padding="6,3" Background="Transparent" BorderThickness="0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="/Images/maps.png" Width="14"/>
+                                        <TextBlock Text="Карта" VerticalAlignment="Center" Margin="4,0,0,0" FontSize="11"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="CreateOfferDelivery" ToolTip="Создать расчет на доставку" Padding="6,3" Margin="6,0,0,0" Background="Transparent" BorderThickness="0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="/Images/address.png" Width="14"/>
+                                        <TextBlock Text="Расчет" VerticalAlignment="Center" Margin="4,0,0,0" FontSize="11"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Click="CreateDelivery" ToolTip="Запрос в логистику" Padding="6,3" Margin="6,0,0,0" Background="Transparent" BorderThickness="0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="/Images/new.png" Width="14"/>
+                                        <TextBlock Text="Логистика" VerticalAlignment="Center" Margin="4,0,0,0" FontSize="11"/>
+                                    </StackPanel>
+                                </Button>
                             </StackPanel>
 
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="5">
-                                    <Button Click="CreateOfferDelivery" IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать расчет на доставку" HorizontalAlignment="Left" VerticalAlignment="Center" Padding="0" BorderThickness="0" Margin="5,0,0,0">
-                                        <Image Source="/Images/address.png" Width="20"/>
-                                    </Button>
-                                    <CheckBox x:Name="DeliveryCheck" Content="Доставка" IsChecked="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="v - отдельной строкой в КП, ■ - включена в цены деталей" VerticalAlignment="Center" Click="HasDeliveryChanged" IsThreeState="True" Margin="10,0,0,0" Width="80"/>
-                                    <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding Delivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="DeliveryPrice" MaxLines="1" ToolTip="Введите цену доставки" TextChanged="SetDelivery" Margin="5,0,0,0" Width="50" HorizontalContentAlignment="Center"/>
-                                    <Button Click="OpenMaps" IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Margin="5,0,0,0" ToolTip="Открыть карты" Padding="0" BorderThickness="0" Background="{x:Null}">
-                                        <Image Source="/Images/maps.png"  Width="16"/>
-                                    </Button>
-                                    <TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" Text="{Binding DeliveryRatio, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLines="1" ToolTip="Количество доставок" TextChanged="SetDeliveryRatio" Margin="10,0,0,0" Width="30"/>
-                                    <TextBlock Text="шт" VerticalAlignment="Center" Margin="5,0,0,0" Width="20"/>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="5">
-                                    <hc:TextBox IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" x:Name="Adress" hc:InfoElement.Placeholder="Адрес и контакты клиента" ToolTip="Введите адрес доставки" TextWrapping="Wrap" Margin="5,0,0,0" Width="250" Height="80" HorizontalContentAlignment="Center"/>
-                                    <Button Click="CreateDelivery" IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}" ToolTip="Создать запрос в логистику" Padding="0" BorderThickness="0" VerticalAlignment="Top" Background="{x:Null}">
-                                        <Image Source="/Images/new.png" VerticalAlignment="Top" Margin="-10,-5,0,0" Width="20"/>
-                                    </Button>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="5">
-                                    <TextBlock Text="Ваш менеджер:" VerticalAlignment="Center" Width="90" Margin="5,0,0,0"/>
-                                    <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" ToolTip="Выберите менеджера" SelectionChanged="ManagerChanged" VerticalAlignment="Center" Width="150" Margin="10,0,0,0"/>
-                                </StackPanel>
-                            </StackPanel>
+                            <Grid Grid.Row="4" Grid.Column="0">
+                                <hc:TextBox x:Name="Comment" hc:InfoElement.Placeholder="Комментарий для клиента"
+                                TextWrapping="Wrap" VerticalContentAlignment="Top" Padding="8"/>
+                                <Image Source="/Images/comment2.png" HorizontalAlignment="Right" VerticalAlignment="Top"
+                           Margin="0,6,8,0" Width="14" Opacity="0.4"/>
+                            </Grid>
+                            <Grid Grid.Row="4" Grid.Column="3"
+                      IsEnabled="{Binding HasDelivery, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}}">
+                                <hc:TextBox x:Name="Adress" hc:InfoElement.Placeholder="Адрес и контакты"
+                                TextWrapping="Wrap" VerticalContentAlignment="Top" Padding="8"/>
+                                <TextBlock Text="🚚" HorizontalAlignment="Right" VerticalAlignment="Top"
+                               Margin="0,6,8,0" FontSize="13" Opacity="0.5"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="12,6" VerticalAlignment="Center">
+                        <TextBlock Text="Ответственный менеджер" VerticalAlignment="Center" Foreground="#374151" FontWeight="SemiBold"/>
+                        <ComboBox x:Name="ManagerDrop" DisplayMemberPath="Name" ToolTip="Выберите менеджера"
+              SelectionChanged="ManagerChanged" Height="28" Margin="12,0,0,0"
+              VerticalContentAlignment="Center" Width="150"/>
+
+                        <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <RadioButton x:Name="RadioLaser" GroupName="CompanyGroup" VerticalAlignment="Center"
+                     IsChecked="{Binding IsLaser, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=Window}}"
+                     Style="{StaticResource CompanyRadioStyle}">
+                                <Image Source="laser_logo.jpg" Height="18" Stretch="Uniform"/>
+                            </RadioButton>
+                            <RadioButton x:Name="RadioApp" GroupName="CompanyGroup" Margin="8,0,0,0" VerticalAlignment="Center"
+                     IsChecked="{Binding IsLaser, Converter={StaticResource InverseBoolConverter}, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=Window}}"
+                     Style="{StaticResource CompanyRadioStyle}">
+                                <Image Source="app_logo.jpg" Height="18" Stretch="Uniform"/>
+                            </RadioButton>
                         </StackPanel>
                     </StackPanel>
 
-                    <hc:TabControl Grid.Row="2" Margin="5" Style="{StaticResource OffersTabControl}"
+                    <hc:TabControl Grid.Row="4" Margin="5" Style="{StaticResource OffersTabControl}"
                                    SelectionChanged="MainTabControl_SelectionChanged">
                         <hc:TabItem x:Name="OffersTab">
                             <hc:TabItem.Header>
@@ -695,15 +898,11 @@
                                             <Style TargetType="DataGridCell" BasedOn="{StaticResource DataGridCellStyle.Small}">
                                                 <Setter Property="BorderThickness" Value="0"/>
                                                 <Style.Triggers>
-                                                    <!-- ⭐ Выделение строки: мягкий голубой фон -->
                                                     <Trigger Property="IsSelected" Value="True">
                                                         <Setter Property="Background" Value="#D6EAF8"/>
-                                                        <!-- #D6EAF8 = Material Blue 100 — светлый, но заметный -->
                                                         <Setter Property="BorderBrush" Value="#85C1E9"/>
                                                         <Setter Property="BorderThickness" Value="0,1,0,1"/>
-                                                        <!-- Тонкие горизонтальные линии для акцента -->
                                                     </Trigger>
-                                                    <!-- ⭐ Фокус на ячейке (при редактировании) — чуть темнее -->
                                                     <Trigger Property="IsKeyboardFocusWithin" Value="True">
                                                         <Setter Property="Background" Value="#AED6F1"/>
                                                         <Setter Property="BorderBrush" Value="#5DADE2"/>
@@ -720,13 +919,10 @@
                                                         <Setter Property="Template">
                                                             <Setter.Value>
                                                                 <ControlTemplate TargetType="{x:Type GroupItem}">
-                                                                    <!-- ⭐ Слегка серый фон для всей области заголовка, чтобы отделить её от белых строк -->
                                                                     <Expander x:Name="GroupExpander"
                                                                               BorderBrush="{DynamicResource BorderBrush}"
                                                                               BorderThickness="0,0,0,1">
-
                                                                         <Expander.Header>
-                                                                            <!-- ⭐ Рамка, ограничивающая текст заголовка (стиль "плашка" или "бейдж") -->
                                                                             <Border Background="#FFFFFF"
                                             BorderBrush="#D1D5DB"
                                             BorderThickness="1"
@@ -734,7 +930,6 @@
                                             Padding="10,6,10,6"
                                             Margin="8,6,0,6"
                                             SnapsToDevicePixels="True">
-
                                                                                 <StackPanel Orientation="Horizontal">
                                                                                     <TextBlock Text="{Binding Name}" 
                                                        FontWeight="Bold"
@@ -751,12 +946,8 @@
                                                                                 </StackPanel>
                                                                             </Border>
                                                                         </Expander.Header>
-
-                                                                        <!-- Содержимое группы строго внутри Expander -->
                                                                         <ItemsPresenter Margin="0,2,0,0"/>
                                                                     </Expander>
-
-                                                                    <!-- ⭐ ТРИГГЕР: для одиночных расчётов полностью убираем "обёртку" Expander -->
                                                                     <ControlTemplate.Triggers>
                                                                         <DataTrigger Binding="{Binding ItemCount}" Value="1">
                                                                             <Setter TargetName="GroupExpander" Property="Template">
@@ -781,7 +972,6 @@
                                         </DataGrid.GroupStyle>
 
                                         <DataGrid.Columns>
-                                            <!-- № -->
                                             <DataGridTextColumn Header="№" Binding="{Binding N}" SortMemberPath="ParentQuoteNumber" IsReadOnly="True">
                                                 <DataGridTextColumn.ElementStyle>
                                                     <Style TargetType="TextBlock">
@@ -791,7 +981,6 @@
                                                 </DataGridTextColumn.ElementStyle>
                                             </DataGridTextColumn>
 
-                                            <!-- Компания -->
                                             <DataGridTextColumn Header="Компания" Binding="{Binding Company}" SortMemberPath="Company" IsReadOnly="True">
                                                 <DataGridTextColumn.ElementStyle>
                                                     <Style TargetType="TextBlock">
@@ -800,7 +989,6 @@
                                                 </DataGridTextColumn.ElementStyle>
                                             </DataGridTextColumn>
 
-                                            <!-- Итого (синий) -->
                                             <DataGridTextColumn Header="Итого" Binding="{Binding Amount, Converter={StaticResource CostConverter}}" SortMemberPath="Amount" IsReadOnly="True">
                                                 <DataGridTextColumn.ElementStyle>
                                                     <Style TargetType="TextBlock">
@@ -809,10 +997,8 @@
                                                 </DataGridTextColumn.ElementStyle>
                                             </DataGridTextColumn>
 
-                                            <!-- Нал -->
                                             <DataGridCheckBoxColumn Header="Нал" Binding="{Binding Agent}" SortMemberPath="Agent"/>
 
-                                            <!-- Счёт -->
                                             <DataGridTextColumn Header="Счёт" Binding="{Binding Invoice}" SortMemberPath="Invoice">
                                                 <DataGridTextColumn.ElementStyle>
                                                     <Style TargetType="TextBlock">
@@ -821,7 +1007,6 @@
                                                 </DataGridTextColumn.ElementStyle>
                                             </DataGridTextColumn>
 
-                                            <!-- Заказ (оранжевый) -->
                                             <DataGridTextColumn Header="Заказ" Binding="{Binding Order}" SortMemberPath="Order">
                                                 <DataGridTextColumn.ElementStyle>
                                                     <Style TargetType="TextBlock">
@@ -830,7 +1015,6 @@
                                                 </DataGridTextColumn.ElementStyle>
                                             </DataGridTextColumn>
 
-                                            <!-- Дата отгрузки (ToggleButton — оставляем как было) -->
                                             <DataGridTemplateColumn Header="Дата отгрузки" SortMemberPath="EndDate" CanUserResize="False">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
@@ -859,7 +1043,6 @@
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
 
-                                            <!-- Ещё -->
                                             <DataGridTemplateColumn Header="Ещё" CanUserResize="False">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
@@ -891,7 +1074,7 @@
                                                 </Border>
                                             </DataTemplate>
                                         </DataGrid.RowDetailsTemplate>
-                                       
+
                                         <DataGrid.ContextMenu>
                                             <ContextMenu>
                                                 <MenuItem Header="Загрузить" Command="{Binding OpenOfferCommand}">
@@ -933,13 +1116,8 @@
                                     </DataGrid>
 
                                     <StackPanel Grid.Row="1" Margin="5" VerticalAlignment="Bottom">
-
-                                        <!-- 🔹 СТРОКА 1: Управление + Сводка -->
                                         <Grid>
-                                            <!-- Слева: Кнопка обновления + Фильтр "В производстве" -->
                                             <StackPanel Orientation="Horizontal">
-
-                                                <!-- ⭐ КНОПКА ОБНОВЛЕНИЯ - теперь с текстом и иконкой -->
                                                 <Button x:Name="UpdateBtn" Click="UpdateOffersCollection"
                                                         ToolTip="Обновить список расчетов" Margin="0,0,8,0">
                                                     <StackPanel Orientation="Horizontal">
@@ -959,7 +1137,6 @@
                                                 <TextBlock x:Name="SummaryInfoTextBlock" VerticalAlignment="Center" Margin="10,0,0,0"/>
                                             </StackPanel>
 
-                                            <!-- Справа: Сводка + Переключатель режима прогноза -->
                                             <ToggleButton x:Name="ForecastModeToggle"
                       Style="{StaticResource ToggleButtonSwitch.Small}"
                       HorizontalAlignment="Right" 
@@ -972,30 +1149,24 @@
                                             </ToggleButton>
                                         </Grid>
 
-                                        <!-- 🔹 СТРОКА 2: Панель прогноза -->
                                         <StackPanel x:Name="ForecastPanel"
                 Orientation="Horizontal" 
                 VerticalAlignment="Center" 
                 Margin="0,4,0,0" 
                 Visibility="Collapsed">
-
                                             <TextBlock Text="Прибыль:" VerticalAlignment="Center"/>
                                             <TextBox x:Name="ForecastPlan" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
                  VerticalContentAlignment="Center" IsReadOnly="True"/>
-
                                             <TextBlock Text="Бонус ООО:" Margin="8,0,0,0" VerticalAlignment="Center"/>
                                             <TextBox x:Name="ForecastBonusOoo" Margin="3,0,0,0" Width="60" TextAlignment="Center" 
                  VerticalContentAlignment="Center" IsReadOnly="True"/>
-
                                             <TextBlock Text="Бонус ИП и ПК:" Margin="8,0,0,0" VerticalAlignment="Center" Width="90"/>
                                             <TextBox x:Name="ForecastBonusIp" Margin="3,0,0,0" Width="60" TextAlignment="Center" 
                  VerticalContentAlignment="Center" IsReadOnly="True"/>
-
                                             <TextBlock Text="Итого:" Margin="8,0,0,0" VerticalAlignment="Center" Width="40"/>
                                             <TextBox x:Name="ForecastSalary" Margin="3,0,0,0" Width="65" TextAlignment="Center" 
                  VerticalContentAlignment="Center" IsReadOnly="True"/>
                                         </StackPanel>
-
                                     </StackPanel>
                                 </Grid>
                             </Border>
@@ -1009,9 +1180,7 @@
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <!-- Контейнер для переключения между "пусто" и "таблица" -->
                                     <Grid x:Name="ContentContainer">
-                                        <!-- Таблица (изначально скрыта) -->
                                         <DataGrid x:Name="PartsGrid" Style="{StaticResource DataGrid.Small}" 
                                         IsReadOnly="True" AutoGenerateColumns="False" 
                                         RowDetailsVisibilityMode="Collapsed" FrozenColumnCount="1"
@@ -1055,7 +1224,6 @@
                                             </DataGrid.RowDetailsTemplate>
                                         </DataGrid>
 
-                                        <!-- Кнопка-заглушка: показана изначально -->
                                         <StackPanel x:Name="PlaceholderPanel" VerticalAlignment="Center" HorizontalAlignment="Center">
                                             <TextBlock Text="Данные ещё не загружены" Foreground="{DynamicResource PrimaryTextBrush}"
                                             FontSize="14" Margin="0,0,0,10" TextAlignment="Center"/>
@@ -1069,7 +1237,7 @@
                                             <ColumnDefinition/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        
+
                                         <Button Click="PartsView" ToolTip="Обновить цены деталей"
                                             Margin="0,0,8,0" Visibility="{Binding ElementName=PartsGrid, Path=Visibility}" HorizontalAlignment="Left">
                                             <StackPanel Orientation="Horizontal">
@@ -1083,7 +1251,6 @@
                                             <TextBlock Text="Итого:" Margin="10,0,0,0" TextAlignment="Center" VerticalAlignment="Center" MinWidth="40" MaxWidth="40"/>
                                             <TextBox x:Name="TotalPrice" MinWidth="60" Margin="5,0,0,0" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" BorderThickness="2" MaxWidth="60"/>
                                         </StackPanel>
-
                                     </Grid>
                                 </Grid>
                             </Border>
@@ -1142,6 +1309,7 @@
                     </hc:TabControl>
                 </Grid>
             </GroupBox>
+
         </Grid>
     </DockPanel>
 </Window>

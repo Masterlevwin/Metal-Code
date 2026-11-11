@@ -142,6 +142,7 @@
     <None Remove="Updates\v2.7.2.9_2026-09-09.png" />
     <None Remove="Updates\v2.7.3.0_2026-09-18.png" />
     <None Remove="Updates\v2.7.3.6_2026-09-30.png" />
+    <None Remove="Updates\v2.7.4.7_2026-11-11.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -332,6 +333,7 @@
     <Resource Include="Updates\v2.7.2.9_2026-09-09.png" />
     <Resource Include="Updates\v2.7.3.0_2026-09-18.png" />
     <Resource Include="Updates\v2.7.3.6_2026-09-30.png" />
+    <Resource Include="Updates\v2.7.4.7_2026-11-11.png" />
   </ItemGroup>
 
   <ItemGroup>

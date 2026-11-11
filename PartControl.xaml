@@ -6,12 +6,71 @@
              xmlns:local="clr-namespace:Metal_Code"       
              xmlns:converters="clr-namespace:Metal_Code.Converters"
              mc:Ignorable="d" Loaded="SetProperties" Margin="3">
-    
+
     <UserControl.Resources>
         <local:CostConverter x:Key="CostConverter"/>
         <converters:BoolToEyeIconConverter x:Key="BoolToEyeIconConverter"/>
         <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter"/>
         <converters:MassToDisplayConverter x:Key="MassToDisplayConverter"/>
+
+        <!-- Цвета -->
+        <SolidColorBrush x:Key="ButtonBackground" Color="#FFFFFFE1"/>
+        <SolidColorBrush x:Key="BorderColor" Color="#D1D9E0"/>
+        <SolidColorBrush x:Key="FocusBorderColor" Color="#4A90E2"/>
+
+        <!-- Стиль для ToggleButton -->
+        <Style x:Key="ExpandToggleButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="{StaticResource ButtonBackground}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="4"
+                        Padding="{TemplateBinding Padding}">
+                            <StackPanel Orientation="Horizontal" 
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                                <!-- Основной текст из Content -->
+                                <ContentPresenter x:Name="ContentPresenter"
+                                          ContentSource="Content"
+                                          RecognizesAccessKey="True"
+                                          VerticalAlignment="Center"/>
+                                <!-- Стрелка-индикатор состояния -->
+                                <TextBlock x:Name="Arrow"
+                                   Text="▼"
+                                   Margin="6,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{TemplateBinding Foreground}"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Arrow" Property="Text" Value="▲"/>
+                                <!-- Опционально: подсветка при раскрытом состоянии -->
+                                <Setter Property="Background" Value="#F0F8FF"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="BorderBrush" Value="{StaticResource FocusBorderColor}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <DataTemplate x:Key="WorkGroupHeaderTemplate">
+            <Border Background="#E8EEF7" CornerRadius="2" Padding="6,3" Margin="0,6,0,2" SnapsToDevicePixels="True">
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" Foreground="#0D47A1"/>
+            </Border>
+        </DataTemplate>
     </UserControl.Resources>
 
     <Border BorderBrush="Gray" CornerRadius="6" BorderThickness="1">
@@ -19,7 +78,6 @@
             <Style TargetType="Border">
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding IsHiddenInOffer}" Value="True">
-                        <!-- Наложение полупрозрачного серого фона поверх темы -->
                         <Setter Property="Background" Value="#40AAAAAA"/>
                     </DataTrigger>
                 </Style.Triggers>
@@ -28,53 +86,29 @@
 
         <StackPanel Margin="3">
 
-            <StackPanel Orientation="Horizontal"  Margin="3" HorizontalAlignment="Center">
-                <TextBox x:Name="PricePart" Text="{Binding Price, Converter={StaticResource CostConverter}}" Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" BorderThickness="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Width="60"/>
+            <!-- Блок цены и управления видимостью -->
+            <StackPanel Orientation="Horizontal" Margin="3" HorizontalAlignment="Center">
+                <TextBox x:Name="PricePart" Text="{Binding Price, Converter={StaticResource CostConverter}}" 
+                         Background="{DynamicResource {x:Static SystemColors.InactiveBorderBrushKey}}" 
+                         BorderThickness="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Width="60"/>
+
                 <Button Margin="5,0,0,0" Click="SetFixedPrice" BorderThickness="0" Padding="0" Width="16" Height="16">
                     <Image Source="/Images/fixed.png"/>
                     <Button.ToolTip>
-                        <ToolTip Placement="Mouse" 
-                 Background="#FFF8F0" 
-                 BorderBrush="#CC3300" 
-                 BorderThickness="2"
-                 Padding="12"
-                 HasDropShadow="True">
+                        <ToolTip Placement="Mouse" Background="#FFF8F0" BorderBrush="#CC3300" BorderThickness="2" Padding="12" HasDropShadow="True">
                             <StackPanel MaxWidth="280">
-                                <TextBlock Text="📌 Фиксированная цена" 
-                           FontWeight="Bold" 
-                           FontSize="13"
-                           Foreground="#CC3300"
-                           TextAlignment="Center"
-                           Margin="0,0,0,8"/>
-                                <TextBlock TextWrapping="Wrap" 
-                           TextAlignment="Center"
-                           FontSize="12"
-                           Foreground="#333333"
-                           LineHeight="16">
-                    Чтобы установить фиксированную цену, выделите её целиком (включая «р»), введите значение и нажмите эту кнопку — значение станет красным.
+                                <TextBlock Text="Фиксированная цена" FontWeight="Bold" FontSize="13" Foreground="#CC3300" TextAlignment="Center" Margin="0,0,0,8"/>
+                                <TextBlock TextWrapping="Wrap" TextAlignment="Center" FontSize="12" Foreground="#333333" LineHeight="16">
+                                    Чтобы установить фиксированную цену, выделите её целиком, введите значение и нажмите эту кнопку. Чтобы снять фиксацию, нажмите кнопку снова.
                                 </TextBlock>
-                                <TextBlock TextWrapping="Wrap" 
-                           TextAlignment="Center"
-                           FontSize="12"
-                           Foreground="#333333"
-                           LineHeight="16"
-                           Margin="0,8,0,0">
-                    Чтобы снять фиксацию, нажмите кнопку снова.
-                                </TextBlock>
-                                <Border BorderBrush="#CC3300" 
-                        BorderThickness="0,1,0,0" 
-                        Margin="0,10,0,5" 
-                        Padding="0,5,0,0">
-                                    <TextBlock Text="⚠ Нельзя установить цену ниже рассчитанной!" 
-                               FontWeight="SemiBold"
-                               TextAlignment="Center"
-                               Foreground="#CC3300"
-                               FontSize="11"/>
+                                <Border BorderBrush="#CC3300" BorderThickness="0,1,0,0" Margin="0,10,0,5" Padding="0,5,0,0">
+                                    <TextBlock Text="Нельзя установить цену ниже рассчитанной!" FontWeight="SemiBold" TextAlignment="Center" Foreground="#CC3300" FontSize="11"/>
                                 </Border>
                             </StackPanel>
                         </ToolTip>
                     </Button.ToolTip>
                 </Button>
+
                 <ToggleButton Margin="5,0,0,0" Width="16" Height="16" Padding="0"
                               Background="Transparent" BorderBrush="Transparent"
                               ToolTip="Скрыть / Показать деталь в КП"
@@ -82,53 +116,45 @@
                     <Path Fill="Gray" Width="14" Height="14" Stretch="Uniform"
                           Data="{Binding IsHiddenInOffer, Converter={StaticResource BoolToEyeIconConverter}}"/>
                 </ToggleButton>
-                
             </StackPanel>
 
+            <!-- Блок изображения и названия -->
             <StackPanel Orientation="Horizontal" Margin="3">
                 <TextBox Text="{Binding Title}" TextWrapping="Wrap" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Width="90" Height="60"/>
-                <!-- Для Grid с картинкой -->
+
                 <Grid Background="White" Margin="5,0,0,0"
                       Tag="{Binding Square, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}}}"
-                              PreviewMouseLeftButtonDown="PartControl_PreviewMouseLeftButtonDown"
-                              PreviewMouseMove="PartControl_PreviewMouseMove">
+                      PreviewMouseLeftButtonDown="PartControl_PreviewMouseLeftButtonDown"
+                      PreviewMouseMove="PartControl_PreviewMouseMove">
                     <Image x:Name="Picture" Loaded="SetPicture" MouseLeftButtonDown="OpenPlan" Height="60" Width="60"/>
                     <Viewbox x:Name="GeometryViewbox" Stretch="Uniform" Loaded="SetPicture" Height="60" Width="60" MouseLeftButtonDown="OpenPlan" Visibility="Collapsed">
                         <Path Data="{Binding DisplayGeometry}" Stroke="Black"
                               Fill="{DynamicResource RegionBrush}" Stretch="Fill"
                               StrokeThickness="{Binding VisualStrokeThickness}"/>
                     </Viewbox>
-
                     <Grid.ToolTip>
                         <ToolTip Placement="Mouse" Background="Lavender" BorderBrush="#6A5ACD" BorderThickness="2" Padding="10" HasDropShadow="True">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ToolTip}, StringFormat={}{0} кв м}" 
-                           TextAlignment="Center"/>
-                            </StackPanel>
+                            <TextBlock Text="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ToolTip}, StringFormat={}{0} кв м}" TextAlignment="Center"/>
                         </ToolTip>
                     </Grid.ToolTip>
                 </Grid>
+
                 <Button Margin="5,0,0,0" VerticalAlignment="Top" Content="X" FontWeight="Bold" Padding="0" Click="RemovePart" Width="16" Height="16"/>
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal" Margin="3"
-                           ToolTipService.InitialShowDelay="300"
-                           ToolTipService.ShowDuration="20000">
+            <!-- Блок размеров и отверстий -->
+            <StackPanel Orientation="Horizontal" Margin="3" ToolTipService.InitialShowDelay="300" ToolTipService.ShowDuration="20000">
                 <hc:TextBox x:Name="CountInput" 
                     Text="{Binding Count, UpdateSourceTrigger=PropertyChanged}" 
-                    LostFocus="CountInput_LostFocus"
-                    TextChanged="CountInput_TextChanged" 
+                    LostFocus="CountInput_LostFocus" TextChanged="CountInput_TextChanged" 
                     hc:InfoElement.Placeholder="{Binding TargetCount, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}}}"
                     HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                     VerticalAlignment="Center" Foreground="Blue" FontWeight="Bold"
-                    MaxLines="1" Width="50" Margin="5,0,0,0"
-                    ToolTip="Количество вырезанных деталей"/>
-                
-                <TextBlock Text="шт" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                    MaxLines="1" Width="50" Margin="5,0,0,0" ToolTip="Количество вырезанных деталей"/>
 
+                <TextBlock Text="шт" Margin="5,0,0,0" VerticalAlignment="Center"/>
                 <TextBlock x:Name="DimensionsText" Margin="15,0,0,0" VerticalAlignment="Center"
                            Text="{Binding Dimensions, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}, Mode=FindAncestor}}"/>
-
                 <TextBlock Text="мм" Margin="5,0,0,0" VerticalAlignment="Center"/>
 
                 <Ellipse Width="8" Height="8" Margin="4,0,0,0" VerticalAlignment="Center" Fill="Transparent" Stroke="OrangeRed"
@@ -143,21 +169,17 @@
                         </Style.Triggers>
                     </Style>
                 </StackPanel.Style>
-                
+
                 <StackPanel.ToolTip>
-                    <ToolTip Placement="Mouse" Background="#F5F9FF" BorderBrush="#D0E3FF"
-             BorderThickness="1" Padding="8,6" HasDropShadow="True">
-                        <!-- Список отверстий -->
+                    <ToolTip Placement="Mouse" Background="#F5F9FF" BorderBrush="#D0E3FF" BorderThickness="1" Padding="8,6" HasDropShadow="True">
                         <ItemsControl ItemsSource="{Binding HoleGroups}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" Margin="0,2">
                                         <TextBlock Text="⌀" FontSize="12" FontWeight="Bold" Foreground="#333"/>
-                                        <TextBlock Text="{Binding Diameter, StringFormat={}{0:0.#}}"
-                                       FontSize="12" FontWeight="Bold" Foreground="#333"/>
+                                        <TextBlock Text="{Binding Diameter, StringFormat={}{0:0.#}}" FontSize="12" FontWeight="Bold" Foreground="#333"/>
                                         <TextBlock Text=" × " FontSize="12" Foreground="#666"/>
-                                        <TextBlock Text="{Binding Count}"
-                                       FontSize="12" FontWeight="Bold" Foreground="#0D47A1"/>
+                                        <TextBlock Text="{Binding Count}" FontSize="12" FontWeight="Bold" Foreground="#0D47A1"/>
                                         <TextBlock Text=" шт." FontSize="12" Foreground="#666"/>
                                     </StackPanel>
                                 </DataTemplate>
@@ -166,10 +188,11 @@
                     </ToolTip>
                 </StackPanel.ToolTip>
             </StackPanel>
-            
+
+            <!-- Блок сборок -->
             <StackPanel Orientation="Horizontal" Margin="3">
                 <Image Source="/Images/assembly.png" Width="16"/>
-                <hc:ComboBox hc:InfoElement.Placeholder="Сборки"  x:Name="AssembliesDrop" Margin="4,0,0,0" Width="100">
+                <hc:ComboBox hc:InfoElement.Placeholder="Сборки" x:Name="AssembliesDrop" Margin="4,0,0,0" Width="100">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal">
@@ -188,60 +211,125 @@
                 <TextBlock Text="кг" VerticalAlignment="Center" Margin="5,0,0,0"/>
             </StackPanel>
 
+            <!-- Блок управления работами -->
             <StackPanel Orientation="Horizontal" Margin="3">
-                <Image Source="/Images/works2.png" Width="16"/>
-                <hc:ComboBox hc:InfoElement.Placeholder="Выбор работы" x:Name="WorksDrop" Width="140" Margin="4,0,0,0">
-                    <ComboBox.ItemContainerStyle>
-                        <Style TargetType="ComboBoxItem">
-                            <Setter Property="Height" Value="28"/>
-                            <!-- Обязательно: иначе IsMouseOver не сработает на пустом месте -->
-                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                            <Setter Property="Padding" Value="2"/>
-                            <Setter Property="Margin" Value="2,0,2,0"/>
-                            <!-- опционально: отступы -->
-                        </Style>
-                    </ComboBox.ItemContainerStyle>
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <!-- Используем Grid вместо StackPanel для лучшего контроля -->
-                            <Grid x:Name="ItemContainer" Background="Transparent">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
+                <Image Source="/Images/works2.png" Width="16" Margin="0,0,4,0"/>
 
-                                <TextBlock Text="{Binding}" 
-                           VerticalAlignment="Center" 
-                           Margin="3,0"/>
+                <ToggleButton x:Name="WorksPopupToggle" Content="Добавить работы"
+                              Style="{StaticResource ExpandToggleButtonStyle}" Cursor="Hand"/>
 
-                                <Button Content="+" 
-                        Grid.Column="1"
-                        Width="20" 
-                        Margin="0,0,5,0"
-                        Click="AddControl"
-                        Tag="{Binding}">
-                                    <Button.Style>
-                                        <Style TargetType="Button">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsMouseOver, ElementName=ItemContainer}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
-                            </Grid>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </hc:ComboBox>
+                <!-- Индикатор количества работ -->
+                <Border Margin="6,0,0,0" Padding="6,2" VerticalAlignment="Center" Background="#0D47A1" CornerRadius="6,6,6,6"
+                        SnapsToDevicePixels="True"
+                        Visibility="{Binding WorksCount, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}}, Converter={StaticResource IntToVisibilityConverter}}">
+                    <TextBlock Text="{Binding WorksCount, RelativeSource={RelativeSource AncestorType={x:Type local:PartControl}}}"
+                               Foreground="White" FontSize="11" FontWeight="Bold" ToolTip="Количество добавленных работ"/>
+                </Border>
+
+                <Popup IsOpen="{Binding IsChecked, ElementName=WorksPopupToggle}"
+                       PlacementTarget="{Binding ElementName=WorksPopupToggle}"
+                       Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
+                       Opened="WorksPopup_Opened">
+                    <Border Background="White" BorderBrush="#0D47A1" BorderThickness="1" CornerRadius="4"
+                            Padding="6" Margin="4" Width="240" UseLayoutRounding="True" SnapsToDevicePixels="True"
+                            TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType">
+
+                        <ListBox x:Name="WorksListBox" BorderThickness="0" Background="Transparent"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" MaxHeight="350">
+
+                            <ListBox.GroupStyle>
+                                <GroupStyle HeaderTemplate="{StaticResource WorkGroupHeaderTemplate}"/>
+                            </ListBox.GroupStyle>
+
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="2,3">
+                                        <!-- Уникальная работа (CheckBox) -->
+                                        <CheckBox IsChecked="{Binding IsChecked, Mode=OneWay}" Checked="WorkCheckItem_Toggled" Unchecked="WorkCheckItem_Toggled" Padding="0">
+                                            <CheckBox.Style>
+                                                <Style TargetType="CheckBox">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSingleInstance}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </CheckBox.Style>
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="4,0,0,0" FontSize="13"/>
+                                        </CheckBox>
+
+                                        <!-- Множественная работа (Кнопки +/-) -->
+                                        <Grid>
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSingleInstance}" Value="False">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
+                                            <Border CornerRadius="3" Padding="4,2" SnapsToDevicePixels="True">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="Transparent"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasItems}" Value="True">
+                                                                <Setter Property="Background" Value="#E3F2FD"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Button Content="+" Width="28" Height="24" Padding="0" FontWeight="Bold"
+                                                            Foreground="#0D47A1" Background="White" BorderBrush="#0D47A1"
+                                                            Click="WorkPlus_Click" ToolTip="Добавить блок работы"/>
+                                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="6,0,0,0" FontSize="13"/>
+
+                                                    <StackPanel Orientation="Horizontal" Margin="8,0,0,0">
+                                                        <StackPanel.Style>
+                                                            <Style TargetType="StackPanel">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding HasItems}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </StackPanel.Style>
+                                                        <Border Background="#0D47A1" CornerRadius="8" Padding="6,1" VerticalAlignment="Center" SnapsToDevicePixels="True">
+                                                            <TextBlock Text="{Binding Count}" Foreground="White" FontSize="11" FontWeight="Bold"/>
+                                                        </Border>
+                                                        <Button Content="−" Width="28" Height="24" Padding="0" Margin="4,0,0,0" FontWeight="Bold"
+                                                                Foreground="#0D47A1" Background="White" BorderBrush="#0D47A1"
+                                                                Click="WorkMinus_Click" ToolTip="Удалить последний блок"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="Focusable" Value="False"/>
+                                    <Setter Property="Padding" Value="0"/>
+                                    <Setter Property="Margin" Value="0"/>
+                                    <Setter Property="SnapsToDevicePixels" Value="True"/>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                        </ListBox>
+                    </Border>
+                </Popup>
             </StackPanel>
 
-            <!-- === Прокручиваемая область для добавленных работ === -->
+            <!-- Список добавленных работ -->
             <Border BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Margin="0,5,0,0" MaxHeight="150" Padding="3">
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled"
-                          CanContentScroll="True">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="True">
                     <StackPanel x:Name="WorksStackPanel" hc:PanelElement.FluidMoveBehavior="{StaticResource BehaviorXY200}"/>
                 </ScrollViewer>
             </Border>
