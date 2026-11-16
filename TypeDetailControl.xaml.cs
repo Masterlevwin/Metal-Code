@@ -21,6 +21,9 @@ namespace Metal_Code
 {
     public partial class TypeDetailControl : UserControl, INotifyPropertyChanged
     {
+        // Поля и свойства класса
+        #region
+
         public event PropertyChangedEventHandler? PropertyChanged;
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
@@ -34,6 +37,8 @@ namespace Metal_Code
                 {
                     count = value;
                     OnPropertyChanged(nameof(Count));
+                    OnPropertyChanged(nameof(Purchase));
+                    OnPropertyChanged(nameof(ClientPricePerKg));
                 }
             }
         }
@@ -102,6 +107,8 @@ namespace Metal_Code
             {
                 mass = value;
                 OnPropertyChanged(nameof(Mass));
+                OnPropertyChanged(nameof(Purchase));
+                OnPropertyChanged(nameof(ClientPricePerKg));
             }
         }
 
@@ -115,6 +122,7 @@ namespace Metal_Code
                 {
                     hasMetal = value;
                     OnPropertyChanged(nameof(HasMetal));
+                    OnPropertyChanged(nameof(Purchase));
                     PriceChanged();
                 }
             }
@@ -139,6 +147,7 @@ namespace Metal_Code
             {
                 result = value;
                 OnPropertyChanged(nameof(Result));
+                OnPropertyChanged(nameof(ClientPricePerKg));
             }
         }
 
@@ -152,9 +161,13 @@ namespace Metal_Code
                 {
                     extraresult = value;
                     OnPropertyChanged(nameof(ExtraResult));
+                    OnPropertyChanged(nameof(HasExtraResult));
                 }
             }
         }
+
+        /// <summary>Показывает, задан ли итог материала вручную</summary>
+        public bool HasExtraResult => extraresult > 0;
 
         [OptionalField]
         private float square;
@@ -188,6 +201,8 @@ namespace Metal_Code
         public readonly DetailControl det;
         public List<WorkControl> WorkControls = new();
 
+        #endregion
+
         public TypeDetailControl(DetailControl d)
         {
             InitializeComponent();
@@ -198,6 +213,9 @@ namespace Metal_Code
             HasMetal = true;
             CreateSort();
         }
+
+        // Основные методы класса
+        #region
 
         public void SetDefaultWork()
         {
@@ -271,7 +289,7 @@ namespace Metal_Code
 
         private void SetCount(object sender, TextChangedEventArgs e)
         {
-            if (sender is TextBox tBox) if (int.TryParse(tBox.Text, out int count)) SetCount(count);
+            if (sender is TextBox tBox && int.TryParse(tBox.Text, out int count) && count != Count) SetCount(count);
         }
 
         public void SetCount(int _count)
@@ -280,21 +298,15 @@ namespace Metal_Code
             PriceChanged();
         }
 
-        private void ResultTextEnabled(object sender, MouseButtonEventArgs e)
-        {
-            SetCount(1);
-            ResultText.IsReadOnly = false;
-        }
-
-        private void SetExtraResult(object sender, RoutedEventArgs e)
-        {
-            if (float.TryParse(ResultText.Text, out float extra)) SetExtraResult(extra);
-        }
-
         public void SetExtraResult(float extra)
         {
             ExtraResult = extra;
-            ResultText.IsReadOnly = true;
+            ExitResultEdit();
+            if (extra > 0 && Mass > 0 && Markup > 0)
+            {
+                _priceManual = true;
+                PurchasePrice = extra / ((double)Mass * Markup);
+            }
             PriceChanged();
         }
 
@@ -439,7 +451,11 @@ namespace Metal_Code
             else A_prop.IsReadOnly = B_prop.IsReadOnly = false;
         }
 
-        private void ChangeSort(object sender, SelectionChangedEventArgs e) => ChangeSort();
+        private void ChangeSort(object sender, SelectionChangedEventArgs e)
+        {
+            ResetPriceOnUserEdit();
+            ChangeSort();
+        }
 
         public void ChangeSort()
         {
@@ -457,18 +473,21 @@ namespace Metal_Code
 
         private void SetProperty(object sender, TextChangedEventArgs e)
         {
-            if (sender is TextBox tBox)
+            if (sender is not TextBox tBox) return;
+            tBox.BorderThickness = new Thickness(1);
+
+            bool changed = false;
+            switch (tBox.Name)
             {
-                tBox.BorderThickness = new Thickness(1);
-                switch (tBox.Name)
-                {
-                    case "A_prop": if (float.TryParse(tBox.Text, out float a)) A = a; break;
-                    case "B_prop": if (float.TryParse(tBox.Text, out float b)) B = b; break;
-                    case "S_prop": if (float.TryParse(tBox.Text, out float s)) S = s; break;
-                    case "L_prop": if (float.TryParse(tBox.Text, out float l)) L = l; break;
-                }
-                MassCalculate();
+                case "A_prop": if (float.TryParse(tBox.Text, out float a) && a != A) { A = a; changed = true; } break;
+                case "B_prop": if (float.TryParse(tBox.Text, out float b) && b != B) { B = b; changed = true; } break;
+                case "S_prop": if (float.TryParse(tBox.Text, out float s) && s != S) { S = s; changed = true; } break;
+                case "L_prop": if (float.TryParse(tBox.Text, out float l) && l != L) { L = l; changed = true; } break;
             }
+
+            if (!changed) return;              // привязка отдала то же значение — это не правка пользователя
+            ResetPriceOnUserEdit();
+            MassCalculate();
         }
 
         public List<(float, float)> Corners = new()
@@ -498,8 +517,9 @@ namespace Metal_Code
 
         private void MassCalculate(object sender, SelectionChangedEventArgs e)
         {
+            ResetPriceOnUserEdit();
             ExtraResult = 0;
-            ResultText.IsReadOnly = true;
+            ExitResultEdit();
             MetalDrop.BorderThickness = new Thickness(1);
             MassCalculate();
         }
@@ -510,18 +530,14 @@ namespace Metal_Code
 
             float destiny = MainWindow.M.CorrectDestiny(S);
 
+            float typeRatio = type.Name == "Лист металла" ? 1f
+                            : (type.Name?.Contains("Труба") == true ? 1.1f : 1.3f);
+
             if (metal.Name is not null && type.Name is not null
                 && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
-            {
-                float basePrice = metal.MassPrice;
-
-                if (type.Name == "Лист металла") basePrice = metal.MassPrice;
-                else if (type.Name.Contains("Труба")) basePrice *= 1.1f;
-                else basePrice *= 1.3f;
-
-                Price = basePrice;
-            }
-            else if (S == 0) Price = metal.MassPrice * 1.3f;
+                SetBaseline(metal.MassPrice, typeRatio);
+            else if (S == 0)
+                SetBaseline(metal.MassPrice, 1.3f);
 
             if (det.Detail.IsComplect)
             {
@@ -627,7 +643,6 @@ namespace Metal_Code
                 (ExtraResult > 0 ? ExtraResult : Price * Mass)
                 , 2) : 0) * MainWindow.M.MaterialFactor);
 
-
             var work = WorkControls.FirstOrDefault(w => w.workType is CutControl);
             if (work != null && work.workType is CutControl cut)
             {
@@ -636,27 +651,6 @@ namespace Metal_Code
             }
 
             Priced?.Invoke();
-        }
-
-        private void SetToolTipForResult(object sender, ToolTipEventArgs e)
-        {
-            if (sender is not TextBox box || TypeDetailDrop.SelectedItem is not TypeDetail type || MetalDrop.SelectedItem is not Metal metal) return;
-
-            float destiny = MainWindow.M.CorrectDestiny(S);
-
-            if (metal.Name is not null && type.Name is not null
-                && MainWindow.M.MetalDict[metal.Name].ContainsKey(destiny))
-            {
-                float basePrice = metal.MassPrice;
-
-                if (type.Name == "Лист металла") basePrice = metal.MassPrice;
-                else if (type.Name.Contains("Труба")) basePrice *= 1.1f;
-                else basePrice *= 1.3f;
-
-                box.ToolTip = $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(ExtraResult > 0 ? ExtraResult / Mass : basePrice)} руб)";
-            }
-            else if (S == 0)
-                box.ToolTip = $"Стоимость материала, руб\n(цена металла - {Math.Ceiling(ExtraResult > 0 ? ExtraResult / Mass : metal.MassPrice * 1.3f)} руб)";
         }
 
         private void AddWork(object sender, RoutedEventArgs e) => AddWork();
@@ -767,6 +761,8 @@ namespace Metal_Code
             ((Storyboard)FindResource("HighlightToggle")).Stop(PartsToggle);
             ((Storyboard)FindResource("StopHighlightToggle")).Begin(PartsToggle);
         }
+
+        #endregion
 
         // Тэги комментария
         #region
@@ -1025,10 +1021,7 @@ namespace Metal_Code
             }
             return null;
         }
-        #endregion
 
-        // Проверки для добавления комментариев
-        #region
         private void CheckBorderlineDimensions(CutControl cut)
         {
             if (cut?.PartDetails == null || cut.Items == null) return;
@@ -1283,7 +1276,221 @@ namespace Metal_Code
             OnPropertyChanged(nameof(Comment));
             UpdateTagButtonsState();
         }
+
         #endregion
+
+        // Закупка и наценка
+        #region
+
+        private static readonly string[] BlackSteel = { "ст3", "хк", "09г2с", "цинк" };
+
+        /// <summary>Базовая наценка, уже заложенная в прайс из базы: 1,2 — черная сталь, 1,25 — остальные</summary>
+        public static float DefaultMarkup(string? metalName) =>
+            metalName is not null && BlackSteel.Any(m => metalName.Contains(m, StringComparison.OrdinalIgnoreCase))
+                ? 1.2f : 1.25f;
+
+        /// <summary>Цена зафиксирована пользователем или восстановлена из расчёта — SetBaseline её не перетирает</summary>
+        private bool _priceManual;
+
+        private double purchasePrice;   // double — чтобы деление/умножение не «съедало» копейки на тоннаже
+        /// <summary>Закупочная цена металла, руб/кг (без наценки и без MaterialFactor)</summary>
+        public double PurchasePrice
+        {
+            get => purchasePrice;
+            private set
+            {
+                if (purchasePrice == value) return;
+                purchasePrice = value;
+                OnPropertyChanged(nameof(PurchasePrice));
+                OnPropertyChanged(nameof(Purchase));
+            }
+        }
+
+        /// <summary>Итоговая стоимость 1 кг металла для клиента: итог / вес материала</summary>
+        public double ClientPricePerKg
+        {
+            get
+            {
+                double totalWeight = (double)Mass * Units;
+                if (totalWeight <= 0) return 0;
+                return Result / totalWeight;
+            }
+        }
+
+        private float markup = 1.25f;
+        /// <summary>Наценка на закупку металла. Сценарии 3 и 4б.</summary>
+        public float Markup
+        {
+            get => markup;
+            set
+            {
+                if (value <= 0) { OnPropertyChanged(nameof(Markup)); return; }   // вернуть прежнее значение в поле
+                if (value == markup) return;
+                markup = value;
+                _priceManual = true;
+                OnPropertyChanged(nameof(Markup));
+                ResetExtraResult();      // сценарий 4б: ручной итог больше не действует
+                UpdatePrice();           // Purchase остаётся как есть → Result пересчитывается
+                PriceChanged();
+            }
+        }
+
+        /// <summary>Бюджет закупки на всю заготовку, руб (без MaterialFactor). Сценарий 2.</summary>
+        public float Purchase
+        {
+            get => HasMetal ? (float)Math.Round(Units * Mass * purchasePrice, 2) : 0;
+            set
+            {
+                if (value < 0 || Mass <= 0) { OnPropertyChanged(nameof(Purchase)); return; }
+                _priceManual = true;
+                PurchasePrice = value / (double)(Units * Mass);
+                ResetExtraResult();
+                UpdatePrice();
+                PriceChanged();
+            }
+        }
+
+        private float Units => det?.Detail?.IsComplect == true ? 1 : Math.Max(Count, 1);
+
+        private void UpdatePrice() => Price = (float)(purchasePrice * Markup);
+
+        private void ResetExtraResult()
+        {
+            ExtraResult = 0;
+            ExitResultEdit();
+        }
+
+        private void SetBaseline(float massPrice, float typeRatio)
+        {
+            if (_priceManual) { UpdatePrice(); return; }
+            markup = DefaultMarkup((MetalDrop.SelectedItem as Metal)?.Name);
+            OnPropertyChanged(nameof(Markup));
+            PurchasePrice = (double)massPrice * typeRatio / markup;     //убрать деление на markup, когда будут обновлены цены на металл
+            ExtraResult = 0;
+            ExitResultEdit();
+            UpdatePrice();
+        }
+
+        /// <summary>Сброс фиксации только по реальной правке пользователя, не при загрузке</summary>
+        private void ResetPriceOnUserEdit()
+        {
+            if (!MainWindow.M.IsLoadData) _priceManual = false;
+        }
+
+        /// <summary>
+        /// Восстановление цен из сохранённого расчёта.
+        /// Если сохранён ручной итог (extraResult > 0), он — ведущий, а закупка вычисляется из него;
+        /// иначе восстанавливаются сохранённые наценка и закупочная цена.
+        /// </summary>
+        public void RestorePriceState(float markupValue, double purchasePriceValue, float extraResultValue = 0)
+        {
+            _priceManual = true;
+            markup = markupValue > 0 ? markupValue : markup;       // поле, а не свойство — без лишних пересчётов
+            OnPropertyChanged(nameof(Markup));
+
+            if (extraResultValue > 0 && Mass > 0 && markup > 0)
+            {
+                // ручной итог — ведущий, закупка вычисляется из него
+                ExtraResult = extraResultValue;
+                purchasePrice = extraResultValue / ((double)Mass * markup);
+                OnPropertyChanged(nameof(PurchasePrice));
+                OnPropertyChanged(nameof(Purchase));
+            }
+            else
+            {
+                PurchasePrice = purchasePriceValue;
+                ExtraResult = 0;
+            }
+
+            UpdatePrice();
+            PriceChanged();
+        }
+
+        // ===== Итог-тоггл и панель закупки =====
+
+        /// <summary>Двойной клик по итогу — ручной ввод стоимости материала</summary>
+        private void ResultTextEnabled(object sender, MouseButtonEventArgs e)
+        {
+            if (!HasMetal) return;
+            SetCount(1);
+            ResultValue.Visibility = Visibility.Collapsed;
+            ResultText.Visibility = Visibility.Visible;
+            ResultText.IsReadOnly = false;
+            ResultText.Focus();
+            ResultText.SelectAll();
+            e.Handled = true;
+        }
+
+        private void SetExtraResult(object sender, RoutedEventArgs e) => CommitResultEdit();
+
+        private void ResultText_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter) { CommitResultEdit(); ResultToggle.Focus(); e.Handled = true; }
+            else if (e.Key == Key.Escape) { ExitResultEdit(); ResultToggle.Focus(); e.Handled = true; }
+        }
+
+        private void CommitResultEdit()
+        {
+            if (ResultText.Visibility != Visibility.Visible) return;
+            float extra = MainWindow.Parser(ResultText.Text);   // понимает и пробелы, и запятую
+            ExitResultEdit();
+            SetExtraResult(extra);
+        }
+
+        private void ExitResultEdit()
+        {
+            ResultText.IsReadOnly = true;
+            ResultText.Visibility = Visibility.Collapsed;
+            ResultValue.Visibility = Visibility.Visible;
+            ResultText.GetBindingExpression(TextBox.TextProperty)?.UpdateTarget();
+        }
+
+        private void PricePanel_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Escape) return;
+            ResultToggle.IsChecked = false;
+            ResultToggle.Focus();
+            e.Handled = true;
+        }
+
+        private void PriceInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter || sender is not TextBox box) return;
+            CommitPriceInput(box);
+            e.Handled = true;
+        }
+
+        private void PurchaseText_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox box) CommitPriceInput(box);
+        }
+
+        /// <summary>Закупка вводится суммой счёта, наценка — коэффициентом</summary>
+        private void CommitPriceInput(TextBox box)
+        {
+            if (box == PurchaseText)
+            {
+                if (HasMetal && Mass > 0)
+                {
+                    float value = MainWindow.Parser(box.Text);
+                    Purchase = value < 0 ? 0 : value;
+                }
+                box.GetBindingExpression(TextBox.TextProperty)?.UpdateTarget();   // вернуть формат CostConverter
+            }
+            else
+            {
+                box.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+            }
+        }
+
+        private void ResetPriceToBaseline(object sender, RoutedEventArgs e)
+        {
+            _priceManual = false;
+            ExtraResult = 0;
+            ExitResultEdit();
+            MassCalculate();
+            PurchaseText.GetBindingExpression(TextBox.TextProperty)?.UpdateTarget();
+        }
 
         public async void LoadPrices(object sender, RoutedEventArgs e)
         {
@@ -1343,5 +1550,7 @@ namespace Metal_Code
 
             return new List<PriceListItem>();
         }
+
+        #endregion
     }
 }

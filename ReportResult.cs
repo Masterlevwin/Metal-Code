@@ -22,6 +22,7 @@ namespace Metal_Code
         public decimal ServicesNet { get; set; }
         public decimal MaterialNet { get; set; }
 
+        public float MaterialMarkup { get; set; }
         public decimal BonusRatio { get; set; }
         public decimal BonusAmount { get; set; }
         public bool IsNoBonus { get; set; }
@@ -42,6 +43,8 @@ namespace Metal_Code
         public decimal TotalBonusOoo { get; set; }
         public decimal TotalBonusIp { get; set; }
         public decimal NoBonusAmount { get; set; }
+        public decimal TotalMaterialProfitOoo { get; set; }
+        public decimal TotalMaterialProfitIp { get; set; }
 
         // Итоги
         public decimal TotalAmountOoo { get; set; }   // общая сумма расчетов ООО

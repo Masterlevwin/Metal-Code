@@ -55,6 +55,9 @@ namespace Metal_Code
         public float BonusRatio;
 
         [OptionalField]
+        public float MaterialMarkup;
+
+        [OptionalField]
         public List<Part> Baskets = new();
 
         public ObservableCollection<Detail> Details { get; set; } = new();
@@ -636,8 +639,14 @@ namespace Metal_Code
         [OptionalField]
         public string? Comment;
 
+        [OptionalField]
+        public float Markup = 0;
+
+        [OptionalField]
+        public double PurchasePrice = 0;
+
         public List<SaveWork> Works = new();
-        public SaveTypeDetail(int _index = 0, int _count = 0, int _metal = 0, bool _hasMetal = true, (int, float, float, float, float) _tuple = default, float _extraResult = 0, string? _comment = null)
+        public SaveTypeDetail(int _index = 0, int _count = 0, int _metal = 0, bool _hasMetal = true, (int, float, float, float, float) _tuple = default, float _extraResult = 0, string? _comment = null, float markup = 0, double purchasePrice = 0)
         {
             Index = _index;
             Count = _count;
@@ -646,6 +655,8 @@ namespace Metal_Code
             Tuple = _tuple;
             ExtraResult = _extraResult;
             Comment = _comment;
+            Markup = markup;
+            PurchasePrice = purchasePrice;
         }
     }
     

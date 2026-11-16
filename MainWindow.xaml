@@ -478,7 +478,7 @@
                                 <hc:NumericUpDown Grid.Row="1" Grid.Column="1"
                           Value="{Binding MaterialFactor, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}, StringFormat='{}{0:F2}'}"
                           Minimum="0" Maximum="10" Increment="0.01" Margin="0,8,0,0" ToolTip="Введите наценку на весь материал"/>
-
+                                
                                 <TextBlock Grid.Row="2" Text="Услуги" Margin="0,8,8,0" VerticalAlignment="Center" />
                                 <hc:NumericUpDown x:Name="ServiceFactorBox" Grid.Row="2" Grid.Column="1"
                           Value="{Binding ServiceFactor, RelativeSource={RelativeSource AncestorType={x:Type local:MainWindow}, Mode=FindAncestor}, StringFormat='{}{0:F2}'}"
@@ -503,6 +503,9 @@
                                     <TextBlock Text="Металл — " FontWeight="SemiBold"/>
                                     <TextBlock x:Name="MaterialTotal" Foreground="Blue"/>
                                 </StackPanel>
+                                <TextBlock x:Name="MaterialMarkupTotal" Margin="50,0,0,3"
+                                           Opacity="0.7" ToolTip="Закупка и средняя наценка на материал"/>
+                                
                                 <StackPanel Orientation="Horizontal" Margin="10,0,0,3" Opacity="0.7">
                                     <TextBlock Text="ПКИ: "/>
                                     <TextBlock x:Name="BasketTotal" Foreground="Blue"/>

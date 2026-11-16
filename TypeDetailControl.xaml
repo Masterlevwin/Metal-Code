@@ -14,7 +14,7 @@
         <local:CostConverter x:Key="CostConverter"/>
         <local:StockMaterialBackgroundConverter x:Key="StockMaterialBackgroundConverter"/>
         <converters:StringNullOrEmptyToVisibilityConverter x:Key="StringToVisibility"/>
-        
+
         <!-- Плавные функции для анимации -->
         <PowerEase x:Key="EaseOut" EasingMode="EaseOut"/>
         <PowerEase x:Key="EaseIn" EasingMode="EaseIn"/>
@@ -50,7 +50,7 @@
                 <DiscreteObjectKeyFrame KeyTime="0:0:0.3" Value="{x:Static Visibility.Collapsed}"/>
             </ObjectAnimationUsingKeyFrames>
         </Storyboard>
-        
+
         <!-- Мигание красного бордера для привлечения внимания -->
         <Storyboard x:Key="HighlightToggle" RepeatBehavior="Forever" AutoReverse="True">
             <ColorAnimation 
@@ -130,6 +130,54 @@
             </Setter>
         </Style>
 
+        <!-- ===== Итог материала как тоггл: без стрелки, широкий слот под суммы в миллионы ===== -->
+        <Style x:Key="ResultToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource ExpandToggleButtonStyle}">
+            <Setter Property="Width" Value="70"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="2,0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}"/>
+            <Setter Property="Foreground" Value="Blue"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd"
+                        Background="{Binding Background, RelativeSource={RelativeSource TemplatedParent}}"
+                        BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource TemplatedParent}}"
+                        BorderThickness="{Binding BorderThickness, RelativeSource={RelativeSource TemplatedParent}}"
+                        CornerRadius="3"
+                        Padding="{TemplateBinding Padding}"
+                        SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource FocusBorderColor}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F0F8FF"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource FocusBorderColor}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding HasExtraResult}" Value="True">
+                    <Setter Property="BorderBrush" Value="DarkOrange"/>
+                    <Setter Property="ToolTip" Value="Стоимость материала задана вручную&#10;Клик — закупка и наценка&#10;Двойной клик — изменить"/>
+                </DataTrigger>
+
+                <DataTrigger Binding="{Binding HasMetal}" Value="False">
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="Opacity" Value="0.6"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
     </UserControl.Resources>
 
     <GroupBox x:Name="TypeDetailBox" BorderBrush="Gray">
@@ -139,7 +187,7 @@
                 <Binding Path="SelectedItem.Name" ElementName="MetalDrop"/>
             </MultiBinding>
         </GroupBox.Background>
-        
+
         <GroupBox.Header>
             <StackPanel Orientation="Horizontal" Margin="5">
                 <!-- Динамическая иконка типа заготовки -->
@@ -180,12 +228,58 @@
                         Style="{StaticResource ButtonDashed.Small}">
                     <Image Source="Images/hazard.png"/>
                 </Button>
-                <TextBox x:Name="ResultText" Text="{Binding Result, Converter={StaticResource CostConverter}}" MouseDoubleClick="ResultTextEnabled" IsReadOnly="True" ToolTipOpening="SetToolTipForResult" ToolTip="Стоимость материала, руб" Margin="10,0,0,0" LostFocus="SetExtraResult" VerticalContentAlignment="Center" HorizontalContentAlignment="Right" BorderThickness="0" Background="{DynamicResource {x:Static SystemColors.ControlLightLightBrushKey}}" Foreground="Blue" Width="65"/>
+
+                <ToggleButton x:Name="ResultToggle" Style="{StaticResource ResultToggleStyle}"
+              Margin="10,0,0,0"
+              PreviewMouseDoubleClick="ResultTextEnabled"
+              ToolTip="Стоимость материала, руб&#10;Клик — закупка и наценка&#10;Двойной клик — ввод вручную">
+                    <Grid>
+                        <TextBlock x:Name="ResultValue"
+                   Text="{Binding Result, Mode=OneWay, Converter={StaticResource CostConverter}}"
+                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBox x:Name="ResultText" Visibility="Collapsed"
+                 Text="{Binding Result, Mode=OneWay, Converter={StaticResource CostConverter}}"
+                 IsReadOnly="True" MaxLines="1"
+                 HorizontalAlignment="Stretch"
+                 Height="20" MinHeight="0" Padding="0" BorderThickness="0"
+                 Background="Transparent"
+                 VerticalContentAlignment="Center" HorizontalContentAlignment="Right"
+                 LostFocus="SetExtraResult" KeyDown="ResultText_KeyDown"/>
+                    </Grid>
+                </ToggleButton>
+                
                 <Button Content="Х" local:DeleteHighlight.TargetElement="{Binding ElementName=TypeDetailBox}" FontWeight="Bold" Padding="0" MinWidth="20" MinHeight="20" MaxWidth="20" MaxHeight="20" FontSize="16" BorderThickness="0" Click="Remove" ToolTip="Удалить заготовку" Margin="5,0,0,0"/>
             </StackPanel>
         </GroupBox.Header>
 
         <StackPanel>
+            <!-- ===== Панель закупки и наценки: раскрывается кликом по итогу ===== -->
+            <Border x:Name="PricePanel"
+                    Background="#F0F8FF" BorderBrush="{StaticResource BorderColor}" BorderThickness="1"
+                    CornerRadius="4" Padding="8,5" Margin="0,2,10,6" HorizontalAlignment="Right"
+                    KeyDown="PricePanel_KeyDown"
+                    Visibility="{Binding IsChecked, ElementName=ResultToggle, Converter={StaticResource BoolToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Закупка, руб" FontSize="10" Foreground="Gray" VerticalAlignment="Center"/>
+                    <TextBox x:Name="PurchaseText" Width="70" Margin="5,0,0,0" MaxLines="1"
+                             Foreground="DarkGreen" FontWeight="Bold"
+                             VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                             Text="{Binding Purchase, Mode=OneWay, StringFormat={}{0:0.##}}"
+                             LostFocus="PurchaseText_LostFocus" KeyDown="PriceInput_KeyDown"/>
+                    <TextBlock Text="Наценка, ×" FontSize="10" Foreground="Gray" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                    <TextBox x:Name="MarkupText" Width="40" Margin="5,0,0,0" MaxLines="1"
+                             Foreground="DarkOrange" FontWeight="Bold"
+                             VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                             Text="{Binding Markup, StringFormat={}{0:0.###}}"
+                             KeyDown="PriceInput_KeyDown"/>
+                    <TextBlock Text="{Binding ClientPricePerKg, StringFormat={}{0:0.##} руб/кг}"
+                               FontSize="10" Foreground="#1B4F72" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                    <Button Content="⟲" Width="18" Height="18" Margin="8,0,0,0" Padding="0" FontSize="11"
+                            BorderThickness="0" Background="Transparent" Foreground="Gray" Cursor="Hand"
+                            Click="ResetPriceToBaseline" ToolTip="Сбросить к базовой цене металла"/>
+                </StackPanel>
+            </Border>
+
             <!-- Комментарий и кнопки -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0">
                 <Expander x:Name="CommentExpander" ExpandDirection="Left" IsExpanded="True">
@@ -288,15 +382,15 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        
+
                         <!-- Кнопка управления тэгами -->
-                            <Button Content="⚙ Настроить тэги" 
+                        <Button Content="⚙ Настроить тэги" 
             FontSize="9" 
             Padding="6,2" 
             HorizontalAlignment="Right" 
             Margin="0,8,5,0"
             Click="OpenTagSettings"/>
-                        </StackPanel>
+                    </StackPanel>
                 </Expander>
 
                 <StackPanel hc:PanelElement.FluidMoveBehavior="{StaticResource BehaviorXY200}" x:Name="WorksStack" Margin="10,0,0,0">

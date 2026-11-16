@@ -799,10 +799,10 @@ namespace Metal_Code
 
             // Добавить новое обновление (если его ещё нет)
             ctx.AddNewUpdateIfNotExists(
-                version: "v2.7.4.7",
-                releaseDate: new DateTime(2026, 11, 11),
-                description: "Обновлен интерфейс главного окна. Добавлена функция пометки к КП.",
-                screenshotPath: "/Updates/v2.7.4.7_2026-11-11.png"
+                version: "v2.7.4.8",
+                releaseDate: new DateTime(2026, 11, 16),
+                description: "Добавлена поддержка изменения стоимости закупки и наценки на металл для каждой заготовки.",
+                screenshotPath: "/Updates/v2.7.4.8_2026-11-16.png"
             );
 
             // Получаем новые обновления
@@ -1768,12 +1768,12 @@ namespace Metal_Code
             {
                 result = value;
                 OnPropertyChanged(nameof(Result));
-
                 MaterialTotal.Text = $"{Math.Ceiling(GetMetalPrice()):N0} р";
                 ServicesTotal.Text = $"{Math.Ceiling(GetServicesPrice()):N0} р";
                 WeldTotal.Text = $"{Math.Ceiling(GetWeldAssembly()):N0} р";
                 PaintTotal.Text = $"{Math.Ceiling(GetPaintAssembly()):N0} р";
                 BasketTotal.Text = $"{Math.Ceiling(GetBasketPrice()):N0} р";
+                MaterialMarkupTotal.Text = $"({Math.Ceiling(GetPurchaseTotal()):N0} р×{MaterialMarkup:0.##})";   // ← общая наценка на материал
             }
         }
         public void TotalResult()
@@ -3474,6 +3474,7 @@ namespace Metal_Code
                 HasAssembly = HasAssembly,
                 IsExpressOffer = IsExpressOffer,
                 BonusRatio = BonusRatio,
+                MaterialMarkup = (float)MaterialMarkup,
 
                 Baskets = BasketControls.Select(b => b.Basket).ToList(),
                 Details = SaveDetails(),
@@ -3510,7 +3511,7 @@ namespace Metal_Code
                 {
                     TypeDetailControl type = det.TypeDetailControls[j];
                     SaveTypeDetail _typeDetail = new(type.TypeDetailDrop.SelectedIndex, type.Count, type.MetalDrop.SelectedIndex, type.HasMetal,
-                        (type.SortDrop.SelectedIndex, type.A, type.B, type.S, type.L), type.ExtraResult, type.Comment);
+                        (type.SortDrop.SelectedIndex, type.A, type.B, type.S, type.L), type.ExtraResult, type.Comment, type.Markup, type.PurchasePrice);
 
                     if (!Destinies.Contains(type.S) && (Log is null || !Log.Contains("Проверьте толщину заготовок во всех деталях!")))
                         Log += "\nПроверьте толщину заготовок во всех деталях!\n";
@@ -3837,6 +3838,10 @@ namespace Metal_Code
                         if (_type.WorkControls.Count < details[i].TypeDetails[j].Works.Count)
                             _type.AddWork();
                     }
+
+                    var s = details[i].TypeDetails[j];
+                    if (s.Markup > 0 || s.PurchasePrice > 0 || s.ExtraResult > 0)
+                        _type.RestorePriceState(s.Markup, s.PurchasePrice, s.ExtraResult);
                 }
             }
         }
@@ -5003,6 +5008,11 @@ namespace Metal_Code
                         statsheet.Cells[i + rowTask, 10].Value = _mass;     //"Количество материала"
                     }
 
+                    //суммарное плановое время всех гибок заготовки (гибки разных групп — отдельные работы)
+                    float bendTimeTotal = (float)Math.Ceiling(type.WorkControls
+                        .Where(w => w.workType is BendControl && w.Result > 0)
+                        .Sum(w => w.Result * 0.018f / w.Ratio));
+
                     foreach (WorkControl w in type.WorkControls)            //анализируем работы каждой типовой детали
                     {
                         if (w.Result == 0) continue;                        //пропускаем добавление нулевых работ
@@ -5030,6 +5040,8 @@ namespace Metal_Code
 
                             if (type.CheckMetal.IsChecked is not null)     //добавляем материал в накладную
                             {
+                                int startNote = tempNote;                  //начало блока строк этой заготовки
+
                                 if (cut.Items?.Count > 0)
                                 {
                                     var _items = cut.Items?.GroupBy(c => c.sheetSize);      //группируем все листы по размеру
@@ -5047,6 +5059,8 @@ namespace Metal_Code
                                     notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
                                     tempNote++;
                                 }
+
+                                WritePurchaseToNotes(notesheet, startNote, tempNote - 1, type);   //объединяем закупку по всему блоку
                             }
 
                             //добавляем тег срочности и коментария
@@ -5060,7 +5074,8 @@ namespace Metal_Code
                         {
                             statsheet.Cells[i + temp, 6].Value = "гибка";
                             //"Гибка (время работ)"                                 //"Гибочные работы"
-                            statsheet.Cells[i + temp, 13].Value = statsheet.Cells[i + rowTask, 13].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
+                            if (bendTimeTotal > 0)
+                                statsheet.Cells[i + temp, 13].Value = statsheet.Cells[i + rowTask, 13].Value = bendTimeTotal;
 
                             if (w.Ratio != 1) _bkk += w.Ratio;
                             if (w.TechRatio > 1) _bpk += w.TechRatio;
@@ -5090,6 +5105,8 @@ namespace Metal_Code
 
                             if (type.CheckMetal.IsChecked is not null)
                             {
+                                int startNote = tempNote;
+
                                 if (pipe.Items?.Count > 0)
                                 {
                                     var _items = pipe.Items?.GroupBy(c => c.sheetSize);      //группируем все трубы по размеру
@@ -5107,6 +5124,8 @@ namespace Metal_Code
                                     notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
                                     tempNote++;
                                 }
+
+                                WritePurchaseToNotes(notesheet, startNote, tempNote - 1, type);
                             }
                         }
                         else if (w.workType is SawControl _saw)         //для лентопила указываем вид заготовки по аналогии с труборезом
@@ -5129,9 +5148,13 @@ namespace Metal_Code
                             //"Лазер (время работ)"                                 //"Время лазерных работ"
                             statsheet.Cells[i + temp, 12].Value = statsheet.Cells[i + rowTask, 14].Value = Math.Ceiling(w.Result * 0.018f / w.Ratio);
 
+                            int startNote = tempNote;
+
                             notesheet.Cells[tempNote, 2].Value = notesheet.Cells[tempNote, 7].Value = $"{sawBaseDesc} ({type.L})";
                             notesheet.Cells[tempNote, 3].Value = notesheet.Cells[tempNote, 8].Value = type.Count;
                             tempNote++;
+
+                            WritePurchaseToNotes(notesheet, startNote, tempNote - 1, type);
                         }
                         else if (w.workType is ExtraControl _extra)     //для доп работы её наименование добавляем к наименованию работы - особый случай
                         {
@@ -7476,6 +7499,7 @@ namespace Metal_Code
             }
         }
 
+        private const string MaterialMarkupPattern = @"""MaterialMarkup""\s*:\s*([\d.]+)";
         private const string BonusRatioPattern = @"""BonusRatio""\s*:\s*([\d.]+)";
         private const string NoBonusMarker = "без бонуса";
 
@@ -7530,6 +7554,7 @@ namespace Metal_Code
         {
             var result = new ReportResult();
             var regex = new Regex(BonusRatioPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            var markupRegex = new Regex(MaterialMarkupPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
             foreach (var offer in offers)
             {
@@ -7562,6 +7587,24 @@ namespace Metal_Code
                         }
                     }
                 }
+
+                // Извлекаем наценку на материал из сохранённых данных расчёта
+                float materialMarkup = 0;
+                if (!string.IsNullOrEmpty(offer.Data))
+                {
+                    var markupMatch = markupRegex.Match(offer.Data);
+                    if (markupMatch.Success)
+                    {
+                        string markupStr = markupMatch.Groups[1].Value.Replace(",", ".");
+                        float.TryParse(markupStr, NumberStyles.Float, CultureInfo.InvariantCulture, out materialMarkup);
+                    }
+                }
+
+                // Прибыль с материала по фактической наценке (фолбэк на константу для старых расчётов)
+                decimal markupEffective = materialMarkup > 0
+                    ? Math.Max((decimal)materialMarkup - 0.05m, 1m)   // не ниже 1 → прибыль не уйдёт в минус
+                    : VatRateMaterial;
+                decimal materialProfit = materialGross > 0 ? materialGross - materialGross / markupEffective : 0;
 
                 // Общая сумма для расчёта пропорции (не может быть 0, если есть бонус)
                 decimal totalGross = servicesGross + materialGross;
@@ -7599,7 +7642,8 @@ namespace Metal_Code
                     MaterialNet = materialNet,
                     BonusRatio = bonusRatio,
                     BonusAmount = bonusAmount,
-                    IsNoBonus = isNoBonus
+                    IsNoBonus = isNoBonus,
+                    MaterialMarkup = materialMarkup
                 };
 
                 if (isAgent)
@@ -7611,6 +7655,7 @@ namespace Metal_Code
                     if (isNoBonus)
                         result.NoBonusAmount += amountGross; // ← именно amountGross, как в Excel
                     result.TotalAmountIp += amountGross;
+                    result.TotalMaterialProfitIp += materialProfit;
                 }
                 else
                 {
@@ -7619,15 +7664,16 @@ namespace Metal_Code
                     result.TotalMaterialOoo += materialNet;
                     result.TotalBonusOoo += bonusAmount;
                     result.TotalAmountOoo += amountGross;
+                    result.TotalMaterialProfitOoo += materialProfit;
                 }
             }
 
             // === Расчёт ЧИСТОЙ прибыли (только от чистых сумм, без бонусов) ===
             decimal profitServicesOoo = (result.TotalServicesOoo - result.TotalServicesOoo / VatRateServices) / ProfitMargin;
-            decimal profitMaterialOoo = (result.TotalMaterialOoo - result.TotalMaterialOoo / VatRateMaterial) / ProfitMargin;
+            decimal profitMaterialOoo = result.TotalMaterialProfitOoo / ProfitMargin;   // ← по фактическим наценкам
             decimal profitServicesIp = (result.TotalServicesIp - result.TotalServicesIp / VatRateServices) / ProfitMargin;
-            decimal profitMaterialIp = (result.TotalMaterialIp - result.TotalMaterialIp / VatRateMaterial) / ProfitMargin;
-
+            decimal profitMaterialIp = result.TotalMaterialProfitIp / ProfitMargin;    // ← по фактическим наценкам
+            
             result.CleanProfit = profitServicesOoo + profitMaterialOoo + profitServicesIp + profitMaterialIp;
 
             // === План = Чистая прибыль + все бонусы (как отдельная надбавка) ===
@@ -7677,19 +7723,19 @@ namespace Metal_Code
             using var workbook = new ExcelPackage();
             var worksheet = workbook.Workbook.Worksheets.Add("Лист1");
 
-            // === Заглушка для пустых секций (используется, если OooItems или IpItems пусты) ===
             int stubRow = 1000;
-            worksheet.Cells[stubRow, 5].Value = 0;    // totalS / services bonus
-            worksheet.Cells[stubRow, 6].Value = 0;    // totalM / material bonus
+            worksheet.Cells[stubRow, 5].Value = 0;    // totalS
+            worksheet.Cells[stubRow, 6].Value = 0;    // totalM
             worksheet.Cells[stubRow, 7].Value = 0;    // total
-            worksheet.Cells[stubRow, 9].Value = 0;    // bonus
-            worksheet.Cells[stubRow, 13].Value = 0;   // services net
-            worksheet.Cells[stubRow, 14].Value = 0;   // material net
+            worksheet.Cells[stubRow, 10].Value = 0;   // бонус
+            worksheet.Cells[stubRow, 14].Value = 0;   // работы без бонуса
+            worksheet.Cells[stubRow, 15].Value = 0;   // металл без бонуса
+            worksheet.Cells[stubRow, 16].Value = 0;   // прибыль с металла
             worksheet.Cells[stubRow, 17].Value = 0;   // notbonus
 
             int row = 1;
-            var _headers = new List<string> { $"дата отгрузки", "№счета", "проект", "№заказа", "работа", "металл", "Итого", "%", "бонус", "№КП" };
-
+            var _headers = new List<string> { $"дата отгрузки", "№счета", "проект", "№заказа",
+                                                "работа", "металл", "Итого", "мат, ×", "бонус, %", "бонус, руб", "№КП" };
             // === ООО ===
             if (report.OooItems.Count > 0)
             {
@@ -7707,70 +7753,69 @@ namespace Metal_Code
                     worksheet.Cells[row, 2].Value = item.Invoice;
                     worksheet.Cells[row, 3].Value = item.Company;
                     worksheet.Cells[row, 4].Value = item.Order;
-                    worksheet.Cells[row, 5].Value = item.Services;     // исходные
-                    worksheet.Cells[row, 6].Value = item.Material;    // исходные
-                    worksheet.Cells[row, 7].Value = item.Amount;      // исходные
-                    worksheet.Cells[row, 8].Value = item.BonusRatio;  // из C#
-                    worksheet.Cells[row, 10].Value = item.N;
+                    worksheet.Cells[row, 5].Value = item.Services;
+                    worksheet.Cells[row, 6].Value = item.Material;
+                    worksheet.Cells[row, 7].Value = item.Amount;
+                    worksheet.Cells[row, 8].Value = Math.Round(item.MaterialMarkup, 2);    // мат, × (2 знака)
+                    worksheet.Cells[row, 9].Value = item.BonusRatio;                       // бонус, %
+                    worksheet.Cells[row, 10].Value = item.BonusAmount;                     // бонус
+                    worksheet.Cells[row, 11].Value = item.N;                               // №КП
 
-                    // Формулы
                     if (item.BonusRatio > 0)
                     {
-                        worksheet.Cells[row, 9].Formula = $"=ROUND(G{row} * H{row} / (100 + H{row}), 0)";
-                        worksheet.Cells[row, 11].Formula = $"=ROUND(E{row} * H{row} / (100 + H{row}), 0)";
-                        worksheet.Cells[row, 12].Formula = $"=ROUND(F{row} * H{row} / (100 + H{row}), 0)";
+                        worksheet.Cells[row, 10].Formula = $"=ROUND(G{row} * I{row} / (100 + I{row}), 0)";  // бонус, руб
+                        worksheet.Cells[row, 12].Formula = $"=ROUND(E{row} * I{row} / (100 + I{row}), 0)";  // бонус работ
+                        worksheet.Cells[row, 13].Formula = $"=ROUND(F{row} * I{row} / (100 + I{row}), 0)";  // бонус металла
                     }
                     else
                     {
-                        worksheet.Cells[row, 9].Value = 0;
-                        worksheet.Cells[row, 11].Value = 0;
+                        worksheet.Cells[row, 10].Value = 0;
                         worksheet.Cells[row, 12].Value = 0;
+                        worksheet.Cells[row, 13].Value = 0;
                     }
-
-                    worksheet.Cells[row, 13].Formula = $"=E{row} - K{row}"; // чистые услуги
-                    worksheet.Cells[row, 14].Formula = $"=F{row} - L{row}"; // чистый материал
-
+                    worksheet.Cells[row, 14].Formula = $"=E{row} - L{row}";   // работы без бонуса
+                    worksheet.Cells[row, 15].Formula = $"=F{row} - M{row}";   // металл без бонуса
+                    worksheet.Cells[row, 16].Formula = $"=ROUND(F{row} - F{row} / IF(H{row} > 0, MAX(H{row}-0.05, 1), {VatRateMaterialStr}), 0)";
                     row++;
                 }
 
                 // Итоги ООО
                 int oooStart = row - report.OooItems.Count;
                 int oooEnd = row - 1;
-
                 DefineName(worksheet, "totalS1", oooStart, oooEnd, 5);
                 DefineName(worksheet, "totalM1", oooStart, oooEnd, 6);
                 DefineName(worksheet, "total1", oooStart, oooEnd, 7);
-                DefineName(worksheet, "bonus1", oooStart, oooEnd, 9);
-                DefineName(worksheet, "services1", oooStart, oooEnd, 13);
-                DefineName(worksheet, "material1", oooStart, oooEnd, 14);
+                DefineName(worksheet, "bonus1", oooStart, oooEnd, 10);
+                DefineName(worksheet, "services1", oooStart, oooEnd, 14);
+                DefineName(worksheet, "material1", oooStart, oooEnd, 15);
+                DefineName(worksheet, "materialProfit1", oooStart, oooEnd, 16);   // ← новое имя
 
                 worksheet.Cells[row, 5].Formula = "=SUM(totalS1)";
                 worksheet.Cells[row, 6].Formula = "=SUM(totalM1)";
                 worksheet.Cells[row, 7].Formula = "=SUM(total1)";
-                worksheet.Cells[row, 9].Formula = "=SUM(bonus1)";
-                worksheet.Cells[row, 13].Formula = "=SUM(services1)";
-                worksheet.Cells[row, 14].Formula = "=SUM(material1)";
+                worksheet.Cells[row, 10].Formula = "=SUM(bonus1)";
+                worksheet.Cells[row, 14].Formula = "=SUM(services1)";
+                worksheet.Cells[row, 15].Formula = "=SUM(material1)";
+                worksheet.Cells[row, 16].Formula = "=SUM(materialProfit1)";
 
-                // Прибыль по формуле
-                worksheet.Cells[row, 15].Formula = $"=(SUM(totalS1)-SUM(totalS1)/{VatRateServicesStr})/{ProfitMarginStr}";
-                worksheet.Cells[row, 16].Formula = $"=(SUM(totalM1)-SUM(totalM1)/{VatRateMaterialStr})/{ProfitMarginStr}";
+                // Прибыль: работы — по-старому, металл — по фактическим наценкам
+                worksheet.Cells[row, 18].Formula = $"=(SUM(totalS1)-SUM(totalS1)/{VatRateServicesStr})/{ProfitMarginStr}";
+                worksheet.Cells[row, 19].Formula = $"=SUM(materialProfit1)/{ProfitMarginStr}";
 
-                // Стили
-                worksheet.Cells[oooStart, 1, row, 10].Style.Border.BorderAround(ExcelBorderStyle.Medium);
-                worksheet.Cells[row, 5, row, 10].Style.Font.Bold = true;
-                worksheet.Cells[row, 15, row, 16].Style.Fill.SetBackground(System.Drawing.Color.LightGreen);
-
+                worksheet.Cells[oooStart, 1, row, 11].Style.Border.BorderAround(ExcelBorderStyle.Medium);
+                worksheet.Cells[row, 5, row, 11].Style.Font.Bold = true;
+                worksheet.Cells[row, 18, row, 19].Style.Fill.SetBackground(System.Drawing.Color.LightGreen);
                 row++;
             }
             else
             {
-                // ⭐ Секция пуста — определяем имена, ссылающиеся на нулевую заглушку
                 DefineName(worksheet, "totalS1", stubRow, stubRow, 5);
                 DefineName(worksheet, "totalM1", stubRow, stubRow, 6);
                 DefineName(worksheet, "total1", stubRow, stubRow, 7);
-                DefineName(worksheet, "bonus1", stubRow, stubRow, 9);
-                DefineName(worksheet, "services1", stubRow, stubRow, 13);
-                DefineName(worksheet, "material1", stubRow, stubRow, 14);
+                DefineName(worksheet, "bonus1", stubRow, stubRow, 10);              // колонка 10 = "бонус, руб"
+                DefineName(worksheet, "services1", stubRow, stubRow, 14);           // колонка 14 = работы без бонуса
+                DefineName(worksheet, "material1", stubRow, stubRow, 15);           // колонка 15 = металл без бонуса
+                DefineName(worksheet, "materialProfit1", stubRow, stubRow, 16);     // колонка 16 = прибыль с металла
             }
 
             // === ИП и ПК ===
@@ -7793,63 +7838,62 @@ namespace Metal_Code
                     worksheet.Cells[row, 5].Value = item.Services;
                     worksheet.Cells[row, 6].Value = item.Material;
                     worksheet.Cells[row, 7].Value = item.Amount;
-                    worksheet.Cells[row, 8].Value = item.BonusRatio;
-                    worksheet.Cells[row, 9].Value = item.BonusAmount;
-                    worksheet.Cells[row, 10].Value = item.N;
+                    worksheet.Cells[row, 8].Value = Math.Round(item.MaterialMarkup, 2);    // мат, × (2 знака)
+                    worksheet.Cells[row, 9].Value = item.BonusRatio;                       // бонус, %
+                    worksheet.Cells[row, 10].Value = item.BonusAmount;                     // бонус, руб
+                    worksheet.Cells[row, 11].Value = item.N;                               // №КП
 
-                    // Детальные расчёты
                     decimal servicesBonus = item.Services * item.BonusRatio / (100 + item.BonusRatio);
                     decimal materialBonus = item.Material * item.BonusRatio / (100 + item.BonusRatio);
-                    worksheet.Cells[row, 11].Value = Math.Ceiling(servicesBonus);
-                    worksheet.Cells[row, 12].Value = Math.Ceiling(materialBonus);
-                    worksheet.Cells[row, 13].Value = item.ServicesNet; // ← чистые (для расчёта прибыли)
-                    worksheet.Cells[row, 14].Value = item.MaterialNet;
+                    worksheet.Cells[row, 12].Value = Math.Ceiling(servicesBonus);
+                    worksheet.Cells[row, 13].Value = Math.Ceiling(materialBonus);
+                    worksheet.Cells[row, 14].Value = item.ServicesNet;
+                    worksheet.Cells[row, 15].Value = item.MaterialNet;
+                    worksheet.Cells[row, 16].Formula = $"=ROUND(F{row} - F{row} / IF(H{row} > 0, MAX(H{row}-0.05, 1), {VatRateMaterialStr}), 0)";
 
-                    // Только если "без бонуса" — фиксируем для вычета
                     if (item.IsNoBonus)
                         worksheet.Cells[row, 17].Value = item.Amount;
-
                     row++;
                 }
 
                 int ipStart = row - report.IpItems.Count;
                 int ipEnd = row - 1;
-
                 DefineName(worksheet, "totalS2", ipStart, ipEnd, 5);
                 DefineName(worksheet, "totalM2", ipStart, ipEnd, 6);
                 DefineName(worksheet, "total2", ipStart, ipEnd, 7);
-                DefineName(worksheet, "bonus2", ipStart, ipEnd, 9);
-                DefineName(worksheet, "services2", ipStart, ipEnd, 13);
-                DefineName(worksheet, "material2", ipStart, ipEnd, 14);
+                DefineName(worksheet, "bonus2", ipStart, ipEnd, 10);
+                DefineName(worksheet, "services2", ipStart, ipEnd, 14);
+                DefineName(worksheet, "material2", ipStart, ipEnd, 15);
+                DefineName(worksheet, "materialProfit2", ipStart, ipEnd, 16);   // ← новое имя
                 DefineName(worksheet, "notbonus", ipStart, ipEnd, 17);
 
                 worksheet.Cells[row, 5].Formula = "=SUM(totalS2)";
                 worksheet.Cells[row, 6].Formula = "=SUM(totalM2)";
                 worksheet.Cells[row, 7].Formula = "=SUM(total2)";
-                worksheet.Cells[row, 9].Formula = "=SUM(bonus2)";
-                worksheet.Cells[row, 13].Formula = "=SUM(services2)";
-                worksheet.Cells[row, 14].Formula = "=SUM(material2)";
+                worksheet.Cells[row, 10].Formula = "=SUM(bonus2)";
+                worksheet.Cells[row, 14].Formula = "=SUM(services2)";
+                worksheet.Cells[row, 15].Formula = "=SUM(material2)";
+                worksheet.Cells[row, 16].Formula = "=SUM(materialProfit2)";
                 worksheet.Cells[row, 17].Formula = "=SUM(notbonus)";
 
-                worksheet.Cells[row, 15].Formula = $"=(SUM(totalS2)-SUM(totalS2)/{VatRateServicesStr})/{ProfitMarginStr}";
-                worksheet.Cells[row, 16].Formula = $"=(SUM(totalM2)-SUM(totalM2)/{VatRateMaterialStr})/{ProfitMarginStr}";
+                worksheet.Cells[row, 18].Formula = $"=(SUM(totalS2)-SUM(totalS2)/{VatRateServicesStr})/{ProfitMarginStr}";
+                worksheet.Cells[row, 19].Formula = $"=SUM(materialProfit2)/{ProfitMarginStr}";
 
-                worksheet.Cells[ipStart, 1, row, 10].Style.Border.BorderAround(ExcelBorderStyle.Medium);
-                worksheet.Cells[row, 5, row, 10].Style.Font.Bold = true;
-                worksheet.Cells[row, 15, row, 16].Style.Fill.SetBackground(System.Drawing.Color.LightGreen);
-
+                worksheet.Cells[ipStart, 1, row, 11].Style.Border.BorderAround(ExcelBorderStyle.Medium);
+                worksheet.Cells[row, 5, row, 11].Style.Font.Bold = true;
+                worksheet.Cells[row, 18, row, 19].Style.Fill.SetBackground(System.Drawing.Color.LightGreen);
                 row++;
             }
             else
             {
-                // ⭐ Секция пуста — определяем имена, ссылающиеся на нулевую заглушку
                 DefineName(worksheet, "totalS2", stubRow, stubRow, 5);
                 DefineName(worksheet, "totalM2", stubRow, stubRow, 6);
                 DefineName(worksheet, "total2", stubRow, stubRow, 7);
-                DefineName(worksheet, "bonus2", stubRow, stubRow, 9);
-                DefineName(worksheet, "services2", stubRow, stubRow, 13);
-                DefineName(worksheet, "material2", stubRow, stubRow, 14);
-                DefineName(worksheet, "notbonus", stubRow, stubRow, 17); // Не забываем про notbonus!
+                DefineName(worksheet, "bonus2", stubRow, stubRow, 10);              // колонка 10 = "бонус, руб"
+                DefineName(worksheet, "services2", stubRow, stubRow, 14);           // колонка 14 = работы без бонуса
+                DefineName(worksheet, "material2", stubRow, stubRow, 15);           // колонка 15 = металл без бонуса
+                DefineName(worksheet, "materialProfit2", stubRow, stubRow, 16);     // колонка 16 = прибыль с металла
+                DefineName(worksheet, "notbonus", stubRow, stubRow, 17);            // колонка 17 = без бонуса
             }
 
             // === Прибыль месяца (с разделением на "Чист" и "Устар") ===
@@ -7858,9 +7902,8 @@ namespace Metal_Code
             worksheet.Cells[row, 2].Formula =
                 $"=ROUND(" +
                 $"(SUM(services1)-SUM(services1)/{VatRateServicesStr})/{ProfitMarginStr}" +
-                $"+(SUM(material1)-SUM(material1)/{VatRateMaterialStr})/{ProfitMarginStr}" +
                 $"+(SUM(services2)-SUM(services2)/{VatRateServicesStr})/{ProfitMarginStr}" +
-                $"+(SUM(material2)-SUM(material2)/{VatRateMaterialStr})/{ProfitMarginStr}" +
+                $"+(SUM(materialProfit1)+SUM(materialProfit2))/{ProfitMarginStr}" +
                 $"+SUM(bonus1)+SUM(bonus2)" +
                 $", 0)";
             worksheet.Cells[row, 2].Style.Font.Bold = true;
@@ -7877,9 +7920,8 @@ namespace Metal_Code
             worksheet.Cells[row, 12].Formula =
                 $"=ROUND(" +
                     $"(SUM(services1)-SUM(services1)/{VatRateServicesStr})/{ProfitMarginStr}" +
-                    $"+(SUM(material1)-SUM(material1)/{VatRateMaterialStr})/{ProfitMarginStr}" +
                     $"+(SUM(services2)-SUM(services2)/{VatRateServicesStr})/{ProfitMarginStr}" +
-                    $"+(SUM(material2)-SUM(material2)/{VatRateMaterialStr})/{ProfitMarginStr}" +
+                    $"+(SUM(materialProfit1)+SUM(materialProfit2))/{ProfitMarginStr}" +
                 ", 0)";
 
             // Устаревший расчёт (для сравнения/проверки)
@@ -7969,7 +8011,7 @@ namespace Metal_Code
             table.Style.Border.BorderAround(ExcelBorderStyle.Medium);
 
             // Скрыть вспомогательные столбцы
-            for (int col = 11; col <= 14; col++)
+            for (int col = 12; col <= 16; col++)
                 worksheet.Column(col).Hidden = true;
 
             worksheet.Cells.AutoFitColumns();
@@ -10399,6 +10441,33 @@ namespace Metal_Code
             return (float)Math.Ceiling(basketPrice);
         }
 
+        /// <summary>Суммарная закупочная стоимость материала по всем заготовкам, руб (без общего коэффициента)</summary>
+        public float GetPurchaseTotal()
+        {
+            float purchase = 0;
+            foreach (DetailControl d in DetailControls)
+                foreach (TypeDetailControl t in d.TypeDetailControls) purchase += t.Purchase;
+            return purchase;
+        }
+
+        /// <summary>Общая наценка на материал всего расчёта:
+        /// Σ(стоимость материала для клиента) / Σ(закупка).
+        /// Значение 1.25 означает, что в среднем материал продаётся с наценкой 25%.</summary>
+        public double MaterialMarkup
+        {
+            get
+            {
+                double sell = 0, purchase = 0;
+                foreach (DetailControl d in DetailControls)
+                    foreach (TypeDetailControl t in d.TypeDetailControls)
+                    {
+                        sell += t.Result;       // то, что клиент платит за материал (с общим коэффициентом)
+                        purchase += t.Purchase; // то, что мы платим поставщику
+                    }
+                return purchase > 0 ? Math.Round(sell / MaterialFactor / purchase, 3) : 0;
+            }
+        }
+
         public string ShortManager()        //метод, возвращающий сокращенное имя менеджера
         {
             return ManagerDrop.Text switch
@@ -10535,6 +10604,38 @@ namespace Metal_Code
             string url = "https://yandex.ru/maps/2/saint-petersburg/?ll=30.293848%2C59.914700&mode=usermaps&source=constructorLink&um=constructor%3Aee68688ecf05643f44c063ca6d885e8262ae116ac6d5f7921742ebb42a75a78d&z=12.11/";
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
         }
+
+        /// <summary>
+        /// Записывает сумму закупки в столбцы «Комментарий» накладной (4 и 9)
+        /// с объединением ячеек блока строк одной заготовки.
+        /// Давальческий материал отмечается "Давальч.", незаполненная закупка остаётся пустой.
+        /// </summary>
+        private static void WritePurchaseToNotes(ExcelWorksheet notesheet, int startRow, int endRow, TypeDetailControl type)
+        {
+            if (endRow < startRow) return;
+
+            string value = type.CheckMetal.IsChecked switch
+            {
+                true => type.Purchase > 0 ? $"{Math.Ceiling(type.Purchase)} руб" : "",
+                false => "Давальч.",
+                _ => ""
+            };
+
+            var leftRange = notesheet.Cells[startRow, 4, endRow, 4];
+            var rightRange = notesheet.Cells[startRow, 9, endRow, 9];
+
+            if (endRow > startRow)
+            {
+                leftRange.Merge = true;
+                rightRange.Merge = true;
+            }
+
+            leftRange.Value = value;
+            rightRange.Value = value;
+            leftRange.Style.VerticalAlignment = rightRange.Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+            leftRange.Style.WrapText = rightRange.Style.WrapText = true;
+        }
+
         #endregion
 
 
