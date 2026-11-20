@@ -220,7 +220,7 @@ namespace Metal_Code
         public void SetDefaultWork()
         {
             if (TypeDetailDrop.SelectedItem is not TypeDetail type) return;
-            if (WorkControls.Count == 0) return;
+            if (MainWindow.M.IsLoadData || WorkControls.Count == 0) return;
 
             string defaultWorkName = type.Name == "Лист металла" ? "Лазерная резка" : "Труборез";
             WorkControl firstWork = WorkControls[0];

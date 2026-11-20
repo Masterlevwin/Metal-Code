@@ -1148,6 +1148,56 @@ namespace Metal_Code.Services
         }
 
         /// <summary>
+        /// Удаляет расчёт с учётом его источника (IsLocalOffer), исключая коллизии Id между SQLite и PG.
+        /// Серверные расчёты удаляются только онлайн; локальные — всегда из SQLite.
+        /// </summary>
+        public async Task<bool> RemoveOfferAsync(int offerId, bool isLocalOffer)
+        {
+            if (isLocalOffer)
+            {
+                try
+                {
+                    using var localCtx = new ManagerContext(_connections[0]);
+                    localCtx.Database.SetCommandTimeout(10);
+                    var localOffer = await localCtx.Offers.FirstOrDefaultAsync(o => o.Id == offerId);
+                    if (localOffer == null) return false;
+                    localCtx.Offers.Remove(localOffer);
+                    await localCtx.SaveChangesAsync();
+                    Trace.WriteLine($"✅ Локальный расчёт Id={offerId} удалён из SQLite");
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine($"[DB] Ошибка SQLite при удалении: {ex.Message}");
+                    return false;
+                }
+            }
+
+            if (!_isOnline)
+            {
+                Trace.WriteLine($"⚠️ Серверный расчёт Id={offerId} не удалён: нет связи с PG");
+                return false;
+            }
+            try
+            {
+                using var pgContext = new AppDbContext(_pgOptions);
+                pgContext.Database.SetCommandTimeout(10);
+                var pgOffer = await pgContext.Offers.FirstOrDefaultAsync(o => o.Id == offerId);
+                if (pgOffer == null) return false;
+                pgContext.Offers.Remove(pgOffer);
+                await pgContext.SaveChangesAsync();
+                Trace.WriteLine($"✅ Расчёт Id={offerId} удалён из PG");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"[DB] Ошибка PG при удалении: {ex.Message}. Переход в офлайн.");
+                _isOnline = false;
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Ищет расчёты по подстроке. При онлайне ищет в PG И в локальной SQLite,
         /// объединяя результаты без фильтрации дубликатов.
         /// При оффлайне ищет только в локальной SQLite.
@@ -1419,7 +1469,8 @@ namespace Metal_Code.Services
                     Act = o.Act,
                     ManagerId = o.ManagerId,
                     Note = o.Note,
-                    IsPendingSync = false
+                    IsPendingSync = false,
+                    IsLocalOffer = true
                 }).ToListAsync();
             localOffers.Reverse();
             return localOffers;
@@ -1500,7 +1551,8 @@ namespace Metal_Code.Services
                     ManagerId = o.ManagerId,
                     Note = o.Note,
                     Data = o.Data,
-                    IsPendingSync = false
+                    IsPendingSync = false,
+                    IsLocalOffer = true
                 }).ToListAsync();
             localOffers.Reverse();
             return localOffers;

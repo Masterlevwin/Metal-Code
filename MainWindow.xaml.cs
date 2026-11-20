@@ -770,6 +770,7 @@ namespace Metal_Code
                     TargetManager.Id, TargetManager.Name);
 
                 _lastKnownOffersCount = count;
+                _lastTotalOffersCount = count;
             }
             catch (Exception) { }
         }
@@ -2401,9 +2402,17 @@ namespace Metal_Code
 
         private void OffersGrid_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
-            // ⭐ Быстрая синхронная проверка: если выбран расчетный менеджер — скрываем пункт
             bool isDraftManager = TargetManager?.Name == "Расчетный менеджер";
             LaunchToWorkMenuItem.Visibility = isDraftManager ? Visibility.Collapsed : Visibility.Visible;
+
+            int selectedCount = OffersGrid.SelectedItems.Count;
+            RemoveOffersMenuItem.Header = selectedCount > 1
+                ? $"Удалить выбранные ({selectedCount})"
+                : "Удалить";
+            RemoveOffersMenuItem.IsEnabled = selectedCount > 0 && CanDeleteOffers();
+            RemoveOffersMenuItem.ToolTip = CurrentManager?.IsEngineer == true
+                ? "Инженеры не могут удалять расчёты"
+                : null;
         }
 
         private void OffersGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
@@ -3444,6 +3453,219 @@ namespace Metal_Code
                 }
             }
         }
+
+
+        //-------------Множественное выделение и удаление расчётов-------------//
+        #region
+
+        // Общее количество расчётов для строки сводки (обновляется в UpdateOffersCountCacheAsync)
+        private int _lastTotalOffersCount = 0;
+
+        /// <summary>
+        /// Показывает количество и сумму выделенных расчётов, подсказывает про Del.
+        /// </summary>
+        private void OffersGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isLoadingManagerData || _isUpdatingOffers || SummaryInfoTextBlock == null) return;
+
+            int count = OffersGrid.SelectedItems.Count;
+            if (count > 1)
+            {
+                decimal sum = OffersGrid.SelectedItems.OfType<Offer>().Sum(o => (decimal)o.Amount);
+                SummaryInfoTextBlock.Text = $"Выбрано: {count} расчётов на сумму {sum:N0} ₽  •  Del или ПКМ → «Удалить выбранные»";
+            }
+            else
+            {
+                // Откладываем, чтобы не мигать промежуточными значениями при перезагрузке списка
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (OffersGrid.SelectedItems.Count > 1) return;
+                    if (_isProductionMode)
+                    {
+                        UpdateProductionSummary(CurrentOffers);
+                        return;
+                    }
+                    SummaryInfoTextBlock.Text = _lastTotalOffersCount > CurrentOffers.Count
+                        ? $"Показано: {CurrentOffers.Count} из {_lastTotalOffersCount} расчётов"
+                        : $"Всего расчётов: {CurrentOffers.Count} шт.";
+                }), DispatcherPriority.ContextIdle);
+            }
+        }
+
+        /// <summary>
+        /// Delete удаляет все выделенные строки (кроме случая редактирования ячейки).
+        /// </summary>
+        private void OffersGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Delete) return;
+            // В режиме редактирования ячейки Delete должен работать как обычно
+            if (e.OriginalSource is TextBox tb && !tb.IsReadOnly) return;
+            if (OffersGrid.SelectedItems.Count == 0) return;
+
+            e.Handled = true;
+            _ = DeleteSelectedOffersAsync();
+        }
+
+        /// <summary>
+        /// Право удалять: админ — всё; менеджер — свои расчёты и локальные черновики; инженер — ничего
+        /// (консистентно с IsOffersGridReadOnly и OffersGrid_CellEditEnding).
+        /// </summary>
+        private bool CanDeleteOffers()
+        {
+            if (CurrentManager == null) return false;
+            if (CurrentManager.IsEngineer) return false;
+            if (CurrentManager.IsAdmin) return true;
+            return TargetManager?.Id == CurrentManager.Id || TargetManager?.Name == "Расчетный менеджер";
+        }
+
+        private async void RemoveSelectedOffers_Click(object sender, RoutedEventArgs e)
+            => await DeleteSelectedOffersAsync();
+
+        private async System.Threading.Tasks.Task DeleteSelectedOffersAsync()
+        {
+            if (_isUpdatingOffers || _isLoadingManagerData) return;
+
+            // Снимок выделения ДО любых изменений коллекций
+            var selected = OffersGrid.SelectedItems.OfType<Offer>().ToList();
+            if (selected.Count == 0)
+            {
+                StatusBegin("Не выбрано ни одного расчёта для удаления.", StatusMessageType.Warning);
+                return;
+            }
+            if (!CanDeleteOffers())
+            {
+                StatusBegin(CurrentManager?.IsEngineer == true
+                    ? "Инженеры не могут удалять расчёты."
+                    : "Вы не можете удалять расчёты другого менеджера.", StatusMessageType.Warning);
+                return;
+            }
+
+            // Фильтр прав по конкретным строкам
+            bool isAdmin = CurrentManager!.IsAdmin;
+            bool isDraftView = TargetManager?.Name == "Расчетный менеджер";
+            var allowed = isAdmin
+                ? selected
+                : selected.Where(o => o.ManagerId == CurrentManager.Id || isDraftView).ToList();
+            int deniedCount = selected.Count - allowed.Count;
+
+            // Серверные расчёты нельзя удалить без связи с сервером
+            var serverOffline = DataService.IsOnline
+                ? new List<Offer>()
+                : allowed.Where(o => !o.IsLocalOffer && !o.IsPendingSync).ToList();
+            if (serverOffline.Count > 0)
+                allowed = allowed.Except(serverOffline).ToList();
+
+            if (allowed.Count == 0)
+            {
+                StatusBegin(serverOffline.Count > 0
+                    ? "Нет связи с сервером: удаление серверных расчётов недоступно."
+                    : "Нет расчётов, которые вы можете удалить.", StatusMessageType.Warning);
+                return;
+            }
+
+            // Диалог подтверждения с预览 и предупреждением о производстве
+            var inProduction = allowed.Where(o => !string.IsNullOrEmpty(o.Order)).ToList();
+            decimal totalAmount = allowed.Sum(o => (decimal)o.Amount);
+
+            var sb = new StringBuilder();
+            sb.AppendLine(allowed.Count == 1
+                ? "Удалить выбранный расчёт?"
+                : $"Удалить выбранные расчёты: {allowed.Count} шт. на сумму {totalAmount:N0} ₽?");
+            sb.AppendLine();
+            foreach (var o in allowed.Take(8))
+                sb.AppendLine($"• КП {o.N} — {o.Company} ({o.Amount:N0} ₽)" +
+                              (string.IsNullOrEmpty(o.Order) ? "" : $"  [заказ {o.Order}]"));
+            if (allowed.Count > 8) sb.AppendLine($"… и ещё {allowed.Count - 8}");
+            if (inProduction.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine($"⚠ ВНИМАНИЕ: {inProduction.Count} из них уже в производстве (есть № заказа)!");
+                sb.AppendLine("Удаление записи НЕ отменяет заказ и НЕ удаляет файлы в папке «В работу».");
+            }
+            if (deniedCount > 0)
+                sb.AppendLine($"\nБудут пропущены (чужие расчёты): {deniedCount} шт.");
+            if (serverOffline.Count > 0)
+                sb.AppendLine($"Будут пропущены (нет связи с сервером): {serverOffline.Count} шт.");
+            sb.AppendLine("\nФайлы КП на диске останутся нетронутыми. Действие необратимо.");
+
+            var answer = MessageBox.Show(sb.ToString(), "Удаление расчётов",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+            if (answer != MessageBoxResult.Yes) return;
+
+            _isUpdatingOffers = true;
+            OffersGrid.IsEnabled = false;
+            try
+            {
+                StatusBegin($"Удаление расчётов: {allowed.Count} шт...", StatusMessageType.Info);
+                var expandedGroups = GetExpandedGroupNames();
+
+                var deleted = new List<Offer>();
+                int failed = 0;
+                foreach (var offer in allowed)
+                {
+                    try
+                    {
+                        // ⭐ Передаём источник расчёта, чтобы исключить коллизию Id между SQLite и PG
+                        bool ok = await DataService.RemoveOfferAsync(offer.Id, offer.IsLocalOffer || offer.IsPendingSync);
+                        if (ok) deleted.Add(offer); else failed++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failed++;
+                        Trace.WriteLine($"❌ Ошибка удаления расчёта {offer.N}: {ex.Message}");
+                    }
+                }
+
+                // Проверенная схема: отвязать ItemsSource → изменить коллекцию → привязать обратно
+                OffersGrid.ItemsSource = null;
+                foreach (var offer in deleted)
+                {
+                    CurrentOffers.Remove(offer);
+                    ReportOffers.Remove(offer);   // если расчёт был в отчёте — убираем и оттуда
+                }
+                if (ActiveOffer != null && deleted.Any(o => o.Id == ActiveOffer.Id))
+                    ActiveOffer = null;
+                InitializeOffersView();
+
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    try { RestoreExpandedGroups(expandedGroups); } catch { }
+                }, DispatcherPriority.ContextIdle);
+
+                // Если удалили отгруженные расчёты — пересчитываем отчёт из БД
+                if (deleted.Any(o => o.EndDate.HasValue))
+                    RefreshReportIfNeeded();
+
+                await UpdateOffersCountCacheAsync();
+                _lastTotalOffersCount = Math.Max(0, _lastTotalOffersCount - deleted.Count);
+                SummaryInfoTextBlock.Text = _lastTotalOffersCount > CurrentOffers.Count
+                    ? $"Показано: {CurrentOffers.Count} из {_lastTotalOffersCount} расчётов"
+                    : $"Всего расчётов: {CurrentOffers.Count} шт.";
+
+                string message = deleted.Count switch
+                {
+                    0 => "Не удалось удалить ни одного расчёта.",
+                    1 => $"Расчёт {deleted[0].N} удалён.",
+                    _ => $"Удалено расчётов: {deleted.Count}."
+                };
+                if (failed > 0) message += $" Ошибок: {failed}.";
+                if (deniedCount + serverOffline.Count > 0)
+                    message += $" Пропущено: {deniedCount + serverOffline.Count}.";
+                StatusBegin(message, deleted.Count > 0 ? StatusMessageType.Success : StatusMessageType.Warning);
+            }
+            catch (Exception ex)
+            {
+                StatusBegin($"Ошибка удаления: {ex.Message}", StatusMessageType.Error);
+                Trace.WriteLine($"❌ DeleteSelectedOffersAsync: {ex}");
+            }
+            finally
+            {
+                OffersGrid.IsEnabled = true;
+                _isUpdatingOffers = false;
+            }
+        }
+        #endregion
+
         #endregion
 
 

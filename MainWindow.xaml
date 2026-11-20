@@ -882,14 +882,19 @@
                                     </Grid.RowDefinitions>
 
                                     <DataGrid x:Name="OffersGrid"
-                                              Style="{StaticResource DataGrid.Small}" CanUserReorderColumns="False"
-                                              CanUserDeleteRows="False" CanUserAddRows="False" CanUserResizeRows="False"
-                                              LoadingRow="OffersGrid_LoadingRow" EnableColumnVirtualization="True"
-                                              AutoGenerateColumns="False" RowDetailsVisibilityMode="Collapsed"
-                                              BorderBrush="Red" CellEditEnding="OffersGrid_CellEditEnding"
-                                              IsReadOnly="{Binding IsOffersGridReadOnly, ElementName=MainWindowRoot}"
-                                              ContextMenuOpening="OffersGrid_ContextMenuOpening"
-                                              Sorting="OffersGrid_Sorting">
+          Style="{StaticResource DataGrid.Small}"
+          SelectionMode="Extended"
+          SelectionUnit="FullRow"
+          CanUserReorderColumns="False"
+          CanUserDeleteRows="False" CanUserAddRows="False" CanUserResizeRows="False"
+          LoadingRow="OffersGrid_LoadingRow" EnableColumnVirtualization="True"
+          AutoGenerateColumns="False" RowDetailsVisibilityMode="Collapsed"
+          BorderBrush="Red" CellEditEnding="OffersGrid_CellEditEnding"
+          IsReadOnly="{Binding IsOffersGridReadOnly, ElementName=MainWindowRoot}"
+          ContextMenuOpening="OffersGrid_ContextMenuOpening"
+          SelectionChanged="OffersGrid_SelectionChanged"
+          PreviewKeyDown="OffersGrid_PreviewKeyDown"
+          Sorting="OffersGrid_Sorting">
 
                                         <DataGrid.RowStyle>
                                             <Style TargetType="DataGridRow">
@@ -1085,7 +1090,10 @@
                                                         <Image Source="/Images/load.png"/>
                                                     </MenuItem.Icon>
                                                 </MenuItem>
-                                                <MenuItem Header="Удалить" Command="{Binding RemoveOfferCommand}">
+                                                <MenuItem x:Name="RemoveOffersMenuItem"
+                                                          Header="Удалить"
+                                                          Click="RemoveSelectedOffers_Click"
+                                                          InputGestureText="Del">
                                                     <MenuItem.Icon>
                                                         <Image Source="/Images/del_offer.png"/>
                                                     </MenuItem.Icon>
