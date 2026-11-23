@@ -11,6 +11,8 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization.Json;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 
@@ -73,6 +75,7 @@ namespace Metal_Code
             {
                 return saveCommand ??= new RelayCommand(async obj =>
                 {
+                    string currentStep = "Инициализация";
                     try
                     {
                         string dateProduction = MainWindow.M.DateProduction.Text;
@@ -81,199 +84,171 @@ namespace Metal_Code
 
                         if (!MainWindow.M.WarningSave()) return;
 
-                        if (dialogService.SaveFileDialog() == true && dialogService.FilePaths != null)
-                        {
-                            string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
+                        if (dialogService.SaveFileDialog() != true || dialogService.FilePaths == null)
+                            return;
+
+                        string _path = Path.GetDirectoryName(dialogService.FilePaths[0])
                             + "\\" + Path.GetFileNameWithoutExtension(dialogService.FilePaths[0]);
+                        _path += $" с материалом {MainWindow.M.GetMaterial()}";
 
-                            _path += $" с материалом {MainWindow.M.GetMaterial()}";
+                        currentStep = "Сохранение .mcm";
+                        fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());
 
-                            fileService.Save(_path + ".mcm", MainWindow.M.SaveProduct());
+                        if (AssemblyWindow.A.Assemblies.Count > 0)
+                        {
+                            MessageBoxResult response = MessageBox.Show(
+                                "Сформировать сборочное КП?\nЕсли \"Да\", в КП будут отражены СБОРКИ.\nЕсли \"Нет\", в КП будут отражены ДЕТАЛИ!",
+                                "Выбор формата КП", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
-                            if (AssemblyWindow.A.Assemblies.Count > 0)
-                            {
-                                MessageBoxResult response = MessageBox.Show(
-                                    "Сформировать сборочное КП?\nЕсли \"Да\", в КП будут отражены СБОРКИ.\nЕсли \"Нет\", в КП будут отражены ДЕТАЛИ!",
-                                    "Выбор формата КП", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                            MainWindow.M.isAssemblyOffer = response == MessageBoxResult.Yes;
+                        }
 
-                                MainWindow.M.isAssemblyOffer = response == MessageBoxResult.Yes;
-                            }
+                        currentStep = "Экспорт в Excel";
+                        MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);
 
-                            MainWindow.M.ExportToExcel(dialogService.FilePaths[0]);
+                        string selectedFilePath = dialogService.FilePaths[0];
+                        string fileName = Path.GetFileName(selectedFilePath);
+                        string folderToRename = Path.GetDirectoryName(selectedFilePath)!;
+                        string parentDir = Path.GetDirectoryName(folderToRename)!;
 
-                            string selectedFilePath = dialogService.FilePaths[0];
-                            string fileName = Path.GetFileName(selectedFilePath);
-                            string folderToRename = Path.GetDirectoryName(selectedFilePath)!;
-                            string parentDir = Path.GetDirectoryName(folderToRename)!;
+                        string notePart = MainWindow.SanitizeFolderPart(MainWindow.M.OfferNote.Text);
+                        string newFolderName = string.IsNullOrWhiteSpace(notePart)
+                            ? $"КП (от {DateTime.Now:dd.MM.yyyy HH-mm})"
+                            : $"КП_{notePart} (от {DateTime.Now:dd.MM.yyyy HH-mm})";
 
-                            string notePart = MainWindow.SanitizeFolderPart(MainWindow.M.OfferNote.Text);
-                            string newFolderName = string.IsNullOrWhiteSpace(notePart)
-                                ? $"КП (от {DateTime.Now:dd.MM.yyyy HH-mm})"
-                                : $"КП_{notePart} (от {DateTime.Now:dd.MM.yyyy HH-mm})";
+                        string destinationPath = Path.Combine(parentDir, newFolderName);
 
-                            string destinationPath = Path.Combine(parentDir, newFolderName);
-
+                        // ============================================================
+                        // ЗОНА 1: файловые операции (папки + переименование)
+                        // ============================================================
+                        string fullPath;
+                        try
+                        {
+                            currentStep = "Переименование КП";
                             MainWindow.M.CreateFolderTagsForCalculation(parentDir);
                             MainWindow.M.CreateSelectedFolders(parentDir);
+                            Directory.Move(folderToRename, destinationPath);
+                            fullPath = Path.Combine(destinationPath, fileName);
+                        }
+                        catch (Exception fileEx)
+                        {
+                            LogFullException(fileEx, currentStep);
+                            ShowDiagnosticMessage(fileEx, currentStep);
+                            return;
+                        }
 
-                            try
-                            {
-                                Directory.Move(folderToRename, destinationPath);
-                                string fullPath = Path.Combine(destinationPath, fileName);
-
-                                // 🔥 =====================================================================
-                                // 🔥 АВТОМАТИЧЕСКИЙ ЭКСПОРТ PDF РАСКЛАДОК В ПАПКУ "Лазер" внутри КП
-                                // 🔥 =====================================================================
-                                try
-                                {
-                                    // Проходим по всем деталям и работам, чтобы найти активные CutControl с раскладками
-                                    foreach (var detail in MainWindow.M.DetailControls)
+                        // --- Автоматический экспорт PDF раскладок (лазер) ---
+                        try
+                        {
+                            currentStep = "Экспорт PDF раскладок (лазер)";
+                            foreach (var detail in MainWindow.M.DetailControls)
+                                foreach (var typeDetail in detail.TypeDetailControls)
+                                    foreach (var work in typeDetail.WorkControls)
                                     {
-                                        foreach (var typeDetail in detail.TypeDetailControls)
+                                        if (work.workType is not CutControl cut || cut.PartsControl == null || cut.Items == null)
+                                            continue;
+
+                                        var sheetsToExport = cut.Items
+                                            .Where(i => i.NestingSheet != null && i.NestingSheet.Parts.Count > 0)
+                                            .ToList();
+                                        if (!sheetsToExport.Any()) continue;
+
+                                        string metalName = cut.work.type.MetalDrop.Text;
+                                        float thickness = cut.work.type.S;
+
+                                        string description;
+                                        if ((metalName.Contains("ст") && thickness >= 3) || (metalName.Contains("хк") && thickness < 3)) description = $"s{thickness}";
+                                        else if (metalName.Contains("амг2")) description = $"al{thickness}";
+                                        else if (metalName.Contains("амг") || metalName.Contains("д16")) description = $"al{thickness} {metalName}";
+                                        else if (metalName.Contains("латунь")) description = $"br{thickness}";
+                                        else if (metalName.Contains("медь")) description = $"cu{thickness}";
+                                        else description = $"s{thickness} {metalName}";
+
+                                        if (cut.IsGrooved) description += " рифл";
+                                        if (cut.work.type.CheckMetal.IsChecked is false) description += " Давальч";
+
+                                        foreach (char c in Path.GetInvalidFileNameChars())
+                                            description = description.Replace(c, '_');
+
+                                        string laserFolder = Path.Combine(destinationPath, "Раскладки");
+                                        if (!Directory.Exists(laserFolder))
+                                            Directory.CreateDirectory(laserFolder);
+
+                                        cut.PartsControl.GenerateNestingPdf(Path.Combine(laserFolder, $"{description}.pdf"));
+                                    }
+                        }
+                        catch (Exception pdfEx)
+                        {
+                            LogFullException(pdfEx, currentStep);
+                            MainWindow.M.Log += $"\n⚠️ Не удалось сформировать PDF раскладки: {pdfEx.Message}";
+                        }
+
+                        // --- Автоматический экспорт PDF раскладок (трубы / лентопил) ---
+                        try
+                        {
+                            currentStep = "Экспорт PDF раскладок (трубы/лентопил)";
+                            foreach (var detail in MainWindow.M.DetailControls)
+                                foreach (var typeDetail in detail.TypeDetailControls)
+                                    foreach (var work in typeDetail.WorkControls)
+                                    {
+                                        if (work.workType is PipeControl pipe && pipe.PartsControl != null && pipe.Items != null)
                                         {
-                                            foreach (var work in typeDetail.WorkControls)
+                                            bool hasStocks = pipe.Items.OfType<LaserItem>()
+                                                .Any(i => i.PipeStocks != null && i.PipeStocks.Count > 0);
+                                            if (hasStocks)
                                             {
-                                                if (work.workType is CutControl cut && cut.PartsControl != null && cut.Items != null)
-                                                {
-                                                    var sheetsToExport = cut.Items
-                                                        .Where(i => i.NestingSheet != null && i.NestingSheet.Parts.Count > 0)
-                                                        .ToList();
+                                                string targetFolder = Path.Combine(destinationPath, "Труборез");
+                                                if (!Directory.Exists(targetFolder)) Directory.CreateDirectory(targetFolder);
+                                                string _fileName = pipe.PartsControl.GetPipeNestingFileName(isSaw: false);
+                                                pipe.PartsControl.GeneratePipeNestingPdf(Path.Combine(targetFolder, _fileName), isSaw: false);
+                                            }
+                                        }
 
-                                                    if (sheetsToExport.Any())
-                                                    {
-                                                        // Формируем имя файла так же, как в экспресс-расчете
-                                                        string metalName = cut.work.type.MetalDrop.Text;
-                                                        float thickness = cut.work.type.S;
-
-                                                        string description = "";
-                                                        if ((metalName.Contains("ст") && thickness >= 3) || (metalName.Contains("хк") && thickness < 3)) description = $"s{thickness}";
-                                                        else if (metalName.Contains("амг2")) description = $"al{thickness}";
-                                                        else if (metalName.Contains("амг") || metalName.Contains("д16")) description = $"al{thickness} {metalName}";
-                                                        else if (metalName.Contains("латунь")) description = $"br{thickness}";
-                                                        else if (metalName.Contains("медь")) description = $"cu{thickness}";
-                                                        else description = $"s{thickness} {metalName}";
-
-                                                        if (cut.IsGrooved) description += " рифл";
-                                                        if (cut.work.type.CheckMetal.IsChecked is false) description += " Давальч";
-
-                                                        // Очищаем от недопустимых символов
-                                                        foreach (char c in Path.GetInvalidFileNameChars())
-                                                        {
-                                                            description = description.Replace(c, '_');
-                                                        }
-
-                                                        string pdfFileName = $"{description}.pdf";
-
-                                                        // Целевая папка: ...\КП (от ...)\Раскладки
-                                                        string laserFolder = Path.Combine(destinationPath, "Раскладки");
-
-                                                        // Гарантируем существование папки
-                                                        if (!Directory.Exists(laserFolder))
-                                                        {
-                                                            Directory.CreateDirectory(laserFolder);
-                                                        }
-
-                                                        string pdfFullPath = Path.Combine(laserFolder, pdfFileName);
-
-                                                        // Вызываем метод генерации (выполняется в UI-потоке, так как мы еще до первого await)
-                                                        cut.PartsControl.GenerateNestingPdf(pdfFullPath);
-                                                    }
-                                                }
+                                        if (work.workType is SawControl saw && saw.PartsControl != null && saw.Items != null)
+                                        {
+                                            bool hasStocks = saw.Items.OfType<LaserItem>()
+                                                .Any(i => i.PipeStocks != null && i.PipeStocks.Count > 0);
+                                            if (hasStocks)
+                                            {
+                                                string targetFolder = Path.Combine(destinationPath, "Лентопил");
+                                                if (!Directory.Exists(targetFolder)) Directory.CreateDirectory(targetFolder);
+                                                string _fileName = saw.PartsControl.GetPipeNestingFileName(isSaw: true);
+                                                saw.PartsControl.GeneratePipeNestingPdf(Path.Combine(targetFolder, _fileName), isSaw: true);
                                             }
                                         }
                                     }
-                                }
-                                catch (Exception pdfEx)
-                                {
-                                    // Логируем ошибку экспорта PDF, но не прерываем основной процесс сохранения
-                                    Trace.WriteLine($"Ошибка экспорта PDF раскладок: {pdfEx.Message}");
-                                    MainWindow.M.Log += $"\n⚠️ Не удалось сформировать PDF раскладки: {pdfEx.Message}";
-                                }
-                                // 🔥 =====================================================================
+                        }
+                        catch (Exception pipePdfEx)
+                        {
+                            LogFullException(pipePdfEx, currentStep);
+                            MainWindow.M.Log += $"\n⚠️ Не удалось сформировать PDF раскладки труб: {pipePdfEx.Message}";
+                        }
 
-                                // 🔥 =====================================================================
-                                // 🔥 АВТОМАТИЧЕСКИЙ ЭКСПОРТ PDF РАСКЛАДОК ТРУБ И ЛЕНТОПИЛА
-                                // 🔥 =====================================================================
-                                try
-                                {
-                                    foreach (var detail in MainWindow.M.DetailControls)
-                                    {
-                                        foreach (var typeDetail in detail.TypeDetailControls)
-                                        {
-                                            foreach (var work in typeDetail.WorkControls)
-                                            {
-                                                // Обработка труб
-                                                if (work.workType is PipeControl pipe && pipe.PartsControl != null && pipe.Items != null)
-                                                {
-                                                    var hasStocks = pipe.Items.OfType<LaserItem>().Any(i => i.PipeStocks != null && i.PipeStocks.Count > 0);
-                                                    if (hasStocks)
-                                                    {
-                                                        string folderName = "Труборез";
-                                                        string targetFolder = Path.Combine(destinationPath, folderName);
-                                                        if (!Directory.Exists(targetFolder)) Directory.CreateDirectory(targetFolder);
+                        // ============================================================
+                        // ЗОНА 2: сохранение в базу данных
+                        // ============================================================
+                        try
+                        {
+                            currentStep = "Сохранение в базу";
+                            MainWindow.M.StatusBegin("Сохранение расчета в базу...", MainWindow.StatusMessageType.Info);
 
-                                                        string _fileName = pipe.PartsControl.GetPipeNestingFileName(isSaw: false);
-                                                        string pdfFullPath = Path.Combine(targetFolder, _fileName);
+                            string now = DateTime.Now.ToString("dd.MM.yyyy HH:mm");
+                            string? currentManager = MainWindow.M.CurrentManager.Name;
+                            string? autor;
 
-                                                        pipe.PartsControl.GeneratePipeNestingPdf(pdfFullPath, isSaw: false);
-                                                    }
-                                                }
+                            bool isNewOffer = MainWindow.M.ActiveOffer is null;
+                            bool isNumberChanged = MainWindow.M.ActiveOffer?.N != MainWindow.M.Order.Text;
+                            bool isSameAuthor = MainWindow.M.ActiveOffer?.Autor == currentManager;
 
-                                                // Обработка лентопила
-                                                if (work.workType is SawControl saw && saw.PartsControl != null && saw.Items != null)
-                                                {
-                                                    var hasStocks = saw.Items.OfType<LaserItem>().Any(i => i.PipeStocks != null && i.PipeStocks.Count > 0);
-                                                    if (hasStocks)
-                                                    {
-                                                        string folderName = "Лентопил";
-                                                        string targetFolder = Path.Combine(destinationPath, folderName);
-                                                        if (!Directory.Exists(targetFolder)) Directory.CreateDirectory(targetFolder);
+                            if (isNewOffer || isNumberChanged || isSameAuthor)
+                                autor = $"{currentManager} ({now})";
+                            else
+                                autor = $"{MainWindow.M.ActiveOffer?.Autor}\n{currentManager} ({now})";
 
-                                                        string _fileName = saw.PartsControl.GetPipeNestingFileName(isSaw: true);
-                                                        string pdfFullPath = Path.Combine(targetFolder, _fileName);
+                            string? dataJson = MainWindow.M.SaveOfferData();
 
-                                                        saw.PartsControl.GeneratePipeNestingPdf(pdfFullPath, isSaw: true);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                catch (Exception pipePdfEx)
-                                {
-                                    Trace.WriteLine($"Ошибка экспорта PDF труб/лентопила: {pipePdfEx.Message}");
-                                    MainWindow.M.Log += $"\n⚠️ Не удалось сформировать PDF раскладки труб: {pipePdfEx.Message}";
-                                }
-                                // 🔥 =====================================================================
-                                
-                                
-                                // ⭐ СОХРАНЕНИЕ В БАЗУ ЧЕРЕЗ СЕРВИС
-                                MainWindow.M.StatusBegin("Сохранение расчета в базу...", MainWindow.StatusMessageType.Info);
-
-                                string now = DateTime.Now.ToString("dd.MM.yyyy HH:mm");
-                                string? currentManager = MainWindow.M.CurrentManager.Name;
-                                string? autor;
-
-                                bool isNewOffer = MainWindow.M.ActiveOffer is null;
-                                bool isNumberChanged = MainWindow.M.ActiveOffer?.N != MainWindow.M.Order.Text;
-                                bool isSameAuthor = MainWindow.M.ActiveOffer?.Autor == currentManager;
-
-                                if (isNewOffer || isNumberChanged || isSameAuthor)
-                                {
-                                    autor = $"{currentManager} ({now})";
-                                }
-                                else
-                                {
-                                    autor = $"{MainWindow.M.ActiveOffer?.Autor}\n{currentManager} ({now})";
-                                }
-
-                                Trace.WriteLine($"[DEBUG] HasDelivery ПЕРЕД SaveOfferAsync: {MainWindow.M.HasDelivery}");
-
-                                // Сериализуем данные расчета
-                                string? dataJson = MainWindow.M.SaveOfferData();
-
-                                // Сохраняем через сервис
-                                var savedOffer = await MainWindow.M.DataService.SaveOfferAsync(
+                            var savedOffer = await RetryAsync(
+                                () => MainWindow.M.DataService.SaveOfferAsync(
                                     orderNumber: MainWindow.M.Order.Text,
                                     companyName: MainWindow.M.CustomerDrop.Text,
                                     amount: MainWindow.M.Result,
@@ -284,85 +259,84 @@ namespace Metal_Code
                                     actPath: fullPath,
                                     dataJson: dataJson,
                                     managerId: MainWindow.M.TargetManager.Id,
-                                    note: MainWindow.M.OfferNote.Text
-                                );
+                                    note: MainWindow.M.OfferNote.Text),
+                                maxAttempts: 3);
 
-                                Trace.WriteLine($"[DEBUG] HasDelivery в returned savedOffer: {MainWindow.M.HasDelivery}");
+                            if (savedOffer is null)
+                                throw new InvalidOperationException("DataService.SaveOfferAsync вернул null");
 
+                            MainWindow.M.ActiveOffer = savedOffer;
+                            MainWindow.M.LimitCheck.IsChecked = false;
 
-                                // Обновляем ActiveOffer
-                                MainWindow.M.ActiveOffer = savedOffer;
-                                MainWindow.M.LimitCheck.IsChecked = false;
+                            currentStep = "Обновление списка расчётов";
+                            await MainWindow.M.LoadManagerDataAsync(MainWindow.M.TargetManager);
 
-                                // Обновляем список расчетов в UI
-                                await MainWindow.M.LoadManagerDataAsync(MainWindow.M.TargetManager);
+                            MainWindow.M.ScrollToOfferAndHighlight(savedOffer);
 
-                                Trace.WriteLine($"[DEBUG] HasDelivery ПОСЛЕ LoadManagerDataAsync: {MainWindow.M.HasDelivery}");
+                            bool isDraftManager = MainWindow.M.TargetManager.Name == "Расчетный менеджер";
+                            string statusMessage;
+                            if (isDraftManager)
+                                statusMessage = $"Расчет {savedOffer.N} {savedOffer.Company} сохранен локально (расчетный менеджер).";
+                            else if (MainWindow.M.DataService.IsOnline)
+                                statusMessage = $"Расчет {savedOffer.N} {savedOffer.Company} сохранен на сервере.";
+                            else
+                                statusMessage = $"Расчет {savedOffer.N} {savedOffer.Company} сохранен локально (ожидает синхронизации).";
 
-                                // ⭐ ПРОКРУТКА К НОВОМУ РАСЧЁТУ С ПОДСВЕТКОЙ
-                                MainWindow.M.ScrollToOfferAndHighlight(savedOffer);
+                            MainWindow.M.StatusBegin(statusMessage, MainWindow.StatusMessageType.Success);
 
-                                // ⭐ ФОРМИРУЕМ СООБЩЕНИЕ С УЧЁТОМ ТИПА МЕНЕДЖЕРА
-                                bool isDraftManager = MainWindow.M.TargetManager.Name == "Расчетный менеджер";
+                            dialogService.LastUsedDirectory = destinationPath;
 
-                                string statusMessage;
-                                if (isDraftManager)
-                                {
-                                    statusMessage = $"Расчет {savedOffer.N} {savedOffer.Company} сохранен локально (расчетный менеджер).";
-                                }
-                                else if (MainWindow.M.DataService.IsOnline)
-                                {
-                                    statusMessage = $"Расчет {savedOffer.N} {savedOffer.Company} сохранен на сервере.";
-                                }
-                                else
-                                {
-                                    statusMessage = $"Расчет {savedOffer.N} {savedOffer.Company} сохранен локально (ожидает синхронизации).";
-                                }
-
-                                MainWindow.M.StatusBegin(statusMessage, MainWindow.StatusMessageType.Success);
-                                Trace.WriteLine($"💾 {statusMessage}");
-
-                                // 🔑 Сохраняем последний каталог
-                                dialogService.LastUsedDirectory = destinationPath;
-
-                                // Проверка заказчика
-                                using var checkCtx = new ManagerContext(MainWindow.M.connections[0]);
-                                var customer = await checkCtx.Customers.FirstOrDefaultAsync(x => x.Name == MainWindow.M.CustomerDrop.Text);
-                                if (customer is null)
-                                {
-                                    MainWindow.M.Log += $"\nЗаказчик {MainWindow.M.CustomerDrop.Text} не сохранен в базе. Добавьте его данные в базу, чтобы использовать их повторно.\n";
-                                }
-
-                                // Проверка версии
-                                if (!MainWindow.M.CheckVersion(out string _version) &&
-                                    (MainWindow.M.Log is null || !MainWindow.M.Log.Contains("Текущая версия не актуальна. Рекомендуется обновить программу.")))
-                                {
-                                    MainWindow.M.Log += $"\nТекущая версия не актуальна. Рекомендуется обновить программу.\n";
-                                }
-
-                                // ⭐ ЖДЁМ, ПОКА UI ПОЛНОСТЬЮ ОТРИСУЕТСЯ
-                                await System.Threading.Tasks.Task.Delay(500);
-
-                                // Вывод лога
-                                if (!string.IsNullOrEmpty(MainWindow.M.Log))
-                                {
-                                    MessageBox.Show(MainWindow.M.Log, "Обратите внимание!", MessageBoxButton.OK, MessageBoxImage.Warning);
-                                    MainWindow.M.Log = null;
-                                }
-                            }
-                            catch (Exception ex)
+                            currentStep = "Проверка заказчика";
+                            using var checkCtx = new ManagerContext(MainWindow.M.connections[0]);
+                            var customer = await checkCtx.Customers
+                                .FirstOrDefaultAsync(x => x.Name == MainWindow.M.CustomerDrop.Text);
+                            if (customer is null)
                             {
-                                MessageBox.Show($"Не удалось переименовать папку:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                                MainWindow.M.Log +=
+                                    $"\nЗаказчик {MainWindow.M.CustomerDrop.Text} не сохранен в базе. " +
+                                    "Добавьте его данные в базу, чтобы использовать их повторно.\n";
                             }
+
+                            currentStep = "Проверка версии";
+                            if (!MainWindow.M.CheckVersion(out string _version) &&
+                                (MainWindow.M.Log is null ||
+                                 !MainWindow.M.Log.Contains("Текущая версия не актуальна. Рекомендуется обновить программу.")))
+                            {
+                                MainWindow.M.Log += "\nТекущая версия не актуальна. Рекомендуется обновить программу.\n";
+                            }
+                        }
+                        catch (Exception dbEx)
+                        {
+                            LogFullException(dbEx, currentStep);
+                            ShowDiagnosticMessage(dbEx, currentStep);
+                            return;
+                        }
+
+                        await System.Threading.Tasks.Task.Delay(500);
+
+                        if (!string.IsNullOrEmpty(MainWindow.M.Log))
+                        {
+                            MessageBox.Show(MainWindow.M.Log, "Обратите внимание!",
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                            MainWindow.M.Log = null;
                         }
                     }
                     catch (Exception ex)
                     {
-                        if (dialogService.FilePaths != null && File.Exists(dialogService.FilePaths[0]))
+                        LogFullException(ex, currentStep);
+
+                        if (!string.IsNullOrEmpty(MainWindow.M.Log))
                         {
-                            dialogService.ShowMessage("Ошибка: Файл используется другим процессом.");
+                            try
+                            {
+                                File.AppendAllText(LogPath,
+                                    "\n--- Накопленный Log ---\n" + MainWindow.M.Log);
+                            }
+                            catch { /* лог не должен ронять приложение */ }
+                            MainWindow.M.Log = null;
                         }
-                        else dialogService.ShowMessage(ex.Message);
+
+                        ShowDiagnosticMessage(ex, currentStep);
                     }
                 });
             }
@@ -872,6 +846,77 @@ namespace Metal_Code
                   });
             }
         }
+
+        // ================================================================
+        // Диагностические помощники
+        // ================================================================
+
+        private static readonly string LogPath =
+            Path.Combine(AppContext.BaseDirectory, "logs", "save-errors.log");
+
+        private void LogFullException(Exception ex, string step)
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
+                var sb = new StringBuilder();
+                sb.AppendLine(new string('=', 80));
+                sb.AppendLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Шаг: {step}");
+                sb.AppendLine($"Тип: {ex.GetType().FullName}");
+                sb.AppendLine($"Message: {ex.Message}");
+                sb.AppendLine($"StackTrace:\n{ex.StackTrace}");
+                if (ex.InnerException is not null)
+                {
+                    sb.AppendLine("--- InnerException ---");
+                    sb.AppendLine(ex.InnerException.ToString());
+                }
+                File.AppendAllText(LogPath, sb.ToString());
+                Trace.WriteLine(sb.ToString());
+            }
+            catch
+            {
+                // Лог не должен ронять приложение
+            }
+        }
+
+        private void ShowDiagnosticMessage(Exception ex, string step)
+        {
+            var root = ex;
+            while (root.InnerException is not null) root = root.InnerException;
+
+            MessageBox.Show(
+                $"Не удалось сохранить расчёт.\n\n" +
+                $"Шаг: {step}\n" +
+                $"Ошибка: {root.Message}\n\n" +
+                $"Если ошибка повторяется, пришлите разработчику файл:\n{LogPath}",
+                "Ошибка сохранения", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+
+        private static bool IsTransientDbError(Exception? ex)
+        {
+            while (ex is not null)
+            {
+                if (ex is TimeoutException) return true;
+                ex = ex.InnerException;
+            }
+            return false;
+        }
+
+        private static async Task<T> RetryAsync<T>(Func<Task<T>> action, int maxAttempts)
+        {
+            for (int attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    return await action();
+                }
+                catch (Exception ex) when (attempt < maxAttempts && IsTransientDbError(ex))
+                {
+                    await System.Threading.Tasks.Task.Delay(1000 * attempt);
+                }
+            }
+        }
+
     }
 
     public class RelayCommand : ICommand
