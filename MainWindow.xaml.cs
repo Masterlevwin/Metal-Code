@@ -535,6 +535,9 @@ namespace Metal_Code
             ReportDrop.ItemsSource = Months;
             ReportDrop.SelectedItem = Months[DateTime.Now.Month - 1];
             ReportGrid.ItemsSource = ReportOffers;
+            // ⭐ Счётчик обновляется сам при любом изменении коллекции отчёта
+            ReportOffers.CollectionChanged += (_, _) => UpdateReportCounters();
+            UpdateReportCounters();
 
             Loaded += LoadDataBases;
         }
@@ -1357,6 +1360,7 @@ namespace Metal_Code
             try
             {
                 IsLaser = man.IsLaser;
+                UpdateReportCounters();
 
                 // 1. Заказчики
                 var customers = await DataService.GetCustomersAsync(man.Id, man.Name);
@@ -8635,6 +8639,21 @@ namespace Metal_Code
 
             Trace.WriteLine($"✅ Прочитано строк из HTML: {dataTable.Rows.Count}, столбцов: {dataTable.Columns.Count}");
             return dataTable;
+        }
+
+        // Счётчик расчётов в отчёте
+        private void UpdateReportCounters()
+        {
+            int shipped = ReportOffers?.Count(o => o.EndDate != null) ?? 0;
+            decimal shippedAmount = ReportOffers == null ? 0 :
+                (decimal)Math.Ceiling(ReportOffers.Where(o => o.EndDate != null).Sum(o => o.Amount));
+
+            ReportShippedText.Text = shipped > 0
+                ? $"Отгружено расчетов: {shipped} на {shippedAmount:N0} ₽"
+                : "Отгружено расчетов: 0";
+            ReportShippedDot.Fill = new SolidColorBrush(shipped > 0
+                ? Color.FromRgb(52, 199, 89)        // зелёный — есть отгрузки
+                : Color.FromRgb(170, 178, 190));    // серый — пусто
         }
         #endregion
 

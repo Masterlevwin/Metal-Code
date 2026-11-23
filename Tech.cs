@@ -19,6 +19,7 @@ namespace Metal_Code
         public int CountTechItems = 0;                      //кол-во строк заявки
         public List<TechItem> TechItems = new();            //список полученных объектов из строк файла
         public List<TechItem> FoundItems = new();           //список найденных строк
+        public List<TechItem> MissingDrawings = new();
         public IEnumerable<string> DirMaterials = null!;    //коллекция папок материалов
 
         public Tech(string path) { ExcelFile = path; }
@@ -102,7 +103,7 @@ namespace Metal_Code
                 //получаем коллекцию, разбитую на группы по работам
                 var works = TechItems.GroupBy(w => w.Route);
 
-                string[] extensions = { "pdf", "tiff", "tif", "gpeg", "gpg" };     //основные расширения чертежей
+                string[] extensions = { "pdf", "tiff", "tif", "jpeg", "jpg" };
 
                 // Определяем маппинг: ключевое слово → имя папки
                 var workMappings = new Dictionary<string, string>
@@ -149,6 +150,10 @@ namespace Metal_Code
                     }
                 }
 
+                // Список деталей, для которых не нашлось ни одного файла-чертежа
+                MissingDrawings = TechItems.Where(t => !t.DrawingFound && !string.IsNullOrWhiteSpace(t.Route)).ToList();
+                WriteMissingDrawingsReport();
+
                 if (MainWindow.M.TechItems.Count > 0) MainWindow.M.TechItems.Clear();
                 MainWindow.M.TechItems = TechItems;
 
@@ -163,7 +168,8 @@ namespace Metal_Code
             }
             catch (Exception ex) { notify = ex.Message; }
 
-            return $"Обработано {TechItems.Count} строк заявки.";
+            return $"Обработано {TechItems.Count} строк заявки." +
+                (MissingDrawings.Count > 0 ? $" Без чертежей: {MissingDrawings.Count} (см. «Недостающие чертежи.xlsx»)." : "");
         }
 
         private void SortExtension(DirectoryInfo dirMain, string extension, List<TechItem> techItems)
@@ -193,6 +199,8 @@ namespace Metal_Code
                     string cleanTechName = techItem.NumberName.Replace("\u00A0", " ").Trim().Normalize().ToLower();
                     if ((nameFile + " ").Contains(cleanTechName + " "))
                     {
+                        techItem.DrawingFound = true;
+
                         //находим сборочные чертежи на основе метки "СБ" и копируем их в корень директории работы
                         if (techItem.NumberName.Contains("СБ"))
                         {
@@ -363,6 +371,57 @@ namespace Metal_Code
             }
         }
 
+        private void WriteMissingDrawingsReport()
+        {
+            if (MissingDrawings.Count == 0) return;
+
+            string? baseDir = Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile));
+            if (baseDir == null) return;
+
+            try
+            {
+                // EPPlus 5+ требует явного указания лицензионного контекста.
+                // Если он уже выставлен где-то в приложении — повторная установка безвредна.
+                OfficeOpenXml.ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+
+                using var package = new OfficeOpenXml.ExcelPackage();
+                var ws = package.Workbook.Worksheets.Add("Недостающие чертежи");
+
+                ws.Cells[1, 1].Value = "Наименование";
+                ws.Cells[1, 2].Value = "Кол-во";
+
+                int row = 2;
+                foreach (TechItem item in MissingDrawings)
+                {
+                    // Имя файла модели без каталога и без расширения.
+                    // Fallback на NumberName — на случай, если PathToModel пуст.
+                    string rawPath = item.PathToModel ?? "";
+                    string name = string.IsNullOrWhiteSpace(rawPath)
+                        ? item.NumberName
+                        : Path.GetFileNameWithoutExtension(rawPath);
+
+                    ws.Cells[row, 1].Value = name;
+
+                    // Count — строка; если парсится в int, пишем числом, иначе строкой.
+                    ws.Cells[row, 2].Value = int.TryParse(item.Count, out int n) ? n : item.Count;
+
+                    row++;
+                }
+
+                using (var header = ws.Cells[1, 1, 1, 2])
+                {
+                    header.Style.Font.Bold = true;
+                    header.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                }
+
+                ws.Column(1).Width = 40;
+                ws.Column(2).Width = 10;
+
+                package.SaveAs(new FileInfo(Path.Combine(baseDir, "Недостающие чертежи.xlsx")));
+            }
+            catch (Exception) { /* файл занят / нет прав — не роняем заявку */ }
+        }
+
         // Метод сравнения по содержимому (побайтово)
         private static bool AreFilesTheSame(string file1, string file2)
         {
@@ -434,21 +493,48 @@ namespace Metal_Code
         public void ClearDirectories()              //метод очищения пустых директорий
         {
             string? dirMain = Path.GetDirectoryName(Path.GetDirectoryName(ExcelFile));
+            if (dirMain == null) return;
 
-            if (dirMain != null)
+            const string suffix = " Добавить чертежи";
+
+            foreach (string dir in Directory.GetDirectories(dirMain))
             {
-                string[] dirs = Directory.GetDirectories(dirMain);
-                if (dirs?.Length > 0)
-                    foreach (var dir in dirs)
-                    {
-                        string[] dirMaterials = Directory.GetDirectories(dir);
-                        foreach (string dm in dirMaterials)
-                            if (Directory.GetFileSystemEntries(dm).Length == 0) Directory.Delete(dm);
+                string dirName = Path.GetFileName(dir);
 
-                        if (Directory.GetFileSystemEntries(dir).Length == 0
-                            && (dir.Contains("Лазер") || dir.Contains("Труборез")
-                            || dir.Contains("Архив") || dir.Contains("Модели для справок"))) Directory.Delete(dir);
-                    }
+                // ТЗ — не трогаем никогда
+                if (dirName.Equals("ТЗ", StringComparison.OrdinalIgnoreCase)) continue;
+
+                // Уже помеченные "Добавить чертежи" — не трогаем:
+                // пустые папки материалов внутри служат подсказкой, что нужно приложить
+                if (dirName.EndsWith(suffix.Trim(), StringComparison.OrdinalIgnoreCase)) continue;
+
+                // 1) удаляем пустые папки материалов внутри
+                foreach (string dm in Directory.GetDirectories(dir))
+                    if (Directory.GetFileSystemEntries(dm).Length == 0)
+                        Directory.Delete(dm);
+
+                // 2) папка не пуста — оставляем как есть
+                if (Directory.GetFileSystemEntries(dir).Length != 0) continue;
+
+                // 3) папка пуста
+                // 3a) служебная / архивная — удаляем (как раньше)
+                bool isService =
+                       dirName.Contains("Архив", StringComparison.OrdinalIgnoreCase)
+                    || dirName.Contains("Лазер", StringComparison.OrdinalIgnoreCase)
+                    || dirName.Contains("Труборез", StringComparison.OrdinalIgnoreCase)
+                    || dirName.Contains("Модели для справок", StringComparison.OrdinalIgnoreCase);
+
+                if (isService)
+                {
+                    Directory.Delete(dir);
+                    continue;
+                }
+
+                // 3b) рабочая папка — помечаем
+                string target = dir + suffix;
+                if (Directory.Exists(target)) continue;
+                try { Directory.Move(dir, target); }
+                catch (IOException) { /* папка занята — пропускаем */ }
             }
         }
     }
@@ -560,6 +646,15 @@ namespace Metal_Code
 
         [Browsable(false)]
         public string PathToScan { get; set; } = null!;
+
+        private bool _drawingFound = false;
+
+        [Browsable(false)]
+        public bool DrawingFound
+        {
+            get => _drawingFound;
+            set => _drawingFound = value;
+        }
 
         public PathGeometry? DisplayGeometry { get; set; }
 
