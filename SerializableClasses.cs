@@ -736,6 +736,7 @@ namespace Metal_Code
             EnsureMachineNameColumnExists();
             EnsurePendingSyncColumnExists();
             EnsureNoteColumnExists();
+            EnsureSpecTemplateColumns();
 
             Database.SetCommandTimeout(9000);
         }
@@ -781,6 +782,7 @@ namespace Metal_Code
                     builder.Property(st => st.Number).HasColumnName("SpecTemplate_Number");
                     builder.Property(st => st.Provider).HasColumnName("SpecTemplate_Provider").HasMaxLength(200);
                     builder.Property(st => st.Buyer).HasColumnName("SpecTemplate_Buyer").HasMaxLength(200);
+                    builder.Property(st => st.Terms).HasColumnName("SpecTemplate_Terms").HasColumnType("TEXT").IsRequired(false);
                 });
         }
 
@@ -838,6 +840,22 @@ namespace Metal_Code
             {
                 System.Diagnostics.Trace.WriteLine($"Warning: Could not add Note column: {ex.Message}");
             }
+        }
+
+        private void EnsureSpecTemplateColumns()
+        {
+            TryAddColumn("ALTER TABLE Customers ADD COLUMN SpecTemplate_Header TEXT;");
+            TryAddColumn("ALTER TABLE Customers ADD COLUMN SpecTemplate_Number INTEGER NOT NULL DEFAULT 1;");
+            TryAddColumn("ALTER TABLE Customers ADD COLUMN SpecTemplate_Terms TEXT;");
+            TryAddColumn("ALTER TABLE Customers ADD COLUMN SpecTemplate_Provider TEXT;");
+            TryAddColumn("ALTER TABLE Customers ADD COLUMN SpecTemplate_Buyer TEXT;");
+        }
+
+        private void TryAddColumn(string sql)
+        {
+            try { Database.ExecuteSqlRaw(sql); }
+            catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.SqliteErrorCode == 1) { /* колонка уже есть */ }
+            catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"Warning: {ex.Message}"); }
         }
     }
 

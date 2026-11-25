@@ -1,5 +1,6 @@
 ﻿using ExcelDataReader;
 using Metal_Code.Models;
+using Metal_Code.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using System;
@@ -304,6 +305,24 @@ namespace Metal_Code
                             {
                                 MainWindow.M.Log += "\nТекущая версия не актуальна. Рекомендуется обновить программу.\n";
                             }
+                        }
+                        catch (AutorLimitExceededException autorEx)
+                        {
+                            // Ожидаемая ситуация. Логировать как ошибку не нужно,
+                            // `_isOnline` остался true — следующие расчёты пойдут на сервер.
+                            MessageBox.Show(
+                                autorEx.Message + "\n\n" +
+                                "Текущий расчёт не сохранён ни на сервере, ни локально.\n" +
+                                "Измените номер заказа в поле «Заказ» и повторите сохранение — " +
+                                "расчёт будет сохранён как новый, история авторов начнётся заново.",
+                                "Лимит пересохранений",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Warning);
+
+                            MainWindow.M.StatusBegin(
+                                "Расчёт не сохранён: достигнут лимит пересохранений",
+                                MainWindow.StatusMessageType.Info);
+                            return;
                         }
                         catch (Exception dbEx)
                         {

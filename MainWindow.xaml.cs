@@ -127,7 +127,7 @@ namespace Metal_Code
 
         //----------Свойства и их основные методы---------//
         #region
-        private string version = "2.7.4";
+        private string version = "2.7.5";
         public string Version
         {
             get => version;
@@ -4705,7 +4705,7 @@ namespace Metal_Code
             if (worksheet.Cells[row + 6, 2].Value != null) descriptionWorks = worksheet.Cells[row + 6, 2].Value.ToString();
 
             // === Обновлённое примечание с юридической оговоркой ===
-            const string disclaimer = "Изделия изготавливаются строго по предоставленным Заказчиком чертежам. " +
+            const string disclaimer = "Изделия изготавливаются строго по предоставленным Заказчиком файлам. " +
                                       "Исполнитель не несёт ответственности за корректность конструкторской документации.";
 
             // Проверяем, есть ли хотя бы один хлыст с нестандартной зоной зажима (БЕЗОПАСНО)
@@ -5747,6 +5747,7 @@ namespace Metal_Code
             workbook.SaveAs(Path.GetDirectoryName(_path) + template + $"{Result}" + ".xlsx");
         }
 
+        //-РАСЧЕТ НА ДОСТАВКУ
         private async void CreateOfferDelivery(object sender, RoutedEventArgs e)
         {
             if (!WarningSave()) return;
@@ -5954,6 +5955,7 @@ namespace Metal_Code
             int temp = 1;               //номер текущей строки
             float _totalMass = 0;       //счетчик общего веса деталей
             int namePic = 0;            //порядковое имя картинки
+            var partLabels = new List<PartLabel>();     //список DTO для бирок
 
             foreach (DetailControl det in DetailControls)
             {
@@ -6014,6 +6016,18 @@ namespace Metal_Code
 
                                         //строки с трубами выделяем бледно-розовым цветом
                                         if (cut is PipeControl or SawControl) complectsheet.Cells[temp + 2, 1, temp + 2, 10].Style.Fill.SetBackground(System.Drawing.Color.Linen);
+
+                                        partLabels.Add(new PartLabel
+                                        {
+                                            PositionNo = temp,
+                                            Title = cut.PartDetails[i].Title,
+                                            Count = cut.PartDetails[i].Count,
+                                            Mass = cut.PartDetails[i].Mass,
+                                            Description = cut.PartDetails[i].Description,
+                                            Dimensions = GetDimensionsString(cut.PartDetails[i].PropsDict),
+                                            MaterialDisplay = BuildMaterialDisplay(cut.PartDetails[i], type, cut),   // ← type уже в scope
+                                            IsPurchase = false
+                                        });
 
                                         temp++;
                                     }
@@ -6169,6 +6183,18 @@ namespace Metal_Code
                         complectsheet.Cells[temp + 2, 1, temp + 2, 10].Style.Fill.SetBackground(System.Drawing.Color.Linen);
 
                     temp++;
+
+                    partLabels.Add(new PartLabel
+                    {
+                        PositionNo = temp - 1,           // temp уже инкрементирован
+                        Title = det.Detail.Title,
+                        Count = det.Detail.Count,
+                        Mass = det.Detail.Mass,
+                        MaterialDisplay = string.IsNullOrEmpty(det.Detail.Destiny) ?
+                                            det.Detail.Metal : $"{det.Detail.Metal}  s={det.Detail.Destiny}",
+                        Description = det.Detail.Description,
+                        Dimensions = null                // Detail не хранит PropsDict
+                    });
                 }
             }
 
@@ -6205,6 +6231,20 @@ namespace Metal_Code
 
                     complectsheet.Cells[temp + 2, 1, temp + 2, 10].Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
                     complectsheet.Cells[temp + 3, 1, temp + 3, 10].Style.Fill.SetBackground(System.Drawing.Color.Linen);
+
+                    partLabels.Add(new PartLabel
+                    {
+                        PositionNo = temp,
+                        Title = basket.Title,
+                        Count = basket.Count,
+                        Mass = basket.Mass,
+                        MaterialDisplay = string.IsNullOrEmpty($"{basket.Destiny}") ?
+                                            basket.Metal : $"{basket.Metal}  s={basket.Destiny}",
+                        Description = basket.Description,
+                        Dimensions = null,
+                        IsPurchase = true
+                    });
+                    
                     temp++;
                 }
                 temp++;     //добавляем к счетчику строку "Покупные изделия:"
@@ -6326,6 +6366,9 @@ namespace Metal_Code
             labelsheet.Cells[5, 1, 5, 2].Merge = true;
 
             ExcelRange label = labelsheet.Cells[1, 1, 5, 2];        //получаем этикетку для оформления
+
+            //создаем бирки на каждую позицию (Part) расчета
+            CreatePartLabels(workbook, partLabels, offer?.Order != null ? offer.Order : Order.Text);
 
             //создаем реестр простых задач для Битрикса
             CreateSimpleRegistry(workbook);
@@ -6566,7 +6609,6 @@ namespace Metal_Code
                 workbook.SaveAs(fallbackPath);
             }
         }
-
         private static string GetDimensionsString(Dictionary<int, List<string>> propsDict)
         {
             if (propsDict == null || !propsDict.TryGetValue(100, out var list) || list == null)
@@ -6592,7 +6634,187 @@ namespace Metal_Code
 
             return "";
         }
+        private void CreatePartLabels(ExcelPackage workbook, List<PartLabel> parts, string orderNo)
+        {
+            if (parts.Count == 0) return;
 
+            ExcelWorksheet sheet = workbook.Workbook.Worksheets.Add("Бирки");
+
+            const int perRow = 3;
+            const int labelWidth = 4;
+            const int labelHeight = 8;
+            const int gap = 1;
+
+            int totalCols = perRow * labelWidth + (perRow - 1) * gap;   // 14
+            for (int c = 1; c <= totalCols; c++) sheet.Column(c).Width = 9;
+
+            string customer = CustomerDrop.Text ?? "";
+            string phone = IsLaser ? "тел: (812) 509-60-11" : "тел: (812) 603-45-33";
+            string logoPath = IsLaser ? "laser_logo.jpg" : "app_logo.jpg";
+            bool hasLogo = System.IO.File.Exists(logoPath);
+
+            // ── Размеры логотипа (натуральные, с разумным потолком) ──
+            int logoW = 0, logoH = 0;
+            if (hasLogo)
+            {
+                try
+                {
+                    using var img = System.Drawing.Image.FromFile(logoPath);
+                    int w = img.Width, h = img.Height;
+                    const int maxW = 120, maxH = 40;
+                    if (w > maxW || h > maxH)
+                    {
+                        double s = Math.Min((double)maxW / w, (double)maxH / h);
+                        w = (int)(w * s); h = (int)(h * s);
+                    }
+                    logoW = w; logoH = h;
+                }
+                catch { hasLogo = false; }
+            }
+
+            // Локальный помощник: ру-формат, 2 знака после запятой
+            static string Kg(double v) => Math.Round(v, 2).ToString("0.00").Replace('.', ',');
+
+            for (int idx = 0; idx < parts.Count; idx++)
+            {
+                var p = parts[idx];
+                int col = (idx % perRow) * (labelWidth + gap) + 1;
+                int row = (idx / perRow) * (labelHeight + gap) + 1;
+
+                // ── 0. Шапка: № заказа / поз. N + логотип ────────────────────────
+                var header = sheet.Cells[row, col, row, col + labelWidth - 1];
+                header.Merge = true;
+                header.Value = $"№ {orderNo} / поз. {p.PositionNo}";
+                header.Style.Font.Size = 11;
+                header.Style.Font.Bold = true;
+                header.Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                header.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                header.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                header.Style.Fill.BackgroundColor.SetColor(
+                    p.IsPurchase ? System.Drawing.Color.LightYellow : System.Drawing.Color.LightGray);
+                sheet.Row(row).Height = Math.Max(30, logoH + 6);
+
+                if (hasLogo)
+                {
+                    var logo = sheet.Drawings.AddPicture($"Logo_{idx}", logoPath);
+                    logo.SetSize(logoW, logoH);
+                    logo.SetPosition(row - 1, 3, col - 1, 4);
+                }
+
+                // ── 1. Наименование ──────────────────────────────────────────────
+                var title = sheet.Cells[row + 1, col, row + 1, col + labelWidth - 1];
+                title.Merge = true;
+                title.Value = p.IsPurchase ? $"Покупное: {p.Title ?? "—"}" : (p.Title ?? "—");
+                title.Style.Font.Size = 10;
+                title.Style.Font.Bold = true;
+                title.Style.WrapText = true;
+                title.Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+                title.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                sheet.Row(row + 1).Height = 30;
+
+                // ── 2. Кол-во + масса одной шт / общий вес (без подписи) ────────
+                sheet.Cells[row + 2, col].Value = "Кол-во:";
+                sheet.Cells[row + 2, col + 1].Value = p.Count;
+                sheet.Cells[row + 2, col + 1].Style.Font.Bold = true;
+                sheet.Cells[row + 2, col + 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+
+                double count = Convert.ToDouble(p.Count ?? 0);
+                string massText;
+                if (p.Mass <= 0)
+                    massText = "—";
+                else if (count > 1)
+                    massText = $"{Kg(p.Mass)} кг / {Kg(p.Mass * count)} кг";
+                else
+                    massText = $"{Kg(p.Mass)} кг";
+
+                var massCell = sheet.Cells[row + 2, col + 2, row + 2, col + labelWidth - 1];
+                massCell.Merge = true;
+                massCell.Value = massText;
+                massCell.Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+                sheet.Row(row + 2).Height = 18;
+
+                // ── 3. Материал / толщина ────────────────────────────────────────
+                sheet.Cells[row + 3, col].Value = "Материал:";
+                var mat = sheet.Cells[row + 3, col + 1, row + 3, col + labelWidth - 1];
+                mat.Merge = true;
+                mat.Value = string.IsNullOrEmpty(p.MaterialDisplay) ? "—" : p.MaterialDisplay;
+                mat.Style.WrapText = true;
+                sheet.Row(row + 3).Height = 28;
+
+                // ── 4. Габарит ───────────────────────────────────────────────────
+                sheet.Cells[row + 4, col].Value = "Габарит:";
+                var dim = sheet.Cells[row + 4, col + 1, row + 4, col + labelWidth - 1];
+                dim.Merge = true;
+                dim.Value = string.IsNullOrEmpty(p.Dimensions) ? "—" : $"{p.Dimensions} мм";
+                sheet.Row(row + 4).Height = 18;
+
+                // ── 5. Маршрут ───────────────────────────────────────────────────
+                sheet.Cells[row + 5, col].Value = "Маршрут:";
+                var route = sheet.Cells[row + 5, col + 1, row + 5, col + labelWidth - 1];
+                route.Merge = true;
+                route.Value = string.IsNullOrEmpty(p.Description) ? "—" : p.Description;
+                route.Style.WrapText = true;
+                sheet.Row(row + 5).Height = 18;
+
+                // ── 6. Заказчик ──────────────────────────────────────────────────
+                sheet.Cells[row + 6, col].Value = "Заказчик:";
+                var cust = sheet.Cells[row + 6, col + 1, row + 6, col + labelWidth - 1];
+                cust.Merge = true;
+                cust.Value = customer;
+                sheet.Row(row + 6).Height = 18;
+
+                // ── 7. Телефон ───────────────────────────────────────────────────
+                var phoneCell = sheet.Cells[row + 7, col, row + 7, col + labelWidth - 1];
+                phoneCell.Merge = true;
+                phoneCell.Value = phone;
+                phoneCell.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                phoneCell.Style.Font.Size = 9;
+                sheet.Row(row + 7).Height = 16;
+
+                // ── Рамка ────────────────────────────────────────────────────────
+                var rng = sheet.Cells[row, col, row + labelHeight - 1, col + labelWidth - 1];
+                rng.Style.Border.BorderAround(ExcelBorderStyle.Medium);
+                rng.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            }
+
+            // Печать: A4, альбомная, всё по ширине страницы
+            sheet.PrinterSettings.FitToPage = true;
+            sheet.PrinterSettings.FitToWidth = 1;
+            sheet.PrinterSettings.FitToHeight = 0;
+            sheet.PrinterSettings.HorizontalCentered = true;
+            sheet.PrinterSettings.Orientation = eOrientation.Landscape;   // ← альбомная
+            sheet.PrinterSettings.PaperSize = ePaperSize.A4;
+        }
+        private static string BuildMaterialDisplay(Part part, TypeDetailControl type, ICut cut)
+        {
+            string grade = part.Metal ?? "";
+
+            // ── Трубы / профиль / уголок / швеллер (PipeControl, SawControl) ──
+            if (cut is PipeControl or SawControl)
+            {
+                // Дефолт по аналогии с GetPipeNestingFileName: труба → "Труба", лентопил → "Профиль"
+                string defaultType = cut is PipeControl ? "Труба" : "Профиль";
+                string typeName = type.TypeDetailDrop?.Text?.Trim() ?? defaultType;
+
+                // Круглая труба: A — диаметр, S — стенка → "57х3"
+                // Профиль / уголок / швеллер: A×B — сечение, S — стенка → "80х40х3", "50х50х3"
+                bool isRound = typeName.Contains("Круг", StringComparison.OrdinalIgnoreCase);
+
+                string section = isRound
+                    ? $"{type.A:0}х{type.S:0}"
+                    : $"{type.A:0}х{type.B:0}х{type.S:0}";
+
+                // "Труба профильная 80х40х3" или "Уголок равнополочный 50х50х3"
+                string result = $"{typeName} {section}";
+                return string.IsNullOrEmpty(grade) ? result : $"{result}, {grade}";
+            }
+
+            // ── Лист и прочее — как было ──
+            string thk = part.Destiny > 0 ? $"{part.Destiny}" : "";
+            return string.IsNullOrEmpty(thk) ? grade : $"{grade}  s={thk}";
+        }
+
+        //-АКТ ПРИЕМА-ПЕРЕДАЧИ
         private void CreateAct(object sender, RoutedEventArgs e)
         {
             if (ActiveOffer is null)
@@ -7295,7 +7517,7 @@ namespace Metal_Code
             // \s* допускает случайные пробелы в начале и конце
             string pattern = @"^\s*Гибка\s+на\s+(малом|среднем|большом)\s+\(до\s+\d+[.,]\d+\s+м\)\s+станке!\s*$";
 
-            return System.Text.RegularExpressions.Regex.IsMatch(comment.Trim(), pattern);
+            return Regex.IsMatch(comment.Trim(), pattern);
         }
 
         //-РЕЕСТР

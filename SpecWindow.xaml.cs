@@ -6,7 +6,6 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
@@ -105,8 +104,8 @@ namespace Metal_Code
             }
         }
 
-        private void Create_Spec(object sender, RoutedEventArgs e) { Create_Spec(OutputPath); }
-        public void Create_Spec(string outputPath)
+        private async void Create_Spec(object sender, RoutedEventArgs e) { await Create_SpecAsync(OutputPath); }
+        public async System.Threading.Tasks.Task Create_SpecAsync(string outputPath)
         {
             // 1. ОПРЕДЕЛЯЕМ ФОРМАТ СПЕЦИФИКАЦИИ (Сборочная или Обычная)
             if (AssemblyWindow.A.Assemblies != null && AssemblyWindow.A.Assemblies.Count > 0)
@@ -485,16 +484,25 @@ namespace Metal_Code
             // 4. Создаём Excel
             ExportSpecToExcel(OutputPath);
 
-            // Сохранение шаблона в БД
-            using ManagerContext db = new(MainWindow.M.connections[0]);
-            Customer? _customer = db.Customers.FirstOrDefault(x => x.Id == TargetCustomer.Id);
-            if (_customer is not null)
+            // 5. Сохраняем шаблон через сервис (в PG + SQLite)
+            if (!string.IsNullOrWhiteSpace(TargetCustomer.Name) &&
+                !string.IsNullOrWhiteSpace(MainWindow.M.TargetManager?.Name))
             {
-                _customer.SpecTemplate = CurrentTemplate;
-                db.SaveChanges();
+                bool saved = await MainWindow.M.DataService.UpdateCustomerSpecTemplateAsync(
+                    TargetCustomer.Name,
+                    MainWindow.M.TargetManager.Name,
+                    CurrentTemplate);
+
+                if (!saved)
+                    MainWindow.M.StatusBegin(
+                        $"Спецификация создана, но шаблон не сохранён для '{TargetCustomer.Name}'.",
+                        MainWindow.StatusMessageType.Warning);
             }
 
-            MainWindow.M.StatusBegin($"Создана спецификация для текущего расчета: {MainWindow.M.Order.Text} {TargetCustomer.Name}");
+            MainWindow.M.StatusBegin(
+                $"Создана спецификация для текущего расчета: {MainWindow.M.Order.Text} {TargetCustomer.Name}",
+                MainWindow.StatusMessageType.Success);
+
             Close();
         }
 

@@ -151,7 +151,7 @@ namespace Metal_Code
                 }
 
                 // Список деталей, для которых не нашлось ни одного файла-чертежа
-                MissingDrawings = TechItems.Where(t => !t.DrawingFound && !string.IsNullOrWhiteSpace(t.Route)).ToList();
+                MissingDrawings = TechItems.Where(t => !t.DrawingFound && !string.IsNullOrWhiteSpace(t.Route) && !t.Route.Contains("грав")).ToList();
                 WriteMissingDrawingsReport();
 
                 if (MainWindow.M.TechItems.Count > 0) MainWindow.M.TechItems.Clear();
