@@ -432,16 +432,18 @@ namespace Metal_Code.Utils
             return placedCount;
         }
 
-        public static List<PipeStock> CreateNestingForPipeBatch(
+        public static PipeNestingResult CreateNestingForPipeBatch(
             List<Part> parts,
             double stockLength = 6000,
             double clampZone = 340,
             double cutLoss = 10,
             List<PipeRemnant>? availableRemnants = null)
         {
-            var stocks = new List<PipeStock>();
+            // 🔥 Вместо локального stocks — используем поля результата
+            var result = new PipeNestingResult();
+            var stocks = result.Stocks;
 
-            // 🔥 1. ДОБАВЛЯЕМ ОСТАТКИ В ПУЛ ЗАГОТОВОК ПЕРВЫМИ
+            // 1. Остатки в пул заготовок первыми
             if (availableRemnants != null)
             {
                 foreach (var remnant in availableRemnants)
@@ -453,19 +455,19 @@ namespace Metal_Code.Utils
                             StockLength = remnant.Length,
                             ClampZone = clampZone,
                             CutLoss = cutLoss,
-                            IsRemnant = true // 🔥 Явно помечаем как остаток
+                            IsRemnant = true
                         });
                     }
                 }
             }
 
-            // 2. Размножаем детали согласно количеству и сортируем по убыванию длины
+            // 2. Размножаем детали и сортируем по убыванию длины
             var allParts = parts
                 .SelectMany(p => Enumerable.Repeat(p, p.Count))
                 .OrderByDescending(p => p.Length)
                 .ToList();
 
-            // 🔥 3. Группируем для сохранения индивидуальности (Title), но позволяем Best Fit упаковывать их
+            // 3. Группируем для сохранения индивидуальности (Title)
             var groupedParts = allParts
                 .GroupBy(p => new {
                     Title = p.Title ?? "Без имени",
@@ -483,20 +485,16 @@ namespace Metal_Code.Utils
                 int remainingCount = partsInGroup.Count;
                 int index = 0;
 
-                // 🔥 4. Пытаемся разместить детали из группы в существующие хлысты
+                // 4. Пытаемся разместить детали из группы в существующие хлысты
                 while (remainingCount > 0 && index < partsInGroup.Count)
                 {
                     var part = partsInGroup[index];
-
                     var suitableStocks = stocks
                         .Where(s => s.StockLength >= s.TotalRequiredLength + part.Length + s.CutLoss)
                         .ToList();
 
                     if (suitableStocks.Any())
                     {
-                        // 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ:
-                        // 1. Сначала сортируем по IsRemnant: остатки (0) всегда идут перед новыми хлыстами (1).
-                        // 2. Затем применяем Best Fit: среди подходящих выбираем тот, где останется минимальный остаток.
                         var bestStock = suitableStocks
                             .OrderBy(s => s.IsRemnant ? 0 : 1)
                             .ThenBy(s => s.StockLength - s.TotalRequiredLength - part.Length - s.CutLoss)
@@ -509,18 +507,24 @@ namespace Metal_Code.Utils
                     }
                     else
                     {
-                        // Не влезло ни в один существующий хлыст
                         break;
                     }
                 }
 
-                // 🔥 5. Если остались неразмещенные детали, создаем новые хлысты с пакетным заполнением
+                // 5. Если остались неразмещённые — создаём новые хлысты
                 if (remainingCount > 0)
                 {
                     var part = partsInGroup[index];
 
+                    // 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: вместо молчаливого continue — 
+                    // сохраняем ВСЕ экземпляры детали в список неразмещённых
                     if (part.Length > stockLength - clampZone)
                     {
+                        foreach (var p in partsInGroup)
+                        {
+                            if (!result.UnplacedParts.Contains(p))
+                                result.UnplacedParts.Add(p);
+                        }
                         remainingCount = 0;
                         continue;
                     }
@@ -532,13 +536,11 @@ namespace Metal_Code.Utils
                             StockLength = stockLength,
                             ClampZone = clampZone,
                             CutLoss = cutLoss,
-                            IsRemnant = false // Новый хлыст
+                            IsRemnant = false
                         };
-
                         newStock.Placements.Add(new PipePlacement { Part = part, StartPosition = clampZone });
                         remainingCount--;
 
-                        // Пакетное заполнение нового хлыста деталями из той же группы
                         while (remainingCount > 0)
                         {
                             double requiredSpace = part.Length + newStock.CutLoss;
@@ -553,7 +555,6 @@ namespace Metal_Code.Utils
                                 break;
                             }
                         }
-
                         stocks.Add(newStock);
                     }
                 }
@@ -564,7 +565,7 @@ namespace Metal_Code.Utils
                 OptimizeStockLength(stock);
             }
 
-            return stocks;
+            return result;
         }
 
         private static void OptimizeStockLength(PipeStock stock)
@@ -632,6 +633,17 @@ namespace Metal_Code.Utils
 
             return true;
         }
+    }
+
+    /// <summary>
+    /// Результат пакетного нестинга трубных деталей.
+    /// Содержит как успешно размещённые хлысты, так и детали, 
+    /// которые не удалось разместить (слишком длинные).
+    /// </summary>
+    public class PipeNestingResult
+    {
+        public List<PipeStock> Stocks { get; set; } = new();
+        public List<Part> UnplacedParts { get; set; } = new();
     }
 
     public class NestingSheet

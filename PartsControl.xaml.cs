@@ -11,6 +11,7 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -924,7 +925,8 @@ namespace Metal_Code
             if (metal == null || string.IsNullOrEmpty(metalName) || thickness <= 0)
             {
                 if (showSettingsDialog)
-                    MessageBox.Show("Не указан материал или толщина заготовки в настройках.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Не указан материал или толщина заготовки в настройках.",
+                        "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -932,38 +934,113 @@ namespace Metal_Code
             if (!partsToNest.Any())
             {
                 if (showSettingsDialog)
-                    MessageBox.Show("В расчете нет деталей для автоматической раскладки.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("В расчете нет деталей для автоматической раскладки.",
+                        "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            // Получаем значения по умолчанию
+            ClearUnplacedHighlights();
+
             bool isSheet = cut is CutControl;
             double defWidth = isSheet ? (cut as CutControl)?.work.type.A ?? 3000 : 0;
             double defHeight = isSheet ? (cut as CutControl)?.work.type.B ?? 1500 : 0;
             double defSpacing = isSheet ? 10 : 0;
-
-            double defLength = !isSheet ? (cut as PipeControl)?.work.type.L ?? 6000 : 0;
+            double defLength = !isSheet ? ((cut as PipeControl)?.work.type.L ?? (cut as SawControl)?.work.type.L ?? 6000) : 0;
             double defClamp = !isSheet ? 340 : 0;
             double defLoss = !isSheet ? 10 : 0;
 
-            // Переменные для хранения итоговых настроек
             double sheetWidth = defWidth, sheetHeight = defHeight, spacing = defSpacing;
             double pipeLength = defLength, clampZone = defClamp, cutLoss = defLoss;
             bool useAutoNesting = true;
 
-            // 🔥 Показываем диалог ТОЛЬКО если это ручной запуск
             if (showSettingsDialog)
             {
+                // ---- Собираем сводку текущего состояния Items ----
+                int currentStocksCount = 0;
+                string currentDesc = "";
+                var existingItems = cut.Items.OfType<LaserItem>().ToList();
+                if (existingItems.Count > 0)
+                {
+                    var groups = existingItems
+                        .GroupBy(i => i.sheetSize ?? "?")
+                        .Select(g => new { Size = g.Key, Count = g.Sum(x => x.sheets) })
+                        .Where(g => g.Count > 0)
+                        .ToList();
+                    currentStocksCount = groups.Sum(g => g.Count);
+                    currentDesc = string.Join(", ", groups.Select(g => $"{g.Count}×{g.Size}"));
+                }
+
+                // ---- Обработчик «Проверки»: только расчёт, БЕЗ изменения Items ----
+                async Task<NestingPreviewResult?> PreviewHandler(AutoNestSettingsWindow w)
+                {
+                    return await System.Threading.Tasks.Task.Run(() =>
+                    {
+                        try
+                        {
+                            if (cut is CutControl)
+                            {
+                                var sheetParts = partsToNest.Where(p => p.DisplayGeometry != null).ToList();
+                                if (!sheetParts.Any()) return null;
+
+                                var sheets = w.UseAutoNesting
+                                    ? SkylineNestingHelper.CreateNestingSkylineAutoSheet(sheetParts, metalName, thickness, w.Spacing)
+                                    : SkylineNestingHelper.CreateNestingSkyline(sheetParts, w.SheetWidth, w.SheetHeight, w.Spacing);
+                                if (sheets == null) return null;
+
+                                var grouped = GroupIdenticalSheets(sheets);
+                                int total = grouped.Values.Sum();
+                                string desc = string.Join(", ", grouped
+                                    .Select(kvp => new { Size = $"{kvp.Key.OptimizedWidth:0}×{kvp.Key.OptimizedHeight:0}", Count = kvp.Value })
+                                    .GroupBy(x => x.Size)
+                                    .Select(g => $"{g.Sum(x => x.Count)}×{g.Key}"));
+
+                                string unit = AutoNestSettingsWindow.Pluralize(total, "лист", "листа", "листов");
+                                return new NestingPreviewResult
+                                {
+                                    StocksCount = total,
+                                    Description = $"{total} {unit} ({desc})"
+                                };
+                            }
+                            else if (cut is PipeControl or SawControl)
+                            {
+                                // 🔥 Используем PipeNestingResult, а не List<PipeStock>
+                                var nestingResult = NestingHelper.CreateNestingForPipeBatch(partsToNest, w.PipeLength, w.ClampZone, w.CutLoss);
+                                if (nestingResult == null) return null;
+
+                                var grouped = GroupIdenticalStocks(nestingResult.Stocks);
+                                int total = grouped.Values.Sum();
+                                string desc = string.Join(", ", grouped
+                                    .Select(kvp => new { Size = $"{kvp.Key.OptimizedLength:0}", Count = kvp.Value })
+                                    .GroupBy(x => x.Size)
+                                    .Select(g => $"{g.Sum(x => x.Count)}×{g.Key}"));
+                                string unit = AutoNestSettingsWindow.Pluralize(total, "хлыст", "хлыста", "хлыстов");
+
+                                return new NestingPreviewResult
+                                {
+                                    StocksCount = total,
+                                    Description = $"{total} {unit} ({desc})",
+                                    UnplacedCount = nestingResult.UnplacedParts.Count // 🔥 Передаем количество "потерянных" деталей
+                                };
+                            }
+                            return null;
+                        }
+                        catch { return null; }
+                    });
+                }
+
                 var settingsDialog = new AutoNestSettingsWindow(
                     isSheetMode: isSheet,
                     defaultWidth: defWidth, defaultHeight: defHeight, defaultSpacing: defSpacing,
-                    defaultLength: defLength, defaultClamp: defClamp, defaultLoss: defLoss)
+                    defaultLength: defLength, defaultClamp: defClamp, defaultLoss: defLoss,
+                    currentStocksCount: currentStocksCount,
+                    currentStocksDescription: currentDesc,
+                    previewHandler: PreviewHandler)
                 {
                     Owner = Window.GetWindow(this)
                 };
 
                 if (settingsDialog.ShowDialog() != true || !settingsDialog.IsConfirmed)
-                    return; // Пользователь нажал "Отмена"
+                    return;
 
                 sheetWidth = settingsDialog.SheetWidth;
                 sheetHeight = settingsDialog.SheetHeight;
@@ -972,9 +1049,17 @@ namespace Metal_Code
                 clampZone = settingsDialog.ClampZone;
                 cutLoss = settingsDialog.CutLoss;
                 useAutoNesting = settingsDialog.UseAutoNesting;
+
+                // Пользователь выбрал «оставить текущий» — Items не трогаем
+                if (!settingsDialog.UsePreviewResult)
+                {
+                    MainWindow.M.StatusBegin(
+                        "Автонестинг отменён: оставлен текущий вариант (из отчёта).",
+                        MainWindow.StatusMessageType.Info);
+                    return;
+                }
             }
 
-            // 🔥 Включаем индикацию загрузки
             Mouse.OverrideCursor = Cursors.Wait;
             MainWindow.M.StatusBegin("Выполняется автоматическая раскладка...", MainWindow.StatusMessageType.Info);
 
@@ -988,59 +1073,78 @@ namespace Metal_Code
                     if (!sheetParts.Any()) return;
 
                     result = await System.Threading.Tasks.Task.Run(() =>
-                    {
-                        if (useAutoNesting)
-                            return SkylineNestingHelper.CreateNestingSkylineAutoSheet(sheetParts, metalName, thickness, spacing);
-                        else
-                            return SkylineNestingHelper.CreateNestingSkyline(sheetParts, sheetWidth, sheetHeight, spacing);
-                    });
+                        useAutoNesting
+                            ? SkylineNestingHelper.CreateNestingSkylineAutoSheet(sheetParts, metalName, thickness, spacing)
+                            : SkylineNestingHelper.CreateNestingSkyline(sheetParts, sheetWidth, sheetHeight, spacing));
                 }
                 else if (cut is PipeControl or SawControl)
                 {
-                    if (cut is PipeControl pipe)
-                    {
-                        pipe.work.type.L = (float)pipeLength;
-                    }
-                    else if (cut is SawControl saw)
-                    {
-                        saw.work.type.L = (float)pipeLength;
-                    }
+                    if (cut is PipeControl pipe) pipe.work.type.L = (float)pipeLength;
+                    else if (cut is SawControl saw) saw.work.type.L = (float)pipeLength;
 
+                    // 🔥 Теперь результат — PipeNestingResult, а не List<PipeStock>
                     result = await System.Threading.Tasks.Task.Run(() =>
-                    {
-                        return NestingHelper.CreateNestingForPipeBatch(partsToNest, pipeLength, clampZone, cutLoss);
-                    });
+                        NestingHelper.CreateNestingForPipeBatch(partsToNest, pipeLength, clampZone, cutLoss));
                 }
 
                 if (result == null)
                 {
                     if (showSettingsDialog)
-                        MessageBox.Show("Алгоритму не удалось выполнить раскладку.", "Ошибка раскладки", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show("Алгоритму не удалось выполнить раскладку.",
+                            "Ошибка раскладки", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                // Очищаем старые результаты раскладки
+                // 🔥 Обработка деталей, не поместившихся в хлысты
+                if (result is PipeNestingResult pipeResult && pipeResult.UnplacedParts.Any())
+                {
+                    var maxStockLength = pipeLength;
+                    string problemParts = string.Join("\n• ",
+                        pipeResult.UnplacedParts
+                            .GroupBy(p => p.Title)
+                            .Take(5)
+                            .Select(g => $"{g.Key} — {g.First().Length:0} мм (×{g.Count()} шт)"));
+
+                    string moreText = pipeResult.UnplacedParts
+                        .GroupBy(p => p.Title).Count() > 5
+                        ? $"\n...и ещё детали других наименований."
+                        : "";
+
+                    MessageBox.Show(
+                        $"Не все детали удалось разместить на доступных хлыстах.\n\n" +
+                        $"Максимальная полезная длина хлыста: {maxStockLength - clampZone:0} мм\n" +
+                        $"(длина хлыста {maxStockLength:0} мм − зажим {clampZone:0} мм)\n\n" +
+                        $"Проблемные детали (слишком длинные):\n• {problemParts}{moreText}\n\n" +
+                        $"✅ Успешно размещено хлыстов: {pipeResult.Stocks.Count}\n" +
+                        $"❌ Не размещено деталей: {pipeResult.UnplacedParts.Count} шт\n\n" +
+                        $"Вы можете продолжить работу с размещёнными хлыстами " +
+                        $"или скорректировать длину заготовки / детали.",
+                        "Предупреждение нестинга",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+
+                    // 🔥 Подсветка проблемных деталей в интерфейсе
+                    HighlightUnplacedParts(pipeResult.UnplacedParts);
+                }
+
+                // === ОЧИЩАЕМ ВСЁ: и файловые, и ранее автонестингованные ===
                 if (cut is CutControl cc)
                 {
-                    var oldNestingItems = cc.Items!.OfType<LaserItem>().Where(i => i.NestingSheet != null).ToList();
-                    foreach (var item in oldNestingItems) cc.Items!.Remove(item);
+                    foreach (var item in cc.Items!.OfType<LaserItem>().ToList()) cc.Items!.Remove(item);
                 }
                 else if (cut is PipeControl pc)
                 {
-                    var oldPipeItems = pc.Items!.OfType<LaserItem>().Where(i => i.PipeStocks != null && i.PipeStocks.Count > 0).ToList();
-                    foreach (var item in oldPipeItems) pc.Items!.Remove(item);
+                    foreach (var item in pc.Items!.OfType<LaserItem>().ToList()) pc.Items!.Remove(item);
                 }
                 else if (cut is SawControl sc)
                 {
-                    var oldPipeItems = sc.Items!.OfType<LaserItem>().Where(i => i.PipeStocks != null && i.PipeStocks.Count > 0).ToList();
-                    foreach (var item in oldPipeItems) sc.Items!.Remove(item);
+                    foreach (var item in sc.Items!.OfType<LaserItem>().ToList()) sc.Items!.Remove(item);
                 }
 
-                // Добавляем новые результаты
+                // === ДОБАВЛЯЕМ НОВЫЕ (без изменений) ===
                 if (cut is CutControl cc2 && result is List<NestingSheet> sheets)
                 {
-                    var groupedSheets = GroupIdenticalSheets(sheets);
-                    foreach (var group in groupedSheets)
+                    foreach (var group in GroupIdenticalSheets(sheets))
                     {
                         var sheet = group.Key;
                         int sheetCount = group.Value;
@@ -1049,9 +1153,9 @@ namespace Metal_Code
                         double sheetArea = sheet.OptimizedWidth * sheet.OptimizedHeight;
                         double density = metal?.Density ?? 0;
                         double sheetMass = sheetArea * thickness * density / 1_000_000;
-
                         double sheetWay = sheet.Parts.Sum(p => p.Part.Way);
-                        int sheetPinholes = sheet.Parts.Sum(p => int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var val) ? val : 0);
+                        int sheetPinholes = sheet.Parts.Sum(p => int.TryParse(
+                            p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var val) ? val : 0);
 
                         cc2.Items?.Add(new LaserItem
                         {
@@ -1066,36 +1170,34 @@ namespace Metal_Code
                         });
                     }
                 }
-                else if ((cut is PipeControl pc2 || cut is SawControl sc2) && result is List<PipeStock> pipeStocks)
+                else if ((cut is PipeControl pc2 || cut is SawControl sc2) && result is PipeNestingResult pipeResult2)
                 {
-                    if (pipeStocks.Count > 0)
+                    var pipeStocks = pipeResult2.Stocks;  // 🔥 берём хлысты из результата
+                    foreach (var group in GroupIdenticalStocks(pipeStocks))
                     {
-                        var groupedStocks = GroupIdenticalStocks(pipeStocks);
-                        foreach (var group in groupedStocks)
+                        var stock = group.Key;
+                        int stockCount = group.Value;
+                        if (stock.Placements.Count == 0) continue;
+
+                        double stockMass = CalculatePipeStockMass(stock, metal, thickness);
+                        double stockWay = stock.Placements.Sum(p => p.Part.Way);
+                        int stockPinholes = stock.Placements.Sum(p => int.TryParse(
+                            p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var pin) ? pin : 0);
+
+                        var newItem = new LaserItem
                         {
-                            var stock = group.Key;
-                            int stockCount = group.Value;
-                            if (stock.Placements.Count == 0) continue;
+                            sheets = stockCount,
+                            sheetSize = $"{stock.OptimizedLength:0}",
+                            way = (float)stockWay,
+                            pinholes = stockPinholes,
+                            mass = (float)stockMass,
+                            metal = metalName,
+                            destiny = thickness.ToString(),
+                            PipeStocks = new List<PipeStock> { stock }
+                        };
 
-                            double stockMass = CalculatePipeStockMass(stock, metal, thickness);
-                            double stockWay = stock.Placements.Sum(p => p.Part.Way);
-                            int stockPinholes = stock.Placements.Sum(p => int.TryParse(p.Part.PropsDict.GetValueOrDefault(200)?.FirstOrDefault(), out var pin) ? pin : 0);
-
-                            var newItem = new LaserItem
-                            {
-                                sheets = stockCount,
-                                sheetSize = $"{stock.OptimizedLength:0}",
-                                way = (float)stockWay,
-                                pinholes = stockPinholes,
-                                mass = (float)stockMass,
-                                metal = metalName,
-                                destiny = thickness.ToString(),
-                                PipeStocks = new List<PipeStock> { stock }
-                            };
-
-                            if (cut is PipeControl p) p.Items?.Add(newItem);
-                            else if (cut is SawControl s) s.Items?.Add(newItem);
-                        }
+                        if (cut is PipeControl p) p.Items?.Add(newItem);
+                        else if (cut is SawControl s) s.Items?.Add(newItem);
                     }
                 }
 
@@ -1105,11 +1207,11 @@ namespace Metal_Code
             }
             catch (Exception ex)
             {
-                MainWindow.M.StatusBegin($"Ошибка при авто-раскладке: {ex.Message}", MainWindow.StatusMessageType.Error);
+                MainWindow.M.StatusBegin($"Ошибка при авто-раскладке: {ex.Message}",
+                    MainWindow.StatusMessageType.Error);
             }
             finally
             {
-                // 🔥 Сбрасываем курсор в любом случае
                 Mouse.OverrideCursor = null;
             }
         }
@@ -1133,14 +1235,16 @@ namespace Metal_Code
             {
                 if (pipe.PartDetails is null) return;
 
-                pipe.WayTotal = pipe.PartDetails.Sum(p => p.Way * p.Count);
+                // Массу можно пересчитывать всегда — она не зависит от «источника»
                 pipe.MassTotal = pipe.PartDetails.Sum(p => p.Mass * p.Count);
+
+                // WayTotal в FromFile-режиме не трогаем (Part.Way — заглушка = длина)
+                if (pipe.TotalsSource == TotalsSource.Manual)
+                    pipe.WayTotal = pipe.PartDetails.Sum(p => p.Way * p.Count);
 
                 double totalWay = 0;
                 int totalPinholes = 0;
                 int totalStocks = 0;
-
-                // Берем длину хлыста из настроек заготовки по умолчанию
                 double stockLength = pipe.work.type.L;
 
                 var pipeItems = pipe.Items?.OfType<LaserItem>()
@@ -1152,20 +1256,23 @@ namespace Metal_Code
                     totalWay += item.way * item.sheets;
                     totalPinholes += item.pinholes * item.sheets;
                     totalStocks += item.sheets;
-
-                    if (item.PipeStocks != null && item.PipeStocks.Count > 0)
-                    {
+                    if (item.PipeStocks!.Count > 0)
                         stockLength = item.PipeStocks[0].StockLength;
-                    }
                 }
 
-                // Обновляем значения по аналогии с AddBatchToPipeControl
-                pipe.Way = (float)totalWay;
-                pipe.Pinhole = totalPinholes;
-                pipe.work.type.Count = totalStocks;
-
-                // Пересчет длины заготовки (Mold)
-                pipe.Mold = (float)Math.Round(stockLength * totalStocks * 0.95f / 1000, 1);
+                if (pipe.TotalsSource == TotalsSource.FromFile)
+                {
+                    // Way/Pinhole из файла — не трогаем
+                    pipe.work.type.Count = totalStocks;
+                    pipe.Mold = (float)Math.Round(stockLength * totalStocks * 0.95f / 1000, 1);
+                }
+                else
+                {
+                    pipe.Way = (float)totalWay;
+                    pipe.Pinhole = totalPinholes;
+                    pipe.work.type.Count = totalStocks;
+                    pipe.Mold = (float)Math.Round(stockLength * totalStocks * 0.95f / 1000, 1);
+                }
 
                 pipe.SetTotalProperties();
             }
@@ -1176,8 +1283,6 @@ namespace Metal_Code
                 double totalWay = 0;
                 int totalPinholes = 0;
                 int totalStocks = 0;
-
-                // Берем длину хлыста из настроек заготовки по умолчанию
                 double stockLength = saw.work.type.L;
 
                 var sawItems = saw.Items?.OfType<LaserItem>()
@@ -1189,18 +1294,14 @@ namespace Metal_Code
                     totalWay += item.way * item.sheets;
                     totalPinholes += item.pinholes * item.sheets;
                     totalStocks += item.sheets;
-
-                    if (item.PipeStocks != null && item.PipeStocks.Count > 0)
-                    {
+                    if (item.PipeStocks!.Count > 0)
                         stockLength = item.PipeStocks[0].StockLength;
-                    }
                 }
 
-                // Обновляем значения
+                saw.work.type.Count = totalStocks;
                 saw.Way = (float)totalWay;
                 saw.Pinhole = totalPinholes;
                 saw.work.type.Count = totalStocks;
-
                 saw.SetTotalProperties();
             }
         }
@@ -1717,10 +1818,31 @@ namespace Metal_Code
             if (parts == null || parts.Count == 0 || pipe.work?.type == null)
                 return;
 
-            // Создаём раскладку по хлыстам
-            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, pipe.work.type.L, clampZone, cutLoss, availableRemnants);
+            pipe.TotalsSource = TotalsSource.Manual;
 
-            if (pipeStocks == null || pipeStocks.Count == 0)
+            // Создаём раскладку по хлыстам
+            var nestingResult = NestingHelper.CreateNestingForPipeBatch(parts, pipe.work.type.L, clampZone, cutLoss, availableRemnants);
+            var pipeStocks = nestingResult.Stocks;
+
+            // 🔥 Обработка неразмещённых деталей
+            if (nestingResult.UnplacedParts.Any())
+            {
+                string problemParts = string.Join(", ",
+                    nestingResult.UnplacedParts.Take(5).Select(p => $"{p.Title} ({p.Length:0} мм)"));
+                string moreText = nestingResult.UnplacedParts.Count > 5
+                    ? $"\n...и ещё {nestingResult.UnplacedParts.Count - 5} деталей." : "";
+
+                MessageBox.Show(
+                    $"Следующие детали слишком длинные для хлыста {pipe.work.type.L:0} мм " +
+                    $"и не были включены в раскладку:\n{problemParts}{moreText}",
+                    "Не все детали размещены",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                HighlightUnplacedParts(nestingResult.UnplacedParts);
+            }
+
+            if (pipeStocks.Count == 0)
             {
                 MessageBox.Show("Не удалось создать раскладку для труб", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
@@ -1803,9 +1925,28 @@ namespace Metal_Code
                 return;
 
             // Создаём раскладку по хлыстам
-            var pipeStocks = NestingHelper.CreateNestingForPipeBatch(parts, saw.work.type.L, clampZone, cutLoss, availableRemnants);
+            var nestingResult = NestingHelper.CreateNestingForPipeBatch(parts, saw.work.type.L, clampZone, cutLoss, availableRemnants);
+            var pipeStocks = nestingResult.Stocks;
 
-            if (pipeStocks == null || pipeStocks.Count == 0)
+            // 🔥 Обработка неразмещённых деталей
+            if (nestingResult.UnplacedParts.Any())
+            {
+                string problemParts = string.Join(", ",
+                    nestingResult.UnplacedParts.Take(5).Select(p => $"{p.Title} ({p.Length:0} мм)"));
+                string moreText = nestingResult.UnplacedParts.Count > 5
+                    ? $"\n...и ещё {nestingResult.UnplacedParts.Count - 5} деталей." : "";
+
+                MessageBox.Show(
+                    $"Следующие детали слишком длинные для хлыста {saw.work.type.L:0} мм " +
+                    $"и не были включены в раскладку:\n{problemParts}{moreText}",
+                    "Не все детали размещены",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                HighlightUnplacedParts(nestingResult.UnplacedParts);
+            }
+
+            if (pipeStocks.Count == 0)
             {
                 MessageBox.Show("Не удалось создать раскладку для труб", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
@@ -2166,6 +2307,52 @@ namespace Metal_Code
 
             // Масса = площадь сечения × длина хлыста × плотность / 1_000_000 (мм³ → см³)
             return crossSectionArea * stock.StockLength * metal.Density / 1_000_000;
+        }
+
+        /// <summary>
+        /// Подсвечивает детали, которые не удалось разместить в раскладке.
+        /// Ищет PartControl по Title детали и меняет его визуальное оформление.
+        /// </summary>
+        private void HighlightUnplacedParts(List<Part> unplacedParts)
+        {
+            if (unplacedParts == null || unplacedParts.Count == 0) return;
+
+            // Собираем уникальные наименования проблемных деталей
+            var unplacedTitles = new HashSet<string>(
+                unplacedParts
+                    .Where(p => !string.IsNullOrEmpty(p.Title))
+                    .Select(p => p.Title!));
+
+            foreach (var partControl in Parts)
+            {
+                if (partControl.Part?.Title != null &&
+                    unplacedTitles.Contains(partControl.Part.Title))
+                {
+                    partControl.BorderBrush = Brushes.OrangeRed;
+                    partControl.BorderThickness = new Thickness(2);
+                    partControl.Background = new SolidColorBrush(Color.FromRgb(255, 235, 235));
+                }
+            }
+
+            MainWindow.M.StatusBegin(
+                $"Подсвечено деталей, не попавших в раскладку: {unplacedTitles.Count}",
+                MainWindow.StatusMessageType.Warning);
+        }
+
+        /// <summary>
+        /// Сбрасывает визуальную подсветку и флаг IsUnplaced для всех деталей.
+        /// Вызывать перед каждым новым запуском автонестинга.
+        ///summary>
+        private void ClearUnplacedHighlights()
+        {
+            foreach (var partControl in Parts)
+            {
+                // Принудительный сброс визуальных свойств (на случай, если Binding сработает с задержкой)
+                partControl.BorderBrush = Brushes.Transparent; // или ваш цвет по умолчанию
+                partControl.BorderThickness = new Thickness(1);
+                partControl.Background = Brushes.Transparent;  // или ваш цвет по умолчанию
+                partControl.ToolTip = null;
+            }
         }
         #endregion
 

@@ -2102,6 +2102,13 @@ namespace Metal_Code
                 items.Add(item);
             }
 
+            int number = 1;
+            foreach (var item in items)
+            {
+                bool isService = item.Title == "Доставка" || item.Title == "Конструкторские работы";
+                item.Number = isService ? 0 : number++;
+            }
+
             // ==========================================
             // ИТОГОВЫЙ ПОДСЧЕТ
             // ==========================================

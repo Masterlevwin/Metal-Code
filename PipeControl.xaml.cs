@@ -149,6 +149,7 @@ namespace Metal_Code
         }
 
         public Guid Id { get; } = Guid.NewGuid();
+        public TotalsSource TotalsSource { get; set; } = TotalsSource.Manual;
         public TubeType Tube { get; set; }
         public ObservableCollection<PartControl>? Parts { get; set; }
         public PartsControl? PartsControl { get; set; }
@@ -284,6 +285,7 @@ namespace Metal_Code
                 w.propsList.Add($"{Tube}");
                 w.propsList.Add($"{IsMassPipe}");
                 w.propsList.Add($"{HaveCut}");
+                w.propsList.Add($"{TotalsSource}");
 
                 if (PartDetails?.Count > 0)
                 {
@@ -305,6 +307,7 @@ namespace Metal_Code
                 if (w.propsList.Count > 3 && Enum.TryParse(w.propsList[3], out TubeType tube)) Tube = tube;
                 if (w.propsList.Count > 4 && bool.TryParse(w.propsList[4], out bool isMassPipe)) SetMassPipe(isMassPipe);
                 if (w.propsList.Count > 5 && bool.TryParse(w.propsList[5], out bool _haveCut)) HaveCut = _haveCut;
+                if (w.propsList.Count > 6 && Enum.TryParse<TotalsSource>(w.propsList[6], out var src)) TotalsSource = src;
             }
         }
 
@@ -950,6 +953,7 @@ namespace Metal_Code
                 if (float.TryParse($"{tables[2].Rows[3].ItemArray[4]}", out float l)) work.type.L = l;
                 SetMold($"{work.type.L * work.type.Count * 0.95f / 1000}");
 
+                TotalsSource = TotalsSource.FromFile;
                 work.type.S = destiny;
 
                 if (PartDetails?.Count > 0)
@@ -1194,6 +1198,7 @@ namespace Metal_Code
         }
     }
 
+    public enum TotalsSource { Manual, FromFile }
 
     public enum TubeType
     {
